@@ -6,7 +6,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   facturaStep1Schema,
-  facturaStep2Schema,
   type FacturaStep1Values,
   type FacturaStep2Values,
   type FacturaLinea,
