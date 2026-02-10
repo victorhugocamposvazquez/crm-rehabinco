@@ -11,7 +11,12 @@ interface FacturaRow {
   numero: string;
   estado: string;
   cliente_id: string | null;
-  clientes: { nombre: string } | null;
+  clientes: { nombre: string } | { nombre: string }[] | null;
+}
+
+interface FacturaLineaTotal {
+  cantidad: number;
+  precio_unitario: number;
 }
 
 export default function FacturasPage() {
@@ -45,14 +50,17 @@ export default function FacturasPage() {
               .from("factura_lineas")
               .select("cantidad, precio_unitario")
               .eq("factura_id", row.id);
-            const total = (lineas ?? []).reduce(
+            const total = ((lineas ?? []) as FacturaLineaTotal[]).reduce(
               (acc, l) => acc + Number(l.cantidad) * Number(l.precio_unitario),
               0
             );
+            const cliente = Array.isArray(row.clientes)
+              ? (row.clientes[0] ?? null)
+              : row.clientes;
             return {
               id: row.id,
               numero: row.numero,
-              clienteNombre: row.clientes?.nombre ?? "—",
+              clienteNombre: cliente?.nombre ?? "—",
               importe: total.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €",
               estado: row.estado as "borrador" | "emitida" | "pagada",
             };

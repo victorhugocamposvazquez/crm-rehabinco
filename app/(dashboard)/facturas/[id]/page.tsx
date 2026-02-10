@@ -47,7 +47,28 @@ export default function DetalleFacturaPage() {
           setError(err.message);
           setFactura(null);
         } else {
-          setFactura(data as FacturaRow);
+          const raw = data as {
+            id: string;
+            numero: string;
+            estado: string;
+            concepto: string | null;
+            fecha_emision: string | null;
+            fecha_vencimiento: string | null;
+            cliente_id: string | null;
+            clientes:
+              | { id: string; nombre: string }
+              | { id: string; nombre: string }[]
+              | null;
+          };
+
+          const cliente = Array.isArray(raw.clientes)
+            ? (raw.clientes[0] ?? null)
+            : raw.clientes;
+
+          setFactura({
+            ...raw,
+            clientes: cliente,
+          });
         }
         setLoading(false);
       });
