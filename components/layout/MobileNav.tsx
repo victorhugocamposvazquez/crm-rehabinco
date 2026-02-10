@@ -16,11 +16,11 @@ export function MobileNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-white pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/80 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       role="navigation"
       aria-label="Navegación principal"
     >
-      <div className="flex h-16 items-center justify-around">
+      <div className="flex h-[4.25rem] items-center justify-around px-2">
         {navItems.map(({ href, label, icon: Icon }) => {
           const isActive =
             pathname === href ||
@@ -30,9 +30,9 @@ export function MobileNav() {
               key={href}
               href={href}
               className={cn(
-                "flex flex-col items-center gap-1 rounded-lg px-4 py-2 text-xs font-medium transition-colors",
+                "flex min-w-[78px] flex-col items-center gap-1 rounded-xl px-3 py-2 text-[11px] font-semibold tracking-wide transition-all",
                 isActive
-                  ? "text-foreground"
+                  ? "bg-neutral-100 text-foreground"
                   : "text-neutral-500 hover:text-foreground"
               )}
             >

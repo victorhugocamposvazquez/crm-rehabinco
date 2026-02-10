@@ -5,11 +5,11 @@
 :root {
   --font-inter: "Inter", system-ui, sans-serif;
   --background: #ffffff;
-  --foreground: #0a0a0a;
-  --muted: #737373;
-  --border: #e5e5e5;
-  --ring: #0a0a0a;
-  --radius: 0.5rem;
+  --foreground: #111317;
+  --muted: #6b7280;
+  --border: #e8ebf0;
+  --ring: #111317;
+  --radius: 0.75rem;
 }
 
 * {
@@ -25,4 +25,20 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-inter);
+  letter-spacing: -0.01em;
+  text-rendering: geometricPrecision;
+}
+
+@layer base {
+  h1 {
+    @apply text-3xl font-semibold tracking-tight text-foreground sm:text-[2.05rem];
+  }
+
+  h2 {
+    @apply text-2xl font-semibold tracking-tight text-foreground;
+  }
+
+  p {
+    @apply text-[15px] leading-6;
+  }
 }
