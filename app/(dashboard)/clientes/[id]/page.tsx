@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog } from "@/components/ui/alert-dialog";
-import { ChevronLeft, Pencil, Trash2 } from "lucide-react";
+import { ChevronLeft, Pencil, Trash2, FileText } from "lucide-react";
 
 interface Cliente {
   id: string;
@@ -121,6 +121,12 @@ export default function DetalleClientePage() {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1">
+          <Button variant="secondary" size="icon" className="md:h-9 md:w-auto md:gap-2 md:px-3" asChild>
+            <Link href={`/facturas/nueva?cliente=${id}`} aria-label="Nueva factura">
+              <FileText className="h-4 w-4" strokeWidth={1.5} />
+              <span className="hidden md:inline">Nueva factura</span>
+            </Link>
+          </Button>
           <Button variant="secondary" size="icon" className="md:h-9 md:w-auto md:gap-2 md:px-3" asChild>
             <Link href={`/clientes/${id}/editar`} aria-label="Editar">
               <Pencil className="h-4 w-4" strokeWidth={1.5} />

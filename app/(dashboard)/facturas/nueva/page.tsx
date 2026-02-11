@@ -3,7 +3,15 @@ import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 
-export default function NuevaFacturaPage() {
+export default async function NuevaFacturaPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ cliente?: string | string[] }>;
+}) {
+  const params = await searchParams;
+  const raw = params?.cliente;
+  const clienteId = typeof raw === "string" ? raw : Array.isArray(raw) ? raw[0] : undefined;
+
   return (
     <div>
       <Breadcrumb items={[{ label: "Facturas", href: "/facturas" }, { label: "Nueva" }]} className="mb-4" />
@@ -19,7 +27,7 @@ export default function NuevaFacturaPage() {
           Nueva factura
         </h1>
       </div>
-      <FacturaWizard />
+      <FacturaWizard initialClienteId={clienteId} />
     </div>
   );
 }

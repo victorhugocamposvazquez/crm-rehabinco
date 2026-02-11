@@ -86,7 +86,7 @@ export function TopBar() {
       </header>
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <div className="px-4 pb-6 pt-2">
+        <div className="px-4 pb-24 pt-2 md:pb-6">
           <div className="mb-4 rounded-2xl bg-neutral-50 px-4 py-4">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
               Sesión iniciada

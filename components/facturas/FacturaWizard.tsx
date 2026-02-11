@@ -32,9 +32,10 @@ type WizardData = FacturaStep1Values & FacturaStep2Values & { estadoInicial?: Es
 
 interface FacturaWizardProps {
   facturaId?: string;
+  initialClienteId?: string;
 }
 
-export function FacturaWizard({ facturaId }: FacturaWizardProps) {
+export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [data, setData] = useState<Partial<WizardData>>({});
@@ -45,6 +46,7 @@ export function FacturaWizard({ facturaId }: FacturaWizardProps) {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [irpfPorcentaje, setIrpfPorcentaje] = useState<number>(0);
+  const [porcentajeDescuento, setPorcentajeDescuento] = useState<number>(0);
   const [showQuickClient, setShowQuickClient] = useState(false);
   const [creatingClient, setCreatingClient] = useState(false);
   const [quickClientError, setQuickClientError] = useState<string | null>(null);
@@ -63,10 +65,22 @@ export function FacturaWizard({ facturaId }: FacturaWizardProps) {
       .then(({ data: list }) => setClientes(list ?? []));
   }, []);
 
+  useEffect(() => {
+    if (initialClienteId && !facturaId) {
+      formStep1.setValue("clienteId", initialClienteId);
+      setData((p) => ({ ...p, clienteId: initialClienteId }));
+    }
+  }, [initialClienteId, facturaId, formStep1]);
+
   const today = new Date().toISOString().slice(0, 10);
   const formStep1 = useForm<FacturaStep1Values>({
     resolver: zodResolver(facturaStep1Schema),
-    defaultValues: { clienteId: "", concepto: "", fechaEmision: today, fechaVencimiento: "" },
+    defaultValues: {
+      clienteId: initialClienteId ?? "",
+      concepto: "",
+      fechaEmision: today,
+      fechaVencimiento: "",
+    },
   });
 
   const [lineas, setLineas] = useState<FacturaLinea[]>([
@@ -77,10 +91,10 @@ export function FacturaWizard({ facturaId }: FacturaWizardProps) {
     if (!facturaId) return;
     const supabase = createClient();
     Promise.all([
-      supabase.from("facturas").select("id, numero, estado, concepto, fecha_emision, fecha_vencimiento, irpf_porcentaje, cliente_id").eq("id", facturaId).single(),
+      supabase.from("facturas").select("id, numero, estado, concepto, fecha_emision, fecha_vencimiento, irpf_porcentaje, porcentaje_descuento, cliente_id").eq("id", facturaId).single(),
       supabase.from("factura_lineas").select("descripcion, cantidad, precio_unitario, iva_porcentaje").eq("factura_id", facturaId).order("orden"),
     ]).then(([fRes, lRes]) => {
-      const factura = fRes.data as { numero: string; estado: string; concepto: string | null; fecha_emision: string | null; fecha_vencimiento: string | null; irpf_porcentaje: number | null; cliente_id: string | null } | null;
+      const factura = fRes.data as { numero: string; estado: string; concepto: string | null; fecha_emision: string | null; fecha_vencimiento: string | null; irpf_porcentaje: number | null; porcentaje_descuento: number | null; cliente_id: string | null } | null;
       const lineasData = (lRes.data ?? []) as Array<{ descripcion: string; cantidad: number; precio_unitario: number; iva_porcentaje: number | null }>;
       if (!factura) {
         setLoading(false);
@@ -104,6 +118,7 @@ export function FacturaWizard({ facturaId }: FacturaWizardProps) {
       });
       setEstadoInicial(factura.estado as EstadoFactura);
       setIrpfPorcentaje(Number(factura.irpf_porcentaje ?? 0));
+      setPorcentajeDescuento(Number(factura.porcentaje_descuento ?? 0));
       setLineas(
         lineasData.length > 0
           ? lineasData.map((l) => ({
@@ -191,12 +206,13 @@ export function FacturaWizard({ facturaId }: FacturaWizardProps) {
     );
 
   const subtotal = lineas.reduce((acc, l) => acc + l.cantidad * l.precioUnitario, 0);
+  const descuentoImporte = subtotal * (porcentajeDescuento / 100);
   const ivaTotal = lineas.reduce(
     (acc, l) => acc + l.cantidad * l.precioUnitario * (l.ivaPorcentaje / 100),
     0
   );
   const irpfImporte = subtotal * (irpfPorcentaje / 100);
-  const total = subtotal + ivaTotal - irpfImporte;
+  const total = subtotal + ivaTotal - descuentoImporte - irpfImporte;
   const clienteNombre =
     clientes.find((c) => c.id === data.clienteId)?.nombre ?? "—";
 
@@ -231,6 +247,7 @@ export function FacturaWizard({ facturaId }: FacturaWizardProps) {
           fecha_emision: data.fechaEmision || null,
           fecha_vencimiento: data.fechaVencimiento || null,
           irpf_porcentaje: irpfPorcentaje,
+          porcentaje_descuento: porcentajeDescuento,
         })
         .eq("id", facturaId);
 
@@ -284,6 +301,7 @@ export function FacturaWizard({ facturaId }: FacturaWizardProps) {
         fecha_emision: data.fechaEmision || null,
         fecha_vencimiento: data.fechaVencimiento || null,
         irpf_porcentaje: irpfPorcentaje,
+        porcentaje_descuento: porcentajeDescuento,
       })
       .select("id")
       .single();
@@ -470,6 +488,7 @@ export function FacturaWizard({ facturaId }: FacturaWizardProps) {
               <CardTitle>Líneas de factura</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="overflow-x-auto">
               {lineas.map((l, i) => (
                 <div
                   key={i}
@@ -536,10 +555,58 @@ export function FacturaWizard({ facturaId }: FacturaWizardProps) {
                   </Button>
                 </div>
               ))}
+              </div>
               <Button type="button" variant="secondary" onClick={addLinea}>
                 <Plus className="mr-2 h-4 w-4" strokeWidth={1.5} />
                 Añadir línea
               </Button>
+
+              <div className="sticky bottom-0 mt-6 rounded-xl border border-border bg-neutral-50/90 p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                  Totales
+                </p>
+                <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-5">
+                  <div>
+                    <p className="text-neutral-500">Subtotal</p>
+                    <p className="font-semibold text-foreground">{subtotal.toFixed(2)} €</p>
+                  </div>
+                  <div>
+                    <Label className="text-neutral-500">Descuento %</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step="0.5"
+                      className="mt-0.5 h-9"
+                      value={porcentajeDescuento || ""}
+                      onChange={(e) => setPorcentajeDescuento(Number(e.target.value) || 0)}
+                    />
+                    <p className="text-xs text-neutral-500">-{descuentoImporte.toFixed(2)} €</p>
+                  </div>
+                  <div>
+                    <p className="text-neutral-500">IVA</p>
+                    <p className="font-semibold text-foreground">{ivaTotal.toFixed(2)} €</p>
+                  </div>
+                  <div>
+                    <Label className="text-neutral-500">IRPF %</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={25}
+                      step="0.5"
+                      className="mt-0.5 h-9"
+                      value={irpfPorcentaje || ""}
+                      onChange={(e) => setIrpfPorcentaje(Number(e.target.value) || 0)}
+                    />
+                    <p className="text-xs text-neutral-500">-{irpfImporte.toFixed(2)} €</p>
+                  </div>
+                  <div>
+                    <p className="text-neutral-500">Total</p>
+                    <p className="text-lg font-semibold text-foreground">{total.toFixed(2)} €</p>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex justify-end gap-2 pt-4">
                 <Button variant="secondary" onClick={handleBack}>
                   Atrás
@@ -565,39 +632,45 @@ export function FacturaWizard({ facturaId }: FacturaWizardProps) {
                   <dt className="text-neutral-500">Concepto</dt>
                   <dd className="font-medium">{data.concepto || "—"}</dd>
                 </div>
-                <div>
-                  <dt className="text-neutral-500">Líneas</dt>
-                  <dd className="font-medium">{lineas.length}</dd>
-                </div>
-                <div>
-                  <dt className="text-neutral-500">Total</dt>
-                  <dd className="text-lg font-semibold">{total.toFixed(2)} €</dd>
-                </div>
               </dl>
-              <div className="rounded-xl border border-border bg-neutral-50/70 p-3">
-                <p className="mb-2 text-sm font-medium">Ajustes fiscales</p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-1">
-                    <Label htmlFor="subtotal">Base imponible</Label>
-                    <Input id="subtotal" value={`${subtotal.toFixed(2)} €`} readOnly />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="iva-total">IVA total</Label>
-                    <Input id="iva-total" value={`${ivaTotal.toFixed(2)} €`} readOnly />
-                  </div>
+              <div>
+                <p className="mb-2 text-sm font-medium text-neutral-500">Líneas desglosadas</p>
+                <ul className="space-y-2 rounded-lg border border-border bg-neutral-50/60 p-3">
+                  {lineas.map((l, i) => {
+                    const importe = l.cantidad * l.precioUnitario * (1 + l.ivaPorcentaje / 100);
+                    return (
+                      <li key={i} className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
+                        <span className="font-medium text-foreground">{l.descripcion || "—"}</span>
+                        <span className="text-neutral-600">
+                          {l.cantidad} × {l.precioUnitario.toFixed(2)} € (IVA {l.ivaPorcentaje}%) = {importe.toFixed(2)} €
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <div className="mt-3 flex justify-end gap-4 border-t border-border pt-3 text-sm">
+                  <span className="text-neutral-500">Subtotal:</span>
+                  <span className="font-medium">{subtotal.toFixed(2)} €</span>
                 </div>
-                <div className="mt-3 space-y-1">
-                  <Label htmlFor="irpf">Retención IRPF (%) opcional</Label>
-                  <Input
-                    id="irpf"
-                    type="number"
-                    min={0}
-                    max={25}
-                    step="0.01"
-                    value={irpfPorcentaje}
-                    onChange={(e) => setIrpfPorcentaje(Number(e.target.value) || 0)}
-                  />
-                  <p className="text-xs text-neutral-500">Importe IRPF: {irpfImporte.toFixed(2)} €</p>
+                {porcentajeDescuento > 0 && (
+                  <div className="flex justify-end gap-4 text-sm">
+                    <span className="text-neutral-500">Descuento ({porcentajeDescuento}%):</span>
+                    <span className="font-medium">-{descuentoImporte.toFixed(2)} €</span>
+                  </div>
+                )}
+                <div className="flex justify-end gap-4 text-sm">
+                  <span className="text-neutral-500">IVA:</span>
+                  <span className="font-medium">{ivaTotal.toFixed(2)} €</span>
+                </div>
+                {irpfPorcentaje > 0 && (
+                  <div className="flex justify-end gap-4 text-sm">
+                    <span className="text-neutral-500">IRPF ({irpfPorcentaje}%):</span>
+                    <span className="font-medium">-{irpfImporte.toFixed(2)} €</span>
+                  </div>
+                )}
+                <div className="flex justify-end gap-4 border-t border-border pt-2 text-base">
+                  <span className="font-medium text-neutral-600">Total</span>
+                  <span className="text-lg font-semibold text-foreground">{total.toFixed(2)} €</span>
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-4">
