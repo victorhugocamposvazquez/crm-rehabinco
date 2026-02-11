@@ -27,7 +27,10 @@ interface FacturaRow {
     id: string;
     nombre: string;
     nif: string | null;
+    tipo?: "particular" | "empresa" | null;
     direccion: string | null;
+    codigo_postal?: string | null;
+    localidad?: string | null;
     email: string | null;
     telefono?: string | null;
   } | null;
