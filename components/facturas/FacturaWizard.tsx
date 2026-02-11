@@ -66,13 +66,6 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
       .then(({ data: list }) => setClientes(list ?? []));
   }, []);
 
-  useEffect(() => {
-    if (initialClienteId && !facturaId) {
-      formStep1.setValue("clienteId", initialClienteId);
-      setData((p) => ({ ...p, clienteId: initialClienteId }));
-    }
-  }, [initialClienteId, facturaId, formStep1]);
-
   const today = new Date().toISOString().slice(0, 10);
   const formStep1 = useForm<FacturaStep1Values>({
     resolver: zodResolver(facturaStep1Schema),
@@ -83,6 +76,13 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
       fechaVencimiento: "",
     },
   });
+
+  useEffect(() => {
+    if (initialClienteId && !facturaId) {
+      formStep1.setValue("clienteId", initialClienteId);
+      setData((p) => ({ ...p, clienteId: initialClienteId }));
+    }
+  }, [initialClienteId, facturaId, formStep1]);
 
   const [lineas, setLineas] = useState<FacturaLinea[]>([
     { descripcion: "", cantidad: 0, precioUnitario: 0, ivaPorcentaje: 21 },
