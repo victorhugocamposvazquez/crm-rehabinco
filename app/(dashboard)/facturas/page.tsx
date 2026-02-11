@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { FacturaCard } from "@/components/facturas/FacturaCard";
 import { FacturaListSkeleton } from "@/components/facturas/FacturaListSkeleton";
 import { Fab } from "@/components/ui/fab";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 interface FacturaRow {
   id: string;
@@ -63,12 +66,22 @@ export default function FacturasPage() {
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-500">
         CRM / Facturas
       </p>
-      <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-[2.2rem]">
-        Facturas
-      </h1>
-      <p className="mt-2 max-w-2xl text-base text-neutral-600">
-        Gestiona facturas y cobros
-      </p>
+      <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-[2.2rem]">
+            Facturas
+          </h1>
+          <p className="mt-2 max-w-2xl text-base text-neutral-600">
+            Gestiona facturas y cobros
+          </p>
+        </div>
+        <Button asChild size="sm" className="shrink-0">
+          <Link href="/facturas/nueva" className="gap-2">
+            <Plus className="h-4 w-4" strokeWidth={1.5} />
+            Crear factura
+          </Link>
+        </Button>
+      </div>
 
       {error && (
         <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">

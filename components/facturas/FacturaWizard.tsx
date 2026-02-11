@@ -26,16 +26,22 @@ const STEPS = [
   { id: 4, title: "Confirmar" },
 ];
 
-type EstadoInicial = "borrador" | "emitida";
+type EstadoFactura = "borrador" | "emitida" | "pagada";
 
-type WizardData = FacturaStep1Values & FacturaStep2Values & { estadoInicial?: EstadoInicial };
+type WizardData = FacturaStep1Values & FacturaStep2Values & { estadoInicial?: EstadoFactura };
 
-export function FacturaWizard() {
+interface FacturaWizardProps {
+  facturaId?: string;
+}
+
+export function FacturaWizard({ facturaId }: FacturaWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [data, setData] = useState<Partial<WizardData>>({});
-  const [estadoInicial, setEstadoInicial] = useState<EstadoInicial>("borrador");
+  const [estadoInicial, setEstadoInicial] = useState<EstadoFactura>("borrador");
   const [clientes, setClientes] = useState<Array<{ id: string; nombre: string }>>([]);
+  const [loading, setLoading] = useState(!!facturaId);
+  const [numero, setNumero] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [irpfPorcentaje, setIrpfPorcentaje] = useState<number>(0);
@@ -65,6 +71,53 @@ export function FacturaWizard() {
   const [lineas, setLineas] = useState<FacturaLinea[]>([
     { descripcion: "", cantidad: 0, precioUnitario: 0, ivaPorcentaje: 21 },
   ]);
+
+  useEffect(() => {
+    if (!facturaId) return;
+    const supabase = createClient();
+    Promise.all([
+      supabase.from("facturas").select("id, numero, estado, concepto, fecha_emision, fecha_vencimiento, irpf_porcentaje, cliente_id").eq("id", facturaId).single(),
+      supabase.from("factura_lineas").select("descripcion, cantidad, precio_unitario, iva_porcentaje").eq("factura_id", facturaId).order("orden"),
+    ]).then(([fRes, lRes]) => {
+      const factura = fRes.data as { numero: string; estado: string; concepto: string | null; fecha_emision: string | null; fecha_vencimiento: string | null; irpf_porcentaje: number | null; cliente_id: string | null } | null;
+      const lineasData = (lRes.data ?? []) as Array<{ descripcion: string; cantidad: number; precio_unitario: number; iva_porcentaje: number | null }>;
+      if (!factura) {
+        setLoading(false);
+        return;
+      }
+      setNumero(factura.numero);
+      const step1Values = {
+        clienteId: factura.cliente_id ?? "",
+        concepto: factura.concepto ?? "",
+        fechaEmision: factura.fecha_emision ?? "",
+        fechaVencimiento: factura.fecha_vencimiento ?? "",
+      };
+      setData({
+        ...step1Values,
+        lineas: lineasData.map((l) => ({
+          descripcion: l.descripcion,
+          cantidad: Number(l.cantidad),
+          precioUnitario: Number(l.precio_unitario),
+          ivaPorcentaje: Number(l.iva_porcentaje ?? 21),
+        })),
+      });
+      setEstadoInicial(factura.estado as EstadoFactura);
+      setIrpfPorcentaje(Number(factura.irpf_porcentaje ?? 0));
+      setLineas(
+        lineasData.length > 0
+          ? lineasData.map((l) => ({
+              descripcion: l.descripcion,
+              cantidad: Number(l.cantidad),
+              precioUnitario: Number(l.precio_unitario),
+              ivaPorcentaje: Number(l.iva_porcentaje ?? 21),
+            }))
+          : [{ descripcion: "", cantidad: 0, precioUnitario: 0, ivaPorcentaje: 21 }]
+      );
+      formStep1.reset(step1Values);
+      setLoading(false);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- formStep1.reset is stable
+  }, [facturaId]);
 
   const onStep1 = formStep1.handleSubmit((values) => {
     setData((p) => ({ ...p, ...values }));
@@ -159,6 +212,52 @@ export function FacturaWizard() {
       return;
     }
     const clienteId = data.clienteId || null;
+    const lineasToSave = (data.lineas ?? lineas).map((l, orden) => ({
+      descripcion: l.descripcion,
+      cantidad: l.cantidad,
+      precio_unitario: l.precioUnitario,
+      iva_porcentaje: l.ivaPorcentaje,
+      orden,
+    }));
+
+    if (facturaId) {
+      const { error: errFactura } = await supabase
+        .from("facturas")
+        .update({
+          cliente_id: clienteId,
+          estado: estadoInicial,
+          concepto: data.concepto || null,
+          fecha_emision: data.fechaEmision || null,
+          fecha_vencimiento: data.fechaVencimiento || null,
+          irpf_porcentaje: irpfPorcentaje,
+        })
+        .eq("id", facturaId);
+
+      if (errFactura) {
+        setCreateError(errFactura.message);
+        setCreating(false);
+        return;
+      }
+
+      const { error: errDel } = await supabase.from("factura_lineas").delete().eq("factura_id", facturaId);
+      if (errDel) {
+        setCreateError(errDel.message);
+        setCreating(false);
+        return;
+      }
+      const { error: errLineas } = await supabase.from("factura_lineas").insert(
+        lineasToSave.map((l) => ({ ...l, factura_id: facturaId }))
+      );
+      setCreating(false);
+      if (errLineas) {
+        setCreateError(errLineas.message);
+        return;
+      }
+      router.push(`/facturas/${facturaId}`);
+      router.refresh();
+      return;
+    }
+
     const year = new Date().getFullYear();
     const serie = process.env.NEXT_PUBLIC_BILLING_SERIE ?? "RHB";
     const prefix = `${serie}-${year}-`;
@@ -177,7 +276,7 @@ export function FacturaWizard() {
       .from("facturas")
       .insert({
         user_id: user.id,
-        cliente_id: clienteId || null,
+        cliente_id: clienteId,
         numero,
         estado: estadoInicial,
         concepto: data.concepto || null,
@@ -194,16 +293,9 @@ export function FacturaWizard() {
       return;
     }
 
-    const lineasToInsert = (data.lineas ?? lineas).map((l, orden) => ({
-      factura_id: factura.id,
-      descripcion: l.descripcion,
-      cantidad: l.cantidad,
-      precio_unitario: l.precioUnitario,
-      iva_porcentaje: l.ivaPorcentaje,
-      orden,
-    }));
-    const { error: errLineas } = await supabase.from("factura_lineas").insert(lineasToInsert);
-
+    const { error: errLineas } = await supabase.from("factura_lineas").insert(
+      lineasToSave.map((l) => ({ ...l, factura_id: factura.id }))
+    );
     setCreating(false);
     if (errLineas) {
       setCreateError(errLineas.message);
@@ -213,8 +305,16 @@ export function FacturaWizard() {
     router.refresh();
   };
 
+  if (loading) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-foreground" />
+      </div>
+    );
+  }
+
   return (
-    <div className="mx-auto max-w-xl animate-[fadeIn_0.3s_ease-out]">
+    <div className="mx-auto max-w-2xl animate-[fadeIn_0.3s_ease-out]">
       <div className="mb-8 flex items-center gap-2">
         {STEPS.map((s, idx) => (
           <div
@@ -251,6 +351,9 @@ export function FacturaWizard() {
           <Card>
             <CardHeader>
               <CardTitle>Cliente y fechas</CardTitle>
+              {numero && (
+                <p className="text-sm font-medium text-neutral-500">{numero}</p>
+              )}
             </CardHeader>
             <CardContent>
               <form onSubmit={onStep1} className="space-y-4">
@@ -507,13 +610,13 @@ export function FacturaWizard() {
         {step === 4 && (
           <Card>
             <CardHeader>
-              <CardTitle>Confirmar y crear</CardTitle>
+              <CardTitle>{facturaId ? "Confirmar cambios" : "Confirmar y crear"}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-neutral-600">
-                Estado inicial de la factura:
+                Estado de la factura:
               </p>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Badge
                   variant={estadoInicial === "borrador" ? "default" : "borrador"}
                   className={cn(
@@ -534,6 +637,16 @@ export function FacturaWizard() {
                 >
                   Emitida
                 </Badge>
+                <Badge
+                  variant={estadoInicial === "pagada" ? "default" : "pagada"}
+                  className={cn(
+                    "cursor-pointer transition-opacity",
+                    estadoInicial === "pagada" && "ring-2 ring-foreground"
+                  )}
+                  onClick={() => setEstadoInicial("pagada")}
+                >
+                  Pagada
+                </Badge>
               </div>
               {createError && (
                 <p className="text-sm text-red-600">{createError}</p>
@@ -543,7 +656,7 @@ export function FacturaWizard() {
                   Atrás
                 </Button>
                 <Button onClick={handleCreate} disabled={creating}>
-                  {creating ? "Creando…" : "Crear factura"}
+                  {creating ? (facturaId ? "Guardando…" : "Creando…") : (facturaId ? "Guardar cambios" : "Crear factura")}
                 </Button>
               </div>
             </CardContent>

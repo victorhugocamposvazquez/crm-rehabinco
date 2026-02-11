@@ -41,7 +41,7 @@ export function DesktopNav() {
       className="sticky top-0 z-40 hidden border-b border-border/80 bg-white/90 backdrop-blur md:block"
       role="banner"
     >
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-16 w-full max-w-[1600px] items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link
           href="/"
           className="text-base font-semibold tracking-tight text-foreground"

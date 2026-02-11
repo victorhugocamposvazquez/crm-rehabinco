@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const facturaStep1Schema = z.object({
-  clienteId: z.string().min(1, "Selecciona un cliente"),
+  clienteId: z.string().optional(),
   concepto: z.string().optional(),
   fechaEmision: z.string().optional(),
   fechaVencimiento: z.string().optional(),

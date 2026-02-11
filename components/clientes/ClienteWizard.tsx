@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { createClient } from "@/lib/supabase/client";
@@ -23,21 +23,55 @@ const STEPS = [
   { id: 3, title: "Resumen" },
 ];
 
-type WizardData = ClienteStep1Values & ClienteStep2Values;
+type WizardData = ClienteStep1Values & ClienteStep2Values & { activo?: boolean };
 
-export function ClienteWizard() {
+interface ClienteWizardProps {
+  clienteId?: string;
+}
+
+export function ClienteWizard({ clienteId }: ClienteWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [data, setData] = useState<Partial<WizardData>>({});
+  const [loading, setLoading] = useState(!!clienteId);
+
+  useEffect(() => {
+    if (!clienteId) return;
+    const supabase = createClient();
+    supabase
+      .from("clientes")
+      .select("*")
+      .eq("id", clienteId)
+      .single()
+      .then(({ data: row, error }) => {
+        if (error || !row) {
+          setLoading(false);
+          return;
+        }
+        const r = row as { nombre: string; email: string | null; telefono: string | null; nif: string | null; direccion: string | null; notas: string | null; activo: boolean };
+        setData({
+          nombre: r.nombre,
+          email: r.email ?? "",
+          telefono: r.telefono ?? "",
+          nif: r.nif ?? "",
+          direccion: r.direccion ?? "",
+          notas: r.notas ?? "",
+          activo: r.activo ?? true,
+        });
+        setLoading(false);
+      });
+  }, [clienteId]);
 
   const formStep1 = useForm<ClienteStep1Values>({
     resolver: zodResolver(clienteStep1Schema),
-    defaultValues: data as ClienteStep1Values,
+    defaultValues: { nombre: "", email: "", telefono: "", nif: "" },
+    values: data?.nombre ? { nombre: data.nombre, email: data.email ?? "", telefono: data.telefono ?? "", nif: data.nif ?? "" } : undefined,
   });
 
   const formStep2 = useForm<ClienteStep2Values>({
     resolver: zodResolver(clienteStep2Schema),
-    defaultValues: data as ClienteStep2Values,
+    defaultValues: { direccion: "", notas: "" },
+    values: data ? { direccion: data.direccion ?? "", notas: data.notas ?? "" } : undefined,
   });
 
   const onStep1 = formStep1.handleSubmit((values) => {
@@ -68,27 +102,37 @@ export function ClienteWizard() {
       setSaving(false);
       return;
     }
-    const { error } = await supabase.from("clientes").insert({
-      user_id: user.id,
+    const payload = {
       nombre: data.nombre ?? "",
       email: data.email || null,
       telefono: data.telefono || null,
       nif: data.nif || null,
       direccion: data.direccion || null,
       notas: data.notas || null,
-      activo: true,
-    });
+      activo: data.activo ?? true,
+    };
+    const { error } = clienteId
+      ? await supabase.from("clientes").update(payload).eq("id", clienteId)
+      : await supabase.from("clientes").insert({ ...payload, user_id: user.id });
     setSaving(false);
     if (error) {
       setSaveError(error.message);
       return;
     }
-    router.push("/clientes");
+    router.push(clienteId ? `/clientes/${clienteId}` : "/clientes");
     router.refresh();
   };
 
+  if (loading) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-foreground" />
+      </div>
+    );
+  }
+
   return (
-    <div className="mx-auto max-w-xl animate-[fadeIn_0.3s_ease-out]">
+    <div className="mx-auto max-w-2xl animate-[fadeIn_0.3s_ease-out]">
       <div className="mb-8 flex items-center justify-between gap-2">
         {STEPS.map((s) => (
           <div
@@ -202,6 +246,18 @@ export function ClienteWizard() {
                     {...formStep2.register("notas")}
                   />
                 </div>
+                {clienteId && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="activo"
+                      checked={data.activo ?? true}
+                      onChange={(e) => setData((p) => ({ ...p, activo: e.target.checked }))}
+                      className="h-4 w-4 rounded border-border"
+                    />
+                    <Label htmlFor="activo">Cliente activo</Label>
+                  </div>
+                )}
                 <div className="flex justify-end gap-2 pt-4">
                   <Button type="button" variant="secondary" onClick={handleBack}>
                     Atrás
@@ -236,6 +292,12 @@ export function ClienteWizard() {
                   <dt className="text-neutral-500">Dirección</dt>
                   <dd className="font-medium">{data.direccion || "—"}</dd>
                 </div>
+                {clienteId && (
+                  <div>
+                    <dt className="text-neutral-500">Estado</dt>
+                    <dd className="font-medium">{data.activo !== false ? "Activo" : "Inactivo"}</dd>
+                  </div>
+                )}
               </dl>
               {saveError && (
                 <p className="text-sm text-red-600">{saveError}</p>
