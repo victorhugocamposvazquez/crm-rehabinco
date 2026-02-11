@@ -22,7 +22,10 @@ export interface Database {
           email: string | null;
           telefono: string | null;
           nif: string | null;
+          tipo: "particular" | "empresa";
           direccion: string | null;
+          codigo_postal: string | null;
+          localidad: string | null;
           notas: string | null;
           activo: boolean;
           created_at: string;
@@ -34,7 +37,10 @@ export interface Database {
           email?: string | null;
           telefono?: string | null;
           nif?: string | null;
+          tipo?: "particular" | "empresa";
           direccion?: string | null;
+          codigo_postal?: string | null;
+          localidad?: string | null;
           notas?: string | null;
           activo?: boolean;
         };
@@ -43,7 +49,10 @@ export interface Database {
           email?: string | null;
           telefono?: string | null;
           nif?: string | null;
+          tipo?: "particular" | "empresa";
           direccion?: string | null;
+          codigo_postal?: string | null;
+          localidad?: string | null;
           notas?: string | null;
           activo?: boolean;
           updated_at?: string;

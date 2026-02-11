@@ -17,7 +17,10 @@ interface Cliente {
   email: string | null;
   telefono: string | null;
   nif: string | null;
+  tipo?: "particular" | "empresa" | null;
   direccion: string | null;
+  codigo_postal: string | null;
+  localidad: string | null;
   notas: string | null;
   activo: boolean;
 }
@@ -176,7 +179,7 @@ export default function DetalleClientePage() {
               {cliente.telefono ?? "—"}
             </p>
             <p>
-              <span className="text-neutral-500">NIF:</span>{" "}
+              <span className="text-neutral-500">{cliente.tipo === "empresa" ? "NIF" : "DNI"}:</span>{" "}
               {cliente.nif ?? "—"}
             </p>
           </CardContent>
@@ -186,7 +189,9 @@ export default function DetalleClientePage() {
             <CardTitle>Dirección</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm">{cliente.direccion ?? "—"}</p>
+            <p className="text-sm">
+              {[cliente.direccion, cliente.codigo_postal, cliente.localidad].filter(Boolean).join(", ") || "—"}
+            </p>
           </CardContent>
         </Card>
         <Card className="md:col-span-2">

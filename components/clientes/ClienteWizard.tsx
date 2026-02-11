@@ -48,13 +48,16 @@ export function ClienteWizard({ clienteId }: ClienteWizardProps) {
           setLoading(false);
           return;
         }
-        const r = row as { nombre: string; email: string | null; telefono: string | null; nif: string | null; direccion: string | null; notas: string | null; activo: boolean };
+        const r = row as { nombre: string; email: string | null; telefono: string | null; nif: string | null; tipo: "particular" | "empresa"; direccion: string | null; codigo_postal: string | null; localidad: string | null; notas: string | null; activo: boolean };
         setData({
           nombre: r.nombre,
+          tipo: r.tipo ?? "particular",
+          nif: r.nif ?? "",
           email: r.email ?? "",
           telefono: r.telefono ?? "",
-          nif: r.nif ?? "",
           direccion: r.direccion ?? "",
+          codigo_postal: r.codigo_postal ?? "",
+          localidad: r.localidad ?? "",
           notas: r.notas ?? "",
           activo: r.activo ?? true,
         });
@@ -64,14 +67,14 @@ export function ClienteWizard({ clienteId }: ClienteWizardProps) {
 
   const formStep1 = useForm<ClienteStep1Values>({
     resolver: zodResolver(clienteStep1Schema),
-    defaultValues: { nombre: "", email: "", telefono: "", nif: "" },
-    values: data?.nombre ? { nombre: data.nombre, email: data.email ?? "", telefono: data.telefono ?? "", nif: data.nif ?? "" } : undefined,
+    defaultValues: { nombre: "", tipo: "particular", nif: "", email: "", telefono: "" },
+    values: data?.nombre ? { nombre: data.nombre, tipo: (data.tipo as "particular" | "empresa") ?? "particular", nif: data.nif ?? "", email: data.email ?? "", telefono: data.telefono ?? "" } : undefined,
   });
 
   const formStep2 = useForm<ClienteStep2Values>({
     resolver: zodResolver(clienteStep2Schema),
-    defaultValues: { direccion: "", notas: "" },
-    values: data ? { direccion: data.direccion ?? "", notas: data.notas ?? "" } : undefined,
+    defaultValues: { direccion: "", codigo_postal: "", localidad: "", notas: "" },
+    values: data ? { direccion: data.direccion ?? "", codigo_postal: data.codigo_postal ?? "", localidad: data.localidad ?? "", notas: data.notas ?? "" } : undefined,
   });
 
   const onStep1 = formStep1.handleSubmit((values) => {
@@ -104,10 +107,13 @@ export function ClienteWizard({ clienteId }: ClienteWizardProps) {
     }
     const payload = {
       nombre: data.nombre ?? "",
+      tipo: (data.tipo as "particular" | "empresa") ?? "particular",
       email: data.email || null,
       telefono: data.telefono || null,
       nif: data.nif || null,
       direccion: data.direccion || null,
+      codigo_postal: data.codigo_postal || null,
+      localidad: data.localidad || null,
       notas: data.notas || null,
       activo: data.activo ?? true,
     };
@@ -190,6 +196,46 @@ export function ClienteWizard({ clienteId }: ClienteWizardProps) {
                   )}
                 </div>
                 <div className="space-y-2">
+                  <Label>Tipo de cliente</Label>
+                  <div className="flex rounded-lg border border-border p-1">
+                    <button
+                      type="button"
+                      onClick={() => formStep1.setValue("tipo", "particular")}
+                      className={cn(
+                        "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                        formStep1.watch("tipo") === "particular"
+                          ? "bg-foreground text-background"
+                          : "text-muted-foreground hover:bg-muted"
+                      )}
+                    >
+                      Particular
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => formStep1.setValue("tipo", "empresa")}
+                      className={cn(
+                        "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                        formStep1.watch("tipo") === "empresa"
+                          ? "bg-foreground text-background"
+                          : "text-muted-foreground hover:bg-muted"
+                      )}
+                    >
+                      Empresa
+                    </button>
+                  </div>
+                  <input type="hidden" {...formStep1.register("tipo")} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="nif">
+                    {formStep1.watch("tipo") === "particular" ? "DNI" : "NIF"}
+                  </Label>
+                  <Input
+                    id="nif"
+                    placeholder={formStep1.watch("tipo") === "particular" ? "12345678A" : "B12345678"}
+                    {...formStep1.register("nif")}
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
@@ -204,14 +250,6 @@ export function ClienteWizard({ clienteId }: ClienteWizardProps) {
                     id="telefono"
                     placeholder="+34 600 000 000"
                     {...formStep1.register("telefono")}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="nif">NIF</Label>
-                  <Input
-                    id="nif"
-                    placeholder="12345678A"
-                    {...formStep1.register("nif")}
                   />
                 </div>
                 <div className="flex justify-end gap-2 pt-4">
@@ -233,9 +271,27 @@ export function ClienteWizard({ clienteId }: ClienteWizardProps) {
                   <Label htmlFor="direccion">Dirección</Label>
                   <Input
                     id="direccion"
-                    placeholder="Calle, número, ciudad"
+                    placeholder="Calle, número, piso"
                     {...formStep2.register("direccion")}
                   />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="codigo_postal">Código postal</Label>
+                    <Input
+                      id="codigo_postal"
+                      placeholder="28001"
+                      {...formStep2.register("codigo_postal")}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="localidad">Localidad</Label>
+                    <Input
+                      id="localidad"
+                      placeholder="Madrid"
+                      {...formStep2.register("localidad")}
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="notas">Notas</Label>
@@ -281,6 +337,14 @@ export function ClienteWizard({ clienteId }: ClienteWizardProps) {
                   <dd className="font-medium">{data.nombre ?? "—"}</dd>
                 </div>
                 <div>
+                  <dt className="text-neutral-500">Tipo</dt>
+                  <dd className="font-medium">{data.tipo === "empresa" ? "Empresa" : "Particular"}</dd>
+                </div>
+                <div>
+                  <dt className="text-neutral-500">{data.tipo === "empresa" ? "NIF" : "DNI"}</dt>
+                  <dd className="font-medium">{data.nif || "—"}</dd>
+                </div>
+                <div>
                   <dt className="text-neutral-500">Email</dt>
                   <dd className="font-medium">{data.email || "—"}</dd>
                 </div>
@@ -290,7 +354,9 @@ export function ClienteWizard({ clienteId }: ClienteWizardProps) {
                 </div>
                 <div>
                   <dt className="text-neutral-500">Dirección</dt>
-                  <dd className="font-medium">{data.direccion || "—"}</dd>
+                  <dd className="font-medium">
+                    {[data.direccion, data.codigo_postal, data.localidad].filter(Boolean).join(", ") || "—"}
+                  </dd>
                 </div>
                 {clienteId && (
                   <div>

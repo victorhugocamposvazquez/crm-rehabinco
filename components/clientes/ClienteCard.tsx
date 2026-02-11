@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog } from "@/components/ui/alert-dialog";
@@ -29,8 +30,13 @@ export function ClienteCard({ id, nombre, email, telefono, activo, onDeleted }: 
     if (!actionsOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeActions();
+    };
+    document.addEventListener("keydown", onKeyDown);
     return () => {
       document.body.style.overflow = prev;
+      document.removeEventListener("keydown", onKeyDown);
     };
   }, [actionsOpen]);
 
@@ -70,7 +76,7 @@ export function ClienteCard({ id, nombre, email, telefono, activo, onDeleted }: 
 
   return (
     <>
-      <Card className="relative overflow-hidden bg-white/95 py-0">
+      <Card className={cn("relative overflow-hidden bg-white/95 py-0", actionsOpen && "z-[200]")}>
         {/* Contenido principal */}
         <div className="relative flex items-center justify-between gap-4 py-4">
           <div
@@ -121,50 +127,51 @@ export function ClienteCard({ id, nombre, email, telefono, activo, onDeleted }: 
           </button>
         </div>
 
-        {/* Acciones: dentro del card, solo iconos, panel más estrecho que el card */}
+        {/* Acciones: dentro del card, solo iconos; backdrop sutil a pantalla completa para cerrar al tocar fuera */}
         {actionsOpen && (
-          <div className="absolute inset-0 z-10 flex justify-end">
+          <>
             <div
-              className="absolute inset-0 bg-black/25"
+              className="fixed inset-0 z-[180] bg-black/[0.04]"
               onClick={(e) => {
                 e.stopPropagation();
                 closeActions();
               }}
-              onKeyDown={(e) => e.key === "Escape" && closeActions()}
               aria-hidden
             />
-            <div
-              className="relative mr-2 mt-2 mb-2 flex w-[88px] shrink-0 flex-col gap-1 rounded-l-xl border-l border-y border-border bg-white py-2 shadow-[0_4px_12px_rgba(0,0,0,0.1)]"
-              style={{ animation: "slideInFromRight 0.25s ease-out" }}
-              role="dialog"
-              aria-label="Acciones"
-            >
-              <button
-                type="button"
-                onClick={handleViewDetail}
-                className="flex items-center justify-center rounded-lg p-2.5 text-blue-600 transition-colors hover:bg-blue-50"
-                aria-label="Ver detalle"
+            <div className="absolute inset-0 z-[181] flex justify-end pointer-events-none">
+              <div
+                className="pointer-events-auto relative mr-1 mt-1 mb-1 flex w-[72px] shrink-0 flex-col justify-center gap-0.5 rounded-l-lg border-l border-y border-border bg-white py-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
+                style={{ animation: "slideInFromRight 0.25s ease-out" }}
+                role="dialog"
+                aria-label="Acciones"
               >
-                <Eye className="h-5 w-5" strokeWidth={2} />
-              </button>
-              <button
-                type="button"
-                onClick={handleCreateFactura}
-                className="flex items-center justify-center rounded-lg p-2.5 text-emerald-600 transition-colors hover:bg-emerald-50"
-                aria-label="Crear factura"
-              >
-                <FileText className="h-5 w-5" strokeWidth={2} />
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteClick}
-                className="flex items-center justify-center rounded-lg p-2.5 text-red-600 transition-colors hover:bg-red-50"
-                aria-label="Eliminar"
-              >
-                <Trash2 className="h-5 w-5" strokeWidth={2} />
-              </button>
+                <button
+                  type="button"
+                  onClick={handleViewDetail}
+                  className="flex h-9 items-center justify-center rounded-md text-blue-600 transition-colors hover:bg-blue-50"
+                  aria-label="Ver detalle"
+                >
+                  <Eye className="h-4 w-4" strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateFactura}
+                  className="flex h-9 items-center justify-center rounded-md text-emerald-600 transition-colors hover:bg-emerald-50"
+                  aria-label="Crear factura"
+                >
+                  <FileText className="h-4 w-4" strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteClick}
+                  className="flex h-9 items-center justify-center rounded-md text-red-600 transition-colors hover:bg-red-50"
+                  aria-label="Eliminar"
+                >
+                  <Trash2 className="h-4 w-4" strokeWidth={2} />
+                </button>
+              </div>
             </div>
-          </div>
+          </>
         )}
       </Card>
 

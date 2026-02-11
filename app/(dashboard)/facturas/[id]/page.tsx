@@ -65,7 +65,7 @@ export default function DetalleFacturaPage() {
     supabase
       .from("facturas")
       .select(
-        "id, numero, estado, concepto, fecha_emision, fecha_vencimiento, irpf_porcentaje, irpf_importe, porcentaje_descuento, importe_descuento, cliente_id, clientes(id, nombre, nif, direccion, email, telefono)"
+        "id, numero, estado, concepto, fecha_emision, fecha_vencimiento, irpf_porcentaje, irpf_importe, porcentaje_descuento, importe_descuento, cliente_id, clientes(id, nombre, nif, tipo, direccion, codigo_postal, localidad, email, telefono)"
       )
       .eq("id", id)
       .single()
@@ -91,15 +91,23 @@ export default function DetalleFacturaPage() {
                   id: string;
                   nombre: string;
                   nif: string | null;
+                  tipo?: "particular" | "empresa" | null;
                   direccion: string | null;
+                  codigo_postal: string | null;
+                  localidad: string | null;
                   email: string | null;
+                  telefono?: string | null;
                 }
               | {
                   id: string;
                   nombre: string;
                   nif: string | null;
+                  tipo?: "particular" | "empresa" | null;
                   direccion: string | null;
+                  codigo_postal: string | null;
+                  localidad: string | null;
                   email: string | null;
+                  telefono?: string | null;
                 }[]
               | null;
           };
@@ -179,8 +187,15 @@ export default function DetalleFacturaPage() {
         "ES00 0000 0000 0000 0000 0000",
     };
     const clienteNombre = factura.clientes?.nombre ?? "Cliente";
-    const clienteNif = factura.clientes?.nif ?? "-";
-    const clienteDireccion = factura.clientes?.direccion ?? "-";
+    const clienteTipo = factura.clientes?.tipo ?? "particular";
+    const docLabel = clienteTipo === "empresa" ? "NIF" : "DNI";
+    const clienteDoc = factura.clientes?.nif ?? "-";
+    const dirParts = [
+      factura.clientes?.direccion,
+      factura.clientes?.codigo_postal,
+      factura.clientes?.localidad,
+    ].filter(Boolean);
+    const clienteDireccion = dirParts.length > 0 ? dirParts.join(", ") : "-";
     const clienteEmail = factura.clientes?.email ?? "-";
     const clienteTelefono = factura.clientes?.telefono ?? "-";
 
@@ -253,7 +268,7 @@ export default function DetalleFacturaPage() {
                   <p style="margin:0 0 8px 0; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#333;">Datos cliente</p>
                   <p style="margin:0; font-weight:600;">${clienteNombre}</p>
                   <p style="margin:0; font-weight:600;">${clienteDireccion}</p>
-                  <p style="margin:0; font-weight:600;">${clienteNif}</p>
+                  <p style="margin:0; font-weight:600;">${docLabel}: ${clienteDoc}</p>
                   <p style="margin:0; font-weight:600;">${clienteEmail}</p>
                   ${clienteTelefono && clienteTelefono !== "-" ? `<p style="margin:0; font-weight:600;">${clienteTelefono}</p>` : ""}
                 </td>
