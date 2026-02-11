@@ -49,51 +49,59 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-[#f7f8fb] px-4 py-8 md:min-h-screen md:py-12">
-      <Card className="w-full max-w-md animate-[scaleIn_0.25s_ease-out] border-border/80 bg-white p-1 md:shadow-[0_16px_45px_rgba(17,19,23,0.1)]" animate={false}>
-        <CardHeader className="space-y-1 text-center">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-500">
+    <div className="flex min-h-dvh items-center justify-center bg-[#f4f6f9] px-4 py-12 md:min-h-screen md:py-16">
+      <Card className="w-full max-w-[420px] animate-[scaleIn_0.25s_ease-out] border-0 bg-white px-8 py-10 shadow-[0_4px_24px_rgba(0,0,0,0.06)] md:px-12 md:py-14 md:shadow-[0_8px_40px_rgba(0,0,0,0.08)]" animate={false}>
+        <CardHeader className="space-y-4 pb-8 text-center">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-400">
             CRM Inmobiliario
           </p>
-          <CardTitle className="text-3xl font-semibold tracking-tight">Entrar</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-[2rem] font-semibold tracking-tight text-neutral-900 md:text-[2.25rem]">
+            Entrar
+          </CardTitle>
+          <CardDescription className="text-base text-neutral-500">
             Introduce tu email y contraseña para acceder al CRM
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <CardContent className="px-0 pt-0">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {error && (
-              <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+              <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
                 {error}
               </p>
             )}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+            <div className="space-y-2.5">
+              <Label htmlFor="email" className="text-sm font-medium text-neutral-700">Email</Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="tu@email.com"
                 autoComplete="email"
+                className="h-12 rounded-xl border-neutral-200 px-4 placeholder:text-neutral-400 focus-visible:ring-2 focus-visible:ring-[#29A4AE]/40 focus-visible:ring-offset-0"
                 {...register("email")}
               />
               {errors.email && (
                 <p className="text-sm text-red-600">{errors.email.message}</p>
               )}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
+            <div className="space-y-2.5">
+              <Label htmlFor="password" className="text-sm font-medium text-neutral-700">Contraseña</Label>
               <Input
                 id="password"
                 type="password"
                 placeholder="••••••••"
                 autoComplete="current-password"
+                className="h-12 rounded-xl border-neutral-200 px-4 placeholder:text-neutral-400 focus-visible:ring-2 focus-visible:ring-[#29A4AE]/40 focus-visible:ring-offset-0"
                 {...register("password")}
               />
               {errors.password && (
                 <p className="text-sm text-red-600">{errors.password.message}</p>
               )}
             </div>
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              className="mt-2 h-12 w-full rounded-xl bg-[#29A4AE] text-base font-semibold text-white hover:bg-[#23908a] focus-visible:ring-[#29A4AE]/40"
+              disabled={isSubmitting}
+            >
               {isSubmitting ? "Entrando…" : "Entrar"}
             </Button>
           </form>

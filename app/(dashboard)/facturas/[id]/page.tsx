@@ -272,11 +272,18 @@ export default function DetalleFacturaPage() {
 
   return (
     <div className="animate-[fadeIn_0.3s_ease-out]">
+      <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-1.5 text-sm">
+        <Link href="/facturas" className="text-neutral-500 hover:text-foreground">
+          Facturas
+        </Link>
+        <span className="text-neutral-400" aria-hidden>/</span>
+        <span className="font-medium text-foreground">{factura.numero}</span>
+      </nav>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/facturas" aria-label="Volver a facturas">
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-5 w-5" strokeWidth={1.5} />
             </Link>
           </Button>
           <div>
@@ -289,11 +296,11 @@ export default function DetalleFacturaPage() {
           </div>
         </div>
         <Button variant="secondary" size="sm">
-          <Pencil className="mr-2 h-4 w-4" />
+          <Pencil className="mr-2 h-4 w-4" strokeWidth={1.5} />
           Editar
         </Button>
         <Button variant="secondary" size="sm" onClick={handleDownloadPdf}>
-          <FileDown className="mr-2 h-4 w-4" />
+          <FileDown className="mr-2 h-4 w-4" strokeWidth={1.5} />
           Descargar PDF
         </Button>
       </div>

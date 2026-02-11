@@ -29,22 +29,17 @@ export function FacturaCard({
 }: FacturaCardProps) {
   return (
     <Link href={`/facturas/${id}`} className="block">
-      <Card className="bg-white/95">
-        <div className="mb-3 flex items-center justify-between">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
-            Factura
-          </span>
-          <Badge variant={estadoVariant[estado]}>
-            {estado.charAt(0).toUpperCase() + estado.slice(1)}
-          </Badge>
-        </div>
-        <div className="flex flex-wrap items-start justify-between gap-2">
+      <Card className="bg-white/95 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 sm:flex-nowrap">
           <div className="min-w-0 flex-1">
             <p className="font-semibold text-foreground">{numero}</p>
-            <p className="mt-1 truncate text-sm text-neutral-500">
-              {clienteNombre}
-            </p>
-            <p className="mt-3 text-xl font-semibold tracking-tight">{importe}</p>
+            <p className="truncate text-sm text-neutral-500">{clienteNombre}</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-4">
+            <p className="text-lg font-semibold tracking-tight">{importe}</p>
+            <Badge variant={estadoVariant[estado]}>
+              {estado.charAt(0).toUpperCase() + estado.slice(1)}
+            </Badge>
           </div>
         </div>
       </Card>

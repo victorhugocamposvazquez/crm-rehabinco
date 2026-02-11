@@ -37,7 +37,8 @@ export function MobileNav() {
               )}
             >
               <Icon
-                className={cn("h-6 w-6", isActive && "stroke-[2.5px]")}
+                className="h-6 w-6"
+                strokeWidth={1.5}
                 aria-hidden
               />
               <span>{label}</span>

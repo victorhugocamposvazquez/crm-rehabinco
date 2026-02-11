@@ -107,6 +107,7 @@ export function FacturaWizard() {
 
     setClientes((prev) => [...prev, inserted].sort((a, b) => a.nombre.localeCompare(b.nombre)));
     formStep1.setValue("clienteId", inserted.id, { shouldValidate: true });
+    setData((p) => ({ ...p, clienteId: inserted.id }));
     setQuickClient({ nombre: "", email: "", telefono: "" });
     setShowQuickClient(false);
   };
@@ -124,6 +125,12 @@ export function FacturaWizard() {
     setLineas((p) => [...p, { descripcion: "", cantidad: 0, precioUnitario: 0, ivaPorcentaje: 21 }]);
   const removeLinea = (i: number) =>
     setLineas((p) => p.filter((_, idx) => idx !== i));
+  const parseNum = (v: string): number => {
+    const cleaned = String(v || "").trim().replace(",", ".");
+    const n = parseFloat(cleaned);
+    return isNaN(n) ? 0 : Math.max(0, n);
+  };
+
   const updateLinea = (i: number, field: keyof FacturaLinea, value: string | number) =>
     setLineas((p) =>
       p.map((l, idx) => (idx === i ? { ...l, [field]: value } : l))
@@ -270,7 +277,7 @@ export function FacturaWizard() {
                     onClick={() => setShowQuickClient((v) => !v)}
                     className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-foreground hover:underline"
                   >
-                    <UserPlus className="h-3.5 w-3.5" />
+                    <UserPlus className="h-3.5 w-3.5" strokeWidth={1.5} />
                     {showQuickClient ? "Cancelar alta rápida" : "Crear cliente desde aquí"}
                   </button>
                 </div>
@@ -314,7 +321,7 @@ export function FacturaWizard() {
                         onClick={handleCreateQuickClient}
                         disabled={creatingClient}
                       >
-                        {creatingClient && <Loader2 className="h-4 w-4 animate-spin" />}
+                        {creatingClient && <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.5} />}
                         {creatingClient ? "Creando..." : "Guardar cliente"}
                       </Button>
                     </div>
@@ -375,27 +382,24 @@ export function FacturaWizard() {
                   <div className="w-24 space-y-2">
                     <Label>Cant.</Label>
                     <Input
-                      type="number"
-                      min={0}
-                      value={l.cantidad || ""}
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="1"
+                      value={l.cantidad === 0 ? "" : String(l.cantidad)}
                       onChange={(e) =>
-                        updateLinea(i, "cantidad", Number(e.target.value) || 0)
+                        updateLinea(i, "cantidad", parseNum(e.target.value))
                       }
                     />
                   </div>
                   <div className="w-28 space-y-2">
-                    <Label>Precio u.</Label>
+                    <Label>Precio u. (€)</Label>
                     <Input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={l.precioUnitario || ""}
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="0,00"
+                      value={l.precioUnitario === 0 ? "" : String(l.precioUnitario)}
                       onChange={(e) =>
-                        updateLinea(
-                          i,
-                          "precioUnitario",
-                          Number(e.target.value) || 0
-                        )
+                        updateLinea(i, "precioUnitario", parseNum(e.target.value))
                       }
                     />
                   </div>
@@ -422,12 +426,12 @@ export function FacturaWizard() {
                     disabled={lineas.length === 1}
                     aria-label="Eliminar línea"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4" strokeWidth={1.5} />
                   </Button>
                 </div>
               ))}
               <Button type="button" variant="secondary" onClick={addLinea}>
-                <Plus className="mr-2 h-4 w-4" />
+                <Plus className="mr-2 h-4 w-4" strokeWidth={1.5} />
                 Añadir línea
               </Button>
               <div className="flex justify-end gap-2 pt-4">

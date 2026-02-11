@@ -21,7 +21,7 @@ export function Fab({ href, label, className }: FabProps) {
       )}
       aria-label={label}
     >
-      <Plus aria-hidden />
+      <Plus strokeWidth={1.5} aria-hidden />
     </Link>
   );
 }

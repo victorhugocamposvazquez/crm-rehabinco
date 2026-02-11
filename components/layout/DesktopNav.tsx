@@ -68,7 +68,7 @@ export function DesktopNav() {
                     : "text-neutral-600 hover:bg-white hover:text-foreground"
                 )}
               >
-                <Icon className="h-4 w-4" aria-hidden />
+                <Icon className="h-4 w-4" strokeWidth={1.5} aria-hidden />
                 <span>{label}</span>
               </Link>
             );
@@ -102,14 +102,14 @@ export function DesktopNav() {
                   onClick={() => setOpen(false)}
                   className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
                 >
-                  <KeyRound className="h-4 w-4" />
+                  <KeyRound className="h-4 w-4" strokeWidth={1.5} />
                   Cambiar contraseña
                 </Link>
                 <button
                   onClick={() => signOut()}
                   className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
                 >
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="h-4 w-4" strokeWidth={1.5} />
                   Cerrar sesión
                 </button>
               </div>

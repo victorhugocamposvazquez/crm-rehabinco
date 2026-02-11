@@ -84,7 +84,7 @@ export default function FacturasPage() {
             Aún no hay facturas. Crea la primera con el botón +.
           </p>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="flex flex-col gap-3">
             {facturas.map((f) => (
               <FacturaCard
                 key={f.id}

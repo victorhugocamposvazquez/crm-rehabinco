@@ -84,7 +84,7 @@ export default function DetalleClientePage() {
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/clientes" aria-label="Volver a clientes">
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-5 w-5" strokeWidth={1.5} />
             </Link>
           </Button>
           <div>
@@ -100,7 +100,7 @@ export default function DetalleClientePage() {
           </div>
         </div>
         <Button variant="secondary" size="sm">
-          <Pencil className="mr-2 h-4 w-4" />
+          <Pencil className="mr-2 h-4 w-4" strokeWidth={1.5} />
           Editar
         </Button>
       </div>

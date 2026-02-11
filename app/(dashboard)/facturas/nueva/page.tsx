@@ -9,7 +9,7 @@ export default function NuevaFacturaPage() {
       <div className="mb-6 flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/facturas" aria-label="Volver a facturas">
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="h-5 w-5" strokeWidth={1.5} />
           </Link>
         </Button>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
