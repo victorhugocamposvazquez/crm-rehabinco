@@ -49,10 +49,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-white px-4 py-8 md:min-h-screen md:py-12">
-      <Card className="w-full max-w-md animate-[scaleIn_0.25s_ease-out] md:shadow-md" animate={false}>
+    <div className="flex min-h-dvh items-center justify-center bg-[#f7f8fb] px-4 py-8 md:min-h-screen md:py-12">
+      <Card className="w-full max-w-md animate-[scaleIn_0.25s_ease-out] border-border/80 bg-white p-1 md:shadow-[0_16px_45px_rgba(17,19,23,0.1)]" animate={false}>
         <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-semibold">Entrar</CardTitle>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-500">
+            CRM Inmobiliario
+          </p>
+          <CardTitle className="text-3xl font-semibold tracking-tight">Entrar</CardTitle>
           <CardDescription>
             Introduce tu email y contraseña para acceder al CRM
           </CardDescription>

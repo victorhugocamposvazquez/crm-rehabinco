@@ -72,10 +72,13 @@ export default function FacturasPage() {
 
   return (
     <div className="animate-[fadeIn_0.3s_ease-out]">
-      <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-500">
+        CRM / Facturas
+      </p>
+      <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-[2.2rem]">
         Facturas
       </h1>
-      <p className="mt-1 text-base text-neutral-600">
+      <p className="mt-2 max-w-2xl text-base text-neutral-600">
         Gestiona facturas y cobros
       </p>
 
@@ -85,13 +88,15 @@ export default function FacturasPage() {
         </p>
       )}
 
-      <div className="mt-8">
+      <div className="mt-10">
         {loading ? (
           <FacturaListSkeleton />
         ) : facturas.length === 0 && !error ? (
-          <p className="text-neutral-500">Aún no hay facturas. Crea la primera con el botón +.</p>
+          <p className="rounded-2xl border border-dashed border-border bg-white p-6 text-neutral-500">
+            Aún no hay facturas. Crea la primera con el botón +.
+          </p>
         ) : (
-          <div className="space-y-3">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {facturas.map((f) => (
               <FacturaCard
                 key={f.id}
