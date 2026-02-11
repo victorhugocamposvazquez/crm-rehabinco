@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
@@ -24,6 +25,15 @@ export function ClienteCard({ id, nombre, email, telefono, activo, onDeleted }: 
   const [deleting, setDeleting] = useState(false);
 
   const closeActions = () => setActionsOpen(false);
+
+  useEffect(() => {
+    if (!actionsOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [actionsOpen]);
 
   const handleViewDetail = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -112,64 +122,72 @@ export function ClienteCard({ id, nombre, email, telefono, activo, onDeleted }: 
           </button>
         </div>
 
-        {/* Overlay de acciones: aparece por encima con transición suave de derecha a izquierda */}
-        {actionsOpen && (
-          <div
-            className="fixed inset-0 z-50 flex justify-end"
-            aria-hidden={false}
-          >
+        {/* Overlay de acciones: renderizado en portal para evitar saltos del layout */}
+        {actionsOpen &&
+          typeof document !== "undefined" &&
+          createPortal(
             <div
-              className="absolute inset-0 bg-black/25"
-              onClick={closeActions}
-              aria-hidden
-            />
-            <div className="relative flex w-[200px] shrink-0 animate-[slideInFromRight_0.3s_ease-out] items-stretch rounded-l-xl border-l border-y border-border bg-white shadow-[-8px_0_24px_rgba(0,0,0,0.12)]">
-            <button
-              type="button"
-              onClick={closeActions}
-              className="absolute right-2 top-2 rounded p-1 text-neutral-400 hover:bg-neutral-100 hover:text-foreground"
-              aria-label="Cerrar"
+              className="fixed inset-0 z-[200] flex justify-end"
+              style={{ isolation: "isolate" }}
             >
-              <X className="h-4 w-4" strokeWidth={1.5} />
-            </button>
-            <div className="flex flex-1 flex-col justify-center gap-1 py-4 pr-10 pl-3">
-              <button
-                type="button"
-                onClick={handleViewDetail}
-                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-neutral-700 transition-colors hover:bg-blue-50 hover:text-blue-600"
-                aria-label="Ver detalle"
+              <div
+                role="button"
+                tabIndex={-1}
+                className="absolute inset-0 bg-black/30"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  closeActions();
+                }}
+                onKeyDown={(e) => e.key === "Escape" && closeActions()}
+                aria-hidden
+              />
+              <div
+                className="relative flex w-[200px] shrink-0 flex-col rounded-l-xl border-l border-y border-border bg-white shadow-[-8px_0_24px_rgba(0,0,0,0.15)]"
+                style={{ animation: "slideInFromRight 0.25s ease-out" }}
+                role="dialog"
+                aria-label="Acciones"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
-                  <Eye className="h-4 w-4" strokeWidth={1.5} />
-                </span>
-                Ver detalle
-              </button>
-              <button
-                type="button"
-                onClick={handleCreateFactura}
-                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-neutral-700 transition-colors hover:bg-emerald-50 hover:text-emerald-700"
-                aria-label="Crear factura"
-              >
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
-                  <FileText className="h-4 w-4" strokeWidth={1.5} />
-                </span>
-                Crear factura
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteClick}
-                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-neutral-700 transition-colors hover:bg-red-50 hover:text-red-600"
-                aria-label="Eliminar"
-              >
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-600">
-                  <Trash2 className="h-4 w-4" strokeWidth={1.5} />
-                </span>
-                Borrar
-              </button>
-            </div>
-          </div>
-        </div>
-        )}
+                <button
+                  type="button"
+                  onClick={closeActions}
+                  className="absolute right-2 top-2 rounded p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-foreground"
+                  aria-label="Cerrar"
+                >
+                  <X className="h-5 w-5" strokeWidth={2} />
+                </button>
+                <div className="flex flex-col gap-0.5 py-4 pr-10 pl-3">
+                  <button
+                    type="button"
+                    onClick={handleViewDetail}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-neutral-700 transition-colors hover:bg-blue-50 hover:text-blue-600"
+                    aria-label="Ver detalle"
+                  >
+                    <Eye className="h-5 w-5 shrink-0 text-blue-600" strokeWidth={2} />
+                    <span>Ver detalle</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCreateFactura}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-neutral-700 transition-colors hover:bg-emerald-50 hover:text-emerald-600"
+                    aria-label="Crear factura"
+                  >
+                    <FileText className="h-5 w-5 shrink-0 text-emerald-600" strokeWidth={2} />
+                    <span>Crear factura</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeleteClick}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-neutral-700 transition-colors hover:bg-red-50 hover:text-red-600"
+                    aria-label="Eliminar"
+                  >
+                    <Trash2 className="h-5 w-5 shrink-0 text-red-600" strokeWidth={2} />
+                    <span>Borrar</span>
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
       </Card>
 
       <AlertDialog

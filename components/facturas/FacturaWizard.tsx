@@ -584,49 +584,53 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
                 Añadir línea
               </Button>
 
-              {/* Totales: siempre visibles debajo de las líneas, se actualizan en tiempo real */}
-              <div className="mt-6 shrink-0 rounded-xl border-2 border-border bg-neutral-50 p-5 shadow-[0_1px_3px_rgba(16,24,40,0.08)]" role="region" aria-label="Totales de la factura">
+              {/* Totales: resumen en filas, actualización en tiempo real */}
+              <div className="mt-6 shrink-0 rounded-xl border border-border bg-neutral-50/80 p-4 shadow-[0_1px_2px_rgba(16,24,40,0.06)]" role="region" aria-label="Totales de la factura">
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                  Totales (actualización en tiempo real)
+                  Resumen
                 </p>
-                <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3 lg:grid-cols-5">
-                  <div>
-                    <p className="text-neutral-500">Subtotal</p>
-                    <p className="font-semibold text-foreground">{subtotal.toFixed(2)} €</p>
+                <div className="flex flex-col gap-2.5 text-sm">
+                  <div className="flex items-center justify-between rounded-lg bg-white px-3 py-2">
+                    <span className="text-neutral-600">Subtotal</span>
+                    <span className="font-semibold text-foreground">{subtotal.toFixed(2)} €</span>
                   </div>
-                  <div>
-                    <Label className="text-neutral-500">Descuento %</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={100}
-                      step="0.5"
-                      className="mt-0.5 h-9"
-                      value={porcentajeDescuento || ""}
-                      onChange={(e) => setPorcentajeDescuento(Number(e.target.value) || 0)}
-                    />
-                    <p className="text-xs text-neutral-500">-{descuentoImporte.toFixed(2)} €</p>
+                  <div className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2">
+                    <Label className="shrink-0 text-neutral-600">Descuento %</Label>
+                    <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step="0.5"
+                        className="h-9 w-20 text-right"
+                        value={porcentajeDescuento || ""}
+                        onChange={(e) => setPorcentajeDescuento(Number(e.target.value) || 0)}
+                      />
+                      <span className="w-16 text-right text-neutral-500">-{descuentoImporte.toFixed(2)} €</span>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-neutral-500">IVA</p>
-                    <p className="font-semibold text-foreground">{ivaTotal.toFixed(2)} €</p>
+                  <div className="flex items-center justify-between rounded-lg bg-white px-3 py-2">
+                    <span className="text-neutral-600">IVA</span>
+                    <span className="font-semibold text-foreground">{ivaTotal.toFixed(2)} €</span>
                   </div>
-                  <div>
-                    <Label className="text-neutral-500">IRPF %</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={25}
-                      step="0.5"
-                      className="mt-0.5 h-9"
-                      value={irpfPorcentaje || ""}
-                      onChange={(e) => setIrpfPorcentaje(Number(e.target.value) || 0)}
-                    />
-                    <p className="text-xs text-neutral-500">-{irpfImporte.toFixed(2)} €</p>
+                  <div className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2">
+                    <Label className="shrink-0 text-neutral-600">IRPF %</Label>
+                    <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={25}
+                        step="0.5"
+                        className="h-9 w-20 text-right"
+                        value={irpfPorcentaje || ""}
+                        onChange={(e) => setIrpfPorcentaje(Number(e.target.value) || 0)}
+                      />
+                      <span className="w-16 text-right text-neutral-500">-{irpfImporte.toFixed(2)} €</span>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-neutral-500">Total</p>
-                    <p className="text-lg font-semibold text-foreground">{total.toFixed(2)} €</p>
+                  <div className="flex items-center justify-between rounded-lg border-t border-border bg-white px-3 py-3">
+                    <span className="font-medium text-foreground">Total</span>
+                    <span className="text-lg font-semibold text-foreground">{total.toFixed(2)} €</span>
                   </div>
                 </div>
               </div>
