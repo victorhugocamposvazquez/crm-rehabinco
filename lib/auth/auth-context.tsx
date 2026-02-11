@@ -27,13 +27,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     const supabase = createClient();
+    let isMounted = true;
+
+    const isAbortError = (error: unknown) => {
+      if (!error) return false;
+      if (error instanceof DOMException && error.name === "AbortError") return true;
+      if (typeof error === "object" && "name" in error) {
+        return (error as { name?: string }).name === "AbortError";
+      }
+      return false;
+    };
 
     const getProfile = async (authUser: User): Promise<AuthUser | null> => {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", authUser.id)
-        .single();
+      let profile: { role?: string } | null = null;
+      try {
+        const { data } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", authUser.id)
+          .single();
+        profile = data as { role?: string } | null;
+      } catch (error) {
+        if (isAbortError(error)) {
+          return null;
+        }
+      }
 
       if (profile?.role) {
         return {
@@ -43,11 +61,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
-      const { error } = await supabase.from("profiles").insert({
-        id: authUser.id,
-        email: authUser.email,
-        role: "agente",
-      });
+      let error: unknown = null;
+      try {
+        const response = await supabase.from("profiles").insert({
+          id: authUser.id,
+          email: authUser.email,
+          role: "agente",
+        });
+        error = response.error;
+      } catch (insertError) {
+        if (isAbortError(insertError)) {
+          return null;
+        }
+        error = insertError;
+      }
 
       if (!error) {
         return {
@@ -72,34 +99,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (session?.user) {
           const profileUser = await getProfile(session.user);
-          setUser(profileUser);
+          if (isMounted) setUser(profileUser);
         } else {
+          if (isMounted) setUser(null);
+        }
+      } catch (error) {
+        if (!isAbortError(error) && isMounted) {
           setUser(null);
         }
-      } catch {
-        setUser(null);
       } finally {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     };
 
     init();
-    const safetyTimeout = window.setTimeout(() => setIsLoading(false), 5000);
+    const safetyTimeout = window.setTimeout(() => {
+      if (isMounted) setIsLoading(false);
+    }, 5000);
+
+    const handleAuthChange = async (event: string, session: { user?: User } | null) => {
+      try {
+        if (event === "SIGNED_OUT" || !session?.user) {
+          if (isMounted) {
+            setUser(null);
+            setIsLoading(false);
+          }
+          return;
+        }
+        const profileUser = await getProfile(session.user);
+        if (isMounted) {
+          setUser(profileUser);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        if (!isAbortError(error) && isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_OUT" || !session?.user) {
-        setUser(null);
-        setIsLoading(false);
-        return;
-      }
-      const profileUser = await getProfile(session.user);
-      setUser(profileUser);
-      setIsLoading(false);
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      void handleAuthChange(event, session);
     });
 
     return () => {
+      isMounted = false;
       window.clearTimeout(safetyTimeout);
       subscription.unsubscribe();
     };

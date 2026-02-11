@@ -96,6 +96,14 @@ La primera vez que uses el proyecto, crea las tablas y políticas RLS en Supabas
 2. Copia y pega el contenido de `supabase/migrations/20250101000000_initial_schema.sql`.
 3. Ejecuta la consulta (Run).
 
+### Control de migraciones (importante)
+
+- `20250101000000_initial_schema.sql` es la **migración base**.
+- Los cambios nuevos van en migraciones incrementales:
+  - `20250211000100_facturas_iva_irpf_upgrade.sql`
+  - `20250211000200_policy_trigger_hardening.sql`
+- No re-ejecutar manualmente la migración base en un entorno ya creado; ejecuta solo la nueva pendiente.
+
 Eso crea:
 
 - **profiles:** id (auth.users), email, role (`admin` | `agente`). Trigger que crea el perfil al registrarse.
