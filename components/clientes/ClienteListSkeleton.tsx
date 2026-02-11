@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function ClienteListSkeleton() {
   return (
-    <div className="flex flex-col gap-3 animate-[fadeIn_0.3s_ease-out]">
+    <div className="flex flex-col gap-3 animate-[fadeIn_0.3s_ease-out]" aria-busy="true" aria-live="polite">
       {[1, 2, 3, 4].map((i) => (
         <Card key={i} animate={false} className="py-4">
           <div className="flex items-center justify-between gap-4">

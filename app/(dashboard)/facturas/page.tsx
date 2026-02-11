@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { FacturaCard } from "@/components/facturas/FacturaCard";
@@ -8,7 +8,8 @@ import { FacturaListSkeleton } from "@/components/facturas/FacturaListSkeleton";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Fab } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, Search } from "lucide-react";
 
 interface FacturaRow {
   id: string;
@@ -21,6 +22,8 @@ interface FacturaRow {
 
 export default function FacturasPage() {
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [filterEstado, setFilterEstado] = useState<"todos" | "borrador" | "emitida" | "pagada">("todos");
   const [facturas, setFacturas] = useState<Array<{
     id: string;
     numero: string;
@@ -62,6 +65,19 @@ export default function FacturasPage() {
       });
   }, []);
 
+  const filteredFacturas = useMemo(() => {
+    return facturas.filter((f) => {
+      const q = search.toLowerCase().trim();
+      const matchSearch =
+        !q ||
+        f.numero.toLowerCase().includes(q) ||
+        f.clienteNombre.toLowerCase().includes(q);
+      const matchEstado =
+        filterEstado === "todos" || f.estado === filterEstado;
+      return matchSearch && matchEstado;
+    });
+  }, [facturas, search, filterEstado]);
+
   return (
     <div>
       <PageHeader
@@ -84,6 +100,38 @@ export default function FacturasPage() {
         </p>
       )}
 
+      {!loading && facturas.length > 0 && (
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" strokeWidth={1.5} aria-hidden />
+            <Input
+              type="search"
+              placeholder="Buscar por número o cliente..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+              aria-label="Buscar facturas"
+            />
+          </div>
+          <div className="flex flex-wrap gap-1 rounded-lg border border-border p-1">
+            {(["todos", "borrador", "emitida", "pagada"] as const).map((e) => (
+              <button
+                key={e}
+                type="button"
+                onClick={() => setFilterEstado(e)}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  filterEstado === e
+                    ? "bg-foreground text-background"
+                    : "text-neutral-600 hover:bg-neutral-100"
+                }`}
+              >
+                {e === "todos" ? "Todas" : e.charAt(0).toUpperCase() + e.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mt-10">
         {loading ? (
           <FacturaListSkeleton />
@@ -99,16 +147,22 @@ export default function FacturasPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {facturas.map((f) => (
-              <FacturaCard
-                key={f.id}
-                id={f.id}
-                numero={f.numero}
-                clienteNombre={f.clienteNombre}
-                importe={f.importe}
-                estado={f.estado}
-              />
-            ))}
+            {filteredFacturas.length === 0 ? (
+              <p className="rounded-2xl border border-border bg-white p-6 text-center text-neutral-500">
+                No hay facturas que coincidan con la búsqueda.
+              </p>
+            ) : (
+              filteredFacturas.map((f) => (
+                <FacturaCard
+                  key={f.id}
+                  id={f.id}
+                  numero={f.numero}
+                  clienteNombre={f.clienteNombre}
+                  importe={f.importe}
+                  estado={f.estado}
+                  onDeleted={() => setFacturas((prev) => prev.filter((x) => x.id !== f.id))}
+                />
+              )))}
           </div>
         )}
       </div>

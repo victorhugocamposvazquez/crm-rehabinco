@@ -11,6 +11,7 @@ import {
   type ClienteStep1Values,
   type ClienteStep2Values,
 } from "@/lib/validations/cliente";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -125,14 +126,15 @@ export function ClienteWizard({ clienteId }: ClienteWizardProps) {
       setSaveError(error.message);
       return;
     }
+    toast.success(clienteId ? "Cliente actualizado" : "Cliente creado");
     router.push(clienteId ? `/clientes/${clienteId}` : "/clientes");
     router.refresh();
   };
 
   if (loading) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-foreground" />
+      <div className="flex min-h-[40vh] items-center justify-center" aria-busy="true" aria-live="polite">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-foreground" role="status" aria-label="Cargando" />
       </div>
     );
   }
@@ -187,10 +189,12 @@ export function ClienteWizard({ clienteId }: ClienteWizardProps) {
                   <Input
                     id="nombre"
                     placeholder="Nombre del cliente"
+                    aria-describedby={formStep1.formState.errors.nombre ? "nombre-error" : undefined}
+                    aria-invalid={!!formStep1.formState.errors.nombre}
                     {...formStep1.register("nombre")}
                   />
                   {formStep1.formState.errors.nombre && (
-                    <p className="text-sm text-red-600">
+                    <p id="nombre-error" className="text-sm text-red-600" role="alert">
                       {formStep1.formState.errors.nombre.message}
                     </p>
                   )}
@@ -241,8 +245,15 @@ export function ClienteWizard({ clienteId }: ClienteWizardProps) {
                     id="email"
                     type="email"
                     placeholder="email@ejemplo.com"
+                    aria-describedby={formStep1.formState.errors.email ? "email-error" : undefined}
+                    aria-invalid={!!formStep1.formState.errors.email}
                     {...formStep1.register("email")}
                   />
+                  {formStep1.formState.errors.email && (
+                    <p id="email-error" className="text-sm text-red-600" role="alert">
+                      {formStep1.formState.errors.email.message}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="telefono">Teléfono</Label>

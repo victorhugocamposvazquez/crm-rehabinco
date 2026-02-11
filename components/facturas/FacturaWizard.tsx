@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { Plus, Trash2, UserPlus, Loader2 } from "lucide-react";
 
 const STEPS = [
@@ -52,8 +53,13 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
   const [quickClientError, setQuickClientError] = useState<string | null>(null);
   const [quickClient, setQuickClient] = useState({
     nombre: "",
+    tipo: "particular" as "particular" | "empresa",
+    nif: "",
     email: "",
     telefono: "",
+    direccion: "",
+    codigo_postal: "",
+    localidad: "",
   });
   const [step2Attempted, setStep2Attempted] = useState(false);
 
@@ -162,8 +168,13 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
       .insert({
         user_id: user.id,
         nombre: quickClient.nombre.trim(),
+        tipo: quickClient.tipo,
+        nif: quickClient.nif.trim() || null,
         email: quickClient.email.trim() || null,
         telefono: quickClient.telefono.trim() || null,
+        direccion: quickClient.direccion.trim() || null,
+        codigo_postal: quickClient.codigo_postal.trim() || null,
+        localidad: quickClient.localidad.trim() || null,
         activo: true,
       })
       .select("id, nombre")
@@ -178,7 +189,16 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
     setClientes((prev) => [...prev, inserted].sort((a, b) => a.nombre.localeCompare(b.nombre)));
     formStep1.setValue("clienteId", inserted.id, { shouldValidate: true });
     setData((p) => ({ ...p, clienteId: inserted.id }));
-    setQuickClient({ nombre: "", email: "", telefono: "" });
+    setQuickClient({
+      nombre: "",
+      tipo: "particular",
+      nif: "",
+      email: "",
+      telefono: "",
+      direccion: "",
+      codigo_postal: "",
+      localidad: "",
+    });
     setShowQuickClient(false);
   };
 
@@ -284,6 +304,7 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
         setCreateError(errLineas.message);
         return;
       }
+      toast.success("Factura actualizada");
       router.push(`/facturas/${facturaId}`);
       router.refresh();
       return;
@@ -333,14 +354,15 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
       setCreateError(errLineas.message);
       return;
     }
+    toast.success("Factura creada");
     router.push("/facturas");
     router.refresh();
   };
 
   if (loading) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-foreground" />
+      <div className="flex min-h-[40vh] items-center justify-center" aria-busy="true" aria-live="polite">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-foreground" role="status" aria-label="Cargando" />
       </div>
     );
   }
@@ -420,7 +442,7 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
                 {showQuickClient && (
                   <div className="rounded-xl border border-border bg-neutral-50/60 p-4">
                     <p className="text-sm font-medium text-foreground">Nuevo cliente</p>
-                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <div className="mt-3 space-y-3">
                       <Input
                         placeholder="Nombre *"
                         value={quickClient.nombre}
@@ -428,23 +450,82 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
                           setQuickClient((prev) => ({ ...prev, nombre: e.target.value }))
                         }
                       />
+                      <div>
+                        <p className="mb-1.5 text-xs font-medium text-neutral-600">Tipo</p>
+                        <div className="flex rounded-lg border border-border p-1">
+                          <button
+                            type="button"
+                            onClick={() => setQuickClient((p) => ({ ...p, tipo: "particular" }))}
+                            className={cn(
+                              "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                              quickClient.tipo === "particular"
+                                ? "bg-foreground text-background"
+                                : "text-muted-foreground hover:bg-muted"
+                            )}
+                          >
+                            Particular
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setQuickClient((p) => ({ ...p, tipo: "empresa" }))}
+                            className={cn(
+                              "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                              quickClient.tipo === "empresa"
+                                ? "bg-foreground text-background"
+                                : "text-muted-foreground hover:bg-muted"
+                            )}
+                          >
+                            Empresa
+                          </button>
+                        </div>
+                      </div>
                       <Input
-                        type="email"
-                        placeholder="Email"
-                        value={quickClient.email}
+                        placeholder={quickClient.tipo === "particular" ? "DNI" : "NIF"}
+                        value={quickClient.nif}
                         onChange={(e) =>
-                          setQuickClient((prev) => ({ ...prev, email: e.target.value }))
+                          setQuickClient((prev) => ({ ...prev, nif: e.target.value }))
                         }
                       />
-                    </div>
-                    <div className="mt-3">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Input
+                          type="email"
+                          placeholder="Email"
+                          value={quickClient.email}
+                          onChange={(e) =>
+                            setQuickClient((prev) => ({ ...prev, email: e.target.value }))
+                          }
+                        />
+                        <Input
+                          placeholder="Teléfono"
+                          value={quickClient.telefono}
+                          onChange={(e) =>
+                            setQuickClient((prev) => ({ ...prev, telefono: e.target.value }))
+                          }
+                        />
+                      </div>
                       <Input
-                        placeholder="Teléfono"
-                        value={quickClient.telefono}
+                        placeholder="Dirección"
+                        value={quickClient.direccion}
                         onChange={(e) =>
-                          setQuickClient((prev) => ({ ...prev, telefono: e.target.value }))
+                          setQuickClient((prev) => ({ ...prev, direccion: e.target.value }))
                         }
                       />
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Input
+                          placeholder="Código postal"
+                          value={quickClient.codigo_postal}
+                          onChange={(e) =>
+                            setQuickClient((prev) => ({ ...prev, codigo_postal: e.target.value }))
+                          }
+                        />
+                        <Input
+                          placeholder="Localidad"
+                          value={quickClient.localidad}
+                          onChange={(e) =>
+                            setQuickClient((prev) => ({ ...prev, localidad: e.target.value }))
+                          }
+                        />
+                      </div>
                     </div>
                     {quickClientError && (
                       <p className="mt-2 text-sm text-red-600">{quickClientError}</p>
