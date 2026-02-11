@@ -52,9 +52,13 @@ export default function LoginPage() {
     <div className="flex min-h-dvh items-center justify-center bg-[#f4f6f9] px-4 py-12 md:min-h-screen md:py-16">
       <Card className="w-full max-w-[420px] animate-[scaleIn_0.25s_ease-out] border-0 bg-white px-8 py-10 shadow-[0_4px_24px_rgba(0,0,0,0.06)] md:px-12 md:py-14 md:shadow-[0_8px_40px_rgba(0,0,0,0.08)]" animate={false}>
         <CardHeader className="space-y-4 pb-8 text-center">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-400">
-            CRM Inmobiliario
-          </p>
+          <div className="flex justify-center">
+            <img
+              src="/images/logo-login.png"
+              alt="REHABINCO - Gestión Inmobiliaria y Reformas"
+              className="h-24 w-auto object-contain"
+            />
+          </div>
           <CardTitle className="text-[2rem] font-semibold tracking-tight text-neutral-900 md:text-[2.25rem]">
             Entrar
           </CardTitle>

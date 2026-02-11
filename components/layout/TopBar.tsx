@@ -36,9 +36,14 @@ export function TopBar() {
         <div className="mx-auto flex h-14 w-full max-w-[1600px] items-center justify-between gap-3 px-4 sm:h-16 sm:px-6 lg:px-8">
           <Link
             href="/"
-            className="shrink-0 text-base font-semibold tracking-tight text-foreground"
+            className="flex shrink-0 items-center gap-2"
+            aria-label="REHABINCO - Inicio"
           >
-            CRM Inmobiliario
+            <img
+              src="/images/logo-web.png"
+              alt=""
+              className="h-8 w-auto object-contain sm:h-9"
+            />
           </Link>
 
           <nav

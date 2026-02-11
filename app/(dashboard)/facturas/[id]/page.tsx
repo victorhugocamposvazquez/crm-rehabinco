@@ -20,6 +20,8 @@ interface FacturaRow {
   fecha_vencimiento: string | null;
   irpf_porcentaje?: number | null;
   irpf_importe?: number | null;
+  porcentaje_descuento?: number | null;
+  importe_descuento?: number | null;
   cliente_id: string | null;
   clientes: {
     id: string;
@@ -27,6 +29,7 @@ interface FacturaRow {
     nif: string | null;
     direccion: string | null;
     email: string | null;
+    telefono?: string | null;
   } | null;
 }
 
@@ -62,7 +65,7 @@ export default function DetalleFacturaPage() {
     supabase
       .from("facturas")
       .select(
-        "id, numero, estado, concepto, fecha_emision, fecha_vencimiento, irpf_porcentaje, irpf_importe, cliente_id, clientes(id, nombre, nif, direccion, email)"
+        "id, numero, estado, concepto, fecha_emision, fecha_vencimiento, irpf_porcentaje, irpf_importe, porcentaje_descuento, importe_descuento, cliente_id, clientes(id, nombre, nif, direccion, email, telefono)"
       )
       .eq("id", id)
       .single()
@@ -80,6 +83,8 @@ export default function DetalleFacturaPage() {
             fecha_vencimiento: string | null;
             irpf_porcentaje?: number | null;
             irpf_importe?: number | null;
+            porcentaje_descuento?: number | null;
+            importe_descuento?: number | null;
             cliente_id: string | null;
             clientes:
               | {
@@ -137,7 +142,9 @@ export default function DetalleFacturaPage() {
   );
   const irpfPorcentaje = Number(factura?.irpf_porcentaje ?? 0);
   const irpfImporte = (baseImponible * irpfPorcentaje) / 100;
-  const totalConIva = baseImponible + ivaImporte - irpfImporte;
+  const porcentajeDescuento = Number(factura?.porcentaje_descuento ?? 0);
+  const descuentoImporte = baseImponible * (porcentajeDescuento / 100);
+  const totalConIva = baseImponible + ivaImporte - descuentoImporte - irpfImporte;
 
   const handleDelete = async () => {
     if (!factura) return;
@@ -175,52 +182,76 @@ export default function DetalleFacturaPage() {
     const clienteNif = factura.clientes?.nif ?? "-";
     const clienteDireccion = factura.clientes?.direccion ?? "-";
     const clienteEmail = factura.clientes?.email ?? "-";
+    const clienteTelefono = factura.clientes?.telefono ?? "-";
+
     const lineasHtml = lineas
-      .map(
-        (l) => `
-        <tr>
-          <td style="padding:10px 8px;border-bottom:1px solid #eee;">${l.descripcion}</td>
-          <td style="padding:10px 8px;border-bottom:1px solid #eee;text-align:right;">${Number(l.cantidad).toFixed(2)}</td>
-          <td style="padding:10px 8px;border-bottom:1px solid #eee;text-align:right;">${formatCurrency(Number(l.precio_unitario))}</td>
-          <td style="padding:10px 8px;border-bottom:1px solid #eee;text-align:right;">${Number(l.iva_porcentaje ?? 21).toFixed(2)}%</td>
-          <td style="padding:10px 8px;border-bottom:1px solid #eee;text-align:right;">${formatCurrency(Number(l.cantidad) * Number(l.precio_unitario))}</td>
+      .map((l, i) => {
+        const base = Number(l.cantidad) * Number(l.precio_unitario);
+        const ivaPct = Number(l.iva_porcentaje ?? 21) || 0;
+        const ivaLinea = base * (ivaPct / 100);
+        const totalLinea = base + ivaLinea;
+        const bg = i % 2 === 1 ? "background:#f5f5f5;" : "";
+        return `
+        <tr style="${bg}">
+          <td style="padding:12px 10px;border-bottom:1px solid #e5e5e5;">${l.descripcion}</td>
+          <td style="padding:12px 10px;border-bottom:1px solid #e5e5e5;text-align:right;">${Number(l.cantidad).toFixed(2)}</td>
+          <td style="padding:12px 10px;border-bottom:1px solid #e5e5e5;text-align:right;">${formatCurrency(base)}</td>
+          <td style="padding:12px 10px;border-bottom:1px solid #e5e5e5;text-align:right;">${formatCurrency(ivaLinea)}</td>
+          <td style="padding:12px 10px;border-bottom:1px solid #e5e5e5;text-align:right;">${formatCurrency(totalLinea)}</td>
         </tr>
-      `
-      )
+      `;
+      })
       .join("");
 
+    const logoUrl = typeof window !== "undefined" ? `${window.location.origin}/images/logo-web.png` : "/images/logo-web.png";
+    const fechaFormateada = factura.fecha_emision
+      ? new Date(factura.fecha_emision + "T12:00:00").toLocaleDateString("es-ES", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        })
+      : "—";
+
     const html = `
+      <!DOCTYPE html>
       <html>
         <head>
           <meta charset="utf-8" />
           <title>Factura ${factura.numero}</title>
           <style>
             @page { size: A4; margin: 18mm; }
-            body { font-family: Inter, Arial, sans-serif; color:#111; }
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color:#333; font-size:14px; line-height:1.5; }
           </style>
         </head>
-        <body style="font-family: Inter, Arial, sans-serif; color:#111; padding:4px;">
-          <table style="width:100%; margin-bottom:24px;">
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color:#333; font-size:14px; padding:8px;">
+          <table style="width:100%; margin-bottom:28px; border-collapse:collapse;">
             <tr>
-              <td style="vertical-align:top; width:40%;">
-                <h1 style="margin:0; font-size:28px; letter-spacing:-0.02em;">FACTURA</h1>
-                <p style="margin:6px 0 0 0; color:#555; font-size:14px;">Nº ${factura.numero}</p>
-                <p style="margin:2px 0 0 0; color:#555; font-size:14px;">Fecha emisión: ${factura.fecha_emision ?? "-"}</p>
-                <p style="margin:2px 0 0 0; color:#555; font-size:14px;">Fecha vencimiento: ${factura.fecha_vencimiento ?? "-"}</p>
+              <td style="vertical-align:top; width:50%;">
+                <img src="${logoUrl}" alt="REHABINCO" style="height:52px; width:auto; max-width:200px;" />
+              </td>
+              <td style="vertical-align:top; width:50%; text-align:right;">
+                <p style="margin:0; font-size:15px; font-weight:600;">FACTURA Nº: ${factura.numero}</p>
+                <p style="margin:4px 0 0 0; font-size:14px; color:#555;">Fecha: ${fechaFormateada}</p>
+              </td>
+            </tr>
+          </table>
+
+          <table style="width:100%; margin-bottom:28px; border-collapse:collapse;">
+            <tr>
+              <td style="vertical-align:top; width:50%; padding-right:24px;">
+                <p style="margin:0 0 6px 0; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#666;">Datos empresa</p>
+                <p style="margin:0;">${emisor.nombre}</p>
+                <p style="margin:0;">${emisor.direccion}</p>
+                <p style="margin:0;">${emisor.cp} ${emisor.poblacion} (${emisor.provincia})</p>
+                <p style="margin:0;">${emisor.nif}</p>
               </td>
               <td style="vertical-align:top; width:50%;">
-                <h3 style="margin:0 0 8px 0; font-size:13px; text-transform:uppercase; letter-spacing:0.06em; color:#6b7280;">Emisor</h3>
-                <p style="margin:0;">${emisor.nombre}</p>
-                <p style="margin:0;">NIF: ${emisor.nif}</p>
-                <p style="margin:0;">${emisor.direccion}</p>
-                <p style="margin:0;">${emisor.cp} - ${emisor.poblacion} (${emisor.provincia})</p>
-              </td>
-              <td style="vertical-align:top; width:40%;">
-                <h3 style="margin:0 0 8px 0; font-size:13px; text-transform:uppercase; letter-spacing:0.06em; color:#6b7280;">Cliente</h3>
+                <p style="margin:0 0 6px 0; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#666;">Datos cliente</p>
                 <p style="margin:0;">${clienteNombre}</p>
-                <p style="margin:0;">NIF/CIF: ${clienteNif}</p>
                 <p style="margin:0;">${clienteDireccion}</p>
+                <p style="margin:0;">${clienteNif}</p>
                 <p style="margin:0;">${clienteEmail}</p>
+                ${clienteTelefono && clienteTelefono !== "-" ? `<p style="margin:0;">${clienteTelefono}</p>` : ""}
               </td>
             </tr>
           </table>
@@ -228,33 +259,31 @@ export default function DetalleFacturaPage() {
           <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
             <thead>
               <tr>
-                <th style="padding:10px 8px;border-bottom:1px solid #ddd; text-align:left; font-size:12px; text-transform:uppercase; color:#6b7280;">Descripción</th>
-                <th style="padding:10px 8px;border-bottom:1px solid #ddd; text-align:right; font-size:12px; text-transform:uppercase; color:#6b7280;">Cantidad</th>
-                <th style="padding:10px 8px;border-bottom:1px solid #ddd; text-align:right; font-size:12px; text-transform:uppercase; color:#6b7280;">Precio Unitario</th>
-                <th style="padding:10px 8px;border-bottom:1px solid #ddd; text-align:right; font-size:12px; text-transform:uppercase; color:#6b7280;">IVA</th>
-                <th style="padding:10px 8px;border-bottom:1px solid #ddd; text-align:right; font-size:12px; text-transform:uppercase; color:#6b7280;">Importe</th>
+                <th style="padding:10px 12px; border-bottom:1px solid #ddd; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#666;">Descripción / Producto</th>
+                <th style="padding:10px 12px; border-bottom:1px solid #ddd; text-align:right; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#666;">Cantidad</th>
+                <th style="padding:10px 12px; border-bottom:1px solid #ddd; text-align:right; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#666;">Base</th>
+                <th style="padding:10px 12px; border-bottom:1px solid #ddd; text-align:right; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#666;">IVA</th>
+                <th style="padding:10px 12px; border-bottom:1px solid #ddd; text-align:right; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#666;">Total</th>
               </tr>
             </thead>
             <tbody>${lineasHtml}</tbody>
           </table>
 
-          <div style="margin-left:auto; width:320px; border:1px solid #e5e7eb; border-radius:12px; padding:12px 14px;">
-            <p style="display:flex; justify-content:space-between; margin:4px 0;"><span>Base imponible:</span><span>${formatCurrency(baseImponible)}</span></p>
-            <p style="display:flex; justify-content:space-between; margin:4px 0;"><span>IVA:</span><span>${formatCurrency(ivaImporte)}</span></p>
-            <p style="display:flex; justify-content:space-between; margin:4px 0;"><span>Retención IRPF (${irpfPorcentaje.toFixed(2)}%):</span><span>- ${formatCurrency(irpfImporte)}</span></p>
-            <p style="display:flex; justify-content:space-between; margin:8px 0; font-weight:700; border-top:1px solid #ddd; padding-top:8px;">
-              <span>Total:</span><span>${formatCurrency(totalConIva)}</span>
+          <div style="margin-left:auto; width:280px; font-size:14px;">
+            <p style="display:flex; justify-content:space-between; margin:6px 0;"><span>Base Imponible</span><span>${formatCurrency(baseImponible)}</span></p>
+            <p style="display:flex; justify-content:space-between; margin:6px 0;"><span>IVA</span><span>${formatCurrency(ivaImporte)}</span></p>
+            ${porcentajeDescuento > 0 ? `<p style="display:flex; justify-content:space-between; margin:6px 0;"><span>Descuento (${porcentajeDescuento}%)</span><span>- ${formatCurrency(descuentoImporte)}</span></p>` : ""}
+            ${irpfPorcentaje > 0 ? `<p style="display:flex; justify-content:space-between; margin:6px 0;"><span>Retención (${irpfPorcentaje}%)</span><span>- ${formatCurrency(irpfImporte)}</span></p>` : ""}
+            <p style="display:flex; justify-content:space-between; margin:12px 0 0 0; padding-top:10px; border-top:1px solid #ddd; font-weight:700; font-size:16px;">
+              <span>Total</span><span>${formatCurrency(totalConIva)}</span>
             </p>
           </div>
 
-          <div style="margin-top:22px; border-top:1px solid #e5e7eb; padding-top:12px;">
-            <p style="margin:0; font-size:12px; color:#4b5563;">
-              Método de pago recomendado: Transferencia bancaria.
+          <div style="margin-top:32px; padding-top:16px; border-top:1px solid #e5e5e5;">
+            <p style="margin:0; font-size:13px; color:#555;">
+              El pago se realizará mediante transferencia bancaria al IBAN: ${emisor.iban}
             </p>
-            <p style="margin:4px 0 0 0; font-size:12px; color:#4b5563;">
-              IBAN: ${emisor.iban}
-            </p>
-            <p style="margin:8px 0 0 0; font-size:11px; color:#6b7280;">
+            <p style="margin:8px 0 0 0; font-size:12px; color:#888;">
               Documento emitido conforme al Reglamento por el que se regulan las obligaciones de facturación (Real Decreto 1619/2012).
             </p>
           </div>
