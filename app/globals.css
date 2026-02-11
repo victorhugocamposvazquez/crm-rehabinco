@@ -53,3 +53,12 @@ body {
     transform: translateY(0);
   }
 }
+
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}

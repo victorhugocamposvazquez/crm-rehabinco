@@ -6,8 +6,7 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog } from "@/components/ui/alert-dialog";
-import { MoreVertical, Pencil, FileText, Trash2, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { MoreVertical, Eye, FileText, Trash2, X } from "lucide-react";
 
 interface ClienteCardProps {
   id: string;
@@ -26,11 +25,11 @@ export function ClienteCard({ id, nombre, email, telefono, activo, onDeleted }: 
 
   const closeActions = () => setActionsOpen(false);
 
-  const handleEdit = (e: React.MouseEvent) => {
+  const handleViewDetail = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     closeActions();
-    router.push(`/clientes/${id}/editar`);
+    router.push(`/clientes/${id}`);
   };
 
   const handleCreateFactura = (e: React.MouseEvent) => {
@@ -65,18 +64,36 @@ export function ClienteCard({ id, nombre, email, telefono, activo, onDeleted }: 
       <Card className="relative overflow-hidden bg-white/95 py-0">
         {/* Contenido principal */}
         <div className="relative flex items-center justify-between gap-4 py-4">
-          <Link
-            href={`/clientes/${id}`}
-            className="min-w-0 flex-1"
-            onClick={closeActions}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={(e) => {
+              if (actionsOpen) {
+                e.preventDefault();
+                closeActions();
+              }
+            }}
+            onKeyDown={(e) => {
+              if ((e.key === "Enter" || e.key === " ") && actionsOpen) {
+                e.preventDefault();
+                closeActions();
+              }
+            }}
+            className="min-w-0 flex-1 cursor-pointer"
           >
+            <Link
+              href={`/clientes/${id}`}
+              onClick={(e) => actionsOpen && e.preventDefault()}
+              className="block"
+            >
             <p className="font-semibold text-foreground">{nombre}</p>
             {(email || telefono) && (
               <p className="truncate text-sm text-neutral-500">
                 {email ?? telefono ?? "—"}
               </p>
             )}
-          </Link>
+            </Link>
+          </div>
           <Badge variant={activo ? "activo" : "inactivo"} className="shrink-0">
             {activo ? "Activo" : "Inactivo"}
           </Badge>
@@ -96,19 +113,17 @@ export function ClienteCard({ id, nombre, email, telefono, activo, onDeleted }: 
         </div>
 
         {/* Overlay de acciones: aparece por encima con transición suave de derecha a izquierda */}
-        <div
-          className={cn(
-            "absolute inset-y-0 right-0 z-10 flex items-stretch overflow-hidden transition-transform duration-300 ease-out",
-            actionsOpen ? "translate-x-0" : "translate-x-full"
-          )}
-          aria-hidden={!actionsOpen}
-        >
+        {actionsOpen && (
           <div
-            className="absolute inset-0 bg-black/20"
-            onClick={closeActions}
-            aria-hidden
-          />
-          <div className="relative flex w-[180px] shrink-0 items-stretch rounded-l-xl border-l border-y border-border bg-white shadow-[-8px_0_24px_rgba(0,0,0,0.08)]">
+            className="fixed inset-0 z-50 flex justify-end"
+            aria-hidden={false}
+          >
+            <div
+              className="absolute inset-0 bg-black/25"
+              onClick={closeActions}
+              aria-hidden
+            />
+            <div className="relative flex w-[200px] shrink-0 animate-[slideInFromRight_0.3s_ease-out] items-stretch rounded-l-xl border-l border-y border-border bg-white shadow-[-8px_0_24px_rgba(0,0,0,0.12)]">
             <button
               type="button"
               onClick={closeActions}
@@ -120,14 +135,14 @@ export function ClienteCard({ id, nombre, email, telefono, activo, onDeleted }: 
             <div className="flex flex-1 flex-col justify-center gap-1 py-4 pr-10 pl-3">
               <button
                 type="button"
-                onClick={handleEdit}
-                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-neutral-700 transition-colors hover:bg-blue-50 hover:text-blue-700"
-                aria-label="Editar"
+                onClick={handleViewDetail}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-neutral-700 transition-colors hover:bg-blue-50 hover:text-blue-600"
+                aria-label="Ver detalle"
               >
                 <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
-                  <Pencil className="h-4 w-4" strokeWidth={1.5} />
+                  <Eye className="h-4 w-4" strokeWidth={1.5} />
                 </span>
-                Editar
+                Ver detalle
               </button>
               <button
                 type="button"
@@ -154,6 +169,7 @@ export function ClienteCard({ id, nombre, email, telefono, activo, onDeleted }: 
             </div>
           </div>
         </div>
+        )}
       </Card>
 
       <AlertDialog

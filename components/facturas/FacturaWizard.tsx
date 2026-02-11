@@ -78,11 +78,11 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
   });
 
   useEffect(() => {
-    if (initialClienteId && !facturaId) {
-      formStep1.setValue("clienteId", initialClienteId);
-      setData((p) => ({ ...p, clienteId: initialClienteId }));
-    }
-  }, [initialClienteId, facturaId, formStep1]);
+    if (!initialClienteId || facturaId) return;
+    formStep1.setValue("clienteId", initialClienteId);
+    setData((p) => ({ ...p, clienteId: initialClienteId }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only run when initialClienteId or clientes change
+  }, [initialClienteId, facturaId, clientes]);
 
   const [lineas, setLineas] = useState<FacturaLinea[]>([
     { descripcion: "", cantidad: 0, precioUnitario: 0, ivaPorcentaje: 21 },
