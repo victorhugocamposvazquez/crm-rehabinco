@@ -21,8 +21,10 @@ export interface Database {
           nombre: string;
           email: string | null;
           telefono: string | null;
-          nif: string | null;
-          tipo: "particular" | "empresa";
+          tipo_cliente: "particular" | "empresa";
+          cliente_padre_id: string | null;
+          documento_fiscal: string | null;
+          tipo_documento: "dni" | "nie" | "cif" | "vat" | null;
           direccion: string | null;
           codigo_postal: string | null;
           localidad: string | null;
@@ -36,8 +38,10 @@ export interface Database {
           nombre: string;
           email?: string | null;
           telefono?: string | null;
-          nif?: string | null;
-          tipo?: "particular" | "empresa";
+          tipo_cliente?: "particular" | "empresa";
+          cliente_padre_id?: string | null;
+          documento_fiscal?: string | null;
+          tipo_documento?: "dni" | "nie" | "cif" | "vat" | null;
           direccion?: string | null;
           codigo_postal?: string | null;
           localidad?: string | null;
@@ -48,8 +52,10 @@ export interface Database {
           nombre?: string;
           email?: string | null;
           telefono?: string | null;
-          nif?: string | null;
-          tipo?: "particular" | "empresa";
+          tipo_cliente?: "particular" | "empresa";
+          cliente_padre_id?: string | null;
+          documento_fiscal?: string | null;
+          tipo_documento?: "dni" | "nie" | "cif" | "vat" | null;
           direccion?: string | null;
           codigo_postal?: string | null;
           localidad?: string | null;
@@ -63,6 +69,7 @@ export interface Database {
           id: string;
           user_id: string;
           cliente_id: string | null;
+          presupuesto_id: string | null;
           numero: string;
           estado: string;
           concepto: string | null;
@@ -82,6 +89,7 @@ export interface Database {
         Insert: {
           user_id: string;
           cliente_id?: string | null;
+          presupuesto_id?: string | null;
           numero: string;
           estado?: string;
           concepto?: string | null;
@@ -91,6 +99,7 @@ export interface Database {
         };
         Update: {
           cliente_id?: string | null;
+          presupuesto_id?: string | null;
           numero?: string;
           estado?: string;
           concepto?: string | null;
@@ -159,6 +168,56 @@ export interface Database {
           estado?: string;
           fecha?: string | null;
           concepto?: string | null;
+          updated_at?: string;
+        };
+      };
+      propiedades: {
+        Row: {
+          id: string;
+          user_id: string;
+          ofertante_id: string;
+          titulo: string | null;
+          direccion: string | null;
+          codigo_postal: string | null;
+          localidad: string | null;
+          tipo_operacion: string;
+          precio_venta: number | null;
+          precio_alquiler: number | null;
+          superficie_m2: number | null;
+          habitaciones: number | null;
+          estado: string;
+          notas: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          ofertante_id: string;
+          titulo?: string | null;
+          direccion?: string | null;
+          codigo_postal?: string | null;
+          localidad?: string | null;
+          tipo_operacion?: string;
+          precio_venta?: number | null;
+          precio_alquiler?: number | null;
+          superficie_m2?: number | null;
+          habitaciones?: number | null;
+          estado?: string;
+          notas?: string | null;
+        };
+        Update: {
+          ofertante_id?: string;
+          titulo?: string | null;
+          direccion?: string | null;
+          codigo_postal?: string | null;
+          localidad?: string | null;
+          tipo_operacion?: string;
+          precio_venta?: number | null;
+          precio_alquiler?: number | null;
+          superficie_m2?: number | null;
+          habitaciones?: number | null;
+          estado?: string;
+          notas?: string | null;
           updated_at?: string;
         };
       };

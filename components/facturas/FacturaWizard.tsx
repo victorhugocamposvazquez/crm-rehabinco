@@ -53,8 +53,9 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
   const [quickClientError, setQuickClientError] = useState<string | null>(null);
   const [quickClient, setQuickClient] = useState({
     nombre: "",
-    tipo: "particular" as "particular" | "empresa",
-    nif: "",
+    tipo_cliente: "particular" as "particular" | "empresa",
+    tipo_documento: "dni" as "dni" | "nie" | "cif" | "vat",
+    documento_fiscal: "",
     email: "",
     telefono: "",
     direccion: "",
@@ -163,13 +164,17 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
       setCreatingClient(false);
       return;
     }
+    const tipoDoc = quickClient.tipo_cliente === "empresa"
+      ? (quickClient.tipo_documento === "vat" ? "vat" : "cif")
+      : (quickClient.tipo_documento === "nie" ? "nie" : "dni");
     const { data: inserted, error } = await supabase
       .from("clientes")
       .insert({
         user_id: user.id,
         nombre: quickClient.nombre.trim(),
-        tipo: quickClient.tipo,
-        nif: quickClient.nif.trim() || null,
+        tipo_cliente: quickClient.tipo_cliente,
+        documento_fiscal: quickClient.documento_fiscal.trim() || null,
+        tipo_documento: quickClient.documento_fiscal.trim() ? tipoDoc : null,
         email: quickClient.email.trim() || null,
         telefono: quickClient.telefono.trim() || null,
         direccion: quickClient.direccion.trim() || null,
@@ -191,8 +196,9 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
     setData((p) => ({ ...p, clienteId: inserted.id }));
     setQuickClient({
       nombre: "",
-      tipo: "particular",
-      nif: "",
+      tipo_cliente: "particular",
+      tipo_documento: "dni",
+      documento_fiscal: "",
       email: "",
       telefono: "",
       direccion: "",
@@ -455,10 +461,10 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
                         <div className="flex rounded-lg border border-border p-1">
                           <button
                             type="button"
-                            onClick={() => setQuickClient((p) => ({ ...p, tipo: "particular" }))}
+                            onClick={() => setQuickClient((p) => ({ ...p, tipo_cliente: "particular", tipo_documento: "dni" }))}
                             className={cn(
                               "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                              quickClient.tipo === "particular"
+                              quickClient.tipo_cliente === "particular"
                                 ? "bg-foreground text-background"
                                 : "text-muted-foreground hover:bg-muted"
                             )}
@@ -467,10 +473,10 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
                           </button>
                           <button
                             type="button"
-                            onClick={() => setQuickClient((p) => ({ ...p, tipo: "empresa" }))}
+                            onClick={() => setQuickClient((p) => ({ ...p, tipo_cliente: "empresa", tipo_documento: "cif" }))}
                             className={cn(
                               "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                              quickClient.tipo === "empresa"
+                              quickClient.tipo_cliente === "empresa"
                                 ? "bg-foreground text-background"
                                 : "text-muted-foreground hover:bg-muted"
                             )}
@@ -479,11 +485,33 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
                           </button>
                         </div>
                       </div>
-                      <Input
-                        placeholder={quickClient.tipo === "particular" ? "DNI" : "NIF"}
-                        value={quickClient.nif}
+                      <select
+                        className="flex h-10 w-full rounded-lg border border-border bg-white px-4 text-base"
+                        value={quickClient.tipo_documento}
                         onChange={(e) =>
-                          setQuickClient((prev) => ({ ...prev, nif: e.target.value }))
+                          setQuickClient((prev) => ({
+                            ...prev,
+                            tipo_documento: e.target.value as "dni" | "nie" | "cif" | "vat",
+                          }))
+                        }
+                      >
+                        {quickClient.tipo_cliente === "empresa" ? (
+                          <>
+                            <option value="cif">CIF</option>
+                            <option value="vat">VAT</option>
+                          </>
+                        ) : (
+                          <>
+                            <option value="dni">DNI</option>
+                            <option value="nie">NIE</option>
+                          </>
+                        )}
+                      </select>
+                      <Input
+                        placeholder={quickClient.tipo_cliente === "particular" ? "DNI / NIE" : "CIF / VAT"}
+                        value={quickClient.documento_fiscal}
+                        onChange={(e) =>
+                          setQuickClient((prev) => ({ ...prev, documento_fiscal: e.target.value }))
                         }
                       />
                       <div className="grid gap-3 sm:grid-cols-2">

@@ -9,20 +9,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog } from "@/components/ui/alert-dialog";
-import { ChevronLeft, Pencil, Trash2, FileText } from "lucide-react";
+import { ChevronLeft, Pencil, Trash2, FileText, Building2, Plus, Home } from "lucide-react";
 
 interface Cliente {
   id: string;
   nombre: string;
   email: string | null;
   telefono: string | null;
-  nif: string | null;
-  tipo?: "particular" | "empresa" | null;
+  tipo_cliente: "particular" | "empresa";
+  documento_fiscal: string | null;
+  tipo_documento: "dni" | "nie" | "cif" | "vat" | null;
   direccion: string | null;
   codigo_postal: string | null;
   localidad: string | null;
   notas: string | null;
   activo: boolean;
+  cliente_padre_id?: string | null;
 }
 
 export default function DetalleClientePage() {
@@ -31,6 +33,8 @@ export default function DetalleClientePage() {
   const id = params.id as string;
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [facturas, setFacturas] = useState<Array<{ id: string; numero: string; estado: string; total?: number }>>([]);
+  const [empresasAsociadas, setEmpresasAsociadas] = useState<Array<{ id: string; nombre: string }>>([]);
+  const [propiedades, setPropiedades] = useState<Array<{ id: string; titulo: string | null; direccion: string | null; localidad: string | null; tipo_operacion: string; estado: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -64,6 +68,32 @@ export default function DetalleClientePage() {
       .order("created_at", { ascending: false })
       .then(({ data }) => {
         setFacturas(data ?? []);
+      });
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    const supabase = createClient();
+    supabase
+      .from("clientes")
+      .select("id, nombre")
+      .eq("cliente_padre_id", id)
+      .order("nombre")
+      .then(({ data }) => {
+        setEmpresasAsociadas(data ?? []);
+      });
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    const supabase = createClient();
+    supabase
+      .from("propiedades")
+      .select("id, titulo, direccion, localidad, tipo_operacion, estado")
+      .eq("ofertante_id", id)
+      .order("titulo")
+      .then(({ data }) => {
+        setPropiedades(data ?? []);
       });
   }, [id]);
 
@@ -179,11 +209,43 @@ export default function DetalleClientePage() {
               {cliente.telefono ?? "—"}
             </p>
             <p>
-              <span className="text-neutral-500">{cliente.tipo === "empresa" ? "NIF" : "DNI"}:</span>{" "}
-              {cliente.nif ?? "—"}
+              <span className="text-neutral-500">{cliente.tipo_documento ? String(cliente.tipo_documento).toUpperCase() : "Documento fiscal"}:</span>{" "}
+              {cliente.documento_fiscal ?? "—"}
             </p>
           </CardContent>
         </Card>
+        {cliente.tipo_cliente === "particular" && (
+        <Card className="md:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Empresas asociadas</CardTitle>
+            <Button variant="secondary" size="sm" asChild>
+              <Link href={`/clientes/nuevo?padre=${id}`} className="gap-1.5">
+                <Plus className="h-4 w-4" strokeWidth={1.5} />
+                Añadir empresa
+              </Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {empresasAsociadas.length === 0 ? (
+              <p className="text-sm text-neutral-500">Sin empresas asociadas. Añade una para facturar a nombre de ella.</p>
+            ) : (
+              <ul className="space-y-2">
+                {empresasAsociadas.map((e) => (
+                  <li key={e.id}>
+                    <Link
+                      href={`/clientes/${e.id}`}
+                      className="flex items-center gap-2 text-sm font-medium text-foreground hover:underline"
+                    >
+                      <Building2 className="h-4 w-4 shrink-0 text-neutral-400" strokeWidth={1.5} />
+                      {e.nombre}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+        )}
         <Card>
           <CardHeader>
             <CardTitle>Dirección</CardTitle>
@@ -192,6 +254,44 @@ export default function DetalleClientePage() {
             <p className="text-sm">
               {[cliente.direccion, cliente.codigo_postal, cliente.localidad].filter(Boolean).join(", ") || "—"}
             </p>
+          </CardContent>
+        </Card>
+        <Card className="md:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Propiedades</CardTitle>
+            <Button variant="secondary" size="sm" asChild>
+              <Link href={`/propiedades/nueva?ofertante=${id}`} className="gap-1.5">
+                <Plus className="h-4 w-4" strokeWidth={1.5} />
+                Añadir propiedad
+              </Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {propiedades.length === 0 ? (
+              <p className="text-sm text-neutral-500">Sin propiedades registradas. Añade una si este cliente ofrece inmuebles.</p>
+            ) : (
+              <ul className="space-y-2">
+                {propiedades.map((p) => (
+                  <li key={p.id}>
+                    <Link
+                      href={`/propiedades/${p.id}`}
+                      className="flex items-center gap-2 text-sm font-medium text-foreground hover:underline"
+                    >
+                      <Home className="h-4 w-4 shrink-0 text-neutral-400" strokeWidth={1.5} />
+                      {p.titulo || p.direccion || p.localidad || "Sin título"}
+                    </Link>
+                    <div className="ml-6 flex flex-wrap items-center gap-1.5">
+                      <Badge variant="default" className="text-xs">
+                        {p.tipo_operacion}
+                      </Badge>
+                      <Badge variant="default" className="text-xs">
+                        {p.estado}
+                      </Badge>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
         <Card className="md:col-span-2">

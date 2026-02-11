@@ -28,12 +28,15 @@ type WizardData = ClienteStep1Values & ClienteStep2Values & { activo?: boolean }
 
 interface ClienteWizardProps {
   clienteId?: string;
+  initialClientePadreId?: string;
 }
 
-export function ClienteWizard({ clienteId }: ClienteWizardProps) {
+export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const [data, setData] = useState<Partial<WizardData>>({});
+  const [data, setData] = useState<Partial<WizardData & { cliente_padre_id?: string | null }>>(
+    initialClientePadreId ? { tipo_cliente: "empresa", cliente_padre_id: initialClientePadreId } : {}
+  );
   const [loading, setLoading] = useState(!!clienteId);
 
   useEffect(() => {
@@ -49,11 +52,13 @@ export function ClienteWizard({ clienteId }: ClienteWizardProps) {
           setLoading(false);
           return;
         }
-        const r = row as { nombre: string; email: string | null; telefono: string | null; nif: string | null; tipo: "particular" | "empresa"; direccion: string | null; codigo_postal: string | null; localidad: string | null; notas: string | null; activo: boolean };
+        const r = row as { nombre: string; email: string | null; telefono: string | null; documento_fiscal: string | null; tipo_documento: string | null; tipo_cliente: "particular" | "empresa"; direccion: string | null; codigo_postal: string | null; localidad: string | null; notas: string | null; activo: boolean; cliente_padre_id: string | null };
         setData({
           nombre: r.nombre,
-          tipo: r.tipo ?? "particular",
-          nif: r.nif ?? "",
+          tipo_cliente: r.tipo_cliente ?? "particular",
+          cliente_padre_id: r.cliente_padre_id ?? undefined,
+          documento_fiscal: r.documento_fiscal ?? "",
+          tipo_documento: (r.tipo_documento as "dni" | "nie" | "cif" | "vat") ?? null,
           email: r.email ?? "",
           telefono: r.telefono ?? "",
           direccion: r.direccion ?? "",
@@ -68,8 +73,15 @@ export function ClienteWizard({ clienteId }: ClienteWizardProps) {
 
   const formStep1 = useForm<ClienteStep1Values>({
     resolver: zodResolver(clienteStep1Schema),
-    defaultValues: { nombre: "", tipo: "particular", nif: "", email: "", telefono: "" },
-    values: data?.nombre ? { nombre: data.nombre, tipo: (data.tipo as "particular" | "empresa") ?? "particular", nif: data.nif ?? "", email: data.email ?? "", telefono: data.telefono ?? "" } : undefined,
+    defaultValues: {
+      nombre: "",
+      tipo_cliente: initialClientePadreId ? "empresa" : "particular",
+      tipo_documento: (initialClientePadreId ? "cif" : "dni") as "dni" | "nie" | "cif" | "vat",
+      documento_fiscal: "",
+      email: "",
+      telefono: "",
+    },
+    values: data?.nombre ? { nombre: data.nombre, tipo_cliente: (data.tipo_cliente as "particular" | "empresa") ?? "particular", tipo_documento: data.tipo_documento ?? null, documento_fiscal: data.documento_fiscal ?? "", email: data.email ?? "", telefono: data.telefono ?? "" } : undefined,
   });
 
   const formStep2 = useForm<ClienteStep2Values>({
@@ -106,17 +118,21 @@ export function ClienteWizard({ clienteId }: ClienteWizardProps) {
       setSaving(false);
       return;
     }
+    const tipo_cliente = (data.tipo_cliente as "particular" | "empresa") ?? "particular";
+    const tipo_doc = data.tipo_documento ?? (tipo_cliente === "empresa" ? "cif" : "dni");
     const payload = {
       nombre: data.nombre ?? "",
-      tipo: (data.tipo as "particular" | "empresa") ?? "particular",
+      tipo_cliente,
+      documento_fiscal: data.documento_fiscal?.trim() || null,
+      tipo_documento: data.documento_fiscal?.trim() ? tipo_doc : null,
       email: data.email || null,
       telefono: data.telefono || null,
-      nif: data.nif || null,
       direccion: data.direccion || null,
       codigo_postal: data.codigo_postal || null,
       localidad: data.localidad || null,
       notas: data.notas || null,
       activo: data.activo ?? true,
+      cliente_padre_id: tipo_cliente === "empresa" && (data.cliente_padre_id ?? initialClientePadreId) ? (data.cliente_padre_id ?? initialClientePadreId) : null,
     };
     const { error } = clienteId
       ? await supabase.from("clientes").update(payload).eq("id", clienteId)
@@ -199,15 +215,16 @@ export function ClienteWizard({ clienteId }: ClienteWizardProps) {
                     </p>
                   )}
                 </div>
+                {!initialClientePadreId && (
                 <div className="space-y-2">
                   <Label>Tipo de cliente</Label>
                   <div className="flex rounded-lg border border-border p-1">
                     <button
                       type="button"
-                      onClick={() => formStep1.setValue("tipo", "particular")}
+                      onClick={() => { formStep1.setValue("tipo_cliente", "particular"); formStep1.setValue("tipo_documento", "dni"); }}
                       className={cn(
                         "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                        formStep1.watch("tipo") === "particular"
+                        formStep1.watch("tipo_cliente") === "particular"
                           ? "bg-foreground text-background"
                           : "text-muted-foreground hover:bg-muted"
                       )}
@@ -216,10 +233,10 @@ export function ClienteWizard({ clienteId }: ClienteWizardProps) {
                     </button>
                     <button
                       type="button"
-                      onClick={() => formStep1.setValue("tipo", "empresa")}
+                      onClick={() => { formStep1.setValue("tipo_cliente", "empresa"); formStep1.setValue("tipo_documento", "cif"); }}
                       className={cn(
                         "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                        formStep1.watch("tipo") === "empresa"
+                        formStep1.watch("tipo_cliente") === "empresa"
                           ? "bg-foreground text-background"
                           : "text-muted-foreground hover:bg-muted"
                       )}
@@ -227,16 +244,40 @@ export function ClienteWizard({ clienteId }: ClienteWizardProps) {
                       Empresa
                     </button>
                   </div>
-                  <input type="hidden" {...formStep1.register("tipo")} />
+                  <input type="hidden" {...formStep1.register("tipo_cliente")} />
+                </div>
+                )}
+                {initialClientePadreId && (
+                  <input type="hidden" {...formStep1.register("tipo_cliente")} />
+                )}
+                <div className="space-y-2">
+                  <Label htmlFor="tipo_documento">Tipo de documento</Label>
+                  <select
+                    id="tipo_documento"
+                    className="flex h-10 w-full rounded-lg border border-border bg-white px-4 text-base"
+                    {...formStep1.register("tipo_documento")}
+                  >
+                    {formStep1.watch("tipo_cliente") === "empresa" ? (
+                      <>
+                        <option value="cif">CIF</option>
+                        <option value="vat">VAT</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="dni">DNI</option>
+                        <option value="nie">NIE</option>
+                      </>
+                    )}
+                  </select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="nif">
-                    {formStep1.watch("tipo") === "particular" ? "DNI" : "NIF"}
+                  <Label htmlFor="documento_fiscal">
+                    {formStep1.watch("tipo_cliente") === "particular" ? "DNI / NIE" : "CIF / VAT"}
                   </Label>
                   <Input
-                    id="nif"
-                    placeholder={formStep1.watch("tipo") === "particular" ? "12345678A" : "B12345678"}
-                    {...formStep1.register("nif")}
+                    id="documento_fiscal"
+                    placeholder={formStep1.watch("tipo_cliente") === "particular" ? "12345678A" : "B12345678"}
+                    {...formStep1.register("documento_fiscal")}
                   />
                 </div>
                 <div className="space-y-2">
@@ -349,11 +390,11 @@ export function ClienteWizard({ clienteId }: ClienteWizardProps) {
                 </div>
                 <div>
                   <dt className="text-neutral-500">Tipo</dt>
-                  <dd className="font-medium">{data.tipo === "empresa" ? "Empresa" : "Particular"}</dd>
+                  <dd className="font-medium">{data.tipo_cliente === "empresa" ? "Empresa" : "Particular"}</dd>
                 </div>
                 <div>
-                  <dt className="text-neutral-500">{data.tipo === "empresa" ? "NIF" : "DNI"}</dt>
-                  <dd className="font-medium">{data.nif || "—"}</dd>
+                  <dt className="text-neutral-500">{data.tipo_documento ? String(data.tipo_documento).toUpperCase() : "Documento fiscal"}</dt>
+                  <dd className="font-medium">{data.documento_fiscal || "—"}</dd>
                 </div>
                 <div>
                   <dt className="text-neutral-500">Email</dt>

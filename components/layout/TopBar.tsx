@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
-import { Home, Users, FileText, Settings, LogOut, KeyRound } from "lucide-react";
+import { Home, Users, FileText, ClipboardList, Building2, Settings, LogOut, KeyRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth/auth-context";
 import { Sheet } from "@/components/ui/sheet";
@@ -11,6 +11,8 @@ import { Sheet } from "@/components/ui/sheet";
 const navItems = [
   { href: "/", label: "Inicio", icon: Home },
   { href: "/clientes", label: "Clientes", icon: Users },
+  { href: "/propiedades", label: "Propiedades", icon: Building2 },
+  { href: "/presupuestos", label: "Presupuestos", icon: ClipboardList },
   { href: "/facturas", label: "Facturas", icon: FileText },
   { href: "/settings", label: "Ajustes", icon: Settings },
 ];

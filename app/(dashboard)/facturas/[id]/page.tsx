@@ -26,8 +26,9 @@ interface FacturaRow {
   clientes: {
     id: string;
     nombre: string;
-    nif: string | null;
-    tipo?: "particular" | "empresa" | null;
+    documento_fiscal: string | null;
+    tipo_cliente: "particular" | "empresa";
+    tipo_documento: "dni" | "nie" | "cif" | "vat" | null;
     direccion: string | null;
     codigo_postal?: string | null;
     localidad?: string | null;
@@ -68,7 +69,7 @@ export default function DetalleFacturaPage() {
     supabase
       .from("facturas")
       .select(
-        "id, numero, estado, concepto, fecha_emision, fecha_vencimiento, irpf_porcentaje, irpf_importe, porcentaje_descuento, importe_descuento, cliente_id, clientes(id, nombre, nif, tipo, direccion, codigo_postal, localidad, email, telefono)"
+        "id, numero, estado, concepto, fecha_emision, fecha_vencimiento, irpf_porcentaje, irpf_importe, porcentaje_descuento, importe_descuento, cliente_id, clientes(id, nombre, documento_fiscal, tipo_cliente, tipo_documento, direccion, codigo_postal, localidad, email, telefono)"
       )
       .eq("id", id)
       .single()
@@ -93,8 +94,9 @@ export default function DetalleFacturaPage() {
               | {
                   id: string;
                   nombre: string;
-                  nif: string | null;
-                  tipo?: "particular" | "empresa" | null;
+                  documento_fiscal: string | null;
+                  tipo_cliente: "particular" | "empresa";
+                  tipo_documento: "dni" | "nie" | "cif" | "vat" | null;
                   direccion: string | null;
                   codigo_postal: string | null;
                   localidad: string | null;
@@ -104,8 +106,9 @@ export default function DetalleFacturaPage() {
               | {
                   id: string;
                   nombre: string;
-                  nif: string | null;
-                  tipo?: "particular" | "empresa" | null;
+                  documento_fiscal: string | null;
+                  tipo_cliente: "particular" | "empresa";
+                  tipo_documento: "dni" | "nie" | "cif" | "vat" | null;
                   direccion: string | null;
                   codigo_postal: string | null;
                   localidad: string | null;
@@ -190,9 +193,10 @@ export default function DetalleFacturaPage() {
         "ES00 0000 0000 0000 0000 0000",
     };
     const clienteNombre = factura.clientes?.nombre ?? "Cliente";
-    const clienteTipo = factura.clientes?.tipo ?? "particular";
-    const docLabel = clienteTipo === "empresa" ? "NIF" : "DNI";
-    const clienteDoc = factura.clientes?.nif ?? "-";
+    const clienteDoc = factura.clientes?.documento_fiscal ?? "-";
+    const docLabel = factura.clientes?.tipo_documento
+      ? String(factura.clientes.tipo_documento).toUpperCase()
+      : (factura.clientes?.tipo_cliente === "empresa" ? "NIF" : "DNI");
     const dirParts = [
       factura.clientes?.direccion,
       factura.clientes?.codigo_postal,
