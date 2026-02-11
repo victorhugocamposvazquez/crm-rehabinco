@@ -561,11 +561,12 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
                 Añadir línea
               </Button>
 
-              <div className="sticky bottom-0 mt-6 rounded-xl border border-border bg-neutral-50/90 p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+              {/* Totales siempre visibles debajo de las líneas, se actualizan en tiempo real */}
+              <div className="mt-6 rounded-xl border border-border bg-neutral-50 p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                  Totales
+                  Totales (actualización en tiempo real)
                 </p>
-                <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-5">
+                <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3 lg:grid-cols-5">
                   <div>
                     <p className="text-neutral-500">Subtotal</p>
                     <p className="font-semibold text-foreground">{subtotal.toFixed(2)} €</p>
@@ -634,15 +635,17 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
                 </div>
               </dl>
               <div>
-                <p className="mb-2 text-sm font-medium text-neutral-500">Líneas desglosadas</p>
-                <ul className="space-y-2 rounded-lg border border-border bg-neutral-50/60 p-3">
-                  {lineas.map((l, i) => {
-                    const importe = l.cantidad * l.precioUnitario * (1 + l.ivaPorcentaje / 100);
+                <p className="mb-3 text-sm font-semibold text-neutral-600">Líneas desglosadas (descripción e importe por línea)</p>
+                <ul className="space-y-3 rounded-lg border border-border bg-neutral-50/60 p-4">
+                  {(data.lineas ?? lineas).map((l, i) => {
+                    const base = l.cantidad * l.precioUnitario;
+                    const iva = base * (l.ivaPorcentaje / 100);
+                    const importe = base + iva;
                     return (
-                      <li key={i} className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
-                        <span className="font-medium text-foreground">{l.descripcion || "—"}</span>
-                        <span className="text-neutral-600">
-                          {l.cantidad} × {l.precioUnitario.toFixed(2)} € (IVA {l.ivaPorcentaje}%) = {importe.toFixed(2)} €
+                      <li key={i} className="flex flex-col gap-1 border-b border-border/50 pb-3 last:border-0 last:pb-0">
+                        <span className="font-medium text-foreground">{l.descripcion || "Sin descripción"}</span>
+                        <span className="text-sm text-neutral-600">
+                          {l.cantidad} × {l.precioUnitario.toFixed(2)} € + IVA {l.ivaPorcentaje}% = {importe.toFixed(2)} €
                         </span>
                       </li>
                     );
