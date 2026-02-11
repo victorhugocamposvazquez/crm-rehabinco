@@ -4,9 +4,11 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { ClienteDetailSkeleton } from "@/components/clientes/ClienteDetailSkeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { AlertDialog } from "@/components/ui/alert-dialog";
 import { ChevronLeft, Pencil, Trash2 } from "lucide-react";
 
 interface Cliente {
@@ -77,13 +79,7 @@ export default function DetalleClientePage() {
     router.refresh();
   };
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-foreground" />
-      </div>
-    );
-  }
+  if (loading) return <ClienteDetailSkeleton />;
 
   if (error || !cliente) {
     return (
@@ -97,7 +93,12 @@ export default function DetalleClientePage() {
   }
 
   return (
-    <div className="animate-[fadeIn_0.3s_ease-out]">
+    <div>
+      <nav className="mb-4 flex items-center gap-1.5 text-sm">
+        <Link href="/clientes" className="text-neutral-500 hover:text-foreground">Clientes</Link>
+        <span className="text-neutral-400">/</span>
+        <span className="font-medium text-foreground">{cliente.nombre}</span>
+      </nav>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild>
@@ -136,30 +137,20 @@ export default function DetalleClientePage() {
         </div>
       </div>
 
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => !deleting && setShowDeleteConfirm(false)}>
-          <div className="w-full max-w-sm rounded-2xl border border-border bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <p className="font-medium text-foreground">¿Eliminar cliente {cliente.nombre}?</p>
-            <p className="mt-2 text-sm text-neutral-500">
-              {facturas.length > 0
-                ? `Tiene ${facturas.length} factura(s) asociada(s). El cliente se eliminará y las facturas quedarán sin cliente asignado.`
-                : "Esta acción no se puede deshacer."}
-            </p>
-            <div className="mt-6 flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setShowDeleteConfirm(false)} disabled={deleting}>
-                Cancelar
-              </Button>
-              <Button
-                className="bg-red-600 text-white hover:bg-red-700"
-                onClick={handleDelete}
-                disabled={deleting}
-              >
-                {deleting ? "Eliminando…" : "Eliminar"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AlertDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title={`¿Eliminar cliente ${cliente.nombre}?`}
+        description={
+          facturas.length > 0
+            ? `Tiene ${facturas.length} factura(s) asociada(s). El cliente se eliminará y las facturas quedarán sin cliente asignado.`
+            : "Esta acción no se puede deshacer."
+        }
+        confirmLabel={deleting ? "Eliminando…" : "Eliminar"}
+        onConfirm={handleDelete}
+        loading={deleting}
+        variant="destructive"
+      />
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>

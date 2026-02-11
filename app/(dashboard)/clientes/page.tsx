@@ -1,10 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { ClienteCard } from "@/components/clientes/ClienteCard";
 import { ClienteListSkeleton } from "@/components/clientes/ClienteListSkeleton";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Fab } from "@/components/ui/fab";
+import { Button } from "@/components/ui/button";
+import { UserPlus } from "lucide-react";
 
 export default function ClientesPage() {
   const [loading, setLoading] = useState(true);
@@ -35,16 +39,20 @@ export default function ClientesPage() {
   }, []);
 
   return (
-    <div className="animate-[fadeIn_0.3s_ease-out]">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-500">
-        CRM / Clientes
-      </p>
-      <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-[2.2rem]">
-        Clientes
-      </h1>
-      <p className="mt-2 max-w-2xl text-base text-neutral-600">
-        Gestiona tus clientes y contactos
-      </p>
+    <div>
+      <PageHeader
+        breadcrumb={[{ label: "Clientes", href: "/clientes" }]}
+        title="Clientes"
+        description="Gestiona tus clientes y contactos"
+        actions={
+          <Button asChild size="sm">
+            <Link href="/clientes/nuevo" className="gap-2">
+              <UserPlus className="h-4 w-4" strokeWidth={1.5} />
+              Crear cliente
+            </Link>
+          </Button>
+        }
+      />
 
       {error && (
         <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -56,11 +64,17 @@ export default function ClientesPage() {
         {loading ? (
           <ClienteListSkeleton />
         ) : clientes.length === 0 && !error ? (
-          <p className="rounded-2xl border border-dashed border-border bg-white p-6 text-neutral-500">
-            Aún no hay clientes. Crea el primero con el botón +.
-          </p>
+          <div className="rounded-2xl border border-dashed border-border bg-white p-8 text-center">
+            <p className="text-neutral-500">Aún no hay clientes.</p>
+            <Button asChild className="mt-4">
+              <Link href="/clientes/nuevo" className="gap-2">
+                <UserPlus className="h-4 w-4" strokeWidth={1.5} />
+                Añadir primer cliente
+              </Link>
+            </Button>
+          </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="flex flex-col gap-3">
             {clientes.map((c) => (
               <ClienteCard
                 key={c.id}

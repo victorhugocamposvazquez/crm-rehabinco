@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { FacturaCard } from "@/components/facturas/FacturaCard";
 import { FacturaListSkeleton } from "@/components/facturas/FacturaListSkeleton";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Fab } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -62,26 +63,20 @@ export default function FacturasPage() {
   }, []);
 
   return (
-    <div className="animate-[fadeIn_0.3s_ease-out]">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-500">
-        CRM / Facturas
-      </p>
-      <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-[2.2rem]">
-            Facturas
-          </h1>
-          <p className="mt-2 max-w-2xl text-base text-neutral-600">
-            Gestiona facturas y cobros
-          </p>
-        </div>
-        <Button asChild size="sm" className="shrink-0">
-          <Link href="/facturas/nueva" className="gap-2">
-            <Plus className="h-4 w-4" strokeWidth={1.5} />
-            Crear factura
-          </Link>
-        </Button>
-      </div>
+    <div>
+      <PageHeader
+        breadcrumb={[{ label: "Facturas", href: "/facturas" }]}
+        title="Facturas"
+        description="Gestiona facturas y cobros"
+        actions={
+          <Button asChild size="sm">
+            <Link href="/facturas/nueva" className="gap-2">
+              <Plus className="h-4 w-4" strokeWidth={1.5} />
+              Crear factura
+            </Link>
+          </Button>
+        }
+      />
 
       {error && (
         <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -93,9 +88,15 @@ export default function FacturasPage() {
         {loading ? (
           <FacturaListSkeleton />
         ) : facturas.length === 0 && !error ? (
-          <p className="rounded-2xl border border-dashed border-border bg-white p-6 text-neutral-500">
-            Aún no hay facturas. Crea la primera con el botón +.
-          </p>
+          <div className="rounded-2xl border border-dashed border-border bg-white p-8 text-center">
+            <p className="text-neutral-500">Aún no hay facturas.</p>
+            <Button asChild className="mt-4">
+              <Link href="/facturas/nueva" className="gap-2">
+                <Plus className="h-4 w-4" strokeWidth={1.5} />
+                Crear primera factura
+              </Link>
+            </Button>
+          </div>
         ) : (
           <div className="flex flex-col gap-3">
             {facturas.map((f) => (

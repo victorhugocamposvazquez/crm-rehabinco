@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -41,16 +42,12 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="animate-[fadeIn_0.3s_ease-out]">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-500">
-        CRM / Ajustes
-      </p>
-      <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-[2.2rem]">
-        Ajustes de cuenta
-      </h1>
-      <p className="mt-2 max-w-2xl text-base text-neutral-600">
-        Gestiona tu sesión, tu rol y la seguridad de acceso.
-      </p>
+    <div>
+      <PageHeader
+        breadcrumb={[{ label: "Ajustes", href: "/settings" }]}
+        title="Ajustes de cuenta"
+        description="Gestiona tu sesión, tu rol y la seguridad de acceso."
+      />
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         <Card>

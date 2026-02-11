@@ -15,24 +15,19 @@ interface ClienteCardProps {
 export function ClienteCard({ id, nombre, email, telefono, activo }: ClienteCardProps) {
   return (
     <Link href={`/clientes/${id}`} className="block">
-      <Card className="cursor-pointer bg-white/95">
-        <div className="mb-3 flex items-center justify-between">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
-            Cliente
-          </span>
-          <Badge variant={activo ? "activo" : "inactivo"}>
-            {activo ? "Activo" : "Inactivo"}
-          </Badge>
-        </div>
-        <div className="flex flex-wrap items-start justify-between gap-2">
+      <Card className="bg-white/95 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 sm:flex-nowrap">
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[17px] font-semibold text-foreground">{nombre}</p>
+            <p className="font-semibold text-foreground">{nombre}</p>
             {(email || telefono) && (
-              <p className="mt-1 truncate text-sm text-neutral-500">
+              <p className="truncate text-sm text-neutral-500">
                 {email ?? telefono ?? "—"}
               </p>
             )}
           </div>
+          <Badge variant={activo ? "activo" : "inactivo"} className="shrink-0">
+            {activo ? "Activo" : "Inactivo"}
+          </Badge>
         </div>
       </Card>
     </Link>

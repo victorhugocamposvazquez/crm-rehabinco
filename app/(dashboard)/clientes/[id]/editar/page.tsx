@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { ClienteWizard } from "@/components/clientes/ClienteWizard";
+import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
@@ -11,7 +12,15 @@ export default function EditarClientePage() {
   const id = params.id as string;
 
   return (
-    <div className="animate-[fadeIn_0.3s_ease-out]">
+    <div>
+      <Breadcrumb
+        items={[
+          { label: "Clientes", href: "/clientes" },
+          { label: "Cliente", href: `/clientes/${id}` },
+          { label: "Editar" },
+        ]}
+        className="mb-4"
+      />
       <div className="mb-6 flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
           <Link href={`/clientes/${id}`} aria-label="Volver al cliente">

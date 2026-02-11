@@ -1,11 +1,13 @@
 import { FacturaWizard } from "@/components/facturas/FacturaWizard";
+import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 
 export default function NuevaFacturaPage() {
   return (
-    <div className="animate-[fadeIn_0.3s_ease-out]">
+    <div>
+      <Breadcrumb items={[{ label: "Facturas", href: "/facturas" }, { label: "Nueva" }]} className="mb-4" />
       <div className="mb-6 flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/facturas" aria-label="Volver a facturas">
