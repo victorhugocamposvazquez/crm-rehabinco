@@ -346,7 +346,7 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
   }
 
   return (
-    <div className="mx-auto max-w-2xl animate-[fadeIn_0.3s_ease-out]">
+    <div className="relative mx-auto max-w-2xl animate-[fadeIn_0.3s_ease-out] pb-28 md:pb-24">
       <div className="mb-8 flex items-center gap-2">
         {STEPS.map((s, idx) => (
           <div
@@ -388,7 +388,7 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
               )}
             </CardHeader>
             <CardContent className="min-w-0 overflow-x-hidden">
-              <form onSubmit={onStep1} className="space-y-4">
+              <form id="factura-step1-form" onSubmit={onStep1} className="space-y-4">
                 <div className="space-y-2">
                   <Label>Cliente *</Label>
                   <select
@@ -486,9 +486,6 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
                       {...formStep1.register("fechaVencimiento")}
                     />
                   </div>
-                </div>
-                <div className="flex justify-end gap-2 pt-4">
-                  <Button type="submit">Siguiente</Button>
                 </div>
               </form>
             </CardContent>
@@ -635,12 +632,6 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-4">
-                <Button variant="secondary" onClick={handleBack}>
-                  Atrás
-                </Button>
-                <Button onClick={onStep2}>Siguiente</Button>
-              </div>
             </CardContent>
           </Card>
         )}
@@ -703,12 +694,6 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
                   <span className="text-lg font-semibold text-foreground">{total.toFixed(2)} €</span>
                 </div>
               </div>
-              <div className="flex justify-end gap-2 pt-4">
-                <Button variant="secondary" onClick={handleBack}>
-                  Atrás
-                </Button>
-                <Button onClick={() => setStep(4)}>Siguiente</Button>
-              </div>
             </CardContent>
           </Card>
         )}
@@ -757,17 +742,33 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
               {createError && (
                 <p className="text-sm text-red-600">{createError}</p>
               )}
-              <div className="flex justify-end gap-2 pt-4">
-                <Button variant="secondary" onClick={handleBack} disabled={creating}>
-                  Atrás
-                </Button>
-                <Button onClick={handleCreate} disabled={creating}>
-                  {creating ? (facturaId ? "Guardando…" : "Creando…") : (facturaId ? "Guardar cambios" : "Crear factura")}
-                </Button>
-              </div>
             </CardContent>
           </Card>
         )}
+      </div>
+
+      {/* Barra fija Atrás / Siguiente: abajo siempre; en mobile encima del menú de navegación */}
+      <div className="fixed bottom-[4.25rem] left-0 right-0 z-40 flex justify-center border-t border-border bg-white/95 px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] backdrop-blur md:bottom-0">
+        <div className="flex w-full max-w-2xl justify-end gap-2">
+          {step === 1 ? (
+            <Button type="submit" form="factura-step1-form">
+              Siguiente
+            </Button>
+          ) : (
+            <>
+              <Button variant="secondary" onClick={handleBack} disabled={creating}>
+                Atrás
+              </Button>
+              {step === 2 && <Button onClick={onStep2}>Siguiente</Button>}
+              {step === 3 && <Button onClick={() => setStep(4)}>Siguiente</Button>}
+              {step === 4 && (
+                <Button onClick={handleCreate} disabled={creating}>
+                  {creating ? (facturaId ? "Guardando…" : "Creando…") : facturaId ? "Guardar cambios" : "Crear factura"}
+                </Button>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

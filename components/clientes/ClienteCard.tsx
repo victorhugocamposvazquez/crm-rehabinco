@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog } from "@/components/ui/alert-dialog";
-import { MoreVertical, Eye, FileText, Trash2, X } from "lucide-react";
+import { MoreVertical, Eye, FileText, Trash2 } from "lucide-react";
 
 interface ClienteCardProps {
   id: string;
@@ -122,72 +121,51 @@ export function ClienteCard({ id, nombre, email, telefono, activo, onDeleted }: 
           </button>
         </div>
 
-        {/* Overlay de acciones: renderizado en portal para evitar saltos del layout */}
-        {actionsOpen &&
-          typeof document !== "undefined" &&
-          createPortal(
+        {/* Acciones: dentro del card, solo iconos, panel más estrecho que el card */}
+        {actionsOpen && (
+          <div className="absolute inset-0 z-10 flex justify-end">
             <div
-              className="fixed inset-0 z-[200] flex justify-end"
-              style={{ isolation: "isolate" }}
+              className="absolute inset-0 bg-black/25"
+              onClick={(e) => {
+                e.stopPropagation();
+                closeActions();
+              }}
+              onKeyDown={(e) => e.key === "Escape" && closeActions()}
+              aria-hidden
+            />
+            <div
+              className="relative mr-2 mt-2 mb-2 flex w-[88px] shrink-0 flex-col gap-1 rounded-l-xl border-l border-y border-border bg-white py-2 shadow-[0_4px_12px_rgba(0,0,0,0.1)]"
+              style={{ animation: "slideInFromRight 0.25s ease-out" }}
+              role="dialog"
+              aria-label="Acciones"
             >
-              <div
-                role="button"
-                tabIndex={-1}
-                className="absolute inset-0 bg-black/30"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  closeActions();
-                }}
-                onKeyDown={(e) => e.key === "Escape" && closeActions()}
-                aria-hidden
-              />
-              <div
-                className="relative flex w-[200px] shrink-0 flex-col rounded-l-xl border-l border-y border-border bg-white shadow-[-8px_0_24px_rgba(0,0,0,0.15)]"
-                style={{ animation: "slideInFromRight 0.25s ease-out" }}
-                role="dialog"
-                aria-label="Acciones"
+              <button
+                type="button"
+                onClick={handleViewDetail}
+                className="flex items-center justify-center rounded-lg p-2.5 text-blue-600 transition-colors hover:bg-blue-50"
+                aria-label="Ver detalle"
               >
-                <button
-                  type="button"
-                  onClick={closeActions}
-                  className="absolute right-2 top-2 rounded p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-foreground"
-                  aria-label="Cerrar"
-                >
-                  <X className="h-5 w-5" strokeWidth={2} />
-                </button>
-                <div className="flex flex-col gap-0.5 py-4 pr-10 pl-3">
-                  <button
-                    type="button"
-                    onClick={handleViewDetail}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-neutral-700 transition-colors hover:bg-blue-50 hover:text-blue-600"
-                    aria-label="Ver detalle"
-                  >
-                    <Eye className="h-5 w-5 shrink-0 text-blue-600" strokeWidth={2} />
-                    <span>Ver detalle</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCreateFactura}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-neutral-700 transition-colors hover:bg-emerald-50 hover:text-emerald-600"
-                    aria-label="Crear factura"
-                  >
-                    <FileText className="h-5 w-5 shrink-0 text-emerald-600" strokeWidth={2} />
-                    <span>Crear factura</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleDeleteClick}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-neutral-700 transition-colors hover:bg-red-50 hover:text-red-600"
-                    aria-label="Eliminar"
-                  >
-                    <Trash2 className="h-5 w-5 shrink-0 text-red-600" strokeWidth={2} />
-                    <span>Borrar</span>
-                  </button>
-                </div>
-              </div>
-            </div>,
-            document.body
-          )}
+                <Eye className="h-5 w-5" strokeWidth={2} />
+              </button>
+              <button
+                type="button"
+                onClick={handleCreateFactura}
+                className="flex items-center justify-center rounded-lg p-2.5 text-emerald-600 transition-colors hover:bg-emerald-50"
+                aria-label="Crear factura"
+              >
+                <FileText className="h-5 w-5" strokeWidth={2} />
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteClick}
+                className="flex items-center justify-center rounded-lg p-2.5 text-red-600 transition-colors hover:bg-red-50"
+                aria-label="Eliminar"
+              >
+                <Trash2 className="h-5 w-5" strokeWidth={2} />
+              </button>
+            </div>
+          </div>
+        )}
       </Card>
 
       <AlertDialog
