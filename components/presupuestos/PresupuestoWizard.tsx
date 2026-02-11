@@ -132,7 +132,7 @@ export function PresupuestoWizard() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl animate-[fadeIn_0.3s_ease-out] pb-28 md:pb-24">
+    <div className="relative mx-auto max-w-2xl animate-[fadeIn_0.3s_ease-out] pb-28 md:pb-24">
       <div className="mb-8 flex items-center gap-2">
         {[1, 2, 3].map((s) => (
           <div
@@ -190,7 +190,6 @@ export function PresupuestoWizard() {
               <Label>Fecha</Label>
               <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
             </div>
-            <Button onClick={() => setStep(2)}>Siguiente</Button>
           </CardContent>
         </Card>
       )}
@@ -252,14 +251,6 @@ export function PresupuestoWizard() {
               <Plus className="h-4 w-4" strokeWidth={1.5} />
               Añadir línea
             </Button>
-            <div className="flex gap-2 pt-4">
-              <Button variant="secondary" onClick={() => setStep(1)}>
-                Atrás
-              </Button>
-              <Button onClick={() => setStep(3)} disabled={!canGoStep2}>
-                Siguiente
-              </Button>
-            </div>
           </CardContent>
         </Card>
       )}
@@ -292,17 +283,36 @@ export function PresupuestoWizard() {
               </p>
             </div>
             {error && <p className="text-sm text-red-600">{error}</p>}
-            <div className="flex gap-2 pt-4">
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Barra fija Atrás / Siguiente */}
+      <div className="fixed bottom-[4.25rem] left-0 right-0 z-40 flex justify-center border-t border-border bg-white/95 px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] backdrop-blur md:bottom-0">
+        <div className="flex w-full max-w-2xl justify-end gap-2">
+          {step === 1 ? (
+            <Button onClick={() => setStep(2)}>Siguiente</Button>
+          ) : step === 2 ? (
+            <>
+              <Button variant="secondary" onClick={() => setStep(1)}>
+                Atrás
+              </Button>
+              <Button onClick={() => setStep(3)} disabled={!canGoStep2}>
+                Siguiente
+              </Button>
+            </>
+          ) : (
+            <>
               <Button variant="secondary" onClick={() => setStep(2)} disabled={creating}>
                 Atrás
               </Button>
               <Button onClick={handleCreate} disabled={creating}>
                 {creating ? "Creando…" : "Crear presupuesto"}
               </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

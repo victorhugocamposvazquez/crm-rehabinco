@@ -156,7 +156,7 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
   }
 
   return (
-    <div className="mx-auto max-w-2xl animate-[fadeIn_0.3s_ease-out]">
+    <div className="relative mx-auto max-w-2xl animate-[fadeIn_0.3s_ease-out] pb-28 md:pb-24">
       <div className="mb-8 flex items-center justify-between gap-2">
         {STEPS.map((s) => (
           <div
@@ -199,7 +199,7 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
               <CardTitle>Datos básicos</CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={onStep1} className="space-y-4">
+              <form id="cliente-step1-form" onSubmit={onStep1} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="nombre">Nombre *</Label>
                   <Input
@@ -304,9 +304,6 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
                     {...formStep1.register("telefono")}
                   />
                 </div>
-                <div className="flex justify-end gap-2 pt-4">
-                  <Button type="submit">Siguiente</Button>
-                </div>
               </form>
             </CardContent>
           </Card>
@@ -318,7 +315,7 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
               <CardTitle>Dirección y notas</CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={onStep2} className="space-y-4">
+              <form id="cliente-step2-form" onSubmit={onStep2} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="direccion">Dirección</Label>
                   <Input
@@ -366,12 +363,6 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
                     <Label htmlFor="activo">Cliente activo</Label>
                   </div>
                 )}
-                <div className="flex justify-end gap-2 pt-4">
-                  <Button type="button" variant="secondary" onClick={handleBack}>
-                    Atrás
-                  </Button>
-                  <Button type="submit">Siguiente</Button>
-                </div>
               </form>
             </CardContent>
           </Card>
@@ -420,17 +411,38 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
               {saveError && (
                 <p className="text-sm text-red-600">{saveError}</p>
               )}
-              <div className="flex justify-end gap-2 pt-4">
-                <Button variant="secondary" onClick={handleBack} disabled={saving}>
-                  Atrás
-                </Button>
-                <Button onClick={handleSave} disabled={saving}>
-                  {saving ? "Guardando…" : "Guardar cliente"}
-                </Button>
-              </div>
             </CardContent>
           </Card>
         )}
+      </div>
+
+      {/* Barra fija Atrás / Siguiente */}
+      <div className="fixed bottom-[4.25rem] left-0 right-0 z-40 flex justify-center border-t border-border bg-white/95 px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] backdrop-blur md:bottom-0">
+        <div className="flex w-full max-w-2xl justify-end gap-2">
+          {step === 1 ? (
+            <Button type="submit" form="cliente-step1-form">
+              Siguiente
+            </Button>
+          ) : step === 2 ? (
+            <>
+              <Button variant="secondary" onClick={handleBack}>
+                Atrás
+              </Button>
+              <Button type="submit" form="cliente-step2-form">
+                Siguiente
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="secondary" onClick={handleBack} disabled={saving}>
+                Atrás
+              </Button>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? "Guardando…" : "Guardar cliente"}
+              </Button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
