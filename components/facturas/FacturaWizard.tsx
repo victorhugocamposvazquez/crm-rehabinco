@@ -55,6 +55,7 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
     email: "",
     telefono: "",
   });
+  const [step2Attempted, setStep2Attempted] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -183,12 +184,22 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
 
   const onStep2 = () => {
     const valid = lineas.every(
-      (l) => l.descripcion.trim() && l.cantidad >= 0 && l.precioUnitario >= 0
+      (l) => l.descripcion.trim() && l.cantidad > 0 && l.precioUnitario >= 0
     );
-    if (!valid) return;
+    if (!valid) {
+      setStep2Attempted(true);
+      return;
+    }
+    setStep2Attempted(false);
     setData((p) => ({ ...p, lineas }));
     setStep(3);
   };
+
+  const isLineaInvalid = (l: FacturaLinea) => ({
+    descripcion: !l.descripcion.trim(),
+    cantidad: l.cantidad <= 0,
+    precioUnitario: l.precioUnitario < 0,
+  });
 
   const addLinea = () =>
     setLineas((p) => [...p, { descripcion: "", cantidad: 0, precioUnitario: 0, ivaPorcentaje: 21 }]);
@@ -200,10 +211,12 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
     return isNaN(n) ? 0 : Math.max(0, n);
   };
 
-  const updateLinea = (i: number, field: keyof FacturaLinea, value: string | number) =>
+  const updateLinea = (i: number, field: keyof FacturaLinea, value: string | number) => {
+    setStep2Attempted(false);
     setLineas((p) =>
       p.map((l, idx) => (idx === i ? { ...l, [field]: value } : l))
     );
+  };
 
   const subtotal = lineas.reduce((acc, l) => acc + l.cantidad * l.precioUnitario, 0);
   const descuentoImporte = subtotal * (porcentajeDescuento / 100);
@@ -489,23 +502,30 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="overflow-x-auto">
-              {lineas.map((l, i) => (
+              {lineas.map((l, i) => {
+                const err = isLineaInvalid(l);
+                const showErr = step2Attempted && (err.descripcion || err.cantidad || err.precioUnitario);
+                return (
                 <div
                   key={i}
-                  className="flex flex-wrap items-end gap-2 rounded-lg border border-border p-4"
+                  className={cn(
+                    "flex flex-wrap items-end gap-2 rounded-lg border p-4",
+                    showErr ? "border-red-300 bg-red-50/30" : "border-border"
+                  )}
                 >
                   <div className="flex-1 space-y-2 min-w-[200px]">
-                    <Label>Descripción</Label>
+                    <Label className={showErr && err.descripcion ? "text-red-600" : ""}>Descripción</Label>
                     <Input
                       placeholder="Descripción"
                       value={l.descripcion}
                       onChange={(e) =>
                         updateLinea(i, "descripcion", e.target.value)
                       }
+                      className={showErr && err.descripcion ? "border-red-500 focus-visible:ring-red-500" : ""}
                     />
                   </div>
                   <div className="w-24 space-y-2">
-                    <Label>Cant.</Label>
+                    <Label className={showErr && err.cantidad ? "text-red-600" : ""}>Cant.</Label>
                     <Input
                       type="text"
                       inputMode="decimal"
@@ -514,10 +534,11 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
                       onChange={(e) =>
                         updateLinea(i, "cantidad", parseNum(e.target.value))
                       }
+                      className={showErr && err.cantidad ? "border-red-500 focus-visible:ring-red-500" : ""}
                     />
                   </div>
                   <div className="w-28 space-y-2">
-                    <Label>Precio u. (€)</Label>
+                    <Label className={showErr && err.precioUnitario ? "text-red-600" : ""}>Precio u. (€)</Label>
                     <Input
                       type="text"
                       inputMode="decimal"
@@ -526,6 +547,7 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
                       onChange={(e) =>
                         updateLinea(i, "precioUnitario", parseNum(e.target.value))
                       }
+                      className={showErr && err.precioUnitario ? "border-red-500 focus-visible:ring-red-500" : ""}
                     />
                   </div>
                   <div className="w-24 space-y-2">
@@ -554,15 +576,16 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
                     <Trash2 className="h-4 w-4" strokeWidth={1.5} />
                   </Button>
                 </div>
-              ))}
+              );
+              })}
               </div>
               <Button type="button" variant="secondary" onClick={addLinea}>
                 <Plus className="mr-2 h-4 w-4" strokeWidth={1.5} />
                 Añadir línea
               </Button>
 
-              {/* Totales siempre visibles debajo de las líneas, se actualizan en tiempo real */}
-              <div className="mt-6 rounded-xl border border-border bg-neutral-50 p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+              {/* Totales: siempre visibles debajo de las líneas, se actualizan en tiempo real */}
+              <div className="mt-6 shrink-0 rounded-xl border-2 border-border bg-neutral-50 p-5 shadow-[0_1px_3px_rgba(16,24,40,0.08)]" role="region" aria-label="Totales de la factura">
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-500">
                   Totales (actualización en tiempo real)
                 </p>
@@ -637,7 +660,7 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
               <div>
                 <p className="mb-3 text-sm font-semibold text-neutral-600">Líneas desglosadas (descripción e importe por línea)</p>
                 <ul className="space-y-3 rounded-lg border border-border bg-neutral-50/60 p-4">
-                  {(data.lineas ?? lineas).map((l, i) => {
+                  {lineas.map((l, i) => {
                     const base = l.cantidad * l.precioUnitario;
                     const iva = base * (l.ivaPorcentaje / 100);
                     const importe = base + iva;
