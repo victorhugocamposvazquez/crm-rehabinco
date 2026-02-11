@@ -65,33 +65,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const init = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
-      if (session?.user) {
-        const profileUser = await getProfile(session.user);
-        setUser(profileUser);
-      } else {
+        if (session?.user) {
+          const profileUser = await getProfile(session.user);
+          setUser(profileUser);
+        } else {
+          setUser(null);
+        }
+      } catch {
         setUser(null);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     init();
+    const safetyTimeout = window.setTimeout(() => setIsLoading(false), 5000);
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_OUT" || !session?.user) {
         setUser(null);
+        setIsLoading(false);
         return;
       }
       const profileUser = await getProfile(session.user);
       setUser(profileUser);
+      setIsLoading(false);
     });
 
     return () => {
+      window.clearTimeout(safetyTimeout);
       subscription.unsubscribe();
     };
   }, []);

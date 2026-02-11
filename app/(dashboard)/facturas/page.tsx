@@ -11,12 +11,8 @@ interface FacturaRow {
   numero: string;
   estado: string;
   cliente_id: string | null;
+  total?: number | null;
   clientes: { nombre: string } | { nombre: string }[] | null;
-}
-
-interface FacturaLineaTotal {
-  cantidad: number;
-  precio_unitario: number;
 }
 
 export default function FacturasPage() {
@@ -34,7 +30,7 @@ export default function FacturasPage() {
     const supabase = createClient();
     supabase
       .from("facturas")
-      .select("id, numero, estado, cliente_id, clientes(nombre)")
+      .select("id, numero, estado, cliente_id, total, clientes(nombre)")
       .order("created_at", { ascending: false })
       .then(({ data, error: err }) => {
         if (err) {
@@ -46,14 +42,6 @@ export default function FacturasPage() {
         const rows = (data ?? []) as FacturaRow[];
         Promise.all(
           rows.map(async (row) => {
-            const { data: lineas } = await supabase
-              .from("factura_lineas")
-              .select("cantidad, precio_unitario")
-              .eq("factura_id", row.id);
-            const total = ((lineas ?? []) as FacturaLineaTotal[]).reduce(
-              (acc, l) => acc + Number(l.cantidad) * Number(l.precio_unitario),
-              0
-            );
             const cliente = Array.isArray(row.clientes)
               ? (row.clientes[0] ?? null)
               : row.clientes;
@@ -61,7 +49,7 @@ export default function FacturasPage() {
               id: row.id,
               numero: row.numero,
               clienteNombre: cliente?.nombre ?? "—",
-              importe: total.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €",
+              importe: Number(row.total ?? 0).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €",
               estado: row.estado as "borrador" | "emitida" | "pagada",
             };
           })

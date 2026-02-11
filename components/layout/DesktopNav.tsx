@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, FileText } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Home, Users, FileText, Settings, LogOut, KeyRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth/auth-context";
 
@@ -10,11 +11,30 @@ const navItems = [
   { href: "/", label: "Inicio", icon: Home },
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/facturas", label: "Facturas", icon: FileText },
+  { href: "/settings", label: "Ajustes", icon: Settings },
 ];
 
 export function DesktopNav() {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const initials = useMemo(() => {
+    const source = user?.email?.split("@")[0] ?? "U";
+    const parts = source.split(/[._-]/).filter(Boolean);
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }, [user?.email]);
+
+  useEffect(() => {
+    const onClickOutside = (event: MouseEvent) => {
+      if (!menuRef.current) return;
+      if (!menuRef.current.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
 
   return (
     <header
@@ -55,9 +75,46 @@ export function DesktopNav() {
           })}
         </nav>
         {user && (
-          <span className="rounded-full border border-border bg-neutral-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-neutral-600">
-            {user.role === "admin" ? "Admin" : "Agente"}
-          </span>
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setOpen((v) => !v)}
+              className="flex items-center gap-2 rounded-full border border-border bg-white px-2 py-1.5 shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:bg-neutral-50"
+              aria-label="Abrir menú de sesión"
+            >
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground text-xs font-semibold text-white">
+                {initials}
+              </span>
+              <span className="pr-1 text-xs font-semibold uppercase tracking-wide text-neutral-600">
+                {user.role === "admin" ? "Admin" : "Agente"}
+              </span>
+            </button>
+
+            {open && (
+              <div className="absolute right-0 top-12 z-50 w-64 rounded-2xl border border-border bg-white p-2 shadow-[0_14px_28px_rgba(16,24,40,0.12)]">
+                <div className="mb-2 rounded-xl bg-neutral-50 px-3 py-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                    Sesión iniciada
+                  </p>
+                  <p className="mt-0.5 truncate text-sm font-medium text-foreground">{user.email}</p>
+                </div>
+                <Link
+                  href="/settings"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+                >
+                  <KeyRound className="h-4 w-4" />
+                  Cambiar contraseña
+                </Link>
+                <button
+                  onClick={() => signOut()}
+                  className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Cerrar sesión
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </header>

@@ -113,6 +113,8 @@ create table if not exists public.facturas (
   base_imponible numeric(12, 2) default 0,
   porcentaje_impuesto numeric(5, 2) default 21,
   importe_impuesto numeric(12, 2) default 0,
+  irpf_porcentaje numeric(5, 2) default 0,
+  irpf_importe numeric(12, 2) default 0,
   porcentaje_descuento numeric(5, 2) default 0,
   importe_descuento numeric(12, 2) default 0,
   total numeric(12, 2) default 0,
@@ -150,6 +152,7 @@ create table if not exists public.factura_lineas (
   descripcion text not null,
   cantidad numeric(12, 4) not null default 0,
   precio_unitario numeric(12, 2) not null default 0,
+  iva_porcentaje numeric(5, 2) not null default 21,
   orden int default 0
 );
 
@@ -181,8 +184,9 @@ declare
   v_base numeric;
   v_impuesto numeric;
   v_descuento numeric;
+  v_irpf numeric;
   v_total numeric;
-  v_pct_imp numeric;
+  v_pct_irpf numeric;
   v_pct_desc numeric;
 begin
   select coalesce(sum(cantidad * precio_unitario), 0)
@@ -190,19 +194,26 @@ begin
   from public.factura_lineas
   where factura_id = coalesce(new.factura_id, old.factura_id);
 
-  select porcentaje_impuesto, porcentaje_descuento
-  into v_pct_imp, v_pct_desc
+  select
+    coalesce(sum(cantidad * precio_unitario * (iva_porcentaje / 100)), 0)
+  into v_impuesto
+  from public.factura_lineas
+  where factura_id = coalesce(new.factura_id, old.factura_id);
+
+  select porcentaje_descuento, irpf_porcentaje
+  into v_pct_desc, v_pct_irpf
   from public.facturas
   where id = coalesce(new.factura_id, old.factura_id);
 
-  v_impuesto := v_base * coalesce(v_pct_imp, 21) / 100;
   v_descuento := v_base * coalesce(v_pct_desc, 0) / 100;
-  v_total := v_base + v_impuesto - v_descuento;
+  v_irpf := v_base * coalesce(v_pct_irpf, 0) / 100;
+  v_total := v_base + v_impuesto - v_descuento - v_irpf;
 
   update public.facturas
   set
     base_imponible = v_base,
     importe_impuesto = v_impuesto,
+    irpf_importe = v_irpf,
     importe_descuento = v_descuento,
     total = v_total,
     updated_at = now()

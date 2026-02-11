@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, Pencil } from "lucide-react";
+import { ChevronLeft, Pencil, FileDown } from "lucide-react";
 
 interface FacturaRow {
   id: string;
@@ -16,8 +16,16 @@ interface FacturaRow {
   concepto: string | null;
   fecha_emision: string | null;
   fecha_vencimiento: string | null;
+  irpf_porcentaje?: number | null;
+  irpf_importe?: number | null;
   cliente_id: string | null;
-  clientes: { id: string; nombre: string } | null;
+  clientes: {
+    id: string;
+    nombre: string;
+    nif: string | null;
+    direccion: string | null;
+    email: string | null;
+  } | null;
 }
 
 interface LineaRow {
@@ -25,6 +33,7 @@ interface LineaRow {
   descripcion: string;
   cantidad: number;
   precio_unitario: number;
+  iva_porcentaje?: number | null;
 }
 
 export default function DetalleFacturaPage() {
@@ -35,11 +44,21 @@ export default function DetalleFacturaPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const formatCurrency = (value: number) =>
+    value.toLocaleString("es-ES", {
+      style: "currency",
+      currency: "EUR",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
   useEffect(() => {
     const supabase = createClient();
     supabase
       .from("facturas")
-      .select("id, numero, estado, concepto, fecha_emision, fecha_vencimiento, cliente_id, clientes(id, nombre)")
+      .select(
+        "id, numero, estado, concepto, fecha_emision, fecha_vencimiento, irpf_porcentaje, irpf_importe, cliente_id, clientes(id, nombre, nif, direccion, email)"
+      )
       .eq("id", id)
       .single()
       .then(({ data, error: err }) => {
@@ -54,10 +73,24 @@ export default function DetalleFacturaPage() {
             concepto: string | null;
             fecha_emision: string | null;
             fecha_vencimiento: string | null;
+            irpf_porcentaje?: number | null;
+            irpf_importe?: number | null;
             cliente_id: string | null;
             clientes:
-              | { id: string; nombre: string }
-              | { id: string; nombre: string }[]
+              | {
+                  id: string;
+                  nombre: string;
+                  nif: string | null;
+                  direccion: string | null;
+                  email: string | null;
+                }
+              | {
+                  id: string;
+                  nombre: string;
+                  nif: string | null;
+                  direccion: string | null;
+                  email: string | null;
+                }[]
               | null;
           };
 
@@ -79,16 +112,144 @@ export default function DetalleFacturaPage() {
     const supabase = createClient();
     supabase
       .from("factura_lineas")
-      .select("id, descripcion, cantidad, precio_unitario")
+      .select("id, descripcion, cantidad, precio_unitario, iva_porcentaje")
       .eq("factura_id", id)
       .order("orden")
       .then(({ data }) => setLineas(data ?? []));
   }, [id]);
 
-  const total = lineas.reduce(
+  const baseImponible = lineas.reduce(
     (acc, l) => acc + Number(l.cantidad) * Number(l.precio_unitario),
     0
   );
+  const ivaImporte = lineas.reduce(
+    (acc, l) =>
+      acc +
+      Number(l.cantidad) *
+        Number(l.precio_unitario) *
+        ((Number(l.iva_porcentaje ?? 21) || 0) / 100),
+    0
+  );
+  const irpfPorcentaje = Number(factura?.irpf_porcentaje ?? 0);
+  const irpfImporte = (baseImponible * irpfPorcentaje) / 100;
+  const totalConIva = baseImponible + ivaImporte - irpfImporte;
+
+  const handleDownloadPdf = () => {
+    if (!factura) return;
+    const emisor = {
+      nombre: process.env.NEXT_PUBLIC_BILLING_COMPANY_NAME ?? "Tu Empresa S.L.",
+      nif: process.env.NEXT_PUBLIC_BILLING_COMPANY_NIF ?? "B00000000",
+      direccion:
+        process.env.NEXT_PUBLIC_BILLING_COMPANY_ADDRESS ??
+        "Calle Ejemplo 1, 28001 Madrid, España",
+      cp: process.env.NEXT_PUBLIC_BILLING_COMPANY_CP ?? "28001",
+      poblacion:
+        process.env.NEXT_PUBLIC_BILLING_COMPANY_CITY ?? "Madrid",
+      provincia:
+        process.env.NEXT_PUBLIC_BILLING_COMPANY_PROVINCE ?? "Madrid",
+      iban:
+        process.env.NEXT_PUBLIC_BILLING_COMPANY_IBAN ??
+        "ES00 0000 0000 0000 0000 0000",
+    };
+    const clienteNombre = factura.clientes?.nombre ?? "Cliente";
+    const clienteNif = factura.clientes?.nif ?? "-";
+    const clienteDireccion = factura.clientes?.direccion ?? "-";
+    const clienteEmail = factura.clientes?.email ?? "-";
+    const lineasHtml = lineas
+      .map(
+        (l) => `
+        <tr>
+          <td style="padding:10px 8px;border-bottom:1px solid #eee;">${l.descripcion}</td>
+          <td style="padding:10px 8px;border-bottom:1px solid #eee;text-align:right;">${Number(l.cantidad).toFixed(2)}</td>
+          <td style="padding:10px 8px;border-bottom:1px solid #eee;text-align:right;">${formatCurrency(Number(l.precio_unitario))}</td>
+          <td style="padding:10px 8px;border-bottom:1px solid #eee;text-align:right;">${Number(l.iva_porcentaje ?? 21).toFixed(2)}%</td>
+          <td style="padding:10px 8px;border-bottom:1px solid #eee;text-align:right;">${formatCurrency(Number(l.cantidad) * Number(l.precio_unitario))}</td>
+        </tr>
+      `
+      )
+      .join("");
+
+    const html = `
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Factura ${factura.numero}</title>
+          <style>
+            @page { size: A4; margin: 18mm; }
+            body { font-family: Inter, Arial, sans-serif; color:#111; }
+          </style>
+        </head>
+        <body style="font-family: Inter, Arial, sans-serif; color:#111; padding:4px;">
+          <table style="width:100%; margin-bottom:24px;">
+            <tr>
+              <td style="vertical-align:top; width:40%;">
+                <h1 style="margin:0; font-size:28px; letter-spacing:-0.02em;">FACTURA</h1>
+                <p style="margin:6px 0 0 0; color:#555; font-size:14px;">Nº ${factura.numero}</p>
+                <p style="margin:2px 0 0 0; color:#555; font-size:14px;">Fecha emisión: ${factura.fecha_emision ?? "-"}</p>
+                <p style="margin:2px 0 0 0; color:#555; font-size:14px;">Fecha vencimiento: ${factura.fecha_vencimiento ?? "-"}</p>
+              </td>
+              <td style="vertical-align:top; width:50%;">
+                <h3 style="margin:0 0 8px 0; font-size:13px; text-transform:uppercase; letter-spacing:0.06em; color:#6b7280;">Emisor</h3>
+                <p style="margin:0;">${emisor.nombre}</p>
+                <p style="margin:0;">NIF: ${emisor.nif}</p>
+                <p style="margin:0;">${emisor.direccion}</p>
+                <p style="margin:0;">${emisor.cp} - ${emisor.poblacion} (${emisor.provincia})</p>
+              </td>
+              <td style="vertical-align:top; width:40%;">
+                <h3 style="margin:0 0 8px 0; font-size:13px; text-transform:uppercase; letter-spacing:0.06em; color:#6b7280;">Cliente</h3>
+                <p style="margin:0;">${clienteNombre}</p>
+                <p style="margin:0;">NIF/CIF: ${clienteNif}</p>
+                <p style="margin:0;">${clienteDireccion}</p>
+                <p style="margin:0;">${clienteEmail}</p>
+              </td>
+            </tr>
+          </table>
+
+          <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+            <thead>
+              <tr>
+                <th style="padding:10px 8px;border-bottom:1px solid #ddd; text-align:left; font-size:12px; text-transform:uppercase; color:#6b7280;">Descripción</th>
+                <th style="padding:10px 8px;border-bottom:1px solid #ddd; text-align:right; font-size:12px; text-transform:uppercase; color:#6b7280;">Cantidad</th>
+                <th style="padding:10px 8px;border-bottom:1px solid #ddd; text-align:right; font-size:12px; text-transform:uppercase; color:#6b7280;">Precio Unitario</th>
+                <th style="padding:10px 8px;border-bottom:1px solid #ddd; text-align:right; font-size:12px; text-transform:uppercase; color:#6b7280;">IVA</th>
+                <th style="padding:10px 8px;border-bottom:1px solid #ddd; text-align:right; font-size:12px; text-transform:uppercase; color:#6b7280;">Importe</th>
+              </tr>
+            </thead>
+            <tbody>${lineasHtml}</tbody>
+          </table>
+
+          <div style="margin-left:auto; width:320px; border:1px solid #e5e7eb; border-radius:12px; padding:12px 14px;">
+            <p style="display:flex; justify-content:space-between; margin:4px 0;"><span>Base imponible:</span><span>${formatCurrency(baseImponible)}</span></p>
+            <p style="display:flex; justify-content:space-between; margin:4px 0;"><span>IVA:</span><span>${formatCurrency(ivaImporte)}</span></p>
+            <p style="display:flex; justify-content:space-between; margin:4px 0;"><span>Retención IRPF (${irpfPorcentaje.toFixed(2)}%):</span><span>- ${formatCurrency(irpfImporte)}</span></p>
+            <p style="display:flex; justify-content:space-between; margin:8px 0; font-weight:700; border-top:1px solid #ddd; padding-top:8px;">
+              <span>Total:</span><span>${formatCurrency(totalConIva)}</span>
+            </p>
+          </div>
+
+          <div style="margin-top:22px; border-top:1px solid #e5e7eb; padding-top:12px;">
+            <p style="margin:0; font-size:12px; color:#4b5563;">
+              Método de pago recomendado: Transferencia bancaria.
+            </p>
+            <p style="margin:4px 0 0 0; font-size:12px; color:#4b5563;">
+              IBAN: ${emisor.iban}
+            </p>
+            <p style="margin:8px 0 0 0; font-size:11px; color:#6b7280;">
+              Documento emitido conforme al Reglamento por el que se regulan las obligaciones de facturación (Real Decreto 1619/2012).
+            </p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    win.print();
+  };
 
   if (loading) {
     return (
@@ -131,6 +292,10 @@ export default function DetalleFacturaPage() {
           <Pencil className="mr-2 h-4 w-4" />
           Editar
         </Button>
+        <Button variant="secondary" size="sm" onClick={handleDownloadPdf}>
+          <FileDown className="mr-2 h-4 w-4" />
+          Descargar PDF
+        </Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -164,7 +329,10 @@ export default function DetalleFacturaPage() {
             <CardTitle>Total</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-semibold">{total.toFixed(2)} €</p>
+            <p className="text-2xl font-semibold">{totalConIva.toFixed(2)} €</p>
+            <p className="mt-2 text-sm text-neutral-500">
+              Base: {baseImponible.toFixed(2)} € · IVA: {ivaImporte.toFixed(2)} € · IRPF: -{irpfImporte.toFixed(2)} €
+            </p>
           </CardContent>
         </Card>
         <Card className="md:col-span-2">
@@ -180,6 +348,7 @@ export default function DetalleFacturaPage() {
                 >
                   <span>{l.descripcion}</span>
                   <span>
+                    IVA {Number(l.iva_porcentaje ?? 21).toFixed(0)}% ·{" "}
                     {Number(l.cantidad)} × {Number(l.precio_unitario)} € ={" "}
                     {(Number(l.cantidad) * Number(l.precio_unitario)).toFixed(2)} €
                   </span>

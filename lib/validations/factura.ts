@@ -11,6 +11,9 @@ export const facturaLineaSchema = z.object({
   descripcion: z.string().min(1, "Descripción requerida"),
   cantidad: z.coerce.number().min(0),
   precioUnitario: z.coerce.number().min(0),
+  ivaPorcentaje: z.coerce.number().refine((v) => [0, 4, 10, 21].includes(v), {
+    message: "IVA no válido",
+  }),
 });
 
 export const facturaStep2Schema = z.object({

@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, UserPlus, Loader2 } from "lucide-react";
 
 const STEPS = [
   { id: 1, title: "Cliente y fechas" },
@@ -38,6 +38,15 @@ export function FacturaWizard() {
   const [clientes, setClientes] = useState<Array<{ id: string; nombre: string }>>([]);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [irpfPorcentaje, setIrpfPorcentaje] = useState<number>(0);
+  const [showQuickClient, setShowQuickClient] = useState(false);
+  const [creatingClient, setCreatingClient] = useState(false);
+  const [quickClientError, setQuickClientError] = useState<string | null>(null);
+  const [quickClient, setQuickClient] = useState({
+    nombre: "",
+    email: "",
+    telefono: "",
+  });
 
   useEffect(() => {
     const supabase = createClient();
@@ -54,13 +63,53 @@ export function FacturaWizard() {
   });
 
   const [lineas, setLineas] = useState<FacturaLinea[]>([
-    { descripcion: "", cantidad: 0, precioUnitario: 0 },
+    { descripcion: "", cantidad: 0, precioUnitario: 0, ivaPorcentaje: 21 },
   ]);
 
   const onStep1 = formStep1.handleSubmit((values) => {
     setData((p) => ({ ...p, ...values }));
     setStep(2);
   });
+
+  const handleCreateQuickClient = async () => {
+    setQuickClientError(null);
+    if (!quickClient.nombre.trim()) {
+      setQuickClientError("El nombre del cliente es obligatorio.");
+      return;
+    }
+    setCreatingClient(true);
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setQuickClientError("Sesión expirada");
+      setCreatingClient(false);
+      return;
+    }
+    const { data: inserted, error } = await supabase
+      .from("clientes")
+      .insert({
+        user_id: user.id,
+        nombre: quickClient.nombre.trim(),
+        email: quickClient.email.trim() || null,
+        telefono: quickClient.telefono.trim() || null,
+        activo: true,
+      })
+      .select("id, nombre")
+      .single();
+
+    setCreatingClient(false);
+    if (error || !inserted) {
+      setQuickClientError(error?.message ?? "No se pudo crear el cliente.");
+      return;
+    }
+
+    setClientes((prev) => [...prev, inserted].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+    formStep1.setValue("clienteId", inserted.id, { shouldValidate: true });
+    setQuickClient({ nombre: "", email: "", telefono: "" });
+    setShowQuickClient(false);
+  };
 
   const onStep2 = () => {
     const valid = lineas.every(
@@ -72,7 +121,7 @@ export function FacturaWizard() {
   };
 
   const addLinea = () =>
-    setLineas((p) => [...p, { descripcion: "", cantidad: 0, precioUnitario: 0 }]);
+    setLineas((p) => [...p, { descripcion: "", cantidad: 0, precioUnitario: 0, ivaPorcentaje: 21 }]);
   const removeLinea = (i: number) =>
     setLineas((p) => p.filter((_, idx) => idx !== i));
   const updateLinea = (i: number, field: keyof FacturaLinea, value: string | number) =>
@@ -80,10 +129,13 @@ export function FacturaWizard() {
       p.map((l, idx) => (idx === i ? { ...l, [field]: value } : l))
     );
 
-  const total = lineas.reduce(
-    (acc, l) => acc + l.cantidad * l.precioUnitario,
+  const subtotal = lineas.reduce((acc, l) => acc + l.cantidad * l.precioUnitario, 0);
+  const ivaTotal = lineas.reduce(
+    (acc, l) => acc + l.cantidad * l.precioUnitario * (l.ivaPorcentaje / 100),
     0
   );
+  const irpfImporte = subtotal * (irpfPorcentaje / 100);
+  const total = subtotal + ivaTotal - irpfImporte;
   const clienteNombre =
     clientes.find((c) => c.id === data.clienteId)?.nombre ?? "—";
 
@@ -100,9 +152,19 @@ export function FacturaWizard() {
       return;
     }
     const clienteId = data.clienteId || null;
-    const { count } = await supabase.from("facturas").select("id", { count: "exact", head: true });
-    const nextNum = (count ?? 0) + 1;
-    const numero = `FAC-${new Date().getFullYear()}-${String(nextNum).padStart(3, "0")}`;
+    const year = new Date().getFullYear();
+    const serie = process.env.NEXT_PUBLIC_BILLING_SERIE ?? "RHB";
+    const prefix = `${serie}-${year}-`;
+    const { data: existing } = await supabase
+      .from("facturas")
+      .select("numero")
+      .like("numero", `${prefix}%`)
+      .order("numero", { ascending: false })
+      .limit(1);
+    const last = existing?.[0]?.numero;
+    const lastCorrelative = last ? Number(last.split("-").pop() ?? "0") : 0;
+    const nextNum = lastCorrelative + 1;
+    const numero = `${prefix}${String(nextNum).padStart(4, "0")}`;
 
     const { data: factura, error: errFactura } = await supabase
       .from("facturas")
@@ -114,6 +176,7 @@ export function FacturaWizard() {
         concepto: data.concepto || null,
         fecha_emision: data.fechaEmision || null,
         fecha_vencimiento: data.fechaVencimiento || null,
+        irpf_porcentaje: irpfPorcentaje,
       })
       .select("id")
       .single();
@@ -129,6 +192,7 @@ export function FacturaWizard() {
       descripcion: l.descripcion,
       cantidad: l.cantidad,
       precio_unitario: l.precioUnitario,
+      iva_porcentaje: l.ivaPorcentaje,
       orden,
     }));
     const { error: errLineas } = await supabase.from("factura_lineas").insert(lineasToInsert);
@@ -201,7 +265,61 @@ export function FacturaWizard() {
                       {formStep1.formState.errors.clienteId.message}
                     </p>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => setShowQuickClient((v) => !v)}
+                    className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-foreground hover:underline"
+                  >
+                    <UserPlus className="h-3.5 w-3.5" />
+                    {showQuickClient ? "Cancelar alta rápida" : "Crear cliente desde aquí"}
+                  </button>
                 </div>
+
+                {showQuickClient && (
+                  <div className="rounded-xl border border-border bg-neutral-50/60 p-4">
+                    <p className="text-sm font-medium text-foreground">Nuevo cliente</p>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      <Input
+                        placeholder="Nombre *"
+                        value={quickClient.nombre}
+                        onChange={(e) =>
+                          setQuickClient((prev) => ({ ...prev, nombre: e.target.value }))
+                        }
+                      />
+                      <Input
+                        type="email"
+                        placeholder="Email"
+                        value={quickClient.email}
+                        onChange={(e) =>
+                          setQuickClient((prev) => ({ ...prev, email: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="mt-3">
+                      <Input
+                        placeholder="Teléfono"
+                        value={quickClient.telefono}
+                        onChange={(e) =>
+                          setQuickClient((prev) => ({ ...prev, telefono: e.target.value }))
+                        }
+                      />
+                    </div>
+                    {quickClientError && (
+                      <p className="mt-2 text-sm text-red-600">{quickClientError}</p>
+                    )}
+                    <div className="mt-3 flex justify-end">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={handleCreateQuickClient}
+                        disabled={creatingClient}
+                      >
+                        {creatingClient && <Loader2 className="h-4 w-4 animate-spin" />}
+                        {creatingClient ? "Creando..." : "Guardar cliente"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label>Concepto</Label>
                   <Input
@@ -281,6 +399,21 @@ export function FacturaWizard() {
                       }
                     />
                   </div>
+                  <div className="w-24 space-y-2">
+                    <Label>IVA %</Label>
+                    <select
+                      className="flex h-11 w-full rounded-lg border border-border bg-white px-2 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      value={l.ivaPorcentaje}
+                      onChange={(e) =>
+                        updateLinea(i, "ivaPorcentaje", Number(e.target.value))
+                      }
+                    >
+                      <option value={21}>21</option>
+                      <option value={10}>10</option>
+                      <option value={4}>4</option>
+                      <option value={0}>0 (Exento)</option>
+                    </select>
+                  </div>
                   <Button
                     type="button"
                     variant="ghost"
@@ -328,11 +461,35 @@ export function FacturaWizard() {
                 </div>
                 <div>
                   <dt className="text-neutral-500">Total</dt>
-                  <dd className="text-lg font-semibold">
-                    {total.toFixed(2)} €
-                  </dd>
+                  <dd className="text-lg font-semibold">{total.toFixed(2)} €</dd>
                 </div>
               </dl>
+              <div className="rounded-xl border border-border bg-neutral-50/70 p-3">
+                <p className="mb-2 text-sm font-medium">Ajustes fiscales</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="subtotal">Base imponible</Label>
+                    <Input id="subtotal" value={`${subtotal.toFixed(2)} €`} readOnly />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="iva-total">IVA total</Label>
+                    <Input id="iva-total" value={`${ivaTotal.toFixed(2)} €`} readOnly />
+                  </div>
+                </div>
+                <div className="mt-3 space-y-1">
+                  <Label htmlFor="irpf">Retención IRPF (%) opcional</Label>
+                  <Input
+                    id="irpf"
+                    type="number"
+                    min={0}
+                    max={25}
+                    step="0.01"
+                    value={irpfPorcentaje}
+                    onChange={(e) => setIrpfPorcentaje(Number(e.target.value) || 0)}
+                  />
+                  <p className="text-xs text-neutral-500">Importe IRPF: {irpfImporte.toFixed(2)} €</p>
+                </div>
+              </div>
               <div className="flex justify-end gap-2 pt-4">
                 <Button variant="secondary" onClick={handleBack}>
                   Atrás

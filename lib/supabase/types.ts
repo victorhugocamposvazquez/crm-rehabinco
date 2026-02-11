@@ -62,6 +62,8 @@ export interface Database {
           base_imponible: number;
           porcentaje_impuesto: number;
           importe_impuesto: number;
+          irpf_porcentaje: number;
+          irpf_importe: number;
           porcentaje_descuento: number;
           importe_descuento: number;
           total: number;
@@ -76,6 +78,7 @@ export interface Database {
           concepto?: string | null;
           fecha_emision?: string | null;
           fecha_vencimiento?: string | null;
+          irpf_porcentaje?: number;
         };
         Update: {
           cliente_id?: string | null;
@@ -84,6 +87,8 @@ export interface Database {
           concepto?: string | null;
           fecha_emision?: string | null;
           fecha_vencimiento?: string | null;
+          irpf_porcentaje?: number;
+          irpf_importe?: number;
           updated_at?: string;
         };
       };
@@ -94,6 +99,7 @@ export interface Database {
           descripcion: string;
           cantidad: number;
           precio_unitario: number;
+          iva_porcentaje: number;
           orden: number;
         };
         Insert: {
@@ -101,12 +107,14 @@ export interface Database {
           descripcion: string;
           cantidad?: number;
           precio_unitario?: number;
+          iva_porcentaje?: number;
           orden?: number;
         };
         Update: {
           descripcion?: string;
           cantidad?: number;
           precio_unitario?: number;
+          iva_porcentaje?: number;
           orden?: number;
         };
       };
