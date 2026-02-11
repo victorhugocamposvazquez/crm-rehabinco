@@ -63,9 +63,10 @@ export function FacturaWizard({ facturaId }: FacturaWizardProps) {
       .then(({ data: list }) => setClientes(list ?? []));
   }, []);
 
+  const today = new Date().toISOString().slice(0, 10);
   const formStep1 = useForm<FacturaStep1Values>({
     resolver: zodResolver(facturaStep1Schema),
-    defaultValues: { clienteId: "", concepto: "", fechaEmision: "", fechaVencimiento: "" },
+    defaultValues: { clienteId: "", concepto: "", fechaEmision: today, fechaVencimiento: "" },
   });
 
   const [lineas, setLineas] = useState<FacturaLinea[]>([
@@ -355,7 +356,7 @@ export function FacturaWizard({ facturaId }: FacturaWizardProps) {
                 <p className="text-sm font-medium text-neutral-500">{numero}</p>
               )}
             </CardHeader>
-            <CardContent>
+            <CardContent className="min-w-0 overflow-x-hidden">
               <form onSubmit={onStep1} className="space-y-4">
                 <div className="space-y-2">
                   <Label>Cliente *</Label>
@@ -437,18 +438,20 @@ export function FacturaWizard({ facturaId }: FacturaWizardProps) {
                     {...formStep1.register("concepto")}
                   />
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
+                <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+                  <div className="min-w-0 space-y-2">
                     <Label>Fecha emisión</Label>
                     <Input
                       type="date"
+                      className="w-full min-w-0 text-left"
                       {...formStep1.register("fechaEmision")}
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="min-w-0 space-y-2">
                     <Label>Fecha vencimiento</Label>
                     <Input
                       type="date"
+                      className="w-full min-w-0 text-left"
                       {...formStep1.register("fechaVencimiento")}
                     />
                   </div>

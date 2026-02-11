@@ -291,14 +291,16 @@ export default function DetalleFacturaPage() {
         <span className="text-neutral-400" aria-hidden>/</span>
         <span className="font-medium text-foreground">{factura.numero}</span>
       </nav>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/facturas" aria-label="Volver a facturas">
-              <ChevronLeft className="h-5 w-5" strokeWidth={1.5} />
-            </Link>
-          </Button>
-          <div>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <Link
+            href="/facturas"
+            aria-label="Volver a facturas"
+            className="flex shrink-0 items-center justify-center rounded-lg text-neutral-600 transition-colors hover:text-foreground"
+          >
+            <ChevronLeft className="h-7 w-7" strokeWidth={1.5} />
+          </Link>
+          <div className="min-w-0">
             <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
               {factura.numero}
             </h1>
@@ -307,25 +309,28 @@ export default function DetalleFacturaPage() {
             </Badge>
           </div>
         </div>
-        <Button variant="secondary" size="sm" asChild>
-          <Link href={`/facturas/${id}/editar`}>
-            <Pencil className="mr-2 h-4 w-4" strokeWidth={1.5} />
-            Editar
-          </Link>
-        </Button>
-        <Button variant="secondary" size="sm" onClick={handleDownloadPdf}>
-          <FileDown className="mr-2 h-4 w-4" strokeWidth={1.5} />
-          Descargar PDF
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          className="text-red-600 hover:bg-red-50 hover:text-red-700"
-          onClick={() => setShowDeleteConfirm(true)}
-        >
-          <Trash2 className="mr-2 h-4 w-4" strokeWidth={1.5} />
-          Eliminar
-        </Button>
+        <div className="flex shrink-0 items-center gap-1">
+          <Button variant="secondary" size="icon" className="md:h-9 md:w-auto md:gap-2 md:px-3" asChild>
+            <Link href={`/facturas/${id}/editar`} aria-label="Editar">
+              <Pencil className="h-4 w-4" strokeWidth={1.5} />
+              <span className="hidden md:inline">Editar</span>
+            </Link>
+          </Button>
+          <Button variant="secondary" size="icon" className="md:h-9 md:w-auto md:gap-2 md:px-3" onClick={handleDownloadPdf} aria-label="Descargar PDF">
+            <FileDown className="h-4 w-4" strokeWidth={1.5} />
+            <span className="hidden md:inline">Descargar PDF</span>
+          </Button>
+          <Button
+            variant="secondary"
+            size="icon"
+            className="text-red-600 hover:bg-red-50 hover:text-red-700 md:h-9 md:w-auto md:gap-2 md:px-3"
+            onClick={() => setShowDeleteConfirm(true)}
+            aria-label="Eliminar"
+          >
+            <Trash2 className="h-4 w-4" strokeWidth={1.5} />
+            <span className="hidden md:inline">Eliminar</span>
+          </Button>
+        </div>
       </div>
 
       <AlertDialog

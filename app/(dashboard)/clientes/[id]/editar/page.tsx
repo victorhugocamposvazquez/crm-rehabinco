@@ -4,7 +4,6 @@ import { useParams } from "next/navigation";
 import { ClienteWizard } from "@/components/clientes/ClienteWizard";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 
 export default function EditarClientePage() {
@@ -21,12 +20,14 @@ export default function EditarClientePage() {
         ]}
         className="mb-4"
       />
-      <div className="mb-6 flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={`/clientes/${id}`} aria-label="Volver al cliente">
-            <ChevronLeft className="h-5 w-5" strokeWidth={1.5} />
-          </Link>
-        </Button>
+      <div className="mb-6 flex items-center gap-3">
+        <Link
+          href={`/clientes/${id}`}
+          aria-label="Volver al cliente"
+          className="flex shrink-0 items-center justify-center rounded-lg text-neutral-600 transition-colors hover:text-foreground"
+        >
+          <ChevronLeft className="h-7 w-7" strokeWidth={1.5} />
+        </Link>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
           Editar cliente
         </h1>
