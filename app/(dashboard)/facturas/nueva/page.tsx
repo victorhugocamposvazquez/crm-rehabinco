@@ -6,19 +6,26 @@ import { ChevronLeft } from "lucide-react";
 export default async function NuevaFacturaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ cliente?: string | string[] }>;
+  searchParams: Promise<{ cliente?: string | string[]; from?: string }>;
 }) {
   const params = await searchParams;
   const raw = params?.cliente;
   const clienteId = typeof raw === "string" ? raw : Array.isArray(raw) ? raw[0] : undefined;
+  const fromRaw = params?.from;
+  const fromCliente = fromRaw === "cliente" || (Array.isArray(fromRaw) && fromRaw[0] === "cliente");
+  const backHref = fromCliente && clienteId ? `/clientes/${clienteId}` : "/facturas";
+  const backLabel = fromCliente ? "Volver al cliente" : "Volver a facturas";
+  const breadcrumb = fromCliente && clienteId
+    ? [{ label: "Clientes", href: "/clientes" }, { label: "Cliente", href: `/clientes/${clienteId}` }, { label: "Nueva factura" }]
+    : [{ label: "Facturas", href: "/facturas" }, { label: "Nueva" }];
 
   return (
     <div>
-      <Breadcrumb items={[{ label: "Facturas", href: "/facturas" }, { label: "Nueva" }]} className="mb-4" />
+      <Breadcrumb items={breadcrumb} className="mb-4" />
       <div className="mb-6 flex items-center gap-3">
         <Link
-          href="/facturas"
-          aria-label="Volver a facturas"
+          href={backHref}
+          aria-label={backLabel}
           className="flex shrink-0 items-center justify-center rounded-lg text-neutral-600 transition-colors hover:text-foreground"
         >
           <ChevronLeft className="h-7 w-7" strokeWidth={1.5} />

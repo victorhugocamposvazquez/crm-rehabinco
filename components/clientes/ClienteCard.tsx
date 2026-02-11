@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog } from "@/components/ui/alert-dialog";
-import { MoreVertical, Pencil, FileText, Trash2 } from "lucide-react";
+import { MoreVertical, Pencil, FileText, Trash2, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ClienteCardProps {
   id: string;
@@ -17,58 +18,32 @@ interface ClienteCardProps {
   onDeleted?: () => void;
 }
 
-const SWIPE_THRESHOLD = 60;
-const ACTION_WIDTH = 140;
-
 export function ClienteCard({ id, nombre, email, telefono, activo, onDeleted }: ClienteCardProps) {
   const router = useRouter();
-  const [dragX, setDragX] = useState(0);
+  const [actionsOpen, setActionsOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const startX = useRef(0);
-  const startDragX = useRef(0);
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    startX.current = e.touches[0].clientX;
-    startDragX.current = dragX;
-  }, [dragX]);
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    const delta = e.touches[0].clientX - startX.current;
-    const next = startDragX.current + delta;
-    setDragX(Math.min(0, Math.max(-ACTION_WIDTH, next)));
-  }, []);
-
-  const handleTouchEnd = useCallback(() => {
-    setDragX((prev) => (prev < -SWIPE_THRESHOLD ? -ACTION_WIDTH : 0));
-  }, []);
-
-  const toggleReveal = useCallback(() => {
-    setDragX((prev) => (prev < -SWIPE_THRESHOLD ? 0 : -ACTION_WIDTH));
-  }, []);
-
-  const resetReveal = useCallback(() => {
-    setDragX(0);
-  }, []);
+  const closeActions = () => setActionsOpen(false);
 
   const handleEdit = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    resetReveal();
+    closeActions();
     router.push(`/clientes/${id}/editar`);
   };
 
   const handleCreateFactura = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    resetReveal();
-    router.push(`/facturas/nueva?cliente=${id}`);
+    closeActions();
+    router.push(`/facturas/nueva?cliente=${id}&from=cliente`);
   };
 
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    resetReveal();
+    closeActions();
     setShowDeleteConfirm(true);
   };
 
@@ -87,77 +62,96 @@ export function ClienteCard({ id, nombre, email, telefono, activo, onDeleted }: 
 
   return (
     <>
-      <Card className="overflow-hidden bg-white/95 py-0">
-        <div className="relative flex">
-          {/* Acciones (swipe de derecha a izquierda) */}
-          <div
-            className="absolute right-0 top-0 flex h-full shrink-0 items-stretch"
-            style={{ width: ACTION_WIDTH }}
+      <Card className="relative overflow-hidden bg-white/95 py-0">
+        {/* Contenido principal */}
+        <div className="relative flex items-center justify-between gap-4 py-4">
+          <Link
+            href={`/clientes/${id}`}
+            className="min-w-0 flex-1"
+            onClick={closeActions}
           >
-            <button
-              type="button"
-              onClick={handleEdit}
-              className="flex flex-1 items-center justify-center gap-1 bg-blue-100 text-blue-700 transition-colors active:bg-blue-200"
-              aria-label="Editar"
-            >
-              <Pencil className="h-4 w-4" strokeWidth={1.5} />
-              <span className="text-xs font-medium">Editar</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleCreateFactura}
-              className="flex flex-1 items-center justify-center gap-1 bg-emerald-100 text-emerald-700 transition-colors active:bg-emerald-200"
-              aria-label="Crear factura"
-            >
-              <FileText className="h-4 w-4" strokeWidth={1.5} />
-              <span className="text-xs font-medium">Factura</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleDeleteClick}
-              className="flex flex-1 items-center justify-center gap-1 bg-red-100 text-red-700 transition-colors active:bg-red-200"
-              aria-label="Eliminar"
-            >
-              <Trash2 className="h-4 w-4" strokeWidth={1.5} />
-              <span className="text-xs font-medium">Borrar</span>
-            </button>
-          </div>
+            <p className="font-semibold text-foreground">{nombre}</p>
+            {(email || telefono) && (
+              <p className="truncate text-sm text-neutral-500">
+                {email ?? telefono ?? "—"}
+              </p>
+            )}
+          </Link>
+          <Badge variant={activo ? "activo" : "inactivo"} className="shrink-0">
+            {activo ? "Activo" : "Inactivo"}
+          </Badge>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setActionsOpen((v) => !v);
+            }}
+            className="flex shrink-0 items-center justify-center rounded-full p-2 text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-foreground"
+            aria-label="Abrir acciones"
+            aria-expanded={actionsOpen}
+          >
+            <MoreVertical className="h-5 w-5" strokeWidth={1.5} />
+          </button>
+        </div>
 
-          {/* Contenido principal (swipeable) */}
+        {/* Overlay de acciones: aparece por encima con transición suave de derecha a izquierda */}
+        <div
+          className={cn(
+            "absolute inset-y-0 right-0 z-10 flex items-stretch overflow-hidden transition-transform duration-300 ease-out",
+            actionsOpen ? "translate-x-0" : "translate-x-full"
+          )}
+          aria-hidden={!actionsOpen}
+        >
           <div
-            className="relative flex min-w-full shrink-0 items-center justify-between gap-4 bg-white py-4 transition-transform duration-200 ease-out sm:flex-nowrap"
-            style={{ transform: `translateX(${dragX}px)` }}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-          >
-            <Link
-              href={`/clientes/${id}`}
-              className="min-w-0 flex-1"
-              onClick={resetReveal}
-            >
-              <p className="font-semibold text-foreground">{nombre}</p>
-              {(email || telefono) && (
-                <p className="truncate text-sm text-neutral-500">
-                  {email ?? telefono ?? "—"}
-                </p>
-              )}
-            </Link>
-            <Badge variant={activo ? "activo" : "inactivo"} className="shrink-0">
-              {activo ? "Activo" : "Inactivo"}
-            </Badge>
+            className="absolute inset-0 bg-black/20"
+            onClick={closeActions}
+            aria-hidden
+          />
+          <div className="relative flex w-[180px] shrink-0 items-stretch rounded-l-xl border-l border-y border-border bg-white shadow-[-8px_0_24px_rgba(0,0,0,0.08)]">
             <button
               type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                toggleReveal();
-              }}
-              className="flex shrink-0 items-center justify-center rounded-lg p-2 text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-foreground"
-              aria-label="Abrir acciones"
+              onClick={closeActions}
+              className="absolute right-2 top-2 rounded p-1 text-neutral-400 hover:bg-neutral-100 hover:text-foreground"
+              aria-label="Cerrar"
             >
-              <MoreVertical className="h-5 w-5" strokeWidth={1.5} />
+              <X className="h-4 w-4" strokeWidth={1.5} />
             </button>
+            <div className="flex flex-1 flex-col justify-center gap-1 py-4 pr-10 pl-3">
+              <button
+                type="button"
+                onClick={handleEdit}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-neutral-700 transition-colors hover:bg-blue-50 hover:text-blue-700"
+                aria-label="Editar"
+              >
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                  <Pencil className="h-4 w-4" strokeWidth={1.5} />
+                </span>
+                Editar
+              </button>
+              <button
+                type="button"
+                onClick={handleCreateFactura}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-neutral-700 transition-colors hover:bg-emerald-50 hover:text-emerald-700"
+                aria-label="Crear factura"
+              >
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
+                  <FileText className="h-4 w-4" strokeWidth={1.5} />
+                </span>
+                Crear factura
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteClick}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-neutral-700 transition-colors hover:bg-red-50 hover:text-red-600"
+                aria-label="Eliminar"
+              >
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-600">
+                  <Trash2 className="h-4 w-4" strokeWidth={1.5} />
+                </span>
+                Borrar
+              </button>
+            </div>
           </div>
         </div>
       </Card>

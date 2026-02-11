@@ -217,75 +217,80 @@ export default function DetalleFacturaPage() {
       <html>
         <head>
           <meta charset="utf-8" />
-          <title>Factura ${factura.numero}</title>
+          <title>${factura.numero}</title>
           <style>
-            @page { size: A4; margin: 18mm; }
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color:#333; font-size:14px; line-height:1.5; }
+            @page { size: A4; margin: 12mm; }
+            @media print {
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            }
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color:#222; font-size:14px; line-height:1.5; margin:0; padding:0; max-width:100%; }
           </style>
         </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color:#333; font-size:14px; padding:8px;">
-          <table style="width:100%; margin-bottom:28px; border-collapse:collapse;">
-            <tr>
-              <td style="vertical-align:top; width:50%;">
-                <img src="${logoUrl}" alt="REHABINCO" style="height:52px; width:auto; max-width:200px;" />
-              </td>
-              <td style="vertical-align:top; width:50%; text-align:right;">
-                <p style="margin:0; font-size:15px; font-weight:600;">FACTURA Nº: ${factura.numero}</p>
-                <p style="margin:4px 0 0 0; font-size:14px; color:#555;">Fecha: ${fechaFormateada}</p>
-              </td>
-            </tr>
-          </table>
-
-          <table style="width:100%; margin-bottom:28px; border-collapse:collapse;">
-            <tr>
-              <td style="vertical-align:top; width:50%; padding-right:24px;">
-                <p style="margin:0 0 6px 0; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#666;">Datos empresa</p>
-                <p style="margin:0;">${emisor.nombre}</p>
-                <p style="margin:0;">${emisor.direccion}</p>
-                <p style="margin:0;">${emisor.cp} ${emisor.poblacion} (${emisor.provincia})</p>
-                <p style="margin:0;">${emisor.nif}</p>
-              </td>
-              <td style="vertical-align:top; width:50%;">
-                <p style="margin:0 0 6px 0; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#666;">Datos cliente</p>
-                <p style="margin:0;">${clienteNombre}</p>
-                <p style="margin:0;">${clienteDireccion}</p>
-                <p style="margin:0;">${clienteNif}</p>
-                <p style="margin:0;">${clienteEmail}</p>
-                ${clienteTelefono && clienteTelefono !== "-" ? `<p style="margin:0;">${clienteTelefono}</p>` : ""}
-              </td>
-            </tr>
-          </table>
-
-          <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
-            <thead>
+        <body>
+          <div style="max-width:100%; padding:0 4px;">
+            <table style="width:100%; margin-bottom:24px; border-collapse:collapse;">
               <tr>
-                <th style="padding:10px 12px; border-bottom:1px solid #ddd; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#666;">Descripción / Producto</th>
-                <th style="padding:10px 12px; border-bottom:1px solid #ddd; text-align:right; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#666;">Cantidad</th>
-                <th style="padding:10px 12px; border-bottom:1px solid #ddd; text-align:right; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#666;">Base</th>
-                <th style="padding:10px 12px; border-bottom:1px solid #ddd; text-align:right; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#666;">IVA</th>
-                <th style="padding:10px 12px; border-bottom:1px solid #ddd; text-align:right; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#666;">Total</th>
+                <td style="vertical-align:top; width:50%;">
+                  <img src="${logoUrl}" alt="REHABINCO" style="height:48px; width:auto; max-width:180px;" />
+                </td>
+                <td style="vertical-align:top; width:50%; text-align:right;">
+                  <p style="margin:0; font-size:14px; font-weight:600;">FACTURA Nº: ${factura.numero}</p>
+                  <p style="margin:4px 0 0 0; font-size:13px; color:#444;">${fechaFormateada}</p>
+                </td>
               </tr>
-            </thead>
-            <tbody>${lineasHtml}</tbody>
-          </table>
+            </table>
 
-          <div style="margin-left:auto; width:280px; font-size:14px;">
-            <p style="display:flex; justify-content:space-between; margin:6px 0;"><span>Base Imponible</span><span>${formatCurrency(baseImponible)}</span></p>
-            <p style="display:flex; justify-content:space-between; margin:6px 0;"><span>IVA</span><span>${formatCurrency(ivaImporte)}</span></p>
-            ${porcentajeDescuento > 0 ? `<p style="display:flex; justify-content:space-between; margin:6px 0;"><span>Descuento (${porcentajeDescuento}%)</span><span>- ${formatCurrency(descuentoImporte)}</span></p>` : ""}
-            ${irpfPorcentaje > 0 ? `<p style="display:flex; justify-content:space-between; margin:6px 0;"><span>Retención (${irpfPorcentaje}%)</span><span>- ${formatCurrency(irpfImporte)}</span></p>` : ""}
-            <p style="display:flex; justify-content:space-between; margin:12px 0 0 0; padding-top:10px; border-top:1px solid #ddd; font-weight:700; font-size:16px;">
-              <span>Total</span><span>${formatCurrency(totalConIva)}</span>
-            </p>
-          </div>
+            <table style="width:100%; margin-bottom:24px; border-collapse:collapse;">
+              <tr>
+                <td style="vertical-align:top; width:50%; padding-right:20px;">
+                  <p style="margin:0 0 8px 0; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#333;">Datos empresa</p>
+                  <p style="margin:0; font-weight:600;">${emisor.nombre}</p>
+                  <p style="margin:0; font-weight:600;">${emisor.direccion}</p>
+                  <p style="margin:0; font-weight:600;">${emisor.cp} ${emisor.poblacion} (${emisor.provincia})</p>
+                  <p style="margin:0; font-weight:600;">${emisor.nif}</p>
+                </td>
+                <td style="vertical-align:top; width:50%; text-align:right;">
+                  <p style="margin:0 0 8px 0; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#333;">Datos cliente</p>
+                  <p style="margin:0; font-weight:600;">${clienteNombre}</p>
+                  <p style="margin:0; font-weight:600;">${clienteDireccion}</p>
+                  <p style="margin:0; font-weight:600;">${clienteNif}</p>
+                  <p style="margin:0; font-weight:600;">${clienteEmail}</p>
+                  ${clienteTelefono && clienteTelefono !== "-" ? `<p style="margin:0; font-weight:600;">${clienteTelefono}</p>` : ""}
+                </td>
+              </tr>
+            </table>
 
-          <div style="margin-top:32px; padding-top:16px; border-top:1px solid #e5e5e5;">
-            <p style="margin:0; font-size:13px; color:#555;">
-              El pago se realizará mediante transferencia bancaria al IBAN: ${emisor.iban}
-            </p>
-            <p style="margin:8px 0 0 0; font-size:12px; color:#888;">
-              Documento emitido conforme al Reglamento por el que se regulan las obligaciones de facturación (Real Decreto 1619/2012).
-            </p>
+            <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+              <thead>
+                <tr>
+                  <th style="padding:10px 8px; border-bottom:1px solid #ccc; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#444;">Descripción / Producto</th>
+                  <th style="padding:10px 8px; border-bottom:1px solid #ccc; text-align:right; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#444;">Cantidad</th>
+                  <th style="padding:10px 8px; border-bottom:1px solid #ccc; text-align:right; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#444;">Base</th>
+                  <th style="padding:10px 8px; border-bottom:1px solid #ccc; text-align:right; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#444;">IVA</th>
+                  <th style="padding:10px 8px; border-bottom:1px solid #ccc; text-align:right; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#444;">Total</th>
+                </tr>
+              </thead>
+              <tbody>${lineasHtml}</tbody>
+            </table>
+
+            <div style="margin-left:auto; width:260px; font-size:14px;">
+              <p style="display:flex; justify-content:space-between; margin:6px 0;"><span>Base Imponible</span><span>${formatCurrency(baseImponible)}</span></p>
+              <p style="display:flex; justify-content:space-between; margin:6px 0;"><span>IVA</span><span>${formatCurrency(ivaImporte)}</span></p>
+              ${porcentajeDescuento > 0 ? `<p style="display:flex; justify-content:space-between; margin:6px 0;"><span>Descuento (${porcentajeDescuento}%)</span><span>- ${formatCurrency(descuentoImporte)}</span></p>` : ""}
+              ${irpfPorcentaje > 0 ? `<p style="display:flex; justify-content:space-between; margin:6px 0;"><span>Retención (${irpfPorcentaje}%)</span><span>- ${formatCurrency(irpfImporte)}</span></p>` : ""}
+              <p style="display:flex; justify-content:space-between; margin:12px 0 0 0; padding-top:10px; border-top:1px solid #ccc; font-weight:700; font-size:16px;">
+                <span>Total</span><span>${formatCurrency(totalConIva)}</span>
+              </p>
+            </div>
+
+            <div style="margin-top:48px; padding-top:20px; border-top:1px solid #ddd;">
+              <p style="margin:0; font-size:12px; color:#444; font-weight:500;">
+                El pago se realizará mediante transferencia bancaria al IBAN: ${emisor.iban}
+              </p>
+              <p style="margin:10px 0 0 0; font-size:11px; color:#666;">
+                Documento emitido conforme al Reglamento por el que se regulan las obligaciones de facturación (Real Decreto 1619/2012).
+              </p>
+            </div>
           </div>
         </body>
       </html>
