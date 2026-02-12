@@ -18,7 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Plus, Trash2, UserPlus } from "lucide-react";
+import { ChevronLeft, Plus, Trash2, UserPlus } from "lucide-react";
 import { ClienteQuickSheet } from "@/components/clientes/ClienteQuickSheet";
 
 const STEPS = [
@@ -188,7 +188,18 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
   const clienteNombre =
     clientes.find((c) => c.id === data.clienteId)?.nombre ?? "—";
 
-  const handleBack = () => setStep((s) => Math.max(1, s - 1));
+  const handleBack = () => {
+    const nextStep = Math.max(1, step - 1);
+    setStep(nextStep);
+    if (nextStep === 1) {
+      formStep1.reset({
+        clienteId: data.clienteId ?? "",
+        concepto: data.concepto ?? "",
+        fechaEmision: data.fechaEmision ?? today,
+        fechaVencimiento: data.fechaVencimiento ?? "",
+      });
+    }
+  };
 
   const handleCreate = async () => {
     setCreateError(null);
@@ -419,6 +430,14 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
         {step === 2 && (
           <Card>
             <CardHeader>
+              <button
+                type="button"
+                onClick={handleBack}
+                className="mb-2 inline-flex items-center gap-1 text-sm font-medium text-neutral-600 hover:text-foreground"
+              >
+                <ChevronLeft className="h-4 w-4" strokeWidth={1.5} />
+                Volver a cliente y fechas
+              </button>
               <CardTitle>Líneas de factura</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -702,7 +721,12 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
               </Button>
             ) : (
               <>
-                <Button variant="secondary" onClick={handleBack} disabled={creating}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleBack}
+                  disabled={creating}
+                >
                   Atrás
                 </Button>
                 {step === 2 && <Button onClick={onStep2}>Siguiente</Button>}
