@@ -52,7 +52,7 @@ export function Sheet({
           "animate-[sheetUp_0.3s_ease-out] will-change-transform",
           "pb-[env(safe-area-inset-bottom)]",
           fullScreenOnMobile
-            ? "top-0 min-h-[100dvh] rounded-none md:bottom-auto md:top-auto md:min-h-0 md:max-h-[85dvh] md:rounded-t-2xl"
+            ? "top-0 min-h-[100dvh] rounded-none md:bottom-0 md:left-1/2 md:right-auto md:top-auto md:w-full md:max-w-[440px] md:-translate-x-1/2 md:min-h-0 md:max-h-[96dvh] md:rounded-t-2xl"
             : "max-h-[85dvh] rounded-t-2xl",
           className
         )}
