@@ -103,7 +103,12 @@ export function ClienteQuickSheet({
   };
 
   return (
-    <Sheet open={open} onOpenChange={handleClose}>
+    <Sheet
+      open={open}
+      onOpenChange={handleClose}
+      fullScreenOnMobile
+      showCloseButton
+    >
       <div className="px-4 pb-8 pt-2">
         <h2 className="mb-6 text-xl font-semibold">Nuevo cliente</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
