@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,14 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [redirect, setRedirect] = useState("/");
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    setRedirect(params.get("redirect") ?? "/");
-  }, []);
 
   const {
     register,
@@ -44,7 +37,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push(redirect);
+    router.push("/");
     router.refresh();
   }
 

@@ -24,7 +24,7 @@ interface DashboardStats {
 
 function KpiSkeleton() {
   return (
-    <div className="rounded-2xl border border-border bg-white p-5 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+    <div className="rounded-2xl border border-border bg-white p-3 shadow-[0_1px_3px_rgba(16,24,40,0.06)] sm:p-4 md:p-5">
       <div className="flex items-start justify-between">
         <div className="h-10 w-10 animate-pulse rounded-xl bg-neutral-100" />
         <div className="h-4 w-16 animate-pulse rounded bg-neutral-100" />
@@ -111,7 +111,7 @@ export default function DashboardPage() {
       />
 
       {/* KPI cards */}
-      <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {loading ? (
           <>
             <KpiSkeleton />
@@ -123,7 +123,7 @@ export default function DashboardPage() {
           <>
             <Link href="/clientes">
               <Card className="border-border bg-white shadow-[0_1px_3px_rgba(16,24,40,0.06)] transition-all hover:shadow-[0_4px_12px_rgba(16,24,40,0.08)] hover:border-accent/30">
-                <CardContent className="p-5">
+                <CardContent className="p-3 sm:p-4 md:p-5">
                   <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
                     <Users className="h-5 w-5" strokeWidth={1.5} />
                   </span>
@@ -137,7 +137,7 @@ export default function DashboardPage() {
             </Link>
             <Link href="/facturas">
               <Card className="border-border bg-white shadow-[0_1px_3px_rgba(16,24,40,0.06)] transition-all hover:shadow-[0_4px_12px_rgba(16,24,40,0.08)] hover:border-accent/30">
-                <CardContent className="p-5">
+                <CardContent className="p-3 sm:p-4 md:p-5">
                   <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
                     <TrendingUp className="h-5 w-5" strokeWidth={1.5} />
                   </span>
@@ -151,7 +151,7 @@ export default function DashboardPage() {
             </Link>
             <Link href="/facturas?estado=emitida">
               <Card className="border-border bg-white shadow-[0_1px_3px_rgba(16,24,40,0.06)] transition-all hover:shadow-[0_4px_12px_rgba(16,24,40,0.08)] hover:border-accent/30">
-                <CardContent className="p-5">
+                <CardContent className="p-3 sm:p-4 md:p-5">
                   <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
                     <Clock className="h-5 w-5" strokeWidth={1.5} />
                   </span>
@@ -165,7 +165,7 @@ export default function DashboardPage() {
             </Link>
             <Link href="/propiedades">
               <Card className="border-border bg-white shadow-[0_1px_3px_rgba(16,24,40,0.06)] transition-all hover:shadow-[0_4px_12px_rgba(16,24,40,0.08)] hover:border-accent/30">
-                <CardContent className="p-5">
+                <CardContent className="p-3 sm:p-4 md:p-5">
                   <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100 text-teal-600">
                     <Building2 className="h-5 w-5" strokeWidth={1.5} />
                   </span>
