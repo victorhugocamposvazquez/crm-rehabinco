@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginFormValues } from "@/lib/validations/auth";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { FloatingLabelInput } from "@/components/ui/floating-label-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function LoginPage() {
@@ -23,6 +23,7 @@ export default function LoginPage() {
 
   const {
     register,
+    watch,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
@@ -70,30 +71,26 @@ export default function LoginPage() {
               </p>
             )}
             <div className="space-y-2.5">
-              <Input
+              <FloatingLabelInput
                 id="email"
                 type="email"
-                placeholder="Email"
+                label="Email"
                 autoComplete="email"
-                className="h-12 rounded-xl border-neutral-200 px-4 placeholder:text-neutral-400 focus-visible:ring-2 focus-visible:ring-[#29A4AE]/40 focus-visible:ring-offset-0"
+                value={watch("email")}
+                error={errors.email?.message}
                 {...register("email")}
               />
-              {errors.email && (
-                <p className="text-sm text-red-600">{errors.email.message}</p>
-              )}
             </div>
             <div className="space-y-2.5">
-              <Input
+              <FloatingLabelInput
                 id="password"
                 type="password"
-                placeholder="Contraseña"
+                label="Contraseña"
                 autoComplete="current-password"
-                className="h-12 rounded-xl border-neutral-200 px-4 placeholder:text-neutral-400 focus-visible:ring-2 focus-visible:ring-[#29A4AE]/40 focus-visible:ring-offset-0"
+                value={watch("password")}
+                error={errors.password?.message}
                 {...register("password")}
               />
-              {errors.password && (
-                <p className="text-sm text-red-600">{errors.password.message}</p>
-              )}
             </div>
             <Button
               type="submit"

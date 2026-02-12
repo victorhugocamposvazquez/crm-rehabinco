@@ -22,7 +22,7 @@ export function MobileNav() {
       role="navigation"
       aria-label="Navegación principal"
     >
-      <div className="flex h-[4.25rem] items-center justify-around px-2">
+      <div className="flex h-[4.25rem] items-center justify-between gap-1 px-3 sm:px-4">
         {navItems.map(({ href, label, icon: Icon }) => {
           const isActive =
             pathname === href ||
@@ -32,18 +32,18 @@ export function MobileNav() {
               key={href}
               href={href}
               className={cn(
-                "flex min-w-[78px] flex-col items-center gap-1 rounded-xl px-3 py-2 text-[11px] font-semibold tracking-wide transition-all",
+                "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl py-2.5 text-[11px] font-semibold tracking-wide transition-all",
                 isActive
                   ? "bg-accent/10 text-accent"
                   : "text-neutral-500 hover:bg-accent/5 hover:text-accent"
               )}
             >
               <Icon
-                className="h-6 w-6"
+                className="h-6 w-6 shrink-0"
                 strokeWidth={1.5}
                 aria-hidden
               />
-              <span>{label}</span>
+              <span className="truncate px-0.5">{label}</span>
             </Link>
           );
         })}
