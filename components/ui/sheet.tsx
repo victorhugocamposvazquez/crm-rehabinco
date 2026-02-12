@@ -49,21 +49,21 @@ export function Sheet({
       <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center">
         <div
           className={cn(
-            "flex w-full flex-col border-t border-border bg-white shadow-[0_-8px_30px_rgba(0,0,0,0.12)]",
+            "flex w-full flex-col overflow-hidden border-t border-border bg-white shadow-[0_-8px_30px_rgba(0,0,0,0.12)]",
             "animate-[sheetUp_0.3s_ease-out]",
             "pb-[env(safe-area-inset-bottom)]",
             fullScreenOnMobile
-              ? "min-h-[100dvh] rounded-none md:max-h-[96dvh] md:w-[70vw] md:max-w-[900px] md:rounded-t-2xl"
+              ? "h-[100dvh] max-h-[100dvh] rounded-none md:max-h-[96dvh] md:w-[70vw] md:max-w-[900px] md:rounded-t-2xl"
               : "max-h-[85dvh] rounded-t-2xl",
             className
           )}
         >
-        <div className="relative flex shrink-0 items-center justify-center pt-3 pb-2">
+        <div className="relative flex shrink-0 items-center justify-center pt-[max(0.75rem,env(safe-area-inset-top))] pb-2">
           {showCloseButton ? (
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="absolute right-4 top-3 flex h-10 w-10 items-center justify-center rounded-full text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-foreground"
+              className="absolute right-4 top-[max(0.75rem,env(safe-area-inset-top))] flex h-10 w-10 items-center justify-center rounded-full text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-foreground"
               aria-label="Cerrar"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

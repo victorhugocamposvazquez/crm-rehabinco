@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
-import { Home, Users, FileText, ClipboardList, Building2, LogOut, KeyRound, Settings } from "lucide-react";
+import { Home, Users, FileText, ClipboardList, Building2, LogOut, KeyRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -138,8 +138,8 @@ export function TopBar() {
         fullScreenOnMobile
         showCloseButton
       >
-        <div className="px-4 pb-24 pt-2 md:pb-8">
-          <h2 className="mb-6 text-xl font-semibold">Sesión y cuenta</h2>
+        <div className="px-4 pb-24 pt-4 md:pb-8">
+          <h2 className="mb-6 text-xl font-semibold">Ajustes</h2>
           <div className="mb-6 rounded-2xl bg-neutral-50 px-4 py-4">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
               Sesión iniciada
@@ -151,15 +151,6 @@ export function TopBar() {
               {user?.role === "admin" ? "Administrador" : "Agente"}
             </p>
           </div>
-
-          <Link
-            href="/settings"
-            onClick={() => setSheetOpen(false)}
-            className="mb-6 flex items-center gap-3 rounded-xl px-4 py-3 text-[15px] font-medium text-foreground transition-colors hover:bg-neutral-50"
-          >
-            <Settings className="h-5 w-5 text-neutral-500" strokeWidth={1.5} />
-            Ajustes
-          </Link>
 
           <div className="mb-8 rounded-2xl border border-border bg-white p-4">
             <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">

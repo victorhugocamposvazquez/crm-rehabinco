@@ -8,8 +8,7 @@ import { loginSchema, type LoginFormValues } from "@/lib/validations/auth";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -60,11 +59,8 @@ export default function LoginPage() {
             />
           </div>
           <CardTitle className="text-[2rem] font-semibold tracking-tight text-neutral-900 md:text-[2.25rem]">
-            Entrar
+            CRM interno
           </CardTitle>
-          <CardDescription className="text-base text-neutral-500">
-            Introduce tu email y contraseña para acceder al CRM
-          </CardDescription>
         </CardHeader>
         <CardContent className="px-0 pt-0">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -74,11 +70,10 @@ export default function LoginPage() {
               </p>
             )}
             <div className="space-y-2.5">
-              <Label htmlFor="email" className="text-sm font-medium text-neutral-700">Email</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="tu@email.com"
+                placeholder="Email"
                 autoComplete="email"
                 className="h-12 rounded-xl border-neutral-200 px-4 placeholder:text-neutral-400 focus-visible:ring-2 focus-visible:ring-[#29A4AE]/40 focus-visible:ring-offset-0"
                 {...register("email")}
@@ -88,11 +83,10 @@ export default function LoginPage() {
               )}
             </div>
             <div className="space-y-2.5">
-              <Label htmlFor="password" className="text-sm font-medium text-neutral-700">Contraseña</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="••••••••"
+                placeholder="Contraseña"
                 autoComplete="current-password"
                 className="h-12 rounded-xl border-neutral-200 px-4 placeholder:text-neutral-400 focus-visible:ring-2 focus-visible:ring-[#29A4AE]/40 focus-visible:ring-offset-0"
                 {...register("password")}
