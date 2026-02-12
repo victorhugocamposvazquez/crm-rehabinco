@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -21,6 +21,7 @@ interface ClienteCardProps {
 
 export function ClienteCard({ id, nombre, email, telefono, activo, onDeleted }: ClienteCardProps) {
   const router = useRouter();
+  const cardRef = useRef<HTMLDivElement>(null);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -75,9 +76,11 @@ export function ClienteCard({ id, nombre, email, telefono, activo, onDeleted }: 
     }
   };
 
+  const cardRect = actionsOpen && cardRef.current ? cardRef.current.getBoundingClientRect() : null;
+
   return (
     <>
-      <Card className={cn("relative overflow-visible bg-white/95 py-0", actionsOpen && "z-[200]")}>
+      <Card ref={cardRef} className={cn("relative overflow-visible bg-white/95 py-0", actionsOpen && "z-[200]")}>
         {/* Contenido principal */}
         <div className="relative flex items-center justify-between gap-4 py-4">
           <div
@@ -128,54 +131,61 @@ export function ClienteCard({ id, nombre, email, telefono, activo, onDeleted }: 
           </button>
         </div>
 
-        {/* Acciones: panel anclado al borde derecho del card */}
+        {/* Acciones: overlay y panel en portal para que el panel quede encima y reciba toques en mobile */}
         {actionsOpen &&
           typeof document !== "undefined" &&
+          cardRect &&
           createPortal(
-            <div
-              className="fixed inset-0 z-[9998] bg-black/[0.04]"
-              onPointerDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                closeActions();
-              }}
-              aria-hidden
-            />,
+            <>
+              <div
+                className="fixed inset-0 z-[9998] bg-black/[0.04]"
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  closeActions();
+                }}
+                aria-hidden
+              />
+              <div
+                className="fixed z-[9999] flex flex-row items-center gap-0.5 rounded-l-lg border-l border-y border-border bg-white px-1.5 py-1 shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
+                style={{
+                  top: cardRect.top + 4,
+                  right: window.innerWidth - cardRect.right + 4,
+                  height: cardRect.height - 8,
+                  animation: "slideInFromRight 0.2s ease-out",
+                }}
+                role="dialog"
+                aria-label="Acciones"
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  onClick={handleViewDetail}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-blue-600 transition-colors hover:bg-blue-50"
+                  aria-label="Ver detalle"
+                >
+                  <Eye className="h-4 w-4" strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateFactura}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-emerald-600 transition-colors hover:bg-emerald-50"
+                  aria-label="Crear factura"
+                >
+                  <FileText className="h-4 w-4" strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteClick}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-red-600 transition-colors hover:bg-red-50"
+                  aria-label="Eliminar"
+                >
+                  <Trash2 className="h-4 w-4" strokeWidth={2} />
+                </button>
+              </div>
+            </>,
             document.body
           )}
-        {actionsOpen && (
-          <div
-            className="absolute right-0 top-1 bottom-1 z-[9999] flex flex-row items-center gap-0.5 rounded-l-lg border-l border-y border-border bg-white px-1.5 py-1 shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
-            style={{ animation: "slideInFromRight 0.2s ease-out" }}
-            role="dialog"
-            aria-label="Acciones"
-          >
-            <button
-              type="button"
-              onClick={handleViewDetail}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-blue-600 transition-colors hover:bg-blue-50"
-              aria-label="Ver detalle"
-            >
-              <Eye className="h-4 w-4" strokeWidth={2} />
-            </button>
-            <button
-              type="button"
-              onClick={handleCreateFactura}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-emerald-600 transition-colors hover:bg-emerald-50"
-              aria-label="Crear factura"
-            >
-              <FileText className="h-4 w-4" strokeWidth={2} />
-            </button>
-            <button
-              type="button"
-              onClick={handleDeleteClick}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-red-600 transition-colors hover:bg-red-50"
-              aria-label="Eliminar"
-            >
-              <Trash2 className="h-4 w-4" strokeWidth={2} />
-            </button>
-          </div>
-        )}
       </Card>
 
       <AlertDialog

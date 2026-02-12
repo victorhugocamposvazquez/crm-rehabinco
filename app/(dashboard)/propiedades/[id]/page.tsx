@@ -1,13 +1,14 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, Pencil } from "lucide-react";
+import { AlertDialog } from "@/components/ui/alert-dialog";
+import { ChevronLeft, Pencil, Trash2 } from "lucide-react";
 
 interface Propiedad {
   id: string;
@@ -28,10 +29,13 @@ interface Propiedad {
 
 export default function DetallePropiedadPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
   const [propiedad, setPropiedad] = useState<Propiedad | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -74,6 +78,21 @@ export default function DetallePropiedadPage() {
 
   const ofertanteNombre =
     Array.isArray(propiedad.clientes) ? propiedad.clientes[0]?.nombre : propiedad.clientes?.nombre;
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    const supabase = createClient();
+    const { error: err } = await supabase.from("propiedades").delete().eq("id", id);
+    setDeleting(false);
+    setShowDeleteConfirm(false);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    router.push("/propiedades");
+    router.refresh();
+  };
+
   const formatPrecio = (p: number | null) =>
     p != null
       ? p.toLocaleString("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 })
@@ -109,13 +128,35 @@ export default function DetallePropiedadPage() {
             </Badge>
           </div>
         </div>
-        <Button variant="secondary" size="sm" asChild>
-          <Link href={`/clientes/${propiedad.ofertante_id}`} className="gap-2">
-            <Pencil className="h-4 w-4" strokeWidth={1.5} />
-            Ver propietario
-          </Link>
-        </Button>
+        <div className="flex shrink-0 items-center gap-1">
+          <Button variant="secondary" size="sm" asChild>
+            <Link href={`/clientes/${propiedad.ofertante_id}`} className="gap-2">
+              <Pencil className="h-4 w-4" strokeWidth={1.5} />
+              Ver propietario
+            </Link>
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="text-red-600 hover:bg-red-50 hover:text-red-700"
+            onClick={() => setShowDeleteConfirm(true)}
+            aria-label="Eliminar propiedad"
+          >
+            <Trash2 className="h-4 w-4" strokeWidth={1.5} />
+          </Button>
+        </div>
       </div>
+
+      <AlertDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title="¿Eliminar esta propiedad?"
+        description="Esta acción no se puede deshacer."
+        confirmLabel={deleting ? "Eliminando…" : "Eliminar"}
+        onConfirm={handleDelete}
+        loading={deleting}
+        variant="destructive"
+      />
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>

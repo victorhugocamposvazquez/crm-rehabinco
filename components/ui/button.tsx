@@ -8,13 +8,13 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-foreground text-background shadow-[0_4px_14px_rgba(17,19,23,0.18)] hover:opacity-95 active:scale-[0.985]",
+          "bg-accent text-accent-foreground shadow-[0_4px_14px_rgba(13,148,136,0.25)] hover:opacity-95 active:scale-[0.985]",
         secondary:
           "border border-border bg-white text-foreground hover:bg-neutral-50 active:scale-[0.985]",
         ghost: "text-neutral-600 hover:bg-neutral-100 hover:text-foreground active:scale-[0.985]",
         link: "text-foreground underline-offset-4 hover:underline",
         floating:
-          "rounded-full bg-foreground text-background shadow-[0_10px_24px_rgba(17,19,23,0.22)] hover:opacity-95 active:scale-95",
+          "rounded-full bg-accent text-accent-foreground shadow-[0_10px_24px_rgba(13,148,136,0.28)] hover:opacity-95 active:scale-95",
       },
       size: {
         default: "h-11 px-5 py-2.5",

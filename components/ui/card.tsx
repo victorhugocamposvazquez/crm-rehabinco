@@ -8,7 +8,7 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-2xl border border-border bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.03)] transition-all duration-200 hover:-translate-y-[1px] hover:shadow-[0_10px_24px_rgba(16,24,40,0.07)]",
+      "rounded-2xl border border-border bg-white p-5 shadow-[0_1px_3px_rgba(28,25,23,0.04)] transition-all duration-200 hover:-translate-y-[1px] hover:shadow-[0_8px_20px_rgba(28,25,23,0.08)]",
       animate && "animate-[fadeIn_0.3s_ease-out]",
       className
     )}

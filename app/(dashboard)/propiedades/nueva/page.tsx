@@ -16,6 +16,7 @@ export default function NuevaPropiedadPage() {
   const searchParams = useSearchParams();
   const ofertanteFromUrl = searchParams.get("ofertante");
   const [clientes, setClientes] = useState<Array<{ id: string; nombre: string }>>([]);
+  const ofertanteNombre = ofertanteId ? clientes.find((c) => c.id === ofertanteId)?.nombre : null;
   const [ofertanteId, setOfertanteId] = useState(ofertanteFromUrl ?? "");
   const [titulo, setTitulo] = useState("");
   const [direccion, setDireccion] = useState("");
@@ -109,7 +110,7 @@ export default function NuevaPropiedadPage() {
           <ChevronLeft className="h-7 w-7" strokeWidth={1.5} />
         </Link>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          Nueva propiedad
+          {ofertanteNombre ? `Nueva propiedad de ${ofertanteNombre}` : "Nueva propiedad"}
         </h1>
       </div>
 

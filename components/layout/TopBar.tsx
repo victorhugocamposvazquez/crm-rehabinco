@@ -63,8 +63,8 @@ export function TopBar() {
                   className={cn(
                     "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all",
                     isActive
-                      ? "bg-white text-foreground shadow-[0_1px_2px_rgba(16,24,40,0.06)]"
-                      : "text-neutral-600 hover:bg-white hover:text-foreground"
+                      ? "bg-accent/10 text-accent"
+                      : "text-neutral-600 hover:bg-accent/5 hover:text-accent"
                   )}
                 >
                   <Icon className="h-4 w-4" strokeWidth={1.5} aria-hidden />
@@ -81,7 +81,7 @@ export function TopBar() {
               className="flex shrink-0 items-center gap-2 rounded-full border border-border bg-white px-2 py-1.5 shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:bg-neutral-50 active:scale-[0.98]"
               aria-label="Abrir sesión y ajustes"
             >
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground text-xs font-semibold text-white">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
                 {initials}
               </span>
               <span className="hidden pr-1 text-xs font-semibold uppercase tracking-wide text-neutral-600 sm:inline">

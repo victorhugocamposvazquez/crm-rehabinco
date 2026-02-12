@@ -168,6 +168,7 @@ export function FacturaCard({
                   }}
                   role="dialog"
                   aria-label="Acciones"
+                  onPointerDown={(e) => e.stopPropagation()}
                 >
                   <button
                     type="button"

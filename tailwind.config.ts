@@ -14,13 +14,17 @@ export default {
         ring: "var(--ring)",
         background: "var(--background)",
         foreground: "var(--foreground)",
+        accent: {
+          DEFAULT: "#0d9488",
+          foreground: "#ffffff",
+        },
         muted: {
           DEFAULT: "var(--muted)",
           foreground: "var(--muted)",
         },
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
       animation: {
         "fade-in": "fadeIn 0.3s ease-out",

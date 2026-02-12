@@ -74,7 +74,7 @@ export default function PropiedadesPage() {
       <PageHeader
         breadcrumb={[{ label: "Propiedades", href: "/propiedades" }]}
         title="Propiedades"
-        description="Gestiona propiedades en venta o alquiler"
+        description="Oferta: inmuebles que tus clientes ponen a la venta o alquiler. La demanda (buscadores) se gestiona como clientes."
         actions={
           <Button asChild size="sm">
             <Link href="/propiedades/nueva" className="gap-2">

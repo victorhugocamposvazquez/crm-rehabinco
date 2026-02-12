@@ -3,12 +3,13 @@
 @tailwind utilities;
 
 :root {
-  --font-inter: "Inter", system-ui, sans-serif;
-  --background: #ffffff;
-  --foreground: #111317;
+  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+  --background: #fafaf9;
+  --foreground: #1c1917;
+  --accent: #0d9488;
   --muted: #6b7280;
-  --border: #e8ebf0;
-  --ring: #111317;
+  --border: #e7e5e4;
+  --ring: #0d9488;
   --radius: 0.75rem;
 }
 
@@ -24,7 +25,7 @@ body {
   min-height: 100dvh;
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-inter);
+  font-family: var(--font-sans);
   letter-spacing: -0.01em;
   text-rendering: geometricPrecision;
 }
