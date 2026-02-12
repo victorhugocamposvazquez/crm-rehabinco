@@ -5,6 +5,7 @@ export const facturaStep1Schema = z.object({
   concepto: z.string().optional(),
   fechaEmision: z.string().optional(),
   fechaVencimiento: z.string().optional(),
+  causaRectificacion: z.string().optional(),
 });
 
 export const facturaLineaSchema = z.object({

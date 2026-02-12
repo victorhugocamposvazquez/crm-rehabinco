@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog } from "@/components/ui/alert-dialog";
-import { Pencil, FileDown, Trash2 } from "lucide-react";
+import { Pencil, FileDown, Trash2, FileEdit } from "lucide-react";
 
 interface FacturaRow {
   id: string;
@@ -25,6 +25,9 @@ interface FacturaRow {
   porcentaje_descuento?: number | null;
   importe_descuento?: number | null;
   cliente_id: string | null;
+  tipo_factura?: "ordinaria" | "rectificativa";
+  factura_original_id?: string | null;
+  causa_rectificacion?: string | null;
   clientes: {
     id: string;
     nombre: string;
@@ -52,6 +55,8 @@ export default function DetalleFacturaPage() {
   const router = useRouter();
   const id = params.id as string;
   const [factura, setFactura] = useState<FacturaRow | null>(null);
+  const [facturaOriginal, setFacturaOriginal] = useState<{ id: string; numero: string; fecha_emision: string | null } | null>(null);
+  const [rectificativas, setRectificativas] = useState<Array<{ id: string; numero: string }>>([]);
   const [lineas, setLineas] = useState<LineaRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +76,7 @@ export default function DetalleFacturaPage() {
     supabase
       .from("facturas")
       .select(
-        "id, numero, estado, concepto, fecha_emision, fecha_vencimiento, irpf_porcentaje, irpf_importe, porcentaje_descuento, importe_descuento, cliente_id, clientes(id, nombre, documento_fiscal, tipo_cliente, tipo_documento, direccion, codigo_postal, localidad, email, telefono)"
+        "id, numero, estado, concepto, fecha_emision, fecha_vencimiento, irpf_porcentaje, irpf_importe, porcentaje_descuento, importe_descuento, cliente_id, tipo_factura, factura_original_id, causa_rectificacion, clientes(id, nombre, documento_fiscal, tipo_cliente, tipo_documento, direccion, codigo_postal, localidad, email, telefono)"
       )
       .eq("id", id)
       .single()
@@ -142,6 +147,28 @@ export default function DetalleFacturaPage() {
       .eq("factura_id", id)
       .order("orden")
       .then(({ data }) => setLineas(data ?? []));
+  }, [id]);
+
+  useEffect(() => {
+    if (!factura?.factura_original_id) return;
+    const supabase = createClient();
+    supabase
+      .from("facturas")
+      .select("id, numero, fecha_emision")
+      .eq("id", factura.factura_original_id)
+      .single()
+      .then(({ data }) => setFacturaOriginal(data as { id: string; numero: string; fecha_emision: string | null } | null));
+  }, [factura?.factura_original_id]);
+
+  useEffect(() => {
+    if (!id) return;
+    const supabase = createClient();
+    supabase
+      .from("facturas")
+      .select("id, numero")
+      .eq("factura_original_id", id)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => setRectificativas((data ?? []) as Array<{ id: string; numero: string }>));
   }, [id]);
 
   const baseImponible = lineas.reduce(
@@ -235,6 +262,14 @@ export default function DetalleFacturaPage() {
           year: "numeric",
         })
       : "—";
+    const esRectificativa = factura.tipo_factura === "rectificativa";
+    const fechaOriginalFormateada = facturaOriginal?.fecha_emision
+      ? new Date(facturaOriginal.fecha_emision + "T12:00:00").toLocaleDateString("es-ES", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        })
+      : "";
 
     const html = `
       <!DOCTYPE html>
@@ -258,11 +293,19 @@ export default function DetalleFacturaPage() {
                   <img src="${logoUrl}" alt="REHABINCO" style="height:48px; width:auto; max-width:180px;" />
                 </td>
                 <td style="vertical-align:top; width:50%; text-align:right;">
-                  <p style="margin:0; font-size:14px; font-weight:600;">FACTURA Nº: ${factura.numero}</p>
+                  <p style="margin:0; font-size:14px; font-weight:600;">${esRectificativa ? "FACTURA RECTIFICATIVA Nº" : "FACTURA Nº"}: ${factura.numero}</p>
                   <p style="margin:4px 0 0 0; font-size:13px; color:#444;">${fechaFormateada}</p>
                 </td>
               </tr>
             </table>
+
+            ${esRectificativa && (facturaOriginal || factura.causa_rectificacion) ? `
+            <div style="margin-bottom:24px; padding:12px 16px; background:#fef3c7; border:1px solid #fcd34d; border-radius:8px;">
+              <p style="margin:0 0 6px 0; font-size:12px; font-weight:700; color:#92400e;">DOCUMENTO RECTIFICATIVO</p>
+              ${facturaOriginal ? `<p style="margin:0; font-size:12px; color:#78350f;">Rectifica la factura nº ${facturaOriginal.numero}${fechaOriginalFormateada ? `, de fecha ${fechaOriginalFormateada}` : ""}.</p>` : ""}
+              ${factura.causa_rectificacion ? `<p style="margin:6px 0 0 0; font-size:12px; color:#78350f;"><strong>Causa:</strong> ${factura.causa_rectificacion}</p>` : ""}
+            </div>
+            ` : ""}
 
             <table style="width:100%; margin-bottom:24px; border-collapse:collapse;">
               <tr>
@@ -353,6 +396,14 @@ export default function DetalleFacturaPage() {
         description={undefined}
         actions={
           <div className="flex shrink-0 items-center gap-1">
+          {(factura.tipo_factura !== "rectificativa") && (factura.estado === "emitida" || factura.estado === "pagada") && (
+            <Button variant="secondary" size="icon" className="md:h-9 md:w-auto md:gap-2 md:px-3" asChild>
+              <Link href={`/facturas/nueva?rectificativa=${id}`} aria-label="Emitir rectificativa">
+                <FileEdit className="h-4 w-4" strokeWidth={1.5} />
+                <span className="hidden md:inline">Rectificativa</span>
+              </Link>
+            </Button>
+          )}
           <Button variant="secondary" size="icon" className="md:h-9 md:w-auto md:gap-2 md:px-3" asChild>
             <Link href={`/facturas/${id}/editar`} aria-label="Editar">
               <Pencil className="h-4 w-4" strokeWidth={1.5} />
@@ -376,10 +427,15 @@ export default function DetalleFacturaPage() {
           </div>
         }
       />
-      <div className="mb-6 flex items-center gap-2">
+      <div className="mb-6 flex flex-wrap items-center gap-2">
         <Badge variant={factura.estado as "borrador" | "emitida" | "pagada"}>
           {factura.estado.charAt(0).toUpperCase() + factura.estado.slice(1)}
         </Badge>
+        {factura.tipo_factura === "rectificativa" && (
+          <Badge variant="borrador" className="bg-amber-100 text-amber-800 border-amber-300">
+            Rectificativa
+          </Badge>
+        )}
       </div>
 
       <AlertDialog
@@ -394,6 +450,47 @@ export default function DetalleFacturaPage() {
       />
 
       <div className="grid gap-6 md:grid-cols-2">
+        {(factura.tipo_factura === "rectificativa" && facturaOriginal) || factura.causa_rectificacion ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Rectificativa</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              {facturaOriginal && (
+                <p>
+                  <span className="text-neutral-500">Rectifica factura:</span>{" "}
+                  <Link href={`/facturas/${factura.factura_original_id}`} className="font-medium hover:underline">
+                    {facturaOriginal.numero}
+                  </Link>
+                </p>
+              )}
+              {factura.causa_rectificacion && (
+                <p>
+                  <span className="text-neutral-500">Causa:</span>{" "}
+                  {factura.causa_rectificacion}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        ) : null}
+        {rectificativas.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Rectificativas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm">
+                {rectificativas.map((r) => (
+                  <li key={r.id}>
+                    <Link href={`/facturas/${r.id}`} className="font-medium hover:underline">
+                      {r.numero}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
         <Card>
           <CardHeader>
             <CardTitle>Cliente y fechas</CardTitle>

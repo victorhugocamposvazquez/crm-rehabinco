@@ -10,6 +10,7 @@ import {
   type FacturaStep2Values,
   type FacturaLinea,
 } from "@/lib/validations/factura";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,15 +35,16 @@ type WizardData = FacturaStep1Values & FacturaStep2Values & { estadoInicial?: Es
 interface FacturaWizardProps {
   facturaId?: string;
   initialClienteId?: string;
+  facturaOriginalId?: string;
 }
 
-export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProps) {
+export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }: FacturaWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [data, setData] = useState<Partial<WizardData>>({});
   const [estadoInicial, setEstadoInicial] = useState<EstadoFactura>("emitida");
   const [clientes, setClientes] = useState<Array<{ id: string; nombre: string }>>([]);
-  const [loading, setLoading] = useState(!!facturaId);
+  const [loading, setLoading] = useState(!!facturaId || !!facturaOriginalId);
   const [numero, setNumero] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -50,6 +52,10 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
   const [porcentajeDescuento, setPorcentajeDescuento] = useState<number>(0);
   const [showQuickClient, setShowQuickClient] = useState(false);
   const [step2Attempted, setStep2Attempted] = useState(false);
+  const [causaRectificacion, setCausaRectificacion] = useState("");
+  const [facturaOriginalNumero, setFacturaOriginalNumero] = useState<string | null>(null);
+  const [rectificativaError, setRectificativaError] = useState<string | null>(null);
+  const esRectificativa = !!facturaOriginalId;
 
   useEffect(() => {
     const supabase = createClient();
@@ -68,6 +74,7 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
       concepto: "",
       fechaEmision: today,
       fechaVencimiento: "",
+      causaRectificacion: "",
     },
   });
 
@@ -77,6 +84,72 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
     setData((p) => ({ ...p, clienteId: initialClienteId }));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only run when initialClienteId or clientes change
   }, [initialClienteId, facturaId, clientes]);
+
+  useEffect(() => {
+    if (!facturaOriginalId || facturaId) return;
+    setRectificativaError(null);
+    const supabase = createClient();
+    Promise.all([
+      supabase.from("facturas").select("id, numero, estado, concepto, fecha_emision, fecha_vencimiento, irpf_porcentaje, porcentaje_descuento, cliente_id, tipo_factura").eq("id", facturaOriginalId).single(),
+      supabase.from("factura_lineas").select("descripcion, cantidad, precio_unitario, iva_porcentaje").eq("factura_id", facturaOriginalId).order("orden"),
+    ]).then(([fRes, lRes]) => {
+      const factura = fRes.data as { numero: string; estado: string; concepto: string | null; fecha_emision: string | null; fecha_vencimiento: string | null; irpf_porcentaje: number | null; porcentaje_descuento: number | null; cliente_id: string | null; tipo_factura?: string } | null;
+      const lineasData = (lRes.data ?? []) as Array<{ descripcion: string; cantidad: number; precio_unitario: number; iva_porcentaje: number | null }>;
+      if (!factura) {
+        setRectificativaError("Factura original no encontrada");
+        setLoading(false);
+        return;
+      }
+      if (factura.estado === "borrador") {
+        setRectificativaError("Solo se puede emitir rectificativa de facturas emitidas o pagadas");
+        setLoading(false);
+        return;
+      }
+      if (factura.tipo_factura === "rectificativa") {
+        setRectificativaError("No se puede rectificar una factura rectificativa");
+        setLoading(false);
+        return;
+      }
+      const fourYearsAgo = new Date();
+      fourYearsAgo.setFullYear(fourYearsAgo.getFullYear() - 4);
+      const fechaEmision = factura.fecha_emision ? new Date(factura.fecha_emision + "T12:00:00") : null;
+      if (fechaEmision && fechaEmision < fourYearsAgo) {
+        setRectificativaError("Ha pasado más de 4 años desde la factura original (RD 1619/2012)");
+        setLoading(false);
+        return;
+      }
+      setFacturaOriginalNumero(factura.numero);
+      const step1Values = {
+        clienteId: factura.cliente_id ?? "",
+        concepto: factura.concepto ?? "",
+        fechaEmision: factura.fecha_emision ?? today,
+        fechaVencimiento: "",
+      };
+      setData({
+        ...step1Values,
+        lineas: lineasData.map((l) => ({
+          descripcion: l.descripcion,
+          cantidad: Number(l.cantidad),
+          precioUnitario: Number(l.precio_unitario),
+          ivaPorcentaje: Number(l.iva_porcentaje ?? 21),
+        })),
+      });
+      setLineas(
+        lineasData.length > 0
+          ? lineasData.map((l) => ({
+              descripcion: l.descripcion,
+              cantidad: Number(l.cantidad),
+              precioUnitario: Number(l.precio_unitario),
+              ivaPorcentaje: Number(l.iva_porcentaje ?? 21),
+            }))
+          : [{ descripcion: "", cantidad: 1, precioUnitario: 0, ivaPorcentaje: 21 }]
+      );
+      formStep1.reset(step1Values);
+      setIrpfPorcentaje(Number(factura.irpf_porcentaje ?? 0));
+      setPorcentajeDescuento(Number(factura.porcentaje_descuento ?? 0));
+      setLoading(false);
+    });
+  }, [facturaOriginalId, facturaId, today]);
 
   const [lineas, setLineas] = useState<FacturaLinea[]>([
     { descripcion: "", cantidad: 1, precioUnitario: 0, ivaPorcentaje: 21 },
@@ -131,7 +204,12 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
   }, [facturaId]);
 
   const onStep1 = formStep1.handleSubmit((values) => {
+    if (esRectificativa && !(values.causaRectificacion ?? "").trim()) {
+      formStep1.setError("causaRectificacion", { message: "La causa de rectificación es obligatoria (RD 1619/2012)" });
+      return;
+    }
     setData((p) => ({ ...p, ...values }));
+    if (esRectificativa) setCausaRectificacion(values.causaRectificacion ?? "");
     setStep(2);
   });
 
@@ -142,9 +220,11 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
   };
 
   const onStep2 = () => {
-    const valid = lineas.every(
-      (l) => l.descripcion.trim() && l.cantidad > 0 && l.precioUnitario >= 0
-    );
+    const valid = lineas.every((l) => {
+      if (!l.descripcion.trim()) return false;
+      if (esRectificativa) return l.cantidad !== 0;
+      return l.cantidad > 0 && l.precioUnitario >= 0;
+    });
     if (!valid) {
       setStep2Attempted(true);
       return;
@@ -156,8 +236,8 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
 
   const isLineaInvalid = (l: FacturaLinea) => ({
     descripcion: !l.descripcion.trim(),
-    cantidad: l.cantidad <= 0,
-    precioUnitario: l.precioUnitario < 0,
+    cantidad: esRectificativa ? l.cantidad === 0 : l.cantidad <= 0,
+    precioUnitario: esRectificativa ? false : l.precioUnitario < 0,
   });
 
   const addLinea = () =>
@@ -197,6 +277,7 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
         concepto: data.concepto ?? "",
         fechaEmision: data.fechaEmision ?? today,
         fechaVencimiento: data.fechaVencimiento ?? "",
+        causaRectificacion: (data as { causaRectificacion?: string }).causaRectificacion ?? causaRectificacion ?? "",
       });
     }
   };
@@ -262,7 +343,7 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
 
     const year = new Date().getFullYear();
     const serie = process.env.NEXT_PUBLIC_BILLING_SERIE ?? "RHB";
-    const prefix = `${serie}-${year}-`;
+    const prefix = esRectificativa ? `${serie}-R-${year}-` : `${serie}-${year}-`;
     const { data: existing } = await supabase
       .from("facturas")
       .select("numero")
@@ -274,19 +355,26 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
     const nextNum = lastCorrelative + 1;
     const numero = `${prefix}${String(nextNum).padStart(4, "0")}`;
 
+    const insertPayload: Record<string, unknown> = {
+      user_id: user.id,
+      cliente_id: clienteId,
+      numero,
+      estado: estadoInicial,
+      concepto: data.concepto || null,
+      fecha_emision: data.fechaEmision || null,
+      fecha_vencimiento: data.fechaVencimiento || null,
+      irpf_porcentaje: irpfPorcentaje,
+      porcentaje_descuento: porcentajeDescuento,
+    };
+    if (esRectificativa && facturaOriginalId) {
+      insertPayload.tipo_factura = "rectificativa";
+      insertPayload.factura_original_id = facturaOriginalId;
+      insertPayload.causa_rectificacion = causaRectificacion.trim() || null;
+    }
+
     const { data: factura, error: errFactura } = await supabase
       .from("facturas")
-      .insert({
-        user_id: user.id,
-        cliente_id: clienteId,
-        numero,
-        estado: estadoInicial,
-        concepto: data.concepto || null,
-        fecha_emision: data.fechaEmision || null,
-        fecha_vencimiento: data.fechaVencimiento || null,
-        irpf_porcentaje: irpfPorcentaje,
-        porcentaje_descuento: porcentajeDescuento,
-      })
+      .insert(insertPayload)
       .select("id")
       .single();
 
@@ -313,6 +401,19 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
     return (
       <div className="flex min-h-[40vh] items-center justify-center" aria-busy="true" aria-live="polite">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-foreground" role="status" aria-label="Cargando" />
+      </div>
+    );
+  }
+
+  if (rectificativaError) {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50/50 p-6">
+        <p className="font-medium text-red-800">{rectificativaError}</p>
+        <Button asChild variant="secondary" className="mt-4">
+          <Link href={facturaOriginalId ? `/facturas/${facturaOriginalId}` : "/facturas"}>
+            Volver
+          </Link>
+        </Button>
       </div>
     );
   }
@@ -357,9 +458,14 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
         {step === 1 && (
           <Card>
             <CardHeader>
-              <CardTitle>Cliente y fechas</CardTitle>
+              <CardTitle>{esRectificativa ? "Rectificativa" : "Cliente y fechas"}</CardTitle>
               {numero && (
                 <p className="text-sm font-medium text-neutral-500">{numero}</p>
+              )}
+              {esRectificativa && facturaOriginalNumero && (
+                <p className="text-sm text-neutral-600">
+                  Rectifica factura: <span className="font-medium">{facturaOriginalNumero}</span>
+                </p>
               )}
             </CardHeader>
             <CardContent className="min-w-0 overflow-x-hidden">
@@ -367,8 +473,12 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
                 <div className="space-y-2">
                   <Label>Cliente *</Label>
                   <select
-                    className="flex h-11 w-full rounded-lg border border-border bg-white px-4 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className={cn(
+                      "flex h-11 w-full rounded-lg border border-border bg-white px-4 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      esRectificativa && "cursor-not-allowed bg-neutral-50"
+                    )}
                     {...formStep1.register("clienteId")}
+                    disabled={esRectificativa}
                   >
                     <option value="">Selecciona un cliente</option>
                     {clientes.map((c) => (
@@ -382,15 +492,32 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
                       {formStep1.formState.errors.clienteId.message}
                     </p>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => setShowQuickClient(true)}
-                    className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-foreground hover:underline"
-                  >
-                    <UserPlus className="h-3.5 w-3.5" strokeWidth={1.5} />
-                    Crear cliente desde aquí
-                  </button>
+                  {!esRectificativa && (
+                    <button
+                      type="button"
+                      onClick={() => setShowQuickClient(true)}
+                      className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-foreground hover:underline"
+                    >
+                      <UserPlus className="h-3.5 w-3.5" strokeWidth={1.5} />
+                      Crear cliente desde aquí
+                    </button>
+                  )}
                 </div>
+
+                {esRectificativa && (
+                  <div className="space-y-2">
+                    <Label>Causa de rectificación *</Label>
+                    <Input
+                      placeholder="Ej. Error en importe, devolución, descuento por volumen..."
+                      {...formStep1.register("causaRectificacion")}
+                    />
+                    {formStep1.formState.errors.causaRectificacion && (
+                      <p className="text-sm text-red-600">
+                        {formStep1.formState.errors.causaRectificacion.message}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 <ClienteQuickSheet
                   open={showQuickClient}

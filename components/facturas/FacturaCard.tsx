@@ -18,6 +18,7 @@ interface FacturaCardProps {
   clienteNombre: string;
   importe: string;
   estado: EstadoFactura;
+  tipoFactura?: "ordinaria" | "rectificativa";
   onDeleted?: () => void;
 }
 
@@ -33,6 +34,7 @@ export function FacturaCard({
   clienteNombre,
   importe,
   estado,
+  tipoFactura,
   onDeleted,
 }: FacturaCardProps) {
   const router = useRouter();
@@ -125,9 +127,16 @@ export function FacturaCard({
           </div>
           <div className="flex shrink-0 items-center gap-4">
             <p className="text-lg font-semibold tracking-tight">{importe}</p>
-            <Badge variant={estadoVariant[estado]}>
-              {estado.charAt(0).toUpperCase() + estado.slice(1)}
-            </Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              {tipoFactura === "rectificativa" && (
+                <Badge variant="borrador" className="bg-amber-100 text-amber-800 border-amber-300 text-[10px]">
+                  Rectificativa
+                </Badge>
+              )}
+              <Badge variant={estadoVariant[estado]}>
+                {estado.charAt(0).toUpperCase() + estado.slice(1)}
+              </Badge>
+            </div>
           </div>
           <button
             type="button"

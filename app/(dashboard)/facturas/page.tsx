@@ -18,6 +18,7 @@ interface FacturaRow {
   estado: string;
   cliente_id: string | null;
   total?: number | null;
+  tipo_factura?: "ordinaria" | "rectificativa";
   clientes: { nombre: string } | { nombre: string }[] | null;
 }
 
@@ -29,12 +30,14 @@ export default function FacturasPage() {
   const [filterEstado, setFilterEstado] = useState<"todos" | "borrador" | "emitida" | "pagada">(
     estadoFromUrl && ["borrador", "emitida", "pagada"].includes(estadoFromUrl) ? estadoFromUrl : "todos"
   );
+  const [filterTipo, setFilterTipo] = useState<"todas" | "ordinaria" | "rectificativa">("todas");
   const [facturas, setFacturas] = useState<Array<{
     id: string;
     numero: string;
     clienteNombre: string;
     importe: string;
     estado: "borrador" | "emitida" | "pagada";
+    tipoFactura?: "ordinaria" | "rectificativa";
   }>>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,7 +45,7 @@ export default function FacturasPage() {
     const supabase = createClient();
     supabase
       .from("facturas")
-      .select("id, numero, estado, cliente_id, total, clientes(nombre)")
+      .select("id, numero, estado, cliente_id, total, tipo_factura, clientes(nombre)")
       .order("created_at", { ascending: false })
       .then(({ data, error: err }) => {
         if (err) {
@@ -63,6 +66,7 @@ export default function FacturasPage() {
               clienteNombre: cliente?.nombre ?? "—",
               importe: Number(row.total ?? 0).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €",
               estado: row.estado as "borrador" | "emitida" | "pagada",
+              tipoFactura: (row.tipo_factura as "ordinaria" | "rectificativa") ?? "ordinaria",
             };
           })
         ).then(setFacturas);
@@ -79,9 +83,11 @@ export default function FacturasPage() {
         f.clienteNombre.toLowerCase().includes(q);
       const matchEstado =
         filterEstado === "todos" || f.estado === filterEstado;
-      return matchSearch && matchEstado;
+      const matchTipo =
+        filterTipo === "todas" || f.tipoFactura === filterTipo;
+      return matchSearch && matchEstado && matchTipo;
     });
-  }, [facturas, search, filterEstado]);
+  }, [facturas, search, filterEstado, filterTipo]);
 
   return (
     <div>
@@ -118,21 +124,39 @@ export default function FacturasPage() {
               aria-label="Buscar facturas"
             />
           </div>
-          <div className="flex flex-wrap gap-1 rounded-lg border border-border p-1">
-            {(["todos", "borrador", "emitida", "pagada"] as const).map((e) => (
-              <button
-                key={e}
-                type="button"
-                onClick={() => setFilterEstado(e)}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                  filterEstado === e
-                    ? "bg-foreground text-background"
-                    : "text-neutral-600 hover:bg-neutral-100"
-                }`}
-              >
-                {e === "todos" ? "Todas" : e.charAt(0).toUpperCase() + e.slice(1)}
-              </button>
-            ))}
+          <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1 rounded-lg border border-border p-1">
+              {(["todos", "borrador", "emitida", "pagada"] as const).map((e) => (
+                <button
+                  key={e}
+                  type="button"
+                  onClick={() => setFilterEstado(e)}
+                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                    filterEstado === e
+                      ? "bg-foreground text-background"
+                      : "text-neutral-600 hover:bg-neutral-100"
+                  }`}
+                >
+                  {e === "todos" ? "Todas" : e.charAt(0).toUpperCase() + e.slice(1)}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-1 rounded-lg border border-border p-1">
+              {(["todas", "ordinaria", "rectificativa"] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setFilterTipo(t)}
+                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                    filterTipo === t
+                      ? "bg-foreground text-background"
+                      : "text-neutral-600 hover:bg-neutral-100"
+                  }`}
+                >
+                  {t === "todas" ? "Todas" : t.charAt(0).toUpperCase() + t.slice(1)}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -165,6 +189,7 @@ export default function FacturasPage() {
                   clienteNombre={f.clienteNombre}
                   importe={f.importe}
                   estado={f.estado}
+                  tipoFactura={f.tipoFactura}
                   onDeleted={() => setFacturas((prev) => prev.filter((x) => x.id !== f.id))}
                 />
               )))}
