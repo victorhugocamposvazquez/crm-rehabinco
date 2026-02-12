@@ -580,22 +580,48 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
                     showErr ? "border-red-300 bg-red-50/30" : "border-border"
                   )}
                 >
+                  <div className="space-y-2">
+                    <Label className={cn("text-sm", showErr && err.descripcion && "text-red-600")}>Descripción</Label>
+                    <Input
+                      placeholder="Descripción"
+                      value={l.descripcion}
+                      onChange={(e) =>
+                        updateLinea(i, "descripcion", e.target.value)
+                      }
+                      className={showErr && err.descripcion ? "border-red-500 focus-visible:ring-red-500" : ""}
+                    />
+                  </div>
                   <div className="flex items-end gap-2">
-                    <div className="min-w-0 flex-1 space-y-2">
-                      <Label className={cn("text-sm", showErr && err.descripcion && "text-red-600")}>Descripción</Label>
+                    <div className="w-14 shrink-0 space-y-1">
+                      <Label className={cn("text-xs", showErr && err.cantidad && "text-red-600")}>Cant.</Label>
                       <Input
-                        placeholder="Descripción"
-                        value={l.descripcion}
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="1"
+                        value={l.cantidad === 0 ? "" : String(l.cantidad)}
                         onChange={(e) =>
-                          updateLinea(i, "descripcion", e.target.value)
+                          updateLinea(i, "cantidad", parseNum(e.target.value))
                         }
-                        className={showErr && err.descripcion ? "border-red-500 focus-visible:ring-red-500" : ""}
+                        className={cn("h-9 text-sm", showErr && err.cantidad && "border-red-500 focus-visible:ring-red-500")}
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <Label className={cn("text-xs", showErr && err.precioUnitario && "text-red-600")}>Precio u. (€)</Label>
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="0,00"
+                        value={l.precioUnitario === 0 ? "" : String(l.precioUnitario)}
+                        onChange={(e) =>
+                          updateLinea(i, "precioUnitario", parseNum(e.target.value))
+                        }
+                        className={cn("h-9 text-sm", showErr && err.precioUnitario && "border-red-500 focus-visible:ring-red-500")}
                       />
                     </div>
                     <div className="w-14 shrink-0 space-y-1">
                       <Label className="text-xs">IVA %</Label>
                       <select
-                        className="flex h-10 w-full rounded-lg border border-border bg-white px-4 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="flex h-9 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         value={l.ivaPorcentaje}
                         onChange={(e) =>
                           updateLinea(i, "ivaPorcentaje", Number(e.target.value))
@@ -611,41 +637,13 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-10 w-10 shrink-0"
+                      className="h-9 w-9 shrink-0"
                       onClick={() => removeLinea(i)}
                       disabled={lineas.length === 1}
                       aria-label="Eliminar línea"
                     >
                       <Trash2 className="h-4 w-4" strokeWidth={1.5} />
                     </Button>
-                  </div>
-                  <div className="flex flex-wrap items-end gap-2">
-                    <div className="w-14 shrink-0 space-y-1">
-                      <Label className={cn("text-xs", showErr && err.cantidad && "text-red-600")}>Cant.</Label>
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        placeholder="1"
-                        value={l.cantidad === 0 ? "" : String(l.cantidad)}
-                        onChange={(e) =>
-                          updateLinea(i, "cantidad", parseNum(e.target.value))
-                        }
-                        className={cn("h-9 text-sm", showErr && err.cantidad && "border-red-500 focus-visible:ring-red-500")}
-                      />
-                    </div>
-                    <div className="w-36 shrink-0 space-y-1">
-                      <Label className={cn("text-xs", showErr && err.precioUnitario && "text-red-600")}>Precio u. (€)</Label>
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        placeholder="0,00"
-                        value={l.precioUnitario === 0 ? "" : String(l.precioUnitario)}
-                        onChange={(e) =>
-                          updateLinea(i, "precioUnitario", parseNum(e.target.value))
-                        }
-                        className={cn("h-9 text-sm", showErr && err.precioUnitario && "border-red-500 focus-visible:ring-red-500")}
-                      />
-                    </div>
                   </div>
                 </div>
               );
@@ -838,10 +836,7 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
           </div>
         )}
         <div className="flex justify-center px-4 py-3">
-          <div className={cn(
-            "flex w-full max-w-2xl gap-2",
-            step === 1 ? "justify-end" : "justify-between"
-          )}>
+          <div className="flex w-full max-w-2xl justify-end gap-2">
             {step === 1 ? (
               <Button type="submit" form="factura-step1-form">
                 Siguiente

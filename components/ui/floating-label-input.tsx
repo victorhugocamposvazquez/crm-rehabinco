@@ -32,7 +32,7 @@ const FloatingLabelInput = React.forwardRef<
           id={inputId}
           value={value}
           className={cn(
-            "peer flex h-14 w-full rounded-xl bg-white px-4 pt-6 pb-3 text-base transition-shadow duration-200 ease-out",
+            "peer flex h-16 w-full rounded-xl bg-white px-4 pt-7 pb-4 text-base transition-shadow duration-200 ease-out",
             "border-0 outline-none",
             "shadow-[0_1px_2px_rgba(0,0,0,0.06)]",
             "placeholder:text-transparent",
@@ -58,7 +58,7 @@ const FloatingLabelInput = React.forwardRef<
           className={cn(
             "pointer-events-none absolute left-4 text-neutral-500 transition-all duration-200 ease-out",
             floating
-              ? "top-3 text-xs font-medium text-neutral-600"
+              ? "top-3.5 text-xs font-medium text-neutral-600"
               : "top-1/2 -translate-y-1/2 text-base text-neutral-400"
           )}
         >
