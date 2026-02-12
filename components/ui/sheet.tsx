@@ -46,17 +46,18 @@ export function Sheet({
         onClick={() => onOpenChange(false)}
         aria-hidden
       />
-      <div
-        className={cn(
-          "absolute bottom-0 left-0 right-0 z-10 flex flex-col border-t border-border bg-white shadow-[0_-8px_30px_rgba(0,0,0,0.12)]",
-          "animate-[sheetUp_0.3s_ease-out] will-change-transform",
-          "pb-[env(safe-area-inset-bottom)]",
-          fullScreenOnMobile
-            ? "top-0 min-h-[100dvh] rounded-none md:bottom-0 md:left-1/2 md:right-auto md:top-auto md:w-full md:max-w-[440px] md:-translate-x-1/2 md:min-h-0 md:max-h-[96dvh] md:rounded-t-2xl"
-            : "max-h-[85dvh] rounded-t-2xl",
-          className
-        )}
-      >
+      <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center">
+        <div
+          className={cn(
+            "flex w-full flex-col border-t border-border bg-white shadow-[0_-8px_30px_rgba(0,0,0,0.12)]",
+            "animate-[sheetUp_0.3s_ease-out]",
+            "pb-[env(safe-area-inset-bottom)]",
+            fullScreenOnMobile
+              ? "min-h-[100dvh] rounded-none md:max-h-[96dvh] md:w-[70vw] md:max-w-[900px] md:rounded-t-2xl"
+              : "max-h-[85dvh] rounded-t-2xl",
+            className
+          )}
+        >
         <div className="relative flex shrink-0 items-center justify-center pt-3 pb-2">
           {showCloseButton ? (
             <button
@@ -74,6 +75,7 @@ export function Sheet({
           <div className={cn("h-1 w-12 shrink-0 rounded-full bg-neutral-200", showCloseButton && "invisible")} aria-hidden />
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+        </div>
       </div>
     </div>
   );

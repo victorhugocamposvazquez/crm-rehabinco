@@ -80,7 +80,7 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
   }, [initialClienteId, facturaId, clientes]);
 
   const [lineas, setLineas] = useState<FacturaLinea[]>([
-    { descripcion: "", cantidad: 0, precioUnitario: 0, ivaPorcentaje: 21 },
+    { descripcion: "", cantidad: 1, precioUnitario: 0, ivaPorcentaje: 21 },
   ]);
 
   useEffect(() => {
@@ -123,7 +123,7 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
               precioUnitario: Number(l.precio_unitario),
               ivaPorcentaje: Number(l.iva_porcentaje ?? 21),
             }))
-          : [{ descripcion: "", cantidad: 0, precioUnitario: 0, ivaPorcentaje: 21 }]
+          : [{ descripcion: "", cantidad: 1, precioUnitario: 0, ivaPorcentaje: 21 }]
       );
       formStep1.reset(step1Values);
       setLoading(false);
@@ -162,7 +162,7 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
   });
 
   const addLinea = () =>
-    setLineas((p) => [...p, { descripcion: "", cantidad: 0, precioUnitario: 0, ivaPorcentaje: 21 }]);
+    setLineas((p) => [...p, { descripcion: "", cantidad: 1, precioUnitario: 0, ivaPorcentaje: 21 }]);
   const removeLinea = (i: number) =>
     setLineas((p) => p.filter((_, idx) => idx !== i));
   const parseNum = (v: string): number => {
@@ -308,7 +308,10 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
   }
 
   return (
-    <div className="relative mx-auto max-w-2xl animate-[fadeIn_0.3s_ease-out] pb-28 md:pb-24">
+    <div className={cn(
+      "relative mx-auto max-w-2xl animate-[fadeIn_0.3s_ease-out] md:pb-24",
+      step === 2 ? "pb-40" : "pb-28"
+    )}>
       <div className="mb-8 flex items-center gap-2">
         {STEPS.map((s, idx) => (
           <div
@@ -391,7 +394,7 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
                     {...formStep1.register("concepto")}
                   />
                 </div>
-                <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+                <div className="grid min-w-0 grid-cols-2 gap-4">
                   <div className="min-w-0 space-y-2">
                     <Label>Fecha emisión</Label>
                     <Input
@@ -428,12 +431,12 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
                 <div
                   key={i}
                   className={cn(
-                    "flex flex-wrap items-end gap-2 rounded-lg border p-4",
+                    "flex flex-col gap-3 rounded-lg border p-4",
                     showErr ? "border-red-300 bg-red-50/30" : "border-border"
                   )}
                 >
-                  <div className="flex-1 space-y-2 min-w-[200px]">
-                    <Label className={showErr && err.descripcion ? "text-red-600" : ""}>Descripción</Label>
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <Label className={cn("text-sm", showErr && err.descripcion && "text-red-600")}>Descripción</Label>
                     <Input
                       placeholder="Descripción"
                       value={l.descripcion}
@@ -443,57 +446,60 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
                       className={showErr && err.descripcion ? "border-red-500 focus-visible:ring-red-500" : ""}
                     />
                   </div>
-                  <div className="w-24 space-y-2">
-                    <Label className={showErr && err.cantidad ? "text-red-600" : ""}>Cant.</Label>
-                    <Input
-                      type="text"
-                      inputMode="decimal"
-                      placeholder="1"
-                      value={l.cantidad === 0 ? "" : String(l.cantidad)}
-                      onChange={(e) =>
-                        updateLinea(i, "cantidad", parseNum(e.target.value))
-                      }
-                      className={showErr && err.cantidad ? "border-red-500 focus-visible:ring-red-500" : ""}
-                    />
-                  </div>
-                  <div className="w-28 space-y-2">
-                    <Label className={showErr && err.precioUnitario ? "text-red-600" : ""}>Precio u. (€)</Label>
-                    <Input
-                      type="text"
-                      inputMode="decimal"
-                      placeholder="0,00"
-                      value={l.precioUnitario === 0 ? "" : String(l.precioUnitario)}
-                      onChange={(e) =>
-                        updateLinea(i, "precioUnitario", parseNum(e.target.value))
-                      }
-                      className={showErr && err.precioUnitario ? "border-red-500 focus-visible:ring-red-500" : ""}
-                    />
-                  </div>
-                  <div className="w-24 space-y-2">
-                    <Label>IVA %</Label>
-                    <select
-                      className="flex h-11 w-full rounded-lg border border-border bg-white px-2 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      value={l.ivaPorcentaje}
-                      onChange={(e) =>
-                        updateLinea(i, "ivaPorcentaje", Number(e.target.value))
-                      }
+                  <div className="flex flex-wrap items-end gap-2">
+                    <div className="w-14 shrink-0 space-y-1">
+                      <Label className={cn("text-xs", showErr && err.cantidad && "text-red-600")}>Cant.</Label>
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="1"
+                        value={l.cantidad === 0 ? "" : String(l.cantidad)}
+                        onChange={(e) =>
+                          updateLinea(i, "cantidad", parseNum(e.target.value))
+                        }
+                        className={cn("h-9 text-sm", showErr && err.cantidad && "border-red-500 focus-visible:ring-red-500")}
+                      />
+                    </div>
+                    <div className="w-20 shrink-0 space-y-1">
+                      <Label className={cn("text-xs", showErr && err.precioUnitario && "text-red-600")}>Precio u. (€)</Label>
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="0,00"
+                        value={l.precioUnitario === 0 ? "" : String(l.precioUnitario)}
+                        onChange={(e) =>
+                          updateLinea(i, "precioUnitario", parseNum(e.target.value))
+                        }
+                        className={cn("h-9 text-sm", showErr && err.precioUnitario && "border-red-500 focus-visible:ring-red-500")}
+                      />
+                    </div>
+                    <div className="w-14 shrink-0 space-y-1">
+                      <Label className="text-xs">IVA %</Label>
+                      <select
+                        className="flex h-9 w-full rounded-lg border border-border bg-white px-1.5 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        value={l.ivaPorcentaje}
+                        onChange={(e) =>
+                          updateLinea(i, "ivaPorcentaje", Number(e.target.value))
+                        }
+                      >
+                        <option value={21}>21</option>
+                        <option value={10}>10</option>
+                        <option value={4}>4</option>
+                        <option value={0}>0</option>
+                      </select>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 shrink-0"
+                      onClick={() => removeLinea(i)}
+                      disabled={lineas.length === 1}
+                      aria-label="Eliminar línea"
                     >
-                      <option value={21}>21</option>
-                      <option value={10}>10</option>
-                      <option value={4}>4</option>
-                      <option value={0}>0 (Exento)</option>
-                    </select>
+                      <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+                    </Button>
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeLinea(i)}
-                    disabled={lineas.length === 1}
-                    aria-label="Eliminar línea"
-                  >
-                    <Trash2 className="h-4 w-4" strokeWidth={1.5} />
-                  </Button>
                 </div>
               );
               })}
@@ -670,26 +676,48 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
       </div>
 
       {/* Barra fija Atrás / Siguiente: abajo siempre; en mobile encima del menú de navegación */}
-      <div className="fixed bottom-[4.25rem] left-0 right-0 z-40 flex justify-center border-t border-border bg-white/95 px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] backdrop-blur md:bottom-0">
-        <div className="flex w-full max-w-2xl justify-end gap-2">
-          {step === 1 ? (
-            <Button type="submit" form="factura-step1-form">
-              Siguiente
-            </Button>
-          ) : (
-            <>
-              <Button variant="secondary" onClick={handleBack} disabled={creating}>
-                Atrás
+      {/* En step 2 móvil: incluye también Subtotal, IVA, Total fijos */}
+      <div className="fixed bottom-[4.25rem] left-0 right-0 z-40 flex flex-col border-t border-border bg-white/95 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] backdrop-blur md:bottom-0">
+        {step === 2 && (
+          <div className="grid grid-cols-3 gap-2 border-b border-border px-4 py-2.5 md:hidden">
+            <div className="text-center">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-neutral-500">Subtotal</p>
+              <p className="text-sm font-semibold">{subtotal.toFixed(2)} €</p>
+            </div>
+            <div className="text-center">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-neutral-500">IVA</p>
+              <p className="text-sm font-semibold">{ivaTotal.toFixed(2)} €</p>
+            </div>
+            <div className="text-center">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-neutral-500">Total</p>
+              <p className="text-sm font-bold">{total.toFixed(2)} €</p>
+            </div>
+          </div>
+        )}
+        <div className="flex justify-center px-4 py-3">
+          <div className={cn(
+            "flex w-full max-w-2xl gap-2",
+            step === 1 ? "justify-end" : "justify-between"
+          )}>
+            {step === 1 ? (
+              <Button type="submit" form="factura-step1-form">
+                Siguiente
               </Button>
-              {step === 2 && <Button onClick={onStep2}>Siguiente</Button>}
-              {step === 3 && <Button onClick={() => setStep(4)}>Siguiente</Button>}
-              {step === 4 && (
-                <Button onClick={handleCreate} disabled={creating}>
-                  {creating ? (facturaId ? "Guardando…" : "Creando…") : facturaId ? "Guardar cambios" : "Crear factura"}
+            ) : (
+              <>
+                <Button variant="secondary" onClick={handleBack} disabled={creating}>
+                  Atrás
                 </Button>
-              )}
-            </>
-          )}
+                {step === 2 && <Button onClick={onStep2}>Siguiente</Button>}
+                {step === 3 && <Button onClick={() => setStep(4)}>Siguiente</Button>}
+                {step === 4 && (
+                  <Button onClick={handleCreate} disabled={creating}>
+                    {creating ? (facturaId ? "Guardando…" : "Creando…") : facturaId ? "Guardar cambios" : "Crear factura"}
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
