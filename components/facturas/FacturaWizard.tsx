@@ -24,8 +24,7 @@ import { ClienteQuickSheet } from "@/components/clientes/ClienteQuickSheet";
 const STEPS = [
   { id: 1, title: "Cliente y fechas" },
   { id: 2, title: "Líneas" },
-  { id: 3, title: "Resumen" },
-  { id: 4, title: "Confirmar" },
+  { id: 3, title: "Resumen y creación" },
 ];
 
 type EstadoFactura = "borrador" | "emitida" | "pagada";
@@ -41,7 +40,7 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [data, setData] = useState<Partial<WizardData>>({});
-  const [estadoInicial, setEstadoInicial] = useState<EstadoFactura>("borrador");
+  const [estadoInicial, setEstadoInicial] = useState<EstadoFactura>("emitida");
   const [clientes, setClientes] = useState<Array<{ id: string; nombre: string }>>([]);
   const [loading, setLoading] = useState(!!facturaId);
   const [numero, setNumero] = useState<string | null>(null);
@@ -435,16 +434,29 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
                     showErr ? "border-red-300 bg-red-50/30" : "border-border"
                   )}
                 >
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <Label className={cn("text-sm", showErr && err.descripcion && "text-red-600")}>Descripción</Label>
-                    <Input
-                      placeholder="Descripción"
-                      value={l.descripcion}
-                      onChange={(e) =>
-                        updateLinea(i, "descripcion", e.target.value)
-                      }
-                      className={showErr && err.descripcion ? "border-red-500 focus-visible:ring-red-500" : ""}
-                    />
+                  <div className="flex items-end gap-2">
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <Label className={cn("text-sm", showErr && err.descripcion && "text-red-600")}>Descripción</Label>
+                      <Input
+                        placeholder="Descripción"
+                        value={l.descripcion}
+                        onChange={(e) =>
+                          updateLinea(i, "descripcion", e.target.value)
+                        }
+                        className={showErr && err.descripcion ? "border-red-500 focus-visible:ring-red-500" : ""}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10 shrink-0"
+                      onClick={() => removeLinea(i)}
+                      disabled={lineas.length === 1}
+                      aria-label="Eliminar línea"
+                    >
+                      <Trash2 className="h-4 w-4" strokeWidth={1.5} />
+                    </Button>
                   </div>
                   <div className="flex flex-wrap items-end gap-2">
                     <div className="w-14 shrink-0 space-y-1">
@@ -460,7 +472,7 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
                         className={cn("h-9 text-sm", showErr && err.cantidad && "border-red-500 focus-visible:ring-red-500")}
                       />
                     </div>
-                    <div className="w-20 shrink-0 space-y-1">
+                    <div className="w-28 shrink-0 space-y-1">
                       <Label className={cn("text-xs", showErr && err.precioUnitario && "text-red-600")}>Precio u. (€)</Label>
                       <Input
                         type="text"
@@ -488,17 +500,6 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
                         <option value={0}>0</option>
                       </select>
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9 shrink-0"
-                      onClick={() => removeLinea(i)}
-                      disabled={lineas.length === 1}
-                      aria-label="Eliminar línea"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
-                    </Button>
                   </div>
                 </div>
               );
@@ -567,7 +568,7 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
         {step === 3 && (
           <Card>
             <CardHeader>
-              <CardTitle>Resumen</CardTitle>
+              <CardTitle>Resumen y creación</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <dl className="grid gap-2 text-sm">
@@ -622,50 +623,46 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
                   <span className="text-lg font-semibold text-foreground">{total.toFixed(2)} €</span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
 
-        {step === 4 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>{facturaId ? "Confirmar cambios" : "Confirmar y crear"}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-neutral-600">
-                Estado de la factura:
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Badge
-                  variant={estadoInicial === "borrador" ? "default" : "borrador"}
-                  className={cn(
-                    "cursor-pointer transition-opacity",
-                    estadoInicial === "borrador" && "ring-2 ring-foreground"
-                  )}
-                  onClick={() => setEstadoInicial("borrador")}
-                >
-                  Borrador
-                </Badge>
-                <Badge
-                  variant={estadoInicial === "emitida" ? "default" : "emitida"}
-                  className={cn(
-                    "cursor-pointer transition-opacity",
-                    estadoInicial === "emitida" && "ring-2 ring-foreground"
-                  )}
-                  onClick={() => setEstadoInicial("emitida")}
-                >
-                  Emitida
-                </Badge>
-                <Badge
-                  variant={estadoInicial === "pagada" ? "default" : "pagada"}
-                  className={cn(
-                    "cursor-pointer transition-opacity",
-                    estadoInicial === "pagada" && "ring-2 ring-foreground"
-                  )}
-                  onClick={() => setEstadoInicial("pagada")}
-                >
-                  Pagada
-                </Badge>
+              <div className="rounded-lg border border-border bg-neutral-50/50 p-4">
+                <p className="mb-2 text-sm font-medium text-foreground">
+                  Estado inicial de la factura
+                </p>
+                <p className="mb-3 text-xs text-neutral-500">
+                  Por defecto se crea como emitida. Puedes elegir borrador si aún no la envías, o pagada si ya la has cobrado.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Badge
+                    variant={estadoInicial === "borrador" ? "default" : "borrador"}
+                    className={cn(
+                      "cursor-pointer transition-opacity hover:opacity-90",
+                      estadoInicial === "borrador" && "ring-2 ring-foreground"
+                    )}
+                    onClick={() => setEstadoInicial("borrador")}
+                  >
+                    Borrador
+                  </Badge>
+                  <Badge
+                    variant={estadoInicial === "emitida" ? "default" : "emitida"}
+                    className={cn(
+                      "cursor-pointer transition-opacity hover:opacity-90",
+                      estadoInicial === "emitida" && "ring-2 ring-foreground"
+                    )}
+                    onClick={() => setEstadoInicial("emitida")}
+                  >
+                    Emitida
+                  </Badge>
+                  <Badge
+                    variant={estadoInicial === "pagada" ? "default" : "pagada"}
+                    className={cn(
+                      "cursor-pointer transition-opacity hover:opacity-90",
+                      estadoInicial === "pagada" && "ring-2 ring-foreground"
+                    )}
+                    onClick={() => setEstadoInicial("pagada")}
+                  >
+                    Pagada
+                  </Badge>
+                </div>
               </div>
               {createError && (
                 <p className="text-sm text-red-600">{createError}</p>
@@ -709,8 +706,7 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
                   Atrás
                 </Button>
                 {step === 2 && <Button onClick={onStep2}>Siguiente</Button>}
-                {step === 3 && <Button onClick={() => setStep(4)}>Siguiente</Button>}
-                {step === 4 && (
+                {step === 3 && (
                   <Button onClick={handleCreate} disabled={creating}>
                     {creating ? (facturaId ? "Guardando…" : "Creando…") : facturaId ? "Guardar cambios" : "Crear factura"}
                   </Button>
