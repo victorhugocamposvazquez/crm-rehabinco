@@ -1,27 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { PresupuestoCard } from "@/components/presupuestos/PresupuestoCard";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { Card } from "@/components/ui/card";
 import { Fab } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Plus, ClipboardList } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, ClipboardList, Search } from "lucide-react";
 
 type EstadoPresupuesto = "borrador" | "enviado" | "aceptado" | "rechazado" | "convertido";
 
-const estadoVariant: Record<string, "default" | "activo" | "inactivo" | "borrador" | "emitida" | "pagada"> = {
-  borrador: "borrador",
-  enviado: "default",
-  aceptado: "activo",
-  rechazado: "inactivo",
-  convertido: "pagada",
-};
-
 export default function PresupuestosPage() {
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [filterEstado, setFilterEstado] = useState<"todos" | EstadoPresupuesto>("todos");
   const [presupuestos, setPresupuestos] = useState<
     Array<{
       id: string;
@@ -73,6 +68,19 @@ export default function PresupuestosPage() {
       });
   }, []);
 
+  const filteredPresupuestos = useMemo(() => {
+    return presupuestos.filter((p) => {
+      const q = search.toLowerCase().trim();
+      const matchSearch =
+        !q ||
+        p.numero.toLowerCase().includes(q) ||
+        p.clienteNombre.toLowerCase().includes(q);
+      const matchEstado =
+        filterEstado === "todos" || p.estado === filterEstado;
+      return matchSearch && matchEstado;
+    });
+  }, [presupuestos, search, filterEstado]);
+
   return (
     <div>
       <PageHeader
@@ -91,6 +99,38 @@ export default function PresupuestosPage() {
 
       {error && (
         <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+      )}
+
+      {!loading && presupuestos.length > 0 && (
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" strokeWidth={1.5} aria-hidden />
+            <Input
+              type="search"
+              placeholder="Buscar por número o cliente..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+              aria-label="Buscar presupuestos"
+            />
+          </div>
+          <div className="flex flex-wrap gap-1 rounded-lg border border-border p-1">
+            {(["todos", "borrador", "enviado", "aceptado", "rechazado", "convertido"] as const).map((e) => (
+              <button
+                key={e}
+                type="button"
+                onClick={() => setFilterEstado(e)}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  filterEstado === e
+                    ? "bg-foreground text-background"
+                    : "text-neutral-600 hover:bg-neutral-100"
+                }`}
+              >
+                {e === "todos" ? "Todos" : e.charAt(0).toUpperCase() + e.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       <div className="mt-10">
@@ -120,24 +160,22 @@ export default function PresupuestosPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {presupuestos.map((p) => (
-              <Link key={p.id} href={`/presupuestos/${p.id}`} className="block">
-                <Card className="bg-white/95 py-4">
-                  <div className="flex flex-wrap items-center justify-between gap-4 sm:flex-nowrap">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-foreground">{p.numero}</p>
-                      <p className="truncate text-sm text-neutral-500">{p.clienteNombre}</p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-4">
-                      <p className="text-lg font-semibold tracking-tight">{p.importe}</p>
-                      <Badge variant={estadoVariant[p.estado] ?? "default"}>
-                        {p.estado.charAt(0).toUpperCase() + p.estado.slice(1)}
-                      </Badge>
-                    </div>
-                  </div>
-                </Card>
-              </Link>
-            ))}
+            {filteredPresupuestos.length === 0 ? (
+              <p className="rounded-2xl border border-border bg-white p-6 text-center text-neutral-500">
+                No hay presupuestos que coincidan con la búsqueda.
+              </p>
+            ) : (
+              filteredPresupuestos.map((p) => (
+                <PresupuestoCard
+                  key={p.id}
+                  id={p.id}
+                  numero={p.numero}
+                  clienteNombre={p.clienteNombre}
+                  importe={p.importe}
+                  estado={p.estado}
+                />
+              ))
+            )}
           </div>
         )}
       </div>

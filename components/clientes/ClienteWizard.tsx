@@ -214,23 +214,6 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
             </CardHeader>
             <CardContent>
               <form id="cliente-step1-form" onSubmit={onStep1} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="nombre">
-                    {formStep1.watch("tipo_cliente") === "empresa" ? "Razón social *" : "Nombre y apellidos *"}
-                  </Label>
-                  <Input
-                    id="nombre"
-                    placeholder={formStep1.watch("tipo_cliente") === "empresa" ? "Nombre de la empresa" : "Nombre y apellidos del contacto"}
-                    aria-describedby={formStep1.formState.errors.nombre ? "nombre-error" : undefined}
-                    aria-invalid={!!formStep1.formState.errors.nombre}
-                    {...formStep1.register("nombre")}
-                  />
-                  {formStep1.formState.errors.nombre && (
-                    <p id="nombre-error" className="text-sm text-red-600" role="alert">
-                      {formStep1.formState.errors.nombre.message}
-                    </p>
-                  )}
-                </div>
                 {!initialClientePadreId && (
                 <div className="space-y-2">
                   <Label>Tipo de cliente</Label>
@@ -266,6 +249,23 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
                 {initialClientePadreId && (
                   <input type="hidden" {...formStep1.register("tipo_cliente")} />
                 )}
+                <div className="space-y-2">
+                  <Label htmlFor="nombre">
+                    {formStep1.watch("tipo_cliente") === "empresa" ? "Razón social *" : "Nombre y apellidos *"}
+                  </Label>
+                  <Input
+                    id="nombre"
+                    placeholder={formStep1.watch("tipo_cliente") === "empresa" ? "Nombre de la empresa" : "Nombre y apellidos del contacto"}
+                    aria-describedby={formStep1.formState.errors.nombre ? "nombre-error" : undefined}
+                    aria-invalid={!!formStep1.formState.errors.nombre}
+                    {...formStep1.register("nombre")}
+                  />
+                  {formStep1.formState.errors.nombre && (
+                    <p id="nombre-error" className="text-sm text-red-600" role="alert">
+                      {formStep1.formState.errors.nombre.message}
+                    </p>
+                  )}
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="tipo_documento">Tipo de documento</Label>
                   <select

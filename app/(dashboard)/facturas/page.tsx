@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { FacturaCard } from "@/components/facturas/FacturaCard";
@@ -21,9 +22,13 @@ interface FacturaRow {
 }
 
 export default function FacturasPage() {
+  const searchParams = useSearchParams();
+  const estadoFromUrl = searchParams.get("estado") as "borrador" | "emitida" | "pagada" | null;
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filterEstado, setFilterEstado] = useState<"todos" | "borrador" | "emitida" | "pagada">("todos");
+  const [filterEstado, setFilterEstado] = useState<"todos" | "borrador" | "emitida" | "pagada">(
+    estadoFromUrl && ["borrador", "emitida", "pagada"].includes(estadoFromUrl) ? estadoFromUrl : "todos"
+  );
   const [facturas, setFacturas] = useState<Array<{
     id: string;
     numero: string;

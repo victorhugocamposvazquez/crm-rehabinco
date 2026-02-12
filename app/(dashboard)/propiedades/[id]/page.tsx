@@ -4,11 +4,12 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog } from "@/components/ui/alert-dialog";
-import { ChevronLeft, Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 
 interface Propiedad {
   id: string;
@@ -100,38 +101,23 @@ export default function DetallePropiedadPage() {
 
   return (
     <div>
-      <nav className="mb-4 flex items-center gap-1.5 text-sm">
-        <Link href="/propiedades" className="text-neutral-500 hover:text-foreground">
-          Propiedades
-        </Link>
-        <span className="text-neutral-400">/</span>
-        <span className="font-medium text-foreground">
-          {propiedad.titulo || propiedad.direccion || propiedad.id.slice(0, 8)}
-        </span>
-      </nav>
-
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <Link
-            href="/propiedades"
-            aria-label="Volver a propiedades"
-            className="flex shrink-0 items-center justify-center rounded-lg text-neutral-600 transition-colors hover:text-foreground"
-          >
-            <ChevronLeft className="h-7 w-7" strokeWidth={1.5} />
-          </Link>
-          <div className="min-w-0">
-            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-              {propiedad.titulo || propiedad.direccion || "Sin título"}
-            </h1>
-            <Badge variant="default" className="mt-1">
-              {propiedad.estado}
-            </Badge>
-          </div>
-        </div>
+      <PageHeader
+        breadcrumb={[
+          { label: "Propiedades", href: "/propiedades" },
+          { label: propiedad.titulo || propiedad.direccion || "Sin título" },
+        ]}
+        title={propiedad.titulo || propiedad.direccion || "Sin título"}
+        description={undefined}
+        actions={
         <div className="flex shrink-0 items-center gap-1">
           <Button variant="secondary" size="sm" asChild>
-            <Link href={`/clientes/${propiedad.ofertante_id}`} className="gap-2">
+            <Link href={`/propiedades/${id}/editar`} className="gap-2">
               <Pencil className="h-4 w-4" strokeWidth={1.5} />
+              Editar
+            </Link>
+          </Button>
+          <Button variant="secondary" size="sm" asChild>
+            <Link href={`/clientes/${propiedad.ofertante_id}`} className="gap-2">
               Ver propietario
             </Link>
           </Button>
@@ -145,6 +131,10 @@ export default function DetallePropiedadPage() {
             <Trash2 className="h-4 w-4" strokeWidth={1.5} />
           </Button>
         </div>
+        }
+      />
+      <div className="mb-6 flex items-center gap-2">
+        <Badge variant="default">{propiedad.estado}</Badge>
       </div>
 
       <AlertDialog

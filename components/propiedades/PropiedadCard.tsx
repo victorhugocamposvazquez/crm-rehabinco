@@ -8,18 +8,31 @@ import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog } from "@/components/ui/alert-dialog";
-import { MoreVertical, Eye, Pencil, FileText, Trash2 } from "lucide-react";
+import { MoreVertical, Eye, Pencil, Trash2 } from "lucide-react";
 
-interface ClienteCardProps {
+interface PropiedadCardProps {
   id: string;
-  nombre: string;
-  email?: string | null;
-  telefono?: string | null;
-  activo: boolean;
-  onDeleted?: () => void;
+  titulo: string | null;
+  direccion: string | null;
+  localidad: string | null;
+  tipo_operacion: string;
+  precio_venta: number | null;
+  precio_alquiler: number | null;
+  estado: string;
+  ofertanteNombre: string;
 }
 
-export function ClienteCard({ id, nombre, email, telefono, activo, onDeleted }: ClienteCardProps) {
+export function PropiedadCard({
+  id,
+  titulo,
+  direccion,
+  localidad,
+  tipo_operacion,
+  precio_venta,
+  precio_alquiler,
+  estado,
+  ofertanteNombre,
+}: PropiedadCardProps) {
   const router = useRouter();
   const cardRef = useRef<HTMLDivElement>(null);
   const [actionsOpen, setActionsOpen] = useState(false);
@@ -46,21 +59,14 @@ export function ClienteCard({ id, nombre, email, telefono, activo, onDeleted }: 
     e.preventDefault();
     e.stopPropagation();
     closeActions();
-    router.push(`/clientes/${id}`);
+    router.push(`/propiedades/${id}`);
   };
 
   const handleEdit = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     closeActions();
-    router.push(`/clientes/${id}/editar`);
-  };
-
-  const handleCreateFactura = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    closeActions();
-    router.push(`/facturas/nueva?cliente=${id}&from=cliente`);
+    router.push(`/propiedades/${id}/editar`);
   };
 
   const handleDeleteClick = (e: React.MouseEvent) => {
@@ -74,55 +80,55 @@ export function ClienteCard({ id, nombre, email, telefono, activo, onDeleted }: 
     setDeleting(true);
     const { createClient } = await import("@/lib/supabase/client");
     const supabase = createClient();
-    const { error } = await supabase.from("clientes").delete().eq("id", id);
+    const { error } = await supabase.from("propiedades").delete().eq("id", id);
     setDeleting(false);
     setShowDeleteConfirm(false);
     if (!error) {
-      onDeleted?.();
       router.refresh();
     }
   };
+
+  const formatPrecio = (p: number | null) =>
+    p != null
+      ? p.toLocaleString("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 })
+      : "—";
+
+  const subtitulo = [direccion, localidad].filter(Boolean).join(", ") || ofertanteNombre;
+  const precio =
+    (tipo_operacion === "venta" || tipo_operacion === "ambos") && precio_venta
+      ? `Venta: ${formatPrecio(precio_venta)}`
+      : (tipo_operacion === "alquiler" || tipo_operacion === "ambos") && precio_alquiler
+        ? `Alq: ${formatPrecio(precio_alquiler)}/mes`
+        : "";
 
   const cardRect = actionsOpen && cardRef.current ? cardRef.current.getBoundingClientRect() : null;
 
   return (
     <>
       <Card ref={cardRef} className={cn("relative overflow-visible bg-white/95 py-0", actionsOpen && "z-[200]")}>
-        {/* Contenido principal */}
         <div className="relative flex items-center justify-between gap-4 py-4">
           <div
             role="button"
             tabIndex={0}
-            onClick={(e) => {
-              if (actionsOpen) {
-                e.preventDefault();
-                closeActions();
-              }
-            }}
-            onKeyDown={(e) => {
-              if ((e.key === "Enter" || e.key === " ") && actionsOpen) {
-                e.preventDefault();
-                closeActions();
-              }
-            }}
+            onClick={(e) => actionsOpen && (e.preventDefault(), closeActions())}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && actionsOpen && (e.preventDefault(), closeActions())}
             className="min-w-0 flex-1 cursor-pointer"
           >
             <Link
-              href={`/clientes/${id}`}
+              href={`/propiedades/${id}`}
               onClick={(e) => actionsOpen && e.preventDefault()}
               className="block"
             >
-            <p className="font-semibold text-foreground">{nombre}</p>
-            {(email || telefono) && (
-              <p className="truncate text-sm text-neutral-500">
-                {email ?? telefono ?? "—"}
-              </p>
-            )}
+              <p className="font-semibold text-foreground">{titulo || direccion || "Sin título"}</p>
+              <p className="truncate text-sm text-neutral-500">{subtitulo}</p>
+              {precio && (
+                <p className="mt-0.5 text-sm font-medium text-emerald-700">{precio}</p>
+              )}
             </Link>
           </div>
-          <Badge variant={activo ? "activo" : "inactivo"} className="shrink-0">
-            {activo ? "Activo" : "Inactivo"}
-          </Badge>
+          <div className="flex shrink-0 items-center gap-4">
+            <Badge variant="default">{estado}</Badge>
+          </div>
           <button
             type="button"
             onClick={(e) => {
@@ -138,7 +144,6 @@ export function ClienteCard({ id, nombre, email, telefono, activo, onDeleted }: 
           </button>
         </div>
 
-        {/* Acciones: overlay y panel en portal para que el panel quede encima y reciba toques en mobile */}
         {actionsOpen &&
           typeof document !== "undefined" &&
           cardRect &&
@@ -183,14 +188,6 @@ export function ClienteCard({ id, nombre, email, telefono, activo, onDeleted }: 
                 </button>
                 <button
                   type="button"
-                  onClick={handleCreateFactura}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-emerald-600 transition-colors hover:bg-emerald-50"
-                  aria-label="Crear factura"
-                >
-                  <FileText className="h-4 w-4" strokeWidth={2} />
-                </button>
-                <button
-                  type="button"
                   onClick={handleDeleteClick}
                   className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-red-600 transition-colors hover:bg-red-50"
                   aria-label="Eliminar"
@@ -206,7 +203,7 @@ export function ClienteCard({ id, nombre, email, telefono, activo, onDeleted }: 
       <AlertDialog
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
-        title={`¿Eliminar ${nombre}?`}
+        title="¿Eliminar esta propiedad?"
         description="Esta acción no se puede deshacer."
         confirmLabel={deleting ? "Eliminando…" : "Eliminar"}
         onConfirm={handleDeleteConfirm}

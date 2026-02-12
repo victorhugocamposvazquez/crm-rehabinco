@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, FileText, TrendingUp, Clock, Building2, ClipboardList, UserPlus, Plus } from "lucide-react";
+import { Users, TrendingUp, Clock, Building2, ClipboardList, UserPlus, Plus } from "lucide-react";
 
 interface MesFacturado {
   mes: string;
@@ -111,7 +111,7 @@ export default function DashboardPage() {
       />
 
       {/* KPI cards */}
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {loading ? (
           <>
             <KpiSkeleton />
@@ -149,7 +149,7 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             </Link>
-            <Link href="/facturas">
+            <Link href="/facturas?estado=emitida">
               <Card className="border-border bg-white shadow-[0_1px_3px_rgba(16,24,40,0.06)] transition-all hover:shadow-[0_4px_12px_rgba(16,24,40,0.08)] hover:border-accent/30">
                 <CardContent className="p-5">
                   <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
@@ -159,7 +159,7 @@ export default function DashboardPage() {
                     {stats.pendienteCobro.toLocaleString("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 })}
                   </p>
                   <p className="mt-1 text-sm font-medium text-neutral-500">Pendiente de cobro</p>
-                  <p className="mt-2 text-xs font-medium text-accent">Ver facturas →</p>
+                  <p className="mt-2 text-xs font-medium text-accent">Ver facturas emitidas →</p>
                 </CardContent>
               </Card>
             </Link>

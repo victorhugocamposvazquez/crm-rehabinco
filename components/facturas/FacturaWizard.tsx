@@ -18,7 +18,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Plus, Trash2, UserPlus, Loader2 } from "lucide-react";
+import { Plus, Trash2, UserPlus } from "lucide-react";
+import { ClienteQuickSheet } from "@/components/clientes/ClienteQuickSheet";
 
 const STEPS = [
   { id: 1, title: "Cliente y fechas" },
@@ -49,19 +50,6 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
   const [irpfPorcentaje, setIrpfPorcentaje] = useState<number>(0);
   const [porcentajeDescuento, setPorcentajeDescuento] = useState<number>(0);
   const [showQuickClient, setShowQuickClient] = useState(false);
-  const [creatingClient, setCreatingClient] = useState(false);
-  const [quickClientError, setQuickClientError] = useState<string | null>(null);
-  const [quickClient, setQuickClient] = useState({
-    nombre: "",
-    tipo_cliente: "particular" as "particular" | "empresa",
-    tipo_documento: "dni" as "dni" | "nie" | "cif" | "vat",
-    documento_fiscal: "",
-    email: "",
-    telefono: "",
-    direccion: "",
-    codigo_postal: "",
-    localidad: "",
-  });
   const [step2Attempted, setStep2Attempted] = useState(false);
 
   useEffect(() => {
@@ -148,64 +136,10 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
     setStep(2);
   });
 
-  const handleCreateQuickClient = async () => {
-    setQuickClientError(null);
-    if (!quickClient.nombre.trim()) {
-      setQuickClientError("El nombre del cliente es obligatorio.");
-      return;
-    }
-    setCreatingClient(true);
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setQuickClientError("Sesión expirada");
-      setCreatingClient(false);
-      return;
-    }
-    const tipoDoc = quickClient.tipo_cliente === "empresa"
-      ? (quickClient.tipo_documento === "vat" ? "vat" : "cif")
-      : (quickClient.tipo_documento === "nie" ? "nie" : "dni");
-    const { data: inserted, error } = await supabase
-      .from("clientes")
-      .insert({
-        user_id: user.id,
-        nombre: quickClient.nombre.trim(),
-        tipo_cliente: quickClient.tipo_cliente,
-        documento_fiscal: quickClient.documento_fiscal.trim() || null,
-        tipo_documento: quickClient.documento_fiscal.trim() ? tipoDoc : null,
-        email: quickClient.email.trim() || null,
-        telefono: quickClient.telefono.trim() || null,
-        direccion: quickClient.direccion.trim() || null,
-        codigo_postal: quickClient.codigo_postal.trim() || null,
-        localidad: quickClient.localidad.trim() || null,
-        activo: true,
-      })
-      .select("id, nombre")
-      .single();
-
-    setCreatingClient(false);
-    if (error || !inserted) {
-      setQuickClientError(error?.message ?? "No se pudo crear el cliente.");
-      return;
-    }
-
-    setClientes((prev) => [...prev, inserted].sort((a, b) => a.nombre.localeCompare(b.nombre)));
-    formStep1.setValue("clienteId", inserted.id, { shouldValidate: true });
-    setData((p) => ({ ...p, clienteId: inserted.id }));
-    setQuickClient({
-      nombre: "",
-      tipo_cliente: "particular",
-      tipo_documento: "dni",
-      documento_fiscal: "",
-      email: "",
-      telefono: "",
-      direccion: "",
-      codigo_postal: "",
-      localidad: "",
-    });
-    setShowQuickClient(false);
+  const handleQuickClientSuccess = (cliente: { id: string; nombre: string }) => {
+    setClientes((prev) => [...prev, cliente].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+    formStep1.setValue("clienteId", cliente.id, { shouldValidate: true });
+    setData((p) => ({ ...p, clienteId: cliente.id }));
   };
 
   const onStep2 = () => {
@@ -437,140 +371,19 @@ export function FacturaWizard({ facturaId, initialClienteId }: FacturaWizardProp
                   )}
                   <button
                     type="button"
-                    onClick={() => setShowQuickClient((v) => !v)}
+                    onClick={() => setShowQuickClient(true)}
                     className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-foreground hover:underline"
                   >
                     <UserPlus className="h-3.5 w-3.5" strokeWidth={1.5} />
-                    {showQuickClient ? "Cancelar alta rápida" : "Crear cliente desde aquí"}
+                    Crear cliente desde aquí
                   </button>
                 </div>
 
-                {showQuickClient && (
-                  <div className="rounded-xl border border-border bg-neutral-50/60 p-4">
-                    <p className="text-sm font-medium text-foreground">Nuevo cliente</p>
-                    <div className="mt-3 space-y-3">
-                      <Input
-                        placeholder="Nombre *"
-                        value={quickClient.nombre}
-                        onChange={(e) =>
-                          setQuickClient((prev) => ({ ...prev, nombre: e.target.value }))
-                        }
-                      />
-                      <div>
-                        <p className="mb-1.5 text-xs font-medium text-neutral-600">Tipo</p>
-                        <div className="flex rounded-lg border border-border p-1">
-                          <button
-                            type="button"
-                            onClick={() => setQuickClient((p) => ({ ...p, tipo_cliente: "particular", tipo_documento: "dni" }))}
-                            className={cn(
-                              "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                              quickClient.tipo_cliente === "particular"
-                                ? "bg-foreground text-background"
-                                : "text-muted-foreground hover:bg-muted"
-                            )}
-                          >
-                            Particular
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setQuickClient((p) => ({ ...p, tipo_cliente: "empresa", tipo_documento: "cif" }))}
-                            className={cn(
-                              "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                              quickClient.tipo_cliente === "empresa"
-                                ? "bg-foreground text-background"
-                                : "text-muted-foreground hover:bg-muted"
-                            )}
-                          >
-                            Empresa
-                          </button>
-                        </div>
-                      </div>
-                      <select
-                        className="flex h-10 w-full rounded-lg border border-border bg-white px-4 text-base"
-                        value={quickClient.tipo_documento}
-                        onChange={(e) =>
-                          setQuickClient((prev) => ({
-                            ...prev,
-                            tipo_documento: e.target.value as "dni" | "nie" | "cif" | "vat",
-                          }))
-                        }
-                      >
-                        {quickClient.tipo_cliente === "empresa" ? (
-                          <>
-                            <option value="cif">CIF</option>
-                            <option value="vat">VAT</option>
-                          </>
-                        ) : (
-                          <>
-                            <option value="dni">DNI</option>
-                            <option value="nie">NIE</option>
-                          </>
-                        )}
-                      </select>
-                      <Input
-                        placeholder={quickClient.tipo_cliente === "particular" ? "DNI / NIE" : "CIF / VAT"}
-                        value={quickClient.documento_fiscal}
-                        onChange={(e) =>
-                          setQuickClient((prev) => ({ ...prev, documento_fiscal: e.target.value }))
-                        }
-                      />
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <Input
-                          type="email"
-                          placeholder="Email"
-                          value={quickClient.email}
-                          onChange={(e) =>
-                            setQuickClient((prev) => ({ ...prev, email: e.target.value }))
-                          }
-                        />
-                        <Input
-                          placeholder="Teléfono"
-                          value={quickClient.telefono}
-                          onChange={(e) =>
-                            setQuickClient((prev) => ({ ...prev, telefono: e.target.value }))
-                          }
-                        />
-                      </div>
-                      <Input
-                        placeholder="Dirección"
-                        value={quickClient.direccion}
-                        onChange={(e) =>
-                          setQuickClient((prev) => ({ ...prev, direccion: e.target.value }))
-                        }
-                      />
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <Input
-                          placeholder="Código postal"
-                          value={quickClient.codigo_postal}
-                          onChange={(e) =>
-                            setQuickClient((prev) => ({ ...prev, codigo_postal: e.target.value }))
-                          }
-                        />
-                        <Input
-                          placeholder="Localidad"
-                          value={quickClient.localidad}
-                          onChange={(e) =>
-                            setQuickClient((prev) => ({ ...prev, localidad: e.target.value }))
-                          }
-                        />
-                      </div>
-                    </div>
-                    {quickClientError && (
-                      <p className="mt-2 text-sm text-red-600">{quickClientError}</p>
-                    )}
-                    <div className="mt-3 flex justify-end">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={handleCreateQuickClient}
-                        disabled={creatingClient}
-                      >
-                        {creatingClient && <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.5} />}
-                        {creatingClient ? "Creando..." : "Guardar cliente"}
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                <ClienteQuickSheet
+                  open={showQuickClient}
+                  onOpenChange={setShowQuickClient}
+                  onSuccess={handleQuickClientSuccess}
+                />
                 <div className="space-y-2">
                   <Label>Concepto</Label>
                   <Input

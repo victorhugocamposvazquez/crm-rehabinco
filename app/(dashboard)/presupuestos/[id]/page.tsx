@@ -4,10 +4,11 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 import { toast } from "sonner";
 
 interface Presupuesto {
@@ -26,6 +27,19 @@ interface Presupuesto {
   clientes?: { nombre: string } | null;
 }
 
+interface FacturaConvertida {
+  id: string;
+  numero: string;
+}
+
+const estadoVariant: Record<string, "default" | "activo" | "inactivo" | "borrador" | "emitida" | "pagada"> = {
+  borrador: "borrador",
+  enviado: "default",
+  aceptado: "activo",
+  rechazado: "inactivo",
+  convertido: "pagada",
+};
+
 interface Linea {
   id: string;
   descripcion: string;
@@ -39,6 +53,7 @@ export default function DetallePresupuestoPage() {
   const id = params.id as string;
   const [presupuesto, setPresupuesto] = useState<Presupuesto | null>(null);
   const [lineas, setLineas] = useState<Linea[]>([]);
+  const [facturaConvertida, setFacturaConvertida] = useState<FacturaConvertida | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [converting, setConverting] = useState(false);
@@ -72,6 +87,17 @@ export default function DetallePresupuestoPage() {
       .eq("presupuesto_id", id)
       .order("orden")
       .then(({ data }) => setLineas(data ?? []));
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    const supabase = createClient();
+    supabase
+      .from("facturas")
+      .select("id, numero")
+      .eq("presupuesto_id", id)
+      .maybeSingle()
+      .then(({ data }) => setFacturaConvertida(data as FacturaConvertida | null));
   }, [id]);
 
   const handleConvertirAFactura = async () => {
@@ -180,42 +206,40 @@ export default function DetallePresupuestoPage() {
 
   return (
     <div>
-      <nav className="mb-4 flex items-center gap-1.5 text-sm">
-        <Link href="/presupuestos" className="text-neutral-500 hover:text-foreground">
-          Presupuestos
-        </Link>
-        <span className="text-neutral-400">/</span>
-        <span className="font-medium text-foreground">{presupuesto.numero}</span>
-      </nav>
-
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <Link
-            href="/presupuestos"
-            aria-label="Volver a presupuestos"
-            className="flex shrink-0 items-center justify-center rounded-lg text-neutral-600 transition-colors hover:text-foreground"
-          >
-            <ChevronLeft className="h-7 w-7" strokeWidth={1.5} />
-          </Link>
-          <div className="min-w-0">
-            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-              {presupuesto.numero}
-            </h1>
-            <Badge variant="default" className="mt-1">
-              {presupuesto.estado}
-            </Badge>
-          </div>
+      <PageHeader
+        breadcrumb={[
+          { label: "Presupuestos", href: "/presupuestos" },
+          { label: presupuesto.numero },
+        ]}
+        title={presupuesto.numero}
+        description={undefined}
+        actions={
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {facturaConvertida && (
+            <Button variant="secondary" size="sm" asChild className="gap-2">
+              <Link href={`/facturas/${facturaConvertida.id}`}>
+                <FileText className="h-4 w-4" strokeWidth={1.5} />
+                Ver factura {facturaConvertida.numero}
+              </Link>
+            </Button>
+          )}
+          {puedeConvertir && (
+            <Button
+              onClick={handleConvertirAFactura}
+              disabled={converting}
+              className="gap-2"
+            >
+              <FileText className="h-4 w-4" strokeWidth={1.5} />
+              {converting ? "Creando factura…" : "Convertir a factura"}
+            </Button>
+          )}
         </div>
-        {puedeConvertir && (
-          <Button
-            onClick={handleConvertirAFactura}
-            disabled={converting}
-            className="gap-2"
-          >
-            <FileText className="h-4 w-4" strokeWidth={1.5} />
-            {converting ? "Creando factura…" : "Convertir a factura"}
-          </Button>
-        )}
+        }
+      />
+      <div className="mb-6 flex items-center gap-2">
+        <Badge variant={estadoVariant[presupuesto.estado] ?? "default"}>
+          {presupuesto.estado.charAt(0).toUpperCase() + presupuesto.estado.slice(1)}
+        </Badge>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -286,7 +310,7 @@ export default function DetallePresupuestoPage() {
               <p className="text-sm text-neutral-500">Sin líneas.</p>
             ) : (
               <ul className="space-y-2">
-                {lineas.map((l, i) => (
+                {lineas.map((l) => (
                   <li
                     key={l.id}
                     className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-neutral-50/50 px-4 py-3"

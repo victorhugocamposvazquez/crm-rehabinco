@@ -5,11 +5,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { FacturaDetailSkeleton } from "@/components/facturas/FacturaDetailSkeleton";
+import { PagosCard } from "@/components/facturas/PagosCard";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog } from "@/components/ui/alert-dialog";
-import { ChevronLeft, Pencil, FileDown, Trash2 } from "lucide-react";
+import { Pencil, FileDown, Trash2 } from "lucide-react";
 
 interface FacturaRow {
   id: string;
@@ -342,30 +344,15 @@ export default function DetalleFacturaPage() {
 
   return (
     <div>
-      <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-1.5 text-sm">
-        <Link href="/facturas" className="text-neutral-500 hover:text-foreground">Facturas</Link>
-        <span className="text-neutral-400" aria-hidden>/</span>
-        <span className="font-medium text-foreground">{factura.numero}</span>
-      </nav>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <Link
-            href="/facturas"
-            aria-label="Volver a facturas"
-            className="flex shrink-0 items-center justify-center rounded-lg text-neutral-600 transition-colors hover:text-foreground"
-          >
-            <ChevronLeft className="h-7 w-7" strokeWidth={1.5} />
-          </Link>
-          <div className="min-w-0">
-            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-              {factura.numero}
-            </h1>
-            <Badge variant={factura.estado as "borrador" | "emitida" | "pagada"} className="mt-1">
-              {factura.estado.charAt(0).toUpperCase() + factura.estado.slice(1)}
-            </Badge>
-          </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-1">
+      <PageHeader
+        breadcrumb={[
+          { label: "Facturas", href: "/facturas" },
+          { label: factura.numero },
+        ]}
+        title={factura.numero}
+        description={undefined}
+        actions={
+          <div className="flex shrink-0 items-center gap-1">
           <Button variant="secondary" size="icon" className="md:h-9 md:w-auto md:gap-2 md:px-3" asChild>
             <Link href={`/facturas/${id}/editar`} aria-label="Editar">
               <Pencil className="h-4 w-4" strokeWidth={1.5} />
@@ -386,7 +373,13 @@ export default function DetalleFacturaPage() {
             <Trash2 className="h-4 w-4" strokeWidth={1.5} />
             <span className="hidden md:inline">Eliminar</span>
           </Button>
-        </div>
+          </div>
+        }
+      />
+      <div className="mb-6 flex items-center gap-2">
+        <Badge variant={factura.estado as "borrador" | "emitida" | "pagada"}>
+          {factura.estado.charAt(0).toUpperCase() + factura.estado.slice(1)}
+        </Badge>
       </div>
 
       <AlertDialog
@@ -437,6 +430,14 @@ export default function DetalleFacturaPage() {
             </p>
           </CardContent>
         </Card>
+        <PagosCard
+          facturaId={id}
+          totalFactura={totalConIva}
+          estado={factura.estado}
+          onPagoAdded={() => {
+            setFactura((prev) => (prev ? { ...prev, estado: "pagada" } : prev));
+          }}
+        />
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle>Líneas</CardTitle>

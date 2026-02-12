@@ -1,17 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { PropiedadCard } from "@/components/propiedades/PropiedadCard";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { Card } from "@/components/ui/card";
 import { Fab } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Building2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, Building2, Search } from "lucide-react";
 
 export default function PropiedadesPage() {
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [filterEstado, setFilterEstado] = useState<"todos" | string>("todos");
+  const [filterTipo, setFilterTipo] = useState<"todos" | string>("todos");
   const [propiedades, setPropiedades] = useState<
     Array<{
       id: string;
@@ -64,10 +68,20 @@ export default function PropiedadesPage() {
       });
   }, []);
 
-  const formatPrecio = (p: number | null) =>
-    p != null
-      ? p.toLocaleString("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 })
-      : "—";
+  const filteredPropiedades = useMemo(() => {
+    return propiedades.filter((p) => {
+      const q = search.toLowerCase().trim();
+      const matchSearch =
+        !q ||
+        (p.titulo ?? "").toLowerCase().includes(q) ||
+        (p.direccion ?? "").toLowerCase().includes(q) ||
+        (p.localidad ?? "").toLowerCase().includes(q) ||
+        p.ofertanteNombre.toLowerCase().includes(q);
+      const matchEstado = filterEstado === "todos" || p.estado === filterEstado;
+      const matchTipo = filterTipo === "todos" || p.tipo_operacion === filterTipo;
+      return matchSearch && matchEstado && matchTipo;
+    });
+  }, [propiedades, search, filterEstado, filterTipo]);
 
   return (
     <div>
@@ -87,6 +101,54 @@ export default function PropiedadesPage() {
 
       {error && (
         <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+      )}
+
+      {!loading && propiedades.length > 0 && (
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" strokeWidth={1.5} aria-hidden />
+            <Input
+              type="search"
+              placeholder="Buscar por título, dirección, propietario..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+              aria-label="Buscar propiedades"
+            />
+          </div>
+          <div className="flex flex-wrap gap-1 rounded-lg border border-border p-1">
+            {(["todos", "disponible", "reservada", "vendida", "alquilada", "baja"] as const).map((e) => (
+              <button
+                key={e}
+                type="button"
+                onClick={() => setFilterEstado(e)}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  filterEstado === e
+                    ? "bg-foreground text-background"
+                    : "text-neutral-600 hover:bg-neutral-100"
+                }`}
+              >
+                {e === "todos" ? "Todos" : e.charAt(0).toUpperCase() + e.slice(1)}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-1 rounded-lg border border-border p-1">
+            {(["todos", "venta", "alquiler", "ambos"] as const).map((e) => (
+              <button
+                key={e}
+                type="button"
+                onClick={() => setFilterTipo(e)}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  filterTipo === e
+                    ? "bg-foreground text-background"
+                    : "text-neutral-600 hover:bg-neutral-100"
+                }`}
+              >
+                {e === "todos" ? "Tipo" : e.charAt(0).toUpperCase() + e.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       <div className="mt-10">
@@ -116,35 +178,26 @@ export default function PropiedadesPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {propiedades.map((p) => (
-              <Link key={p.id} href={`/propiedades/${p.id}`} className="block">
-                <Card className="bg-white/95 py-4">
-                  <div className="flex flex-wrap items-center justify-between gap-4 sm:flex-nowrap">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-foreground">
-                        {p.titulo || p.direccion || "Sin título"}
-                      </p>
-                      <p className="truncate text-sm text-neutral-500">
-                        {[p.direccion, p.localidad].filter(Boolean).join(", ") || p.ofertanteNombre}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 flex-col items-end gap-1">
-                      {(p.tipo_operacion === "venta" || p.tipo_operacion === "ambos") && (
-                        <p className="text-sm font-semibold text-emerald-700">
-                          Venta: {formatPrecio(p.precio_venta)}
-                        </p>
-                      )}
-                      {(p.tipo_operacion === "alquiler" || p.tipo_operacion === "ambos") && (
-                        <p className="text-sm font-semibold text-blue-700">
-                          Alquiler: {formatPrecio(p.precio_alquiler)}
-                        </p>
-                      )}
-                      <Badge variant="default">{p.estado}</Badge>
-                    </div>
-                  </div>
-                </Card>
-              </Link>
-            ))}
+            {filteredPropiedades.length === 0 ? (
+              <p className="rounded-2xl border border-border bg-white p-6 text-center text-neutral-500">
+                No hay propiedades que coincidan con la búsqueda.
+              </p>
+            ) : (
+              filteredPropiedades.map((p) => (
+                <PropiedadCard
+                  key={p.id}
+                  id={p.id}
+                  titulo={p.titulo}
+                  direccion={p.direccion}
+                  localidad={p.localidad}
+                  tipo_operacion={p.tipo_operacion}
+                  precio_venta={p.precio_venta}
+                  precio_alquiler={p.precio_alquiler}
+                  estado={p.estado}
+                  ofertanteNombre={p.ofertanteNombre}
+                />
+              ))
+            )}
           </div>
         )}
       </div>

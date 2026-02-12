@@ -5,11 +5,12 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { ClienteDetailSkeleton } from "@/components/clientes/ClienteDetailSkeleton";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog } from "@/components/ui/alert-dialog";
-import { ChevronLeft, Pencil, Trash2, FileText, Building2, Plus, Home } from "lucide-react";
+import { Pencil, Trash2, FileText, Building2, Plus, Home } from "lucide-react";
 
 interface Cliente {
   id: string;
@@ -127,56 +128,46 @@ export default function DetalleClientePage() {
 
   return (
     <div>
-      <nav className="mb-4 flex items-center gap-1.5 text-sm">
-        <Link href="/clientes" className="text-neutral-500 hover:text-foreground">Clientes</Link>
-        <span className="text-neutral-400">/</span>
-        <span className="font-medium text-foreground">{cliente.nombre}</span>
-      </nav>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <Link
-            href="/clientes"
-            aria-label="Volver a clientes"
-            className="flex shrink-0 items-center justify-center rounded-lg text-neutral-600 transition-colors hover:text-foreground"
-          >
-            <ChevronLeft className="h-7 w-7" strokeWidth={1.5} />
-          </Link>
-          <div className="min-w-0">
-            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-              {cliente.nombre}
-            </h1>
-            <Badge
-              variant={cliente.activo ? "activo" : "inactivo"}
-              className="mt-1"
+      <PageHeader
+        breadcrumb={[
+          { label: "Clientes", href: "/clientes" },
+          { label: cliente.nombre },
+        ]}
+        title={cliente.nombre}
+        description={undefined}
+        actions={
+          <div className="flex shrink-0 items-center gap-1">
+            <Button variant="secondary" size="icon" className="md:h-9 md:w-auto md:gap-2 md:px-3" asChild>
+              <Link href={`/facturas/nueva?cliente=${id}&from=cliente`} aria-label="Nueva factura">
+                <FileText className="h-4 w-4" strokeWidth={1.5} />
+                <span className="hidden md:inline">Nueva factura</span>
+              </Link>
+            </Button>
+            <Button variant="secondary" size="icon" className="md:h-9 md:w-auto md:gap-2 md:px-3" asChild>
+              <Link href={`/clientes/${id}/editar`} aria-label="Editar">
+                <Pencil className="h-4 w-4" strokeWidth={1.5} />
+                <span className="hidden md:inline">Editar</span>
+              </Link>
+            </Button>
+            <Button
+              variant="secondary"
+              size="icon"
+              className="text-red-600 hover:bg-red-50 hover:text-red-700 md:h-9 md:w-auto md:gap-2 md:px-3"
+              onClick={() => setShowDeleteConfirm(true)}
+              aria-label="Eliminar"
             >
-              {cliente.activo ? "Activo" : "Inactivo"}
-            </Badge>
+              <Trash2 className="h-4 w-4" strokeWidth={1.5} />
+              <span className="hidden md:inline">Eliminar</span>
+            </Button>
           </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <Button variant="secondary" size="icon" className="md:h-9 md:w-auto md:gap-2 md:px-3" asChild>
-            <Link href={`/facturas/nueva?cliente=${id}&from=cliente`} aria-label="Nueva factura">
-              <FileText className="h-4 w-4" strokeWidth={1.5} />
-              <span className="hidden md:inline">Nueva factura</span>
-            </Link>
-          </Button>
-          <Button variant="secondary" size="icon" className="md:h-9 md:w-auto md:gap-2 md:px-3" asChild>
-            <Link href={`/clientes/${id}/editar`} aria-label="Editar">
-              <Pencil className="h-4 w-4" strokeWidth={1.5} />
-              <span className="hidden md:inline">Editar</span>
-            </Link>
-          </Button>
-          <Button
-            variant="secondary"
-            size="icon"
-            className="text-red-600 hover:bg-red-50 hover:text-red-700 md:h-9 md:w-auto md:gap-2 md:px-3"
-            onClick={() => setShowDeleteConfirm(true)}
-            aria-label="Eliminar"
-          >
-            <Trash2 className="h-4 w-4" strokeWidth={1.5} />
-            <span className="hidden md:inline">Eliminar</span>
-          </Button>
-        </div>
+        }
+      />
+      <div className="mb-6 flex items-center gap-2">
+        <Badge
+          variant={cliente.activo ? "activo" : "inactivo"}
+        >
+          {cliente.activo ? "Activo" : "Inactivo"}
+        </Badge>
       </div>
 
       <AlertDialog

@@ -1,24 +1,23 @@
 "use client";
 
+import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft, UserPlus } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
-import { ClienteQuickSheet } from "@/components/clientes/ClienteQuickSheet";
 
-export default function NuevaPropiedadPage() {
+export default function EditarPropiedadPage() {
+  const params = useParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const ofertanteFromUrl = searchParams.get("ofertante");
+  const id = params.id as string;
   const [clientes, setClientes] = useState<Array<{ id: string; nombre: string }>>([]);
-  const [ofertanteId, setOfertanteId] = useState(ofertanteFromUrl ?? "");
-  const ofertanteNombre = ofertanteId ? clientes.find((c) => c.id === ofertanteId)?.nombre : null;
+  const [ofertanteId, setOfertanteId] = useState("");
   const [titulo, setTitulo] = useState("");
   const [direccion, setDireccion] = useState("");
   const [codigoPostal, setCodigoPostal] = useState("");
@@ -30,9 +29,9 @@ export default function NuevaPropiedadPage() {
   const [habitaciones, setHabitaciones] = useState("");
   const [estado, setEstado] = useState("disponible");
   const [notas, setNotas] = useState("");
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showQuickClient, setShowQuickClient] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -45,8 +44,47 @@ export default function NuevaPropiedadPage() {
   }, []);
 
   useEffect(() => {
-    if (ofertanteFromUrl) setOfertanteId(ofertanteFromUrl);
-  }, [ofertanteFromUrl]);
+    if (!id) return;
+    const supabase = createClient();
+    supabase
+      .from("propiedades")
+      .select("*")
+      .eq("id", id)
+      .single()
+      .then(({ data, error: err }) => {
+        if (err || !data) {
+          setLoading(false);
+          return;
+        }
+        const p = data as {
+          ofertante_id: string;
+          titulo: string | null;
+          direccion: string | null;
+          codigo_postal: string | null;
+          localidad: string | null;
+          tipo_operacion: string;
+          precio_venta: number | null;
+          precio_alquiler: number | null;
+          superficie_m2: number | null;
+          habitaciones: number | null;
+          estado: string;
+          notas: string | null;
+        };
+        setOfertanteId(p.ofertante_id ?? "");
+        setTitulo(p.titulo ?? "");
+        setDireccion(p.direccion ?? "");
+        setCodigoPostal(p.codigo_postal ?? "");
+        setLocalidad(p.localidad ?? "");
+        setTipoOperacion((p.tipo_operacion as "venta" | "alquiler" | "ambos") ?? "ambos");
+        setPrecioVenta(p.precio_venta != null ? String(p.precio_venta) : "");
+        setPrecioAlquiler(p.precio_alquiler != null ? String(p.precio_alquiler) : "");
+        setSuperficie(p.superficie_m2 != null ? String(p.superficie_m2) : "");
+        setHabitaciones(p.habitaciones != null ? String(p.habitaciones) : "");
+        setEstado(p.estado ?? "disponible");
+        setNotas(p.notas ?? "");
+        setLoading(false);
+      });
+  }, [id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,17 +95,10 @@ export default function NuevaPropiedadPage() {
     setError(null);
     setSaving(true);
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setError("Sesión expirada");
-      setSaving(false);
-      return;
-    }
 
-    const { data, error: err } = await supabase
+    const { error: err } = await supabase
       .from("propiedades")
-      .insert({
-        user_id: user.id,
+      .update({
         ofertante_id: ofertanteId,
         titulo: titulo || null,
         direccion: direccion || null,
@@ -81,39 +112,45 @@ export default function NuevaPropiedadPage() {
         estado,
         notas: notas || null,
       })
-      .select("id")
-      .single();
+      .eq("id", id);
 
     setSaving(false);
     if (err) {
       setError(err.message);
       return;
     }
-    toast.success("Propiedad creada");
-    router.push(`/propiedades/${data.id}`);
+    toast.success("Propiedad actualizada");
+    router.push(`/propiedades/${id}`);
     router.refresh();
   };
 
+  if (loading) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-foreground" />
+      </div>
+    );
+  }
+
   return (
     <div>
-      <nav className="mb-4 flex items-center gap-1.5 text-sm">
-        <Link href="/propiedades" className="text-neutral-500 hover:text-foreground">
-          Propiedades
-        </Link>
-        <span className="text-neutral-400">/</span>
-        <span className="font-medium text-foreground">Nueva</span>
-      </nav>
+      <PageHeader
+        breadcrumb={[
+          { label: "Propiedades", href: "/propiedades" },
+          { label: "Propiedad", href: `/propiedades/${id}` },
+          { label: "Editar" },
+        ]}
+        title="Editar propiedad"
+        description="Modifica los datos de la propiedad"
+      />
       <div className="mb-6 flex items-center gap-3">
         <Link
-          href="/propiedades"
-          aria-label="Volver a propiedades"
+          href={`/propiedades/${id}`}
+          aria-label="Volver a la propiedad"
           className="flex shrink-0 items-center justify-center rounded-lg text-neutral-600 transition-colors hover:text-foreground"
         >
           <ChevronLeft className="h-7 w-7" strokeWidth={1.5} />
         </Link>
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          {ofertanteNombre ? `Nueva propiedad de ${ofertanteNombre}` : "Nueva propiedad"}
-        </h1>
       </div>
 
       <Card className="mx-auto max-w-2xl">
@@ -137,22 +174,6 @@ export default function NuevaPropiedadPage() {
                   </option>
                 ))}
               </select>
-              <button
-                type="button"
-                onClick={() => setShowQuickClient(true)}
-                className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-foreground hover:underline"
-              >
-                <UserPlus className="h-3.5 w-3.5" strokeWidth={1.5} />
-                Crear cliente desde aquí
-              </button>
-              <ClienteQuickSheet
-                open={showQuickClient}
-                onOpenChange={setShowQuickClient}
-                onSuccess={(cliente) => {
-                  setClientes((prev) => [...prev, cliente].sort((a, b) => a.nombre.localeCompare(b.nombre)));
-                  setOfertanteId(cliente.id);
-                }}
-              />
             </div>
             <div className="space-y-2">
               <Label>Título</Label>
@@ -273,10 +294,10 @@ export default function NuevaPropiedadPage() {
             {error && <p className="text-sm text-red-600">{error}</p>}
             <div className="flex gap-2 pt-4">
               <Button type="button" variant="secondary" asChild>
-                <Link href="/propiedades">Cancelar</Link>
+                <Link href={`/propiedades/${id}`}>Cancelar</Link>
               </Button>
               <Button type="submit" disabled={saving}>
-                {saving ? "Guardando…" : "Crear propiedad"}
+                {saving ? "Guardando…" : "Guardar cambios"}
               </Button>
             </div>
           </form>

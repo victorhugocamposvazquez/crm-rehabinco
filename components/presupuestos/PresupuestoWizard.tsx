@@ -3,13 +3,15 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
+import { ClienteQuickSheet } from "@/components/clientes/ClienteQuickSheet";
 
 interface Linea {
   descripcion: string;
@@ -17,7 +19,11 @@ interface Linea {
   precioUnitario: number;
 }
 
-export function PresupuestoWizard() {
+interface PresupuestoWizardProps {
+  presupuestoId?: string;
+}
+
+export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [clientes, setClientes] = useState<Array<{ id: string; nombre: string }>>([]);
@@ -29,8 +35,11 @@ export function PresupuestoWizard() {
   ]);
   const [porcentajeImpuesto, setPorcentajeImpuesto] = useState(21);
   const [porcentajeDescuento, setPorcentajeDescuento] = useState(0);
+  const [estado, setEstado] = useState("borrador");
   const [creating, setCreating] = useState(false);
+  const [loading, setLoading] = useState(!!presupuestoId);
   const [error, setError] = useState<string | null>(null);
+  const [showQuickClient, setShowQuickClient] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -41,6 +50,28 @@ export function PresupuestoWizard() {
       .then(({ data }) => setClientes(data ?? []));
   }, []);
 
+  useEffect(() => {
+    if (!presupuestoId) return;
+    const supabase = createClient();
+    Promise.all([
+      supabase.from("presupuestos").select("cliente_id, concepto, fecha, porcentaje_impuesto, porcentaje_descuento, estado").eq("id", presupuestoId).single(),
+      supabase.from("presupuesto_lineas").select("descripcion, cantidad, precio_unitario").eq("presupuesto_id", presupuestoId).order("orden"),
+    ]).then(([pRes, lRes]) => {
+      const p = pRes.data as { cliente_id: string | null; concepto: string | null; fecha: string | null; porcentaje_impuesto: number; porcentaje_descuento: number; estado: string } | null;
+      const l = (lRes.data ?? []) as Array<{ descripcion: string; cantidad: number; precio_unitario: number }>;
+      if (p) {
+        setClienteId(p.cliente_id ?? "");
+        setConcepto(p.concepto ?? "");
+        setFecha(p.fecha ?? new Date().toISOString().slice(0, 10));
+        setPorcentajeImpuesto(p.porcentaje_impuesto ?? 21);
+        setPorcentajeDescuento(p.porcentaje_descuento ?? 0);
+        setEstado(p.estado ?? "borrador");
+      }
+      setLineas(l.length > 0 ? l.map((x) => ({ descripcion: x.descripcion, cantidad: x.cantidad, precioUnitario: x.precio_unitario })) : [{ descripcion: "", cantidad: 0, precioUnitario: 0 }]);
+      setLoading(false);
+    });
+  }, [presupuestoId]);
+
   const addLinea = () =>
     setLineas((p) => [...p, { descripcion: "", cantidad: 0, precioUnitario: 0 }]);
   const removeLinea = (i: number) =>
@@ -50,6 +81,13 @@ export function PresupuestoWizard() {
       p.map((l, idx) => (idx === i ? { ...l, [field]: value } : l))
     );
 
+  const lineasValidas = lineas.filter((l) => l.descripcion.trim() && l.cantidad > 0 && l.precioUnitario >= 0);
+  const step2Valid = z.array(z.object({
+    descripcion: z.string().min(1),
+    cantidad: z.number().min(0.001),
+    precioUnitario: z.number().min(0),
+  })).min(1).safeParse(lineasValidas).success;
+
   const baseImponible = lineas.reduce(
     (acc, l) => acc + Number(l.cantidad) * Number(l.precioUnitario),
     0
@@ -58,15 +96,61 @@ export function PresupuestoWizard() {
   const descuento = (baseImponible * (porcentajeDescuento / 100));
   const total = baseImponible + impuesto - descuento;
 
-  const canGoStep2 = clienteId && lineas.every((l) => l.descripcion.trim() && l.cantidad > 0 && l.precioUnitario >= 0);
 
-  const handleCreate = async () => {
+  const handleSave = async () => {
     setError(null);
     setCreating(true);
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       setError("Sesión expirada");
+      setCreating(false);
+      return;
+    }
+
+    if (presupuestoId) {
+      const { error: errUpd } = await supabase
+        .from("presupuestos")
+        .update({
+          cliente_id: clienteId || null,
+          concepto: concepto || null,
+          fecha,
+          porcentaje_impuesto: porcentajeImpuesto,
+          porcentaje_descuento: porcentajeDescuento,
+          estado,
+        })
+        .eq("id", presupuestoId);
+
+      if (errUpd) {
+        setError(errUpd.message);
+        setCreating(false);
+        return;
+      }
+
+      await supabase.from("presupuesto_lineas").delete().eq("presupuesto_id", presupuestoId);
+
+      const lineasToInsert = lineas
+        .filter((l) => l.descripcion.trim() && l.cantidad > 0)
+        .map((l, orden) => ({
+          presupuesto_id: presupuestoId,
+          descripcion: l.descripcion,
+          cantidad: l.cantidad,
+          precio_unitario: l.precioUnitario,
+          orden,
+        }));
+
+      if (lineasToInsert.length > 0) {
+        const { error: errLineas } = await supabase.from("presupuesto_lineas").insert(lineasToInsert);
+        if (errLineas) {
+          setError(errLineas.message);
+          setCreating(false);
+          return;
+        }
+      }
+
+      toast.success("Presupuesto actualizado");
+      router.push(`/presupuestos/${presupuestoId}`);
+      router.refresh();
       setCreating(false);
       return;
     }
@@ -131,6 +215,14 @@ export function PresupuestoWizard() {
     setCreating(false);
   };
 
+  if (loading) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center" aria-busy="true" aria-live="polite">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-foreground" role="status" aria-label="Cargando" />
+      </div>
+    );
+  }
+
   return (
     <div className="relative mx-auto max-w-2xl animate-[fadeIn_0.3s_ease-out] pb-28 md:pb-24">
       <div className="mb-8 flex items-center gap-2">
@@ -177,6 +269,22 @@ export function PresupuestoWizard() {
                   </option>
                 ))}
               </select>
+              <button
+                type="button"
+                onClick={() => setShowQuickClient(true)}
+                className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-foreground hover:underline"
+              >
+                <UserPlus className="h-3.5 w-3.5" strokeWidth={1.5} />
+                Crear cliente desde aquí
+              </button>
+              <ClienteQuickSheet
+                open={showQuickClient}
+                onOpenChange={setShowQuickClient}
+                onSuccess={(cliente) => {
+                  setClientes((prev) => [...prev, cliente].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+                  setClienteId(cliente.id);
+                }}
+              />
             </div>
             <div className="space-y-2">
               <Label>Concepto</Label>
@@ -190,6 +298,21 @@ export function PresupuestoWizard() {
               <Label>Fecha</Label>
               <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
             </div>
+            {presupuestoId && (
+              <div className="space-y-2">
+                <Label>Estado</Label>
+                <select
+                  value={estado}
+                  onChange={(e) => setEstado(e.target.value)}
+                  className="flex h-10 w-full rounded-lg border border-border bg-white px-4 text-base"
+                >
+                  <option value="borrador">Borrador</option>
+                  <option value="enviado">Enviado</option>
+                  <option value="aceptado">Aceptado</option>
+                  <option value="rechazado">Rechazado</option>
+                </select>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -297,7 +420,7 @@ export function PresupuestoWizard() {
               <Button variant="secondary" onClick={() => setStep(1)}>
                 Atrás
               </Button>
-              <Button onClick={() => setStep(3)} disabled={!canGoStep2}>
+              <Button onClick={() => setStep(3)} disabled={!step2Valid}>
                 Siguiente
               </Button>
             </>
@@ -306,7 +429,7 @@ export function PresupuestoWizard() {
               <Button variant="secondary" onClick={() => setStep(2)} disabled={creating}>
                 Atrás
               </Button>
-              <Button onClick={handleCreate} disabled={creating}>
+              <Button onClick={handleSave} disabled={creating}>
                 {creating ? "Creando…" : "Crear presupuesto"}
               </Button>
             </>
