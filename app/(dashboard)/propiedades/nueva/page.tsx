@@ -16,8 +16,8 @@ export default function NuevaPropiedadPage() {
   const searchParams = useSearchParams();
   const ofertanteFromUrl = searchParams.get("ofertante");
   const [clientes, setClientes] = useState<Array<{ id: string; nombre: string }>>([]);
-  const ofertanteNombre = ofertanteId ? clientes.find((c) => c.id === ofertanteId)?.nombre : null;
   const [ofertanteId, setOfertanteId] = useState(ofertanteFromUrl ?? "");
+  const ofertanteNombre = ofertanteId ? clientes.find((c) => c.id === ofertanteId)?.nombre : null;
   const [titulo, setTitulo] = useState("");
   const [direccion, setDireccion] = useState("");
   const [codigoPostal, setCodigoPostal] = useState("");

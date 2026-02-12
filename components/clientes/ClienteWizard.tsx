@@ -134,16 +134,30 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
       activo: data.activo ?? true,
       cliente_padre_id: tipo_cliente === "empresa" && (data.cliente_padre_id ?? initialClientePadreId) ? (data.cliente_padre_id ?? initialClientePadreId) : null,
     };
-    const { error } = clienteId
-      ? await supabase.from("clientes").update(payload).eq("id", clienteId)
-      : await supabase.from("clientes").insert({ ...payload, user_id: user.id });
+    if (clienteId) {
+      const { error } = await supabase.from("clientes").update(payload).eq("id", clienteId);
+      setSaving(false);
+      if (error) {
+        setSaveError(error.message);
+        return;
+      }
+      toast.success("Cliente actualizado");
+      router.push(`/clientes/${clienteId}`);
+      router.refresh();
+      return;
+    }
+    const { data: inserted, error } = await supabase
+      .from("clientes")
+      .insert({ ...payload, user_id: user.id })
+      .select("id")
+      .single();
     setSaving(false);
     if (error) {
       setSaveError(error.message);
       return;
     }
-    toast.success(clienteId ? "Cliente actualizado" : "Cliente creado");
-    router.push(clienteId ? `/clientes/${clienteId}` : "/clientes");
+    toast.success("Cliente creado");
+    router.push(`/clientes/${inserted.id}`);
     router.refresh();
   };
 
@@ -201,10 +215,12 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
             <CardContent>
               <form id="cliente-step1-form" onSubmit={onStep1} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="nombre">Nombre *</Label>
+                  <Label htmlFor="nombre">
+                    {formStep1.watch("tipo_cliente") === "empresa" ? "Razón social *" : "Nombre y apellidos *"}
+                  </Label>
                   <Input
                     id="nombre"
-                    placeholder="Nombre del cliente"
+                    placeholder={formStep1.watch("tipo_cliente") === "empresa" ? "Nombre de la empresa" : "Nombre y apellidos del contacto"}
                     aria-describedby={formStep1.formState.errors.nombre ? "nombre-error" : undefined}
                     aria-invalid={!!formStep1.formState.errors.nombre}
                     {...formStep1.register("nombre")}
