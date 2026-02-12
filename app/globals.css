@@ -30,6 +30,13 @@ body {
   text-rendering: geometricPrecision;
 }
 
+/* Evita zoom automático en iOS al enfocar inputs (font-size < 16px dispara el zoom) */
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  font-size: 16px !important;
+}
+
 @layer base {
   h1 {
     @apply text-3xl font-semibold tracking-tight text-foreground sm:text-[2.05rem];

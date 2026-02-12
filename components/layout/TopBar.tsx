@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
-import { Home, Users, FileText, ClipboardList, Building2, Settings, LogOut, KeyRound } from "lucide-react";
+import { Home, Users, FileText, ClipboardList, Building2, LogOut, KeyRound, Settings } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth/auth-context";
 import { Sheet } from "@/components/ui/sheet";
@@ -14,13 +18,41 @@ const navItems = [
   { href: "/propiedades", label: "Propiedades", icon: Building2 },
   { href: "/presupuestos", label: "Presupuestos", icon: ClipboardList },
   { href: "/facturas", label: "Facturas", icon: FileText },
-  { href: "/settings", label: "Ajustes", icon: Settings },
 ];
 
 export function TopBar() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+
+  const onUpdatePassword = async () => {
+    setPasswordError(null);
+    setPasswordMessage(null);
+    if (password.length < 6) {
+      setPasswordError("La contraseña debe tener al menos 6 caracteres.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setPasswordError("Las contraseñas no coinciden.");
+      return;
+    }
+    setPasswordSaving(true);
+    const supabase = createClient();
+    const { error: updateError } = await supabase.auth.updateUser({ password });
+    setPasswordSaving(false);
+    if (updateError) {
+      setPasswordError(updateError.message);
+      return;
+    }
+    setPasswordMessage("Contraseña actualizada correctamente.");
+    setPassword("");
+    setConfirmPassword("");
+  };
 
   const initials = useMemo(() => {
     const source = user?.email?.split("@")[0] ?? "U";
@@ -92,9 +124,23 @@ export function TopBar() {
         </div>
       </header>
 
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <div className="px-4 pb-24 pt-2 md:pb-6">
-          <div className="mb-4 rounded-2xl bg-neutral-50 px-4 py-4">
+      <Sheet
+        open={sheetOpen}
+        onOpenChange={(open) => {
+          setSheetOpen(open);
+          if (!open) {
+            setPassword("");
+            setConfirmPassword("");
+            setPasswordMessage(null);
+            setPasswordError(null);
+          }
+        }}
+        fullScreenOnMobile
+        showCloseButton
+      >
+        <div className="px-4 pb-24 pt-2 md:pb-8">
+          <h2 className="mb-6 text-xl font-semibold">Sesión y cuenta</h2>
+          <div className="mb-6 rounded-2xl bg-neutral-50 px-4 py-4">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
               Sesión iniciada
             </p>
@@ -105,27 +151,61 @@ export function TopBar() {
               {user?.role === "admin" ? "Administrador" : "Agente"}
             </p>
           </div>
-          <div className="flex flex-col gap-1">
-            <Link
-              href="/settings"
-              onClick={() => setSheetOpen(false)}
-              className="flex items-center gap-3 rounded-xl px-4 py-3 text-[15px] font-medium text-foreground transition-colors hover:bg-neutral-50"
-            >
-              <KeyRound className="h-5 w-5 text-neutral-500" strokeWidth={1.5} />
+
+          <Link
+            href="/settings"
+            onClick={() => setSheetOpen(false)}
+            className="mb-6 flex items-center gap-3 rounded-xl px-4 py-3 text-[15px] font-medium text-foreground transition-colors hover:bg-neutral-50"
+          >
+            <Settings className="h-5 w-5 text-neutral-500" strokeWidth={1.5} />
+            Ajustes
+          </Link>
+
+          <div className="mb-8 rounded-2xl border border-border bg-white p-4">
+            <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">
+              <KeyRound className="h-4 w-4" strokeWidth={1.5} />
               Cambiar contraseña
-            </Link>
-            <button
-              type="button"
-              onClick={() => {
-                signOut();
-                setSheetOpen(false);
-              }}
-              className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-[15px] font-medium text-red-600 transition-colors hover:bg-red-50"
-            >
-              <LogOut className="h-5 w-5" strokeWidth={1.5} />
-              Cerrar sesión
-            </button>
+            </h3>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="sheet-new-password">Nueva contraseña</Label>
+                <Input
+                  id="sheet-new-password"
+                  type="password"
+                  placeholder="Mínimo 6 caracteres"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sheet-confirm-password">Confirmar contraseña</Label>
+                <Input
+                  id="sheet-confirm-password"
+                  type="password"
+                  placeholder="Repite la contraseña"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
+              {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
+              {passwordMessage && <p className="text-sm text-emerald-700">{passwordMessage}</p>}
+              <Button onClick={onUpdatePassword} disabled={passwordSaving} size="sm">
+                {passwordSaving ? "Guardando…" : "Actualizar contraseña"}
+              </Button>
+            </div>
           </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              signOut();
+              setSheetOpen(false);
+            }}
+            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-[15px] font-medium text-red-600 transition-colors hover:bg-red-50"
+          >
+            <LogOut className="h-5 w-5" strokeWidth={1.5} />
+            Cerrar sesión
+          </button>
         </div>
       </Sheet>
     </>

@@ -592,6 +592,21 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
                         className={showErr && err.descripcion ? "border-red-500 focus-visible:ring-red-500" : ""}
                       />
                     </div>
+                    <div className="w-14 shrink-0 space-y-1">
+                      <Label className="text-xs">IVA %</Label>
+                      <select
+                        className="flex h-10 w-full rounded-lg border border-border bg-white px-4 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        value={l.ivaPorcentaje}
+                        onChange={(e) =>
+                          updateLinea(i, "ivaPorcentaje", Number(e.target.value))
+                        }
+                      >
+                        <option value={21}>21</option>
+                        <option value={10}>10</option>
+                        <option value={4}>4</option>
+                        <option value={0}>0</option>
+                      </select>
+                    </div>
                     <Button
                       type="button"
                       variant="ghost"
@@ -618,7 +633,7 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
                         className={cn("h-9 text-sm", showErr && err.cantidad && "border-red-500 focus-visible:ring-red-500")}
                       />
                     </div>
-                    <div className="w-28 shrink-0 space-y-1">
+                    <div className="w-36 shrink-0 space-y-1">
                       <Label className={cn("text-xs", showErr && err.precioUnitario && "text-red-600")}>Precio u. (€)</Label>
                       <Input
                         type="text"
@@ -630,21 +645,6 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
                         }
                         className={cn("h-9 text-sm", showErr && err.precioUnitario && "border-red-500 focus-visible:ring-red-500")}
                       />
-                    </div>
-                    <div className="w-14 shrink-0 space-y-1">
-                      <Label className="text-xs">IVA %</Label>
-                      <select
-                        className="flex h-9 w-full rounded-lg border border-border bg-white px-1.5 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        value={l.ivaPorcentaje}
-                        onChange={(e) =>
-                          updateLinea(i, "ivaPorcentaje", Number(e.target.value))
-                        }
-                      >
-                        <option value={21}>21</option>
-                        <option value={10}>10</option>
-                        <option value={4}>4</option>
-                        <option value={0}>0</option>
-                      </select>
                     </div>
                   </div>
                 </div>
