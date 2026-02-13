@@ -186,6 +186,14 @@ export function TopBar() {
             </div>
           </div>
 
+          <Link
+            href="/settings"
+            onClick={() => setSheetOpen(false)}
+            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-[15px] font-medium text-foreground transition-colors hover:bg-neutral-50"
+          >
+            {user?.role === "admin" ? "Crear usuarios" : "Ajustes completos"}
+          </Link>
+
           <button
             type="button"
             onClick={() => {
