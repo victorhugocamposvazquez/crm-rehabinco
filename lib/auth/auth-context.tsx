@@ -144,8 +144,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       void handleAuthChange(event, session);
     });
 
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session?.user && isMounted) {
+            getProfile(session.user).then((profileUser) => {
+              if (isMounted && profileUser) setUser(profileUser);
+            });
+          }
+        });
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
     return () => {
       isMounted = false;
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       window.clearTimeout(safetyTimeout);
       subscription.unsubscribe();
     };
