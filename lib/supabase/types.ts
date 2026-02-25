@@ -30,6 +30,7 @@ export interface Database {
           localidad: string | null;
           notas: string | null;
           activo: boolean;
+          etiqueta: "fallecido" | null;
           created_at: string;
           updated_at: string;
         };
@@ -47,6 +48,7 @@ export interface Database {
           localidad?: string | null;
           notas?: string | null;
           activo?: boolean;
+          etiqueta?: "fallecido" | null;
         };
         Update: {
           nombre?: string;
@@ -61,6 +63,7 @@ export interface Database {
           localidad?: string | null;
           notas?: string | null;
           activo?: boolean;
+          etiqueta?: "fallecido" | null;
           updated_at?: string;
         };
       };
