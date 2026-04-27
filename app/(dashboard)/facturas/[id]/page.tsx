@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { fetchEmisorFacturacion } from "@/lib/empresa-facturacion";
+import { fetchEmisorFacturacion, resolveInvoiceLogoUrl } from "@/lib/empresa-facturacion";
 import { toast } from "sonner";
 import { FacturaDetailSkeleton } from "@/components/facturas/FacturaDetailSkeleton";
 import { PagosCard } from "@/components/facturas/PagosCard";
@@ -256,7 +256,8 @@ export default function DetalleFacturaPage() {
       })
       .join("");
 
-    const logoUrl = typeof window !== "undefined" ? `${window.location.origin}/images/logo-web.png` : "/images/logo-web.png";
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const logoUrl = resolveInvoiceLogoUrl(emisor.logo_url, origin);
     const fechaFormateada = factura.fecha_emision
       ? new Date(factura.fecha_emision + "T12:00:00").toLocaleDateString("es-ES", {
           day: "2-digit",
@@ -311,6 +312,7 @@ export default function DetalleFacturaPage() {
               body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             }
             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color:#222; font-size:14px; line-height:1.5; margin:0; padding:0; max-width:100%; }
+            img[data-invoice-logo] { height:48px; width:auto; max-width:220px; object-fit:contain; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
           </style>
         </head>
         <body>
@@ -318,7 +320,7 @@ export default function DetalleFacturaPage() {
             <table style="width:100%; margin-bottom:24px; border-collapse:collapse;">
               <tr>
                 <td style="vertical-align:top; width:50%;">
-                  <img src="${logoUrl}" alt="REHABINCO" style="height:48px; width:auto; max-width:180px;" />
+                  <img data-invoice-logo src=${JSON.stringify(logoUrl)} alt="" style="height:48px; width:auto; max-width:220px; object-fit:contain;" />
                 </td>
                 <td style="vertical-align:top; width:50%; text-align:right;">
                   <p style="margin:0; font-size:14px; font-weight:600;">${esRectificativa ? "FACTURA RECTIFICATIVA Nº" : "FACTURA Nº"}: ${htmlEsc(factura.numero)}</p>
@@ -401,8 +403,29 @@ export default function DetalleFacturaPage() {
     win.document.open();
     win.document.write(html);
     win.document.close();
-    win.focus();
-    win.print();
+
+    const schedulePrint = () => {
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          win.focus();
+          win.print();
+        }, 150);
+      });
+    };
+
+    const logoImg = win.document.querySelector(
+      "img[data-invoice-logo]"
+    ) as HTMLImageElement | null;
+    if (logoImg) {
+      if (logoImg.complete && logoImg.naturalHeight > 0) {
+        schedulePrint();
+      } else {
+        logoImg.addEventListener("load", schedulePrint, { once: true });
+        logoImg.addEventListener("error", schedulePrint, { once: true });
+      }
+    } else {
+      schedulePrint();
+    }
     } finally {
       setPrintingPdf(false);
     }

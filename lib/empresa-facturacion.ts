@@ -12,6 +12,8 @@ export type EmisorFacturacion = {
   email: string;
   iban: string;
   numero_cuenta_bancaria: string;
+  /** URL absoluta o ruta con /; vacío = logo por defecto de la app */
+  logo_url: string;
 };
 
 const envDefaults = (): EmisorFacturacion => ({
@@ -26,6 +28,7 @@ const envDefaults = (): EmisorFacturacion => ({
   email: "",
   iban: process.env.NEXT_PUBLIC_BILLING_COMPANY_IBAN ?? "ES00 0000 0000 0000 0000 0000",
   numero_cuenta_bancaria: "",
+  logo_url: (process.env.NEXT_PUBLIC_BILLING_LOGO_URL ?? "").trim(),
 });
 
 function pick(row: {
@@ -39,6 +42,7 @@ function pick(row: {
   email: string | null;
   iban: string | null;
   numero_cuenta_bancaria: string | null;
+  logo_url: string | null;
 } | null): EmisorFacturacion {
   const d = envDefaults();
   if (!row) return d;
@@ -54,6 +58,7 @@ function pick(row: {
     email: t(row.email) || d.email,
     iban: t(row.iban) || d.iban,
     numero_cuenta_bancaria: t(row.numero_cuenta_bancaria) || d.numero_cuenta_bancaria,
+    logo_url: t(row.logo_url) || d.logo_url,
   };
 }
 
@@ -66,7 +71,7 @@ export async function fetchEmisorFacturacion(
   const { data, error } = await supabase
     .from("empresa_facturacion")
     .select(
-      "razon_social, nif, direccion, codigo_postal, localidad, provincia, telefono, email, iban, numero_cuenta_bancaria"
+      "razon_social, nif, direccion, codigo_postal, localidad, provincia, telefono, email, iban, numero_cuenta_bancaria, logo_url"
     )
     .eq("id", 1)
     .maybeSingle();
@@ -75,4 +80,14 @@ export async function fetchEmisorFacturacion(
     return envDefaults();
   }
   return pick(data);
+}
+
+/** Construye la URL final del logotipo en la ventana de impresión. */
+export function resolveInvoiceLogoUrl(logoUrl: string, origin: string): string {
+  const fallback = `${origin}/images/logo-web.png`;
+  const raw = logoUrl.trim();
+  if (!raw) return fallback;
+  if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+  if (raw.startsWith("/")) return `${origin}${raw}`;
+  return fallback;
 }

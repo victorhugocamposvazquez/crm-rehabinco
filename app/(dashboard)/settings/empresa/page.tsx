@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { resolveInvoiceLogoUrl } from "@/lib/empresa-facturacion";
 import { useAuth } from "@/lib/auth/auth-context";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -24,6 +25,7 @@ const empty = {
   email: "",
   iban: "",
   numero_cuenta_bancaria: "",
+  logo_url: "",
 };
 
 export default function EmpresaFacturacionPage() {
@@ -43,7 +45,7 @@ export default function EmpresaFacturacionPage() {
     supabase
       .from("empresa_facturacion")
       .select(
-        "razon_social, nif, direccion, codigo_postal, localidad, provincia, telefono, email, iban, numero_cuenta_bancaria"
+        "razon_social, nif, direccion, codigo_postal, localidad, provincia, telefono, email, iban, numero_cuenta_bancaria, logo_url"
       )
       .eq("id", 1)
       .single()
@@ -62,6 +64,7 @@ export default function EmpresaFacturacionPage() {
             email: data.email ?? "",
             iban: data.iban ?? "",
             numero_cuenta_bancaria: data.numero_cuenta_bancaria ?? "",
+            logo_url: data.logo_url ?? "",
           });
         }
         setLoading(false);
@@ -104,6 +107,7 @@ export default function EmpresaFacturacionPage() {
         email: form.email.trim() || null,
         iban: form.iban.trim() || null,
         numero_cuenta_bancaria: form.numero_cuenta_bancaria.trim() || null,
+        logo_url: form.logo_url.trim() || null,
       })
       .eq("id", 1);
     setSaving(false);
@@ -141,6 +145,30 @@ export default function EmpresaFacturacionPage() {
             <p className="text-sm text-neutral-500">Cargando…</p>
           ) : (
             <form onSubmit={onSave} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="logo">Logotipo (factura)</Label>
+                <Input
+                  id="logo"
+                  value={form.logo_url}
+                  onChange={(e) => setForm((f) => ({ ...f, logo_url: e.target.value }))}
+                  placeholder="https://… o /images/mi-logo.png (vacío = logo por defecto)"
+                  autoComplete="off"
+                />
+                <p className="text-xs text-neutral-500">
+                  URL pública o ruta bajo el mismo sitio. Si está vacío, se usa <code className="text-xs">/images/logo-web.png</code> o la variable
+                  pública de entorno.
+                </p>
+                {form.logo_url.trim() && typeof window !== "undefined" ? (
+                  <img
+                    src={resolveInvoiceLogoUrl(form.logo_url, window.location.origin)}
+                    alt="Vista previa logo"
+                    className="mt-2 h-12 w-auto max-w-[200px] object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                ) : null}
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="razon">Razón social</Label>
                 <Input

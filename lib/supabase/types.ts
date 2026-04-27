@@ -288,6 +288,7 @@ export interface Database {
           email: string | null;
           iban: string | null;
           numero_cuenta_bancaria: string | null;
+          logo_url: string | null;
           updated_at: string | null;
         };
         Insert: {
@@ -302,6 +303,7 @@ export interface Database {
           email?: string | null;
           iban?: string | null;
           numero_cuenta_bancaria?: string | null;
+          logo_url?: string | null;
         };
         Update: {
           razon_social?: string;
@@ -314,6 +316,7 @@ export interface Database {
           email?: string | null;
           iban?: string | null;
           numero_cuenta_bancaria?: string | null;
+          logo_url?: string | null;
         };
       };
     };
