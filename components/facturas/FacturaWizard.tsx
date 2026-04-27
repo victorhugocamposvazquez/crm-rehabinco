@@ -12,6 +12,7 @@ import {
 } from "@/lib/validations/factura";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { anioEmisionFecha, siguienteNumeroFactura } from "@/lib/facturacion-numeracion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -341,19 +342,18 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
       return;
     }
 
-    const year = new Date().getFullYear();
-    const serie = process.env.NEXT_PUBLIC_BILLING_SERIE ?? "RHB";
-    const prefix = esRectificativa ? `${serie}-R-${year}-` : `${serie}-${year}-`;
-    const { data: existing } = await supabase
-      .from("facturas")
-      .select("numero")
-      .like("numero", `${prefix}%`)
-      .order("numero", { ascending: false })
-      .limit(1);
-    const last = existing?.[0]?.numero;
-    const lastCorrelative = last ? Number(last.split("-").pop() ?? "0") : 0;
-    const nextNum = lastCorrelative + 1;
-    const numero = `${prefix}${String(nextNum).padStart(4, "0")}`;
+    const year = anioEmisionFecha(data.fechaEmision);
+    let numero: string;
+    try {
+      numero = await siguienteNumeroFactura(supabase, {
+        year,
+        esRectificativa: esRectificativa,
+      });
+    } catch (e) {
+      setCreateError(e instanceof Error ? e.message : "Error al asignar el número de factura");
+      setCreating(false);
+      return;
+    }
 
     const insertPayload: Record<string, unknown> = {
       user_id: user.id,

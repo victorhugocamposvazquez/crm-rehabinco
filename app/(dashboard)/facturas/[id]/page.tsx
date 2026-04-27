@@ -418,7 +418,9 @@ export default function DetalleFacturaPage() {
     idoc.write(facturaDocumentHtml);
     idoc.close();
 
-    const safeFilename = `${factura.numero.replace(/[\\/:*?"<>|]+/g, "-")}.pdf`;
+    // Mismo identificador que la factura; caracteres reservados del sistema → guiones (p. ej. 1/2026 → 1-2026)
+    const safeBase = factura.numero.replace(/[\\/:*?"<>|]+/g, "-");
+    const safeFilename = `Factura-${safeBase}.pdf`;
 
     const generateFile = () => {
       const body = idoc.body;

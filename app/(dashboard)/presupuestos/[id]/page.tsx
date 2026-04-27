@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { anioEmisionFecha, siguienteNumeroFactura } from "@/lib/facturacion-numeracion";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -111,20 +112,16 @@ export default function DetallePresupuestoPage() {
       return;
     }
 
-    const serie = process.env.NEXT_PUBLIC_BILLING_SERIE ?? "RHB";
-    const year = new Date().getFullYear();
-    const prefix = `${serie}-${year}-`;
-    const { data: existing } = await supabase
-      .from("facturas")
-      .select("numero")
-      .like("numero", `${prefix}%`)
-      .order("numero", { ascending: false })
-      .limit(1);
-    const last = existing?.[0]?.numero;
-    const lastCorrelative = last ? Number(last.split("-").pop() ?? "0") : 0;
-    const numero = `${prefix}${String(lastCorrelative + 1).padStart(4, "0")}`;
-
     const today = new Date().toISOString().slice(0, 10);
+    const year = anioEmisionFecha(today);
+    let numero: string;
+    try {
+      numero = await siguienteNumeroFactura(supabase, { year, esRectificativa: false });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al asignar el número de factura");
+      setConverting(false);
+      return;
+    }
 
     const { data: factura, error: errFactura } = await supabase
       .from("facturas")
