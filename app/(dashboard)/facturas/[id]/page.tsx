@@ -4,6 +4,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { fetchEmisorFacturacion } from "@/lib/empresa-facturacion";
+import { toast } from "sonner";
 import { FacturaDetailSkeleton } from "@/components/facturas/FacturaDetailSkeleton";
 import { PagosCard } from "@/components/facturas/PagosCard";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -62,6 +64,7 @@ export default function DetalleFacturaPage() {
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [printingPdf, setPrintingPdf] = useState(false);
 
   const formatCurrency = (value: number) =>
     value.toLocaleString("es-ES", {
@@ -204,36 +207,35 @@ export default function DetalleFacturaPage() {
     router.refresh();
   };
 
-  const handleDownloadPdf = () => {
+  const htmlEsc = (s: string) =>
+    s
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+
+  const handleDownloadPdf = async () => {
     if (!factura) return;
-    const emisor = {
-      nombre: process.env.NEXT_PUBLIC_BILLING_COMPANY_NAME ?? "Tu Empresa S.L.",
-      nif: process.env.NEXT_PUBLIC_BILLING_COMPANY_NIF ?? "B00000000",
-      direccion:
-        process.env.NEXT_PUBLIC_BILLING_COMPANY_ADDRESS ??
-        "Calle Ejemplo 1, 28001 Madrid, España",
-      cp: process.env.NEXT_PUBLIC_BILLING_COMPANY_CP ?? "28001",
-      poblacion:
-        process.env.NEXT_PUBLIC_BILLING_COMPANY_CITY ?? "Madrid",
-      provincia:
-        process.env.NEXT_PUBLIC_BILLING_COMPANY_PROVINCE ?? "Madrid",
-      iban:
-        process.env.NEXT_PUBLIC_BILLING_COMPANY_IBAN ??
-        "ES00 0000 0000 0000 0000 0000",
-    };
-    const clienteNombre = factura.clientes?.nombre ?? "Cliente";
-    const clienteDoc = factura.clientes?.documento_fiscal ?? "-";
-    const docLabel = factura.clientes?.tipo_documento
-      ? String(factura.clientes.tipo_documento).toUpperCase()
-      : (factura.clientes?.tipo_cliente === "empresa" ? "NIF" : "DNI");
+    setPrintingPdf(true);
+    try {
+    const supabase = createClient();
+    const emisor = await fetchEmisorFacturacion(supabase);
+
+    const clienteNombre = htmlEsc(factura.clientes?.nombre ?? "Cliente");
+    const clienteDoc = htmlEsc(factura.clientes?.documento_fiscal ?? "-");
+    const docLabel = htmlEsc(
+      factura.clientes?.tipo_documento
+        ? String(factura.clientes.tipo_documento).toUpperCase()
+        : (factura.clientes?.tipo_cliente === "empresa" ? "NIF" : "DNI")
+    );
     const dirParts = [
       factura.clientes?.direccion,
       factura.clientes?.codigo_postal,
       factura.clientes?.localidad,
     ].filter(Boolean);
-    const clienteDireccion = dirParts.length > 0 ? dirParts.join(", ") : "-";
-    const clienteEmail = factura.clientes?.email ?? "-";
-    const clienteTelefono = factura.clientes?.telefono ?? "-";
+    const clienteDireccion = htmlEsc(dirParts.length > 0 ? dirParts.join(", ") : "-");
+    const clienteEmail = htmlEsc(factura.clientes?.email ?? "-");
+    const clienteTelefono = factura.clientes?.telefono ? htmlEsc(factura.clientes.telefono) : "";
 
     const lineasHtml = lineas
       .map((l, i) => {
@@ -244,7 +246,7 @@ export default function DetalleFacturaPage() {
         const bg = i % 2 === 1 ? "background:#f5f5f5;" : "";
         return `
         <tr style="${bg}">
-          <td style="padding:12px 10px;border-bottom:1px solid #e5e5e5;">${l.descripcion}</td>
+          <td style="padding:12px 10px;border-bottom:1px solid #e5e5e5;">${htmlEsc(l.descripcion)}</td>
           <td style="padding:12px 10px;border-bottom:1px solid #e5e5e5;text-align:right;">${Number(l.cantidad).toFixed(2)}</td>
           <td style="padding:12px 10px;border-bottom:1px solid #e5e5e5;text-align:right;">${formatCurrency(base)}</td>
           <td style="padding:12px 10px;border-bottom:1px solid #e5e5e5;text-align:right;">${formatCurrency(ivaLinea)}</td>
@@ -271,12 +273,38 @@ export default function DetalleFacturaPage() {
         })
       : "";
 
+    const pagoBancoLines = (() => {
+      const parts: string[] = [];
+      if (emisor.iban) {
+        parts.push(`IBAN: <strong>${htmlEsc(emisor.iban)}</strong>`);
+      }
+      if (emisor.numero_cuenta_bancaria) {
+        parts.push(`N.º de cuenta: <strong>${htmlEsc(emisor.numero_cuenta_bancaria)}</strong>`);
+      }
+      if (parts.length === 0) {
+        toast.error("Falta IBAN o número de cuenta en ajustes de empresa. Configúralo en Ajustes → Datos de empresa.");
+        return null;
+      }
+      return parts.join(" · ");
+    })();
+
+    if (pagoBancoLines === null) {
+      return;
+    }
+
+    const empresaEmailLine = emisor.email
+      ? `<p style="margin:4px 0 0 0; font-weight:600;">${htmlEsc(emisor.email)}</p>`
+      : "";
+    const empresaTelLine = emisor.telefono
+      ? `<p style="margin:4px 0 0 0; font-weight:600;">Tel. ${htmlEsc(emisor.telefono)}</p>`
+      : "";
+
     const html = `
       <!DOCTYPE html>
       <html>
         <head>
           <meta charset="utf-8" />
-          <title>${factura.numero}</title>
+          <title>${htmlEsc(factura.numero)}</title>
           <style>
             @page { size: A4; margin: 12mm; }
             @media print {
@@ -293,8 +321,8 @@ export default function DetalleFacturaPage() {
                   <img src="${logoUrl}" alt="REHABINCO" style="height:48px; width:auto; max-width:180px;" />
                 </td>
                 <td style="vertical-align:top; width:50%; text-align:right;">
-                  <p style="margin:0; font-size:14px; font-weight:600;">${esRectificativa ? "FACTURA RECTIFICATIVA Nº" : "FACTURA Nº"}: ${factura.numero}</p>
-                  <p style="margin:4px 0 0 0; font-size:13px; color:#444;">${fechaFormateada}</p>
+                  <p style="margin:0; font-size:14px; font-weight:600;">${esRectificativa ? "FACTURA RECTIFICATIVA Nº" : "FACTURA Nº"}: ${htmlEsc(factura.numero)}</p>
+                  <p style="margin:4px 0 0 0; font-size:13px; color:#444;">${htmlEsc(fechaFormateada)}</p>
                 </td>
               </tr>
             </table>
@@ -302,8 +330,8 @@ export default function DetalleFacturaPage() {
             ${esRectificativa && (facturaOriginal || factura.causa_rectificacion) ? `
             <div style="margin-bottom:24px; padding:12px 16px; background:#fef3c7; border:1px solid #fcd34d; border-radius:8px;">
               <p style="margin:0 0 6px 0; font-size:12px; font-weight:700; color:#92400e;">DOCUMENTO RECTIFICATIVO</p>
-              ${facturaOriginal ? `<p style="margin:0; font-size:12px; color:#78350f;">Rectifica la factura nº ${facturaOriginal.numero}${fechaOriginalFormateada ? `, de fecha ${fechaOriginalFormateada}` : ""}.</p>` : ""}
-              ${factura.causa_rectificacion ? `<p style="margin:6px 0 0 0; font-size:12px; color:#78350f;"><strong>Causa:</strong> ${factura.causa_rectificacion}</p>` : ""}
+              ${facturaOriginal ? `<p style="margin:0; font-size:12px; color:#78350f;">Rectifica la factura nº ${htmlEsc(facturaOriginal.numero)}${fechaOriginalFormateada ? `, de fecha ${htmlEsc(fechaOriginalFormateada)}` : ""}.</p>` : ""}
+              ${factura.causa_rectificacion ? `<p style="margin:6px 0 0 0; font-size:12px; color:#78350f;"><strong>Causa:</strong> ${htmlEsc(factura.causa_rectificacion)}</p>` : ""}
             </div>
             ` : ""}
 
@@ -311,10 +339,12 @@ export default function DetalleFacturaPage() {
               <tr>
                 <td style="vertical-align:top; width:50%; padding-right:20px;">
                   <p style="margin:0 0 8px 0; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#333;">Datos empresa</p>
-                  <p style="margin:0; font-weight:600;">${emisor.nombre}</p>
-                  <p style="margin:0; font-weight:600;">${emisor.direccion}</p>
-                  <p style="margin:0; font-weight:600;">${emisor.cp} ${emisor.poblacion} (${emisor.provincia})</p>
-                  <p style="margin:0; font-weight:600;">${emisor.nif}</p>
+                  <p style="margin:0; font-weight:600;">${htmlEsc(emisor.razon_social)}</p>
+                  <p style="margin:0; font-weight:600;">${htmlEsc(emisor.direccion)}</p>
+                  <p style="margin:0; font-weight:600;">${htmlEsc(emisor.codigo_postal)} ${htmlEsc(emisor.localidad)} (${htmlEsc(emisor.provincia)})</p>
+                  <p style="margin:0; font-weight:600;">${htmlEsc(emisor.nif)}</p>
+                  ${empresaEmailLine}
+                  ${empresaTelLine}
                 </td>
                 <td style="vertical-align:top; width:50%; text-align:right;">
                   <p style="margin:0 0 8px 0; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#333;">Datos cliente</p>
@@ -322,7 +352,7 @@ export default function DetalleFacturaPage() {
                   <p style="margin:0; font-weight:600;">${clienteDireccion}</p>
                   <p style="margin:0; font-weight:600;">${docLabel}: ${clienteDoc}</p>
                   <p style="margin:0; font-weight:600;">${clienteEmail}</p>
-                  ${clienteTelefono && clienteTelefono !== "-" ? `<p style="margin:0; font-weight:600;">${clienteTelefono}</p>` : ""}
+                  ${clienteTelefono ? `<p style="margin:0; font-weight:600;">${clienteTelefono}</p>` : ""}
                 </td>
               </tr>
             </table>
@@ -352,7 +382,7 @@ export default function DetalleFacturaPage() {
 
             <div style="margin-top:48px; padding-top:20px; border-top:1px solid #ddd;">
               <p style="margin:0; font-size:12px; color:#444; font-weight:500;">
-                El pago se realizará mediante transferencia bancaria al IBAN: ${emisor.iban}
+                El pago se realizará mediante <strong>transferencia bancaria</strong>. ${pagoBancoLines}
               </p>
               <p style="margin:10px 0 0 0; font-size:11px; color:#666;">
                 Documento emitido conforme al Reglamento por el que se regulan las obligaciones de facturación (Real Decreto 1619/2012).
@@ -364,12 +394,18 @@ export default function DetalleFacturaPage() {
     `;
 
     const win = window.open("", "_blank");
-    if (!win) return;
+    if (!win) {
+      toast.error("No se pudo abrir la ventana de impresión. Permite ventanas emergentes e inténtalo de nuevo.");
+      return;
+    }
     win.document.open();
     win.document.write(html);
     win.document.close();
     win.focus();
     win.print();
+    } finally {
+      setPrintingPdf(false);
+    }
   };
 
   if (loading) return <FacturaDetailSkeleton />;
@@ -410,9 +446,16 @@ export default function DetalleFacturaPage() {
               <span className="hidden md:inline">Editar</span>
             </Link>
           </Button>
-          <Button variant="secondary" size="icon" className="md:h-9 md:w-auto md:gap-2 md:px-3" onClick={handleDownloadPdf} aria-label="Descargar PDF">
+          <Button
+            variant="secondary"
+            size="icon"
+            className="md:h-9 md:w-auto md:gap-2 md:px-3"
+            onClick={() => void handleDownloadPdf()}
+            disabled={printingPdf}
+            aria-label="Descargar PDF"
+          >
             <FileDown className="h-4 w-4" strokeWidth={1.5} />
-            <span className="hidden md:inline">Descargar PDF</span>
+            <span className="hidden md:inline">{printingPdf ? "Preparando…" : "Descargar PDF"}</span>
           </Button>
           <Button
             variant="secondary"

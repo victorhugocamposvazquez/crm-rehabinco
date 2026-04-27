@@ -275,6 +275,47 @@ export interface Database {
           updated_at?: string;
         };
       };
+      empresa_facturacion: {
+        Row: {
+          id: number;
+          razon_social: string;
+          nif: string;
+          direccion: string;
+          codigo_postal: string;
+          localidad: string;
+          provincia: string;
+          telefono: string | null;
+          email: string | null;
+          iban: string | null;
+          numero_cuenta_bancaria: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: number;
+          razon_social?: string;
+          nif?: string;
+          direccion?: string;
+          codigo_postal?: string;
+          localidad?: string;
+          provincia?: string;
+          telefono?: string | null;
+          email?: string | null;
+          iban?: string | null;
+          numero_cuenta_bancaria?: string | null;
+        };
+        Update: {
+          razon_social?: string;
+          nif?: string;
+          direccion?: string;
+          codigo_postal?: string;
+          localidad?: string;
+          provincia?: string;
+          telefono?: string | null;
+          email?: string | null;
+          iban?: string | null;
+          numero_cuenta_bancaria?: string | null;
+        };
+      };
     };
   };
 }

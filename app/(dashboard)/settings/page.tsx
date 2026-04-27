@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
 import { createUser } from "@/lib/actions/usuarios";
-import { UserPlus } from "lucide-react";
+import { UserPlus, Building2 } from "lucide-react";
 
 export default function SettingsPage() {
   const { user, signOut } = useAuth();
@@ -105,6 +106,25 @@ export default function SettingsPage() {
             </Button>
           </CardContent>
         </Card>
+
+        {user?.role === "admin" && (
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5" strokeWidth={1.5} />
+                Datos de empresa (facturación)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-neutral-600">
+                Razón social, dirección, IBAN y número de cuenta que salen al imprimir facturas.
+              </p>
+              <Button className="mt-4" variant="secondary" asChild>
+                <Link href="/settings/empresa">Editar datos de empresa</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {user?.role === "admin" && (
           <Card className="md:col-span-2">
