@@ -3,7 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
-import { Home, Users, FileText, ClipboardList, Building2, LogOut, KeyRound } from "lucide-react";
+import {
+  Home,
+  Users,
+  FileText,
+  ClipboardList,
+  Building2,
+  LogOut,
+  KeyRound,
+  Settings,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +27,7 @@ const navItems = [
   { href: "/propiedades", label: "Propiedades", icon: Building2 },
   { href: "/presupuestos", label: "Presupuestos", icon: ClipboardList },
   { href: "/facturas", label: "Facturas", icon: FileText },
+  { href: "/settings", label: "Ajustes", icon: Settings },
 ];
 
 export function TopBar() {
@@ -87,7 +97,9 @@ export function TopBar() {
           >
             {navItems.map(({ href, label, icon: Icon }) => {
               const isActive =
-                pathname === href || (href !== "/" && pathname.startsWith(href));
+                pathname === href ||
+                (href !== "/" && href !== "/settings" && pathname.startsWith(href)) ||
+                (href === "/settings" && pathname.startsWith("/settings"));
               return (
                 <Link
                   key={href}
@@ -107,11 +119,19 @@ export function TopBar() {
           </nav>
 
           {user && (
+            <div className="flex shrink-0 items-center gap-1">
+            <Link
+              href="/settings"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-white text-neutral-600 transition-colors hover:bg-neutral-50 hover:text-accent md:hidden"
+              aria-label="Ajustes"
+            >
+              <Settings className="h-5 w-5" strokeWidth={1.5} />
+            </Link>
             <button
               type="button"
               onClick={() => setSheetOpen(true)}
               className="flex shrink-0 items-center gap-2 rounded-full border border-border bg-white px-2 py-1.5 shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:bg-neutral-50 active:scale-[0.98]"
-              aria-label="Abrir sesión y ajustes"
+              aria-label="Abrir menú de sesión"
             >
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
                 {initials}
@@ -120,6 +140,7 @@ export function TopBar() {
                 {user.role === "admin" ? "Admin" : "Agente"}
               </span>
             </button>
+            </div>
           )}
         </div>
       </header>
@@ -191,8 +212,20 @@ export function TopBar() {
             onClick={() => setSheetOpen(false)}
             className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-[15px] font-medium text-foreground transition-colors hover:bg-neutral-50"
           >
-            {user?.role === "admin" ? "Crear usuarios" : "Ajustes completos"}
+            <Settings className="h-5 w-5 shrink-0 text-neutral-500" strokeWidth={1.5} />
+            <span>Ajustes de cuenta</span>
           </Link>
+
+          {user?.role === "admin" && (
+            <Link
+              href="/settings/empresa"
+              onClick={() => setSheetOpen(false)}
+              className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-[15px] font-medium text-foreground transition-colors hover:bg-neutral-50"
+            >
+              <Building2 className="h-5 w-5 shrink-0 text-neutral-500" strokeWidth={1.5} />
+              <span>Datos de empresa (facturación)</span>
+            </Link>
+          )}
 
           <button
             type="button"
