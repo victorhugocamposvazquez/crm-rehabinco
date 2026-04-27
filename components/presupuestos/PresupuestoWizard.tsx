@@ -12,12 +12,15 @@ import { cn } from "@/lib/utils";
 import { Plus, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { ClienteQuickSheet } from "@/components/clientes/ClienteQuickSheet";
+import { parseDecimalMientrasEscribe } from "@/lib/decimales-input";
 
 interface Linea {
   descripcion: string;
   cantidad: number;
   precioUnitario: number;
 }
+
+type LineaBorrador = Linea & { _precioDraft?: string; _cantDraft?: string };
 
 interface PresupuestoWizardProps {
   presupuestoId?: string;
@@ -30,7 +33,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
   const [clienteId, setClienteId] = useState("");
   const [concepto, setConcepto] = useState("");
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
-  const [lineas, setLineas] = useState<Linea[]>([
+  const [lineas, setLineas] = useState<LineaBorrador[]>([
     { descripcion: "", cantidad: 0, precioUnitario: 0 },
   ]);
   const [porcentajeImpuesto, setPorcentajeImpuesto] = useState(21);
@@ -81,14 +84,28 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
       p.map((l, idx) => (idx === i ? { ...l, [field]: value } : l))
     );
 
-  const lineasValidas = lineas.filter((l) => l.descripcion.trim() && l.cantidad > 0 && l.precioUnitario >= 0);
+  const commitLineasBorrador = (rows: LineaBorrador[]): Linea[] =>
+    rows.map((l) => ({
+      descripcion: l.descripcion,
+      cantidad:
+        l._cantDraft !== undefined
+          ? parseDecimalMientrasEscribe(l._cantDraft, { allowNegative: false })
+          : l.cantidad,
+      precioUnitario:
+        l._precioDraft !== undefined
+          ? parseDecimalMientrasEscribe(l._precioDraft, { allowNegative: false })
+          : l.precioUnitario,
+    }));
+
+  const lineasFijas = commitLineasBorrador(lineas);
+  const lineasValidas = lineasFijas.filter((l) => l.descripcion.trim() && l.cantidad > 0 && l.precioUnitario >= 0);
   const step2Valid = z.array(z.object({
     descripcion: z.string().min(1),
     cantidad: z.number().min(0.001),
     precioUnitario: z.number().min(0),
   })).min(1).safeParse(lineasValidas).success;
 
-  const baseImponible = lineas.reduce(
+  const baseImponible = lineasFijas.reduce(
     (acc, l) => acc + Number(l.cantidad) * Number(l.precioUnitario),
     0
   );
@@ -129,7 +146,8 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
 
       await supabase.from("presupuesto_lineas").delete().eq("presupuesto_id", presupuestoId);
 
-      const lineasToInsert = lineas
+      const lineasNetas = commitLineasBorrador(lineas);
+      const lineasToInsert = lineasNetas
         .filter((l) => l.descripcion.trim() && l.cantidad > 0)
         .map((l, orden) => ({
           presupuesto_id: presupuestoId,
@@ -189,7 +207,8 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
       return;
     }
 
-    const lineasToInsert = lineas
+    const lineasNetasNueva = commitLineasBorrador(lineas);
+    const lineasToInsert = lineasNetasNueva
       .filter((l) => l.descripcion.trim() && l.cantidad > 0)
       .map((l, orden) => ({
         presupuesto_id: presupuesto.id,
@@ -339,23 +358,83 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
                 <div className="w-24 space-y-2">
                   <Label>Cant.</Label>
                   <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={l.cantidad || ""}
-                    onChange={(e) => updateLinea(i, "cantidad", parseFloat(e.target.value) || 0)}
+                    type="text"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    placeholder="0"
+                    value={
+                      l._cantDraft !== undefined
+                        ? l._cantDraft
+                        : l.cantidad === 0
+                          ? ""
+                          : String(l.cantidad)
+                    }
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      setLineas((p) =>
+                        p.map((line, idx) =>
+                          idx === i
+                            ? {
+                                ...line,
+                                _cantDraft: raw,
+                                cantidad: parseDecimalMientrasEscribe(raw, { allowNegative: false }),
+                              }
+                            : line
+                        )
+                      );
+                    }}
+                    onBlur={() => {
+                      setLineas((p) =>
+                        p.map((line, idx) => {
+                          if (idx !== i) return line;
+                          if (line._cantDraft === undefined) return line;
+                          const n = parseDecimalMientrasEscribe(line._cantDraft, { allowNegative: false });
+                          const { _cantDraft, ...rest } = line;
+                          return { ...rest, cantidad: n };
+                        })
+                      );
+                    }}
                   />
                 </div>
                 <div className="w-32 space-y-2">
                   <Label>Precio</Label>
                   <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={l.precioUnitario || ""}
-                    onChange={(e) =>
-                      updateLinea(i, "precioUnitario", parseFloat(e.target.value) || 0)
+                    type="text"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    placeholder="0,00"
+                    value={
+                      l._precioDraft !== undefined
+                        ? l._precioDraft
+                        : l.precioUnitario === 0
+                          ? ""
+                          : String(l.precioUnitario)
                     }
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      setLineas((p) =>
+                        p.map((line, idx) =>
+                          idx === i
+                            ? {
+                                ...line,
+                                _precioDraft: raw,
+                                precioUnitario: parseDecimalMientrasEscribe(raw, { allowNegative: false }),
+                              }
+                            : line
+                        )
+                      );
+                    }}
+                    onBlur={() => {
+                      setLineas((p) =>
+                        p.map((line, idx) => {
+                          if (idx !== i) return line;
+                          if (line._precioDraft === undefined) return line;
+                          const n = parseDecimalMientrasEscribe(line._precioDraft, { allowNegative: false });
+                          const { _precioDraft, ...rest } = line;
+                          return { ...rest, precioUnitario: n };
+                        })
+                      );
+                    }}
                   />
                 </div>
                 <Button

@@ -22,6 +22,10 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { ChevronLeft, Plus, Trash2, UserPlus } from "lucide-react";
 import { ClienteQuickSheet } from "@/components/clientes/ClienteQuickSheet";
+import { parseDecimalMientrasEscribe } from "@/lib/decimales-input";
+
+/** Borradores de texto para no perder "10." al convertir a número en cada tecla */
+type LineaConBorrador = FacturaLinea & { _precioDraft?: string; _cantDraft?: string };
 
 const STEPS = [
   { id: 1, title: "Cliente y fechas" },
@@ -152,7 +156,7 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
     });
   }, [facturaOriginalId, facturaId, today]);
 
-  const [lineas, setLineas] = useState<FacturaLinea[]>([
+  const [lineas, setLineas] = useState<LineaConBorrador[]>([
     { descripcion: "", cantidad: 1, precioUnitario: 0, ivaPorcentaje: 21 },
   ]);
 
@@ -220,8 +224,23 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
     setData((p) => ({ ...p, clienteId: cliente.id }));
   };
 
+  const commitLineasDrafts = (rows: LineaConBorrador[]): FacturaLinea[] =>
+    rows.map((l) => ({
+      descripcion: l.descripcion,
+      cantidad:
+        l._cantDraft !== undefined
+          ? parseDecimalMientrasEscribe(l._cantDraft, { allowNegative: esRectificativa })
+          : l.cantidad,
+      precioUnitario:
+        l._precioDraft !== undefined
+          ? parseDecimalMientrasEscribe(l._precioDraft, { allowNegative: false })
+          : l.precioUnitario,
+      ivaPorcentaje: l.ivaPorcentaje,
+    }));
+
   const onStep2 = () => {
-    const valid = lineas.every((l) => {
+    const committed = commitLineasDrafts(lineas);
+    const valid = committed.every((l) => {
       if (!l.descripcion.trim()) return false;
       if (esRectificativa) return l.cantidad !== 0;
       return l.cantidad > 0 && l.precioUnitario >= 0;
@@ -231,7 +250,8 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
       return;
     }
     setStep2Attempted(false);
-    setData((p) => ({ ...p, lineas }));
+    setLineas(committed);
+    setData((p) => ({ ...p, lineas: committed }));
     setStep(3);
   };
 
@@ -245,12 +265,6 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
     setLineas((p) => [...p, { descripcion: "", cantidad: 1, precioUnitario: 0, ivaPorcentaje: 21 }]);
   const removeLinea = (i: number) =>
     setLineas((p) => p.filter((_, idx) => idx !== i));
-  const parseNum = (v: string): number => {
-    const cleaned = String(v || "").trim().replace(",", ".");
-    const n = parseFloat(cleaned);
-    return isNaN(n) ? 0 : Math.max(0, n);
-  };
-
   const updateLinea = (i: number, field: keyof FacturaLinea, value: string | number) => {
     setStep2Attempted(false);
     setLineas((p) =>
@@ -294,7 +308,8 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
       return;
     }
     const clienteId = data.clienteId || null;
-    const lineasToSave = (data.lineas ?? lineas).map((l, orden) => ({
+    const lineasNetas = commitLineasDrafts((data.lineas ?? lineas) as LineaConBorrador[]);
+    const lineasToSave = lineasNetas.map((l, orden) => ({
       descripcion: l.descripcion,
       cantidad: l.cantidad,
       precio_unitario: l.precioUnitario,
@@ -597,11 +612,45 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
                       <Input
                         type="text"
                         inputMode="decimal"
+                        autoComplete="off"
                         placeholder="1"
-                        value={l.cantidad === 0 ? "" : String(l.cantidad)}
-                        onChange={(e) =>
-                          updateLinea(i, "cantidad", parseNum(e.target.value))
+                        value={
+                          l._cantDraft !== undefined
+                            ? l._cantDraft
+                            : l.cantidad === 0
+                              ? ""
+                              : String(l.cantidad)
                         }
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          setLineas((p) =>
+                            p.map((line, idx) =>
+                              idx === i
+                                ? {
+                                    ...line,
+                                    _cantDraft: raw,
+                                    cantidad: parseDecimalMientrasEscribe(raw, {
+                                      allowNegative: esRectificativa,
+                                    }),
+                                  }
+                                : line
+                            )
+                          );
+                          setStep2Attempted(false);
+                        }}
+                        onBlur={() => {
+                          setLineas((p) =>
+                            p.map((line, idx) => {
+                              if (idx !== i) return line;
+                              if (line._cantDraft === undefined) return line;
+                              const n = parseDecimalMientrasEscribe(line._cantDraft, {
+                                allowNegative: esRectificativa,
+                              });
+                              const { _cantDraft, ...rest } = line;
+                              return { ...rest, cantidad: n };
+                            })
+                          );
+                        }}
                         className={cn("h-9 text-sm", showErr && err.cantidad && "border-red-500 focus-visible:ring-red-500")}
                       />
                     </div>
@@ -610,11 +659,41 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
                       <Input
                         type="text"
                         inputMode="decimal"
+                        autoComplete="off"
                         placeholder="0,00"
-                        value={l.precioUnitario === 0 ? "" : String(l.precioUnitario)}
-                        onChange={(e) =>
-                          updateLinea(i, "precioUnitario", parseNum(e.target.value))
+                        value={
+                          l._precioDraft !== undefined
+                            ? l._precioDraft
+                            : l.precioUnitario === 0
+                              ? ""
+                              : String(l.precioUnitario)
                         }
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          setLineas((p) =>
+                            p.map((line, idx) =>
+                              idx === i
+                                ? {
+                                    ...line,
+                                    _precioDraft: raw,
+                                    precioUnitario: parseDecimalMientrasEscribe(raw, { allowNegative: false }),
+                                  }
+                                : line
+                            )
+                          );
+                          setStep2Attempted(false);
+                        }}
+                        onBlur={() => {
+                          setLineas((p) =>
+                            p.map((line, idx) => {
+                              if (idx !== i) return line;
+                              if (line._precioDraft === undefined) return line;
+                              const n = parseDecimalMientrasEscribe(line._precioDraft, { allowNegative: false });
+                              const { _precioDraft, ...rest } = line;
+                              return { ...rest, precioUnitario: n };
+                            })
+                          );
+                        }}
                         className={cn("h-9 text-sm", showErr && err.precioUnitario && "border-red-500 focus-visible:ring-red-500")}
                       />
                     </div>
