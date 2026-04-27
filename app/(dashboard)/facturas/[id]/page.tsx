@@ -300,22 +300,7 @@ export default function DetalleFacturaPage() {
       ? `<p style="margin:4px 0 0 0; font-weight:600;">Tel. ${htmlEsc(emisor.telefono)}</p>`
       : "";
 
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <title>${htmlEsc(factura.numero)}</title>
-          <style>
-            @page { size: A4; margin: 12mm; }
-            @media print {
-              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            }
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color:#222; font-size:14px; line-height:1.5; margin:0; padding:0; max-width:100%; }
-            img[data-invoice-logo] { height:48px; width:auto; max-width:220px; object-fit:contain; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-          </style>
-        </head>
-        <body>
+    const facturaBodyInner = `
           <div style="max-width:100%; padding:0 4px;">
             <table style="width:100%; margin-bottom:24px; border-collapse:collapse;">
               <tr>
@@ -391,40 +376,90 @@ export default function DetalleFacturaPage() {
               </p>
             </div>
           </div>
-        </body>
-      </html>
     `;
 
-    const win = window.open("", "_blank");
-    if (!win) {
-      toast.error("No se pudo abrir la ventana de impresión. Permite ventanas emergentes e inténtalo de nuevo.");
+    const facturaDocumentHtml = `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>${htmlEsc(factura.numero)}</title>
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color:#222; font-size:14px; line-height:1.5; margin:0; padding:8px; max-width:100%; box-sizing:border-box; }
+      img[data-invoice-logo] { height:48px; width:auto; max-width:220px; object-fit:contain; }
+    </style>
+  </head>
+  <body>
+    ${facturaBodyInner}
+  </body>
+</html>`;
+
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("title", "PDF factura");
+    iframe.setAttribute("aria-hidden", "true");
+    Object.assign(iframe.style, {
+      position: "fixed",
+      left: "0",
+      top: "0",
+      width: "794px",
+      minHeight: "1123px",
+      opacity: "0",
+      pointerEvents: "none",
+      zIndex: "-1",
+      border: "0",
+    });
+    document.body.appendChild(iframe);
+    const idoc = iframe.contentDocument;
+    if (!idoc) {
+      document.body.removeChild(iframe);
+      toast.error("No se pudo generar el PDF. Inténtalo de nuevo.");
       return;
     }
-    win.document.open();
-    win.document.write(html);
-    win.document.close();
+    idoc.open();
+    idoc.write(facturaDocumentHtml);
+    idoc.close();
 
-    const schedulePrint = () => {
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          win.focus();
-          win.print();
-        }, 150);
-      });
+    const safeFilename = `${factura.numero.replace(/[\\/:*?"<>|]+/g, "-")}.pdf`;
+
+    const generateFile = () => {
+      const body = idoc.body;
+      void import("html2pdf.js")
+        .then((mod) => {
+          const html2pdf = mod.default;
+          return html2pdf()
+            .set({
+              margin: [8, 8, 8, 8],
+              filename: safeFilename,
+              image: { type: "jpeg", quality: 0.92 },
+              html2canvas: { scale: 2, useCORS: true, logging: false, letterRendering: true },
+              jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+            })
+            .from(body)
+            .save()
+            .then(() => {
+              toast.success("PDF descargado");
+            });
+        })
+        .catch((err: unknown) => {
+          const msg = err instanceof Error ? err.message : "Error al generar el PDF";
+          toast.error(msg);
+        })
+        .finally(() => {
+          if (iframe.parentNode) {
+            document.body.removeChild(iframe);
+          }
+        });
     };
 
-    const logoImg = win.document.querySelector(
-      "img[data-invoice-logo]"
-    ) as HTMLImageElement | null;
-    if (logoImg) {
-      if (logoImg.complete && logoImg.naturalHeight > 0) {
-        schedulePrint();
+    const logoInFrame = idoc.querySelector("img[data-invoice-logo]") as HTMLImageElement | null;
+    if (logoInFrame) {
+      if (logoInFrame.complete && logoInFrame.naturalHeight > 0) {
+        setTimeout(generateFile, 100);
       } else {
-        logoImg.addEventListener("load", schedulePrint, { once: true });
-        logoImg.addEventListener("error", schedulePrint, { once: true });
+        logoInFrame.addEventListener("load", () => setTimeout(generateFile, 100), { once: true });
+        logoInFrame.addEventListener("error", () => setTimeout(generateFile, 100), { once: true });
       }
     } else {
-      schedulePrint();
+      setTimeout(generateFile, 100);
     }
     } finally {
       setPrintingPdf(false);

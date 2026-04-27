@@ -20,6 +20,10 @@ interface FacturaCardProps {
   estado: EstadoFactura;
   tipoFactura?: "ordinaria" | "rectificativa";
   onDeleted?: () => void;
+  /** Muestra checkbox a la izquierda para borrado en masa */
+  selectionMode?: boolean;
+  selected?: boolean;
+  onToggleSelected?: (id: string) => void;
 }
 
 const estadoVariant: Record<EstadoFactura, "borrador" | "emitida" | "pagada"> = {
@@ -36,6 +40,9 @@ export function FacturaCard({
   estado,
   tipoFactura,
   onDeleted,
+  selectionMode = false,
+  selected = false,
+  onToggleSelected,
 }: FacturaCardProps) {
   const router = useRouter();
   const cardRef = useRef<HTMLDivElement>(null);
@@ -99,6 +106,21 @@ export function FacturaCard({
     <>
       <Card ref={cardRef} className={cn("relative overflow-hidden bg-white/95 py-0", actionsOpen && "z-[200]")}>
         <div className="relative flex items-center justify-between gap-4 py-4">
+          {selectionMode && (
+            <div
+              className="flex shrink-0 pl-1 pr-1"
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <input
+                type="checkbox"
+                checked={selected}
+                onChange={() => onToggleSelected?.(id)}
+                className="h-4 w-4 cursor-pointer rounded border-border text-accent"
+                aria-label={`Seleccionar factura ${numero}`}
+              />
+            </div>
+          )}
           <div
             role="button"
             tabIndex={0}

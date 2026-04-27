@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { FacturaCard } from "@/components/facturas/FacturaCard";
@@ -10,7 +10,9 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Fab } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search } from "lucide-react";
+import { AlertDialog } from "@/components/ui/alert-dialog";
+import { Plus, Search, Trash2, ListChecks } from "lucide-react";
+import { toast } from "sonner";
 
 interface FacturaRow {
   id: string;
@@ -23,6 +25,7 @@ interface FacturaRow {
 }
 
 export default function FacturasPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const estadoFromUrl = searchParams.get("estado") as "borrador" | "emitida" | "pagada" | null;
   const [loading, setLoading] = useState(true);
@@ -40,6 +43,24 @@ export default function FacturasPage() {
     tipoFactura?: "ordinaria" | "rectificativa";
   }>>([]);
   const [error, setError] = useState<string | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  const exitSelectionMode = useCallback(() => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  const toggleSelectId = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  }, []);
 
   useEffect(() => {
     const supabase = createClient();
@@ -89,6 +110,34 @@ export default function FacturasPage() {
     });
   }, [facturas, search, filterEstado, filterTipo]);
 
+  const selectAllVisible = useCallback(() => {
+    setSelectedIds(new Set(filteredFacturas.map((f) => f.id)));
+  }, [filteredFacturas]);
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  const handleBulkDelete = async () => {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+    const supabase = createClient();
+    const { error: delErr } = await supabase.from("facturas").delete().in("id", ids);
+    setBulkDeleting(false);
+    if (delErr) {
+      toast.error(delErr.message);
+      return;
+    }
+    setFacturas((prev) => prev.filter((f) => !ids.includes(f.id)));
+    exitSelectionMode();
+    setBulkDeleteOpen(false);
+    toast.success(
+      ids.length === 1 ? "1 factura eliminada" : `${ids.length} facturas eliminadas`
+    );
+    router.refresh();
+  };
+
   return (
     <div>
       <PageHeader
@@ -96,12 +145,26 @@ export default function FacturasPage() {
         title="Facturas"
         description="Gestiona facturas y cobros"
         actions={
-          <Button asChild size="sm">
-            <Link href="/facturas/nueva" className="gap-2">
-              <Plus className="h-4 w-4" strokeWidth={1.5} />
-              Crear factura
-            </Link>
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {!loading && facturas.length > 0 && (
+              <Button
+                type="button"
+                variant={selectionMode ? "default" : "secondary"}
+                size="sm"
+                onClick={() => (selectionMode ? exitSelectionMode() : setSelectionMode(true))}
+                className="gap-2"
+              >
+                <ListChecks className="h-4 w-4" strokeWidth={1.5} />
+                {selectionMode ? "Cancelar selección" : "Seleccionar"}
+              </Button>
+            )}
+            <Button asChild size="sm">
+              <Link href="/facturas/nueva" className="gap-2">
+                <Plus className="h-4 w-4" strokeWidth={1.5} />
+                Crear factura
+              </Link>
+            </Button>
+          </div>
         }
       />
 
@@ -161,6 +224,49 @@ export default function FacturasPage() {
         </div>
       )}
 
+      {!loading && facturas.length > 0 && selectionMode && (
+        <div
+          className="mt-4 flex flex-col gap-3 rounded-xl border border-border bg-neutral-50/90 p-3 sm:flex-row sm:items-center sm:justify-between"
+          role="region"
+          aria-label="Acciones de selección en masa"
+        >
+          <p className="text-sm text-neutral-700">
+            <span className="font-medium">{selectedIds.size}</span>{" "}
+            seleccionada{selectedIds.size !== 1 ? "s" : ""}
+            <span className="text-neutral-500">
+              {filteredFacturas.length > 0
+                ? ` · ${filteredFacturas.length} en la lista actual`
+                : ""}
+            </span>
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={selectAllVisible}
+              disabled={filteredFacturas.length === 0}
+            >
+              Seleccionar todas (visibles)
+            </Button>
+            <Button type="button" variant="secondary" size="sm" onClick={clearSelection} disabled={selectedIds.size === 0}>
+              Quitar selección
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setBulkDeleteOpen(true)}
+              disabled={selectedIds.size === 0}
+              className="gap-1.5 border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+            >
+              <Trash2 className="h-4 w-4" strokeWidth={1.5} />
+              Eliminar
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="mt-10">
         {loading ? (
           <FacturaListSkeleton />
@@ -190,12 +296,34 @@ export default function FacturasPage() {
                   importe={f.importe}
                   estado={f.estado}
                   tipoFactura={f.tipoFactura}
-                  onDeleted={() => setFacturas((prev) => prev.filter((x) => x.id !== f.id))}
+                  selectionMode={selectionMode}
+                  selected={selectedIds.has(f.id)}
+                  onToggleSelected={toggleSelectId}
+                  onDeleted={() => {
+                    setFacturas((prev) => prev.filter((x) => x.id !== f.id));
+                    setSelectedIds((prev) => {
+                      if (!prev.has(f.id)) return prev;
+                      const n = new Set(prev);
+                      n.delete(f.id);
+                      return n;
+                    });
+                  }}
                 />
               )))}
           </div>
         )}
       </div>
+
+      <AlertDialog
+        open={bulkDeleteOpen}
+        onOpenChange={setBulkDeleteOpen}
+        title={`¿Eliminar ${selectedIds.size} factura${selectedIds.size !== 1 ? "s" : ""}?`}
+        description="Se eliminarán de forma permanente, incluidas las líneas y los pagos asociados. Esta acción no se puede deshacer."
+        confirmLabel={bulkDeleting ? "Eliminando…" : "Eliminar definitivamente"}
+        onConfirm={handleBulkDelete}
+        loading={bulkDeleting}
+        variant="destructive"
+      />
 
       <Fab href="/facturas/nueva" label="Nueva factura" />
     </div>
