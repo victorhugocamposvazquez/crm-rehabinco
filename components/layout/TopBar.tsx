@@ -8,6 +8,7 @@ import {
   Users,
   FileText,
   ClipboardList,
+  ClipboardPenLine,
   Building2,
   LogOut,
   KeyRound,
@@ -25,6 +26,7 @@ const navItems = [
   { href: "/", label: "Inicio", icon: Home },
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/propiedades", label: "Propiedades", icon: Building2 },
+  { href: "/partes-visita", label: "Visitas", icon: ClipboardPenLine },
   { href: "/presupuestos", label: "Presupuestos", icon: ClipboardList },
   { href: "/facturas", label: "Facturas", icon: FileText },
   { href: "/settings", label: "Ajustes", icon: Settings },
@@ -91,7 +93,7 @@ export function TopBar() {
           </Link>
 
           <nav
-            className="hidden items-center gap-1 rounded-xl border border-border bg-neutral-50/70 p-1 md:flex"
+            className="hidden max-w-[min(100%,56rem)] items-center gap-0.5 overflow-x-auto rounded-xl border border-border bg-neutral-50/70 p-1 md:flex"
             role="navigation"
             aria-label="Navegación principal"
           >
@@ -105,7 +107,7 @@ export function TopBar() {
                   key={href}
                   href={href}
                   className={cn(
-                    "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all",
+                    "flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-all lg:gap-2 lg:px-3",
                     isActive
                       ? "bg-accent/10 text-accent"
                       : "text-neutral-600 hover:bg-accent/5 hover:text-accent"

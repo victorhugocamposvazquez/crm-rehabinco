@@ -319,6 +319,67 @@ export interface Database {
           logo_url?: string | null;
         };
       };
+      partes_visita: {
+        Row: {
+          id: string;
+          user_id: string;
+          token: string;
+          estado: "borrador" | "pendiente_firma" | "firmado";
+          visitante_nombre: string | null;
+          visitante_documento: string | null;
+          visitante_telefono: string | null;
+          visitante_email: string | null;
+          inmueble_direccion: string | null;
+          inmueble_referencia: string | null;
+          fecha_visita: string | null;
+          hora_visita: string | null;
+          agente_nombre: string | null;
+          observaciones: string | null;
+          lugar_firma: string;
+          firma_visitante: string | null;
+          firma_agente: string | null;
+          firmado_en: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          token?: string;
+          estado?: "borrador" | "pendiente_firma" | "firmado";
+          visitante_nombre?: string | null;
+          visitante_documento?: string | null;
+          visitante_telefono?: string | null;
+          visitante_email?: string | null;
+          inmueble_direccion?: string | null;
+          inmueble_referencia?: string | null;
+          fecha_visita?: string | null;
+          hora_visita?: string | null;
+          agente_nombre?: string | null;
+          observaciones?: string | null;
+          lugar_firma?: string;
+          firma_visitante?: string | null;
+          firma_agente?: string | null;
+          firmado_en?: string | null;
+        };
+        Update: {
+          estado?: "borrador" | "pendiente_firma" | "firmado";
+          visitante_nombre?: string | null;
+          visitante_documento?: string | null;
+          visitante_telefono?: string | null;
+          visitante_email?: string | null;
+          inmueble_direccion?: string | null;
+          inmueble_referencia?: string | null;
+          fecha_visita?: string | null;
+          hora_visita?: string | null;
+          agente_nombre?: string | null;
+          observaciones?: string | null;
+          lugar_firma?: string;
+          firma_visitante?: string | null;
+          firma_agente?: string | null;
+          firmado_en?: string | null;
+          updated_at?: string;
+        };
+      };
     };
   };
 }
