@@ -41,12 +41,38 @@ const NAVY = "#0B1D2E";
 const MUTED = "#8A8A8A";
 const LINE = "#E4E4E4";
 
+const ASSETS = {
+  garalBlanco: "/images/presupuestos/garal-blanco.png",
+  garalNegro: "/images/presupuestos/garal-negro.png",
+  deportivoBlanco: "/images/presupuestos/deportivo-blanco.png",
+  deportivoNegro: "/images/presupuestos/deportivo-negro.png",
+  fondoRiazor: "/images/presupuestos/fondo-riazor-a4.jpg",
+} as const;
+
+type PdfCtx = {
+  origin: string;
+  emisor: EmisorPresupuesto;
+  cliente: PresupuestoPdfCliente | null;
+  esGaral: boolean;
+  esDeportivo: boolean;
+};
+
+export function esClienteDeportivo(cliente: PresupuestoPdfCliente | null): boolean {
+  if (!cliente) return false;
+  if (cliente.plantilla_presupuesto === "deportivo") return true;
+  return /deportivo/i.test(cliente.nombre ?? "");
+}
+
 export function resolvePlantillaPresupuesto(cliente: PresupuestoPdfCliente | null): PlantillaPresupuesto {
-  if (cliente?.plantilla_presupuesto === "deportivo") return "deportivo";
+  if (esClienteDeportivo(cliente)) return "deportivo";
   const logo = cliente?.presupuesto_logo_url?.trim();
   const cabecera = cliente?.presupuesto_cabecera_url?.trim();
   if (logo && cabecera) return "cliente_branded";
   return "default";
+}
+
+function absAsset(origin: string, path: string) {
+  return `${origin}${path}`;
 }
 
 function htmlEsc(s: string) {
@@ -101,13 +127,34 @@ function contacto(cliente: PresupuestoPdfCliente | null) {
   return parts.length ? parts.join(" · ") : "—";
 }
 
-function marcaEmisor(emisor: EmisorPresupuesto, origin: string, opts?: { invert?: boolean }) {
-  const color = opts?.invert ? "#fff" : NAVY;
-  const sub = opts?.invert ? "rgba(255,255,255,0.72)" : MUTED;
-  if (hasAsset(emisor.logo_url)) {
-    const src = resolveAssetUrl(emisor.logo_url, origin);
-    return `<img data-pdf-img src=${JSON.stringify(src)} alt="" style="height:42px; width:auto; max-width:200px; object-fit:contain;" />`;
+function logoEmisorUrl(ctx: PdfCtx, invert: boolean): string | null {
+  if (ctx.esGaral) {
+    return absAsset(ctx.origin, invert ? ASSETS.garalBlanco : ASSETS.garalNegro);
   }
+  if (hasAsset(ctx.emisor.logo_url)) return resolveAssetUrl(ctx.emisor.logo_url, ctx.origin);
+  return null;
+}
+
+function logoClienteUrl(ctx: PdfCtx, invert: boolean): string | null {
+  if (ctx.esDeportivo) {
+    return absAsset(ctx.origin, invert ? ASSETS.deportivoBlanco : ASSETS.deportivoNegro);
+  }
+  if (hasAsset(ctx.cliente?.presupuesto_logo_url)) {
+    return resolveAssetUrl(ctx.cliente?.presupuesto_logo_url, ctx.origin);
+  }
+  return null;
+}
+
+function marcaEmisor(ctx: PdfCtx, opts?: { invert?: boolean; cover?: boolean }) {
+  const invert = Boolean(opts?.invert);
+  const color = invert ? "#fff" : NAVY;
+  const sub = invert ? "rgba(255,255,255,0.72)" : MUTED;
+  const src = logoEmisorUrl(ctx, invert);
+  const h = opts?.cover ? 52 : 42;
+  if (src) {
+    return `<img data-pdf-img src=${JSON.stringify(src)} alt="" style="height:${h}px; width:auto; max-width:${opts?.cover ? 220 : 200}px; object-fit:contain;" />`;
+  }
+  const emisor = ctx.emisor;
   return `
     <div style="font-size:13px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:${color}; line-height:1.25;">
       ${htmlEsc(emisor.nombre_corto || emisor.razon_social)}
@@ -118,39 +165,40 @@ function marcaEmisor(emisor: EmisorPresupuesto, origin: string, opts?: { invert?
   `;
 }
 
-function marcaCliente(cliente: PresupuestoPdfCliente | null, origin: string, opts?: { invert?: boolean; cover?: boolean }) {
-  const color = opts?.invert ? "#fff" : NAVY;
-  const sub = opts?.invert ? "rgba(255,255,255,0.7)" : MUTED;
-  const nombre = cliente?.nombre?.trim() || "Cliente";
-  const logo = hasAsset(cliente?.presupuesto_logo_url);
-  const img = logo
-    ? `<img data-pdf-img src=${JSON.stringify(resolveAssetUrl(cliente?.presupuesto_logo_url, origin))} alt="" style="height:${opts?.cover ? 52 : 42}px; width:auto; max-width:180px; object-fit:contain; margin-left:auto; display:block;" />`
+function marcaCliente(ctx: PdfCtx, opts?: { invert?: boolean; cover?: boolean }) {
+  const invert = Boolean(opts?.invert);
+  const color = invert ? "#fff" : NAVY;
+  const sub = invert ? "rgba(255,255,255,0.7)" : MUTED;
+  const nombre = ctx.cliente?.nombre?.trim() || "Cliente";
+  const src = logoClienteUrl(ctx, invert);
+  const h = opts?.cover ? 36 : 32;
+  const img = src
+    ? `<img data-pdf-img src=${JSON.stringify(src)} alt="" style="height:${h}px; width:auto; max-width:220px; object-fit:contain; margin-left:auto; display:block;" />`
     : `<div style="font-size:${opts?.cover ? 15 : 12}px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:${color}; line-height:1.3;">${htmlEsc(nombre)}</div>`;
+  const etiqueta = src
+    ? ctx.esDeportivo
+      ? "Cliente · Estadio Abanca-Riazor"
+      : `Cliente · ${nombre}`
+    : "Cliente";
   return `
     <div style="text-align:right;">
       ${img}
       <div style="margin-top:6px; font-size:8px; letter-spacing:0.18em; text-transform:uppercase; color:${sub};">
-        Cliente${logo ? ` · ${htmlEsc(nombre)}` : ""}
+        ${htmlEsc(etiqueta)}
       </div>
     </div>
   `;
 }
 
-function cabeceraInterior(
-  emisor: EmisorPresupuesto,
-  cliente: PresupuestoPdfCliente | null,
-  datos: PresupuestoPdfDatos,
-  origin: string,
-  hoja: string
-) {
+function cabeceraInterior(ctx: PdfCtx, datos: PresupuestoPdfDatos, hoja: string) {
   return `
     <table style="width:100%; border-collapse:collapse; margin-bottom:8px;">
       <tr>
-        <td style="width:32%; vertical-align:middle;">${marcaEmisor(emisor, origin)}</td>
+        <td style="width:32%; vertical-align:middle;">${marcaEmisor(ctx)}</td>
         <td style="width:36%; vertical-align:middle; text-align:center; font-size:8px; letter-spacing:0.16em; text-transform:uppercase; color:${MUTED};">
           Presupuesto ${htmlEsc(datos.numero)} · Hoja ${htmlEsc(hoja)}
         </td>
-        <td style="width:32%; vertical-align:middle;">${marcaCliente(cliente, origin)}</td>
+        <td style="width:32%; vertical-align:middle;">${marcaCliente(ctx)}</td>
       </tr>
     </table>
     <div style="height:1px; background:${LINE}; margin-bottom:28px;"></div>
@@ -179,22 +227,25 @@ function datoCelda(label: string, value: string, right?: boolean) {
   `;
 }
 
-function htmlPortada(
-  emisor: EmisorPresupuesto,
-  cliente: PresupuestoPdfCliente | null,
-  datos: PresupuestoPdfDatos,
-  origin: string
-) {
-  const cabecera = hasAsset(cliente?.presupuesto_cabecera_url);
+function htmlPortada(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
   const titulo = (datos.concepto || "Presupuesto").trim();
-  const fondo = cabecera
-    ? `<img data-pdf-img src=${JSON.stringify(resolveAssetUrl(cliente?.presupuesto_cabecera_url, origin))} alt="" style="position:absolute; left:0; top:0; width:100%; height:62%; object-fit:cover;" />
-       <div style="position:absolute; left:0; top:0; width:100%; height:100%; background:linear-gradient(180deg, rgba(11,29,46,0.35) 0%, rgba(11,29,46,0.55) 48%, ${NAVY} 62%, ${NAVY} 100%);"></div>`
-    : `<div style="position:absolute; inset:0; background:
+  const comboRiazor = ctx.esGaral && ctx.esDeportivo;
+  const cabeceraCliente = hasAsset(ctx.cliente?.presupuesto_cabecera_url);
+  let fondo: string;
+  if (comboRiazor) {
+    const src = absAsset(ctx.origin, ASSETS.fondoRiazor);
+    fondo = `<img data-pdf-img src=${JSON.stringify(src)} alt="" style="position:absolute; left:0; top:0; width:100%; height:100%; object-fit:cover;" />`;
+  } else if (cabeceraCliente) {
+    const src = resolveAssetUrl(ctx.cliente?.presupuesto_cabecera_url, ctx.origin);
+    fondo = `<img data-pdf-img src=${JSON.stringify(src)} alt="" style="position:absolute; left:0; top:0; width:100%; height:62%; object-fit:cover;" />
+       <div style="position:absolute; left:0; top:0; width:100%; height:100%; background:linear-gradient(180deg, rgba(11,29,46,0.35) 0%, rgba(11,29,46,0.55) 48%, ${NAVY} 62%, ${NAVY} 100%);"></div>`;
+  } else {
+    fondo = `<div style="position:absolute; inset:0; background:
          linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
          linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px),
          ${NAVY};
          background-size: 28px 28px, 28px 28px, auto;"></div>`;
+  }
 
   return `
     <div class="pdf-page pdf-cover" style="position:relative; width:210mm; height:297mm; overflow:hidden; background:${NAVY}; color:#fff; page-break-after:always;">
@@ -202,8 +253,8 @@ function htmlPortada(
       <div style="position:relative; z-index:1; box-sizing:border-box; height:100%; padding:18mm 16mm 16mm; display:flex; flex-direction:column;">
         <table style="width:100%; border-collapse:collapse;">
           <tr>
-            <td style="width:50%; vertical-align:top;">${marcaEmisor(emisor, origin, { invert: true })}</td>
-            <td style="width:50%; vertical-align:top;">${marcaCliente(cliente, origin, { invert: true, cover: true })}</td>
+            <td style="width:50%; vertical-align:top;">${marcaEmisor(ctx, { invert: true, cover: true })}</td>
+            <td style="width:50%; vertical-align:top;">${marcaCliente(ctx, { invert: true, cover: true })}</td>
           </tr>
         </table>
         <div style="flex:1;"></div>
@@ -227,7 +278,7 @@ function htmlPortada(
               </td>
               <td style="width:25%; vertical-align:top; padding:0 10px; border-left:1px solid rgba(255,255,255,0.2);">
                 <div style="font-size:7px; letter-spacing:0.18em; text-transform:uppercase; opacity:0.65; margin-bottom:6px;">Redactado por</div>
-                <div style="font-size:13px; font-weight:600;">${htmlEsc(emisor.nombre_corto || emisor.razon_social)}</div>
+                <div style="font-size:13px; font-weight:600;">${htmlEsc(ctx.emisor.nombre_corto || ctx.emisor.razon_social)}</div>
               </td>
               <td style="width:25%; vertical-align:top; padding-left:10px; border-left:1px solid rgba(255,255,255,0.2);">
                 <div style="font-size:7px; letter-spacing:0.18em; text-transform:uppercase; opacity:0.65; margin-bottom:6px;">Hoja</div>
@@ -241,12 +292,9 @@ function htmlPortada(
   `;
 }
 
-function htmlDatos(
-  emisor: EmisorPresupuesto,
-  cliente: PresupuestoPdfCliente | null,
-  datos: PresupuestoPdfDatos,
-  origin: string
-) {
+function htmlDatos(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
+  const cliente = ctx.cliente;
+  const emisor = ctx.emisor;
   const docLabel = cliente?.tipo_documento
     ? String(cliente.tipo_documento).toUpperCase()
     : cliente?.tipo_cliente === "empresa"
@@ -258,7 +306,7 @@ function htmlDatos(
 
   return `
     <div class="pdf-page" style="width:210mm; box-sizing:border-box; padding:14mm 16mm 12mm; page-break-after:always;">
-      ${cabeceraInterior(emisor, cliente, datos, origin, "02")}
+      ${cabeceraInterior(ctx, datos, "02")}
       <h2 style="margin:0 0 14px; font-size:18px; font-weight:700;">1. Datos del presupuesto</h2>
       <table style="width:100%; border-collapse:collapse; border:1px solid ${LINE}; margin-bottom:28px;">
         <tr style="border-bottom:1px solid ${LINE};">
@@ -281,12 +329,7 @@ function htmlDatos(
   `;
 }
 
-function htmlMediciones(
-  emisor: EmisorPresupuesto,
-  cliente: PresupuestoPdfCliente | null,
-  datos: PresupuestoPdfDatos,
-  origin: string
-) {
+function htmlMediciones(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
   const ivaPct = Number(datos.porcentaje_impuesto ?? 21) || 0;
   const rows = datos.lineas
     .map((l, i) => {
@@ -317,7 +360,7 @@ function htmlMediciones(
 
   return `
     <div class="pdf-page" style="width:210mm; box-sizing:border-box; padding:14mm 16mm 12mm; page-break-after:always;">
-      ${cabeceraInterior(emisor, cliente, datos, origin, "03")}
+      ${cabeceraInterior(ctx, datos, "03")}
       <h2 style="margin:0 0 14px; font-size:18px; font-weight:700;">3. Mediciones y presupuesto</h2>
       <table style="width:100%; border-collapse:collapse; margin-bottom:22px;">
         <thead>
@@ -356,17 +399,13 @@ function htmlMediciones(
   `;
 }
 
-function htmlCierre(
-  emisor: EmisorPresupuesto,
-  cliente: PresupuestoPdfCliente | null,
-  datos: PresupuestoPdfDatos,
-  origin: string
-) {
+function htmlCierre(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
+  const emisor = ctx.emisor;
   const lugar = emisor.localidad?.trim() || "A Coruña";
   const fechaLarga = formatFechaLarga(datos.fecha).toUpperCase();
   return `
     <div class="pdf-page" style="width:210mm; box-sizing:border-box; padding:14mm 16mm 12mm;">
-      ${cabeceraInterior(emisor, cliente, datos, origin, "04")}
+      ${cabeceraInterior(ctx, datos, "04")}
       <h2 style="margin:0 0 12px; font-size:18px; font-weight:700;">4. Condiciones y garantías</h2>
       <p style="margin:0 0 12px; font-size:13px; line-height:1.55; color:#222;">
         Los precios incluyen mano de obra, materiales y medios auxiliares necesarios para la ejecución de las partidas descritas, salvo indicación expresa en contrario.
@@ -406,11 +445,18 @@ export function buildPresupuestoDocumentHtml(params: {
   plantilla?: PlantillaPresupuesto;
 }): string {
   void params.plantilla;
+  const ctx: PdfCtx = {
+    origin: params.origin,
+    emisor: params.emisor,
+    cliente: params.cliente,
+    esGaral: params.emisor.slug === "garal",
+    esDeportivo: esClienteDeportivo(params.cliente),
+  };
   const inner =
-    htmlPortada(params.emisor, params.cliente, params.datos, params.origin) +
-    htmlDatos(params.emisor, params.cliente, params.datos, params.origin) +
-    htmlMediciones(params.emisor, params.cliente, params.datos, params.origin) +
-    htmlCierre(params.emisor, params.cliente, params.datos, params.origin);
+    htmlPortada(ctx, params.datos) +
+    htmlDatos(ctx, params.datos) +
+    htmlMediciones(ctx, params.datos) +
+    htmlCierre(ctx, params.datos);
 
   return `<!DOCTYPE html>
 <html>
