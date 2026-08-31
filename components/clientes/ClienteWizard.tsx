@@ -400,31 +400,7 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
                   />
                 </div>
                 <div className="space-y-4 rounded-lg border border-border p-4">
-                  <p className="text-sm font-medium">Presupuestos (cabecera y logo)</p>
-                  <p className="text-xs text-neutral-500">
-                    Si hay cabecera y logotipo, el PDF del presupuesto usa una maquetación distinta.
-                    La plantilla Deportivo queda lista para el diseño específico.
-                  </p>
-                  <div className="space-y-2">
-                    <Label htmlFor="presupuesto_logo_url">Logotipo (URL o ruta /…)</Label>
-                    <Input
-                      id="presupuesto_logo_url"
-                      value={data.presupuesto_logo_url ?? ""}
-                      onChange={(e) => setData((p) => ({ ...p, presupuesto_logo_url: e.target.value }))}
-                      placeholder="https://… o /images/logo-cliente.png"
-                      autoComplete="off"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="presupuesto_cabecera_url">Cabecera (URL o ruta /…)</Label>
-                    <Input
-                      id="presupuesto_cabecera_url"
-                      value={data.presupuesto_cabecera_url ?? ""}
-                      onChange={(e) => setData((p) => ({ ...p, presupuesto_cabecera_url: e.target.value }))}
-                      placeholder="https://… o /images/cabecera-cliente.png"
-                      autoComplete="off"
-                    />
-                  </div>
+                  <p className="text-sm font-medium">Presupuestos (plantilla PDF)</p>
                   <div className="space-y-2">
                     <Label htmlFor="plantilla_presupuesto">Plantilla de PDF</Label>
                     <select
@@ -439,9 +415,43 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
                       className="flex h-10 w-full rounded-lg border border-border bg-white px-4 text-base"
                     >
                       <option value="">Automática</option>
-                      <option value="deportivo">Deportivo</option>
+                      <option value="deportivo">Deportivo (Riazor)</option>
                     </select>
                   </div>
+                  {data.plantilla_presupuesto === "deportivo" ? (
+                    <p className="text-xs text-neutral-500 leading-relaxed">
+                      No hace falta subir logos ni imagen de portada. El PDF usa ya el escudo del Deportivo
+                      (blanco en portada, negro en interiores) y el fondo del estadio. Para la portada tipo
+                      plantilla Riazor, emite el presupuesto como Garal.
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-xs text-neutral-500">
+                        Solo para otros clientes con branding propio. Si pones logo y cabecera, el PDF usa
+                        esa maquetación. Deportivo no necesita estos campos.
+                      </p>
+                      <div className="space-y-2">
+                        <Label htmlFor="presupuesto_logo_url">Logotipo (URL o ruta /…)</Label>
+                        <Input
+                          id="presupuesto_logo_url"
+                          value={data.presupuesto_logo_url ?? ""}
+                          onChange={(e) => setData((p) => ({ ...p, presupuesto_logo_url: e.target.value }))}
+                          placeholder="https://… o /images/logo-cliente.png"
+                          autoComplete="off"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="presupuesto_cabecera_url">Cabecera / foto de portada (URL o ruta /…)</Label>
+                        <Input
+                          id="presupuesto_cabecera_url"
+                          value={data.presupuesto_cabecera_url ?? ""}
+                          onChange={(e) => setData((p) => ({ ...p, presupuesto_cabecera_url: e.target.value }))}
+                          placeholder="https://… o /images/cabecera-cliente.png"
+                          autoComplete="off"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
                 {clienteId && (
                   <div className="flex flex-col gap-3">
@@ -519,18 +529,22 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
                 )}
                 <div>
                   <dt className="text-neutral-500">Plantilla de presupuesto</dt>
-                  <dd className="font-medium">{data.plantilla_presupuesto === "deportivo" ? "Deportivo" : "Automática"}</dd>
-                </div>
-                <div>
-                  <dt className="text-neutral-500">Logo / cabecera presupuesto</dt>
                   <dd className="font-medium">
-                    {data.presupuesto_logo_url?.trim() || data.presupuesto_cabecera_url?.trim()
-                      ? [data.presupuesto_logo_url?.trim() ? "Logo" : null, data.presupuesto_cabecera_url?.trim() ? "Cabecera" : null]
-                          .filter(Boolean)
-                          .join(" y ")
-                      : "Sin branding"}
+                    {data.plantilla_presupuesto === "deportivo" ? "Deportivo (escudo + portada Riazor)" : "Automática"}
                   </dd>
                 </div>
+                {data.plantilla_presupuesto !== "deportivo" && (
+                  <div>
+                    <dt className="text-neutral-500">Logo / cabecera presupuesto</dt>
+                    <dd className="font-medium">
+                      {data.presupuesto_logo_url?.trim() || data.presupuesto_cabecera_url?.trim()
+                        ? [data.presupuesto_logo_url?.trim() ? "Logo" : null, data.presupuesto_cabecera_url?.trim() ? "Cabecera" : null]
+                            .filter(Boolean)
+                            .join(" y ")
+                        : "Sin branding"}
+                    </dd>
+                  </div>
+                )}
               </dl>
               {saveError && (
                 <p className="text-sm text-red-600">{saveError}</p>
