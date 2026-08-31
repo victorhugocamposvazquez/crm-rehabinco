@@ -164,6 +164,7 @@ export interface Database {
           importe_descuento: number;
           total: number;
           emisor_id: string;
+          propuesta: Json;
           created_at: string;
           updated_at: string;
         };
@@ -175,6 +176,7 @@ export interface Database {
           fecha?: string | null;
           concepto?: string | null;
           emisor_id?: string;
+          propuesta?: Json;
         };
         Update: {
           cliente_id?: string | null;
@@ -183,6 +185,7 @@ export interface Database {
           fecha?: string | null;
           concepto?: string | null;
           emisor_id?: string;
+          propuesta?: Json;
           updated_at?: string;
         };
       };
@@ -244,6 +247,8 @@ export interface Database {
           cantidad: number;
           precio_unitario: number;
           orden: number;
+          unidad: string;
+          capitulo: string | null;
         };
         Insert: {
           presupuesto_id: string;
@@ -251,12 +256,16 @@ export interface Database {
           cantidad?: number;
           precio_unitario?: number;
           orden?: number;
+          unidad?: string;
+          capitulo?: string | null;
         };
         Update: {
           descripcion?: string;
           cantidad?: number;
           precio_unitario?: number;
           orden?: number;
+          unidad?: string;
+          capitulo?: string | null;
         };
       };
       pagos: {

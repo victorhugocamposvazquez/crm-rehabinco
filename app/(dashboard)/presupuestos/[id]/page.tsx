@@ -18,6 +18,7 @@ import {
   presupuestoPdfFilename,
   type PresupuestoPdfCliente,
 } from "@/lib/presupuesto-pdf";
+import { parsePropuesta } from "@/lib/presupuesto-propuesta";
 
 interface Presupuesto {
   id: string;
@@ -33,6 +34,7 @@ interface Presupuesto {
   porcentaje_descuento: number;
   importe_descuento: number;
   total: number;
+  propuesta?: unknown;
   clientes?: PresupuestoPdfCliente | null;
 }
 
@@ -54,6 +56,8 @@ interface Linea {
   descripcion: string;
   cantidad: number;
   precio_unitario: number;
+  unidad?: string | null;
+  capitulo?: string | null;
 }
 
 export default function DetallePresupuestoPage() {
@@ -101,7 +105,7 @@ export default function DetallePresupuestoPage() {
     const supabase = createClient();
     supabase
       .from("presupuesto_lineas")
-      .select("id, descripcion, cantidad, precio_unitario")
+      .select("id, descripcion, cantidad, precio_unitario, unidad, capitulo")
       .eq("presupuesto_id", id)
       .order("orden")
       .then(({ data }) => setLineas(data ?? []));
@@ -222,6 +226,7 @@ export default function DetallePresupuestoPage() {
           base_imponible: Number(presupuesto.base_imponible),
           total: Number(presupuesto.total),
           lineas,
+          propuesta: parsePropuesta(presupuesto.propuesta),
         },
         origin,
       });

@@ -14,11 +14,18 @@ import { toast } from "sonner";
 import { ClienteQuickSheet } from "@/components/clientes/ClienteQuickSheet";
 import { parseDecimalMientrasEscribe } from "@/lib/decimales-input";
 import { listEmisoresPresupuesto, type EmisorPresupuesto } from "@/lib/emisores-presupuesto";
+import {
+  parsePropuesta,
+  propuestaVacia,
+  type PropuestaPresupuesto,
+} from "@/lib/presupuesto-propuesta";
 
 interface Linea {
   descripcion: string;
   cantidad: number;
   precioUnitario: number;
+  unidad: string;
+  capitulo: string;
 }
 
 type LineaBorrador = Linea & { _precioDraft?: string; _cantDraft?: string };
@@ -37,8 +44,9 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
   const [concepto, setConcepto] = useState("");
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
   const [lineas, setLineas] = useState<LineaBorrador[]>([
-    { descripcion: "", cantidad: 0, precioUnitario: 0 },
+    { descripcion: "", cantidad: 0, precioUnitario: 0, unidad: "ud", capitulo: "" },
   ]);
+  const [propuesta, setPropuesta] = useState<PropuestaPresupuesto>(propuestaVacia());
   const [porcentajeImpuesto, setPorcentajeImpuesto] = useState(21);
   const [porcentajeDescuento, setPorcentajeDescuento] = useState(0);
   const [estado, setEstado] = useState("borrador");
@@ -68,11 +76,11 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
     if (!presupuestoId) return;
     const supabase = createClient();
     Promise.all([
-      supabase.from("presupuestos").select("cliente_id, concepto, fecha, porcentaje_impuesto, porcentaje_descuento, estado, emisor_id").eq("id", presupuestoId).single(),
-      supabase.from("presupuesto_lineas").select("descripcion, cantidad, precio_unitario").eq("presupuesto_id", presupuestoId).order("orden"),
+      supabase.from("presupuestos").select("cliente_id, concepto, fecha, porcentaje_impuesto, porcentaje_descuento, estado, emisor_id, propuesta").eq("id", presupuestoId).single(),
+      supabase.from("presupuesto_lineas").select("descripcion, cantidad, precio_unitario, unidad, capitulo").eq("presupuesto_id", presupuestoId).order("orden"),
     ]).then(([pRes, lRes]) => {
-      const p = pRes.data as { cliente_id: string | null; concepto: string | null; fecha: string | null; porcentaje_impuesto: number; porcentaje_descuento: number; estado: string; emisor_id: string | null } | null;
-      const l = (lRes.data ?? []) as Array<{ descripcion: string; cantidad: number; precio_unitario: number }>;
+      const p = pRes.data as { cliente_id: string | null; concepto: string | null; fecha: string | null; porcentaje_impuesto: number; porcentaje_descuento: number; estado: string; emisor_id: string | null; propuesta?: unknown } | null;
+      const l = (lRes.data ?? []) as Array<{ descripcion: string; cantidad: number; precio_unitario: number; unidad?: string | null; capitulo?: string | null }>;
       if (p) {
         setClienteId(p.cliente_id ?? "");
         setConcepto(p.concepto ?? "");
@@ -81,14 +89,15 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
         setPorcentajeDescuento(p.porcentaje_descuento ?? 0);
         setEstado(p.estado ?? "borrador");
         if (p.emisor_id) setEmisorId(p.emisor_id);
+        setPropuesta(parsePropuesta(p.propuesta));
       }
-      setLineas(l.length > 0 ? l.map((x) => ({ descripcion: x.descripcion, cantidad: x.cantidad, precioUnitario: x.precio_unitario })) : [{ descripcion: "", cantidad: 0, precioUnitario: 0 }]);
+      setLineas(l.length > 0 ? l.map((x) => ({ descripcion: x.descripcion, cantidad: x.cantidad, precioUnitario: x.precio_unitario, unidad: x.unidad || "ud", capitulo: x.capitulo ?? "" })) : [{ descripcion: "", cantidad: 0, precioUnitario: 0, unidad: "ud", capitulo: "" }]);
       setLoading(false);
     });
   }, [presupuestoId]);
 
   const addLinea = () =>
-    setLineas((p) => [...p, { descripcion: "", cantidad: 0, precioUnitario: 0 }]);
+    setLineas((p) => [...p, { descripcion: "", cantidad: 0, precioUnitario: 0, unidad: "ud", capitulo: "" }]);
   const removeLinea = (i: number) =>
     setLineas((p) => p.filter((_, idx) => idx !== i));
   const updateLinea = (i: number, field: keyof Linea, value: string | number) =>
@@ -99,6 +108,8 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
   const commitLineasBorrador = (rows: LineaBorrador[]): Linea[] =>
     rows.map((l) => ({
       descripcion: l.descripcion,
+      unidad: l.unidad || "ud",
+      capitulo: l.capitulo || "",
       cantidad:
         l._cantDraft !== undefined
           ? parseDecimalMientrasEscribe(l._cantDraft, { allowNegative: false })
@@ -148,6 +159,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
           porcentaje_descuento: porcentajeDescuento,
           estado,
           emisor_id: emisorId || undefined,
+          propuesta,
         })
         .eq("id", presupuestoId);
 
@@ -167,6 +179,8 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
           descripcion: l.descripcion,
           cantidad: l.cantidad,
           precio_unitario: l.precioUnitario,
+          unidad: l.unidad || "ud",
+          capitulo: l.capitulo.trim() || null,
           orden,
         }));
 
@@ -211,6 +225,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
         porcentaje_impuesto: porcentajeImpuesto,
         porcentaje_descuento: porcentajeDescuento,
         emisor_id: emisorId || undefined,
+        propuesta,
       })
       .select("id")
       .single();
@@ -229,6 +244,8 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
         descripcion: l.descripcion,
         cantidad: l.cantidad,
         precio_unitario: l.precioUnitario,
+        unidad: l.unidad || "ud",
+        capitulo: l.capitulo.trim() || null,
         orden,
       }));
 
@@ -259,12 +276,12 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
   return (
     <div className="relative mx-auto max-w-2xl animate-[fadeIn_0.3s_ease-out] pb-28 md:pb-24">
       <div className="mb-8 flex items-center gap-2">
-        {[1, 2, 3].map((s) => (
+        {[1, 2, 3, 4].map((s) => (
           <div
             key={s}
             className={cn(
               "flex flex-1 items-center gap-2",
-              s < 3 && "after:h-0.5 after:flex-1 after:bg-border"
+              s < 4 && "after:h-0.5 after:flex-1 after:bg-border"
             )}
           >
             <div
@@ -276,7 +293,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
               {s}
             </div>
             <span className={cn("hidden text-sm sm:inline", step === s ? "text-foreground" : "text-neutral-500")}>
-              {s === 1 ? "Cliente y datos" : s === 2 ? "Líneas" : "Resumen"}
+              {s === 1 ? "Cliente" : s === 2 ? "Líneas" : s === 3 ? "Propuesta" : "Resumen"}
             </span>
           </div>
         ))}
@@ -343,11 +360,28 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label>Concepto</Label>
+              <Label>Título (portada)</Label>
               <Input
-                placeholder="Ej. Reforma integral"
+                placeholder="Ej. Mantenimiento de pintura"
                 value={concepto}
                 onChange={(e) => setConcepto(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Subtítulo de portada</Label>
+              <Input
+                placeholder="Ej. Estadio Abanca-Riazor"
+                value={propuesta.subtitulo_portada}
+                onChange={(e) => setPropuesta((p) => ({ ...p, subtitulo_portada: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Texto de portada</Label>
+              <textarea
+                className="flex min-h-[88px] w-full rounded-lg border border-border bg-white px-4 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                placeholder="Resumen que aparece bajo el título en la portada"
+                value={propuesta.descripcion_portada}
+                onChange={(e) => setPropuesta((p) => ({ ...p, descripcion_portada: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
@@ -387,9 +421,25 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
                 <div className="flex-1 min-w-[200px] space-y-2">
                   <Label>Descripción</Label>
                   <Input
-                    placeholder="Descripción"
+                    placeholder="Descripción de la partida"
                     value={l.descripcion}
                     onChange={(e) => updateLinea(i, "descripcion", e.target.value)}
+                  />
+                </div>
+                <div className="w-full min-w-[160px] flex-1 space-y-2">
+                  <Label>Capítulo</Label>
+                  <Input
+                    placeholder="01 · Pavimentos"
+                    value={l.capitulo}
+                    onChange={(e) => updateLinea(i, "capitulo", e.target.value)}
+                  />
+                </div>
+                <div className="w-20 space-y-2">
+                  <Label>Ud</Label>
+                  <Input
+                    placeholder="ud"
+                    value={l.unidad}
+                    onChange={(e) => updateLinea(i, "unidad", e.target.value)}
                   />
                 </div>
                 <div className="w-24 space-y-2">
@@ -497,6 +547,197 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
       {step === 3 && (
         <Card>
           <CardHeader>
+            <CardTitle>Propuesta técnica</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Emplazamiento</Label>
+                <Input
+                  placeholder="Obra o dirección de intervención"
+                  value={propuesta.emplazamiento}
+                  onChange={(e) => setPropuesta((p) => ({ ...p, emplazamiento: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Contacto</Label>
+                <Input
+                  placeholder="Persona o departamento"
+                  value={propuesta.contacto}
+                  onChange={(e) => setPropuesta((p) => ({ ...p, contacto: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Plazo de ejecución</Label>
+                <Input
+                  placeholder="Ej. 12 semanas · por fases"
+                  value={propuesta.plazo_ejecucion}
+                  onChange={(e) => setPropuesta((p) => ({ ...p, plazo_ejecucion: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Validez de la oferta</Label>
+                <Input
+                  value={propuesta.validez_oferta}
+                  onChange={(e) => setPropuesta((p) => ({ ...p, validez_oferta: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Escala (portada)</Label>
+                <Input
+                  placeholder="1:1000"
+                  value={propuesta.escala}
+                  onChange={(e) => setPropuesta((p) => ({ ...p, escala: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>2. Objeto y alcance</Label>
+              <textarea
+                className="flex min-h-[120px] w-full rounded-lg border border-border bg-white px-4 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                placeholder="Texto de la sección objeto y alcance"
+                value={propuesta.objeto_alcance}
+                onChange={(e) => setPropuesta((p) => ({ ...p, objeto_alcance: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <Label>3. Zonas de intervención</Label>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="gap-1"
+                  onClick={() =>
+                    setPropuesta((p) => ({
+                      ...p,
+                      zonas: [...p.zonas, { codigo: `Z-${String(p.zonas.length + 1).padStart(2, "0")}`, titulo: "", descripcion: "" }],
+                    }))
+                  }
+                >
+                  <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
+                  Zona
+                </Button>
+              </div>
+              {propuesta.zonas.map((z, i) => (
+                <div key={i} className="space-y-2 rounded-lg border border-border p-3">
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    <Input
+                      placeholder="Z-01"
+                      value={z.codigo}
+                      onChange={(e) =>
+                        setPropuesta((p) => ({
+                          ...p,
+                          zonas: p.zonas.map((item, idx) => (idx === i ? { ...item, codigo: e.target.value } : item)),
+                        }))
+                      }
+                    />
+                    <Input
+                      className="sm:col-span-2"
+                      placeholder="Título"
+                      value={z.titulo}
+                      onChange={(e) =>
+                        setPropuesta((p) => ({
+                          ...p,
+                          zonas: p.zonas.map((item, idx) => (idx === i ? { ...item, titulo: e.target.value } : item)),
+                        }))
+                      }
+                    />
+                  </div>
+                  <textarea
+                    className="flex min-h-[64px] w-full rounded-lg border border-border bg-white px-4 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    placeholder="Descripción de la zona"
+                    value={z.descripcion}
+                    onChange={(e) =>
+                      setPropuesta((p) => ({
+                        ...p,
+                        zonas: p.zonas.map((item, idx) => (idx === i ? { ...item, descripcion: e.target.value } : item)),
+                      }))
+                    }
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setPropuesta((p) => ({ ...p, zonas: p.zonas.filter((_, idx) => idx !== i) }))}
+                  >
+                    Quitar zona
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <Label>5. Programa de trabajos</Label>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="gap-1"
+                  onClick={() =>
+                    setPropuesta((p) => ({
+                      ...p,
+                      programa: [...p.programa, { codigo: "", descripcion: "" }],
+                    }))
+                  }
+                >
+                  <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
+                  Fase
+                </Button>
+              </div>
+              {propuesta.programa.map((f, i) => (
+                <div key={i} className="flex flex-wrap items-start gap-2">
+                  <Input
+                    className="w-28"
+                    placeholder="S 01–02"
+                    value={f.codigo}
+                    onChange={(e) =>
+                      setPropuesta((p) => ({
+                        ...p,
+                        programa: p.programa.map((item, idx) => (idx === i ? { ...item, codigo: e.target.value } : item)),
+                      }))
+                    }
+                  />
+                  <Input
+                    className="min-w-[180px] flex-1"
+                    placeholder="Descripción de la fase"
+                    value={f.descripcion}
+                    onChange={(e) =>
+                      setPropuesta((p) => ({
+                        ...p,
+                        programa: p.programa.map((item, idx) =>
+                          idx === i ? { ...item, descripcion: e.target.value } : item
+                        ),
+                      }))
+                    }
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon"
+                    aria-label="Quitar fase"
+                    onClick={() => setPropuesta((p) => ({ ...p, programa: p.programa.filter((_, idx) => idx !== i) }))}
+                  >
+                    <Trash2 className="h-4 w-4" strokeWidth={1.5} />
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-2">
+              <Label>6. Condiciones y garantías</Label>
+              <textarea
+                className="flex min-h-[140px] w-full rounded-lg border border-border bg-white px-4 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                value={propuesta.condiciones}
+                onChange={(e) => setPropuesta((p) => ({ ...p, condiciones: e.target.value }))}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {step === 4 && (
+        <Card>
+          <CardHeader>
             <CardTitle>Resumen</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -544,13 +785,20 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
                 Siguiente
               </Button>
             </>
+          ) : step === 3 ? (
+            <>
+              <Button variant="secondary" onClick={() => setStep(2)}>
+                Atrás
+              </Button>
+              <Button onClick={() => setStep(4)}>Siguiente</Button>
+            </>
           ) : (
             <>
-              <Button variant="secondary" onClick={() => setStep(2)} disabled={creating}>
+              <Button variant="secondary" onClick={() => setStep(3)} disabled={creating}>
                 Atrás
               </Button>
               <Button onClick={handleSave} disabled={creating}>
-                {creating ? "Creando…" : "Crear presupuesto"}
+                {creating ? "Guardando…" : presupuestoId ? "Guardar presupuesto" : "Crear presupuesto"}
               </Button>
             </>
           )}

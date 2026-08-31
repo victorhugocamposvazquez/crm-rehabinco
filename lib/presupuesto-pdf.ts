@@ -1,5 +1,10 @@
 import { resolveInvoiceLogoUrl } from "@/lib/empresa-facturacion";
 import type { EmisorPresupuesto } from "@/lib/emisores-presupuesto";
+import {
+  parsePropuesta,
+  propuestaVacia,
+  type PropuestaPresupuesto,
+} from "@/lib/presupuesto-propuesta";
 
 export type PlantillaPresupuesto = "default" | "cliente_branded" | "deportivo";
 
@@ -22,6 +27,8 @@ export type PresupuestoPdfLinea = {
   descripcion: string;
   cantidad: number;
   precio_unitario: number;
+  unidad?: string | null;
+  capitulo?: string | null;
 };
 
 export type PresupuestoPdfDatos = {
@@ -35,6 +42,7 @@ export type PresupuestoPdfDatos = {
   base_imponible: number;
   total: number;
   lineas: PresupuestoPdfLinea[];
+  propuesta?: PropuestaPresupuesto | null;
 };
 
 const NAVY = "#0B1D2E";
@@ -55,6 +63,7 @@ type PdfCtx = {
   cliente: PresupuestoPdfCliente | null;
   esGaral: boolean;
   esDeportivo: boolean;
+  propuesta: PropuestaPresupuesto;
 };
 
 export function esClienteDeportivo(cliente: PresupuestoPdfCliente | null): boolean {
@@ -81,6 +90,10 @@ function htmlEsc(s: string) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function htmlMultiline(s: string) {
+  return htmlEsc(s).replace(/\n/g, "<br />");
 }
 
 function hasAsset(url: string | null | undefined) {
@@ -228,6 +241,7 @@ function datoCelda(label: string, value: string, right?: boolean) {
 }
 
 function htmlPortada(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
+  const p = ctx.propuesta;
   const titulo = (datos.concepto || "Presupuesto").trim();
   const comboRiazor = ctx.esGaral && ctx.esDeportivo;
   const cabeceraCliente = hasAsset(ctx.cliente?.presupuesto_cabecera_url);
@@ -247,6 +261,8 @@ function htmlPortada(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
          background-size: 28px 28px, 28px 28px, auto;"></div>`;
   }
 
+  const escalaHoja = `${p.escala?.trim() || "1:1000"} · 01/04`;
+
   return `
     <div class="pdf-page pdf-cover" style="position:relative; width:210mm; height:297mm; overflow:hidden; background:${NAVY}; color:#fff; page-break-after:always;">
       ${fondo}
@@ -263,7 +279,9 @@ function htmlPortada(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
             <div style="flex:1; height:1px; background:rgba(255,255,255,0.35);"></div>
             <div style="font-size:9px; letter-spacing:0.22em; text-transform:uppercase; white-space:nowrap;">Propuesta técnica y económica</div>
           </div>
-          <div style="font-size:34px; font-weight:700; line-height:1.15; letter-spacing:-0.02em; white-space:pre-wrap;">${htmlEsc(titulo)}</div>
+          <div style="font-size:36px; font-weight:700; line-height:1.12; letter-spacing:-0.02em; white-space:pre-wrap;">${htmlEsc(titulo)}</div>
+          ${p.subtitulo_portada.trim() ? `<div style="margin-top:8px; font-size:22px; font-weight:600; line-height:1.2;">${htmlEsc(p.subtitulo_portada.trim())}</div>` : ""}
+          ${p.descripcion_portada.trim() ? `<p style="margin:16px 0 0; max-width:92%; font-size:13px; line-height:1.5; font-weight:400; opacity:0.92;">${htmlMultiline(p.descripcion_portada.trim())}</p>` : ""}
         </div>
         <div style="border-top:1px solid rgba(255,255,255,0.28); padding-top:12px;">
           <table style="width:100%; border-collapse:collapse;">
@@ -281,8 +299,8 @@ function htmlPortada(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
                 <div style="font-size:13px; font-weight:600;">${htmlEsc(ctx.emisor.nombre_corto || ctx.emisor.razon_social)}</div>
               </td>
               <td style="width:25%; vertical-align:top; padding-left:10px; border-left:1px solid rgba(255,255,255,0.2);">
-                <div style="font-size:7px; letter-spacing:0.18em; text-transform:uppercase; opacity:0.65; margin-bottom:6px;">Hoja</div>
-                <div style="font-size:13px; font-weight:600;">01</div>
+                <div style="font-size:7px; letter-spacing:0.18em; text-transform:uppercase; opacity:0.65; margin-bottom:6px;">Escala · Hoja</div>
+                <div style="font-size:13px; font-weight:600;">${htmlEsc(escalaHoja)}</div>
               </td>
             </tr>
           </table>
@@ -292,17 +310,44 @@ function htmlPortada(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
   `;
 }
 
+function htmlZonas(zonas: PropuestaPresupuesto["zonas"]) {
+  const items = zonas.filter((z) => z.titulo.trim() || z.descripcion.trim() || z.codigo.trim());
+  if (items.length === 0) {
+    return `<p style="margin:0; font-size:13px; color:#666;">Sin zonas definidas.</p>`;
+  }
+  const cell = (z: (typeof items)[0], idx: number) => {
+    const codigo = z.codigo.trim() || `Z-${String(idx + 1).padStart(2, "0")}`;
+    return `
+      <td style="width:50%; vertical-align:top; padding:0 18px 20px 0;">
+        <div style="font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:#6A9BB0; font-weight:700; margin-bottom:6px;">${htmlEsc(codigo)}</div>
+        <div style="font-size:14px; font-weight:700; margin-bottom:4px;">${htmlEsc(z.titulo.trim() || "—")}</div>
+        <div style="font-size:12px; line-height:1.45; color:#333;">${z.descripcion.trim() ? htmlMultiline(z.descripcion.trim()) : ""}</div>
+      </td>
+    `;
+  };
+  let tableRows = "";
+  for (let i = 0; i < items.length; i += 2) {
+    const right = items[i + 1];
+    tableRows += `<tr>${cell(items[i], i)}${right ? cell(right, i + 1) : `<td style="width:50%;"></td>`}</tr>`;
+  }
+  return `<table style="width:100%; border-collapse:collapse;">${tableRows}</table>`;
+}
+
 function htmlDatos(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
   const cliente = ctx.cliente;
   const emisor = ctx.emisor;
+  const p = ctx.propuesta;
   const docLabel = cliente?.tipo_documento
     ? String(cliente.tipo_documento).toUpperCase()
     : cliente?.tipo_cliente === "empresa"
       ? "CIF"
       : "DNI";
-  const objeto = datos.concepto?.trim()
-    ? htmlEsc(datos.concepto.trim())
-    : "La presente propuesta recoge las partidas, mediciones e importes de la actuación presupuestada.";
+  const emplaz = p.emplazamiento.trim() || emplazamiento(cliente);
+  const cont = p.contacto.trim() || contacto(cliente);
+  const objeto = (p.objeto_alcance.trim() || datos.concepto?.trim() || "").trim();
+  const objetoHtml = objeto
+    ? htmlMultiline(objeto)
+    : "La presente propuesta define la actuación presupuestada, estableciendo partidas, mediciones, importes y condiciones de ejecución.";
 
   return `
     <div class="pdf-page" style="width:210mm; box-sizing:border-box; padding:14mm 16mm 12mm; page-break-after:always;">
@@ -314,16 +359,18 @@ function htmlDatos(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
           ${datoCelda(docLabel, cliente?.documento_fiscal?.trim() || "—", true)}
         </tr>
         <tr style="border-bottom:1px solid ${LINE};">
-          ${datoCelda("Emplazamiento", emplazamiento(cliente))}
-          ${datoCelda("Contacto", contacto(cliente), true)}
+          ${datoCelda("Emplazamiento", emplaz)}
+          ${datoCelda("Contacto", cont, true)}
         </tr>
         <tr>
-          ${datoCelda("Emisor", emisor.razon_social || emisor.nombre_corto)}
-          ${datoCelda("Validez de la oferta", "30 días naturales", true)}
+          ${datoCelda("Plazo de ejecución", p.plazo_ejecucion.trim() || "—")}
+          ${datoCelda("Validez de la oferta", p.validez_oferta.trim() || "30 días naturales", true)}
         </tr>
       </table>
       <h2 style="margin:0 0 12px; font-size:18px; font-weight:700;">2. Objeto y alcance</h2>
-      <p style="margin:0; font-size:13px; line-height:1.55; color:#222;">${objeto}</p>
+      <p style="margin:0 0 28px; font-size:13px; line-height:1.55; color:#222;">${objetoHtml}</p>
+      <h2 style="margin:0 0 14px; font-size:18px; font-weight:700;">3. Zonas de intervención</h2>
+      ${htmlZonas(p.zonas)}
       ${pieInterior(`${emisor.razon_social || emisor.nombre_corto}`, "02 / 04")}
     </div>
   `;
@@ -331,24 +378,45 @@ function htmlDatos(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
 
 function htmlMediciones(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
   const ivaPct = Number(datos.porcentaje_impuesto ?? 21) || 0;
-  const rows = datos.lineas
-    .map((l, i) => {
+  const groups = new Map<string, PresupuestoPdfLinea[]>();
+  for (const l of datos.lineas) {
+    const key = l.capitulo?.trim() || "";
+    const arr = groups.get(key) ?? [];
+    arr.push(l);
+    groups.set(key, arr);
+  }
+
+  let globalIdx = 0;
+  const body: string[] = [];
+  for (const [capitulo, items] of groups) {
+    if (capitulo) {
+      body.push(`
+        <tr>
+          <td colspan="6" style="padding:10px 8px 6px; background:#f3f3f3; font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:#666; font-weight:700;">
+            ${htmlEsc(capitulo)}
+          </td>
+        </tr>
+      `);
+    }
+    items.forEach((l) => {
+      globalIdx += 1;
       const cant = Number(l.cantidad);
       const precio = Number(l.precio_unitario);
       const importe = cant * precio;
-      const cod = `${Math.floor(i / 99) + 1}.${String((i % 99) + 1).padStart(2, "0")}`;
-      return `
+      const cod = `${Math.floor((globalIdx - 1) / 99) + 1}.${String(((globalIdx - 1) % 99) + 1).padStart(2, "0")}`;
+      const ud = (l.unidad || "ud").trim() || "ud";
+      body.push(`
         <tr>
           <td style="padding:9px 8px; border-bottom:1px solid ${LINE}; font-size:11px; color:#555; white-space:nowrap;">${htmlEsc(cod)}</td>
           <td style="padding:9px 8px; border-bottom:1px solid ${LINE}; font-size:12px;">${htmlEsc(l.descripcion)}</td>
-          <td style="padding:9px 8px; border-bottom:1px solid ${LINE}; font-size:11px; text-align:center;">ud</td>
+          <td style="padding:9px 8px; border-bottom:1px solid ${LINE}; font-size:11px; text-align:center;">${htmlEsc(ud)}</td>
           <td style="padding:9px 8px; border-bottom:1px solid ${LINE}; font-size:12px; text-align:right;">${formatNum(cant)}</td>
           <td style="padding:9px 8px; border-bottom:1px solid ${LINE}; font-size:12px; text-align:right;">${formatNum(precio)}</td>
           <td style="padding:9px 8px; border-bottom:1px solid ${LINE}; font-size:12px; text-align:right; font-weight:600;">${formatNum(importe)}</td>
         </tr>
-      `;
-    })
-    .join("");
+      `);
+    });
+  }
 
   const descuento =
     Number(datos.porcentaje_descuento) > 0
@@ -361,7 +429,7 @@ function htmlMediciones(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
   return `
     <div class="pdf-page" style="width:210mm; box-sizing:border-box; padding:14mm 16mm 12mm; page-break-after:always;">
       ${cabeceraInterior(ctx, datos, "03")}
-      <h2 style="margin:0 0 14px; font-size:18px; font-weight:700;">3. Mediciones y presupuesto</h2>
+      <h2 style="margin:0 0 14px; font-size:18px; font-weight:700;">4. Mediciones y presupuesto</h2>
       <table style="width:100%; border-collapse:collapse; margin-bottom:22px;">
         <thead>
           <tr style="background:#111; color:#fff;">
@@ -373,7 +441,7 @@ function htmlMediciones(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
             <th style="padding:8px; text-align:right; font-size:8px; letter-spacing:0.12em; font-weight:600;">Importe</th>
           </tr>
         </thead>
-        <tbody>${rows}</tbody>
+        <tbody>${body.join("")}</tbody>
       </table>
       <table style="width:280px; margin-left:auto; border-collapse:collapse; font-size:13px;">
         <tr>
@@ -399,23 +467,42 @@ function htmlMediciones(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
   `;
 }
 
+function htmlPrograma(programa: PropuestaPresupuesto["programa"]) {
+  const items = programa.filter((f) => f.codigo.trim() || f.descripcion.trim());
+  if (items.length === 0) {
+    return `<p style="margin:0 0 28px; font-size:13px; color:#666;">Sin programa definido.</p>`;
+  }
+  return `
+    <table style="width:100%; border-collapse:collapse; margin-bottom:28px;">
+      ${items
+        .map(
+          (f) => `
+        <tr>
+          <td style="width:88px; vertical-align:top; padding:10px 12px 10px 0; border-bottom:1px solid ${LINE}; font-size:12px; font-weight:700; color:#6A9BB0; letter-spacing:0.06em; white-space:nowrap;">
+            ${htmlEsc(f.codigo.trim() || "—")}
+          </td>
+          <td style="vertical-align:top; padding:10px 0; border-bottom:1px solid ${LINE}; font-size:13px; color:#222;">
+            ${htmlEsc(f.descripcion.trim())}
+          </td>
+        </tr>`
+        )
+        .join("")}
+    </table>
+  `;
+}
+
 function htmlCierre(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
   const emisor = ctx.emisor;
+  const p = ctx.propuesta;
   const lugar = emisor.localidad?.trim() || "A Coruña";
   const fechaLarga = formatFechaLarga(datos.fecha).toUpperCase();
   return `
     <div class="pdf-page" style="width:210mm; box-sizing:border-box; padding:14mm 16mm 12mm;">
       ${cabeceraInterior(ctx, datos, "04")}
-      <h2 style="margin:0 0 12px; font-size:18px; font-weight:700;">4. Condiciones y garantías</h2>
-      <p style="margin:0 0 12px; font-size:13px; line-height:1.55; color:#222;">
-        Los precios incluyen mano de obra, materiales y medios auxiliares necesarios para la ejecución de las partidas descritas, salvo indicación expresa en contrario.
-      </p>
-      <p style="margin:0 0 12px; font-size:13px; line-height:1.55; color:#222;">
-        Validez de la oferta: 30 días naturales desde la fecha del presupuesto. Los trabajos fuera del alcance descrito se valorarán mediante precios contradictorios previa aprobación.
-      </p>
-      <p style="margin:0 0 36px; font-size:13px; line-height:1.55; color:#222;">
-        Forma de pago: transferencia bancaria a 30 días desde la fecha de factura, salvo pacto distinto.
-      </p>
+      <h2 style="margin:0 0 12px; font-size:18px; font-weight:700;">5. Programa de trabajos</h2>
+      ${htmlPrograma(p.programa)}
+      <h2 style="margin:0 0 12px; font-size:18px; font-weight:700;">6. Condiciones y garantías</h2>
+      <p style="margin:0 0 36px; font-size:13px; line-height:1.55; color:#222;">${htmlMultiline(p.condiciones.trim())}</p>
       <table style="width:100%; border-collapse:collapse; margin-top:48px;">
         <tr>
           <td style="width:48%; vertical-align:top; padding-right:4%;">
@@ -451,6 +538,7 @@ export function buildPresupuestoDocumentHtml(params: {
     cliente: params.cliente,
     esGaral: params.emisor.slug === "garal",
     esDeportivo: esClienteDeportivo(params.cliente),
+    propuesta: parsePropuesta(params.datos.propuesta ?? propuestaVacia()),
   };
   const inner =
     htmlPortada(ctx, params.datos) +
