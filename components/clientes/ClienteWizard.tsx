@@ -24,7 +24,14 @@ const STEPS = [
   { id: 3, title: "Resumen" },
 ];
 
-type WizardData = ClienteStep1Values & ClienteStep2Values & { activo?: boolean; etiqueta?: "fallecido" | null };
+type WizardData = ClienteStep1Values &
+  ClienteStep2Values & {
+    activo?: boolean;
+    etiqueta?: "fallecido" | null;
+    presupuesto_logo_url?: string;
+    presupuesto_cabecera_url?: string;
+    plantilla_presupuesto?: "deportivo" | null;
+  };
 
 interface ClienteWizardProps {
   clienteId?: string;
@@ -52,7 +59,24 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
           setLoading(false);
           return;
         }
-        const r = row as { nombre: string; email: string | null; telefono: string | null; documento_fiscal: string | null; tipo_documento: string | null; tipo_cliente: "particular" | "empresa"; direccion: string | null; codigo_postal: string | null; localidad: string | null; notas: string | null; activo: boolean; etiqueta: "fallecido" | null; cliente_padre_id: string | null };
+        const r = row as {
+          nombre: string;
+          email: string | null;
+          telefono: string | null;
+          documento_fiscal: string | null;
+          tipo_documento: string | null;
+          tipo_cliente: "particular" | "empresa";
+          direccion: string | null;
+          codigo_postal: string | null;
+          localidad: string | null;
+          notas: string | null;
+          activo: boolean;
+          etiqueta: "fallecido" | null;
+          cliente_padre_id: string | null;
+          presupuesto_logo_url: string | null;
+          presupuesto_cabecera_url: string | null;
+          plantilla_presupuesto: "deportivo" | null;
+        };
         setData({
           nombre: r.nombre,
           tipo_cliente: r.tipo_cliente ?? "particular",
@@ -67,6 +91,9 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
           notas: r.notas ?? "",
           activo: r.activo ?? true,
           etiqueta: r.etiqueta ?? null,
+          presupuesto_logo_url: r.presupuesto_logo_url ?? "",
+          presupuesto_cabecera_url: r.presupuesto_cabecera_url ?? "",
+          plantilla_presupuesto: r.plantilla_presupuesto ?? null,
         });
         setLoading(false);
       });
@@ -135,6 +162,9 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
       activo: data.etiqueta === "fallecido" ? false : (data.activo ?? true),
       etiqueta: data.etiqueta === "fallecido" ? "fallecido" : null,
       cliente_padre_id: tipo_cliente === "empresa" && (data.cliente_padre_id ?? initialClientePadreId) ? (data.cliente_padre_id ?? initialClientePadreId) : null,
+      presupuesto_logo_url: data.presupuesto_logo_url?.trim() || null,
+      presupuesto_cabecera_url: data.presupuesto_cabecera_url?.trim() || null,
+      plantilla_presupuesto: data.plantilla_presupuesto === "deportivo" ? "deportivo" : null,
     };
     if (clienteId) {
       const { error } = await supabase.from("clientes").update(payload).eq("id", clienteId);
@@ -369,6 +399,50 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
                     {...formStep2.register("notas")}
                   />
                 </div>
+                <div className="space-y-4 rounded-lg border border-border p-4">
+                  <p className="text-sm font-medium">Presupuestos (cabecera y logo)</p>
+                  <p className="text-xs text-neutral-500">
+                    Si hay cabecera y logotipo, el PDF del presupuesto usa una maquetación distinta.
+                    La plantilla Deportivo queda lista para el diseño específico.
+                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="presupuesto_logo_url">Logotipo (URL o ruta /…)</Label>
+                    <Input
+                      id="presupuesto_logo_url"
+                      value={data.presupuesto_logo_url ?? ""}
+                      onChange={(e) => setData((p) => ({ ...p, presupuesto_logo_url: e.target.value }))}
+                      placeholder="https://… o /images/logo-cliente.png"
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="presupuesto_cabecera_url">Cabecera (URL o ruta /…)</Label>
+                    <Input
+                      id="presupuesto_cabecera_url"
+                      value={data.presupuesto_cabecera_url ?? ""}
+                      onChange={(e) => setData((p) => ({ ...p, presupuesto_cabecera_url: e.target.value }))}
+                      placeholder="https://… o /images/cabecera-cliente.png"
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="plantilla_presupuesto">Plantilla de PDF</Label>
+                    <select
+                      id="plantilla_presupuesto"
+                      value={data.plantilla_presupuesto ?? ""}
+                      onChange={(e) =>
+                        setData((p) => ({
+                          ...p,
+                          plantilla_presupuesto: e.target.value === "deportivo" ? "deportivo" : null,
+                        }))
+                      }
+                      className="flex h-10 w-full rounded-lg border border-border bg-white px-4 text-base"
+                    >
+                      <option value="">Automática</option>
+                      <option value="deportivo">Deportivo</option>
+                    </select>
+                  </div>
+                </div>
                 {clienteId && (
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center gap-2">
@@ -443,6 +517,20 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
                     <dd className="font-medium">{data.etiqueta === "fallecido" ? "Fallecido" : data.activo !== false ? "Activo" : "Inactivo"}</dd>
                   </div>
                 )}
+                <div>
+                  <dt className="text-neutral-500">Plantilla de presupuesto</dt>
+                  <dd className="font-medium">{data.plantilla_presupuesto === "deportivo" ? "Deportivo" : "Automática"}</dd>
+                </div>
+                <div>
+                  <dt className="text-neutral-500">Logo / cabecera presupuesto</dt>
+                  <dd className="font-medium">
+                    {data.presupuesto_logo_url?.trim() || data.presupuesto_cabecera_url?.trim()
+                      ? [data.presupuesto_logo_url?.trim() ? "Logo" : null, data.presupuesto_cabecera_url?.trim() ? "Cabecera" : null]
+                          .filter(Boolean)
+                          .join(" y ")
+                      : "Sin branding"}
+                  </dd>
+                </div>
               </dl>
               {saveError && (
                 <p className="text-sm text-red-600">{saveError}</p>

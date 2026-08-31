@@ -31,6 +31,9 @@ export interface Database {
           notas: string | null;
           activo: boolean;
           etiqueta: "fallecido" | null;
+          presupuesto_logo_url: string | null;
+          presupuesto_cabecera_url: string | null;
+          plantilla_presupuesto: "deportivo" | null;
           created_at: string;
           updated_at: string;
         };
@@ -49,6 +52,9 @@ export interface Database {
           notas?: string | null;
           activo?: boolean;
           etiqueta?: "fallecido" | null;
+          presupuesto_logo_url?: string | null;
+          presupuesto_cabecera_url?: string | null;
+          plantilla_presupuesto?: "deportivo" | null;
         };
         Update: {
           nombre?: string;
@@ -64,6 +70,9 @@ export interface Database {
           notas?: string | null;
           activo?: boolean;
           etiqueta?: "fallecido" | null;
+          presupuesto_logo_url?: string | null;
+          presupuesto_cabecera_url?: string | null;
+          plantilla_presupuesto?: "deportivo" | null;
           updated_at?: string;
         };
       };
@@ -154,6 +163,7 @@ export interface Database {
           porcentaje_descuento: number;
           importe_descuento: number;
           total: number;
+          emisor_id: string;
           created_at: string;
           updated_at: string;
         };
@@ -164,6 +174,7 @@ export interface Database {
           estado?: string;
           fecha?: string | null;
           concepto?: string | null;
+          emisor_id?: string;
         };
         Update: {
           cliente_id?: string | null;
@@ -171,6 +182,7 @@ export interface Database {
           estado?: string;
           fecha?: string | null;
           concepto?: string | null;
+          emisor_id?: string;
           updated_at?: string;
         };
       };
@@ -272,6 +284,61 @@ export interface Database {
           fecha?: string;
           metodo_pago?: string | null;
           notas?: string | null;
+          updated_at?: string;
+        };
+      };
+      emisores_presupuesto: {
+        Row: {
+          id: string;
+          slug: "rehabinco" | "garal";
+          nombre_corto: string;
+          razon_social: string;
+          nif: string;
+          direccion: string;
+          codigo_postal: string;
+          localidad: string;
+          provincia: string;
+          telefono: string | null;
+          email: string | null;
+          iban: string | null;
+          numero_cuenta_bancaria: string | null;
+          logo_url: string | null;
+          activo: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          slug: "rehabinco" | "garal";
+          nombre_corto: string;
+          razon_social?: string;
+          nif?: string;
+          direccion?: string;
+          codigo_postal?: string;
+          localidad?: string;
+          provincia?: string;
+          telefono?: string | null;
+          email?: string | null;
+          iban?: string | null;
+          numero_cuenta_bancaria?: string | null;
+          logo_url?: string | null;
+          activo?: boolean;
+        };
+        Update: {
+          slug?: "rehabinco" | "garal";
+          nombre_corto?: string;
+          razon_social?: string;
+          nif?: string;
+          direccion?: string;
+          codigo_postal?: string;
+          localidad?: string;
+          provincia?: string;
+          telefono?: string | null;
+          email?: string | null;
+          iban?: string | null;
+          numero_cuenta_bancaria?: string | null;
+          logo_url?: string | null;
+          activo?: boolean;
           updated_at?: string;
         };
       };

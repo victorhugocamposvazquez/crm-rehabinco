@@ -229,6 +229,17 @@ export function TopBar() {
             </Link>
           )}
 
+          {user?.role === "admin" && (
+            <Link
+              href="/settings/emisores-presupuesto"
+              onClick={() => setSheetOpen(false)}
+              className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-[15px] font-medium text-foreground transition-colors hover:bg-neutral-50"
+            >
+              <Building2 className="h-5 w-5 shrink-0 text-neutral-500" strokeWidth={1.5} />
+              <span>Emisores de presupuesto</span>
+            </Link>
+          )}
+
           <button
             type="button"
             onClick={() => {

@@ -13,6 +13,7 @@ import { Plus, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { ClienteQuickSheet } from "@/components/clientes/ClienteQuickSheet";
 import { parseDecimalMientrasEscribe } from "@/lib/decimales-input";
+import { listEmisoresPresupuesto, type EmisorPresupuesto } from "@/lib/emisores-presupuesto";
 
 interface Linea {
   descripcion: string;
@@ -31,6 +32,8 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
   const [step, setStep] = useState(1);
   const [clientes, setClientes] = useState<Array<{ id: string; nombre: string }>>([]);
   const [clienteId, setClienteId] = useState("");
+  const [emisorId, setEmisorId] = useState("");
+  const [emisores, setEmisores] = useState<EmisorPresupuesto[]>([]);
   const [concepto, setConcepto] = useState("");
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
   const [lineas, setLineas] = useState<LineaBorrador[]>([
@@ -51,16 +54,24 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
       .select("id, nombre")
       .order("nombre")
       .then(({ data }) => setClientes(data ?? []));
+    listEmisoresPresupuesto(supabase).then((list) => {
+      setEmisores(list);
+      setEmisorId((current) => {
+        if (current) return current;
+        const rehabinco = list.find((e) => e.slug === "rehabinco");
+        return rehabinco?.id ?? list[0]?.id ?? "";
+      });
+    });
   }, []);
 
   useEffect(() => {
     if (!presupuestoId) return;
     const supabase = createClient();
     Promise.all([
-      supabase.from("presupuestos").select("cliente_id, concepto, fecha, porcentaje_impuesto, porcentaje_descuento, estado").eq("id", presupuestoId).single(),
+      supabase.from("presupuestos").select("cliente_id, concepto, fecha, porcentaje_impuesto, porcentaje_descuento, estado, emisor_id").eq("id", presupuestoId).single(),
       supabase.from("presupuesto_lineas").select("descripcion, cantidad, precio_unitario").eq("presupuesto_id", presupuestoId).order("orden"),
     ]).then(([pRes, lRes]) => {
-      const p = pRes.data as { cliente_id: string | null; concepto: string | null; fecha: string | null; porcentaje_impuesto: number; porcentaje_descuento: number; estado: string } | null;
+      const p = pRes.data as { cliente_id: string | null; concepto: string | null; fecha: string | null; porcentaje_impuesto: number; porcentaje_descuento: number; estado: string; emisor_id: string | null } | null;
       const l = (lRes.data ?? []) as Array<{ descripcion: string; cantidad: number; precio_unitario: number }>;
       if (p) {
         setClienteId(p.cliente_id ?? "");
@@ -69,6 +80,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
         setPorcentajeImpuesto(p.porcentaje_impuesto ?? 21);
         setPorcentajeDescuento(p.porcentaje_descuento ?? 0);
         setEstado(p.estado ?? "borrador");
+        if (p.emisor_id) setEmisorId(p.emisor_id);
       }
       setLineas(l.length > 0 ? l.map((x) => ({ descripcion: x.descripcion, cantidad: x.cantidad, precioUnitario: x.precio_unitario })) : [{ descripcion: "", cantidad: 0, precioUnitario: 0 }]);
       setLoading(false);
@@ -135,6 +147,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
           porcentaje_impuesto: porcentajeImpuesto,
           porcentaje_descuento: porcentajeDescuento,
           estado,
+          emisor_id: emisorId || undefined,
         })
         .eq("id", presupuestoId);
 
@@ -197,6 +210,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
         concepto: concepto || null,
         porcentaje_impuesto: porcentajeImpuesto,
         porcentaje_descuento: porcentajeDescuento,
+        emisor_id: emisorId || undefined,
       })
       .select("id")
       .single();
@@ -274,6 +288,29 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
             <CardTitle>Cliente y datos</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Emisor</Label>
+              <div className="flex rounded-lg border border-border p-1">
+                {emisores.map((e) => (
+                  <button
+                    key={e.id}
+                    type="button"
+                    onClick={() => setEmisorId(e.id)}
+                    className={cn(
+                      "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      emisorId === e.id
+                        ? "bg-foreground text-background"
+                        : "text-muted-foreground hover:bg-muted"
+                    )}
+                  >
+                    {e.nombre_corto}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-neutral-500">
+                El PDF usará el logotipo y los datos fiscales de este emisor.
+              </p>
+            </div>
             <div className="space-y-2">
               <Label>Cliente</Label>
               <select
@@ -464,6 +501,10 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2 text-sm">
+              <p>
+                <span className="text-neutral-500">Emisor:</span>{" "}
+                {emisores.find((e) => e.id === emisorId)?.nombre_corto ?? "—"}
+              </p>
               <p>
                 <span className="text-neutral-500">Cliente:</span>{" "}
                 {clientes.find((c) => c.id === clienteId)?.nombre ?? "—"}

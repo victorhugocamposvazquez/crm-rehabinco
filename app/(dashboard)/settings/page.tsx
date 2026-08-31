@@ -130,6 +130,26 @@ export default function SettingsPage() {
           <Card className="md:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5" strokeWidth={1.5} />
+                Emisores de presupuesto
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-neutral-600">
+                Rehabinco S.L. y Garal: logotipo y datos fiscales que salen al generar el PDF del
+                presupuesto.
+              </p>
+              <Button className="mt-4" variant="secondary" asChild>
+                <Link href="/settings/emisores-presupuesto">Editar emisores de presupuesto</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {user?.role === "admin" && (
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
                 <UserPlus className="h-5 w-5" strokeWidth={1.5} />
                 Crear usuario
               </CardTitle>

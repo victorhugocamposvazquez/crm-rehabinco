@@ -9,8 +9,15 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText } from "lucide-react";
+import { FileDown, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { fetchEmisorPresupuesto, type EmisorPresupuesto } from "@/lib/emisores-presupuesto";
+import {
+  buildPresupuestoDocumentHtml,
+  downloadPresupuestoPdf,
+  presupuestoPdfFilename,
+  type PresupuestoPdfCliente,
+} from "@/lib/presupuesto-pdf";
 
 interface Presupuesto {
   id: string;
@@ -19,13 +26,14 @@ interface Presupuesto {
   fecha: string | null;
   concepto: string | null;
   cliente_id: string | null;
+  emisor_id: string | null;
   base_imponible: number;
   porcentaje_impuesto: number;
   importe_impuesto: number;
   porcentaje_descuento: number;
   importe_descuento: number;
   total: number;
-  clientes?: { nombre: string } | null;
+  clientes?: PresupuestoPdfCliente | null;
 }
 
 interface FacturaConvertida {
@@ -58,22 +66,31 @@ export default function DetallePresupuestoPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [converting, setConverting] = useState(false);
+  const [emisor, setEmisor] = useState<EmisorPresupuesto | null>(null);
+  const [printingPdf, setPrintingPdf] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
     supabase
       .from("presupuestos")
-      .select("*, clientes(nombre)")
+      .select(
+        "*, clientes(nombre, documento_fiscal, tipo_documento, tipo_cliente, direccion, codigo_postal, localidad, email, telefono, presupuesto_logo_url, presupuesto_cabecera_url, plantilla_presupuesto)"
+      )
       .eq("id", id)
       .single()
-      .then(({ data, error: err }) => {
+      .then(async ({ data, error: err }) => {
         if (err) {
           setError(err.message);
           setPresupuesto(null);
-        } else {
-          const raw = data as Presupuesto;
-          const cliente = Array.isArray(raw.clientes) ? raw.clientes[0] : raw.clientes;
-          setPresupuesto({ ...raw, clientes: cliente });
+          setLoading(false);
+          return;
+        }
+        const raw = data as Presupuesto;
+        const cliente = Array.isArray(raw.clientes) ? raw.clientes[0] : raw.clientes;
+        setPresupuesto({ ...raw, clientes: cliente ?? null });
+        if (raw.emisor_id) {
+          const loaded = await fetchEmisorPresupuesto(supabase, raw.emisor_id);
+          setEmisor(loaded);
         }
         setLoading(false);
       });
@@ -177,6 +194,49 @@ export default function DetallePresupuestoPage() {
     setConverting(false);
   };
 
+  const handleDownloadPdf = async () => {
+    if (!presupuesto) return;
+    setPrintingPdf(true);
+    try {
+      let emisorDoc = emisor;
+      if (!emisorDoc && presupuesto.emisor_id) {
+        emisorDoc = await fetchEmisorPresupuesto(createClient(), presupuesto.emisor_id);
+        setEmisor(emisorDoc);
+      }
+      if (!emisorDoc) {
+        toast.error("No se encontró el emisor del presupuesto.");
+        return;
+      }
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const html = buildPresupuestoDocumentHtml({
+        emisor: emisorDoc,
+        cliente: presupuesto.clientes ?? null,
+        datos: {
+          numero: presupuesto.numero,
+          fecha: presupuesto.fecha,
+          concepto: presupuesto.concepto,
+          porcentaje_impuesto: Number(presupuesto.porcentaje_impuesto),
+          importe_impuesto: Number(presupuesto.importe_impuesto),
+          porcentaje_descuento: Number(presupuesto.porcentaje_descuento),
+          importe_descuento: Number(presupuesto.importe_descuento),
+          base_imponible: Number(presupuesto.base_imponible),
+          total: Number(presupuesto.total),
+          lineas,
+        },
+        origin,
+      });
+      await downloadPresupuestoPdf({
+        html,
+        filename: presupuestoPdfFilename(presupuesto.numero),
+      });
+      toast.success("PDF descargado");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Error al generar el PDF");
+    } finally {
+      setPrintingPdf(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
@@ -212,6 +272,16 @@ export default function DetallePresupuestoPage() {
         description={undefined}
         actions={
         <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="gap-2"
+            onClick={handleDownloadPdf}
+            disabled={printingPdf}
+          >
+            <FileDown className="h-4 w-4" strokeWidth={1.5} />
+            {printingPdf ? "Generando PDF…" : "Descargar PDF"}
+          </Button>
           {facturaConvertida && (
             <Button variant="secondary" size="sm" asChild className="gap-2">
               <Link href={`/facturas/${facturaConvertida.id}`}>
@@ -245,6 +315,10 @@ export default function DetallePresupuestoPage() {
             <CardTitle>Datos</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
+            <p>
+              <span className="text-neutral-500">Emisor:</span>{" "}
+              {emisor?.nombre_corto ?? emisor?.razon_social ?? "—"}
+            </p>
             <p>
               <span className="text-neutral-500">Cliente:</span>{" "}
               {clienteNombre ?? "—"}
