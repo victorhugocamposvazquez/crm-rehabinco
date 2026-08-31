@@ -140,6 +140,18 @@ function contacto(cliente: PresupuestoPdfCliente | null) {
   return parts.length ? parts.join(" · ") : "—";
 }
 
+const PAGE_W_PX = 794;
+const PAGE_H_PX = 1123;
+
+function logoImg(src: string, w: number, h: number, align: "left" | "right") {
+  const margin = align === "right" ? "margin-left:auto;" : "";
+  const pos = align === "right" ? "right center" : "left center";
+  return `<div style="width:${w}px;height:${h}px;${margin}overflow:hidden;">
+    <img data-pdf-img src=${JSON.stringify(src)} alt="" width="${w}" height="${h}"
+      style="width:${w}px;height:${h}px;object-fit:contain;object-position:${pos};display:block;border:0;" />
+  </div>`;
+}
+
 function logoEmisorUrl(ctx: PdfCtx, invert: boolean): string | null {
   if (ctx.esGaral) {
     return absAsset(ctx.origin, invert ? ASSETS.garalBlanco : ASSETS.garalNegro);
@@ -163,9 +175,11 @@ function marcaEmisor(ctx: PdfCtx, opts?: { invert?: boolean; cover?: boolean }) 
   const color = invert ? "#fff" : NAVY;
   const sub = invert ? "rgba(255,255,255,0.72)" : MUTED;
   const src = logoEmisorUrl(ctx, invert);
-  const h = opts?.cover ? 52 : 42;
   if (src) {
-    return `<img data-pdf-img src=${JSON.stringify(src)} alt="" style="height:${h}px; width:auto; max-width:${opts?.cover ? 220 : 200}px; object-fit:contain;" />`;
+    if (ctx.esGaral) {
+      return opts?.cover ? logoImg(src, 150, 48, "left") : logoImg(src, 119, 38, "left");
+    }
+    return opts?.cover ? logoImg(src, 180, 48, "left") : logoImg(src, 160, 42, "left");
   }
   const emisor = ctx.emisor;
   return `
@@ -184,10 +198,14 @@ function marcaCliente(ctx: PdfCtx, opts?: { invert?: boolean; cover?: boolean })
   const sub = invert ? "rgba(255,255,255,0.7)" : MUTED;
   const nombre = ctx.cliente?.nombre?.trim() || "Cliente";
   const src = logoClienteUrl(ctx, invert);
-  const h = opts?.cover ? 36 : 32;
-  const img = src
-    ? `<img data-pdf-img src=${JSON.stringify(src)} alt="" style="height:${h}px; width:auto; max-width:220px; object-fit:contain; margin-left:auto; display:block;" />`
-    : `<div style="font-size:${opts?.cover ? 15 : 12}px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:${color}; line-height:1.3;">${htmlEsc(nombre)}</div>`;
+  let img: string;
+  if (src && ctx.esDeportivo) {
+    img = opts?.cover ? logoImg(src, 200, 22, "right") : logoImg(src, 190, 21, "right");
+  } else if (src) {
+    img = opts?.cover ? logoImg(src, 180, 40, "right") : logoImg(src, 150, 36, "right");
+  } else {
+    img = `<div style="font-size:${opts?.cover ? 15 : 12}px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:${color}; line-height:1.3;">${htmlEsc(nombre)}</div>`;
+  }
   const etiqueta = src
     ? ctx.esDeportivo
       ? "Cliente · Estadio Abanca-Riazor"
@@ -220,11 +238,11 @@ function cabeceraInterior(ctx: PdfCtx, datos: PresupuestoPdfDatos, hoja: string)
 
 function pieInterior(left: string, hoja: string) {
   return `
-    <div style="margin-top:36px; padding-top:12px; border-top:1px solid ${LINE};">
+    <div class="pdf-footer">
       <table style="width:100%; border-collapse:collapse;">
         <tr>
-          <td style="font-size:8px; letter-spacing:0.14em; text-transform:uppercase; color:${MUTED};">${htmlEsc(left)}</td>
-          <td style="text-align:right; font-size:8px; letter-spacing:0.14em; text-transform:uppercase; color:${MUTED};">Hoja ${htmlEsc(hoja)}</td>
+          <td style="font-size:8px; letter-spacing:0.14em; text-transform:uppercase; color:${MUTED}; padding-top:12px; border-top:1px solid ${LINE};">${htmlEsc(left)}</td>
+          <td style="text-align:right; font-size:8px; letter-spacing:0.14em; text-transform:uppercase; color:${MUTED}; padding-top:12px; border-top:1px solid ${LINE};">Hoja ${htmlEsc(hoja)}</td>
         </tr>
       </table>
     </div>
@@ -243,18 +261,17 @@ function datoCelda(label: string, value: string, right?: boolean) {
 function htmlPortada(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
   const p = ctx.propuesta;
   const titulo = (datos.concepto || "Presupuesto").trim();
-  const comboRiazor = ctx.esGaral && ctx.esDeportivo;
   const cabeceraCliente = hasAsset(ctx.cliente?.presupuesto_cabecera_url);
-  let fondo: string;
-  if (comboRiazor) {
+  let fondo = "";
+  if (ctx.esDeportivo) {
     const src = absAsset(ctx.origin, ASSETS.fondoRiazor);
-    fondo = `<img data-pdf-img src=${JSON.stringify(src)} alt="" style="position:absolute; left:0; top:0; width:100%; height:100%; object-fit:cover;" />`;
+    fondo = `<img data-pdf-img class="pdf-cover-bg" src=${JSON.stringify(src)} alt="" width="${PAGE_W_PX}" height="${PAGE_H_PX}" />`;
   } else if (cabeceraCliente) {
     const src = resolveAssetUrl(ctx.cliente?.presupuesto_cabecera_url, ctx.origin);
-    fondo = `<img data-pdf-img src=${JSON.stringify(src)} alt="" style="position:absolute; left:0; top:0; width:100%; height:62%; object-fit:cover;" />
-       <div style="position:absolute; left:0; top:0; width:100%; height:100%; background:linear-gradient(180deg, rgba(11,29,46,0.35) 0%, rgba(11,29,46,0.55) 48%, ${NAVY} 62%, ${NAVY} 100%);"></div>`;
+    fondo = `<img data-pdf-img class="pdf-cover-bg" src=${JSON.stringify(src)} alt="" width="${PAGE_W_PX}" height="${PAGE_H_PX}" style="object-fit:cover; object-position:center top;" />
+       <div style="position:absolute; left:0; top:0; width:${PAGE_W_PX}px; height:${PAGE_H_PX}px; background:linear-gradient(180deg, rgba(11,29,46,0.35) 0%, rgba(11,29,46,0.55) 48%, ${NAVY} 62%, ${NAVY} 100%);"></div>`;
   } else {
-    fondo = `<div style="position:absolute; inset:0; background:
+    fondo = `<div class="pdf-cover-bg" style="background:
          linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
          linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px),
          ${NAVY};
@@ -264,16 +281,16 @@ function htmlPortada(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
   const escalaHoja = `${p.escala?.trim() || "1:1000"} · 01/04`;
 
   return `
-    <div class="pdf-page pdf-cover" style="position:relative; width:210mm; height:297mm; overflow:hidden; background:${NAVY}; color:#fff; page-break-after:always;">
+    <div class="pdf-page pdf-cover">
       ${fondo}
-      <div style="position:relative; z-index:1; box-sizing:border-box; height:100%; padding:18mm 16mm 16mm; display:flex; flex-direction:column;">
+      <div class="pdf-page-inner pdf-cover-inner">
         <table style="width:100%; border-collapse:collapse;">
           <tr>
             <td style="width:50%; vertical-align:top;">${marcaEmisor(ctx, { invert: true, cover: true })}</td>
             <td style="width:50%; vertical-align:top;">${marcaCliente(ctx, { invert: true, cover: true })}</td>
           </tr>
         </table>
-        <div style="flex:1;"></div>
+        <div class="pdf-cover-spacer"></div>
         <div style="padding-bottom:8mm;">
           <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
             <div style="flex:1; height:1px; background:rgba(255,255,255,0.35);"></div>
@@ -350,7 +367,8 @@ function htmlDatos(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
     : "La presente propuesta define la actuación presupuestada, estableciendo partidas, mediciones, importes y condiciones de ejecución.";
 
   return `
-    <div class="pdf-page" style="width:210mm; box-sizing:border-box; padding:14mm 16mm 12mm; page-break-after:always;">
+    <div class="pdf-page">
+      <div class="pdf-page-inner">
       ${cabeceraInterior(ctx, datos, "02")}
       <h2 style="margin:0 0 14px; font-size:18px; font-weight:700;">1. Datos del presupuesto</h2>
       <table style="width:100%; border-collapse:collapse; border:1px solid ${LINE}; margin-bottom:28px;">
@@ -371,6 +389,7 @@ function htmlDatos(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
       <p style="margin:0 0 28px; font-size:13px; line-height:1.55; color:#222;">${objetoHtml}</p>
       <h2 style="margin:0 0 14px; font-size:18px; font-weight:700;">3. Zonas de intervención</h2>
       ${htmlZonas(p.zonas)}
+      </div>
       ${pieInterior(`${emisor.razon_social || emisor.nombre_corto}`, "02 / 04")}
     </div>
   `;
@@ -427,7 +446,8 @@ function htmlMediciones(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
       : "";
 
   return `
-    <div class="pdf-page" style="width:210mm; box-sizing:border-box; padding:14mm 16mm 12mm; page-break-after:always;">
+    <div class="pdf-page">
+      <div class="pdf-page-inner">
       ${cabeceraInterior(ctx, datos, "03")}
       <h2 style="margin:0 0 14px; font-size:18px; font-weight:700;">4. Mediciones y presupuesto</h2>
       <table style="width:100%; border-collapse:collapse; margin-bottom:22px;">
@@ -462,6 +482,7 @@ function htmlMediciones(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
           </td>
         </tr>
       </table>
+      </div>
       ${pieInterior("Importes en euros · IVA no incluido en las partidas", "03 / 04")}
     </div>
   `;
@@ -497,7 +518,8 @@ function htmlCierre(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
   const lugar = emisor.localidad?.trim() || "A Coruña";
   const fechaLarga = formatFechaLarga(datos.fecha).toUpperCase();
   return `
-    <div class="pdf-page" style="width:210mm; box-sizing:border-box; padding:14mm 16mm 12mm;">
+    <div class="pdf-page">
+      <div class="pdf-page-inner">
       ${cabeceraInterior(ctx, datos, "04")}
       <h2 style="margin:0 0 12px; font-size:18px; font-weight:700;">5. Programa de trabajos</h2>
       ${htmlPrograma(p.programa)}
@@ -519,6 +541,7 @@ function htmlCierre(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
           </td>
         </tr>
       </table>
+      </div>
       ${pieInterior(`En ${lugar}, a ${fechaLarga}`, "04 / 04")}
     </div>
   `;
@@ -554,9 +577,30 @@ export function buildPresupuestoDocumentHtml(params: {
     <style>
       * { box-sizing: border-box; }
       html, body { margin:0; padding:0; }
-      body { font-family: Helvetica, Arial, sans-serif; color:#111; font-size:13px; line-height:1.45; background:#fff; }
-      img[data-pdf-img] { max-width:100%; }
+      body { font-family: Helvetica, Arial, sans-serif; color:#111; font-size:13px; line-height:1.45; background:#fff; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
       h2 { font-family: Helvetica, Arial, sans-serif; }
+      img[data-pdf-img] { display:block; border:0; }
+      .pdf-page {
+        width: ${PAGE_W_PX}px;
+        height: ${PAGE_H_PX}px;
+        overflow: hidden;
+        position: relative;
+        background: #fff;
+      }
+      .pdf-cover { background: ${NAVY}; color: #fff; }
+      .pdf-cover-bg {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: ${PAGE_W_PX}px;
+        height: ${PAGE_H_PX}px;
+        display: block;
+        border: 0;
+      }
+      .pdf-page-inner { position: relative; z-index: 1; box-sizing: border-box; height: 100%; padding: 52px 60px 72px; }
+      .pdf-cover-inner { display: flex; flex-direction: column; padding: 68px 60px 52px; }
+      .pdf-cover-spacer { flex: 1 1 auto; min-height: 120px; }
+      .pdf-footer { position: absolute; left: 60px; right: 60px; bottom: 44px; z-index: 1; }
     </style>
   </head>
   <body>
@@ -577,7 +621,7 @@ function waitForPdfImages(doc: Document): Promise<void> {
     imgs.map(
       (img) =>
         new Promise<void>((resolve) => {
-          if (img.complete && img.naturalHeight > 0) {
+          if (img.complete && img.naturalWidth > 0) {
             resolve();
             return;
           }
@@ -599,12 +643,13 @@ export async function downloadPresupuestoPdf(params: {
     position: "fixed",
     left: "0",
     top: "0",
-    width: "794px",
-    minHeight: "1123px",
-    opacity: "0",
+    width: `${PAGE_W_PX}px`,
+    height: `${PAGE_H_PX * 5}px`,
+    border: "0",
+    opacity: "0.01",
     pointerEvents: "none",
     zIndex: "-1",
-    border: "0",
+    background: "#fff",
   });
   document.body.appendChild(iframe);
   const idoc = iframe.contentDocument;
@@ -617,22 +662,48 @@ export async function downloadPresupuestoPdf(params: {
   idoc.close();
 
   await waitForPdfImages(idoc);
-  await new Promise((r) => setTimeout(r, 150));
+  await new Promise((r) => setTimeout(r, 250));
+
+  const pages = Array.from(idoc.querySelectorAll(".pdf-page")) as HTMLElement[];
+  if (pages.length === 0) {
+    document.body.removeChild(iframe);
+    throw new Error("No se pudo generar el PDF. Inténtalo de nuevo.");
+  }
 
   try {
-    const mod = await import("html2pdf.js");
-    const html2pdf = mod.default;
-    await html2pdf()
-      .set({
-        margin: 0,
-        filename: params.filename,
-        image: { type: "jpeg", quality: 0.94 },
-        html2canvas: { scale: 2, useCORS: true, logging: false, letterRendering: true },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        pagebreak: { mode: ["css", "legacy"] },
-      } as never)
-      .from(idoc.body)
-      .save();
+    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+      import("html2canvas"),
+      import("jspdf"),
+    ]);
+    const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+    iframe.style.height = `${PAGE_H_PX}px`;
+
+    for (let i = 0; i < pages.length; i++) {
+      for (let j = 0; j < pages.length; j++) {
+        pages[j].style.display = j === i ? "block" : "none";
+      }
+      const page = pages[i];
+      const isCover = page.classList.contains("pdf-cover");
+      await new Promise((r) => requestAnimationFrame(() => r(undefined)));
+      const canvas = await html2canvas(page, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: isCover ? NAVY : "#ffffff",
+        width: PAGE_W_PX,
+        height: PAGE_H_PX,
+        windowWidth: PAGE_W_PX,
+        windowHeight: PAGE_H_PX,
+        scrollX: 0,
+        scrollY: 0,
+        imageTimeout: 15000,
+      });
+      const img = canvas.toDataURL("image/jpeg", 0.95);
+      if (i > 0) pdf.addPage("a4", "portrait");
+      pdf.addImage(img, "JPEG", 0, 0, 210, 297, undefined, "FAST");
+    }
+
+    pdf.save(params.filename);
   } finally {
     if (iframe.parentNode) {
       document.body.removeChild(iframe);
