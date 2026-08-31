@@ -258,6 +258,99 @@ function datoCelda(label: string, value: string, right?: boolean) {
   `;
 }
 
+const GARAL_MONO = "'Courier New', Courier, monospace";
+
+const GARAL_SEDES = {
+  exposicion: ["Ronda de Nelle 133", "15010 A Coruña", "Tlfno. 981 265 638"],
+  fabrica: ["M. Rabadeira, Nave 09", "Plg. Nostián, 15008", "A Coruña"],
+  contacto: ["www.armariosgaral.com", "garaldesde1988@gmail.com"],
+} as const;
+
+const REHABINCO_SEDES = {
+  direccion: ["C/ de la Merced, 57 bjo.", "La Coruña", "Tel. 664 859 306"],
+  contacto: ["www.rehabinco.com", "oficina@rehabinco.com"],
+} as const;
+
+function garalCoverLabel(text: string) {
+  return `<div style="font-family:${GARAL_MONO};font-size:8px;letter-spacing:0.22em;text-transform:uppercase;opacity:0.68;margin-bottom:8px;white-space:nowrap;">${htmlEsc(text)}</div>`;
+}
+
+function garalCoverValue(text: string) {
+  return `<div style="font-family:${GARAL_MONO};font-size:13px;line-height:1.4;">${htmlEsc(text)}</div>`;
+}
+
+function garalCoverLines(lines: readonly string[]) {
+  return `<div style="font-family:${GARAL_MONO};font-size:12px;line-height:1.45;">${lines.map((l) => htmlEsc(l)).join("<br />")}</div>`;
+}
+
+function htmlMarcoTecnico() {
+  const mark = (pos: string) =>
+    `<span style="position:absolute;${pos};font-family:${GARAL_MONO};font-size:11px;line-height:1;opacity:0.85;">+</span>`;
+  return `
+    <div class="pdf-cover-frame" style="position:absolute;left:18px;top:18px;right:18px;bottom:18px;border:1px solid rgba(255,255,255,0.42);pointer-events:none;z-index:2;">
+      ${mark("left:-5px;top:-8px")}
+      ${mark("right:-5px;top:-8px")}
+      ${mark("left:-5px;bottom:-8px")}
+      ${mark("right:-5px;bottom:-8px")}
+    </div>
+  `;
+}
+
+function htmlPortadaPie(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
+  const p = ctx.propuesta;
+  const totalTxt = `${formatCurrency(Number(datos.base_imponible))} + IVA`;
+  const validez = p.validez_oferta.trim() || "30 días naturales";
+  const hr = `border-top:1px solid rgba(255,255,255,0.32);`;
+  const bloques = ctx.esGaral
+    ? [
+        { label: "Exposición y venta", lines: GARAL_SEDES.exposicion },
+        { label: "Fábrica", lines: GARAL_SEDES.fabrica },
+        { label: "Contacto", lines: GARAL_SEDES.contacto },
+      ]
+    : [
+        { label: "Dirección", lines: REHABINCO_SEDES.direccion },
+        { label: "Contacto", lines: REHABINCO_SEDES.contacto },
+      ];
+  const colW = `${Math.floor(100 / bloques.length)}%`;
+  return `
+    <div style="${hr}padding-top:14px;font-family:${GARAL_MONO};color:#fff;">
+      <table style="width:100%;border-collapse:collapse;margin-bottom:14px;">
+        <tr>
+          <td style="width:25%;vertical-align:top;padding-right:10px;">
+            ${garalCoverLabel("N.º presupuesto")}
+            ${garalCoverValue(datos.numero)}
+          </td>
+          <td style="width:22%;vertical-align:top;padding:0 10px;">
+            ${garalCoverLabel("Fecha")}
+            ${garalCoverValue(formatFechaPuntos(datos.fecha))}
+          </td>
+          <td style="width:33%;vertical-align:top;padding:0 10px;">
+            ${garalCoverLabel("Total actuación")}
+            ${garalCoverValue(totalTxt)}
+          </td>
+          <td style="width:20%;vertical-align:top;padding-left:10px;">
+            ${garalCoverLabel("Validez")}
+            ${garalCoverValue(validez)}
+          </td>
+        </tr>
+      </table>
+      <table style="width:100%;border-collapse:collapse;${hr}">
+        <tr>
+          ${bloques
+            .map(
+              (b, i) => `
+            <td style="width:${colW};vertical-align:top;padding:14px ${i === bloques.length - 1 ? "0" : "12px"} 0 ${i === 0 ? "0" : "12px"};">
+              ${garalCoverLabel(b.label)}
+              ${garalCoverLines(b.lines)}
+            </td>`
+            )
+            .join("")}
+        </tr>
+      </table>
+    </div>
+  `;
+}
+
 function htmlPortada(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
   const p = ctx.propuesta;
   const titulo = (datos.concepto || "Presupuesto").trim();
@@ -278,11 +371,10 @@ function htmlPortada(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
          background-size: 28px 28px, 28px 28px, auto;"></div>`;
   }
 
-  const escalaHoja = `${p.escala?.trim() || "1:1000"} · 01/04`;
-
   return `
     <div class="pdf-page pdf-cover">
       ${fondo}
+      ${htmlMarcoTecnico()}
       <div class="pdf-page-inner pdf-cover-inner">
         <table style="width:100%; border-collapse:collapse;">
           <tr>
@@ -294,34 +386,13 @@ function htmlPortada(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
         <div style="padding-bottom:8mm;">
           <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
             <div style="flex:1; height:1px; background:rgba(255,255,255,0.35);"></div>
-            <div style="font-size:9px; letter-spacing:0.22em; text-transform:uppercase; white-space:nowrap;">Propuesta técnica y económica</div>
+            <div style="font-size:9px; letter-spacing:0.22em; text-transform:uppercase; white-space:nowrap;font-family:${GARAL_MONO};">Propuesta técnica y económica</div>
           </div>
           <div style="font-size:36px; font-weight:700; line-height:1.12; letter-spacing:-0.02em; white-space:pre-wrap;">${htmlEsc(titulo)}</div>
           ${p.subtitulo_portada.trim() ? `<div style="margin-top:8px; font-size:22px; font-weight:600; line-height:1.2;">${htmlEsc(p.subtitulo_portada.trim())}</div>` : ""}
-          ${p.descripcion_portada.trim() ? `<p style="margin:16px 0 0; max-width:92%; font-size:13px; line-height:1.5; font-weight:400; opacity:0.92;">${htmlMultiline(p.descripcion_portada.trim())}</p>` : ""}
+          ${p.descripcion_portada.trim() ? `<p style="margin:16px 0 0; max-width:92%; font-size:13px; line-height:1.5; font-family:${GARAL_MONO}; font-weight:400; opacity:0.92;">${htmlMultiline(p.descripcion_portada.trim())}</p>` : ""}
         </div>
-        <div style="border-top:1px solid rgba(255,255,255,0.28); padding-top:12px;">
-          <table style="width:100%; border-collapse:collapse;">
-            <tr>
-              <td style="width:25%; vertical-align:top; padding-right:10px;">
-                <div style="font-size:7px; letter-spacing:0.18em; text-transform:uppercase; opacity:0.65; margin-bottom:6px;">N.º presupuesto</div>
-                <div style="font-size:13px; font-weight:600;">${htmlEsc(datos.numero)}</div>
-              </td>
-              <td style="width:25%; vertical-align:top; padding:0 10px; border-left:1px solid rgba(255,255,255,0.2);">
-                <div style="font-size:7px; letter-spacing:0.18em; text-transform:uppercase; opacity:0.65; margin-bottom:6px;">Fecha</div>
-                <div style="font-size:13px; font-weight:600;">${htmlEsc(formatFechaPuntos(datos.fecha))}</div>
-              </td>
-              <td style="width:25%; vertical-align:top; padding:0 10px; border-left:1px solid rgba(255,255,255,0.2);">
-                <div style="font-size:7px; letter-spacing:0.18em; text-transform:uppercase; opacity:0.65; margin-bottom:6px;">Redactado por</div>
-                <div style="font-size:13px; font-weight:600;">${htmlEsc(ctx.emisor.nombre_corto || ctx.emisor.razon_social)}</div>
-              </td>
-              <td style="width:25%; vertical-align:top; padding-left:10px; border-left:1px solid rgba(255,255,255,0.2);">
-                <div style="font-size:7px; letter-spacing:0.18em; text-transform:uppercase; opacity:0.65; margin-bottom:6px;">Escala · Hoja</div>
-                <div style="font-size:13px; font-weight:600;">${htmlEsc(escalaHoja)}</div>
-              </td>
-            </tr>
-          </table>
-        </div>
+        ${htmlPortadaPie(ctx, datos)}
       </div>
     </div>
   `;
