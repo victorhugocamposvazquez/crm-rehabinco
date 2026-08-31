@@ -406,10 +406,12 @@ function htmlZonas(zonas: PropuestaPresupuesto["zonas"]) {
   const cell = (z: (typeof items)[0], idx: number) => {
     const codigo = z.codigo.trim() || `Z-${String(idx + 1).padStart(2, "0")}`;
     return `
-      <td style="width:50%; vertical-align:top; padding:0 18px 20px 0;">
-        <div style="font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:#6A9BB0; font-weight:700; margin-bottom:6px;">${htmlEsc(codigo)}</div>
-        <div style="font-size:14px; font-weight:700; margin-bottom:4px;">${htmlEsc(z.titulo.trim() || "—")}</div>
-        <div style="font-size:12px; line-height:1.45; color:#333;">${z.descripcion.trim() ? htmlMultiline(z.descripcion.trim()) : ""}</div>
+      <td style="width:50%; vertical-align:top; padding:0 18px 22px 0;">
+        <div style="border-left:2px solid #6A9BB0; padding-left:12px;">
+          <div style="font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:#6A9BB0; font-weight:700; margin-bottom:6px;">${htmlEsc(codigo)}</div>
+          <div style="font-size:14px; font-weight:700; margin-bottom:4px;">${htmlEsc(z.titulo.trim() || "—")}</div>
+          <div style="font-size:12px; line-height:1.45; color:#333;">${z.descripcion.trim() ? htmlMultiline(z.descripcion.trim()) : ""}</div>
+        </div>
       </td>
     `;
   };
@@ -421,9 +423,19 @@ function htmlZonas(zonas: PropuestaPresupuesto["zonas"]) {
   return `<table style="width:100%; border-collapse:collapse;">${tableRows}</table>`;
 }
 
+function pieMarca(ctx: PdfCtx) {
+  if (ctx.esGaral) return "Garal · Diseño & obra";
+  return "Rehabinco S.L. · Gestión inmobiliaria y reformas";
+}
+
+function numeroPartida(capitulo: string, capOrden: number, idxEnCap: number) {
+  const m = capitulo.trim().match(/^(\d+)/);
+  const n = m ? Number(m[1]) : capOrden;
+  return `${n}.${String(idxEnCap).padStart(2, "0")}`;
+}
+
 function htmlDatos(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
   const cliente = ctx.cliente;
-  const emisor = ctx.emisor;
   const p = ctx.propuesta;
   const docLabel = cliente?.tipo_documento
     ? String(cliente.tipo_documento).toUpperCase()
@@ -461,7 +473,7 @@ function htmlDatos(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
       <h2 style="margin:0 0 14px; font-size:18px; font-weight:700;">3. Zonas de intervención</h2>
       ${htmlZonas(p.zonas)}
       </div>
-      ${pieInterior(`${emisor.razon_social || emisor.nombre_corto}`, "02 / 04")}
+      ${pieInterior(pieMarca(ctx), "02 / 04")}
     </div>
   `;
 }
@@ -476,9 +488,10 @@ function htmlMediciones(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
     groups.set(key, arr);
   }
 
-  let globalIdx = 0;
+  let capOrden = 0;
   const body: string[] = [];
   for (const [capitulo, items] of groups) {
+    capOrden += 1;
     if (capitulo) {
       body.push(`
         <tr>
@@ -488,21 +501,21 @@ function htmlMediciones(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
         </tr>
       `);
     }
-    items.forEach((l) => {
-      globalIdx += 1;
+    items.forEach((l, idxEnCap) => {
       const cant = Number(l.cantidad);
       const precio = Number(l.precio_unitario);
       const importe = cant * precio;
-      const cod = `${Math.floor((globalIdx - 1) / 99) + 1}.${String(((globalIdx - 1) % 99) + 1).padStart(2, "0")}`;
+      const cod = numeroPartida(capitulo, capOrden, idxEnCap + 1);
       const ud = (l.unidad || "ud").trim() || "ud";
+      const zebra = idxEnCap % 2 === 1 ? "background:#fafafa;" : "";
       body.push(`
         <tr>
-          <td style="padding:9px 8px; border-bottom:1px solid ${LINE}; font-size:11px; color:#555; white-space:nowrap;">${htmlEsc(cod)}</td>
-          <td style="padding:9px 8px; border-bottom:1px solid ${LINE}; font-size:12px;">${htmlEsc(l.descripcion)}</td>
-          <td style="padding:9px 8px; border-bottom:1px solid ${LINE}; font-size:11px; text-align:center;">${htmlEsc(ud)}</td>
-          <td style="padding:9px 8px; border-bottom:1px solid ${LINE}; font-size:12px; text-align:right;">${formatNum(cant)}</td>
-          <td style="padding:9px 8px; border-bottom:1px solid ${LINE}; font-size:12px; text-align:right;">${formatNum(precio)}</td>
-          <td style="padding:9px 8px; border-bottom:1px solid ${LINE}; font-size:12px; text-align:right; font-weight:600;">${formatNum(importe)}</td>
+          <td style="padding:9px 8px; border-bottom:1px solid ${LINE}; font-size:11px; color:#555; white-space:nowrap;${zebra}">${htmlEsc(cod)}</td>
+          <td style="padding:9px 8px; border-bottom:1px solid ${LINE}; font-size:12px;${zebra}">${htmlEsc(l.descripcion)}</td>
+          <td style="padding:9px 8px; border-bottom:1px solid ${LINE}; font-size:11px; text-align:center;${zebra}">${htmlEsc(ud)}</td>
+          <td style="padding:9px 8px; border-bottom:1px solid ${LINE}; font-size:12px; text-align:right;${zebra}">${formatNum(cant)}</td>
+          <td style="padding:9px 8px; border-bottom:1px solid ${LINE}; font-size:12px; text-align:right;${zebra}">${formatNum(precio)}</td>
+          <td style="padding:9px 8px; border-bottom:1px solid ${LINE}; font-size:12px; text-align:right; font-weight:600;${zebra}">${formatNum(importe)}</td>
         </tr>
       `);
     });

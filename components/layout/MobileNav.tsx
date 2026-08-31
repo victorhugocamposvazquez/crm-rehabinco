@@ -7,7 +7,7 @@ import {
   Users,
   FileText,
   Building2,
-  ClipboardPenLine,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +15,7 @@ const navItems = [
   { href: "/", label: "Inicio", icon: Home },
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/propiedades", label: "Inmuebles", icon: Building2 },
-  { href: "/partes-visita", label: "Visitas", icon: ClipboardPenLine },
+  { href: "/presupuestos", label: "Presupuestos", icon: ClipboardList },
   { href: "/facturas", label: "Facturas", icon: FileText },
 ];
 
