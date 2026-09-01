@@ -9,7 +9,7 @@ import {
   invoiceFondoUrl,
   resolveInvoiceLogoUrl,
 } from "@/lib/empresa-facturacion";
-import { fetchAsDataUrl, saveHtmlDocumentPdf } from "@/lib/html-document-pdf";
+import { fetchAsDataUrl, composeInvoiceHeaderImage, saveHtmlDocumentPdf } from "@/lib/html-document-pdf";
 import { toast } from "sonner";
 import { FacturaDetailSkeleton } from "@/components/facturas/FacturaDetailSkeleton";
 import { PagosCard } from "@/components/facturas/PagosCard";
@@ -261,11 +261,6 @@ export default function DetalleFacturaPage() {
       })
       .join("");
 
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const [logoUrl, fondoUrl] = await Promise.all([
-      fetchAsDataUrl(resolveInvoiceLogoUrl(emisor.logo_url, origin)),
-      fetchAsDataUrl(invoiceFondoUrl(origin)),
-    ]);
     const fechaFormateada = factura.fecha_emision
       ? new Date(factura.fecha_emision + "T12:00:00").toLocaleDateString("es-ES", {
           day: "2-digit",
@@ -274,6 +269,17 @@ export default function DetalleFacturaPage() {
         })
       : "—";
     const esRectificativa = factura.tipo_factura === "rectificativa";
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const [logoUrl, fondoUrl] = await Promise.all([
+      fetchAsDataUrl(resolveInvoiceLogoUrl(emisor.logo_url, origin)),
+      fetchAsDataUrl(invoiceFondoUrl(origin)),
+    ]);
+    const headerUrl = await composeInvoiceHeaderImage({
+      fondoDataUrl: fondoUrl,
+      logoDataUrl: logoUrl,
+      numeroLabel: `${esRectificativa ? "FACTURA RECTIFICATIVA Nº" : "FACTURA Nº"}: ${factura.numero}`,
+      fecha: fechaFormateada,
+    });
     const fechaOriginalFormateada = facturaOriginal?.fecha_emision
       ? new Date(facturaOriginal.fecha_emision + "T12:00:00").toLocaleDateString("es-ES", {
           day: "2-digit",
@@ -309,19 +315,7 @@ export default function DetalleFacturaPage() {
       : "";
 
     const facturaBodyInner = `
-          <div class="invoice-header">
-            <img data-invoice-bg src=${JSON.stringify(fondoUrl)} alt="" width="794" height="210" />
-            <div class="invoice-header-veil"></div>
-            <div class="invoice-header-inner">
-              <div class="invoice-logo-box">
-                <img data-invoice-logo src=${JSON.stringify(logoUrl)} alt="" width="120" height="91" />
-              </div>
-              <div class="invoice-header-meta">
-                <p style="margin:0; font-size:14px; font-weight:600; letter-spacing:0.04em;">${esRectificativa ? "FACTURA RECTIFICATIVA Nº" : "FACTURA Nº"}: ${htmlEsc(factura.numero)}</p>
-                <p style="margin:6px 0 0 0; font-size:13px; opacity:0.9;">${htmlEsc(fechaFormateada)}</p>
-              </div>
-            </div>
-          </div>
+          <img class="invoice-header" src=${JSON.stringify(headerUrl)} alt="" width="794" height="210" />
           <div class="invoice-body">
             ${esRectificativa && (facturaOriginal || factura.causa_rectificacion) ? `
             <div style="margin-bottom:24px; padding:12px 16px; background:#fef3c7; border:1px solid #fcd34d; border-radius:8px;">
@@ -396,13 +390,7 @@ export default function DetalleFacturaPage() {
       * { box-sizing: border-box; }
       html, body { margin:0; padding:0; }
       body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color:#222; font-size:14px; line-height:1.5; background:#fff; width:794px; }
-      .invoice-header { position:relative; width:794px; height:210px; overflow:hidden; background:#0B1D2E; color:#fff; }
-      .invoice-header img[data-invoice-bg] { position:absolute; left:0; top:0; width:794px; height:210px; display:block; border:0; }
-      .invoice-header-veil { position:absolute; left:0; top:0; width:794px; height:210px; background:linear-gradient(180deg, rgba(11,29,46,0.22) 0%, rgba(11,29,46,0.4) 70%, rgba(11,29,46,0.58) 100%); }
-      .invoice-header-inner { position:relative; z-index:1; height:210px; padding:24px 32px; display:flex; align-items:center; justify-content:space-between; }
-      .invoice-logo-box { width:120px; height:91px; overflow:hidden; flex:0 0 120px; }
-      .invoice-logo-box img { width:120px; height:91px; display:block; border:0; }
-      .invoice-header-meta { text-align:right; color:#fff; }
+      .invoice-header { display:block; width:794px; height:210px; border:0; margin:0; padding:0; }
       .invoice-body { padding:28px 32px 40px; width:794px; }
     </style>
   </head>
@@ -417,6 +405,7 @@ export default function DetalleFacturaPage() {
     await saveHtmlDocumentPdf({
       html: facturaDocumentHtml,
       filename: safeFilename,
+      firstPageBanner: headerUrl,
     });
     toast.success("PDF descargado");
     } catch (err: unknown) {
