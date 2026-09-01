@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MoreVertical, Eye, Pencil, FileText } from "lucide-react";
+import { useAuth } from "@/lib/auth/auth-context";
+import { isEditor } from "@/lib/auth/roles";
 
 type EstadoPresupuesto = "borrador" | "enviado" | "aceptado" | "rechazado" | "convertido";
 
@@ -35,6 +37,7 @@ export function PresupuestoCard({
   estado,
 }: PresupuestoCardProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const cardRef = useRef<HTMLDivElement>(null);
   const [actionsOpen, setActionsOpen] = useState(false);
 
@@ -161,7 +164,7 @@ export function PresupuestoCard({
                   <Pencil className="h-4 w-4" strokeWidth={2} />
                 </button>
               )}
-              {estado !== "convertido" && (
+              {estado !== "convertido" && !isEditor(user?.role) && (
                 <button
                   type="button"
                   onClick={handleConvertir}

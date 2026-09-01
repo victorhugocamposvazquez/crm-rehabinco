@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { ROLE_LABELS, type Role } from "@/lib/auth/roles";
 
 export type CreateUserResult =
   | { success: true; message: string }
@@ -10,7 +11,7 @@ export type CreateUserResult =
 export async function createUser(
   email: string,
   password: string,
-  role: "admin" | "agente"
+  role: Role
 ): Promise<CreateUserResult> {
   try {
     const supabase = await createClient();
@@ -30,6 +31,10 @@ export async function createUser(
 
     if (profile?.role !== "admin") {
       return { success: false, error: "Solo los administradores pueden crear usuarios." };
+    }
+
+    if (role !== "admin" && role !== "agente" && role !== "editor") {
+      return { success: false, error: "El rol no es válido." };
     }
 
     const emailTrimmed = email.trim().toLowerCase();
@@ -90,7 +95,7 @@ export async function createUser(
 
     return {
       success: true,
-      message: `Usuario ${emailTrimmed} creado correctamente como ${role}.`,
+      message: `Usuario ${emailTrimmed} creado correctamente como ${ROLE_LABELS[role]}.`,
     };
   } catch (err) {
     console.error("createUser error:", err);

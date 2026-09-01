@@ -15,6 +15,8 @@ import { ClienteQuickSheet } from "@/components/clientes/ClienteQuickSheet";
 import { parseDecimalMientrasEscribe } from "@/lib/decimales-input";
 import { listEmisoresPresupuesto, type EmisorPresupuesto } from "@/lib/emisores-presupuesto";
 import { wizardActionBarClassName } from "@/components/layout/wizard-chrome";
+import { useAuth } from "@/lib/auth/auth-context";
+import { isEditor } from "@/lib/auth/roles";
 import {
   parsePropuesta,
   propuestaVacia,
@@ -37,6 +39,8 @@ interface PresupuestoWizardProps {
 
 export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
   const router = useRouter();
+  const { user } = useAuth();
+  const soloGaral = isEditor(user?.role);
   const [step, setStep] = useState(1);
   const [clientes, setClientes] = useState<Array<{ id: string; nombre: string }>>([]);
   const [clienteId, setClienteId] = useState("");
@@ -64,14 +68,18 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
       .order("nombre")
       .then(({ data }) => setClientes(data ?? []));
     listEmisoresPresupuesto(supabase).then((list) => {
-      setEmisores(list);
+      const visible = soloGaral ? list.filter((e) => e.slug === "garal") : list;
+      setEmisores(visible);
       setEmisorId((current) => {
-        if (current) return current;
-        const rehabinco = list.find((e) => e.slug === "rehabinco");
-        return rehabinco?.id ?? list[0]?.id ?? "";
+        if (soloGaral) {
+          return visible.find((e) => e.slug === "garal")?.id ?? visible[0]?.id ?? "";
+        }
+        if (current && visible.some((e) => e.id === current)) return current;
+        const rehabinco = visible.find((e) => e.slug === "rehabinco");
+        return rehabinco?.id ?? visible[0]?.id ?? "";
       });
     });
-  }, []);
+  }, [soloGaral]);
 
   useEffect(() => {
     if (!presupuestoId) return;
@@ -313,12 +321,17 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
                   <button
                     key={e.id}
                     type="button"
-                    onClick={() => setEmisorId(e.id)}
+                    onClick={() => {
+                      if (soloGaral) return;
+                      setEmisorId(e.id);
+                    }}
+                    disabled={soloGaral && emisores.length === 1}
                     className={cn(
                       "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                       emisorId === e.id
                         ? "bg-foreground text-background"
-                        : "text-muted-foreground hover:bg-muted"
+                        : "text-muted-foreground hover:bg-muted",
+                      soloGaral && "cursor-default"
                     )}
                   >
                     {e.nombre_corto}
@@ -326,7 +339,9 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
                 ))}
               </div>
               <p className="text-xs text-neutral-500">
-                El PDF usará el logotipo y los datos fiscales de este emisor.
+                {soloGaral
+                  ? "Este perfil emite siempre como Garal."
+                  : "El PDF usará el logotipo y los datos fiscales de este emisor."}
               </p>
             </div>
             <div className="space-y-2">
@@ -343,6 +358,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
                   </option>
                 ))}
               </select>
+              {!soloGaral && (
               <button
                 type="button"
                 onClick={() => setShowQuickClient(true)}
@@ -351,6 +367,8 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
                 <UserPlus className="h-3.5 w-3.5" strokeWidth={1.5} />
                 Crear cliente desde aquí
               </button>
+              )}
+              {!soloGaral && (
               <ClienteQuickSheet
                 open={showQuickClient}
                 onOpenChange={setShowQuickClient}
@@ -359,6 +377,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
                   setClienteId(cliente.id);
                 }}
               />
+              )}
             </div>
             <div className="space-y-2">
               <Label>Título (portada)</Label>

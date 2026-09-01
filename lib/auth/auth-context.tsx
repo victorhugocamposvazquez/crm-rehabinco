@@ -3,8 +3,9 @@
 import * as React from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
+import { parseRole, type Role } from "@/lib/auth/roles";
 
-export type Role = "admin" | "agente";
+export type { Role };
 
 export interface AuthUser {
   id: string;
@@ -57,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return {
           id: authUser.id,
           email: authUser.email ?? "",
-          role: profile.role as Role,
+          role: parseRole(profile.role),
         };
       }
 

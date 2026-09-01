@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
 import { createUser } from "@/lib/actions/usuarios";
+import { ROLE_LABELS, roleLabel, type Role } from "@/lib/auth/roles";
 import { UserPlus, Building2 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -23,7 +24,7 @@ export default function SettingsPage() {
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
   const [newUserConfirmPassword, setNewUserConfirmPassword] = useState("");
-  const [newUserRole, setNewUserRole] = useState<"admin" | "agente">("agente");
+  const [newUserRole, setNewUserRole] = useState<Role>("agente");
   const [createUserMessage, setCreateUserMessage] = useState<string | null>(null);
   const [createUserError, setCreateUserError] = useState<string | null>(null);
   const [createUserSaving, setCreateUserSaving] = useState(false);
@@ -69,7 +70,7 @@ export default function SettingsPage() {
             <p className="text-sm text-neutral-500">Email</p>
             <p className="text-base font-medium">{user?.email ?? "—"}</p>
             <p className="mt-3 text-sm text-neutral-500">Rol</p>
-            <p className="text-base font-medium capitalize">{user?.role ?? "—"}</p>
+            <p className="text-base font-medium">{roleLabel(user?.role)}</p>
             <Button className="mt-4" variant="secondary" onClick={() => signOut()}>
               Cerrar sesión
             </Button>
@@ -220,12 +221,18 @@ export default function SettingsPage() {
                   <select
                     id="new-user-role"
                     value={newUserRole}
-                    onChange={(e) => setNewUserRole(e.target.value as "admin" | "agente")}
+                    onChange={(e) => setNewUserRole(e.target.value as Role)}
                     className="flex h-10 w-full rounded-lg border border-border bg-white px-4 py-2 text-base"
                   >
-                    <option value="agente">Agente</option>
-                    <option value="admin">Administrador</option>
+                    <option value="agente">{ROLE_LABELS.agente}</option>
+                    <option value="editor">{ROLE_LABELS.editor}</option>
+                    <option value="admin">{ROLE_LABELS.admin}</option>
                   </select>
+                  {newUserRole === "editor" && (
+                    <p className="text-xs text-neutral-500">
+                      Solo crea presupuestos. El emisor queda fijado en Garal.
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2 sm:col-span-2 lg:col-span-4">
                   {createUserError && <p className="text-sm text-red-600">{createUserError}</p>}

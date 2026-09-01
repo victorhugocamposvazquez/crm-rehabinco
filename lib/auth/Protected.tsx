@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/lib/auth/auth-context";
+import { editorHomePath, isEditor, isEditorBlockedPath } from "@/lib/auth/roles";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -9,16 +10,22 @@ export function Protected({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [redirecting, setRedirecting] = useState(false);
+  const editorBlocked = !!user && isEditor(user.role) && isEditorBlockedPath(pathname ?? "/");
 
   useEffect(() => {
     if (isLoading) return;
     if (!user) {
       setRedirecting(true);
       router.replace("/login?redirect=" + encodeURIComponent(pathname ?? "/"));
+      return;
+    }
+    if (isEditor(user.role) && isEditorBlockedPath(pathname ?? "/")) {
+      setRedirecting(true);
+      router.replace(editorHomePath());
     }
   }, [user, isLoading, router, pathname]);
 
-  const showLoader = isLoading || (redirecting && !user);
+  const showLoader = isLoading || (redirecting && !user) || editorBlocked;
 
   if (showLoader || !user) {
     return (

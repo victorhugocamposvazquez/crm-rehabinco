@@ -10,10 +10,13 @@ import { Fab } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, ClipboardList, Search } from "lucide-react";
+import { useAuth } from "@/lib/auth/auth-context";
+import { isEditor } from "@/lib/auth/roles";
 
 type EstadoPresupuesto = "borrador" | "enviado" | "aceptado" | "rechazado" | "convertido";
 
 export default function PresupuestosPage() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterEstado, setFilterEstado] = useState<"todos" | EstadoPresupuesto>("todos");
@@ -86,7 +89,11 @@ export default function PresupuestosPage() {
       <PageHeader
         breadcrumb={[{ label: "Presupuestos", href: "/presupuestos" }]}
         title="Presupuestos"
-        description="Gestiona presupuestos y conviértelos en facturas"
+        description={
+          isEditor(user?.role)
+            ? "Crea y gestiona presupuestos de Garal"
+            : "Gestiona presupuestos y conviértelos en facturas"
+        }
         actions={
           <Button asChild size="sm">
             <Link href="/presupuestos/nuevo" className="gap-2">

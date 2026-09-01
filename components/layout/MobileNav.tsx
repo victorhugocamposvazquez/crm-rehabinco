@@ -10,6 +10,8 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth/auth-context";
+import { isEditor } from "@/lib/auth/roles";
 
 const navItems = [
   { href: "/", label: "Inicio", icon: Home },
@@ -21,6 +23,10 @@ const navItems = [
 
 export function MobileNav() {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const items = isEditor(user?.role)
+    ? navItems.filter((item) => item.href === "/presupuestos")
+    : navItems;
 
   return (
     <nav
@@ -29,7 +35,7 @@ export function MobileNav() {
       aria-label="Navegación principal"
     >
       <div className="flex h-[4.25rem] items-center justify-evenly px-3 sm:px-4">
-        {navItems.map(({ href, label, icon: Icon }) => {
+        {items.map(({ href, label, icon: Icon }) => {
           const isActive =
             pathname === href ||
             (href !== "/" && pathname.startsWith(href));

@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileDown, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/auth/auth-context";
+import { isEditor } from "@/lib/auth/roles";
 import { fetchEmisorPresupuesto, type EmisorPresupuesto } from "@/lib/emisores-presupuesto";
 import {
   buildPresupuestoDocumentHtml,
@@ -63,6 +65,7 @@ interface Linea {
 export default function DetallePresupuestoPage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
   const id = params.id as string;
   const [presupuesto, setPresupuesto] = useState<Presupuesto | null>(null);
   const [lineas, setLineas] = useState<Linea[]>([]);
@@ -264,7 +267,7 @@ export default function DetallePresupuestoPage() {
   const clienteNombre =
     Array.isArray(presupuesto.clientes) ? presupuesto.clientes[0]?.nombre : presupuesto.clientes?.nombre;
   const puedeConvertir =
-    presupuesto.estado !== "convertido" && lineas.length > 0;
+    !isEditor(user?.role) && presupuesto.estado !== "convertido" && lineas.length > 0;
 
   return (
     <div>
@@ -287,7 +290,7 @@ export default function DetallePresupuestoPage() {
             <FileDown className="h-4 w-4" strokeWidth={1.5} />
             {printingPdf ? "Generando PDF…" : "Descargar PDF"}
           </Button>
-          {facturaConvertida && (
+          {facturaConvertida && !isEditor(user?.role) && (
             <Button variant="secondary" size="sm" asChild className="gap-2">
               <Link href={`/facturas/${facturaConvertida.id}`}>
                 <FileText className="h-4 w-4" strokeWidth={1.5} />

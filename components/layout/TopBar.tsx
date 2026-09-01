@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth/auth-context";
+import { editorHomePath, isEditor, roleLabel } from "@/lib/auth/roles";
 import { Sheet } from "@/components/ui/sheet";
 
 const navItems = [
@@ -66,6 +67,10 @@ export function TopBar() {
     setConfirmPassword("");
   };
 
+  const visibleNavItems = isEditor(user?.role)
+    ? navItems.filter((item) => item.href === "/presupuestos" || item.href === "/settings")
+    : navItems;
+
   const initials = useMemo(() => {
     const source = user?.email?.split("@")[0] ?? "U";
     const parts = source.split(/[._-]/).filter(Boolean);
@@ -81,7 +86,7 @@ export function TopBar() {
       >
         <div className="mx-auto flex h-14 w-full max-w-[1600px] items-center justify-between gap-3 px-4 sm:h-16 sm:px-6 lg:px-8">
           <Link
-            href="/"
+            href={isEditor(user?.role) ? editorHomePath() : "/"}
             className="flex shrink-0 items-center gap-2"
             aria-label="REHABINCO - Inicio"
           >
@@ -97,7 +102,7 @@ export function TopBar() {
             role="navigation"
             aria-label="Navegación principal"
           >
-            {navItems.map(({ href, label, icon: Icon }) => {
+            {visibleNavItems.map(({ href, label, icon: Icon }) => {
               const isActive =
                 pathname === href ||
                 (href !== "/" && href !== "/settings" && pathname.startsWith(href)) ||
@@ -139,7 +144,7 @@ export function TopBar() {
                 {initials}
               </span>
               <span className="hidden pr-1 text-xs font-semibold uppercase tracking-wide text-neutral-600 sm:inline">
-                {user.role === "admin" ? "Admin" : "Agente"}
+                {roleLabel(user.role)}
               </span>
             </button>
             </div>
@@ -171,7 +176,7 @@ export function TopBar() {
               {user?.email ?? "—"}
             </p>
             <p className="mt-0.5 text-sm capitalize text-neutral-500">
-              {user?.role === "admin" ? "Administrador" : "Agente"}
+              {roleLabel(user?.role)}
             </p>
           </div>
 
