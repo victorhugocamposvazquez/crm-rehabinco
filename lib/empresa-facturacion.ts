@@ -12,9 +12,18 @@ export type EmisorFacturacion = {
   email: string;
   iban: string;
   numero_cuenta_bancaria: string;
-  /** URL absoluta o ruta con /; vacío = logo por defecto de la app */
+  /** URL absoluta o ruta con /; vacío = logo blanco Rehabinco (factura) */
   logo_url: string;
 };
+
+export const INVOICE_REHABINCO_LOGO_BLANCO = "/images/facturas/rehabinco-blanco.png";
+export const INVOICE_REHABINCO_FONDO = "/images/facturas/fondo-torre-hercules.jpg";
+
+function isDefaultRehabincoLogo(url: string) {
+  const u = url.trim();
+  if (!u) return true;
+  return /\/images\/logo-web\.png(?:\?|$)/i.test(u) || /\/images\/logo-login\.png(?:\?|$)/i.test(u);
+}
 
 const envDefaults = (): EmisorFacturacion => ({
   razon_social: process.env.NEXT_PUBLIC_BILLING_COMPANY_NAME ?? "Tu Empresa S.L.",
@@ -84,10 +93,14 @@ export async function fetchEmisorFacturacion(
 
 /** Construye la URL final del logotipo en la ventana de impresión. */
 export function resolveInvoiceLogoUrl(logoUrl: string, origin: string): string {
-  const fallback = `${origin}/images/logo-web.png`;
+  const fallback = `${origin}${INVOICE_REHABINCO_LOGO_BLANCO}`;
   const raw = logoUrl.trim();
-  if (!raw) return fallback;
+  if (!raw || isDefaultRehabincoLogo(raw)) return fallback;
   if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
   if (raw.startsWith("/")) return `${origin}${raw}`;
   return fallback;
+}
+
+export function invoiceFondoUrl(origin: string): string {
+  return `${origin}${INVOICE_REHABINCO_FONDO}`;
 }

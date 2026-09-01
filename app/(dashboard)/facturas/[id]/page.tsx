@@ -4,7 +4,11 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { fetchEmisorFacturacion, resolveInvoiceLogoUrl } from "@/lib/empresa-facturacion";
+import {
+  fetchEmisorFacturacion,
+  invoiceFondoUrl,
+  resolveInvoiceLogoUrl,
+} from "@/lib/empresa-facturacion";
 import { toast } from "sonner";
 import { FacturaDetailSkeleton } from "@/components/facturas/FacturaDetailSkeleton";
 import { PagosCard } from "@/components/facturas/PagosCard";
@@ -258,6 +262,7 @@ export default function DetalleFacturaPage() {
 
     const origin = typeof window !== "undefined" ? window.location.origin : "";
     const logoUrl = resolveInvoiceLogoUrl(emisor.logo_url, origin);
+    const fondoUrl = invoiceFondoUrl(origin);
     const fechaFormateada = factura.fecha_emision
       ? new Date(factura.fecha_emision + "T12:00:00").toLocaleDateString("es-ES", {
           day: "2-digit",
@@ -301,19 +306,22 @@ export default function DetalleFacturaPage() {
       : "";
 
     const facturaBodyInner = `
-          <div style="max-width:100%; padding:0 4px;">
-            <table style="width:100%; margin-bottom:24px; border-collapse:collapse;">
+          <div class="invoice-header">
+            <img data-invoice-bg src=${JSON.stringify(fondoUrl)} alt="" />
+            <div class="invoice-header-veil"></div>
+            <table class="invoice-header-inner">
               <tr>
-                <td style="vertical-align:top; width:50%;">
-                  <img data-invoice-logo src=${JSON.stringify(logoUrl)} alt="" style="height:48px; width:auto; max-width:220px; object-fit:contain;" />
+                <td style="vertical-align:middle; width:50%;">
+                  <img data-invoice-logo src=${JSON.stringify(logoUrl)} alt="" width="140" height="75" />
                 </td>
-                <td style="vertical-align:top; width:50%; text-align:right;">
-                  <p style="margin:0; font-size:14px; font-weight:600;">${esRectificativa ? "FACTURA RECTIFICATIVA Nº" : "FACTURA Nº"}: ${htmlEsc(factura.numero)}</p>
-                  <p style="margin:4px 0 0 0; font-size:13px; color:#444;">${htmlEsc(fechaFormateada)}</p>
+                <td style="vertical-align:middle; width:50%; text-align:right; color:#fff;">
+                  <p style="margin:0; font-size:14px; font-weight:600; letter-spacing:0.04em;">${esRectificativa ? "FACTURA RECTIFICATIVA Nº" : "FACTURA Nº"}: ${htmlEsc(factura.numero)}</p>
+                  <p style="margin:6px 0 0 0; font-size:13px; opacity:0.88;">${htmlEsc(fechaFormateada)}</p>
                 </td>
               </tr>
             </table>
-
+          </div>
+          <div style="padding:28px 32px 32px;">
             ${esRectificativa && (facturaOriginal || factura.causa_rectificacion) ? `
             <div style="margin-bottom:24px; padding:12px 16px; background:#fef3c7; border:1px solid #fcd34d; border-radius:8px;">
               <p style="margin:0 0 6px 0; font-size:12px; font-weight:700; color:#92400e;">DOCUMENTO RECTIFICATIVO</p>
@@ -384,8 +392,15 @@ export default function DetalleFacturaPage() {
     <meta charset="utf-8" />
     <title>${htmlEsc(factura.numero)}</title>
     <style>
-      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color:#222; font-size:14px; line-height:1.5; margin:0; padding:8px; max-width:100%; box-sizing:border-box; }
-      img[data-invoice-logo] { height:48px; width:auto; max-width:220px; object-fit:contain; }
+      * { box-sizing: border-box; }
+      html, body { margin:0; padding:0; }
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color:#222; font-size:14px; line-height:1.5; background:#fff; }
+      .invoice-header { position:relative; width:100%; height:188px; overflow:hidden; background:#0B1D2E; color:#fff; }
+      .invoice-header img[data-invoice-bg] { position:absolute; left:0; top:0; width:794px; height:188px; object-fit:cover; object-position:center 30%; display:block; border:0; }
+      .invoice-header-veil { position:absolute; left:0; top:0; width:100%; height:100%; background:linear-gradient(180deg, rgba(11,29,46,0.38) 0%, rgba(11,29,46,0.58) 52%, #0B1D2E 100%); }
+      .invoice-header-inner { position:relative; z-index:1; width:100%; height:188px; border-collapse:collapse; padding:0; }
+      .invoice-header-inner td { padding:28px 32px; }
+      img[data-invoice-logo] { width:140px; height:75px; object-fit:contain; object-position:left center; display:block; border:0; }
     </style>
   </head>
   <body>
@@ -429,10 +444,10 @@ export default function DetalleFacturaPage() {
           const html2pdf = mod.default;
           return html2pdf()
             .set({
-              margin: [8, 8, 8, 8],
+              margin: 0,
               filename: safeFilename,
-              image: { type: "jpeg", quality: 0.92 },
-              html2canvas: { scale: 2, useCORS: true, logging: false, letterRendering: true },
+              image: { type: "jpeg", quality: 0.94 },
+              html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: "#ffffff" },
               jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
             })
             .from(body)
@@ -452,16 +467,23 @@ export default function DetalleFacturaPage() {
         });
     };
 
-    const logoInFrame = idoc.querySelector("img[data-invoice-logo]") as HTMLImageElement | null;
-    if (logoInFrame) {
-      if (logoInFrame.complete && logoInFrame.naturalHeight > 0) {
-        setTimeout(generateFile, 100);
-      } else {
-        logoInFrame.addEventListener("load", () => setTimeout(generateFile, 100), { once: true });
-        logoInFrame.addEventListener("error", () => setTimeout(generateFile, 100), { once: true });
-      }
-    } else {
+    const imgs = Array.from(idoc.querySelectorAll("img[data-invoice-logo], img[data-invoice-bg]")) as HTMLImageElement[];
+    if (imgs.length === 0) {
       setTimeout(generateFile, 100);
+    } else {
+      Promise.all(
+        imgs.map(
+          (img) =>
+            new Promise<void>((resolve) => {
+              if (img.complete && img.naturalWidth > 0) {
+                resolve();
+                return;
+              }
+              img.addEventListener("load", () => resolve(), { once: true });
+              img.addEventListener("error", () => resolve(), { once: true });
+            })
+        )
+      ).then(() => setTimeout(generateFile, 180));
     }
     } finally {
       setPrintingPdf(false);

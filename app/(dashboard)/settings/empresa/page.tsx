@@ -155,8 +155,7 @@ export default function EmpresaFacturacionPage() {
                   autoComplete="off"
                 />
                 <p className="text-xs text-neutral-500">
-                  URL pública o ruta bajo el mismo sitio. Si está vacío, se usa <code className="text-xs">/images/logo-web.png</code> o la variable
-                  pública de entorno.
+                  URL pública o ruta bajo el mismo sitio. Vacío o el logo web de Rehabinco: en la factura se usa el logotipo blanco sobre la cabecera azul con la Torre de Hércules.
                 </p>
                 {form.logo_url.trim() && typeof window !== "undefined" ? (
                   <img
