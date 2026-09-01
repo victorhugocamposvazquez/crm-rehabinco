@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { wizardActionBarClassName } from "@/components/layout/wizard-chrome";
 
 const STEPS = [
   { id: 1, title: "Datos básicos" },
@@ -202,7 +203,7 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
   }
 
   return (
-    <div className="relative mx-auto max-w-2xl animate-[fadeIn_0.3s_ease-out] pb-28 md:pb-24">
+    <div className="relative mx-auto max-w-2xl animate-[fadeIn_0.3s_ease-out] pb-36 md:pb-24">
       <div className="mb-8 flex items-center justify-between gap-2">
         {STEPS.map((s) => (
           <div
@@ -554,8 +555,8 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
         )}
       </div>
 
-      {/* Barra fija Atrás / Siguiente */}
-      <div className="fixed bottom-[4.25rem] left-0 right-0 z-40 flex justify-center border-t border-border bg-white/95 px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] backdrop-blur md:bottom-0">
+      {/* Barra fija Atrás / Siguiente: al pie, por encima de la zona segura del móvil */}
+      <div className={cn(wizardActionBarClassName, "flex justify-center px-4")}>
         <div className="flex w-full max-w-2xl justify-end gap-2">
           {step === 1 ? (
             <Button type="submit" form="cliente-step1-form">

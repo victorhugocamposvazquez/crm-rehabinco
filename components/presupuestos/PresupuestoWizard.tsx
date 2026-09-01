@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { ClienteQuickSheet } from "@/components/clientes/ClienteQuickSheet";
 import { parseDecimalMientrasEscribe } from "@/lib/decimales-input";
 import { listEmisoresPresupuesto, type EmisorPresupuesto } from "@/lib/emisores-presupuesto";
+import { wizardActionBarClassName } from "@/components/layout/wizard-chrome";
 import {
   parsePropuesta,
   propuestaVacia,
@@ -274,7 +275,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
   }
 
   return (
-    <div className="relative mx-auto max-w-2xl animate-[fadeIn_0.3s_ease-out] pb-28 md:pb-24">
+    <div className="relative mx-auto max-w-2xl animate-[fadeIn_0.3s_ease-out] pb-36 md:pb-24">
       <div className="mb-8 flex items-center gap-2">
         {[1, 2, 3, 4].map((s) => (
           <div
@@ -771,8 +772,8 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
         </Card>
       )}
 
-      {/* Barra fija Atrás / Siguiente */}
-      <div className="fixed bottom-[4.25rem] left-0 right-0 z-40 flex justify-center border-t border-border bg-white/95 px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] backdrop-blur md:bottom-0">
+      {/* Barra fija Atrás / Siguiente: al pie, por encima de la zona segura del móvil */}
+      <div className={cn(wizardActionBarClassName, "flex justify-center px-4")}>
         <div className="flex w-full max-w-2xl justify-end gap-2">
           {step === 1 ? (
             <Button onClick={() => setStep(2)}>Siguiente</Button>

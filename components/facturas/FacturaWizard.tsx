@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { wizardActionBarClassName } from "@/components/layout/wizard-chrome";
 import { toast } from "sonner";
 import { ChevronLeft, Plus, Trash2, UserPlus } from "lucide-react";
 import { ClienteQuickSheet } from "@/components/clientes/ClienteQuickSheet";
@@ -436,7 +437,7 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
   return (
     <div className={cn(
       "relative mx-auto max-w-2xl animate-[fadeIn_0.3s_ease-out] md:pb-24",
-      step === 2 ? "pb-40" : "pb-28"
+      step === 2 ? "pb-44" : "pb-36"
     )}>
       <div className="mb-8 flex items-center gap-2">
         {STEPS.map((s, idx) => (
@@ -895,9 +896,8 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
         )}
       </div>
 
-      {/* Barra fija Atrás / Siguiente: abajo siempre; en mobile encima del menú de navegación */}
-      {/* En step 2 móvil: incluye también Subtotal, IVA, Total fijos */}
-      <div className="fixed bottom-[4.25rem] left-0 right-0 z-40 flex flex-col border-t border-border bg-white/95 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] backdrop-blur md:bottom-0">
+      {/* Barra fija Atrás / Siguiente: al pie, por encima de la zona segura del móvil */}
+      <div className={cn(wizardActionBarClassName, "flex flex-col")}>
         {step === 2 && (
           <div className="grid grid-cols-3 gap-2 border-b border-border px-4 py-2.5 md:hidden">
             <div className="text-center">

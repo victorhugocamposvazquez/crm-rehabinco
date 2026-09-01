@@ -56,9 +56,9 @@ export async function composeInvoiceHeaderImage(params: {
   ctx.drawImage(fondo, (W - fw) / 2, (H - fh) / 2, fw, fh);
 
   const overlay = ctx.createLinearGradient(0, 0, 0, H);
-  overlay.addColorStop(0, "rgba(11,29,46,0.12)");
-  overlay.addColorStop(0.7, "rgba(11,29,46,0.28)");
-  overlay.addColorStop(1, "rgba(11,29,46,0.5)");
+  overlay.addColorStop(0, "rgba(11,29,46,0.04)");
+  overlay.addColorStop(0.75, "rgba(11,29,46,0.16)");
+  overlay.addColorStop(1, "rgba(11,29,46,0.32)");
   ctx.fillStyle = overlay;
   ctx.fillRect(0, 0, W, H);
 
@@ -116,12 +116,12 @@ export async function saveHtmlDocumentPdf(params: {
   iframe.setAttribute("aria-hidden", "true");
   Object.assign(iframe.style, {
     position: "fixed",
-    left: "-10000px",
+    left: "0",
     top: "0",
     width: `${PAGE_W_PX}px`,
     height: `${PAGE_H_PX * 4}px`,
     border: "0",
-    opacity: "1",
+    opacity: "0.01",
     pointerEvents: "none",
     zIndex: "-1",
     background: "#fff",
@@ -136,12 +136,19 @@ export async function saveHtmlDocumentPdf(params: {
   idoc.write(params.html);
   idoc.close();
 
+  const headerEl = idoc.querySelector(".invoice-header") as HTMLElement | null;
+  if (headerEl && params.firstPageBanner) {
+    headerEl.style.display = "none";
+  }
+
   await waitForImages(idoc);
   await new Promise((r) => setTimeout(r, 200));
 
-  const body = idoc.body;
-  const contentH = Math.max(body.scrollHeight, PAGE_H_PX);
-  iframe.style.height = `${contentH}px`;
+  const captureEl =
+    (params.firstPageBanner && (idoc.querySelector(".invoice-body") as HTMLElement | null)) ||
+    idoc.body;
+  const contentH = Math.max(captureEl.scrollHeight, captureEl.offsetHeight, 1);
+  iframe.style.height = `${Math.max(contentH + HEADER_H_PX, PAGE_H_PX)}px`;
 
   try {
     const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
@@ -149,8 +156,7 @@ export async function saveHtmlDocumentPdf(params: {
       import("jspdf"),
     ]);
     const scale = 2;
-    const banner = params.firstPageBanner ? await loadImage(params.firstPageBanner) : null;
-    const canvas = await html2canvas(body, {
+    const canvas = await html2canvas(captureEl, {
       scale,
       useCORS: true,
       logging: false,
@@ -164,27 +170,32 @@ export async function saveHtmlDocumentPdf(params: {
     });
 
     const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-    const sliceH = PAGE_H_PX * scale;
+    const pageW = PAGE_W_PX * scale;
+    const pageH = PAGE_H_PX * scale;
+    const headerPx = params.firstPageBanner ? HEADER_H_PX * scale : 0;
+    const headerMm = params.firstPageBanner ? (HEADER_H_PX / PAGE_W_PX) * 210 : 0;
     const pageCanvas = document.createElement("canvas");
-    pageCanvas.width = PAGE_W_PX * scale;
-    pageCanvas.height = sliceH;
+    pageCanvas.width = pageW;
+    pageCanvas.height = pageH;
     const ctx = pageCanvas.getContext("2d");
     if (!ctx) throw new Error("No se pudo generar el PDF. Inténtalo de nuevo.");
 
-    let y = 0;
+    let srcY = 0;
     let page = 0;
-    while (y < canvas.height - 2) {
-      const h = Math.min(sliceH, canvas.height - y);
+    while (srcY < canvas.height - 2) {
       ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-      ctx.drawImage(canvas, 0, y, pageCanvas.width, h, 0, 0, pageCanvas.width, h);
-      if (page === 0 && banner) {
-        ctx.drawImage(banner, 0, 0, pageCanvas.width, HEADER_H_PX * scale);
-      }
+      ctx.fillRect(0, 0, pageW, pageH);
+      const destY = page === 0 ? headerPx : 0;
+      const destH = pageH - destY;
+      const take = Math.min(destH, canvas.height - srcY);
+      ctx.drawImage(canvas, 0, srcY, canvas.width, take, 0, destY, pageW, take);
       const img = pageCanvas.toDataURL("image/jpeg", 0.95);
       if (page > 0) pdf.addPage("a4", "portrait");
       pdf.addImage(img, "JPEG", 0, 0, 210, 297, undefined, "FAST");
-      y += sliceH;
+      if (page === 0 && params.firstPageBanner) {
+        pdf.addImage(params.firstPageBanner, "JPEG", 0, 0, 210, headerMm);
+      }
+      srcY += take;
       page += 1;
     }
 
