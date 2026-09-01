@@ -17,7 +17,7 @@ export type EmisorFacturacion = {
 };
 
 export const INVOICE_REHABINCO_LOGO_BLANCO = "/images/facturas/rehabinco-blanco.png";
-export const INVOICE_REHABINCO_FONDO = "/images/facturas/fondo-torre-hercules.jpg";
+export const INVOICE_REHABINCO_FONDO = "/images/facturas/fondo-torre-header.jpg";
 
 function isDefaultRehabincoLogo(url: string) {
   const u = url.trim();

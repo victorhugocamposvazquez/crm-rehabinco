@@ -9,6 +9,7 @@ import {
   invoiceFondoUrl,
   resolveInvoiceLogoUrl,
 } from "@/lib/empresa-facturacion";
+import { fetchAsDataUrl, saveHtmlDocumentPdf } from "@/lib/html-document-pdf";
 import { toast } from "sonner";
 import { FacturaDetailSkeleton } from "@/components/facturas/FacturaDetailSkeleton";
 import { PagosCard } from "@/components/facturas/PagosCard";
@@ -261,8 +262,10 @@ export default function DetalleFacturaPage() {
       .join("");
 
     const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const logoUrl = resolveInvoiceLogoUrl(emisor.logo_url, origin);
-    const fondoUrl = invoiceFondoUrl(origin);
+    const [logoUrl, fondoUrl] = await Promise.all([
+      fetchAsDataUrl(resolveInvoiceLogoUrl(emisor.logo_url, origin)),
+      fetchAsDataUrl(invoiceFondoUrl(origin)),
+    ]);
     const fechaFormateada = factura.fecha_emision
       ? new Date(factura.fecha_emision + "T12:00:00").toLocaleDateString("es-ES", {
           day: "2-digit",
@@ -307,21 +310,19 @@ export default function DetalleFacturaPage() {
 
     const facturaBodyInner = `
           <div class="invoice-header">
-            <img data-invoice-bg src=${JSON.stringify(fondoUrl)} alt="" />
+            <img data-invoice-bg src=${JSON.stringify(fondoUrl)} alt="" width="794" height="210" />
             <div class="invoice-header-veil"></div>
-            <table class="invoice-header-inner">
-              <tr>
-                <td style="vertical-align:middle; width:50%;">
-                  <img data-invoice-logo src=${JSON.stringify(logoUrl)} alt="" width="140" height="75" />
-                </td>
-                <td style="vertical-align:middle; width:50%; text-align:right; color:#fff;">
-                  <p style="margin:0; font-size:14px; font-weight:600; letter-spacing:0.04em;">${esRectificativa ? "FACTURA RECTIFICATIVA Nº" : "FACTURA Nº"}: ${htmlEsc(factura.numero)}</p>
-                  <p style="margin:6px 0 0 0; font-size:13px; opacity:0.88;">${htmlEsc(fechaFormateada)}</p>
-                </td>
-              </tr>
-            </table>
+            <div class="invoice-header-inner">
+              <div class="invoice-logo-box">
+                <img data-invoice-logo src=${JSON.stringify(logoUrl)} alt="" width="120" height="91" />
+              </div>
+              <div class="invoice-header-meta">
+                <p style="margin:0; font-size:14px; font-weight:600; letter-spacing:0.04em;">${esRectificativa ? "FACTURA RECTIFICATIVA Nº" : "FACTURA Nº"}: ${htmlEsc(factura.numero)}</p>
+                <p style="margin:6px 0 0 0; font-size:13px; opacity:0.9;">${htmlEsc(fechaFormateada)}</p>
+              </div>
+            </div>
           </div>
-          <div style="padding:28px 32px 32px;">
+          <div class="invoice-body">
             ${esRectificativa && (facturaOriginal || factura.causa_rectificacion) ? `
             <div style="margin-bottom:24px; padding:12px 16px; background:#fef3c7; border:1px solid #fcd34d; border-radius:8px;">
               <p style="margin:0 0 6px 0; font-size:12px; font-weight:700; color:#92400e;">DOCUMENTO RECTIFICATIVO</p>
@@ -394,13 +395,15 @@ export default function DetalleFacturaPage() {
     <style>
       * { box-sizing: border-box; }
       html, body { margin:0; padding:0; }
-      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color:#222; font-size:14px; line-height:1.5; background:#fff; }
-      .invoice-header { position:relative; width:100%; height:188px; overflow:hidden; background:#0B1D2E; color:#fff; }
-      .invoice-header img[data-invoice-bg] { position:absolute; left:0; top:0; width:794px; height:188px; object-fit:cover; object-position:center 30%; display:block; border:0; }
-      .invoice-header-veil { position:absolute; left:0; top:0; width:100%; height:100%; background:linear-gradient(180deg, rgba(11,29,46,0.38) 0%, rgba(11,29,46,0.58) 52%, #0B1D2E 100%); }
-      .invoice-header-inner { position:relative; z-index:1; width:100%; height:188px; border-collapse:collapse; padding:0; }
-      .invoice-header-inner td { padding:28px 32px; }
-      img[data-invoice-logo] { width:140px; height:75px; object-fit:contain; object-position:left center; display:block; border:0; }
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color:#222; font-size:14px; line-height:1.5; background:#fff; width:794px; }
+      .invoice-header { position:relative; width:794px; height:210px; overflow:hidden; background:#0B1D2E; color:#fff; }
+      .invoice-header img[data-invoice-bg] { position:absolute; left:0; top:0; width:794px; height:210px; display:block; border:0; }
+      .invoice-header-veil { position:absolute; left:0; top:0; width:794px; height:210px; background:linear-gradient(180deg, rgba(11,29,46,0.22) 0%, rgba(11,29,46,0.4) 70%, rgba(11,29,46,0.58) 100%); }
+      .invoice-header-inner { position:relative; z-index:1; height:210px; padding:24px 32px; display:flex; align-items:center; justify-content:space-between; }
+      .invoice-logo-box { width:120px; height:91px; overflow:hidden; flex:0 0 120px; }
+      .invoice-logo-box img { width:120px; height:91px; display:block; border:0; }
+      .invoice-header-meta { text-align:right; color:#fff; }
+      .invoice-body { padding:28px 32px 40px; width:794px; }
     </style>
   </head>
   <body>
@@ -408,83 +411,16 @@ export default function DetalleFacturaPage() {
   </body>
 </html>`;
 
-    const iframe = document.createElement("iframe");
-    iframe.setAttribute("title", "PDF factura");
-    iframe.setAttribute("aria-hidden", "true");
-    Object.assign(iframe.style, {
-      position: "fixed",
-      left: "0",
-      top: "0",
-      width: "794px",
-      minHeight: "1123px",
-      opacity: "0",
-      pointerEvents: "none",
-      zIndex: "-1",
-      border: "0",
-    });
-    document.body.appendChild(iframe);
-    const idoc = iframe.contentDocument;
-    if (!idoc) {
-      document.body.removeChild(iframe);
-      toast.error("No se pudo generar el PDF. Inténtalo de nuevo.");
-      return;
-    }
-    idoc.open();
-    idoc.write(facturaDocumentHtml);
-    idoc.close();
-
-    // Mismo identificador que la factura; caracteres reservados del sistema → guiones (p. ej. 1/2026 → 1-2026)
     const safeBase = factura.numero.replace(/[\\/:*?"<>|]+/g, "-");
     const safeFilename = `Factura-${safeBase}.pdf`;
 
-    const generateFile = () => {
-      const body = idoc.body;
-      void import("html2pdf.js")
-        .then((mod) => {
-          const html2pdf = mod.default;
-          return html2pdf()
-            .set({
-              margin: 0,
-              filename: safeFilename,
-              image: { type: "jpeg", quality: 0.94 },
-              html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: "#ffffff" },
-              jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-            })
-            .from(body)
-            .save()
-            .then(() => {
-              toast.success("PDF descargado");
-            });
-        })
-        .catch((err: unknown) => {
-          const msg = err instanceof Error ? err.message : "Error al generar el PDF";
-          toast.error(msg);
-        })
-        .finally(() => {
-          if (iframe.parentNode) {
-            document.body.removeChild(iframe);
-          }
-        });
-    };
-
-    const imgs = Array.from(idoc.querySelectorAll("img[data-invoice-logo], img[data-invoice-bg]")) as HTMLImageElement[];
-    if (imgs.length === 0) {
-      setTimeout(generateFile, 100);
-    } else {
-      Promise.all(
-        imgs.map(
-          (img) =>
-            new Promise<void>((resolve) => {
-              if (img.complete && img.naturalWidth > 0) {
-                resolve();
-                return;
-              }
-              img.addEventListener("load", () => resolve(), { once: true });
-              img.addEventListener("error", () => resolve(), { once: true });
-            })
-        )
-      ).then(() => setTimeout(generateFile, 180));
-    }
+    await saveHtmlDocumentPdf({
+      html: facturaDocumentHtml,
+      filename: safeFilename,
+    });
+    toast.success("PDF descargado");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Error al generar el PDF");
     } finally {
       setPrintingPdf(false);
     }
