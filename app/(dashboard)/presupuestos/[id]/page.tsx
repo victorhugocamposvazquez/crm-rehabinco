@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileDown, FileText } from "lucide-react";
+import { FileDown, FileText, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth/auth-context";
 import { isEditor } from "@/lib/auth/roles";
@@ -21,6 +21,13 @@ import {
   type PresupuestoPdfCliente,
 } from "@/lib/presupuesto-pdf";
 import { parsePropuesta } from "@/lib/presupuesto-propuesta";
+import { PresupuestoCopiloto } from "@/components/presupuestos/PresupuestoCopiloto";
+import {
+  aplicarPropuestaTexto,
+  propuestaSinBinarios,
+  type CopilotoOutput,
+} from "@/lib/ai/presupuesto-copiloto";
+import { altasDeLineas, lineasParaDb, totalesAmpliacion } from "@/lib/presupuesto-totales";
 
 interface Presupuesto {
   id: string;
@@ -147,6 +154,7 @@ export default function DetallePresupuestoPage() {
       return;
     }
 
+    const propuesta = parsePropuesta(presupuesto.propuesta);
     const { data: factura, error: errFactura } = await supabase
       .from("facturas")
       .insert({
@@ -159,7 +167,7 @@ export default function DetallePresupuestoPage() {
         fecha_emision: today,
         fecha_vencimiento: null,
         irpf_porcentaje: 0,
-        porcentaje_descuento: presupuesto.porcentaje_descuento,
+        porcentaje_descuento: propuesta.tipo === "ampliacion" ? 0 : presupuesto.porcentaje_descuento,
       })
       .select("id")
       .single();
@@ -171,14 +179,26 @@ export default function DetallePresupuestoPage() {
     }
 
     const ivaPct = Number(presupuesto.porcentaje_impuesto ?? 21);
-    const lineasFactura = lineas.map((l, orden) => ({
-      factura_id: factura.id,
-      descripcion: l.descripcion,
-      cantidad: l.cantidad,
-      precio_unitario: l.precio_unitario,
-      iva_porcentaje: ivaPct,
-      orden,
-    }));
+    const lineasFactura =
+      propuesta.tipo === "ampliacion"
+        ? [
+            {
+              factura_id: factura.id,
+              descripcion: presupuesto.concepto?.trim() || "Ampliación sobre presupuesto inicial",
+              cantidad: 1,
+              precio_unitario: Number(presupuesto.base_imponible),
+              iva_porcentaje: ivaPct,
+              orden: 0,
+            },
+          ]
+        : lineas.map((l, orden) => ({
+            factura_id: factura.id,
+            descripcion: l.descripcion,
+            cantidad: l.cantidad,
+            precio_unitario: l.precio_unitario,
+            iva_porcentaje: ivaPct,
+            orden,
+          }));
 
     const { error: errLineas } = await supabase
       .from("factura_lineas")
@@ -245,6 +265,65 @@ export default function DetallePresupuestoPage() {
     }
   };
 
+  const handleAcceptCopiloto = async (output: CopilotoOutput) => {
+    if (!presupuesto) return;
+    const supabase = createClient();
+    const actual = parsePropuesta(presupuesto.propuesta);
+    const nextPropuesta = aplicarPropuestaTexto(actual, output.propuesta);
+    const descuento = nextPropuesta.tipo === "ampliacion" ? 0 : output.porcentaje_descuento;
+    const { error: errUpd } = await supabase
+      .from("presupuestos")
+      .update({
+        concepto: output.concepto.trim() || presupuesto.concepto,
+        porcentaje_descuento: descuento,
+        propuesta: nextPropuesta,
+      })
+      .eq("id", presupuesto.id);
+    if (errUpd) {
+      toast.error(errUpd.message);
+      return;
+    }
+    await supabase.from("presupuesto_lineas").delete().eq("presupuesto_id", presupuesto.id);
+    const rows = lineasParaDb(output.lineas, nextPropuesta).map((l, orden) => ({
+      presupuesto_id: presupuesto.id,
+      descripcion: l.descripcion,
+      cantidad: l.cantidad,
+      precio_unitario: l.precio_unitario,
+      unidad: l.unidad,
+      capitulo: l.capitulo,
+      orden,
+    }));
+    if (rows.length > 0) {
+      const { error: errLineas } = await supabase.from("presupuesto_lineas").insert(rows);
+      if (errLineas) {
+        toast.error(errLineas.message);
+        return;
+      }
+    }
+    const [{ data: p }, { data: ls }] = await Promise.all([
+      supabase
+        .from("presupuestos")
+        .select(
+          "*, clientes(nombre, documento_fiscal, tipo_documento, tipo_cliente, direccion, codigo_postal, localidad, email, telefono, presupuesto_logo_url, presupuesto_cabecera_url, plantilla_presupuesto)"
+        )
+        .eq("id", presupuesto.id)
+        .single(),
+      supabase
+        .from("presupuesto_lineas")
+        .select("id, descripcion, cantidad, precio_unitario, unidad, capitulo")
+        .eq("presupuesto_id", presupuesto.id)
+        .order("orden"),
+    ]);
+    if (p) {
+      const raw = p as Presupuesto;
+      const cliente = Array.isArray(raw.clientes) ? raw.clientes[0] : raw.clientes;
+      setPresupuesto({ ...raw, clientes: cliente ?? null });
+    }
+    setLineas((ls ?? []) as Linea[]);
+    toast.success("Copiloto aplicado y guardado.");
+    router.refresh();
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
@@ -268,6 +347,24 @@ export default function DetallePresupuestoPage() {
     Array.isArray(presupuesto.clientes) ? presupuesto.clientes[0]?.nombre : presupuesto.clientes?.nombre;
   const puedeConvertir =
     !isEditor(user?.role) && presupuesto.estado !== "convertido" && lineas.length > 0;
+  const propuesta = parsePropuesta(presupuesto.propuesta);
+  const esAmpliacion = propuesta.tipo === "ampliacion";
+  const lineasVisibles = altasDeLineas(lineas);
+  const totAmp = esAmpliacion
+    ? totalesAmpliacion({
+        lineas: lineas.map((l) => ({
+          descripcion: l.descripcion,
+          cantidad: Number(l.cantidad),
+          precioUnitario: Number(l.precio_unitario),
+          capitulo: l.capitulo,
+        })),
+        bajas: propuesta.bajas,
+        ajusteComercial: propuesta.ajuste_comercial,
+        origenTotal: propuesta.origen_total,
+        porcentajeImpuesto: Number(presupuesto.porcentaje_impuesto),
+      })
+    : null;
+  const euro = (n: number) => n.toLocaleString("es-ES", { style: "currency", currency: "EUR" });
 
   return (
     <div>
@@ -280,6 +377,29 @@ export default function DetallePresupuestoPage() {
         description={undefined}
         actions={
         <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <PresupuestoCopiloto
+            estado={{
+              emisor: emisor?.slug === "garal" ? "garal" : "rehabinco",
+              concepto: presupuesto.concepto ?? "",
+              porcentaje_impuesto: Number(presupuesto.porcentaje_impuesto),
+              porcentaje_descuento: Number(presupuesto.porcentaje_descuento),
+              lineas: altasDeLineas(lineas).map((l) => ({
+                descripcion: l.descripcion,
+                cantidad: Number(l.cantidad),
+                precioUnitario: Number(l.precio_unitario),
+                unidad: l.unidad || "ud",
+                capitulo: l.capitulo ?? "",
+              })),
+              propuesta: propuestaSinBinarios(propuesta),
+            }}
+            onAccept={(output) => void handleAcceptCopiloto(output)}
+          />
+          <Button variant="secondary" size="sm" className="gap-2" asChild>
+            <Link href={`/presupuestos/${presupuesto.id}/editar`}>
+              <Pencil className="h-4 w-4" strokeWidth={1.5} />
+              Editar
+            </Link>
+          </Button>
           <Button
             variant="secondary"
             size="sm"
@@ -315,6 +435,9 @@ export default function DetallePresupuestoPage() {
         <Badge variant={estadoVariant[presupuesto.estado] ?? "default"}>
           {presupuesto.estado.charAt(0).toUpperCase() + presupuesto.estado.slice(1)}
         </Badge>
+        {esAmpliacion && (
+          <Badge variant="emitida">Ampliación</Badge>
+        )}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -341,6 +464,12 @@ export default function DetallePresupuestoPage() {
               <span className="text-neutral-500">Concepto:</span>{" "}
               {presupuesto.concepto ?? "—"}
             </p>
+            {esAmpliacion && propuesta.origen_numero.trim() && (
+              <p>
+                <span className="text-neutral-500">Inicial:</span> {propuesta.origen_numero}
+                {propuesta.origen_total > 0 ? ` · ${euro(propuesta.origen_total)}` : ""}
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -349,7 +478,7 @@ export default function DetallePresupuestoPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>
-              <span className="text-neutral-500">Base:</span>{" "}
+              <span className="text-neutral-500">{esAmpliacion ? "Incremento neto" : "Base"}:</span>{" "}
               {Number(presupuesto.base_imponible).toLocaleString("es-ES", {
                 style: "currency",
                 currency: "EUR",
@@ -378,6 +507,12 @@ export default function DetallePresupuestoPage() {
                 currency: "EUR",
               })}
             </p>
+            {totAmp && propuesta.origen_total > 0 && (
+              <p>
+                <span className="text-neutral-500">Resultante:</span> {euro(totAmp.resultante)} + IVA{" "}
+                {euro(totAmp.ivaResultante)}
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card className="md:col-span-2">
@@ -385,11 +520,11 @@ export default function DetallePresupuestoPage() {
             <CardTitle>Líneas</CardTitle>
           </CardHeader>
           <CardContent>
-            {lineas.length === 0 ? (
+            {lineasVisibles.length === 0 ? (
               <p className="text-sm text-neutral-500">Sin líneas.</p>
             ) : (
               <ul className="space-y-2">
-                {lineas.map((l) => (
+                {lineasVisibles.map((l) => (
                   <li
                     key={l.id}
                     className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-neutral-50/50 px-4 py-3"
@@ -412,6 +547,27 @@ export default function DetallePresupuestoPage() {
                   </li>
                 ))}
               </ul>
+            )}
+            {esAmpliacion && propuesta.bajas.length > 0 && (
+              <div className="mt-4">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">Bajas</p>
+                <ul className="space-y-2">
+                  {propuesta.bajas.map((b, i) => (
+                    <li
+                      key={`${b.descripcion}-${i}`}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-4 py-3 text-sm"
+                    >
+                      <span>{b.descripcion}</span>
+                      <span className="text-neutral-500">− {euro(b.importe)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {esAmpliacion && propuesta.ajuste_comercial !== 0 && (
+              <p className="mt-3 text-sm text-neutral-600">
+                Ajuste comercial: {euro(propuesta.ajuste_comercial)}
+              </p>
             )}
           </CardContent>
         </Card>

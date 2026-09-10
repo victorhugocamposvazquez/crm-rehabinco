@@ -7,7 +7,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Plus, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
@@ -15,13 +15,24 @@ import { ClienteQuickSheet } from "@/components/clientes/ClienteQuickSheet";
 import { parseDecimalMientrasEscribe } from "@/lib/decimales-input";
 import { listEmisoresPresupuesto, type EmisorPresupuesto } from "@/lib/emisores-presupuesto";
 import { wizardActionBarClassName } from "@/components/layout/wizard-chrome";
+import { GaralPartidasEditor } from "@/components/presupuestos/GaralPartidasEditor";
+import { GaralAdjuntosField } from "@/components/presupuestos/GaralAdjuntosField";
+import { PresupuestoCopiloto } from "@/components/presupuestos/PresupuestoCopiloto";
+import { PresupuestoPresentacionField } from "@/components/presupuestos/PresupuestoPresentacionField";
+import { AmpliacionCampos } from "@/components/presupuestos/AmpliacionCampos";
 import { useAuth } from "@/lib/auth/auth-context";
 import { isEditor } from "@/lib/auth/roles";
+import {
+  aplicarPropuestaTexto,
+  propuestaSinBinarios,
+} from "@/lib/ai/presupuesto-copiloto";
 import {
   parsePropuesta,
   propuestaVacia,
   type PropuestaPresupuesto,
+  type TipoDocumentoPresupuesto,
 } from "@/lib/presupuesto-propuesta";
+import { altasDeLineas, lineasParaDb, totalesAmpliacion } from "@/lib/presupuesto-totales";
 
 interface Linea {
   descripcion: string;
@@ -59,6 +70,8 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
   const [loading, setLoading] = useState(!!presupuestoId);
   const [error, setError] = useState<string | null>(null);
   const [showQuickClient, setShowQuickClient] = useState(false);
+  const esGaralEmisor =
+    soloGaral || emisores.find((e) => e.id === emisorId)?.slug === "garal";
 
   useEffect(() => {
     const supabase = createClient();
@@ -100,10 +113,29 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
         if (p.emisor_id) setEmisorId(p.emisor_id);
         setPropuesta(parsePropuesta(p.propuesta));
       }
-      setLineas(l.length > 0 ? l.map((x) => ({ descripcion: x.descripcion, cantidad: x.cantidad, precioUnitario: x.precio_unitario, unidad: x.unidad || "ud", capitulo: x.capitulo ?? "" })) : [{ descripcion: "", cantidad: 0, precioUnitario: 0, unidad: "ud", capitulo: "" }]);
+      const altas = altasDeLineas(l).map((x) => ({
+        descripcion: x.descripcion,
+        cantidad: x.cantidad,
+        precioUnitario: x.precio_unitario,
+        unidad: x.unidad || "ud",
+        capitulo: x.capitulo ?? "",
+      }));
+      setLineas(
+        altas.length > 0
+          ? altas
+          : [{ descripcion: "", cantidad: 0, precioUnitario: 0, unidad: "ud", capitulo: "" }]
+      );
       setLoading(false);
     });
   }, [presupuestoId]);
+
+  useEffect(() => {
+    if (!esGaralEmisor) return;
+    setLineas((rows) => {
+      if (rows.some((l) => l.capitulo.trim())) return rows;
+      return rows.map((l) => ({ ...l, capitulo: "01 · Actuación" }));
+    });
+  }, [esGaralEmisor]);
 
   const addLinea = () =>
     setLineas((p) => [...p, { descripcion: "", cantidad: 0, precioUnitario: 0, unidad: "ud", capitulo: "" }]);
@@ -137,13 +169,44 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
     precioUnitario: z.number().min(0),
   })).min(1).safeParse(lineasValidas).success;
 
-  const baseImponible = lineasFijas.reduce(
-    (acc, l) => acc + Number(l.cantidad) * Number(l.precioUnitario),
-    0
-  );
-  const impuesto = (baseImponible * (porcentajeImpuesto / 100));
-  const descuento = (baseImponible * (porcentajeDescuento / 100));
+  const esAmpliacion = propuesta.tipo === "ampliacion";
+  const totAmp = totalesAmpliacion({
+    lineas: lineasFijas,
+    bajas: propuesta.bajas,
+    ajusteComercial: propuesta.ajuste_comercial,
+    origenTotal: propuesta.origen_total,
+    porcentajeImpuesto,
+  });
+  const baseImponible = esAmpliacion
+    ? totAmp.incrementoNeto
+    : lineasFijas.reduce((acc, l) => acc + Number(l.cantidad) * Number(l.precioUnitario), 0);
+  const impuesto = baseImponible * (porcentajeImpuesto / 100);
+  const descuento = esAmpliacion ? 0 : baseImponible * (porcentajeDescuento / 100);
   const total = baseImponible + impuesto - descuento;
+  const descuentoSave = esAmpliacion ? 0 : porcentajeDescuento;
+
+  const setTipoDocumento = (tipo: TipoDocumentoPresupuesto) => {
+    setPropuesta((p) => ({
+      ...p,
+      tipo,
+      mostrar_zonas: tipo !== "ampliacion",
+      mostrar_programa: tipo !== "ampliacion",
+      mostrar_repercusion: tipo === "ampliacion",
+      densidad_tabla: tipo === "ampliacion" ? "compacta" : p.densidad_tabla,
+    }));
+    if (tipo === "ampliacion") setPorcentajeDescuento(0);
+  };
+
+  const filasParaInsert = (presupuestoIdDest: string) =>
+    lineasParaDb(lineasFijas, propuesta).map((l, orden) => ({
+      presupuesto_id: presupuestoIdDest,
+      descripcion: l.descripcion,
+      cantidad: l.cantidad,
+      precio_unitario: l.precio_unitario,
+      unidad: l.unidad,
+      capitulo: l.capitulo,
+      orden,
+    }));
 
 
   const handleSave = async () => {
@@ -165,7 +228,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
           concepto: concepto || null,
           fecha,
           porcentaje_impuesto: porcentajeImpuesto,
-          porcentaje_descuento: porcentajeDescuento,
+          porcentaje_descuento: descuentoSave,
           estado,
           emisor_id: emisorId || undefined,
           propuesta,
@@ -180,18 +243,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
 
       await supabase.from("presupuesto_lineas").delete().eq("presupuesto_id", presupuestoId);
 
-      const lineasNetas = commitLineasBorrador(lineas);
-      const lineasToInsert = lineasNetas
-        .filter((l) => l.descripcion.trim() && l.cantidad > 0)
-        .map((l, orden) => ({
-          presupuesto_id: presupuestoId,
-          descripcion: l.descripcion,
-          cantidad: l.cantidad,
-          precio_unitario: l.precioUnitario,
-          unidad: l.unidad || "ud",
-          capitulo: l.capitulo.trim() || null,
-          orden,
-        }));
+      const lineasToInsert = filasParaInsert(presupuestoId);
 
       if (lineasToInsert.length > 0) {
         const { error: errLineas } = await supabase.from("presupuesto_lineas").insert(lineasToInsert);
@@ -232,7 +284,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
         fecha,
         concepto: concepto || null,
         porcentaje_impuesto: porcentajeImpuesto,
-        porcentaje_descuento: porcentajeDescuento,
+        porcentaje_descuento: descuentoSave,
         emisor_id: emisorId || undefined,
         propuesta,
       })
@@ -245,27 +297,16 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
       return;
     }
 
-    const lineasNetasNueva = commitLineasBorrador(lineas);
-    const lineasToInsert = lineasNetasNueva
-      .filter((l) => l.descripcion.trim() && l.cantidad > 0)
-      .map((l, orden) => ({
-        presupuesto_id: presupuesto.id,
-        descripcion: l.descripcion,
-        cantidad: l.cantidad,
-        precio_unitario: l.precioUnitario,
-        unidad: l.unidad || "ud",
-        capitulo: l.capitulo.trim() || null,
-        orden,
-      }));
+    const lineasToInsert = filasParaInsert(presupuesto.id);
 
-    const { error: errLineas } = await supabase
-      .from("presupuesto_lineas")
-      .insert(lineasToInsert);
+    if (lineasToInsert.length > 0) {
+      const { error: errLineas } = await supabase.from("presupuesto_lineas").insert(lineasToInsert);
 
-    if (errLineas) {
-      setError(errLineas.message);
-      setCreating(false);
-      return;
+      if (errLineas) {
+        setError(errLineas.message);
+        setCreating(false);
+        return;
+      }
     }
 
     toast.success("Presupuesto creado");
@@ -282,8 +323,34 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
     );
   }
 
+  const emisorSlug =
+    soloGaral || emisores.find((e) => e.id === emisorId)?.slug === "garal" ? "garal" : "rehabinco";
+
   return (
     <div className="relative mx-auto max-w-2xl animate-[fadeIn_0.3s_ease-out] pb-36 md:pb-24">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <p className="hidden min-w-0 text-sm text-neutral-500 sm:block">
+          El copiloto propone partidas y textos. Tú aceptas y el PDF usa la plantilla del CRM.
+        </p>
+        <div className="ml-auto shrink-0">
+        <PresupuestoCopiloto
+          estado={{
+            emisor: emisorSlug,
+            concepto,
+            porcentaje_impuesto: porcentajeImpuesto,
+            porcentaje_descuento: porcentajeDescuento,
+            lineas: lineasFijas,
+            propuesta: propuestaSinBinarios(propuesta),
+          }}
+          onAccept={(output) => {
+            if (output.concepto.trim()) setConcepto(output.concepto);
+            setPorcentajeDescuento(output.propuesta.tipo === "ampliacion" ? 0 : output.porcentaje_descuento);
+            setLineas(output.lineas.map((l) => ({ ...l })));
+            setPropuesta((p) => aplicarPropuestaTexto(p, output.propuesta));
+          }}
+        />
+        </div>
+      </div>
       <div className="mb-8 flex items-center gap-2">
         {[1, 2, 3, 4].map((s) => (
           <div
@@ -302,7 +369,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
               {s}
             </div>
             <span className={cn("hidden text-sm sm:inline", step === s ? "text-foreground" : "text-neutral-500")}>
-              {s === 1 ? "Cliente" : s === 2 ? "Líneas" : s === 3 ? "Propuesta" : "Resumen"}
+              {s === 1 ? "Cliente" : s === 2 ? (esGaralEmisor ? "Partidas" : "Líneas") : s === 3 ? "Propuesta" : "Resumen"}
             </span>
           </div>
         ))}
@@ -342,6 +409,35 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
                 {soloGaral
                   ? "Este perfil emite siempre como Garal."
                   : "El PDF usará el logotipo y los datos fiscales de este emisor."}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Tipo de documento</Label>
+              <div className="flex rounded-lg border border-border p-1">
+                {(
+                  [
+                    ["presupuesto", "Presupuesto"],
+                    ["ampliacion", "Ampliación"],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setTipoDocumento(id)}
+                    className={
+                      propuesta.tipo === id
+                        ? "flex-1 rounded-md bg-foreground px-3 py-2 text-sm font-medium text-background"
+                        : "flex-1 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted"
+                    }
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-neutral-500">
+                {esAmpliacion
+                  ? "Dos hojas: portada + desglose. El total de portada es el incremento neto (altas − bajas + ajuste)."
+                  : "Propuesta completa (datos, mediciones, programa y cierre)."}
               </p>
             </div>
             <div className="space-y-2">
@@ -430,9 +526,18 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
       {step === 2 && (
         <Card>
           <CardHeader>
-            <CardTitle>Líneas</CardTitle>
+            <CardTitle>{esGaralEmisor ? "Mediciones y partidas" : "Líneas"}</CardTitle>
+            {esAmpliacion && (
+              <CardDescription>
+                Solo las altas de la ampliación. Las bajas y el ajuste comercial van debajo.
+              </CardDescription>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
+            {esGaralEmisor ? (
+              <GaralPartidasEditor lineas={lineas} onChange={setLineas} />
+            ) : (
+            <>
             {lineas.map((l, i) => (
               <div
                 key={i}
@@ -560,6 +665,16 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
               <Plus className="h-4 w-4" strokeWidth={1.5} />
               Añadir línea
             </Button>
+            </>
+            )}
+            {esAmpliacion && (
+              <AmpliacionCampos
+                propuesta={propuesta}
+                lineas={lineasFijas}
+                porcentajeImpuesto={porcentajeImpuesto}
+                onChange={setPropuesta}
+              />
+            )}
           </CardContent>
         </Card>
       )}
@@ -622,7 +737,15 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
             </div>
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <Label>3. Zonas de intervención</Label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={propuesta.mostrar_zonas}
+                    onChange={(e) => setPropuesta((p) => ({ ...p, mostrar_zonas: e.target.checked }))}
+                  />
+                  Incluir zonas de intervención en el PDF
+                </label>
+                {propuesta.mostrar_zonas && (
                 <Button
                   type="button"
                   variant="secondary"
@@ -638,8 +761,9 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
                   <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
                   Zona
                 </Button>
+                )}
               </div>
-              {propuesta.zonas.map((z, i) => (
+              {propuesta.mostrar_zonas && propuesta.zonas.map((z, i) => (
                 <div key={i} className="space-y-2 rounded-lg border border-border p-3">
                   <div className="grid gap-2 sm:grid-cols-3">
                     <Input
@@ -688,7 +812,15 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
             </div>
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <Label>5. Programa de trabajos</Label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={propuesta.mostrar_programa}
+                    onChange={(e) => setPropuesta((p) => ({ ...p, mostrar_programa: e.target.checked }))}
+                  />
+                  Incluir programa de trabajos en el PDF
+                </label>
+                {propuesta.mostrar_programa && (
                 <Button
                   type="button"
                   variant="secondary"
@@ -704,8 +836,9 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
                   <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
                   Fase
                 </Button>
+                )}
               </div>
-              {propuesta.programa.map((f, i) => (
+              {propuesta.mostrar_programa && propuesta.programa.map((f, i) => (
                 <div key={i} className="flex flex-wrap items-start gap-2">
                   <Input
                     className="w-28"
@@ -743,6 +876,14 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
                 </div>
               ))}
             </div>
+            {esGaralEmisor && (
+              <GaralAdjuntosField
+                adjuntos={propuesta.adjuntos}
+                onChange={(adjuntos) => setPropuesta((p) => ({ ...p, adjuntos }))}
+              />
+            )}
+            <PresupuestoPresentacionField propuesta={propuesta} onChange={setPropuesta} />
+            {!esAmpliacion && (
             <div className="space-y-2">
               <Label>6. Condiciones y garantías</Label>
               <textarea
@@ -751,6 +892,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
                 onChange={(e) => setPropuesta((p) => ({ ...p, condiciones: e.target.value }))}
               />
             </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -773,8 +915,40 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
               <p>
                 <span className="text-neutral-500">Concepto:</span> {concepto || "—"}
               </p>
+              {esAmpliacion && (
+                <>
+                  <p>
+                    <span className="text-neutral-500">Tipo:</span> Ampliación
+                    {propuesta.origen_numero.trim() ? ` sobre ${propuesta.origen_numero}` : ""}
+                  </p>
+                  <p>
+                    <span className="text-neutral-500">Altas / bajas / ajuste:</span>{" "}
+                    {totAmp.altas.toLocaleString("es-ES", { style: "currency", currency: "EUR" })} −{" "}
+                    {totAmp.bajas.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
+                    {totAmp.ajuste !== 0
+                      ? ` ${totAmp.ajuste < 0 ? "−" : "+"} ${Math.abs(totAmp.ajuste).toLocaleString("es-ES", { style: "currency", currency: "EUR" })}`
+                      : ""}
+                  </p>
+                </>
+              )}
+              {esGaralEmisor && (
+                <>
+                  <p>
+                    <span className="text-neutral-500">Partidas:</span>{" "}
+                    {lineasValidas.length} en{" "}
+                    {new Set(lineasValidas.map((l) => l.capitulo.trim() || "01 · Actuación")).size}{" "}
+                    capítulo{new Set(lineasValidas.map((l) => l.capitulo.trim() || "01")).size === 1 ? "" : "s"}
+                  </p>
+                  <p>
+                    <span className="text-neutral-500">Anexos:</span>{" "}
+                    {propuesta.adjuntos.length === 0
+                      ? "Ninguno"
+                      : `${propuesta.adjuntos.length} foto${propuesta.adjuntos.length === 1 ? "" : "s"}`}
+                  </p>
+                </>
+              )}
               <p>
-                <span className="text-neutral-500">Base:</span>{" "}
+                <span className="text-neutral-500">{esAmpliacion ? "Incremento neto" : "Base"}:</span>{" "}
                 {baseImponible.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
               </p>
               <p>
@@ -782,9 +956,16 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
                 {impuesto.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
               </p>
               <p className="font-semibold">
-                <span className="text-neutral-500">Total:</span>{" "}
+                <span className="text-neutral-500">Total oferta:</span>{" "}
                 {total.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
               </p>
+              {esAmpliacion && propuesta.origen_total > 0 && (
+                <p>
+                  <span className="text-neutral-500">Resultante del proyecto:</span>{" "}
+                  {totAmp.resultante.toLocaleString("es-ES", { style: "currency", currency: "EUR" })} + IVA{" "}
+                  {totAmp.ivaResultante.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
+                </p>
+              )}
             </div>
             {error && <p className="text-sm text-red-600">{error}</p>}
           </CardContent>

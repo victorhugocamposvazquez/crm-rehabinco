@@ -1,3 +1,8 @@
 {
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "functions": {
+    "app/api/presupuestos/copiloto/route.ts": {
+      "maxDuration": 60
+    }
+  }
 }
