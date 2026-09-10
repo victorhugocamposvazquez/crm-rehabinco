@@ -57,4 +57,4 @@ Condiciones por defecto si no piden otras: garantía 24 meses, precios con MO/ma
 
 Pega el resultado en el **Copiloto** del wizard o de la ficha (`/presupuestos/[id]`), o transcribe los campos. No generes HTML/PDF libre.
 
-El copiloto acepta **Word (.docx)**, PDF y texto. Adjunta el documento que te han mandado y, si aplica, el presupuesto anterior: los cruza (altas, bajas, incremento). El .doc antiguo hay que guardarlo como .docx.
+El copiloto del CRM es una **sesión continua**: los Word/PDF se quedan en la mesa, el historial cuenta, y cada mensaje corrige el borrador (no parte de cero). Aceptar vuelca al formulario; se puede seguir corrigiendo después.

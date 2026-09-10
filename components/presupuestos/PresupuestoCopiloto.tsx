@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/sheet";
 import {
@@ -17,6 +17,10 @@ import { toast } from "sonner";
 
 type Msg = HistorialCopiloto & { files?: string[] };
 
+function claveArchivos(list: File[]) {
+  return list.map((f) => `${f.name}:${f.size}:${f.lastModified}`).join("|");
+}
+
 export function PresupuestoCopiloto({
   estado,
   onAccept,
@@ -27,11 +31,15 @@ export function PresupuestoCopiloto({
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
+  const [sentFileKey, setSentFileKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [pending, setPending] = useState<CopilotoOutput | null>(null);
   const [diff, setDiff] = useState<DiffPresupuesto | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileKey = useMemo(() => claveArchivos(files), [files]);
+  const hayArchivosNuevos = files.length > 0 && fileKey !== sentFileKey;
+  const canSend = !!text.trim() || hayArchivosNuevos;
 
   const addFiles = (list: FileList | null) => {
     if (!list?.length) return;
@@ -42,8 +50,9 @@ export function PresupuestoCopiloto({
         toast.error(`${file.name} es .doc antiguo. Guárdalo como .docx.`);
         continue;
       }
+      if (next.some((f) => f.name === file.name && f.size === file.size)) continue;
       if (next.length >= COPILOTO_MAX_FILES) {
-        toast.error(`Máximo ${COPILOTO_MAX_FILES} archivos.`);
+        toast.error(`Máximo ${COPILOTO_MAX_FILES} archivos en la mesa.`);
         break;
       }
       next.push(file);
@@ -59,7 +68,7 @@ export function PresupuestoCopiloto({
 
   const send = async () => {
     const instrucciones = text.trim();
-    if ((!instrucciones && files.length === 0) || busy || pending) return;
+    if ((!instrucciones && !hayArchivosNuevos) || busy) return;
     setBusy(true);
     const form = new FormData();
     form.append(
@@ -68,6 +77,7 @@ export function PresupuestoCopiloto({
         instrucciones,
         historial: messages.map(({ role, text: t }) => ({ role, text: t })),
         estado,
+        borrador: pending,
       })
     );
     for (const file of files) form.append("files", file);
@@ -79,9 +89,14 @@ export function PresupuestoCopiloto({
         return;
       }
       const output = data.output;
+      const nombresNuevos = hayArchivosNuevos ? files.map((f) => f.name) : [];
       setMessages((m) => [
         ...m,
-        { role: "user", text: instrucciones || "Leer adjuntos y volcar al presupuesto", files: files.map((f) => f.name) },
+        {
+          role: "user",
+          text: instrucciones || "Leer lo que hay en la mesa y actualizar el presupuesto",
+          files: nombresNuevos,
+        },
         { role: "assistant", text: output.resumen },
       ]);
       setPending(output);
@@ -94,7 +109,7 @@ export function PresupuestoCopiloto({
         })
       );
       setText("");
-      setFiles([]);
+      setSentFileKey(fileKey);
     } catch {
       toast.error("No se pudo contactar con el copiloto.");
     } finally {
@@ -107,7 +122,7 @@ export function PresupuestoCopiloto({
     onAccept(pending);
     setPending(null);
     setDiff(null);
-    toast.success("Propuesta aplicada. Revisa partidas y precios antes de guardar.");
+    toast.success("Volcado al formulario. Puedes seguir corrigiendo en el chat.");
   };
 
   return (
@@ -121,15 +136,15 @@ export function PresupuestoCopiloto({
           <div className="border-b border-border px-5 pb-3">
             <h2 className="text-lg font-semibold">Copiloto de presupuesto</h2>
             <p className="mt-1 text-sm text-neutral-600">
-              Adjunta el Word o PDF que te han mandado (y el presupuesto anterior si hace falta). El copiloto lo
-              interpreta y lo vuelca a la plantilla del CRM.
+              Ve soltando Word, PDF y correcciones. El chat guarda el contexto; tú aceptas cuando quieras volcar al
+              formulario.
             </p>
           </div>
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
             {messages.length === 0 && !pending && (
               <p className="text-sm text-neutral-500">
-                Ejemplos: adjunta «Presupuesto.docx» + «Presupuesto con modificaciones.docx», o un listado de
-                ampliaciones y el inicial. También: «deja el incremento en 45.000», «quita la base aislante».
+                Adjunta el presupuesto y la ampliación, o un listado de extras. Luego: «deja el incremento en 45.000»,
+                «quita la base aislante», «turnos nocturnos». Los archivos se quedan en la mesa.
               </p>
             )}
             {messages.map((m, i) => (
@@ -147,8 +162,12 @@ export function PresupuestoCopiloto({
                 )}
               </div>
             ))}
-            {busy && <p className="text-sm text-neutral-500">Leyendo y proponiendo…</p>}
-            {pending && diff && (
+            {busy && (
+              <p className="text-sm text-neutral-500">
+                {pending ? "Corrigiendo con el contexto de la sesión…" : "Leyendo y proponiendo…"}
+              </p>
+            )}
+            {pending && diff && !busy && (
               <PropuestaPendiente
                 output={pending}
                 diff={diff}
@@ -162,33 +181,41 @@ export function PresupuestoCopiloto({
           </div>
           <div className="border-t border-border px-5 py-3">
             {files.length > 0 && (
-              <ul className="mb-2 flex flex-wrap gap-2">
-                {files.map((f, i) => (
-                  <li
-                    key={`${f.name}-${i}`}
-                    className="inline-flex max-w-full items-center gap-1 rounded-md bg-neutral-100 px-2 py-1 text-xs text-neutral-700"
-                  >
-                    <span className="truncate">{f.name}</span>
-                    <button
-                      type="button"
-                      aria-label={`Quitar ${f.name}`}
-                      onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
+              <div className="mb-2">
+                <p className="mb-1 text-[11px] font-medium uppercase tracking-[0.12em] text-neutral-500">
+                  En la mesa · se reenvían en cada mensaje
+                </p>
+                <ul className="flex flex-wrap gap-2">
+                  {files.map((f, i) => (
+                    <li
+                      key={`${f.name}-${i}`}
+                      className="inline-flex max-w-full items-center gap-1 rounded-md bg-neutral-100 px-2 py-1 text-xs text-neutral-700"
                     >
-                      <X className="h-3.5 w-3.5" strokeWidth={1.5} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
+                      <span className="truncate">{f.name}</span>
+                      <button
+                        type="button"
+                        aria-label={`Quitar ${f.name}`}
+                        onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                      >
+                        <X className="h-3.5 w-3.5" strokeWidth={1.5} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
             {pending && (
-              <p className="mb-2 text-xs text-amber-700">Acepta o descarta la propuesta antes de pedir otra.</p>
+              <p className="mb-2 text-xs text-neutral-600">
+                La propuesta está en curso: puedes seguir pidiendo cambios o adjuntar más. Acepta cuando quieras
+                volcarla.
+              </p>
             )}
             <div className="flex items-end gap-2">
               <button
                 type="button"
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border text-neutral-600 hover:bg-neutral-50"
                 aria-label="Adjuntar Word, PDF o texto"
-                disabled={busy || !!pending}
+                disabled={busy}
                 onClick={() => inputRef.current?.click()}
               >
                 <Paperclip className="h-4 w-4" strokeWidth={1.5} />
@@ -204,9 +231,13 @@ export function PresupuestoCopiloto({
               <textarea
                 className="min-h-[44px] flex-1 resize-none rounded-lg border border-border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 rows={2}
-                placeholder="Adjunta el Word y di qué hacer, o envía solo los archivos…"
+                placeholder={
+                  pending
+                    ? "Sigue corrigiendo o suelta otro adjunto…"
+                    : "Suelta el Word y di qué hacer, o envía solo los archivos…"
+                }
                 value={text}
-                disabled={busy || !!pending}
+                disabled={busy}
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
@@ -215,13 +246,8 @@ export function PresupuestoCopiloto({
                   }
                 }}
               />
-              <Button
-                type="button"
-                size="sm"
-                disabled={busy || !!pending || (!text.trim() && files.length === 0)}
-                onClick={() => void send()}
-              >
-                {busy ? "…" : "Enviar"}
+              <Button type="button" size="sm" disabled={busy || !canSend} onClick={() => void send()}>
+                {busy ? "…" : pending ? "Corregir" : "Enviar"}
               </Button>
             </div>
           </div>
@@ -244,7 +270,7 @@ function PropuestaPendiente({
 }) {
   return (
     <div className="rounded-xl border border-neutral-900 bg-white p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-neutral-500">Propuesta · no aplicada</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-neutral-500">Borrador · no volcado aún</p>
       <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
         <div>
           <dt className="text-neutral-500">Partidas</dt>
@@ -298,7 +324,7 @@ function PropuestaPendiente({
         </Button>
         <Button type="button" variant="secondary" className="gap-1" onClick={onDiscard}>
           <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
-          Descartar
+          Descartar borrador
         </Button>
       </div>
     </div>

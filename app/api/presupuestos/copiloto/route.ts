@@ -1,13 +1,16 @@
 import { generateText, Output, type ModelMessage } from "ai";
 import { NextResponse } from "next/server";
 import {
+  COPILOTO_HISTORIAL_MAX,
   COPILOTO_MAX_BYTES,
   COPILOTO_MAX_FILES,
   COPILOTO_TEXTO_MAX,
   INSTRUCCION_ADJUNTOS,
   copilotoOutputSchema,
+  estadoDesdeBorrador,
   modeloCopiloto,
   normalizarOutput,
+  snapshotEstado,
   systemPromptCopiloto,
   type CopilotoOutput,
   type EstadoCopiloto,
@@ -71,6 +74,7 @@ export async function POST(request: Request) {
     instrucciones?: unknown;
     historial?: unknown;
     estado?: unknown;
+    borrador?: unknown;
   };
   try {
     payload = JSON.parse(rawPayload) as typeof payload;
@@ -109,8 +113,16 @@ export async function POST(request: Request) {
   const historial = Array.isArray(payload.historial)
     ? (payload.historial as HistorialCopiloto[])
         .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.text === "string")
-        .slice(-8)
+        .slice(-COPILOTO_HISTORIAL_MAX)
     : [];
+
+  let borrador: CopilotoOutput | null = null;
+  if (payload.borrador && typeof payload.borrador === "object") {
+    const parsedBorrador = copilotoOutputSchema.safeParse(payload.borrador);
+    if (parsedBorrador.success) {
+      borrador = normalizarOutput(parsedBorrador.data);
+    }
+  }
 
   const partes: Array<{ type: "text"; text: string } | { type: "file"; data: Uint8Array; mediaType: string; filename?: string }> =
     [];
@@ -164,6 +176,24 @@ export async function POST(request: Request) {
     });
   }
 
+  const mesa = files.map((f) => f.name);
+  const baseJson = snapshotEstado(estado);
+  const borradorJson = borrador ? snapshotEstado(estadoDesdeBorrador(estado, borrador)) : null;
+  const encabezado = [
+    mesa.length > 0
+      ? `Documentos en la mesa de esta sesión (siguen vigentes): ${mesa.join(", ")}.`
+      : "No hay documentos en la mesa en este envío.",
+    "",
+    "ESTADO del formulario (ya aceptado en el CRM):",
+    JSON.stringify(baseJson, null, 2),
+    "",
+    borradorJson
+      ? `BORRADOR en curso (aún no volcado al formulario). Aplica la petición SOBRE ESTE borrador y conserva el resto:\n${JSON.stringify(borradorJson, null, 2)}`
+      : "No hay borrador en curso: parte del ESTADO del formulario.",
+    "",
+    `Petición del usuario:\n${instrucciones}`,
+  ].join("\n");
+
   const messages: ModelMessage[] = [
     ...historial.map((m) => ({ role: m.role, content: m.text })),
     {
@@ -171,18 +201,7 @@ export async function POST(request: Request) {
       content: [
         {
           type: "text" as const,
-          text: `Estado actual del presupuesto (JSON). Es el documento "anterior" del CRM: úsalo como base y aplícale los adjuntos y la petición.\n${JSON.stringify(
-            {
-              emisor: estado.emisor,
-              concepto: estado.concepto,
-              porcentaje_impuesto: estado.porcentaje_impuesto,
-              porcentaje_descuento: estado.porcentaje_descuento,
-              lineas: estado.lineas,
-              propuesta: estado.propuesta,
-            },
-            null,
-            2
-          )}\n\nPetición del usuario:\n${instrucciones}`,
+          text: encabezado,
         },
         ...partes,
       ],

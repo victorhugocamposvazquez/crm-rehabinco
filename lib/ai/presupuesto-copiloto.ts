@@ -6,8 +6,9 @@ import { esLineaRepercusion } from "@/lib/presupuesto-totales";
 export const COPILOTO_MAX_FILES = 6;
 export const COPILOTO_MAX_BYTES = 6_000_000;
 export const COPILOTO_TEXTO_MAX = 80_000;
+export const COPILOTO_HISTORIAL_MAX = 16;
 
-export const INSTRUCCION_ADJUNTOS = `Lee los documentos adjuntos y vuelca su contenido al esquema del CRM. Relaciónalos con el presupuesto actual (JSON): si el Word o PDF es una ampliación, un listado de extras o una modificación sobre el origen, usa tipo=ampliacion; si es el presupuesto entero, tipo=presupuesto. Si hay dos versiones del mismo listado, usa la más desglosada (con m², ml y precios unitarios) y cruza los totales.`;
+export const INSTRUCCION_ADJUNTOS = `Lee los documentos de la sesión y vuelca su contenido al esquema del CRM. Relaciónalos entre sí y con el presupuesto actual (JSON): si el Word o PDF es una ampliación, un listado de extras o una modificación sobre el origen, usa tipo=ampliacion; si es el presupuesto entero, tipo=presupuesto. Si hay dos versiones del mismo listado, usa la más desglosada (con m², ml y precios unitarios) y cruza los totales. Conserva lo ya acordado en el historial.`;
 
 export type LineaCopiloto = {
   descripcion: string;
@@ -102,6 +103,14 @@ export function systemPromptCopiloto(emisor: "garal" | "rehabinco") {
   const marca = emisor === "garal" ? "Garal · Diseño & obra" : "Rehabinco";
   return `Eres el copiloto de presupuestos del CRM interno de ${marca}.
 Redactas y CORRIGES propuestas técnicas y económicas en español (España). No diseñas el PDF: el CRM ya tiene plantilla fija. Tú solo rellenas y ajustas DATOS.
+
+Trabajas en una conversación continua (como un estudio):
+- El usuario va soltando Word, PDF, cifras y correcciones en cualquier orden. Asocia, contextualiza y corrige; no empieces de cero en cada mensaje.
+- Si hay BORRADOR (propuesta en curso, aún no volcada al formulario), aplica la petición SOBRE EL BORRADOR y conserva lo que no toquen.
+- El ESTADO del formulario es lo ya aceptado. Úsalo si no hay borrador, o como origen si piden deshacer el rumbo.
+- Los adjuntos de la sesión siguen vigentes aunque el mensaje no los nombre. Un documento nuevo se cruza con los anteriores (inicial vs ampliación, listado vs listado con mediciones).
+- Recuerda restricciones del historial (turno nocturno, quitar una partida, tope 45.000, ocultar un bloque) salvo que las revoquen.
+- Si algo es ambiguo, elige la lectura más coherente con los documentos y dilo en sugerencias. No pidas que reformateen el Word.
 
 La mayoría de peticiones son correcciones sobre un presupuesto ya montado, o volcar un Word/PDF que llega de obra. Aplica el cambio con precisión y devuelve el documento completo resultante.
 
@@ -232,6 +241,30 @@ export function aplicarPropuestaTexto(
     foto_portada: actual.foto_portada,
     densidad_tabla: tipo === "ampliacion" ? "compacta" : actual.densidad_tabla,
     variante_portada: actual.variante_portada,
+  };
+}
+
+export function estadoDesdeBorrador(estado: EstadoCopiloto, output: CopilotoOutput): EstadoCopiloto {
+  const propuesta = output.propuesta;
+  return {
+    ...estado,
+    concepto: output.concepto.trim() || estado.concepto,
+    porcentaje_descuento: propuesta.tipo === "ampliacion" ? 0 : output.porcentaje_descuento,
+    lineas: output.lineas,
+    propuesta: {
+      ...estado.propuesta,
+      ...propuesta,
+    },
+  };
+}
+
+export function snapshotEstado(estado: EstadoCopiloto) {
+  return {
+    concepto: estado.concepto,
+    porcentaje_impuesto: estado.porcentaje_impuesto,
+    porcentaje_descuento: estado.porcentaje_descuento,
+    lineas: estado.lineas,
+    propuesta: estado.propuesta,
   };
 }
 
