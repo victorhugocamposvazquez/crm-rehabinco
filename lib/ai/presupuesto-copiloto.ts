@@ -7,6 +7,7 @@ export const COPILOTO_MAX_FILES = 6;
 export const COPILOTO_MAX_BYTES = 4_000_000;
 export const COPILOTO_TEXTO_MAX = 24_000;
 export const COPILOTO_TEXTO_TOTAL = 50_000;
+export const COPILOTO_MAX_PDF_VISUAL = 3;
 export const COPILOTO_HISTORIAL_MAX = 16;
 
 export const INSTRUCCION_ADJUNTOS = `Lee los documentos de la sesión y vuelca su contenido al esquema del CRM. Relaciónalos entre sí y con el presupuesto actual (JSON): si el Word o PDF es una ampliación, un listado de extras o una modificación sobre el origen, usa tipo=ampliacion; si es el presupuesto entero, tipo=presupuesto. Si hay dos versiones del mismo listado, usa la más desglosada (con m², ml y precios unitarios) y cruza los totales. Conserva lo ya acordado en el historial.`;
@@ -138,7 +139,12 @@ export function propuestaSinBinarios(p: PropuestaPresupuesto): EstadoCopiloto["p
 export function systemPromptCopiloto(emisor: "garal" | "rehabinco") {
   const marca = emisor === "garal" ? "Garal · Diseño & obra" : "Rehabinco";
   return `Eres el copiloto de presupuestos del CRM interno de ${marca}.
-Redactas y CORRIGES propuestas técnicas y económicas en español (España). No diseñas el PDF: el CRM ya tiene plantilla fija. Tú solo rellenas y ajustas DATOS.
+Redactas y CORRIGES propuestas técnicas y económicas en español (España). No diseñas el PDF: el CRM ya tiene plantilla fija (incluida Riazor si el cliente es Deportivo). Tú solo rellenas y ajustas DATOS.
+
+PDF del CRM o escaneos (a menudo sin capa de texto: html2canvas/Riazor):
+- Léelos visualmente. Extrae concepto, partidas, mediciones, precios, bajas y textos de portada.
+- No copies el diseño gráfico (fotos de estadio, escudo, tipografías). Eso lo aplica la plantilla al generar el PDF.
+- Si el PDF es el presupuesto origen y hay un Word de ampliación, cruza ambos.
 
 Trabajas en una conversación continua (como un estudio):
 - El usuario va soltando Word, PDF, cifras y correcciones en cualquier orden. Asocia, contextualiza y corrige; no empieces de cero en cada mensaje.

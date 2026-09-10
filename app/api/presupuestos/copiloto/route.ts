@@ -6,6 +6,7 @@ import {
   COPILOTO_MAX_FILES,
   COPILOTO_TEXTO_MAX,
   COPILOTO_TEXTO_TOTAL,
+  COPILOTO_MAX_PDF_VISUAL,
   INSTRUCCION_ADJUNTOS,
   MODELO_COPILOTO,
   MODELO_COPILOTO_FALLBACK,
@@ -240,8 +241,12 @@ export async function POST(request: Request) {
     }
   }
 
-  const partes: Array<{ type: "text"; text: string }> = [];
+  const partes: Array<
+    | { type: "text"; text: string }
+    | { type: "file"; data: Uint8Array; mediaType: string; filename?: string }
+  > = [];
   let cupoRestante = COPILOTO_TEXTO_TOTAL;
+  let pdfVisuales = 0;
 
   for (const file of files) {
     if (esDocBinario(file)) {
@@ -250,6 +255,48 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+    const mediaType = mimeDeArchivo(file);
+    if (mediaType === "application/pdf") {
+      try {
+        const buf = new Uint8Array(await file.arrayBuffer());
+        const texto = await extractPdfText(buf);
+        if (texto) {
+          const cupo = Math.min(COPILOTO_TEXTO_MAX, Math.max(0, cupoRestante));
+          if (cupo <= 0) {
+            partes.push({
+              type: "text",
+              text: `--- Archivo ${file.name} omitido: se alcanzó el tope de texto de esta sesión. ---`,
+            });
+          } else {
+            const recorte = recortarAdjunto(file.name, "PDF extraído a texto", texto, cupo);
+            cupoRestante -= recorte.usado;
+            partes.push({ type: "text", text: recorte.bloque });
+          }
+        } else {
+          pdfVisuales += 1;
+          if (pdfVisuales > COPILOTO_MAX_PDF_VISUAL) {
+            return NextResponse.json(
+              { error: `Máximo ${COPILOTO_MAX_PDF_VISUAL} PDF visuales (tipo Riazor) por envío.` },
+              { status: 400 }
+            );
+          }
+          partes.push({
+            type: "file",
+            data: buf,
+            mediaType: "application/pdf",
+            filename: file.name,
+          });
+          partes.push({
+            type: "text",
+            text: `--- ${file.name}: PDF visual (plantilla CRM/Riazor o escaneo, sin capa de texto). Extrae DATOS (partidas, textos, cifras). El diseño lo aplica el CRM. ---`,
+          });
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : `No se pudo leer ${file.name}.`;
+        return NextResponse.json({ error: msg }, { status: 400 });
+      }
+      continue;
+    }
     if (cupoRestante <= 0) {
       partes.push({
         type: "text",
@@ -257,27 +304,7 @@ export async function POST(request: Request) {
       });
       continue;
     }
-    const mediaType = mimeDeArchivo(file);
     const cupo = Math.min(COPILOTO_TEXTO_MAX, cupoRestante);
-    if (mediaType === "application/pdf") {
-      try {
-        const buf = new Uint8Array(await file.arrayBuffer());
-        const texto = await extractPdfText(buf);
-        if (!texto) {
-          return NextResponse.json(
-            { error: `${file.name} no tiene texto (parece un escaneo). Pásalo a Word o pega el contenido.` },
-            { status: 400 }
-          );
-        }
-        const recorte = recortarAdjunto(file.name, "PDF extraído a texto", texto, cupo);
-        cupoRestante -= recorte.usado;
-        partes.push({ type: "text", text: recorte.bloque });
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : `No se pudo leer ${file.name}.`;
-        return NextResponse.json({ error: msg }, { status: 400 });
-      }
-      continue;
-    }
     if (esDocx(file) || mediaType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
       try {
         const buf = new Uint8Array(await file.arrayBuffer());
