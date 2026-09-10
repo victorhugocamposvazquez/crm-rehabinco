@@ -13,6 +13,7 @@ import {
 } from "@/lib/ai/presupuesto-copiloto";
 import { diffPresupuesto, euro, importeLineas } from "@/lib/ai/presupuesto-diff";
 import { totalesAmpliacion } from "@/lib/presupuesto-totales";
+import { avisosDePartida, chipsDePartida, tonoChip } from "@/lib/presupuesto-propuesta";
 import { ArrowLeft, ArrowUp, Plus, Sparkles, Undo2, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,23 @@ const LOGO_GARAL = "/images/presupuestos/garal-negro.png";
 
 function LogoRehabinco({ className, alt = "Rehabinco" }: { className?: string; alt?: string }) {
   return <img src={LOGO_REHABINCO} alt={alt} className={cn("object-contain", className)} />;
+}
+
+function ChipVista({ etiqueta, tono }: { etiqueta: string; tono?: ReturnType<typeof tonoChip> }) {
+  const t = tono ?? tonoChip(etiqueta);
+  const cls =
+    t === "oscuro"
+      ? "bg-neutral-900 text-white"
+      : t === "aviso"
+        ? "bg-red-700 text-white"
+        : t === "azul"
+          ? "bg-[#E7EEF2] text-[#3A6A82]"
+          : "bg-neutral-100 text-neutral-600";
+  return (
+    <span className={cn("inline-block px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]", cls)}>
+      {etiqueta}
+    </span>
+  );
 }
 
 function claveArchivos(list: File[]) {
@@ -532,6 +550,13 @@ function DocumentoVivo({
               </p>
             </div>
             <h3 className="text-[28px] font-medium leading-tight tracking-tight">{canvas.concepto || "Sin título"}</h3>
+            {p.chips_portada?.length ? (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {p.chips_portada.map((c) => (
+                  <ChipVista key={c} etiqueta={c} />
+                ))}
+              </div>
+            ) : null}
             {p.subtitulo_portada ? <p className="mt-2 text-[16px] text-neutral-500">{p.subtitulo_portada}</p> : null}
             {p.descripcion_portada ? (
               <p className="mt-4 text-[15px] leading-relaxed text-neutral-700">{p.descripcion_portada}</p>
@@ -554,19 +579,102 @@ function DocumentoVivo({
                 <p className="mt-2 whitespace-pre-wrap text-[15px] leading-relaxed text-neutral-800">{p.objeto_alcance}</p>
               </div>
             ) : null}
+            {(p.regimen_destacado || p.regimen_importe || (p.regimen_metricas ?? []).length > 0) && (
+              <div className="mt-8 rounded-2xl bg-[#0B1D2E] px-5 py-4 text-white">
+                <p className="text-[11px] uppercase tracking-[0.16em] text-[#9BB4C4]">
+                  {p.regimen_titulo || "Régimen de ejecución extraordinario"}
+                </p>
+                <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
+                  <p className="max-w-md text-[15px] font-medium leading-snug">{p.regimen_destacado}</p>
+                  {p.regimen_importe ? <p className="text-[22px] font-medium tracking-tight">{p.regimen_importe}</p> : null}
+                </div>
+                {p.regimen_pie ? (
+                  <p className="mt-1 text-[10px] uppercase tracking-[0.14em] text-[#9BB4C4]">{p.regimen_pie}</p>
+                ) : null}
+                {(p.regimen_metricas ?? []).length > 0 && (
+                  <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/15 pt-3 sm:grid-cols-4">
+                    {p.regimen_metricas.map((m, i) => (
+                      <div key={`${m.valor}-${i}`}>
+                        <p className="text-[20px] font-medium tracking-tight">{m.valor}</p>
+                        <p className="mt-1 text-[10px] uppercase leading-snug tracking-[0.12em] text-[#9BB4C4]">
+                          {m.etiqueta}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {(p.regimenes ?? []).length > 0 && (
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                {p.regimenes.map((r, i) => (
+                  <div key={`${r.chip}-${i}`} className="rounded-2xl border border-neutral-100 px-4 py-3">
+                    {r.chip ? <ChipVista etiqueta={r.chip} /> : null}
+                    <p className="mt-2 text-[15px] font-medium">{r.titulo}</p>
+                    <p className="mt-1 text-[13px] leading-relaxed text-neutral-600">{r.texto}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {(p.factores_valoracion ?? []).length > 0 && (
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                {p.factores_valoracion.map((f, i) => (
+                  <div key={`${f.titulo}-${i}`} className="border-l-2 border-[#6A9BB0] pl-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6A9BB0]">{f.titulo}</p>
+                    <p className="mt-1 text-[13px] leading-relaxed text-neutral-700">{f.texto}</p>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="mt-8 space-y-6">
               {[...grupos.entries()].map(([cap, rows]) => (
                 <div key={cap}>
                   <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-neutral-400">{cap}</p>
                   <ul className="mt-2 divide-y divide-neutral-100">
-                    {rows.map((l, i) => (
+                    {rows.map((l, i) => {
+                      const chips = (l.etiquetas ?? []).filter(Boolean).length
+                        ? (l.etiquetas ?? [])
+                        : chipsDePartida(p, l.descripcion);
+                      const avisos = [
+                        ...(l.aviso?.trim() ? [{ tipo: "aviso" as const, texto: l.aviso.trim() }] : []),
+                        ...(l.nota?.trim() ? [{ tipo: "nota" as const, texto: l.nota.trim() }] : []),
+                      ];
+                      const extra = avisos.length ? avisos : avisosDePartida(p, l.descripcion);
+                      return (
                       <li key={`${l.descripcion}-${i}`} className="flex items-start justify-between gap-4 py-2.5 text-[14px]">
-                        <span className="min-w-0 text-neutral-800">{l.descripcion}</span>
+                        <span className="min-w-0 text-neutral-800">
+                          {l.descripcion}
+                          {chips.length > 0 && (
+                            <span className="mt-1.5 flex flex-wrap gap-1">
+                              {chips.map((c) => (
+                                <ChipVista key={c} etiqueta={c} />
+                              ))}
+                            </span>
+                          )}
+                          {extra.map((a, idx) =>
+                            a.tipo === "aviso" ? (
+                              <span
+                                key={`av-${idx}`}
+                                className="mt-1.5 block rounded-md border-l-[3px] border-red-700 bg-red-50 px-2 py-1 text-[12px] text-red-900"
+                              >
+                                {a.texto}
+                              </span>
+                            ) : (
+                              <span
+                                key={`nt-${idx}`}
+                                className="mt-1.5 block rounded-md border-l-[3px] border-[#6A9BB0] bg-[#F5F8FA] px-2 py-1 text-[12px] text-neutral-700"
+                              >
+                                {a.texto}
+                              </span>
+                            )
+                          )}
+                        </span>
                         <span className="shrink-0 tabular-nums text-neutral-500">
                           {l.cantidad} {l.unidad} · {euro(Number(l.cantidad) * Number(l.precioUnitario))}
                         </span>
                       </li>
-                    ))}
+                      );
+                    })}
                   </ul>
                 </div>
               ))}

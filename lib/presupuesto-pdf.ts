@@ -1,9 +1,14 @@
 import { resolveInvoiceLogoUrl } from "@/lib/empresa-facturacion";
 import type { EmisorPresupuesto } from "@/lib/emisores-presupuesto";
 import {
+  avisosDePartida,
+  chipsDePartida,
   codigoPartida,
   parsePropuesta,
   propuestaVacia,
+  tieneHojaCondicionantes,
+  tonoChip,
+  type AvisoLinea,
   type DensidadTabla,
   type PropuestaPresupuesto,
 } from "@/lib/presupuesto-propuesta";
@@ -97,6 +102,61 @@ function htmlEsc(s: string) {
 
 function htmlMultiline(s: string) {
   return htmlEsc(s).replace(/\n/g, "<br />");
+}
+
+function htmlChip(etiqueta: string, tono = tonoChip(etiqueta)) {
+  const e = htmlEsc(etiqueta.trim().toUpperCase());
+  if (!e) return "";
+  const estilos: Record<string, string> = {
+    oscuro: "background:#111;color:#fff;",
+    azul: "background:#E7EEF2;color:#3A6A82;",
+    aviso: "background:#C62828;color:#fff;",
+    neutro: "background:#F0F0F0;color:#444;",
+  };
+  return `<span style="display:inline-block;margin:0 4px 4px 0;padding:2px 7px;font-size:7px;letter-spacing:0.12em;font-weight:700;line-height:1.3;${estilos[tono] ?? estilos.neutro}">${e}</span>`;
+}
+
+function htmlChips(etiquetas: string[]) {
+  const chips = etiquetas.map((c) => c.trim()).filter(Boolean);
+  if (chips.length === 0) return "";
+  return `<div style="margin-top:6px;line-height:1.2;">${chips.map((c) => htmlChip(c)).join("")}</div>`;
+}
+
+function htmlCajetin(texto: string, variante: "nota" | "aviso") {
+  const body = htmlMultiline(texto.trim());
+  if (!body) return "";
+  if (variante === "aviso") {
+    return `<div style="margin-top:8px;padding:8px 10px;border-left:3px solid #C62828;background:#FDECEC;font-size:11px;line-height:1.45;color:#7A1F1F;font-weight:400;">${body}</div>`;
+  }
+  return `<div style="margin-top:8px;padding:8px 10px;border-left:3px solid #6A9BB0;background:#F5F8FA;font-size:11px;line-height:1.45;color:#333;font-weight:400;">${body}</div>`;
+}
+
+function htmlAvisosPartida(avisos: AvisoLinea[]) {
+  return avisos
+    .map((aviso) => {
+      const t = aviso.texto.trim();
+      if (!t) return "";
+      if (aviso.tipo === "nota") return htmlCajetin(t, "nota");
+      if (t.length <= 36 && !/[\n.]/.test(t)) {
+        return `<div style="margin-top:6px;">${htmlChip(t, "aviso")}</div>`;
+      }
+      return htmlCajetin(t, "aviso");
+    })
+    .join("");
+}
+
+function htmlChipsPortada(chips: string[]) {
+  const items = chips.map((c) => c.trim()).filter(Boolean);
+  if (items.length === 0) return "";
+  return `
+    <div style="position:absolute;right:64px;top:38%;z-index:3;text-align:right;">
+      ${items
+        .map(
+          (c) =>
+            `<div style="margin:0 0 10px;font-size:8px;letter-spacing:0.28em;text-transform:uppercase;color:rgba(255,255,255,0.88);font-weight:600;">${htmlEsc(c)}</div>`
+        )
+        .join("")}
+    </div>`;
 }
 
 function hasAsset(url: string | null | undefined) {
@@ -424,6 +484,7 @@ function htmlPortada(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
     <div class="pdf-page pdf-cover">
       ${fondo}
       ${htmlMarcoTecnico()}
+      ${htmlChipsPortada(p.chips_portada)}
       <div class="pdf-page-inner pdf-cover-inner">
         <table style="width:100%; border-collapse:collapse;">
           <tr>
@@ -526,7 +587,7 @@ function htmlDatos(ctx: PdfCtx, datos: PresupuestoPdfDatos, page: number, total:
 
 type MedRow = { html: string };
 
-function medicionRows(datos: PresupuestoPdfDatos, densidad: DensidadTabla): MedRow[] {
+function medicionRows(datos: PresupuestoPdfDatos, densidad: DensidadTabla, propuesta: PropuestaPresupuesto): MedRow[] {
   const groups = new Map<string, PresupuestoPdfLinea[]>();
   for (const l of datos.lineas) {
     if (esLineaRepercusion(l.capitulo)) continue;
@@ -557,11 +618,13 @@ function medicionRows(datos: PresupuestoPdfDatos, densidad: DensidadTabla): MedR
       const cod = codigoPartida(capitulo, capOrden, idxEnCap + 1);
       const ud = (l.unidad || "ud").trim() || "ud";
       const pad = densidad === "compacta" ? "7px 8px 8px" : "11px 8px 12px";
+      const chips = htmlChips(chipsDePartida(propuesta, l.descripcion));
+      const avisoHtml = htmlAvisosPartida(avisosDePartida(propuesta, l.descripcion));
       rows.push({
         html: `
         <tr>
           <td style="padding:${pad}; border-bottom:1px solid ${LINE}; font-size:12px; color:#888; white-space:nowrap; vertical-align:top;">${htmlEsc(cod)}</td>
-          <td style="padding:${pad}; border-bottom:1px solid ${LINE}; font-size:12px; font-weight:700; line-height:1.4; vertical-align:top;">${htmlMultiline(l.descripcion)}</td>
+          <td style="padding:${pad}; border-bottom:1px solid ${LINE}; font-size:12px; font-weight:700; line-height:1.4; vertical-align:top;">${htmlMultiline(l.descripcion)}${chips}${avisoHtml}</td>
           <td style="padding:${pad}; border-bottom:1px solid ${LINE}; font-size:11px; text-align:center; vertical-align:top; color:#444;">${htmlEsc(ud)}</td>
           <td style="padding:${pad}; border-bottom:1px solid ${LINE}; font-size:12px; text-align:right; vertical-align:top;">${formatNum(cant)}</td>
           <td style="padding:${pad}; border-bottom:1px solid ${LINE}; font-size:12px; text-align:right; vertical-align:top;">${formatNum(precio)}</td>
@@ -637,16 +700,22 @@ function htmlTablaPartidas(body: string, showHead: boolean) {
   return `<table style="width:100%; border-collapse:collapse; margin-bottom:18px;">${head}<tbody>${body}</tbody></table>`;
 }
 
-function htmlMedicionesPages(ctx: PdfCtx, datos: PresupuestoPdfDatos, startPage: number, total: number) {
+function htmlMedicionesPages(
+  ctx: PdfCtx,
+  datos: PresupuestoPdfDatos,
+  startPage: number,
+  total: number,
+  titulo = "4. Mediciones y presupuesto"
+) {
   const { first, next } = medicionPageSizes(ctx.propuesta.densidad_tabla);
-  const chunks = chunkRows(medicionRows(datos, ctx.propuesta.densidad_tabla), first, next);
+  const chunks = chunkRows(medicionRows(datos, ctx.propuesta.densidad_tabla, ctx.propuesta), first, next);
   return chunks.map((chunk, i) => {
     const page = startPage + i;
     const isLast = i === chunks.length - 1;
     const title =
       i === 0
-        ? `<h2 style="margin:0 0 14px; font-size:18px; font-weight:700;">4. Mediciones y presupuesto</h2>`
-        : `<h2 style="margin:0 0 14px; font-size:16px; font-weight:700;">4. Mediciones y presupuesto <span style="font-weight:500; color:${MUTED};">(cont.)</span></h2>`;
+        ? `<h2 style="margin:0 0 14px; font-size:18px; font-weight:700;">${htmlEsc(titulo)}</h2>`
+        : `<h2 style="margin:0 0 14px; font-size:16px; font-weight:700;">${htmlEsc(titulo)} <span style="font-weight:500; color:${MUTED};">(cont.)</span></h2>`;
     return `
     <div class="pdf-page">
       <div class="pdf-page-inner">
@@ -715,7 +784,16 @@ function htmlPrograma(programa: PropuestaPresupuesto["programa"]) {
   `;
 }
 
-function htmlCierre(ctx: PdfCtx, datos: PresupuestoPdfDatos, page: number, total: number) {
+function htmlCierre(
+  ctx: PdfCtx,
+  datos: PresupuestoPdfDatos,
+  page: number,
+  total: number,
+  titulos: { programa: string; condiciones: string } = {
+    programa: "5. Programa de trabajos",
+    condiciones: "6. Condiciones y garantías",
+  }
+) {
   const emisor = ctx.emisor;
   const p = ctx.propuesta;
   const lugar = emisor.localidad?.trim() || "A Coruña";
@@ -724,8 +802,8 @@ function htmlCierre(ctx: PdfCtx, datos: PresupuestoPdfDatos, page: number, total
     <div class="pdf-page">
       <div class="pdf-page-inner">
       ${cabeceraInterior(ctx, datos, hojaCorta(page))}
-      ${p.mostrar_programa ? `<h2 style="margin:0 0 12px; font-size:18px; font-weight:700;">5. Programa de trabajos</h2>${htmlPrograma(p.programa)}` : ""}
-      <h2 style="margin:0 0 12px; font-size:18px; font-weight:700;">${p.mostrar_programa ? "6. Condiciones y garantías" : "5. Condiciones y garantías"}</h2>
+      ${p.mostrar_programa ? `<h2 style="margin:0 0 12px; font-size:18px; font-weight:700;">${htmlEsc(titulos.programa)}</h2>${htmlPrograma(p.programa)}` : ""}
+      <h2 style="margin:0 0 12px; font-size:18px; font-weight:700;">${htmlEsc(titulos.condiciones)}</h2>
       <p style="margin:0 0 36px; font-size:13px; line-height:1.55; color:#222;">${htmlMultiline(p.condiciones.trim())}</p>
       <table style="width:100%; border-collapse:collapse; margin-top:48px;">
         <tr>
@@ -807,13 +885,169 @@ function htmlRepercusion(ctx: PdfCtx, datos: PresupuestoPdfDatos) {
       </table>`;
 }
 
+function htmlResumenCapitulos(datos: PresupuestoPdfDatos) {
+  const groups = new Map<string, number>();
+  for (const l of datos.lineas) {
+    if (esLineaRepercusion(l.capitulo)) continue;
+    const key = l.capitulo?.trim() || "Actuación";
+    groups.set(key, (groups.get(key) ?? 0) + Number(l.cantidad) * Number(l.precio_unitario));
+  }
+  const rows = Array.from(groups.entries());
+  if (rows.length === 0) return "";
+  const total = rows.reduce((acc, [, n]) => acc + n, 0);
+  const letras = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  return `
+      <h2 style="margin:0 0 12px; font-size:18px; font-weight:700;">3. Resumen por capítulos</h2>
+      <table style="width:100%; border-collapse:collapse; margin-bottom:8px;">
+        ${rows
+          .map(
+            ([nombre, importe], i) => `
+          <tr>
+            <td style="width:28px; padding:8px 0; border-bottom:1px solid ${LINE}; font-size:12px; font-weight:700; color:#6A9BB0;">${letras[i] ?? i + 1}</td>
+            <td style="padding:8px 8px 8px 0; border-bottom:1px solid ${LINE}; font-size:13px;">${htmlEsc(nombre.replace(/^\d+\s*·\s*/, ""))}</td>
+            <td style="padding:8px 0; border-bottom:1px solid ${LINE}; font-size:13px; text-align:right; white-space:nowrap;">${formatCurrency(importe)}</td>
+          </tr>`
+          )
+          .join("")}
+        <tr>
+          <td colspan="2" style="padding:10px 8px 0 0; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:${MUTED};">Total · IVA no incluido</td>
+          <td style="padding:10px 0 0; font-size:13px; font-weight:700; text-align:right;">${formatCurrency(total)}</td>
+        </tr>
+      </table>`;
+}
+
+function htmlHojaDatosAmpliacion(ctx: PdfCtx, datos: PresupuestoPdfDatos, page: number, total: number) {
+  const p = ctx.propuesta;
+  const cliente = ctx.cliente;
+  const objeto =
+    p.objeto_alcance.trim() ||
+    datos.concepto?.trim() ||
+    "Ampliación sobre el presupuesto inicial.";
+  const tot = totAmpliacion(ctx, datos);
+  return `
+    <div class="pdf-page">
+      <div class="pdf-page-inner">
+      ${cabeceraInterior(ctx, datos, hojaCorta(page))}
+      <h2 style="margin:0 0 12px; font-size:18px; font-weight:700;">1. Datos del documento</h2>
+      <table style="width:100%; border-collapse:collapse; border:1px solid ${LINE}; margin-bottom:24px;">
+        <tr style="border-bottom:1px solid ${LINE};">
+          ${datoCelda("Cliente", cliente?.nombre ?? "—")}
+          ${datoCelda("Ubicación", p.emplazamiento.trim() || emplazamiento(cliente), true)}
+        </tr>
+        <tr style="border-bottom:1px solid ${LINE};">
+          ${datoCelda("Concepto", datos.concepto?.trim() || "—")}
+          ${datoCelda("Periodo de ejecución", p.plazo_ejecucion.trim() || "—", true)}
+        </tr>
+        <tr>
+          ${datoCelda("Importe total", `${formatCurrency(tot.incrementoNeto)} · IVA ${Number(datos.porcentaje_impuesto) || 0} % no incluido`)}
+          ${datoCelda("Estado", p.observaciones.trim() ? "Ver observaciones" : "—", true)}
+        </tr>
+      </table>
+      <h2 style="margin:0 0 10px; font-size:18px; font-weight:700;">2. Objeto y régimen de ejecución</h2>
+      <p style="margin:0 0 22px; font-size:13px; line-height:1.55; color:#222;">${htmlMultiline(objeto)}</p>
+      ${htmlResumenCapitulos(datos)}
+      </div>
+      ${pieInterior(pieMarca(ctx), hojaTxt(page, total))}
+    </div>`;
+}
+
+function htmlHojaCondicionantes(
+  ctx: PdfCtx,
+  datos: PresupuestoPdfDatos,
+  page: number,
+  total: number,
+  titulo = "4. Condicionantes de ejecución"
+) {
+  const p = ctx.propuesta;
+  const intro = p.condicionantes_ejecucion.trim();
+  const metricas = p.regimen_metricas.filter((m) => m.valor.trim() || m.etiqueta.trim());
+  const regimenes = p.regimenes.filter((r) => r.titulo.trim() || r.texto.trim() || r.chip.trim());
+  const factores = p.factores_valoracion.filter((f) => f.titulo.trim() || f.texto.trim());
+  const metricCells = metricas
+    .map(
+      (m, i) => `
+        <td style="width:${Math.floor(100 / Math.max(metricas.length, 1))}%;vertical-align:top;padding:16px ${i === 0 ? "0" : "12px"} 0 ${i === metricas.length - 1 ? "0" : "12px"};${i > 0 ? "border-left:1px solid rgba(255,255,255,0.18);" : ""}">
+          <div style="font-size:28px;font-weight:700;letter-spacing:-0.03em;line-height:1;">${htmlEsc(m.valor)}</div>
+          <div style="margin-top:8px;font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:#9BB4C4;line-height:1.35;">${htmlMultiline(m.etiqueta)}</div>
+        </td>`
+    )
+    .join("");
+  const barra =
+    p.regimen_destacado.trim() || p.regimen_importe.trim() || metricas.length
+      ? `
+      <div style="background:${NAVY};color:#fff;padding:22px 24px 20px;margin:0 0 22px;">
+        <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:#9BB4C4;margin-bottom:8px;">${htmlEsc(p.regimen_titulo || "Régimen de ejecución extraordinario")}</div>
+        <table style="width:100%;border-collapse:collapse;">
+          <tr>
+            <td style="vertical-align:top;padding-right:16px;">
+              <div style="font-size:16px;font-weight:700;line-height:1.25;">${htmlEsc(p.regimen_destacado)}</div>
+            </td>
+            <td style="vertical-align:top;text-align:right;white-space:nowrap;">
+              <div style="font-size:28px;font-weight:700;letter-spacing:-0.03em;">${htmlEsc(p.regimen_importe)}</div>
+              ${p.regimen_pie.trim() ? `<div style="margin-top:4px;font-size:8px;letter-spacing:0.12em;text-transform:uppercase;color:#9BB4C4;">${htmlEsc(p.regimen_pie)}</div>` : ""}
+            </td>
+          </tr>
+        </table>
+        ${metricas.length ? `<table style="width:100%;border-collapse:collapse;margin-top:8px;border-top:1px solid rgba(255,255,255,0.18);"><tr>${metricCells}</tr></table>` : ""}
+      </div>`
+      : "";
+  const cards: string[] = [];
+  for (let i = 0; i < regimenes.length; i += 2) {
+    const a = regimenes[i];
+    const b = regimenes[i + 1];
+    const cell = (r: typeof a | undefined) =>
+      r
+        ? `<td style="width:50%;vertical-align:top;padding:0 18px 20px 0;">
+            ${r.chip.trim() ? htmlChip(r.chip) : ""}
+            <div style="margin-top:6px;font-size:15px;font-weight:700;">${htmlEsc(r.titulo)}</div>
+            <div style="margin-top:6px;font-size:12px;line-height:1.5;color:#333;font-weight:400;">${htmlMultiline(r.texto)}</div>
+          </td>`
+        : `<td style="width:50%;"></td>`;
+    cards.push(`<tr>${cell(a)}${cell(b)}</tr>`);
+  }
+  const factorRows: string[] = [];
+  const cols = Math.min(3, Math.max(factores.length, 1));
+  for (let i = 0; i < factores.length; i += cols) {
+    const slice = factores.slice(i, i + cols);
+    factorRows.push(`<tr>${slice
+      .map(
+        (f) => `
+            <td style="width:${Math.floor(100 / cols)}%;vertical-align:top;padding:0 16px 16px 0;">
+              <div style="border-left:2px solid #6A9BB0;padding-left:12px;">
+                <div style="font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:#6A9BB0;font-weight:700;margin-bottom:6px;">${htmlEsc(f.titulo)}</div>
+                <div style="font-size:12px;line-height:1.5;color:#333;">${htmlMultiline(f.texto)}</div>
+              </div>
+            </td>`
+      )
+      .join("")}${slice.length < cols ? `<td colspan="${cols - slice.length}"></td>` : ""}</tr>`);
+  }
+  const factoresHtml = factores.length
+    ? `
+      <h2 style="margin:8px 0 12px; font-size:18px; font-weight:700;">Otros factores que repercuten en la valoración</h2>
+      <table style="width:100%;border-collapse:collapse;">${factorRows.join("")}</table>`
+    : "";
+  return `
+    <div class="pdf-page">
+      <div class="pdf-page-inner">
+      ${cabeceraInterior(ctx, datos, hojaCorta(page))}
+      <h2 style="margin:0 0 10px; font-size:18px; font-weight:700;">${htmlEsc(titulo)}</h2>
+      ${intro ? `<p style="margin:0 0 16px; font-size:13px; line-height:1.55; color:#222;">${htmlMultiline(intro)}</p>` : ""}
+      ${barra}
+      ${cards.length ? `<table style="width:100%;border-collapse:collapse;">${cards.join("")}</table>` : ""}
+      ${factoresHtml}
+      ${regimenes.length || factores.length ? `<p style="margin:18px 0 0;font-size:11px;color:#666;">Las partidas afectadas por estos condicionantes se señalan con distintivo en las hojas siguientes.</p>` : ""}
+      </div>
+      ${pieInterior("Condicionantes de ejecución · justificación de la valoración", hojaTxt(page, total))}
+    </div>`;
+}
+
 function htmlAmpliacionInterior(ctx: PdfCtx, datos: PresupuestoPdfDatos, page: number, total: number) {
   const p = ctx.propuesta;
   const objeto =
     p.objeto_alcance.trim() ||
     datos.concepto?.trim() ||
     "Ampliación sobre el presupuesto inicial.";
-  const body = medicionRows(datos, "compacta")
+  const body = medicionRows(datos, "compacta", ctx.propuesta)
     .map((r) => r.html)
     .join("");
   const cond = p.condicionantes_ejecucion.trim() || "";
@@ -907,6 +1141,37 @@ export function buildPresupuestoDocumentHtml(params: {
     : 0;
 
   if (ctx.propuesta.tipo === "ampliacion") {
+    const destacados =
+      tieneHojaCondicionantes(ctx.propuesta) ||
+      ctx.propuesta.chips_lineas.length > 0 ||
+      ctx.propuesta.avisos_lineas.length > 0;
+    if (destacados) {
+      const dens = "compacta" as const;
+      const { first, next } = medicionPageSizes(dens);
+      const medCount = chunkRows(medicionRows(params.datos, dens, ctx.propuesta), first, next).length;
+      const condCount = tieneHojaCondicionantes(ctx.propuesta) ? 1 : 0;
+      const totalPages = 2 + condCount + medCount + anexoCount;
+      let n = 2;
+      const datosHtml = htmlHojaDatosAmpliacion(ctx, params.datos, n, totalPages);
+      n += 1;
+      const condHtml = condCount
+        ? htmlHojaCondicionantes(ctx, params.datos, n, totalPages, "3. Condicionantes de ejecución")
+        : "";
+      n += condCount;
+      const medHtml = htmlMedicionesPages(
+        ctx,
+        params.datos,
+        n,
+        totalPages,
+        condCount ? "4. Mediciones y presupuesto" : "3. Mediciones y presupuesto"
+      ).join("");
+      n += medCount;
+      const anexoHtml = ctx.esGaral ? htmlAnexosPages(ctx, params.datos, n, totalPages).join("") : "";
+      return wrapPresupuestoHtml(
+        params.datos.numero,
+        htmlPortada(ctx, params.datos) + datosHtml + condHtml + medHtml + anexoHtml
+      );
+    }
     const totalPages = 2 + anexoCount;
     const anexoHtml = ctx.esGaral ? htmlAnexosPages(ctx, params.datos, 3, totalPages).join("") : "";
     return wrapPresupuestoHtml(
@@ -917,21 +1182,45 @@ export function buildPresupuestoDocumentHtml(params: {
 
   const densidad = ctx.propuesta.densidad_tabla;
   const { first, next } = medicionPageSizes(densidad);
-  const medCount = chunkRows(medicionRows(params.datos, densidad), first, next).length;
-  const totalPages = 2 + medCount + anexoCount + 1;
+  const medCount = chunkRows(medicionRows(params.datos, densidad, ctx.propuesta), first, next).length;
+  const condCount = tieneHojaCondicionantes(ctx.propuesta) ? 1 : 0;
+  const totalPages = 2 + condCount + medCount + anexoCount + 1;
+  const zonas = ctx.propuesta.mostrar_zonas;
+  const condTitulo = zonas ? "4. Condicionantes de ejecución" : "3. Condicionantes de ejecución";
+  const medTitulo = condCount
+    ? zonas
+      ? "5. Mediciones y presupuesto"
+      : "4. Mediciones y presupuesto"
+    : "4. Mediciones y presupuesto";
+  let cierreN = 5;
+  if (condCount) cierreN = zonas ? 6 : 5;
+  const titulosCierre = ctx.propuesta.mostrar_programa
+    ? {
+        programa: `${cierreN}. Programa de trabajos`,
+        condiciones: `${cierreN + 1}. Condiciones y garantías`,
+      }
+    : {
+        programa: `${cierreN}. Programa de trabajos`,
+        condiciones: `${cierreN}. Condiciones y garantías`,
+      };
   let n = 2;
   const datosHtml = htmlDatos(ctx, params.datos, n, totalPages);
   n += 1;
-  const medHtml = htmlMedicionesPages(ctx, params.datos, n, totalPages).join("");
+  const condHtml = condCount
+    ? htmlHojaCondicionantes(ctx, params.datos, n, totalPages, condTitulo)
+    : "";
+  n += condCount;
+  const medHtml = htmlMedicionesPages(ctx, params.datos, n, totalPages, medTitulo).join("");
   n += medCount;
   const anexoHtml = ctx.esGaral ? htmlAnexosPages(ctx, params.datos, n, totalPages).join("") : "";
   n += anexoCount;
   const inner =
     htmlPortada(ctx, params.datos) +
     datosHtml +
+    condHtml +
     medHtml +
     anexoHtml +
-    htmlCierre(ctx, params.datos, n, totalPages);
+    htmlCierre(ctx, params.datos, n, totalPages, titulosCierre);
 
   return wrapPresupuestoHtml(params.datos.numero, inner);
 }

@@ -22,12 +22,15 @@ import { PresupuestoPresentacionField } from "@/components/presupuestos/Presupue
 import { AmpliacionCampos } from "@/components/presupuestos/AmpliacionCampos";
 import { useAuth } from "@/lib/auth/auth-context";
 import { isEditor } from "@/lib/auth/roles";
+import { DestacadosPdfField } from "@/components/presupuestos/DestacadosPdfField";
 import {
   aplicarPropuestaTexto,
   propuestaSinBinarios,
 } from "@/lib/ai/presupuesto-copiloto";
 import {
+  hidratarDestacadosEnLineas,
   parsePropuesta,
+  propuestaConDestacadosDeLineas,
   propuestaVacia,
   type PropuestaPresupuesto,
   type TipoDocumentoPresupuesto,
@@ -40,6 +43,9 @@ interface Linea {
   precioUnitario: number;
   unidad: string;
   capitulo: string;
+  etiquetas: string[];
+  aviso: string;
+  nota: string;
 }
 
 type LineaBorrador = Linea & { _precioDraft?: string; _cantDraft?: string };
@@ -60,7 +66,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
   const [concepto, setConcepto] = useState("");
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
   const [lineas, setLineas] = useState<LineaBorrador[]>([
-    { descripcion: "", cantidad: 0, precioUnitario: 0, unidad: "ud", capitulo: "" },
+    { descripcion: "", cantidad: 0, precioUnitario: 0, unidad: "ud", capitulo: "", etiquetas: [], aviso: "", nota: "" },
   ]);
   const [propuesta, setPropuesta] = useState<PropuestaPresupuesto>(propuestaVacia());
   const [porcentajeImpuesto, setPorcentajeImpuesto] = useState(21);
@@ -111,20 +117,28 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
         setPorcentajeDescuento(p.porcentaje_descuento ?? 0);
         setEstado(p.estado ?? "borrador");
         if (p.emisor_id) setEmisorId(p.emisor_id);
-        setPropuesta(parsePropuesta(p.propuesta));
+        const parsed = parsePropuesta(p.propuesta);
+        setPropuesta(parsed);
+        const altas = altasDeLineas(l).map((x) => ({
+          descripcion: x.descripcion,
+          cantidad: x.cantidad,
+          precioUnitario: x.precio_unitario,
+          unidad: x.unidad || "ud",
+          capitulo: x.capitulo ?? "",
+          etiquetas: [],
+          aviso: "",
+          nota: "",
+        }));
+        const hidratadas = hidratarDestacadosEnLineas(
+          altas.length > 0
+            ? altas
+            : [{ descripcion: "", cantidad: 0, precioUnitario: 0, unidad: "ud", capitulo: "", etiquetas: [], aviso: "", nota: "" }],
+          parsed
+        );
+        setLineas(hidratadas);
+      } else {
+        setLineas([{ descripcion: "", cantidad: 0, precioUnitario: 0, unidad: "ud", capitulo: "", etiquetas: [], aviso: "", nota: "" }]);
       }
-      const altas = altasDeLineas(l).map((x) => ({
-        descripcion: x.descripcion,
-        cantidad: x.cantidad,
-        precioUnitario: x.precio_unitario,
-        unidad: x.unidad || "ud",
-        capitulo: x.capitulo ?? "",
-      }));
-      setLineas(
-        altas.length > 0
-          ? altas
-          : [{ descripcion: "", cantidad: 0, precioUnitario: 0, unidad: "ud", capitulo: "" }]
-      );
       setLoading(false);
     });
   }, [presupuestoId]);
@@ -138,7 +152,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
   }, [esGaralEmisor]);
 
   const addLinea = () =>
-    setLineas((p) => [...p, { descripcion: "", cantidad: 0, precioUnitario: 0, unidad: "ud", capitulo: "" }]);
+    setLineas((p) => [...p, { descripcion: "", cantidad: 0, precioUnitario: 0, unidad: "ud", capitulo: "", etiquetas: [], aviso: "", nota: "" }]);
   const removeLinea = (i: number) =>
     setLineas((p) => p.filter((_, idx) => idx !== i));
   const updateLinea = (i: number, field: keyof Linea, value: string | number) =>
@@ -151,6 +165,9 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
       descripcion: l.descripcion,
       unidad: l.unidad || "ud",
       capitulo: l.capitulo || "",
+      etiquetas: l.etiquetas ?? [],
+      aviso: l.aviso ?? "",
+      nota: l.nota ?? "",
       cantidad:
         l._cantDraft !== undefined
           ? parseDecimalMientrasEscribe(l._cantDraft, { allowNegative: false })
@@ -220,6 +237,8 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
       return;
     }
 
+    const propuestaSave = propuestaConDestacadosDeLineas(propuesta, lineasFijas);
+
     if (presupuestoId) {
       const { error: errUpd } = await supabase
         .from("presupuestos")
@@ -231,7 +250,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
           porcentaje_descuento: descuentoSave,
           estado,
           emisor_id: emisorId || undefined,
-          propuesta,
+          propuesta: propuestaSave,
         })
         .eq("id", presupuestoId);
 
@@ -286,7 +305,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
         porcentaje_impuesto: porcentajeImpuesto,
         porcentaje_descuento: descuentoSave,
         emisor_id: emisorId || undefined,
-        propuesta,
+        propuesta: propuestaSave,
       })
       .select("id")
       .single();
@@ -341,13 +360,13 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
             porcentaje_impuesto: porcentajeImpuesto,
             porcentaje_descuento: porcentajeDescuento,
             lineas: lineasFijas,
-            propuesta: propuestaSinBinarios(propuesta),
+            propuesta: propuestaSinBinarios(propuestaConDestacadosDeLineas(propuesta, lineasFijas)),
           }}
           onAccept={(output) => {
             if (output.concepto.trim()) setConcepto(output.concepto);
             setPorcentajeDescuento(output.propuesta.tipo === "ampliacion" ? 0 : output.porcentaje_descuento);
-            setLineas(output.lineas.map((l) => ({ ...l })));
-            setPropuesta((p) => aplicarPropuestaTexto(p, output.propuesta));
+            setPropuesta((p) => aplicarPropuestaTexto(p, output.propuesta, output.lineas));
+            setLineas(hidratarDestacadosEnLineas(output.lineas.map((l) => ({ ...l })), output.propuesta));
           }}
         />
         </div>
@@ -884,6 +903,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
               />
             )}
             <PresupuestoPresentacionField propuesta={propuesta} onChange={setPropuesta} />
+            <DestacadosPdfField propuesta={propuesta} onChange={setPropuesta} />
             {!esAmpliacion && (
             <div className="space-y-2">
               <Label>6. Condiciones y garantías</Label>

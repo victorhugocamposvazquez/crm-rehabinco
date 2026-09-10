@@ -41,7 +41,7 @@ export function PresupuestoPresentacionField({
       <div>
         <p className="text-sm font-medium">Presentación del PDF</p>
         <p className="mt-1 text-xs text-neutral-500">
-          Ajustes de la plantilla, no un lienzo libre. El layout de páginas no cambia.
+          Ajustes de la plantilla, no un lienzo libre. Los chips, cajetines y la hoja de régimen van en Destacados del PDF.
         </p>
       </div>
       <div className="space-y-2">

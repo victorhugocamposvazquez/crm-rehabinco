@@ -13,6 +13,9 @@ export type PartidaBorrador = {
   precioUnitario: number;
   unidad: string;
   capitulo: string;
+  etiquetas: string[];
+  aviso: string;
+  nota: string;
   _precioDraft?: string;
   _cantDraft?: string;
 };
@@ -62,14 +65,14 @@ export function GaralPartidasEditor({
     const titulo = nextCapituloTitulo(caps.map((c) => c.titulo));
     onChange([
       ...lineas,
-      { descripcion: "", cantidad: 0, precioUnitario: 0, unidad: "ud", capitulo: titulo },
+      { descripcion: "", cantidad: 0, precioUnitario: 0, unidad: "ud", capitulo: titulo, etiquetas: [], aviso: "", nota: "" },
     ]);
   };
 
   const addPartida = (titulo: string) => {
     onChange([
       ...lineas,
-      { descripcion: "", cantidad: 0, precioUnitario: 0, unidad: "ud", capitulo: titulo },
+      { descripcion: "", cantidad: 0, precioUnitario: 0, unidad: "ud", capitulo: titulo, etiquetas: [], aviso: "", nota: "" },
     ]);
   };
 
@@ -82,7 +85,7 @@ export function GaralPartidasEditor({
     onChange(
       next.length > 0
         ? next
-        : [{ descripcion: "", cantidad: 0, precioUnitario: 0, unidad: "ud", capitulo: "01 · Actuación" }]
+        : [{ descripcion: "", cantidad: 0, precioUnitario: 0, unidad: "ud", capitulo: "01 · Actuación", etiquetas: [], aviso: "", nota: "" }]
     );
   };
 
@@ -156,6 +159,39 @@ export function GaralPartidasEditor({
                       value={l.descripcion}
                       onChange={(e) => patch(i, { descripcion: e.target.value })}
                     />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Chips de destaque</Label>
+                    <Input
+                      placeholder="NOCTURNO, URGENCIA, FUERA DEL ALCANCE"
+                      value={l.etiquetas.join(", ")}
+                      onChange={(e) =>
+                        patch(i, {
+                          etiquetas: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+                        })
+                      }
+                    />
+                    <p className="text-[11px] text-neutral-500">
+                      Negro = nocturno. Azul = domingo, fin de semana, urgencia. Rojo = fuera del alcance.
+                    </p>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label>Aviso (rojo)</Label>
+                      <Input
+                        placeholder="FUERA DEL ALCANCE o texto de advertencia"
+                        value={l.aviso}
+                        onChange={(e) => patch(i, { aviso: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Condición especial (cajetín azul)</Label>
+                      <Input
+                        placeholder="Material de la propiedad. Solo mano de obra."
+                        value={l.nota}
+                        onChange={(e) => patch(i, { nota: e.target.value })}
+                      />
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     <div className="space-y-1.5">

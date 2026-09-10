@@ -1,6 +1,12 @@
 import { z } from "zod";
 import type { PropuestaPresupuesto } from "@/lib/presupuesto-propuesta";
-import { CONDICIONES_DEFAULT, propuestaVacia } from "@/lib/presupuesto-propuesta";
+import {
+  CONDICIONES_DEFAULT,
+  destacadosDesdeLineas,
+  fusionarAvisosLineas,
+  fusionarChipsLineas,
+  propuestaVacia,
+} from "@/lib/presupuesto-propuesta";
 import { esLineaRepercusion } from "@/lib/presupuesto-totales";
 
 export const COPILOTO_MAX_FILES = 6;
@@ -18,6 +24,9 @@ export type LineaCopiloto = {
   precioUnitario: number;
   unidad: string;
   capitulo: string;
+  etiquetas: string[];
+  aviso: string;
+  nota: string;
 };
 
 export type HistorialCopiloto = {
@@ -42,6 +51,9 @@ const lineaSchema = z.object({
   precioUnitario: z.number(),
   unidad: z.string(),
   capitulo: z.string(),
+  etiquetas: z.array(z.string()).catch([]),
+  aviso: z.string().catch(""),
+  nota: z.string().catch(""),
 });
 
 const bajaSchema = z.object({
@@ -72,6 +84,16 @@ const propuestaTextoSchema = z.object({
   condicionantes_ejecucion: z.string().catch(""),
   mostrar_zonas: z.boolean().catch(true),
   mostrar_programa: z.boolean().catch(true),
+  chips_portada: z.array(z.string()).catch([]),
+  regimen_titulo: z.string().catch(""),
+  regimen_destacado: z.string().catch(""),
+  regimen_importe: z.string().catch(""),
+  regimen_pie: z.string().catch(""),
+  regimen_metricas: z.array(z.object({ valor: z.string(), etiqueta: z.string() })).catch([]),
+  regimenes: z.array(z.object({ chip: z.string(), titulo: z.string(), texto: z.string() })).catch([]),
+  factores_valoracion: z.array(z.object({ titulo: z.string(), texto: z.string() })).catch([]),
+  chips_lineas: z.array(z.object({ descripcion: z.string(), chips: z.array(z.string()) })).catch([]),
+  avisos_lineas: z.array(z.object({ descripcion: z.string(), tipo: z.enum(["aviso", "nota"]), texto: z.string() })).catch([]),
 });
 
 const propuestaTextoLlmSchema = z.object({
@@ -97,6 +119,16 @@ const propuestaTextoLlmSchema = z.object({
   condicionantes_ejecucion: z.string(),
   mostrar_zonas: z.boolean(),
   mostrar_programa: z.boolean(),
+  chips_portada: z.array(z.string()),
+  regimen_titulo: z.string(),
+  regimen_destacado: z.string(),
+  regimen_importe: z.string(),
+  regimen_pie: z.string(),
+  regimen_metricas: z.array(z.object({ valor: z.string(), etiqueta: z.string() })),
+  regimenes: z.array(z.object({ chip: z.string(), titulo: z.string(), texto: z.string() })),
+  factores_valoracion: z.array(z.object({ titulo: z.string(), texto: z.string() })),
+  chips_lineas: z.array(z.object({ descripcion: z.string(), chips: z.array(z.string()) })),
+  avisos_lineas: z.array(z.object({ descripcion: z.string(), tipo: z.enum(["aviso", "nota"]), texto: z.string() })),
 });
 
 /** Schema enviado al modelo: sin default/catch (Anthropic rechaza `default` en JSON Schema). */
@@ -141,10 +173,12 @@ export function systemPromptCopiloto(emisor: "garal" | "rehabinco") {
   return `Eres el copiloto de presupuestos del CRM interno de ${marca}.
 Redactas y CORRIGES propuestas técnicas y económicas en español (España). No diseñas el PDF: el CRM ya tiene plantilla fija (incluida Riazor si el cliente es Deportivo). Tú solo rellenas y ajustas DATOS.
 
-PDF del CRM o escaneos (a menudo sin capa de texto: html2canvas/Riazor):
-- Léelos visualmente. Extrae concepto, partidas, mediciones, precios, bajas y textos de portada.
-- No copies el diseño gráfico (fotos de estadio, escudo, tipografías). Eso lo aplica la plantilla al generar el PDF.
-- Si el PDF es el presupuesto origen y hay un Word de ampliación, cruza ambos.
+PDF del CRM o de Design (Riazor): extrae también el sistema visual de DATOS (no redibujes el estadio):
+- chips_portada: etiquetas de zona en portada (TRIBUNA, PREFERENCIA, MARATÓN…).
+- regimen_*: barra oscura de cifras (importe fuera de horario, %, horas, domingos).
+- regimenes[]: tarjetas NOCTURNO / DOMINGO / URGENCIA / 1 DÍA PARA OTRO (chip + título + texto).
+- factores_valoracion[]: columnas con filete azul (recinto en uso, altura, materiales…).
+- En cada partida: etiquetas[] (NOCTURNO, URGENCIA, FIN DE SEMANA, FUERA DEL ALCANCE…) y aviso (chip rojo) o nota (cajetín azul de condiciones especiales).
 
 Trabajas en una conversación continua (como un estudio):
 - El usuario va soltando Word, PDF, cifras y correcciones en cualquier orden. Asocia, contextualiza y corrige; no empieces de cero en cada mensaje.
@@ -181,7 +215,7 @@ Cifras (una sola fuente de verdad):
 - No dejes la misma cifra en dos sitios (p. ej. no pongas −1040 en una partida de altas y otra vez en ajuste_comercial).
 
 Ampliación (tipo = "ampliacion"):
-- PDF corto: portada + una hoja de desglose. Por defecto mostrar_zonas = false, mostrar_programa = false, mostrar_repercusion = true, mostrar_observaciones = false.
+- Si hay régimen especial, chips o avisos, el CRM añade hoja de condicionantes. Por defecto mostrar_zonas = false, mostrar_programa = false, mostrar_repercusion = true, mostrar_observaciones = false.
 - origen_numero y origen_total = presupuesto inicial cerrado.
 - condicionantes_ejecucion = turnos, premura, restricciones de obra (si el usuario los menciona).
 - observaciones solo si el usuario las pide (entonces mostrar_observaciones = true).
@@ -212,6 +246,9 @@ export function normalizarOutput(raw: CopilotoOutput): CopilotoOutput {
       precioUnitario: Number.isFinite(l.precioUnitario) ? Math.max(0, l.precioUnitario) : 0,
       unidad: (l.unidad || "ud").trim() || "ud",
       capitulo: l.capitulo.trim(),
+      etiquetas: (l.etiquetas ?? []).map((c) => String(c).trim()).filter(Boolean),
+      aviso: (l.aviso ?? "").trim(),
+      nota: (l.nota ?? "").trim(),
     }))
     .filter((l) => l.descripcion.length > 0 && !esLineaRepercusion(l.capitulo));
 
@@ -234,7 +271,7 @@ export function normalizarOutput(raw: CopilotoOutput): CopilotoOutput {
     lineas:
       lineas.length > 0
         ? lineas
-        : [{ descripcion: "", cantidad: 0, precioUnitario: 0, unidad: "ud", capitulo: "01 · Actuación" }],
+        : [{ descripcion: "", cantidad: 0, precioUnitario: 0, unidad: "ud", capitulo: "01 · Actuación", etiquetas: [], aviso: "", nota: "" }],
     propuesta: {
       subtitulo_portada: p.subtitulo_portada.trim(),
       descripcion_portada: p.descripcion_portada.trim(),
@@ -266,16 +303,43 @@ export function normalizarOutput(raw: CopilotoOutput): CopilotoOutput {
       condicionantes_ejecucion: (p.condicionantes_ejecucion ?? "").trim(),
       mostrar_zonas: tipo === "ampliacion" ? Boolean(p.mostrar_zonas) : p.mostrar_zonas !== false,
       mostrar_programa: tipo === "ampliacion" ? Boolean(p.mostrar_programa) : p.mostrar_programa !== false,
+      chips_portada: (p.chips_portada ?? []).map((c) => String(c).trim()).filter(Boolean),
+      regimen_titulo: (p.regimen_titulo ?? "").trim() || "Régimen de ejecución extraordinario",
+      regimen_destacado: (p.regimen_destacado ?? "").trim(),
+      regimen_importe: (p.regimen_importe ?? "").trim(),
+      regimen_pie: (p.regimen_pie ?? "").trim(),
+      regimen_metricas: (p.regimen_metricas ?? [])
+        .map((m) => ({ valor: String(m.valor ?? "").trim(), etiqueta: String(m.etiqueta ?? "").trim() }))
+        .filter((m) => m.valor || m.etiqueta),
+      regimenes: (p.regimenes ?? [])
+        .map((r) => ({
+          chip: String(r.chip ?? "").trim(),
+          titulo: String(r.titulo ?? "").trim(),
+          texto: String(r.texto ?? "").trim(),
+        }))
+        .filter((r) => r.chip || r.titulo || r.texto),
+      factores_valoracion: (p.factores_valoracion ?? [])
+        .map((f) => ({ titulo: String(f.titulo ?? "").trim(), texto: String(f.texto ?? "").trim() }))
+        .filter((f) => f.titulo || f.texto),
+      chips_lineas: fusionarChipsLineas([
+        ...(p.chips_lineas ?? []),
+        ...destacadosDesdeLineas(lineas).chips_lineas,
+      ]),
+      avisos_lineas: fusionarAvisosLineas([
+        ...(p.avisos_lineas ?? []),
+        ...destacadosDesdeLineas(lineas).avisos_lineas,
+      ]),
     },
   };
 }
 
 export function aplicarPropuestaTexto(
   actual: PropuestaPresupuesto,
-  texto: CopilotoOutput["propuesta"]
+  texto: CopilotoOutput["propuesta"],
+  lineas?: LineaCopiloto[]
 ): PropuestaPresupuesto {
   const tipo = texto.tipo === "ampliacion" ? "ampliacion" : "presupuesto";
-  return {
+  const merged: PropuestaPresupuesto = {
     ...actual,
     ...texto,
     tipo,
@@ -283,6 +347,13 @@ export function aplicarPropuestaTexto(
     foto_portada: actual.foto_portada,
     densidad_tabla: tipo === "ampliacion" ? "compacta" : actual.densidad_tabla,
     variante_portada: actual.variante_portada,
+  };
+  if (!lineas?.length) return merged;
+  const desdeLineas = destacadosDesdeLineas(lineas);
+  return {
+    ...merged,
+    chips_lineas: fusionarChipsLineas([...merged.chips_lineas, ...desdeLineas.chips_lineas]),
+    avisos_lineas: fusionarAvisosLineas([...merged.avisos_lineas, ...desdeLineas.avisos_lineas]),
   };
 }
 

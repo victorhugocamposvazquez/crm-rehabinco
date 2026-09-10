@@ -9,7 +9,17 @@ description: >-
 
 # Presupuestos Rehabinco / Garal
 
-El PDF lo genera el CRM (`lib/presupuesto-pdf.ts`). En Cursor solo se rellenan **datos**, no se diseña el documento.
+El PDF lo genera el CRM (`lib/presupuesto-pdf.ts`). En Cursor solo se rellenan **datos**, no se diseña el documento. Los chips, cajetines y la barra de régimen son campos del JSON; la plantilla los pinta.
+
+## Destacados visuales (plantilla Design)
+
+No inventes layout. Extrae estos datos si el Word/PDF los trae:
+
+- `chips_portada`: TRIBUNA, PREFERENCIA, MARATÓN…
+- `regimen_titulo`, `regimen_destacado`, `regimen_importe`, `regimen_pie`, `regimen_metricas[]` (barra oscura)
+- `regimenes[]`: tarjetas NOCTURNO / DOMINGO / URGENCIA (`chip`, `titulo`, `texto`)
+- `factores_valoracion[]`: columnas con filete azul (`titulo`, `texto`)
+- En cada partida: `etiquetas[]` (NOCTURNO, URGENCIA, FIN DE SEMANA, FUERA DEL ALCANCE), `aviso` (rojo) y `nota` (cajetín azul de condiciones especiales)
 
 ## Correcciones (el caso habitual)
 
@@ -23,7 +33,7 @@ Aplica el cambio pedido y devuelve el documento **completo**. Una cifra, un siti
 
 ## Ampliación (`tipo: "ampliacion"`)
 
-PDF de **2 hojas** (portada + desglose). Por defecto:
+Si hay régimen especial, chips o avisos, el CRM añade hoja de condicionantes. Si no, PDF corto (portada + desglose). Por defecto:
 
 - `mostrar_zonas: false`, `mostrar_programa: false`
 - `mostrar_repercusion: true`, `mostrar_observaciones: false`

@@ -20,7 +20,7 @@ import {
   presupuestoPdfFilename,
   type PresupuestoPdfCliente,
 } from "@/lib/presupuesto-pdf";
-import { parsePropuesta } from "@/lib/presupuesto-propuesta";
+import { hidratarDestacadosEnLineas, chipsDePartida, parsePropuesta } from "@/lib/presupuesto-propuesta";
 import { PresupuestoCopiloto } from "@/components/presupuestos/PresupuestoCopiloto";
 import {
   aplicarPropuestaTexto,
@@ -269,7 +269,7 @@ export default function DetallePresupuestoPage() {
     if (!presupuesto) return;
     const supabase = createClient();
     const actual = parsePropuesta(presupuesto.propuesta);
-    const nextPropuesta = aplicarPropuestaTexto(actual, output.propuesta);
+    const nextPropuesta = aplicarPropuestaTexto(actual, output.propuesta, output.lineas);
     const descuento = nextPropuesta.tipo === "ampliacion" ? 0 : output.porcentaje_descuento;
     const { error: errUpd } = await supabase
       .from("presupuestos")
@@ -383,13 +383,16 @@ export default function DetallePresupuestoPage() {
               concepto: presupuesto.concepto ?? "",
               porcentaje_impuesto: Number(presupuesto.porcentaje_impuesto),
               porcentaje_descuento: Number(presupuesto.porcentaje_descuento),
-              lineas: altasDeLineas(lineas).map((l) => ({
-                descripcion: l.descripcion,
-                cantidad: Number(l.cantidad),
-                precioUnitario: Number(l.precio_unitario),
-                unidad: l.unidad || "ud",
-                capitulo: l.capitulo ?? "",
-              })),
+              lineas: hidratarDestacadosEnLineas(
+                altasDeLineas(lineas).map((l) => ({
+                  descripcion: l.descripcion,
+                  cantidad: Number(l.cantidad),
+                  precioUnitario: Number(l.precio_unitario),
+                  unidad: l.unidad || "ud",
+                  capitulo: l.capitulo ?? "",
+                })),
+                propuesta
+              ),
               propuesta: propuestaSinBinarios(propuesta),
             }}
             onAccept={(output) => void handleAcceptCopiloto(output)}
@@ -529,7 +532,21 @@ export default function DetallePresupuestoPage() {
                     key={l.id}
                     className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-neutral-50/50 px-4 py-3"
                   >
-                    <span className="font-medium">{l.descripcion}</span>
+                    <span className="min-w-0">
+                      <span className="font-medium">{l.descripcion}</span>
+                      {chipsDePartida(propuesta, l.descripcion).length > 0 && (
+                        <span className="mt-1 flex flex-wrap gap-1">
+                          {chipsDePartida(propuesta, l.descripcion).map((c) => (
+                            <span
+                              key={c}
+                              className="inline-block bg-neutral-900 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white"
+                            >
+                              {c}
+                            </span>
+                          ))}
+                        </span>
+                      )}
+                    </span>
                     <span className="text-sm text-neutral-500">
                       {Number(l.cantidad).toFixed(2)} ×{" "}
                       {Number(l.precio_unitario).toLocaleString("es-ES", {
