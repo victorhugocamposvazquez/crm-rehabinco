@@ -19,8 +19,55 @@ import { cn } from "@/lib/utils";
 
 type Msg = HistorialCopiloto & { files?: string[] };
 
+const LOGO_REHABINCO = "/images/logo-web.png";
+const LOGO_GARAL = "/images/presupuestos/garal-negro.png";
+
+function LogoRehabinco({ className, alt = "Rehabinco" }: { className?: string; alt?: string }) {
+  return <img src={LOGO_REHABINCO} alt={alt} className={cn("object-contain", className)} />;
+}
+
 function claveArchivos(list: File[]) {
   return list.map((f) => `${f.name}:${f.size}:${f.lastModified}`).join("|");
+}
+
+async function leerRespuestaCopiloto(res: Response): Promise<{ output?: CopilotoOutput; error?: string }> {
+  const ct = res.headers.get("content-type") || "";
+  if (ct.includes("text/event-stream") && res.body) {
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    let last: { output?: CopilotoOutput; error?: string } | null = null;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const chunks = buf.split("\n\n");
+      buf = chunks.pop() ?? "";
+      for (const chunk of chunks) {
+        const line = chunk.split("\n").find((l) => l.startsWith("data:"));
+        if (!line) continue;
+        const json = line.replace(/^data:\s?/, "").trim();
+        if (!json) continue;
+        try {
+          last = JSON.parse(json) as { output?: CopilotoOutput; error?: string };
+        } catch {
+          /* keep-alive u otros eventos */
+        }
+      }
+    }
+    return last ?? { error: "El copiloto no devolvió datos." };
+  }
+  try {
+    return (await res.json()) as { output?: CopilotoOutput; error?: string };
+  } catch {
+    if (res.status === 502 || res.status === 504) {
+      return {
+        error:
+          "El servidor cortó la petición (tiempo o tamaño). Prueba con menos adjuntos o un PDF más pequeño.",
+      };
+    }
+    return { error: "No se pudo leer la respuesta del copiloto." };
+  }
 }
 
 function mergeFiles(current: File[], incoming: FileList | File[]): { next: File[]; error?: string } {
@@ -38,7 +85,7 @@ function mergeFiles(current: File[], incoming: FileList | File[]): { next: File[
   }
   const bytes = next.reduce((acc, f) => acc + f.size, 0);
   if (bytes > COPILOTO_MAX_BYTES) {
-    return { next: current, error: "Los adjuntos superan 6 MB. Comprime el PDF o quita algún archivo." };
+    return { next: current, error: "Los adjuntos superan 4 MB. Comprime el PDF o quita algún archivo." };
   }
   return { next };
 }
@@ -119,8 +166,8 @@ export function PresupuestoCopiloto({
     for (const file of mesa) form.append("files", file);
     try {
       const res = await fetch("/api/presupuestos/copiloto", { method: "POST", body: form });
-      const data = (await res.json()) as { output?: CopilotoOutput; error?: string };
-      if (!res.ok || !data.output) {
+      const data = await leerRespuestaCopiloto(res);
+      if (!data.output) {
         toast.error(data.error || "No se pudo generar la propuesta.");
         return;
       }
@@ -226,7 +273,8 @@ export function PresupuestoCopiloto({
                 >
                   <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />
                 </button>
-                <span className="min-w-0 flex-1 truncate text-[15px] font-medium tracking-tight">Copiloto</span>
+                <LogoRehabinco className="h-7 w-auto max-w-[140px] sm:h-8" />
+                <span className="min-w-0 flex-1" />
                 <button
                   type="button"
                   className="rounded-full px-3 py-1.5 text-[13px] font-medium text-neutral-600 hover:bg-black/5 md:hidden"
@@ -237,7 +285,8 @@ export function PresupuestoCopiloto({
               </header>
               <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
                 {messages.length === 0 && (
-                  <div className="px-1 pt-6">
+                  <div className="px-1 pt-8">
+                    <LogoRehabinco className="mb-6 h-9 w-auto max-w-[180px]" />
                     <p className="text-[22px] font-medium leading-snug tracking-tight text-neutral-900">
                       ¿Qué presupuesto montamos?
                     </p>
@@ -457,6 +506,7 @@ function DocumentoVivo({
         {empty ? (
           <div className="flex h-full min-h-[280px] items-center justify-center">
             <div className="max-w-sm rounded-[1.75rem] bg-white/80 px-8 py-12 text-center shadow-[0_12px_40px_rgba(28,25,23,0.06)]">
+              <LogoRehabinco className="mx-auto mb-6 h-10 w-auto max-w-[200px]" />
               <p className="text-[17px] font-medium tracking-tight">El documento sale aquí</p>
               <p className="mt-2 text-[14px] leading-relaxed text-neutral-500">
                 Como el lienzo de Design: suelta un Word a la izquierda y este panel se va actualizando.
@@ -465,10 +515,17 @@ function DocumentoVivo({
           </div>
         ) : (
           <article className="mx-auto min-h-full max-w-[52rem] rounded-[1.5rem] bg-white px-6 py-8 shadow-[0_16px_50px_rgba(28,25,23,0.08)] md:px-12 md:py-12">
-            <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-neutral-400">
-              {ampliacion ? "Ampliación técnica y económica" : "Propuesta técnica y económica"}
-            </p>
-            <h3 className="mt-3 text-[28px] font-medium leading-tight tracking-tight">{canvas.concepto || "Sin título"}</h3>
+            <div className="mb-8 flex items-start justify-between gap-4">
+              <img
+                src={estado.emisor === "garal" ? LOGO_GARAL : LOGO_REHABINCO}
+                alt={estado.emisor === "garal" ? "Garal" : "Rehabinco"}
+                className="h-9 w-auto max-w-[200px] object-contain md:h-11"
+              />
+              <p className="pt-1 text-right text-[11px] font-medium uppercase tracking-[0.16em] text-neutral-400">
+                {ampliacion ? "Ampliación técnica y económica" : "Propuesta técnica y económica"}
+              </p>
+            </div>
+            <h3 className="text-[28px] font-medium leading-tight tracking-tight">{canvas.concepto || "Sin título"}</h3>
             {p.subtitulo_portada ? <p className="mt-2 text-[16px] text-neutral-500">{p.subtitulo_portada}</p> : null}
             {p.descripcion_portada ? (
               <p className="mt-4 text-[15px] leading-relaxed text-neutral-700">{p.descripcion_portada}</p>

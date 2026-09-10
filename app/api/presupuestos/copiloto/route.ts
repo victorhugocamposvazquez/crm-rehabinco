@@ -1,4 +1,4 @@
-import { generateText, Output, type ModelMessage } from "ai";
+import { generateText, Output, gateway, type ModelMessage } from "ai";
 import { NextResponse } from "next/server";
 import {
   COPILOTO_HISTORIAL_MAX,
@@ -6,9 +6,11 @@ import {
   COPILOTO_MAX_FILES,
   COPILOTO_TEXTO_MAX,
   INSTRUCCION_ADJUNTOS,
+  MODELO_COPILOTO,
+  MODELO_COPILOTO_FALLBACK,
+  copilotoLlmSchema,
   copilotoOutputSchema,
   estadoDesdeBorrador,
-  modeloCopiloto,
   normalizarOutput,
   snapshotEstado,
   systemPromptCopiloto,
@@ -17,10 +19,149 @@ import {
   type HistorialCopiloto,
 } from "@/lib/ai/presupuesto-copiloto";
 import { esDocBinario, esDocx, extractDocxText } from "@/lib/ai/extract-docx";
+import { extractPdfText } from "@/lib/ai/extract-pdf";
 import { createClient } from "@/lib/supabase/server";
 
 export const maxDuration = 60;
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+function hayAuthGateway() {
+  return Boolean(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN);
+}
+
+function extraerJson(text: string): unknown {
+  const trimmed = text.trim();
+  const fence = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const raw = fence ? fence[1].trim() : trimmed;
+  const start = raw.indexOf("{");
+  const end = raw.lastIndexOf("}");
+  if (start < 0 || end <= start) throw new Error("El modelo no devolvió JSON.");
+  return JSON.parse(raw.slice(start, end + 1));
+}
+
+function textoError(err: unknown) {
+  if (err instanceof Error) return err.message;
+  return String(err);
+}
+
+function mensajeErrorCopiloto(err: unknown): { status: number; error: string } {
+  const message = textoError(err);
+  const statusCode =
+    typeof err === "object" && err && "statusCode" in err && typeof (err as { statusCode: unknown }).statusCode === "number"
+      ? (err as { statusCode: number }).statusCode
+      : undefined;
+  if (/API key|OIDC|Unauthenticated|not authenticated/i.test(message) || statusCode === 401) {
+    return {
+      status: 503,
+      error:
+        "Falta configurar la pasarela de IA (AI Gateway). En Vercel: activa AI Gateway. En local: vercel env pull o AI_GATEWAY_API_KEY.",
+    };
+  }
+  if (/credit|quota|billing|payment|insufficient/i.test(message) || statusCode === 402) {
+    return {
+      status: 402,
+      error: "Sin crédito en AI Gateway. Añade créditos en Vercel → AI Gateway.",
+    };
+  }
+  if (/timeout|ETIMEDOUT|timed out|deadline/i.test(message) || statusCode === 504) {
+    return {
+      status: 504,
+      error: "La IA tardó demasiado. Prueba con menos adjuntos o una petición más concreta.",
+    };
+  }
+  const short = message.replace(/\s+/g, " ").slice(0, 280);
+  return {
+    status: 502,
+    error: short ? `No se pudo generar la propuesta: ${short}` : "No se pudo generar la propuesta.",
+  };
+}
+
+function debeReintentarSinEsquema(err: unknown) {
+  const message = textoError(err);
+  if (/API key|OIDC|Unauthenticated|credit|quota|timeout|ETIMEDOUT/i.test(message)) return false;
+  return /schema|default is not|json schema|tool|unparseable|No object generated|response_format/i.test(message);
+}
+
+function respuestaSse(run: (emit: (payload: { output?: CopilotoOutput; error?: string }) => void) => Promise<void>) {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const emit = (payload: { output?: CopilotoOutput; error?: string }) => {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+      };
+      const ping = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(": ping\n\n"));
+        } catch {
+          /* stream cerrado */
+        }
+      }, 4000);
+      try {
+        await run(emit);
+      } catch (err) {
+        console.error("[copiloto]", err);
+        emit({ error: mensajeErrorCopiloto(err).error });
+      } finally {
+        clearInterval(ping);
+        controller.close();
+      }
+    },
+  });
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    },
+  });
+}
+
+async function generarPresupuesto(opts: {
+  system: string;
+  messages: ModelMessage[];
+}): Promise<CopilotoOutput> {
+  const common = {
+    model: gateway(MODELO_COPILOTO),
+    system: opts.system,
+    messages: opts.messages,
+    maxOutputTokens: 16_000,
+    providerOptions: {
+      gateway: {
+        models: [MODELO_COPILOTO_FALLBACK],
+      },
+    },
+  };
+
+  try {
+    const result = await generateText({
+      ...common,
+      output: Output.object({
+        schema: copilotoLlmSchema,
+        name: "presupuesto",
+        description: "Presupuesto completo resultante tras la petición del usuario",
+      }),
+    });
+    const parsed = copilotoOutputSchema.safeParse(result.output);
+    if (parsed.success) return normalizarOutput(parsed.data);
+    throw new Error("El modelo no devolvió un presupuesto válido. Inténtalo de nuevo con una petición más concreta.");
+  } catch (err) {
+    console.error("[copiloto] structured", err);
+    if (!debeReintentarSinEsquema(err)) throw err;
+  }
+
+  const result = await generateText({
+    ...common,
+    system: `${opts.system}\n\nResponde SOLO con un JSON válido del presupuesto completo (resumen, sugerencias, concepto, porcentaje_descuento, lineas, propuesta). Sin markdown.`,
+  });
+  const parsed = copilotoOutputSchema.safeParse(extraerJson(result.text));
+  if (!parsed.success) {
+    throw new Error("El modelo no devolvió un presupuesto válido. Inténtalo de nuevo con una petición más concreta.");
+  }
+  return normalizarOutput(parsed.data);
+}
 
 const MIME_OK = new Set([
   "application/pdf",
@@ -57,6 +198,15 @@ export async function POST(request: Request) {
   if (!user) {
     return NextResponse.json({ error: "Sesión expirada" }, { status: 401 });
   }
+  if (process.env.NODE_ENV !== "production" && !hayAuthGateway()) {
+    return NextResponse.json(
+      {
+        error:
+          "Falta configurar la pasarela de IA (AI Gateway). En local: vercel env pull o AI_GATEWAY_API_KEY.",
+      },
+      { status: 503 }
+    );
+  }
 
   let form: FormData;
   try {
@@ -89,7 +239,7 @@ export async function POST(request: Request) {
   const totalBytes = files.reduce((acc, f) => acc + f.size, 0);
   if (totalBytes > COPILOTO_MAX_BYTES) {
     return NextResponse.json(
-      { error: "Los adjuntos pesan demasiado (máx. 6 MB en total). Comprime el PDF o recorta páginas." },
+      { error: "Los adjuntos pesan demasiado (máx. 4 MB en total). Comprime el PDF o recorta páginas." },
       { status: 400 }
     );
   }
@@ -124,9 +274,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const partes: Array<{ type: "text"; text: string } | { type: "file"; data: Uint8Array; mediaType: string; filename?: string }> =
-    [];
-  let tieneDocumento = false;
+  const partes: Array<{ type: "text"; text: string }> = [];
 
   for (const file of files) {
     if (esDocBinario(file)) {
@@ -137,13 +285,26 @@ export async function POST(request: Request) {
     }
     const mediaType = mimeDeArchivo(file);
     if (mediaType === "application/pdf") {
-      tieneDocumento = true;
-      const buf = new Uint8Array(await file.arrayBuffer());
-      partes.push({ type: "file", data: buf, mediaType: "application/pdf", filename: file.name });
+      try {
+        const buf = new Uint8Array(await file.arrayBuffer());
+        const texto = await extractPdfText(buf);
+        if (!texto) {
+          return NextResponse.json(
+            { error: `${file.name} no tiene texto (parece un escaneo). Pásalo a Word o pega el contenido.` },
+            { status: 400 }
+          );
+        }
+        partes.push({
+          type: "text",
+          text: `--- Archivo ${file.name} (PDF extraído a texto) ---\n${texto.slice(0, COPILOTO_TEXTO_MAX)}`,
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : `No se pudo leer ${file.name}.`;
+        return NextResponse.json({ error: msg }, { status: 400 });
+      }
       continue;
     }
     if (esDocx(file) || mediaType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-      tieneDocumento = true;
       try {
         const buf = new Uint8Array(await file.arrayBuffer());
         const texto = extractDocxText(buf);
@@ -208,33 +369,11 @@ export async function POST(request: Request) {
     },
   ];
 
-  try {
-    const result = await generateText({
-      model: modeloCopiloto(tieneDocumento),
+  return respuestaSse(async (emit) => {
+    const output = await generarPresupuesto({
       system: systemPromptCopiloto(estado.emisor),
       messages,
-      output: Output.object({
-        schema: copilotoOutputSchema,
-        name: "presupuesto",
-        description: "Presupuesto completo resultante tras la petición del usuario",
-      }),
     });
-    const parsed = copilotoOutputSchema.safeParse(result.output);
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: "El modelo no devolvió un presupuesto válido. Inténtalo de nuevo con una petición más concreta." },
-        { status: 422 }
-      );
-    }
-    const output: CopilotoOutput = normalizarOutput(parsed.data);
-    return NextResponse.json({ output });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Error al generar la propuesta";
-    return NextResponse.json(
-      { error: message.includes("API key") || message.includes("OIDC")
-          ? "Falta configurar la pasarela de IA (AI Gateway). En local: vercel env pull o AI_GATEWAY_API_KEY."
-          : "No se pudo generar la propuesta. Revisa los adjuntos o inténtalo de nuevo." },
-      { status: 502 }
-    );
-  }
+    emit({ output });
+  });
 }

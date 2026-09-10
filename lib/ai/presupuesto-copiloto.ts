@@ -4,7 +4,7 @@ import { CONDICIONES_DEFAULT, propuestaVacia } from "@/lib/presupuesto-propuesta
 import { esLineaRepercusion } from "@/lib/presupuesto-totales";
 
 export const COPILOTO_MAX_FILES = 6;
-export const COPILOTO_MAX_BYTES = 6_000_000;
+export const COPILOTO_MAX_BYTES = 4_000_000;
 export const COPILOTO_TEXTO_MAX = 80_000;
 export const COPILOTO_HISTORIAL_MAX = 16;
 
@@ -48,6 +48,31 @@ const bajaSchema = z.object({
 });
 
 const propuestaTextoSchema = z.object({
+  subtitulo_portada: z.string().catch(""),
+  descripcion_portada: z.string().catch(""),
+  emplazamiento: z.string().catch(""),
+  contacto: z.string().catch(""),
+  plazo_ejecucion: z.string().catch(""),
+  validez_oferta: z.string().catch(""),
+  escala: z.string().catch(""),
+  objeto_alcance: z.string().catch(""),
+  zonas: z.array(zonaSchema).catch([]),
+  programa: z.array(faseSchema).catch([]),
+  condiciones: z.string().catch(""),
+  tipo: z.enum(["presupuesto", "ampliacion"]).catch("presupuesto"),
+  origen_numero: z.string().catch(""),
+  origen_total: z.number().catch(0),
+  ajuste_comercial: z.number().catch(0),
+  bajas: z.array(bajaSchema).catch([]),
+  mostrar_repercusion: z.boolean().catch(false),
+  observaciones: z.string().catch(""),
+  mostrar_observaciones: z.boolean().catch(false),
+  condicionantes_ejecucion: z.string().catch(""),
+  mostrar_zonas: z.boolean().catch(true),
+  mostrar_programa: z.boolean().catch(true),
+});
+
+const propuestaTextoLlmSchema = z.object({
   subtitulo_portada: z.string(),
   descripcion_portada: z.string(),
   emplazamiento: z.string(),
@@ -59,25 +84,35 @@ const propuestaTextoSchema = z.object({
   zonas: z.array(zonaSchema),
   programa: z.array(faseSchema),
   condiciones: z.string(),
-  tipo: z.enum(["presupuesto", "ampliacion"]).default("presupuesto"),
-  origen_numero: z.string().default(""),
-  origen_total: z.number().default(0),
-  ajuste_comercial: z.number().default(0),
-  bajas: z.array(bajaSchema).default([]),
-  mostrar_repercusion: z.boolean().default(false),
-  observaciones: z.string().default(""),
-  mostrar_observaciones: z.boolean().default(false),
-  condicionantes_ejecucion: z.string().default(""),
-  mostrar_zonas: z.boolean().default(true),
-  mostrar_programa: z.boolean().default(true),
+  tipo: z.enum(["presupuesto", "ampliacion"]),
+  origen_numero: z.string(),
+  origen_total: z.number(),
+  ajuste_comercial: z.number(),
+  bajas: z.array(bajaSchema),
+  mostrar_repercusion: z.boolean(),
+  observaciones: z.string(),
+  mostrar_observaciones: z.boolean(),
+  condicionantes_ejecucion: z.string(),
+  mostrar_zonas: z.boolean(),
+  mostrar_programa: z.boolean(),
 });
 
-export const copilotoOutputSchema = z.object({
+/** Schema enviado al modelo: sin default/catch (Anthropic rechaza `default` en JSON Schema). */
+export const copilotoLlmSchema = z.object({
   resumen: z.string(),
   sugerencias: z.array(z.string()),
   concepto: z.string(),
   porcentaje_descuento: z.number(),
   lineas: z.array(lineaSchema),
+  propuesta: propuestaTextoLlmSchema,
+});
+
+export const copilotoOutputSchema = z.object({
+  resumen: z.string().catch(""),
+  sugerencias: z.array(z.string()).catch([]),
+  concepto: z.string().catch(""),
+  porcentaje_descuento: z.number().catch(0),
+  lineas: z.array(lineaSchema).catch([]),
   propuesta: propuestaTextoSchema,
 });
 
@@ -268,6 +303,5 @@ export function snapshotEstado(estado: EstadoCopiloto) {
   };
 }
 
-export function modeloCopiloto(tieneDocumento: boolean) {
-  return tieneDocumento ? "anthropic/claude-opus-5" : "anthropic/claude-sonnet-4.6";
-}
+export const MODELO_COPILOTO = "spacexai/grok-4.6";
+export const MODELO_COPILOTO_FALLBACK = "spacexai/grok-4.5";
