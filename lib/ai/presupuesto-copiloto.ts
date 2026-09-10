@@ -383,3 +383,6 @@ export function snapshotEstado(estado: EstadoCopiloto) {
 
 export const MODELO_COPILOTO = "spacexai/grok-4.20-non-reasoning";
 export const MODELO_COPILOTO_FALLBACK = "spacexai/grok-4.1-fast-non-reasoning";
+/** PDF visual (Design/Riazor sin capa de texto): Grok no admite application/pdf inline. */
+export const MODELO_COPILOTO_DOCUMENTO = "google/gemini-3-flash";
+export const MODELO_COPILOTO_DOCUMENTO_FALLBACK = "openai/gpt-5.4";

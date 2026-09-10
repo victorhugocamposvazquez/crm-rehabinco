@@ -9,6 +9,8 @@ import {
   COPILOTO_MAX_PDF_VISUAL,
   INSTRUCCION_ADJUNTOS,
   MODELO_COPILOTO,
+  MODELO_COPILOTO_DOCUMENTO,
+  MODELO_COPILOTO_DOCUMENTO_FALLBACK,
   MODELO_COPILOTO_FALLBACK,
   copilotoOutputSchema,
   estadoDesdeBorrador,
@@ -57,9 +59,52 @@ function extraerJson(text: string): unknown {
   throw new Error("El modelo no devolvió JSON.");
 }
 
-function textoError(err: unknown) {
-  if (err instanceof Error) return err.message;
-  return String(err);
+function extraerTextoAnidado(value: unknown, depth = 0): string {
+  if (depth > 4 || value == null) return "";
+  if (typeof value === "string") return value.trim();
+  if (typeof value !== "object") return "";
+  const o = value as Record<string, unknown>;
+  for (const key of ["message", "error", "msg", "detail", "errorMessage"]) {
+    const hit = extraerTextoAnidado(o[key], depth + 1);
+    if (hit) return hit;
+  }
+  return "";
+}
+
+function textoError(err: unknown): string {
+  if (err == null) return "";
+  if (typeof err === "string") return err;
+  if (typeof err !== "object") return String(err);
+  const e = err as {
+    name?: unknown;
+    message?: unknown;
+    statusCode?: unknown;
+    responseBody?: unknown;
+    data?: unknown;
+    cause?: unknown;
+    url?: unknown;
+  };
+  const name = typeof e.name === "string" ? e.name : "";
+  const message = typeof e.message === "string" ? e.message.trim() : "";
+  const body =
+    typeof e.responseBody === "string"
+      ? e.responseBody
+      : e.data != null
+        ? typeof e.data === "string"
+          ? e.data
+          : JSON.stringify(e.data)
+        : "";
+  const nested = extraerTextoAnidado(e.data) || extraerTextoAnidado(e.cause);
+  const cause = e.cause ? textoError(e.cause) : "";
+  const chunks = [message, nested, body.slice(0, 400), cause].filter((s) => {
+    const t = s.replace(/\s+/g, " ").trim();
+    return t && t !== name && t !== "AI_APICallError";
+  });
+  const out = chunks.join(" · ").replace(/\s+/g, " ").trim();
+  if (out) return out;
+  if (message && message !== "AI_APICallError") return message;
+  if (typeof e.statusCode === "number") return `Error HTTP ${e.statusCode} al llamar al modelo.`;
+  return "";
 }
 
 function mensajeErrorCopiloto(err: unknown): { status: number; error: string } {
@@ -93,19 +138,34 @@ function mensajeErrorCopiloto(err: unknown): { status: number; error: string } {
       error: "La IA no terminó a tiempo con estos documentos. Vuelve a intentarlo; si se repite, envía un Word cada vez.",
     };
   }
+  if (/model.*(not found|does not exist|unavailable)|unknown model/i.test(message) || statusCode === 404) {
+    return {
+      status: 502,
+      error: "El modelo de IA no está disponible ahora. Vuelve a intentarlo en un momento.",
+    };
+  }
+  if (/pdf|file part|media type|unsupported.*(file|document|pdf)|invalid.*content/i.test(message)) {
+    return {
+      status: 502,
+      error:
+        "No se pudo leer este archivo con el modelo. Si es un PDF de Design (sin texto), inténtalo de nuevo; si se repite, adjunta también el Word.",
+    };
+  }
   const short = message.replace(/\s+/g, " ").slice(0, 280);
   return {
     status: 502,
-    error: short ? `No se pudo generar la propuesta: ${short}` : "No se pudo generar la propuesta.",
+    error: short ? `No se pudo generar la propuesta: ${short}` : "No se pudo generar la propuesta. Vuelve a intentarlo.",
   };
 }
 
-async function generarPresupuesto(opts: {
+async function llamarModelo(opts: {
+  model: string;
+  fallbacks: string[];
   system: string;
   messages: ModelMessage[];
 }): Promise<CopilotoOutput> {
   const result = await generateText({
-    model: gateway(MODELO_COPILOTO),
+    model: gateway(opts.model),
     system: `${opts.system}
 
 Responde SOLO con un JSON válido (sin markdown) con: resumen, sugerencias, concepto, porcentaje_descuento, lineas, propuesta.`,
@@ -113,11 +173,14 @@ Responde SOLO con un JSON válido (sin markdown) con: resumen, sugerencias, conc
     maxOutputTokens: 12_000,
     abortSignal: AbortSignal.timeout(55_000),
     maxRetries: 0,
-    providerOptions: {
-      gateway: {
-        models: [MODELO_COPILOTO_FALLBACK],
-      },
-    },
+    providerOptions:
+      opts.fallbacks.length > 0
+        ? {
+            gateway: {
+              models: opts.fallbacks,
+            },
+          }
+        : undefined,
   });
   const texto = result.text?.trim() ?? "";
   if (!texto) {
@@ -130,6 +193,56 @@ Responde SOLO con un JSON válido (sin markdown) con: resumen, sugerencias, conc
   return normalizarOutput(parsed.data);
 }
 
+function esFalloIrrecuperable(err: unknown) {
+  const mapped = mensajeErrorCopiloto(err);
+  return mapped.status === 401 || mapped.status === 402 || mapped.status === 503 || mapped.status === 504;
+}
+
+async function generarPresupuesto(opts: {
+  system: string;
+  messages: ModelMessage[];
+  hayPdfVisual: boolean;
+}): Promise<CopilotoOutput> {
+  const intentos = opts.hayPdfVisual
+    ? [
+        {
+          model: MODELO_COPILOTO_DOCUMENTO,
+          fallbacks: [MODELO_COPILOTO_DOCUMENTO_FALLBACK],
+        },
+        {
+          model: MODELO_COPILOTO_DOCUMENTO_FALLBACK,
+          fallbacks: [],
+        },
+      ]
+    : [
+        {
+          model: MODELO_COPILOTO,
+          fallbacks: [MODELO_COPILOTO_FALLBACK, MODELO_COPILOTO_DOCUMENTO],
+        },
+        {
+          model: MODELO_COPILOTO_DOCUMENTO,
+          fallbacks: [MODELO_COPILOTO_DOCUMENTO_FALLBACK],
+        },
+      ];
+
+  let last: unknown;
+  for (const intento of intentos) {
+    try {
+      return await llamarModelo({
+        model: intento.model,
+        fallbacks: intento.fallbacks,
+        system: opts.system,
+        messages: opts.messages,
+      });
+    } catch (err) {
+      last = err;
+      console.error("[copiloto] modelo", intento.model, err);
+      if (esFalloIrrecuperable(err)) throw err;
+    }
+  }
+  throw last instanceof Error ? last : new Error("No se pudo generar la propuesta.");
+}
+
 const MIME_OK = new Set([
   "application/pdf",
   "text/plain",
@@ -139,6 +252,10 @@ const MIME_OK = new Set([
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/msword",
 ]);
+
+function pdfComoDataUrl(buf: Uint8Array) {
+  return `data:application/pdf;base64,${Buffer.from(buf).toString("base64")}`;
+}
 
 function mimeDeArchivo(file: File) {
   const name = file.name.toLowerCase();
@@ -243,7 +360,7 @@ export async function POST(request: Request) {
 
   const partes: Array<
     | { type: "text"; text: string }
-    | { type: "file"; data: Uint8Array; mediaType: string; filename?: string }
+    | { type: "file"; data: string; mediaType: string; filename?: string }
   > = [];
   let cupoRestante = COPILOTO_TEXTO_TOTAL;
   let pdfVisuales = 0;
@@ -282,7 +399,7 @@ export async function POST(request: Request) {
           }
           partes.push({
             type: "file",
-            data: buf,
+            data: pdfComoDataUrl(buf),
             mediaType: "application/pdf",
             filename: file.name,
           });
@@ -372,6 +489,7 @@ export async function POST(request: Request) {
     const output = await generarPresupuesto({
       system: systemPromptCopiloto(estado.emisor),
       messages,
+      hayPdfVisual: pdfVisuales > 0,
     });
     return NextResponse.json({ output });
   } catch (err) {
