@@ -330,7 +330,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
     <div className="relative mx-auto max-w-2xl animate-[fadeIn_0.3s_ease-out] pb-36 md:pb-24">
       <div className="mb-4 flex items-center justify-between gap-3">
         <p className="hidden min-w-0 text-sm text-neutral-500 sm:block">
-          El copiloto propone partidas y textos. Tú aceptas y el PDF usa la plantilla del CRM.
+          El copiloto lee el Word o PDF que te mandan. Tú aceptas y el PDF usa la plantilla del CRM.
         </p>
         <div className="ml-auto shrink-0">
         <PresupuestoCopiloto

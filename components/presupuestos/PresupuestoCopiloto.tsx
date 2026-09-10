@@ -37,6 +37,11 @@ export function PresupuestoCopiloto({
     if (!list?.length) return;
     const next = [...files];
     for (const file of Array.from(list)) {
+      const name = file.name.toLowerCase();
+      if (name.endsWith(".doc") && !name.endsWith(".docx")) {
+        toast.error(`${file.name} es .doc antiguo. Guárdalo como .docx.`);
+        continue;
+      }
       if (next.length >= COPILOTO_MAX_FILES) {
         toast.error(`Máximo ${COPILOTO_MAX_FILES} archivos.`);
         break;
@@ -45,7 +50,7 @@ export function PresupuestoCopiloto({
     }
     const bytes = next.reduce((acc, f) => acc + f.size, 0);
     if (bytes > COPILOTO_MAX_BYTES) {
-      toast.error("Los adjuntos superan 3,5 MB. Comprime el PDF.");
+      toast.error("Los adjuntos superan 6 MB. Comprime el PDF o quita algún archivo.");
       return;
     }
     setFiles(next);
@@ -54,7 +59,7 @@ export function PresupuestoCopiloto({
 
   const send = async () => {
     const instrucciones = text.trim();
-    if (!instrucciones || busy || pending) return;
+    if ((!instrucciones && files.length === 0) || busy || pending) return;
     setBusy(true);
     const form = new FormData();
     form.append(
@@ -76,7 +81,7 @@ export function PresupuestoCopiloto({
       const output = data.output;
       setMessages((m) => [
         ...m,
-        { role: "user", text: instrucciones, files: files.map((f) => f.name) },
+        { role: "user", text: instrucciones || "Leer adjuntos y volcar al presupuesto", files: files.map((f) => f.name) },
         { role: "assistant", text: output.resumen },
       ]);
       setPending(output);
@@ -116,14 +121,15 @@ export function PresupuestoCopiloto({
           <div className="border-b border-border px-5 pb-3">
             <h2 className="text-lg font-semibold">Copiloto de presupuesto</h2>
             <p className="mt-1 text-sm text-neutral-600">
-              Pide correcciones o una ampliación. Adjunta PDF o .txt. Tú aceptas; el PDF sale de la plantilla del CRM.
+              Adjunta el Word o PDF que te han mandado (y el presupuesto anterior si hace falta). El copiloto lo
+              interpreta y lo vuelca a la plantilla del CRM.
             </p>
           </div>
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
             {messages.length === 0 && !pending && (
               <p className="text-sm text-neutral-500">
-                Ejemplos: «deja el incremento en 45.000», «quita la base aislante», «turnos diurnos y nocturnos»,
-                «ampliación sobre ESC-2026-09 de 228.000», «oculta observaciones y repercusión».
+                Ejemplos: adjunta «Presupuesto.docx» + «Presupuesto con modificaciones.docx», o un listado de
+                ampliaciones y el inicial. También: «deja el incremento en 45.000», «quita la base aislante».
               </p>
             )}
             {messages.map((m, i) => (
@@ -181,7 +187,7 @@ export function PresupuestoCopiloto({
               <button
                 type="button"
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border text-neutral-600 hover:bg-neutral-50"
-                aria-label="Adjuntar PDF o texto"
+                aria-label="Adjuntar Word, PDF o texto"
                 disabled={busy || !!pending}
                 onClick={() => inputRef.current?.click()}
               >
@@ -191,14 +197,14 @@ export function PresupuestoCopiloto({
                 ref={inputRef}
                 type="file"
                 multiple
-                accept="application/pdf,.pdf,.txt,.md,.csv,text/plain,text/markdown,text/csv"
+                accept="application/pdf,.pdf,.docx,.txt,.md,.csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/csv"
                 className="hidden"
                 onChange={(e) => addFiles(e.target.files)}
               />
               <textarea
                 className="min-h-[44px] flex-1 resize-none rounded-lg border border-border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 rows={2}
-                placeholder="Qué hay que hacer con este presupuesto…"
+                placeholder="Adjunta el Word y di qué hacer, o envía solo los archivos…"
                 value={text}
                 disabled={busy || !!pending}
                 onChange={(e) => setText(e.target.value)}
@@ -209,7 +215,12 @@ export function PresupuestoCopiloto({
                   }
                 }}
               />
-              <Button type="button" size="sm" disabled={busy || !!pending || !text.trim()} onClick={() => void send()}>
+              <Button
+                type="button"
+                size="sm"
+                disabled={busy || !!pending || (!text.trim() && files.length === 0)}
+                onClick={() => void send()}
+              >
                 {busy ? "…" : "Enviar"}
               </Button>
             </div>

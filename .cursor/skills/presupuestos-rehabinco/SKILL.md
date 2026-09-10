@@ -56,3 +56,5 @@ Condiciones por defecto si no piden otras: garantía 24 meses, precios con MO/ma
 ## Dónde va esto en el CRM
 
 Pega el resultado en el **Copiloto** del wizard o de la ficha (`/presupuestos/[id]`), o transcribe los campos. No generes HTML/PDF libre.
+
+El copiloto acepta **Word (.docx)**, PDF y texto. Adjunta el documento que te han mandado y, si aplica, el presupuesto anterior: los cruza (altas, bajas, incremento). El .doc antiguo hay que guardarlo como .docx.

@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import {
   COPILOTO_MAX_BYTES,
   COPILOTO_MAX_FILES,
+  COPILOTO_TEXTO_MAX,
+  INSTRUCCION_ADJUNTOS,
   copilotoOutputSchema,
   modeloCopiloto,
   normalizarOutput,
@@ -11,6 +13,7 @@ import {
   type EstadoCopiloto,
   type HistorialCopiloto,
 } from "@/lib/ai/presupuesto-copiloto";
+import { esDocBinario, esDocx, extractDocxText } from "@/lib/ai/extract-docx";
 import { createClient } from "@/lib/supabase/server";
 
 export const maxDuration = 60;
@@ -22,10 +25,15 @@ const MIME_OK = new Set([
   "text/markdown",
   "text/csv",
   "application/octet-stream",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/msword",
 ]);
 
 function mimeDeArchivo(file: File) {
   const name = file.name.toLowerCase();
+  if (name.endsWith(".docx")) {
+    return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  }
   if (file.type && MIME_OK.has(file.type)) return file.type;
   if (name.endsWith(".pdf")) return "application/pdf";
   if (name.endsWith(".md")) return "text/markdown";
@@ -70,9 +78,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "El estado del presupuesto no es válido." }, { status: 400 });
   }
 
-  const instrucciones = typeof payload.instrucciones === "string" ? payload.instrucciones.trim() : "";
+  const files = form.getAll("files").filter((f): f is File => f instanceof File);
+  if (files.length > COPILOTO_MAX_FILES) {
+    return NextResponse.json({ error: `Máximo ${COPILOTO_MAX_FILES} archivos.` }, { status: 400 });
+  }
+  const totalBytes = files.reduce((acc, f) => acc + f.size, 0);
+  if (totalBytes > COPILOTO_MAX_BYTES) {
+    return NextResponse.json(
+      { error: "Los adjuntos pesan demasiado (máx. 6 MB en total). Comprime el PDF o recorta páginas." },
+      { status: 400 }
+    );
+  }
+
+  let instrucciones = typeof payload.instrucciones === "string" ? payload.instrucciones.trim() : "";
+  if (!instrucciones && files.length > 0) {
+    instrucciones = INSTRUCCION_ADJUNTOS;
+  }
   if (!instrucciones) {
-    return NextResponse.json({ error: "Escribe qué quieres que haga el copiloto." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Escribe qué quieres que haga el copiloto o adjunta un Word/PDF." },
+      { status: 400 }
+    );
   }
 
   const estado = payload.estado as EstadoCopiloto | undefined;
@@ -86,40 +112,55 @@ export async function POST(request: Request) {
         .slice(-8)
     : [];
 
-  const files = form.getAll("files").filter((f): f is File => f instanceof File);
-  if (files.length > COPILOTO_MAX_FILES) {
-    return NextResponse.json({ error: `Máximo ${COPILOTO_MAX_FILES} archivos.` }, { status: 400 });
-  }
-  const totalBytes = files.reduce((acc, f) => acc + f.size, 0);
-  if (totalBytes > COPILOTO_MAX_BYTES) {
-    return NextResponse.json(
-      { error: "Los adjuntos pesan demasiado (máx. 3,5 MB en total). Comprime el PDF o recorta páginas." },
-      { status: 400 }
-    );
-  }
-
   const partes: Array<{ type: "text"; text: string } | { type: "file"; data: Uint8Array; mediaType: string; filename?: string }> =
     [];
-  let tienePdf = false;
+  let tieneDocumento = false;
 
   for (const file of files) {
+    if (esDocBinario(file)) {
+      return NextResponse.json(
+        { error: `${file.name} es .doc antiguo. Ábrelo en Word y guárdalo como .docx.` },
+        { status: 400 }
+      );
+    }
     const mediaType = mimeDeArchivo(file);
     if (mediaType === "application/pdf") {
-      tienePdf = true;
+      tieneDocumento = true;
       const buf = new Uint8Array(await file.arrayBuffer());
       partes.push({ type: "file", data: buf, mediaType: "application/pdf", filename: file.name });
       continue;
     }
+    if (esDocx(file) || mediaType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+      tieneDocumento = true;
+      try {
+        const buf = new Uint8Array(await file.arrayBuffer());
+        const texto = extractDocxText(buf);
+        if (!texto) {
+          return NextResponse.json(
+            { error: `${file.name} no tiene texto. Si es un escaneo, exporta a PDF.` },
+            { status: 400 }
+          );
+        }
+        partes.push({
+          type: "text",
+          text: `--- Archivo ${file.name} (Word extraído a texto) ---\n${texto.slice(0, COPILOTO_TEXTO_MAX)}`,
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : `No se pudo leer ${file.name}.`;
+        return NextResponse.json({ error: msg }, { status: 400 });
+      }
+      continue;
+    }
     if (!esTexto(mediaType)) {
       return NextResponse.json(
-        { error: `No se admite ${file.name}. Usa PDF o texto (.txt, .md, .csv).` },
+        { error: `No se admite ${file.name}. Usa Word (.docx), PDF o texto (.txt, .md, .csv).` },
         { status: 400 }
       );
     }
     const texto = await file.text();
     partes.push({
       type: "text",
-      text: `--- Archivo ${file.name} ---\n${texto.slice(0, 80_000)}`,
+      text: `--- Archivo ${file.name} ---\n${texto.slice(0, COPILOTO_TEXTO_MAX)}`,
     });
   }
 
@@ -130,7 +171,7 @@ export async function POST(request: Request) {
       content: [
         {
           type: "text" as const,
-          text: `Estado actual del presupuesto (JSON). Úsalo como base y aplica la petición.\n${JSON.stringify(
+          text: `Estado actual del presupuesto (JSON). Es el documento "anterior" del CRM: úsalo como base y aplícale los adjuntos y la petición.\n${JSON.stringify(
             {
               emisor: estado.emisor,
               concepto: estado.concepto,
@@ -150,7 +191,7 @@ export async function POST(request: Request) {
 
   try {
     const result = await generateText({
-      model: modeloCopiloto(tienePdf),
+      model: modeloCopiloto(tieneDocumento),
       system: systemPromptCopiloto(estado.emisor),
       messages,
       output: Output.object({

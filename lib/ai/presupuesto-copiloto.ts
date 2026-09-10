@@ -3,8 +3,11 @@ import type { PropuestaPresupuesto } from "@/lib/presupuesto-propuesta";
 import { CONDICIONES_DEFAULT, propuestaVacia } from "@/lib/presupuesto-propuesta";
 import { esLineaRepercusion } from "@/lib/presupuesto-totales";
 
-export const COPILOTO_MAX_FILES = 4;
-export const COPILOTO_MAX_BYTES = 3_500_000;
+export const COPILOTO_MAX_FILES = 6;
+export const COPILOTO_MAX_BYTES = 6_000_000;
+export const COPILOTO_TEXTO_MAX = 80_000;
+
+export const INSTRUCCION_ADJUNTOS = `Lee los documentos adjuntos y vuelca su contenido al esquema del CRM. Relaciónalos con el presupuesto actual (JSON): si el Word o PDF es una ampliación, un listado de extras o una modificación sobre el origen, usa tipo=ampliacion; si es el presupuesto entero, tipo=presupuesto. Si hay dos versiones del mismo listado, usa la más desglosada (con m², ml y precios unitarios) y cruza los totales.`;
 
 export type LineaCopiloto = {
   descripcion: string;
@@ -100,7 +103,16 @@ export function systemPromptCopiloto(emisor: "garal" | "rehabinco") {
   return `Eres el copiloto de presupuestos del CRM interno de ${marca}.
 Redactas y CORRIGES propuestas técnicas y económicas en español (España). No diseñas el PDF: el CRM ya tiene plantilla fija. Tú solo rellenas y ajustas DATOS.
 
-La mayoría de peticiones son correcciones sobre un presupuesto ya montado (bajar a un total, quitar una partida, cambiar turnos, ocultar un bloque). Aplica el cambio con precisión y devuelve el documento completo resultante.
+La mayoría de peticiones son correcciones sobre un presupuesto ya montado, o volcar un Word/PDF que llega de obra. Aplica el cambio con precisión y devuelve el documento completo resultante.
+
+Documentos Word de obra (prosa, no tablas):
+- "01. TÍTULO: 6.850.00€" o "Total: 18.562.00€" al final de un bloque = una partida. Los puntos son miles (12.400.00 = 12400).
+- Si el bloque da medición y unitario ("162,00 m² x 116"), usa cantidad, unidad y precioUnitario. Si solo hay un total de partida, cantidad = 1, unidad = pa, precioUnitario = ese total.
+- "Descuento de 12.400.00€ por mano de obra de colocación de moqueta" = baja del presupuesto inicial (propuesta.bajas), no porcentaje_descuento.
+- "INCREMENTO SOBRE EL PRESUPUESTO INICIAL 45.000.00 €" = incremento neto objetivo: encájalo con ajuste_comercial una sola vez.
+- Listados tipo "Ampliaciones de pintura / pladur / carpintería" = capítulos; cada ítem con su Total es una partida.
+- Si adjuntan el presupuesto inicial Y la ampliación (o dos versiones de ampliaciones), cruza partidas: las que desaparecen del inicial van a bajas; las nuevas son altas. El estado JSON del CRM es el "anterior" si ya hay partidas.
+- Horarios (noche, domingo, urgencia, premura) → condicionantes_ejecucion.
 
 Reglas de partidas (plantilla tipo Riazor):
 - Agrupa en capítulos con título "01 · NOMBRE", "02 · NOMBRE" (dos dígitos, punto medio, nombre).
@@ -223,6 +235,6 @@ export function aplicarPropuestaTexto(
   };
 }
 
-export function modeloCopiloto(tienePdf: boolean) {
-  return tienePdf ? "anthropic/claude-opus-5" : "anthropic/claude-sonnet-4.6";
+export function modeloCopiloto(tieneDocumento: boolean) {
+  return tieneDocumento ? "anthropic/claude-opus-5" : "anthropic/claude-sonnet-4.6";
 }
