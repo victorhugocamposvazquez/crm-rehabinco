@@ -14,7 +14,7 @@ export const COPILOTO_MAX_BYTES = 4_000_000;
 export const COPILOTO_TEXTO_MAX = 24_000;
 export const COPILOTO_TEXTO_TOTAL = 50_000;
 export const COPILOTO_MAX_PDF_VISUAL = 3;
-export const COPILOTO_HISTORIAL_MAX = 16;
+export const COPILOTO_HISTORIAL_MAX = 10;
 
 export const INSTRUCCION_ADJUNTOS = `Lee los documentos de la sesión y vuelca su contenido al esquema del CRM. Relaciónalos entre sí y con el presupuesto actual (JSON): si el Word o PDF es una ampliación, un listado de extras o una modificación sobre el origen, usa tipo=ampliacion; si es el presupuesto entero, tipo=presupuesto. Si hay dos versiones del mismo listado, usa la más desglosada (con m², ml y precios unitarios) y cruza los totales. Conserva lo ya acordado en el historial.`;
 
@@ -333,6 +333,35 @@ export function normalizarOutput(raw: CopilotoOutput): CopilotoOutput {
   };
 }
 
+export function parsearSalidaCopiloto(text: string): CopilotoOutput {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    throw new Error("Pega un JSON de presupuesto válido.");
+  }
+  const fence = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const bloques = fence ? [fence[1].trim(), trimmed] : [trimmed];
+  let raw: unknown;
+  for (const bloque of bloques) {
+    const start = bloque.indexOf("{");
+    const end = bloque.lastIndexOf("}");
+    if (start < 0 || end <= start) continue;
+    try {
+      raw = JSON.parse(bloque.slice(start, end + 1));
+      break;
+    } catch {
+      /* siguiente bloque */
+    }
+  }
+  if (raw == null) {
+    throw new Error("No hay un JSON válido.");
+  }
+  const parsed = copilotoOutputSchema.safeParse(raw);
+  if (!parsed.success) {
+    throw new Error("Ese JSON no es el esquema del copiloto.");
+  }
+  return normalizarOutput(parsed.data);
+}
+
 export function aplicarPropuestaTexto(
   actual: PropuestaPresupuesto,
   texto: CopilotoOutput["propuesta"],
@@ -381,8 +410,5 @@ export function snapshotEstado(estado: EstadoCopiloto) {
   };
 }
 
-export const MODELO_COPILOTO = "spacexai/grok-4.20-non-reasoning";
-export const MODELO_COPILOTO_FALLBACK = "spacexai/grok-4.1-fast-non-reasoning";
-/** PDF visual (Design/Riazor sin capa de texto): Grok no admite application/pdf inline. */
-export const MODELO_COPILOTO_DOCUMENTO = "google/gemini-3-flash";
-export const MODELO_COPILOTO_DOCUMENTO_FALLBACK = "openai/gpt-5.4";
+export const MODELO_COPILOTO = "claude-opus-5";
+export const MODELO_COPILOTO_FALLBACK = "claude-sonnet-4-6";

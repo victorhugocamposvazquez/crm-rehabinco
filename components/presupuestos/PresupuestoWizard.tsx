@@ -349,7 +349,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
     <div className="relative mx-auto max-w-2xl animate-[fadeIn_0.3s_ease-out] pb-36 md:pb-24">
       <div className="mb-4 flex items-center justify-between gap-3">
         <p className="hidden min-w-0 text-sm text-neutral-500 sm:block">
-          El copiloto es el estudio: documento a un lado, correcciones al otro.
+          El copiloto usa Claude Opus (tu API). Suelta el Word o PDF; el CRM saca el documento.
         </p>
         <div className="ml-auto shrink-0">
         <PresupuestoCopiloto

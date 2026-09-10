@@ -9,7 +9,7 @@ description: >-
 
 # Presupuestos Rehabinco / Garal
 
-El PDF lo genera el CRM (`lib/presupuesto-pdf.ts`). En Cursor solo se rellenan **datos**, no se diseña el documento. Los chips, cajetines y la barra de régimen son campos del JSON; la plantilla los pinta.
+El PDF lo genera el CRM (`lib/presupuesto-pdf.ts`). El **copiloto del wizard** (Claude Opus, `ANTHROPIC_API_KEY`) rellena **datos**, no diseña el documento. Esta skill es respaldo si se pide un presupuesto aquí en Cursor. Los chips, cajetines y la barra de régimen son campos del JSON; la plantilla los pinta.
 
 ## Destacados visuales (plantilla Design)
 
@@ -63,8 +63,19 @@ Tono técnico, sobrio, España. No marketing. No toques fotos de portada ni anex
 
 Condiciones por defecto si no piden otras: garantía 24 meses, precios con MO/materiales/medios/protecciones/residuos/limpieza, pago certificaciones 30 días, extra con contradictorios.
 
-## Dónde va esto en el CRM
+## Dónde va esto
 
-Pega el resultado en el **Copiloto** del wizard o de la ficha (`/presupuestos/[id]`), o transcribe los campos. No generes HTML/PDF libre.
+En el CRM: **Copiloto** (chat + Word/PDF). Claude Opus rellena el JSON y el canvas. No generes HTML/PDF libre.
 
-El copiloto del CRM es un **estudio** (chat + documento en vivo), al estilo de Claude Design: los Word/PDF se quedan en la mesa, cada mensaje actualiza el documento, Deshacer vuelve atrás. En el wizard el formulario se actualiza en vivo; en la ficha hay que pulsar Guardar.
+Si trabajas en Cursor, devuelve un único bloque JSON para pegar en el copiloto:
+
+```json
+{
+  "resumen": "2–5 frases de lo hecho",
+  "sugerencias": [],
+  "concepto": "Título de portada",
+  "porcentaje_descuento": 0,
+  "lineas": [{ "descripcion": "", "cantidad": 0, "precioUnitario": 0, "unidad": "ud", "capitulo": "01 · Actuación", "etiquetas": [], "aviso": "", "nota": "" }],
+  "propuesta": {}
+}
+```

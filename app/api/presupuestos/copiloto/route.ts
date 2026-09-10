@@ -1,4 +1,5 @@
-import { generateText, gateway, type ModelMessage } from "ai";
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { generateText, type ModelMessage } from "ai";
 import { NextResponse } from "next/server";
 import {
   COPILOTO_HISTORIAL_MAX,
@@ -9,8 +10,6 @@ import {
   COPILOTO_MAX_PDF_VISUAL,
   INSTRUCCION_ADJUNTOS,
   MODELO_COPILOTO,
-  MODELO_COPILOTO_DOCUMENTO,
-  MODELO_COPILOTO_DOCUMENTO_FALLBACK,
   MODELO_COPILOTO_FALLBACK,
   copilotoOutputSchema,
   estadoDesdeBorrador,
@@ -21,6 +20,7 @@ import {
   type EstadoCopiloto,
   type HistorialCopiloto,
 } from "@/lib/ai/presupuesto-copiloto";
+import { usoDesdeSdk, type UsoCopiloto } from "@/lib/ai/presupuesto-consumo";
 import { esDocBinario, esDocx, extractDocxText } from "@/lib/ai/extract-docx";
 import { extractPdfText } from "@/lib/ai/extract-pdf";
 import { createClient } from "@/lib/supabase/server";
@@ -37,8 +37,10 @@ function recortarAdjunto(nombre: string, etiqueta: string, texto: string, cupo: 
   };
 }
 
-function hayAuthGateway() {
-  return Boolean(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN);
+const anthropic = createAnthropic();
+
+function hayApiAnthropic() {
+  return Boolean(process.env.ANTHROPIC_API_KEY);
 }
 
 function extraerJson(text: string): unknown {
@@ -114,17 +116,17 @@ function mensajeErrorCopiloto(err: unknown): { status: number; error: string } {
     typeof err === "object" && err && "statusCode" in err && typeof (err as { statusCode: unknown }).statusCode === "number"
       ? (err as { statusCode: number }).statusCode
       : undefined;
-  if (/API key|OIDC|Unauthenticated|not authenticated/i.test(message) || statusCode === 401) {
+  if (/API key|x-api-key|invalid.?api.?key|Unauthenticated|not authenticated|authentication/i.test(message) || statusCode === 401) {
     return {
       status: 503,
       error:
-        "Falta configurar la pasarela de IA (AI Gateway). En Vercel: activa AI Gateway. En local: vercel env pull o AI_GATEWAY_API_KEY.",
+        "Falta ANTHROPIC_API_KEY en Vercel (API de tu cuenta Claude). Añádela en Settings → Environment Variables (Production y Preview) y en .env.local.",
     };
   }
-  if (/credit|quota|billing|payment|insufficient/i.test(message) || statusCode === 402) {
+  if (/credit|quota|billing|payment|insufficient|rate.?limit/i.test(message) || statusCode === 402 || statusCode === 429) {
     return {
       status: 402,
-      error: "Sin crédito en AI Gateway. Añade créditos en Vercel → AI Gateway.",
+      error: "Sin crédito o límite en tu cuenta de Anthropic. Revisa facturación en console.anthropic.com.",
     };
   }
   if (
@@ -158,29 +160,37 @@ function mensajeErrorCopiloto(err: unknown): { status: number; error: string } {
   };
 }
 
+const CACHE_PROMPT = {
+  anthropic: { cacheControl: { type: "ephemeral" as const, ttl: "1h" as const } },
+};
+
 async function llamarModelo(opts: {
   model: string;
-  fallbacks: string[];
   system: string;
   messages: ModelMessage[];
-}): Promise<CopilotoOutput> {
+}): Promise<{ output: CopilotoOutput; uso: UsoCopiloto }> {
   const result = await generateText({
-    model: gateway(opts.model),
-    system: `${opts.system}
+    model: anthropic(opts.model),
+    messages: [
+      {
+        role: "system",
+        content: `${opts.system}
 
 Responde SOLO con un JSON válido (sin markdown) con: resumen, sugerencias, concepto, porcentaje_descuento, lineas, propuesta.`,
-    messages: opts.messages,
+        providerOptions: CACHE_PROMPT,
+      },
+      ...opts.messages,
+    ],
     maxOutputTokens: 12_000,
+    reasoning: "none",
     abortSignal: AbortSignal.timeout(55_000),
     maxRetries: 0,
-    providerOptions:
-      opts.fallbacks.length > 0
-        ? {
-            gateway: {
-              models: opts.fallbacks,
-            },
-          }
-        : undefined,
+    providerOptions: {
+      anthropic: {
+        thinking: { type: "disabled" },
+        effort: "low",
+      },
+    },
   });
   const texto = result.text?.trim() ?? "";
   if (!texto) {
@@ -190,7 +200,10 @@ Responde SOLO con un JSON válido (sin markdown) con: resumen, sugerencias, conc
   if (!parsed.success) {
     throw new Error("El modelo no devolvió un presupuesto válido. Inténtalo de nuevo con una petición más concreta.");
   }
-  return normalizarOutput(parsed.data);
+  return {
+    output: normalizarOutput(parsed.data),
+    uso: usoDesdeSdk(opts.model, result.usage),
+  };
 }
 
 function esFalloIrrecuperable(err: unknown) {
@@ -201,42 +214,22 @@ function esFalloIrrecuperable(err: unknown) {
 async function generarPresupuesto(opts: {
   system: string;
   messages: ModelMessage[];
-  hayPdfVisual: boolean;
-}): Promise<CopilotoOutput> {
-  const intentos = opts.hayPdfVisual
-    ? [
-        {
-          model: MODELO_COPILOTO_DOCUMENTO,
-          fallbacks: [MODELO_COPILOTO_DOCUMENTO_FALLBACK],
-        },
-        {
-          model: MODELO_COPILOTO_DOCUMENTO_FALLBACK,
-          fallbacks: [],
-        },
-      ]
-    : [
-        {
-          model: MODELO_COPILOTO,
-          fallbacks: [MODELO_COPILOTO_FALLBACK, MODELO_COPILOTO_DOCUMENTO],
-        },
-        {
-          model: MODELO_COPILOTO_DOCUMENTO,
-          fallbacks: [MODELO_COPILOTO_DOCUMENTO_FALLBACK],
-        },
-      ];
-
+  hayAdjuntos: boolean;
+  hayBorrador: boolean;
+}): Promise<{ output: CopilotoOutput; uso: UsoCopiloto }> {
+  const primario = opts.hayAdjuntos || !opts.hayBorrador ? MODELO_COPILOTO : MODELO_COPILOTO_FALLBACK;
+  const intentos = primario === MODELO_COPILOTO ? [MODELO_COPILOTO, MODELO_COPILOTO_FALLBACK] : [MODELO_COPILOTO_FALLBACK];
   let last: unknown;
-  for (const intento of intentos) {
+  for (const model of intentos) {
     try {
       return await llamarModelo({
-        model: intento.model,
-        fallbacks: intento.fallbacks,
+        model,
         system: opts.system,
         messages: opts.messages,
       });
     } catch (err) {
       last = err;
-      console.error("[copiloto] modelo", intento.model, err);
+      console.error("[copiloto] modelo", model, err);
       if (esFalloIrrecuperable(err)) throw err;
     }
   }
@@ -252,10 +245,6 @@ const MIME_OK = new Set([
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/msword",
 ]);
-
-function pdfComoDataUrl(buf: Uint8Array) {
-  return `data:application/pdf;base64,${Buffer.from(buf).toString("base64")}`;
-}
 
 function mimeDeArchivo(file: File) {
   const name = file.name.toLowerCase();
@@ -282,11 +271,11 @@ export async function POST(request: Request) {
   if (!user) {
     return NextResponse.json({ error: "Sesión expirada" }, { status: 401 });
   }
-  if (process.env.NODE_ENV !== "production" && !hayAuthGateway()) {
+  if (!hayApiAnthropic()) {
     return NextResponse.json(
       {
         error:
-          "Falta configurar la pasarela de IA (AI Gateway). En local: vercel env pull o AI_GATEWAY_API_KEY.",
+          "Falta ANTHROPIC_API_KEY. En Vercel: Settings → Environment Variables (Production y Preview). En local: .env.local.",
       },
       { status: 503 }
     );
@@ -309,6 +298,7 @@ export async function POST(request: Request) {
     historial?: unknown;
     estado?: unknown;
     borrador?: unknown;
+    mesa?: unknown;
   };
   try {
     payload = JSON.parse(rawPayload) as typeof payload;
@@ -360,7 +350,7 @@ export async function POST(request: Request) {
 
   const partes: Array<
     | { type: "text"; text: string }
-    | { type: "file"; data: string; mediaType: string; filename?: string }
+    | { type: "file"; data: Uint8Array; mediaType: string; filename?: string }
   > = [];
   let cupoRestante = COPILOTO_TEXTO_TOTAL;
   let pdfVisuales = 0;
@@ -399,7 +389,7 @@ export async function POST(request: Request) {
           }
           partes.push({
             type: "file",
-            data: pdfComoDataUrl(buf),
+            data: buf,
             mediaType: "application/pdf",
             filename: file.name,
           });
@@ -453,20 +443,21 @@ export async function POST(request: Request) {
     partes.push({ type: "text", text: recorte.bloque });
   }
 
-  const mesa = files.map((f) => f.name);
+  const mesaNombres = Array.isArray(payload.mesa)
+    ? payload.mesa.filter((n): n is string => typeof n === "string" && n.trim().length > 0)
+    : files.map((f) => f.name);
   const baseJson = snapshotEstado(estado);
   const borradorJson = borrador ? snapshotEstado(estadoDesdeBorrador(estado, borrador)) : null;
   const encabezado = [
-    mesa.length > 0
-      ? `Documentos en la mesa de esta sesión (siguen vigentes): ${mesa.join(", ")}.`
+    mesaNombres.length > 0
+      ? files.length > 0
+        ? `Documentos nuevos en este envío (léelos): ${files.map((f) => f.name).join(", ")}. En la mesa también: ${mesaNombres.join(", ")}.`
+        : `Documentos ya leídos en esta sesión (no se reenvían): ${mesaNombres.join(", ")}. Usa el BORRADOR como fuente.`
       : "No hay documentos en la mesa en este envío.",
     "",
-    "ESTADO del formulario (ya aceptado en el CRM):",
-    JSON.stringify(baseJson),
-    "",
     borradorJson
-      ? `BORRADOR en curso (aún no volcado al formulario). Aplica la petición SOBRE ESTE borrador y conserva el resto:\n${JSON.stringify(borradorJson)}`
-      : "No hay borrador en curso: parte del ESTADO del formulario.",
+      ? `BORRADOR en curso. Aplica la petición SOBRE ESTE borrador y conserva el resto:\n${JSON.stringify(borradorJson)}`
+      : `ESTADO del formulario (ya aceptado en el CRM):\n${JSON.stringify(baseJson)}`,
     "",
     `Petición del usuario:\n${instrucciones}`,
   ].join("\n");
@@ -486,12 +477,13 @@ export async function POST(request: Request) {
   ];
 
   try {
-    const output = await generarPresupuesto({
+    const { output, uso } = await generarPresupuesto({
       system: systemPromptCopiloto(estado.emisor),
       messages,
-      hayPdfVisual: pdfVisuales > 0,
+      hayAdjuntos: files.length > 0,
+      hayBorrador: Boolean(borrador),
     });
-    return NextResponse.json({ output });
+    return NextResponse.json({ output, uso });
   } catch (err) {
     console.error("[copiloto]", err);
     const mapped = mensajeErrorCopiloto(err);

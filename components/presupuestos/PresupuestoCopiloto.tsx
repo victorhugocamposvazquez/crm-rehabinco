@@ -6,6 +6,7 @@ import { Sheet } from "@/components/ui/sheet";
 import {
   COPILOTO_MAX_BYTES,
   COPILOTO_MAX_FILES,
+  parsearSalidaCopiloto,
   type CopilotoOutput,
   type EstadoCopiloto,
   type HistorialCopiloto,
@@ -14,11 +15,22 @@ import {
 import { diffPresupuesto, euro, importeLineas } from "@/lib/ai/presupuesto-diff";
 import { totalesAmpliacion } from "@/lib/presupuesto-totales";
 import { avisosDePartida, chipsDePartida, tonoChip } from "@/lib/presupuesto-propuesta";
+import {
+  ACUMULADO_VACIO,
+  formatoMiles,
+  formatoUsd,
+  guardarTotal,
+  leerTotalGuardado,
+  nombreModelo,
+  sumarUso,
+  type AcumuladoCopiloto,
+  type UsoCopiloto,
+} from "@/lib/ai/presupuesto-consumo";
 import { ArrowLeft, ArrowUp, Plus, Sparkles, Undo2, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-type Msg = HistorialCopiloto & { files?: string[] };
+type Msg = HistorialCopiloto & { files?: string[]; uso?: UsoCopiloto };
 
 const LOGO_REHABINCO = "/images/logo-web.png";
 const LOGO_GARAL = "/images/presupuestos/garal-negro.png";
@@ -48,20 +60,22 @@ function claveArchivos(list: File[]) {
   return list.map((f) => `${f.name}:${f.size}:${f.lastModified}`).join("|");
 }
 
-async function leerRespuestaCopiloto(res: Response): Promise<{ output?: CopilotoOutput; error?: string }> {
+async function leerRespuestaCopiloto(
+  res: Response
+): Promise<{ output?: CopilotoOutput; uso?: UsoCopiloto; error?: string }> {
   const ct = res.headers.get("content-type") || "";
   if (ct.includes("text/event-stream") && res.body) {
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buf = "";
-    let last: { output?: CopilotoOutput; error?: string } | null = null;
+    let last: { output?: CopilotoOutput; uso?: UsoCopiloto; error?: string } | null = null;
     const consume = (chunk: string) => {
       const line = chunk.split("\n").find((l) => l.startsWith("data:"));
       if (!line) return;
       const json = line.replace(/^data:\s?/, "").trim();
       if (!json) return;
       try {
-        last = JSON.parse(json) as { output?: CopilotoOutput; error?: string };
+        last = JSON.parse(json) as { output?: CopilotoOutput; uso?: UsoCopiloto; error?: string };
       } catch {
         /* keep-alive */
       }
@@ -79,7 +93,7 @@ async function leerRespuestaCopiloto(res: Response): Promise<{ output?: Copiloto
     return last ?? { error: "El copiloto se cortó antes de terminar. Inténtalo de nuevo." };
   }
   try {
-    return (await res.json()) as { output?: CopilotoOutput; error?: string };
+    return (await res.json()) as { output?: CopilotoOutput; uso?: UsoCopiloto; error?: string };
   } catch {
     if (res.status === 502 || res.status === 504) {
       return {
@@ -108,6 +122,12 @@ function mergeFiles(current: File[], incoming: FileList | File[]): { next: File[
     return { next: current, error: "Los adjuntos superan 4 MB. Comprime el PDF o quita algún archivo." };
   }
   return { next };
+}
+
+function archivosNuevos(list: File[], sentKey: string) {
+  if (!sentKey) return list;
+  const sent = new Set(sentKey.split("|"));
+  return list.filter((f) => !sent.has(`${f.name}:${f.size}:${f.lastModified}`));
 }
 
 function canvasDesdeEstado(estado: EstadoCopiloto): CopilotoOutput {
@@ -141,6 +161,10 @@ export function PresupuestoCopiloto({
   const [draft, setDraft] = useState<CopilotoOutput | null>(null);
   const [undoStack, setUndoStack] = useState<CopilotoOutput[]>([]);
   const [mobilePane, setMobilePane] = useState<"chat" | "canvas">("chat");
+  const [sesion, setSesion] = useState<AcumuladoCopiloto>(ACUMULADO_VACIO);
+  const [total, setTotal] = useState<AcumuladoCopiloto>(ACUMULADO_VACIO);
+  const [ultimo, setUltimo] = useState<UsoCopiloto | null>(null);
+  const [verConsumo, setVerConsumo] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
@@ -153,6 +177,10 @@ export function PresupuestoCopiloto({
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, busy]);
+
+  useEffect(() => {
+    setTotal(leerTotalGuardado());
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -172,7 +200,32 @@ export function PresupuestoCopiloto({
     const instrucciones = (opts?.instrucciones ?? text).trim();
     const nuevos = opts?.nuevos ?? hayArchivosNuevos;
     if ((!instrucciones && !nuevos) || busy) return;
+
+    if (!nuevos && instrucciones && (instrucciones.startsWith("{") || instrucciones.startsWith("```"))) {
+      try {
+        const output = parsearSalidaCopiloto(instrucciones);
+        setBusy(true);
+        try {
+          setMessages((m) => [
+            ...m,
+            { role: "user", text: "JSON pegado" },
+            { role: "assistant", text: output.resumen || "Documento aplicado al presupuesto." },
+          ]);
+          applyCanvas(output);
+          setMobilePane("canvas");
+          setText("");
+          toast.success("Aplicado desde JSON.");
+        } finally {
+          setBusy(false);
+        }
+        return;
+      } catch {
+        /* no es JSON del esquema: lo envía Opus */
+      }
+    }
+
     setBusy(true);
+    const subir = nuevos ? archivosNuevos(mesa, sentFileKey) : [];
     const form = new FormData();
     form.append(
       "payload",
@@ -181,9 +234,10 @@ export function PresupuestoCopiloto({
         historial: messages.map(({ role, text: t }) => ({ role, text: t })),
         estado,
         borrador: draft,
+        mesa: mesa.map((f) => f.name),
       })
     );
-    for (const file of mesa) form.append("files", file);
+    for (const file of subir) form.append("files", file);
     const ac = new AbortController();
     const timeout = window.setTimeout(() => ac.abort(), 58_000);
     try {
@@ -194,6 +248,15 @@ export function PresupuestoCopiloto({
         return;
       }
       const output = data.output;
+      if (data.uso) {
+        setUltimo(data.uso);
+        setSesion((s) => sumarUso(s, data.uso!));
+        setTotal((t) => {
+          const next = sumarUso(t, data.uso!);
+          guardarTotal(next);
+          return next;
+        });
+      }
       setMessages((m) => [
         ...m,
         {
@@ -201,7 +264,7 @@ export function PresupuestoCopiloto({
           text: instrucciones || "Leer lo que hay en la mesa y actualizar el documento",
           files: nuevos ? mesa.map((f) => f.name) : [],
         },
-        { role: "assistant", text: output.resumen },
+        { role: "assistant", text: output.resumen, uso: data.uso },
       ]);
       applyCanvas(output);
       setMobilePane("canvas");
@@ -301,12 +364,59 @@ export function PresupuestoCopiloto({
                 <span className="min-w-0 flex-1" />
                 <button
                   type="button"
+                  onClick={() => setVerConsumo((v) => !v)}
+                  className="rounded-full px-2.5 py-1 text-[11px] tabular-nums text-neutral-500 hover:bg-black/5"
+                  aria-expanded={verConsumo}
+                  title="Consumo de la API de Claude"
+                >
+                  {sesion.llamadas > 0 ? `sesión ${formatoUsd(sesion.usd)}` : "consumo"}
+                </button>
+                <button
+                  type="button"
                   className="rounded-full px-3 py-1.5 text-[13px] font-medium text-neutral-600 hover:bg-black/5 md:hidden"
                   onClick={() => setMobilePane("canvas")}
                 >
                   Documento
                 </button>
               </header>
+              {verConsumo && (
+                <div className="mx-3 mb-1 rounded-2xl bg-white/80 px-3 py-2.5 text-[12px] leading-relaxed text-neutral-600">
+                  <p>
+                    Esta sesión: <span className="tabular-nums text-neutral-900">{formatoUsd(sesion.usd)}</span>
+                    {sesion.llamadas > 0 ? ` · ${sesion.llamadas} ${sesion.llamadas === 1 ? "llamada" : "llamadas"}` : ""}
+                  </p>
+                  <p className="mt-0.5">
+                    Total en este navegador:{" "}
+                    <span className="tabular-nums text-neutral-900">{formatoUsd(total.usd)}</span>
+                    {total.llamadas > 0 ? ` · ${total.llamadas} ${total.llamadas === 1 ? "llamada" : "llamadas"}` : ""}
+                  </p>
+                  {ultimo ? (
+                    <p className="mt-0.5">
+                      Última: {nombreModelo(ultimo.modelo)} · {formatoUsd(ultimo.usd)} · {formatoMiles(ultimo.input)} in
+                      {ultimo.cacheRead > 0
+                        ? ` (${Math.round((ultimo.cacheRead / Math.max(1, ultimo.input)) * 100)}% cache)`
+                        : ""}{" "}
+                      / {formatoMiles(ultimo.output)} out
+                    </p>
+                  ) : (
+                    <p className="mt-0.5 text-neutral-400">
+                      Primera lectura con Opus; correcciones con Sonnet. El Word no se reenvía.
+                    </p>
+                  )}
+                  {total.llamadas > 0 && (
+                    <button
+                      type="button"
+                      className="mt-1.5 text-[11px] text-neutral-400 underline-offset-2 hover:underline"
+                      onClick={() => {
+                        guardarTotal(ACUMULADO_VACIO);
+                        setTotal(ACUMULADO_VACIO);
+                      }}
+                    >
+                      Poner el total a cero
+                    </button>
+                  )}
+                </div>
+              )}
               <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
                 {messages.length === 0 && (
                   <div className="px-1 pt-8">
@@ -334,6 +444,14 @@ export function PresupuestoCopiloto({
                     ) : (
                       <div key={`a-${i}`} className="px-1 text-[15px] leading-relaxed text-neutral-800">
                         <p className="whitespace-pre-wrap">{m.text}</p>
+                        {m.uso && (
+                          <p className="mt-1.5 text-[11px] tabular-nums text-neutral-400">
+                            {nombreModelo(m.uso.modelo)} · {formatoUsd(m.uso.usd)}
+                            {m.uso.cacheRead > 0
+                              ? ` · ${Math.round((m.uso.cacheRead / Math.max(1, m.uso.input)) * 100)}% cache`
+                              : ""}
+                          </p>
+                        )}
                       </div>
                     )
                   )}
