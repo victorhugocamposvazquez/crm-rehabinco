@@ -13,6 +13,8 @@ interface SheetProps {
   fullScreenOnMobile?: boolean;
   /** Mostrar botón X para cerrar en la esquina superior. */
   showCloseButton?: boolean;
+  /** Estudio a pantalla completa (chat + documento), no sheet inferior. */
+  variant?: "sheet" | "studio";
 }
 
 export function Sheet({
@@ -22,6 +24,7 @@ export function Sheet({
   className,
   fullScreenOnMobile = false,
   showCloseButton = false,
+  variant = "sheet",
 }: SheetProps) {
   const overflowRef = React.useRef<string>("");
 
@@ -46,6 +49,13 @@ export function Sheet({
         onClick={() => onOpenChange(false)}
         aria-hidden
       />
+      {variant === "studio" ? (
+        <div className={cn("absolute inset-0 z-10 flex flex-col bg-[#f3f1ed] pb-[env(safe-area-inset-bottom)]", className)}>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden pt-[env(safe-area-inset-top)]">
+            {children}
+          </div>
+        </div>
+      ) : (
       <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center">
         <div
           className={cn(
@@ -77,6 +87,7 @@ export function Sheet({
         <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
         </div>
       </div>
+      )}
     </div>
   );
 

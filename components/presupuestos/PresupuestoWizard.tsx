@@ -330,10 +330,11 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
     <div className="relative mx-auto max-w-2xl animate-[fadeIn_0.3s_ease-out] pb-36 md:pb-24">
       <div className="mb-4 flex items-center justify-between gap-3">
         <p className="hidden min-w-0 text-sm text-neutral-500 sm:block">
-          El copiloto guarda el contexto: suelta Word, PDF y correcciones; acepta cuando quieras volcar.
+          El copiloto es el estudio: documento a un lado, correcciones al otro.
         </p>
         <div className="ml-auto shrink-0">
         <PresupuestoCopiloto
+          liveApply
           estado={{
             emisor: emisorSlug,
             concepto,

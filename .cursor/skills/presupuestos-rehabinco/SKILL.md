@@ -57,4 +57,4 @@ Condiciones por defecto si no piden otras: garantía 24 meses, precios con MO/ma
 
 Pega el resultado en el **Copiloto** del wizard o de la ficha (`/presupuestos/[id]`), o transcribe los campos. No generes HTML/PDF libre.
 
-El copiloto del CRM es una **sesión continua**: los Word/PDF se quedan en la mesa, el historial cuenta, y cada mensaje corrige el borrador (no parte de cero). Aceptar vuelca al formulario; se puede seguir corrigiendo después.
+El copiloto del CRM es un **estudio** (chat + documento en vivo), al estilo de Claude Design: los Word/PDF se quedan en la mesa, cada mensaje actualiza el documento, Deshacer vuelve atrás. En el wizard el formulario se actualiza en vivo; en la ficha hay que pulsar Guardar.
