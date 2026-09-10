@@ -304,4 +304,4 @@ export function snapshotEstado(estado: EstadoCopiloto) {
 }
 
 export const MODELO_COPILOTO = "spacexai/grok-4.6";
-export const MODELO_COPILOTO_FALLBACK = "spacexai/grok-4.5";
+export const MODELO_COPILOTO_FALLBACK = "spacexai/grok-4.20-non-reasoning";

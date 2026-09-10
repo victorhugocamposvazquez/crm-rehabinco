@@ -1,4 +1,4 @@
-import { generateText, Output, gateway, type ModelMessage } from "ai";
+import { generateText, gateway, type ModelMessage } from "ai";
 import { NextResponse } from "next/server";
 import {
   COPILOTO_HISTORIAL_MAX,
@@ -8,7 +8,6 @@ import {
   INSTRUCCION_ADJUNTOS,
   MODELO_COPILOTO,
   MODELO_COPILOTO_FALLBACK,
-  copilotoLlmSchema,
   copilotoOutputSchema,
   estadoDesdeBorrador,
   normalizarOutput,
@@ -32,12 +31,20 @@ function hayAuthGateway() {
 
 function extraerJson(text: string): unknown {
   const trimmed = text.trim();
+  if (!trimmed) throw new Error("El modelo no devolvió JSON.");
   const fence = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const raw = fence ? fence[1].trim() : trimmed;
-  const start = raw.indexOf("{");
-  const end = raw.lastIndexOf("}");
-  if (start < 0 || end <= start) throw new Error("El modelo no devolvió JSON.");
-  return JSON.parse(raw.slice(start, end + 1));
+  const bloques = fence ? [fence[1].trim(), trimmed] : [trimmed];
+  for (const raw of bloques) {
+    const start = raw.indexOf("{");
+    const end = raw.lastIndexOf("}");
+    if (start < 0 || end <= start) continue;
+    try {
+      return JSON.parse(raw.slice(start, end + 1));
+    } catch {
+      /* probar el siguiente bloque */
+    }
+  }
+  throw new Error("El modelo no devolvió JSON.");
 }
 
 function textoError(err: unknown) {
@@ -46,6 +53,7 @@ function textoError(err: unknown) {
 }
 
 function mensajeErrorCopiloto(err: unknown): { status: number; error: string } {
+  const name = typeof err === "object" && err && "name" in err ? String((err as { name: unknown }).name) : "";
   const message = textoError(err);
   const statusCode =
     typeof err === "object" && err && "statusCode" in err && typeof (err as { statusCode: unknown }).statusCode === "number"
@@ -64,7 +72,12 @@ function mensajeErrorCopiloto(err: unknown): { status: number; error: string } {
       error: "Sin crédito en AI Gateway. Añade créditos en Vercel → AI Gateway.",
     };
   }
-  if (/timeout|ETIMEDOUT|timed out|deadline/i.test(message) || statusCode === 504) {
+  if (
+    name === "AbortError" ||
+    name === "TimeoutError" ||
+    /timeout|ETIMEDOUT|timed out|deadline|aborted/i.test(message) ||
+    statusCode === 504
+  ) {
     return {
       status: 504,
       error: "La IA tardó demasiado. Prueba con menos adjuntos o una petición más concreta.",
@@ -77,86 +90,30 @@ function mensajeErrorCopiloto(err: unknown): { status: number; error: string } {
   };
 }
 
-function debeReintentarSinEsquema(err: unknown) {
-  const message = textoError(err);
-  if (/API key|OIDC|Unauthenticated|credit|quota|timeout|ETIMEDOUT/i.test(message)) return false;
-  return /schema|default is not|json schema|tool|unparseable|No object generated|response_format/i.test(message);
-}
-
-function respuestaSse(run: (emit: (payload: { output?: CopilotoOutput; error?: string }) => void) => Promise<void>) {
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream({
-    async start(controller) {
-      const emit = (payload: { output?: CopilotoOutput; error?: string }) => {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
-      };
-      const ping = setInterval(() => {
-        try {
-          controller.enqueue(encoder.encode(": ping\n\n"));
-        } catch {
-          /* stream cerrado */
-        }
-      }, 4000);
-      try {
-        await run(emit);
-      } catch (err) {
-        console.error("[copiloto]", err);
-        emit({ error: mensajeErrorCopiloto(err).error });
-      } finally {
-        clearInterval(ping);
-        controller.close();
-      }
-    },
-  });
-  return new Response(stream, {
-    status: 200,
-    headers: {
-      "Content-Type": "text/event-stream; charset=utf-8",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-      "X-Accel-Buffering": "no",
-    },
-  });
-}
-
 async function generarPresupuesto(opts: {
   system: string;
   messages: ModelMessage[];
 }): Promise<CopilotoOutput> {
-  const common = {
+  const result = await generateText({
     model: gateway(MODELO_COPILOTO),
-    system: opts.system,
+    system: `${opts.system}
+
+Responde SOLO con un JSON válido (sin markdown) con: resumen, sugerencias, concepto, porcentaje_descuento, lineas, propuesta.`,
     messages: opts.messages,
-    maxOutputTokens: 16_000,
+    maxOutputTokens: 8_000,
+    abortSignal: AbortSignal.timeout(50_000),
+    maxRetries: 0,
     providerOptions: {
       gateway: {
         models: [MODELO_COPILOTO_FALLBACK],
       },
     },
-  };
-
-  try {
-    const result = await generateText({
-      ...common,
-      output: Output.object({
-        schema: copilotoLlmSchema,
-        name: "presupuesto",
-        description: "Presupuesto completo resultante tras la petición del usuario",
-      }),
-    });
-    const parsed = copilotoOutputSchema.safeParse(result.output);
-    if (parsed.success) return normalizarOutput(parsed.data);
-    throw new Error("El modelo no devolvió un presupuesto válido. Inténtalo de nuevo con una petición más concreta.");
-  } catch (err) {
-    console.error("[copiloto] structured", err);
-    if (!debeReintentarSinEsquema(err)) throw err;
-  }
-
-  const result = await generateText({
-    ...common,
-    system: `${opts.system}\n\nResponde SOLO con un JSON válido del presupuesto completo (resumen, sugerencias, concepto, porcentaje_descuento, lineas, propuesta). Sin markdown.`,
   });
-  const parsed = copilotoOutputSchema.safeParse(extraerJson(result.text));
+  const texto = result.text?.trim() ?? "";
+  if (!texto) {
+    throw new Error("El modelo no devolvió texto. Inténtalo de nuevo.");
+  }
+  const parsed = copilotoOutputSchema.safeParse(extraerJson(texto));
   if (!parsed.success) {
     throw new Error("El modelo no devolvió un presupuesto válido. Inténtalo de nuevo con una petición más concreta.");
   }
@@ -346,10 +303,10 @@ export async function POST(request: Request) {
       : "No hay documentos en la mesa en este envío.",
     "",
     "ESTADO del formulario (ya aceptado en el CRM):",
-    JSON.stringify(baseJson, null, 2),
+    JSON.stringify(baseJson),
     "",
     borradorJson
-      ? `BORRADOR en curso (aún no volcado al formulario). Aplica la petición SOBRE ESTE borrador y conserva el resto:\n${JSON.stringify(borradorJson, null, 2)}`
+      ? `BORRADOR en curso (aún no volcado al formulario). Aplica la petición SOBRE ESTE borrador y conserva el resto:\n${JSON.stringify(borradorJson)}`
       : "No hay borrador en curso: parte del ESTADO del formulario.",
     "",
     `Petición del usuario:\n${instrucciones}`,
@@ -369,11 +326,15 @@ export async function POST(request: Request) {
     },
   ];
 
-  return respuestaSse(async (emit) => {
+  try {
     const output = await generarPresupuesto({
       system: systemPromptCopiloto(estado.emisor),
       messages,
     });
-    emit({ output });
-  });
+    return NextResponse.json({ output });
+  } catch (err) {
+    console.error("[copiloto]", err);
+    const mapped = mensajeErrorCopiloto(err);
+    return NextResponse.json({ error: mapped.error }, { status: mapped.status });
+  }
 }

@@ -37,33 +37,35 @@ async function leerRespuestaCopiloto(res: Response): Promise<{ output?: Copiloto
     const decoder = new TextDecoder();
     let buf = "";
     let last: { output?: CopilotoOutput; error?: string } | null = null;
+    const consume = (chunk: string) => {
+      const line = chunk.split("\n").find((l) => l.startsWith("data:"));
+      if (!line) return;
+      const json = line.replace(/^data:\s?/, "").trim();
+      if (!json) return;
+      try {
+        last = JSON.parse(json) as { output?: CopilotoOutput; error?: string };
+      } catch {
+        /* keep-alive */
+      }
+    };
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       buf += decoder.decode(value, { stream: true });
       const chunks = buf.split("\n\n");
       buf = chunks.pop() ?? "";
-      for (const chunk of chunks) {
-        const line = chunk.split("\n").find((l) => l.startsWith("data:"));
-        if (!line) continue;
-        const json = line.replace(/^data:\s?/, "").trim();
-        if (!json) continue;
-        try {
-          last = JSON.parse(json) as { output?: CopilotoOutput; error?: string };
-        } catch {
-          /* keep-alive u otros eventos */
-        }
-      }
+      for (const chunk of chunks) consume(chunk);
     }
-    return last ?? { error: "El copiloto no devolvió datos." };
+    buf += decoder.decode();
+    if (buf.trim()) consume(buf);
+    return last ?? { error: "El copiloto se cortó antes de terminar. Inténtalo de nuevo." };
   }
   try {
     return (await res.json()) as { output?: CopilotoOutput; error?: string };
   } catch {
     if (res.status === 502 || res.status === 504) {
       return {
-        error:
-          "El servidor cortó la petición (tiempo o tamaño). Prueba con menos adjuntos o un PDF más pequeño.",
+        error: "El servidor cortó la petición. Prueba con menos adjuntos o un archivo más pequeño.",
       };
     }
     return { error: "No se pudo leer la respuesta del copiloto." };
@@ -164,8 +166,10 @@ export function PresupuestoCopiloto({
       })
     );
     for (const file of mesa) form.append("files", file);
+    const ac = new AbortController();
+    const timeout = window.setTimeout(() => ac.abort(), 55_000);
     try {
-      const res = await fetch("/api/presupuestos/copiloto", { method: "POST", body: form });
+      const res = await fetch("/api/presupuestos/copiloto", { method: "POST", body: form, signal: ac.signal });
       const data = await leerRespuestaCopiloto(res);
       if (!data.output) {
         toast.error(data.error || "No se pudo generar la propuesta.");
@@ -185,9 +189,11 @@ export function PresupuestoCopiloto({
       setMobilePane("canvas");
       setText("");
       setSentFileKey(claveArchivos(mesa));
-    } catch {
-      toast.error("No se pudo contactar con el copiloto.");
+    } catch (err) {
+      const aborted = err instanceof DOMException && err.name === "AbortError";
+      toast.error(aborted ? "Tardó demasiado. Prueba con menos adjuntos." : "No se pudo contactar con el copiloto.");
     } finally {
+      window.clearTimeout(timeout);
       setBusy(false);
     }
   };
