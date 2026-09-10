@@ -5,7 +5,8 @@ import { esLineaRepercusion } from "@/lib/presupuesto-totales";
 
 export const COPILOTO_MAX_FILES = 6;
 export const COPILOTO_MAX_BYTES = 4_000_000;
-export const COPILOTO_TEXTO_MAX = 80_000;
+export const COPILOTO_TEXTO_MAX = 24_000;
+export const COPILOTO_TEXTO_TOTAL = 50_000;
 export const COPILOTO_HISTORIAL_MAX = 16;
 
 export const INSTRUCCION_ADJUNTOS = `Lee los documentos de la sesión y vuelca su contenido al esquema del CRM. Relaciónalos entre sí y con el presupuesto actual (JSON): si el Word o PDF es una ampliación, un listado de extras o una modificación sobre el origen, usa tipo=ampliacion; si es el presupuesto entero, tipo=presupuesto. Si hay dos versiones del mismo listado, usa la más desglosada (con m², ml y precios unitarios) y cruza los totales. Conserva lo ya acordado en el historial.`;
@@ -303,5 +304,5 @@ export function snapshotEstado(estado: EstadoCopiloto) {
   };
 }
 
-export const MODELO_COPILOTO = "spacexai/grok-4.6";
-export const MODELO_COPILOTO_FALLBACK = "spacexai/grok-4.20-non-reasoning";
+export const MODELO_COPILOTO = "spacexai/grok-4.20-non-reasoning";
+export const MODELO_COPILOTO_FALLBACK = "spacexai/grok-4.1-fast-non-reasoning";

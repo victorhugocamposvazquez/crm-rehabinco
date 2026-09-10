@@ -167,7 +167,7 @@ export function PresupuestoCopiloto({
     );
     for (const file of mesa) form.append("files", file);
     const ac = new AbortController();
-    const timeout = window.setTimeout(() => ac.abort(), 55_000);
+    const timeout = window.setTimeout(() => ac.abort(), 58_000);
     try {
       const res = await fetch("/api/presupuestos/copiloto", { method: "POST", body: form, signal: ac.signal });
       const data = await leerRespuestaCopiloto(res);
@@ -191,7 +191,7 @@ export function PresupuestoCopiloto({
       setSentFileKey(claveArchivos(mesa));
     } catch (err) {
       const aborted = err instanceof DOMException && err.name === "AbortError";
-      toast.error(aborted ? "Tardó demasiado. Prueba con menos adjuntos." : "No se pudo contactar con el copiloto.");
+      toast.error(aborted ? "Tardó demasiado. Vuelve a intentarlo; si se repite, envía un Word cada vez." : "No se pudo contactar con el copiloto.");
     } finally {
       window.clearTimeout(timeout);
       setBusy(false);

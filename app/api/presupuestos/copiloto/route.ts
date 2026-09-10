@@ -5,6 +5,7 @@ import {
   COPILOTO_MAX_BYTES,
   COPILOTO_MAX_FILES,
   COPILOTO_TEXTO_MAX,
+  COPILOTO_TEXTO_TOTAL,
   INSTRUCCION_ADJUNTOS,
   MODELO_COPILOTO,
   MODELO_COPILOTO_FALLBACK,
@@ -24,6 +25,14 @@ import { createClient } from "@/lib/supabase/server";
 export const maxDuration = 60;
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+function recortarAdjunto(nombre: string, etiqueta: string, texto: string, cupo: number) {
+  const cuerpo = texto.length > cupo ? `${texto.slice(0, cupo)}\n[…texto recortado]` : texto;
+  return {
+    bloque: `--- Archivo ${nombre} (${etiqueta}) ---\n${cuerpo}`,
+    usado: Math.min(texto.length, cupo),
+  };
+}
 
 function hayAuthGateway() {
   return Boolean(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN);
@@ -80,7 +89,7 @@ function mensajeErrorCopiloto(err: unknown): { status: number; error: string } {
   ) {
     return {
       status: 504,
-      error: "La IA tardó demasiado. Prueba con menos adjuntos o una petición más concreta.",
+      error: "La IA no terminó a tiempo con estos documentos. Vuelve a intentarlo; si se repite, envía un Word cada vez.",
     };
   }
   const short = message.replace(/\s+/g, " ").slice(0, 280);
@@ -100,8 +109,8 @@ async function generarPresupuesto(opts: {
 
 Responde SOLO con un JSON válido (sin markdown) con: resumen, sugerencias, concepto, porcentaje_descuento, lineas, propuesta.`,
     messages: opts.messages,
-    maxOutputTokens: 8_000,
-    abortSignal: AbortSignal.timeout(50_000),
+    maxOutputTokens: 12_000,
+    abortSignal: AbortSignal.timeout(55_000),
     maxRetries: 0,
     providerOptions: {
       gateway: {
@@ -232,6 +241,7 @@ export async function POST(request: Request) {
   }
 
   const partes: Array<{ type: "text"; text: string }> = [];
+  let cupoRestante = COPILOTO_TEXTO_TOTAL;
 
   for (const file of files) {
     if (esDocBinario(file)) {
@@ -240,7 +250,15 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+    if (cupoRestante <= 0) {
+      partes.push({
+        type: "text",
+        text: `--- Archivo ${file.name} omitido: se alcanzó el tope de texto de esta sesión. ---`,
+      });
+      continue;
+    }
     const mediaType = mimeDeArchivo(file);
+    const cupo = Math.min(COPILOTO_TEXTO_MAX, cupoRestante);
     if (mediaType === "application/pdf") {
       try {
         const buf = new Uint8Array(await file.arrayBuffer());
@@ -251,10 +269,9 @@ export async function POST(request: Request) {
             { status: 400 }
           );
         }
-        partes.push({
-          type: "text",
-          text: `--- Archivo ${file.name} (PDF extraído a texto) ---\n${texto.slice(0, COPILOTO_TEXTO_MAX)}`,
-        });
+        const recorte = recortarAdjunto(file.name, "PDF extraído a texto", texto, cupo);
+        cupoRestante -= recorte.usado;
+        partes.push({ type: "text", text: recorte.bloque });
       } catch (err) {
         const msg = err instanceof Error ? err.message : `No se pudo leer ${file.name}.`;
         return NextResponse.json({ error: msg }, { status: 400 });
@@ -271,10 +288,9 @@ export async function POST(request: Request) {
             { status: 400 }
           );
         }
-        partes.push({
-          type: "text",
-          text: `--- Archivo ${file.name} (Word extraído a texto) ---\n${texto.slice(0, COPILOTO_TEXTO_MAX)}`,
-        });
+        const recorte = recortarAdjunto(file.name, "Word extraído a texto", texto, cupo);
+        cupoRestante -= recorte.usado;
+        partes.push({ type: "text", text: recorte.bloque });
       } catch (err) {
         const msg = err instanceof Error ? err.message : `No se pudo leer ${file.name}.`;
         return NextResponse.json({ error: msg }, { status: 400 });
@@ -288,10 +304,9 @@ export async function POST(request: Request) {
       );
     }
     const texto = await file.text();
-    partes.push({
-      type: "text",
-      text: `--- Archivo ${file.name} ---\n${texto.slice(0, COPILOTO_TEXTO_MAX)}`,
-    });
+    const recorte = recortarAdjunto(file.name, "texto", texto, cupo);
+    cupoRestante -= recorte.usado;
+    partes.push({ type: "text", text: recorte.bloque });
   }
 
   const mesa = files.map((f) => f.name);
