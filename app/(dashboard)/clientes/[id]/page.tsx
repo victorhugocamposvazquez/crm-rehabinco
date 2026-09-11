@@ -250,17 +250,17 @@ export default function DetalleClientePage() {
         </Card>
         <Card className="md:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Propiedades</CardTitle>
+            <CardTitle>Inmuebles</CardTitle>
             <Button variant="secondary" size="sm" asChild>
               <Link href={`/propiedades/nueva?ofertante=${id}`} className="gap-1.5">
                 <Plus className="h-4 w-4" strokeWidth={1.5} />
-                Añadir propiedad
+                Añadir inmueble
               </Link>
             </Button>
           </CardHeader>
           <CardContent>
             {propiedades.length === 0 ? (
-              <p className="text-sm text-neutral-500">Sin propiedades registradas. Añade una si este cliente ofrece inmuebles.</p>
+              <p className="text-sm text-neutral-500">Sin inmuebles registrados. Añade uno si este cliente ofrece inmuebles.</p>
             ) : (
               <ul className="space-y-2">
                 {propiedades.map((p) => (

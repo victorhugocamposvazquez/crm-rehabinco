@@ -33,7 +33,7 @@ export async function createUser(
       return { success: false, error: "Solo los administradores pueden crear usuarios." };
     }
 
-    if (role !== "admin" && role !== "agente" && role !== "editor") {
+    if (role !== "admin" && role !== "comercial" && role !== "editor") {
       return { success: false, error: "El rol no es válido." };
     }
 

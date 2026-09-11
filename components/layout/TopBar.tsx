@@ -26,7 +26,7 @@ import { Sheet } from "@/components/ui/sheet";
 const navItems = [
   { href: "/", label: "Inicio", icon: Home },
   { href: "/clientes", label: "Clientes", icon: Users },
-  { href: "/propiedades", label: "Propiedades", icon: Building2 },
+  { href: "/propiedades", label: "Inmuebles", icon: Building2 },
   { href: "/partes-visita", label: "Visitas", icon: ClipboardPenLine },
   { href: "/presupuestos", label: "Presupuestos", icon: ClipboardList },
   { href: "/facturas", label: "Facturas", icon: FileText },

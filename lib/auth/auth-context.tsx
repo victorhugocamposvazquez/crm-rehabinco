@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const response = await supabase.from("profiles").insert({
           id: authUser.id,
           email: authUser.email,
-          role: "agente",
+          role: "comercial",
         });
         error = response.error;
       } catch (insertError) {
@@ -81,14 +81,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return {
           id: authUser.id,
           email: authUser.email ?? "",
-          role: "agente",
+          role: "comercial",
         };
       }
 
       return {
         id: authUser.id,
         email: authUser.email ?? "",
-        role: "agente",
+        role: "comercial",
       };
     };
 

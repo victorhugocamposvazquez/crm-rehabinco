@@ -1,14 +1,15 @@
-export type Role = "admin" | "agente" | "editor";
+export type Role = "admin" | "comercial" | "editor";
 
 export const ROLE_LABELS: Record<Role, string> = {
   admin: "Administrador",
-  agente: "Agente",
+  comercial: "Comercial",
   editor: "Editor Garal",
 };
 
 export function parseRole(value: unknown): Role {
-  if (value === "admin" || value === "agente" || value === "editor") return value;
-  return "agente";
+  if (value === "admin" || value === "editor") return value;
+  if (value === "comercial" || value === "agente") return "comercial";
+  return "comercial";
 }
 
 export function roleLabel(role: Role | null | undefined): string {
@@ -20,12 +21,20 @@ export function isEditor(role: Role | null | undefined): boolean {
   return role === "editor";
 }
 
+export function isComercial(role: Role | null | undefined): boolean {
+  return role === "comercial";
+}
+
 const EDITOR_HOME = "/presupuestos";
 
 const EDITOR_BLOCKED_PREFIXES = [
   "/clientes",
   "/propiedades",
+  "/inmuebles",
   "/partes-visita",
+  "/visitas",
+  "/demandas",
+  "/calendario",
   "/facturas",
   "/settings/empresa",
   "/settings/emisores-presupuesto",

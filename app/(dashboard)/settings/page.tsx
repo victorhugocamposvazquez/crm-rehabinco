@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { createUser } from "@/lib/actions/usuarios";
 import { ROLE_LABELS, roleLabel, type Role } from "@/lib/auth/roles";
 import { UserPlus, Building2 } from "lucide-react";
+import { PerfilComercialCard } from "@/components/settings/PerfilComercialCard";
 
 export default function SettingsPage() {
   const { user, signOut } = useAuth();
@@ -24,7 +25,7 @@ export default function SettingsPage() {
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
   const [newUserConfirmPassword, setNewUserConfirmPassword] = useState("");
-  const [newUserRole, setNewUserRole] = useState<Role>("agente");
+  const [newUserRole, setNewUserRole] = useState<Role>("comercial");
   const [createUserMessage, setCreateUserMessage] = useState<string | null>(null);
   const [createUserError, setCreateUserError] = useState<string | null>(null);
   const [createUserSaving, setCreateUserSaving] = useState(false);
@@ -76,6 +77,8 @@ export default function SettingsPage() {
             </Button>
           </CardContent>
         </Card>
+
+        {user?.id && user.role !== "editor" && <PerfilComercialCard userId={user.id} />}
 
         <Card>
           <CardHeader>
@@ -224,7 +227,7 @@ export default function SettingsPage() {
                     onChange={(e) => setNewUserRole(e.target.value as Role)}
                     className="flex h-10 w-full rounded-lg border border-border bg-white px-4 py-2 text-base"
                   >
-                    <option value="agente">{ROLE_LABELS.agente}</option>
+                    <option value="comercial">{ROLE_LABELS.comercial}</option>
                     <option value="editor">{ROLE_LABELS.editor}</option>
                     <option value="admin">{ROLE_LABELS.admin}</option>
                   </select>

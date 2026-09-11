@@ -5,30 +5,30 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
+import { InmuebleForm } from "@/components/inmuebles/InmuebleForm";
+import { InmuebleGaleria } from "@/components/inmuebles/InmuebleGaleria";
+import {
+  formDesdeInmueble,
+  inmuebleDesdeForm,
+  INMUEBLE_FORM_VACIO,
+  type Inmueble,
+  type InmuebleFormValues,
+  type InmuebleMedia,
+} from "@/lib/inmuebles/catalogo";
+import { useAuth } from "@/lib/auth/auth-context";
 
 export default function EditarPropiedadPage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
   const id = params.id as string;
   const [clientes, setClientes] = useState<Array<{ id: string; nombre: string }>>([]);
-  const [ofertanteId, setOfertanteId] = useState("");
-  const [titulo, setTitulo] = useState("");
-  const [direccion, setDireccion] = useState("");
-  const [codigoPostal, setCodigoPostal] = useState("");
-  const [localidad, setLocalidad] = useState("");
-  const [tipoOperacion, setTipoOperacion] = useState<"venta" | "alquiler" | "ambos">("ambos");
-  const [precioVenta, setPrecioVenta] = useState("");
-  const [precioAlquiler, setPrecioAlquiler] = useState("");
-  const [superficie, setSuperficie] = useState("");
-  const [habitaciones, setHabitaciones] = useState("");
-  const [estado, setEstado] = useState("disponible");
-  const [notas, setNotas] = useState("");
+  const [values, setValues] = useState<InmuebleFormValues>(INMUEBLE_FORM_VACIO);
+  const [media, setMedia] = useState<InmuebleMedia[]>([]);
+  const [referencia, setReferencia] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,80 +46,43 @@ export default function EditarPropiedadPage() {
   useEffect(() => {
     if (!id) return;
     const supabase = createClient();
-    supabase
-      .from("propiedades")
-      .select("*")
-      .eq("id", id)
-      .single()
-      .then(({ data, error: err }) => {
-        if (err || !data) {
-          setLoading(false);
-          return;
-        }
-        const p = data as {
-          ofertante_id: string;
-          titulo: string | null;
-          direccion: string | null;
-          codigo_postal: string | null;
-          localidad: string | null;
-          tipo_operacion: string;
-          precio_venta: number | null;
-          precio_alquiler: number | null;
-          superficie_m2: number | null;
-          habitaciones: number | null;
-          estado: string;
-          notas: string | null;
-        };
-        setOfertanteId(p.ofertante_id ?? "");
-        setTitulo(p.titulo ?? "");
-        setDireccion(p.direccion ?? "");
-        setCodigoPostal(p.codigo_postal ?? "");
-        setLocalidad(p.localidad ?? "");
-        setTipoOperacion((p.tipo_operacion as "venta" | "alquiler" | "ambos") ?? "ambos");
-        setPrecioVenta(p.precio_venta != null ? String(p.precio_venta) : "");
-        setPrecioAlquiler(p.precio_alquiler != null ? String(p.precio_alquiler) : "");
-        setSuperficie(p.superficie_m2 != null ? String(p.superficie_m2) : "");
-        setHabitaciones(p.habitaciones != null ? String(p.habitaciones) : "");
-        setEstado(p.estado ?? "disponible");
-        setNotas(p.notas ?? "");
+    Promise.all([
+      supabase.from("propiedades").select("*").eq("id", id).single(),
+      supabase.from("inmueble_media").select("id, propiedad_id, tipo, path, url, orden, portada").eq("propiedad_id", id),
+    ]).then(([prop, med]) => {
+      if (prop.error || !prop.data) {
         setLoading(false);
-      });
+        return;
+      }
+      const p = prop.data as Inmueble;
+      setReferencia(p.referencia);
+      setValues(formDesdeInmueble(p));
+      setMedia((med.data ?? []) as InmuebleMedia[]);
+      setLoading(false);
+    });
   }, [id]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!ofertanteId) {
+  const handleSubmit = async () => {
+    if (!values.ofertante_id) {
       setError("Selecciona un propietario (ofertante)");
       return;
     }
     setError(null);
     setSaving(true);
     const supabase = createClient();
-
     const { error: err } = await supabase
       .from("propiedades")
       .update({
-        ofertante_id: ofertanteId,
-        titulo: titulo || null,
-        direccion: direccion || null,
-        codigo_postal: codigoPostal || null,
-        localidad: localidad || null,
-        tipo_operacion: tipoOperacion,
-        precio_venta: precioVenta ? parseFloat(precioVenta) : null,
-        precio_alquiler: precioAlquiler ? parseFloat(precioAlquiler) : null,
-        superficie_m2: superficie ? parseFloat(superficie) : null,
-        habitaciones: habitaciones ? parseInt(habitaciones, 10) : null,
-        estado,
-        notas: notas || null,
+        ...inmuebleDesdeForm(values),
+        updated_at: new Date().toISOString(),
       })
       .eq("id", id);
-
     setSaving(false);
     if (err) {
       setError(err.message);
       return;
     }
-    toast.success("Propiedad actualizada");
+    toast.success("Inmueble actualizado");
     router.push(`/propiedades/${id}`);
     router.refresh();
   };
@@ -136,173 +99,54 @@ export default function EditarPropiedadPage() {
     <div>
       <PageHeader
         breadcrumb={[
-          { label: "Propiedades", href: "/propiedades" },
-          { label: "Propiedad", href: `/propiedades/${id}` },
+          { label: "Inmuebles", href: "/propiedades" },
+          { label: referencia || "Inmueble", href: `/propiedades/${id}` },
           { label: "Editar" },
         ]}
-        title="Editar propiedad"
-        description="Modifica los datos de la propiedad"
+        title={referencia ? `Editar ${referencia}` : "Editar inmueble"}
       />
-      <div className="mb-6 flex items-center gap-3">
+      <div className="mb-4">
         <Link
           href={`/propiedades/${id}`}
-          aria-label="Volver a la propiedad"
-          className="flex shrink-0 items-center justify-center rounded-lg text-neutral-600 transition-colors hover:text-foreground"
+          className="inline-flex items-center text-sm text-neutral-500 hover:text-foreground"
         >
-          <ChevronLeft className="h-7 w-7" strokeWidth={1.5} />
+          <ChevronLeft className="h-4 w-4" strokeWidth={1.5} />
+          Volver a la ficha
         </Link>
       </div>
 
-      <Card className="mx-auto max-w-2xl">
-        <CardHeader>
-          <CardTitle>Datos de la propiedad</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Propietario (ofertante) *</Label>
-              <select
-                value={ofertanteId}
-                onChange={(e) => setOfertanteId(e.target.value)}
-                required
-                className="flex h-10 w-full rounded-lg border border-border bg-white px-4 text-base"
-              >
-                <option value="">Selecciona un cliente</option>
-                {clientes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label>Título</Label>
-              <Input
-                placeholder="Ej. Piso céntrico con terraza"
-                value={titulo}
-                onChange={(e) => setTitulo(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Dirección</Label>
-              <Input
-                placeholder="Calle, número"
-                value={direccion}
-                onChange={(e) => setDireccion(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Código postal</Label>
-                <Input
-                  placeholder="28001"
-                  value={codigoPostal}
-                  onChange={(e) => setCodigoPostal(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Localidad</Label>
-                <Input
-                  placeholder="Madrid"
-                  value={localidad}
-                  onChange={(e) => setLocalidad(e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Tipo de operación</Label>
-              <select
-                value={tipoOperacion}
-                onChange={(e) => setTipoOperacion(e.target.value as "venta" | "alquiler" | "ambos")}
-                className="flex h-10 w-full rounded-lg border border-border bg-white px-4 text-base"
-              >
-                <option value="venta">Venta</option>
-                <option value="alquiler">Alquiler</option>
-                <option value="ambos">Venta y Alquiler</option>
-              </select>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Precio venta (€)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="0"
-                  value={precioVenta}
-                  onChange={(e) => setPrecioVenta(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Precio alquiler (€/mes)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="0"
-                  value={precioAlquiler}
-                  onChange={(e) => setPrecioAlquiler(e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Superficie (m²)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="0"
-                  value={superficie}
-                  onChange={(e) => setSuperficie(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Habitaciones</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  value={habitaciones}
-                  onChange={(e) => setHabitaciones(e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Estado</Label>
-              <select
-                value={estado}
-                onChange={(e) => setEstado(e.target.value)}
-                className="flex h-10 w-full rounded-lg border border-border bg-white px-4 text-base"
-              >
-                <option value="disponible">Disponible</option>
-                <option value="reservada">Reservada</option>
-                <option value="vendida">Vendida</option>
-                <option value="alquilada">Alquilada</option>
-                <option value="baja">Baja</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label>Notas</Label>
-              <textarea
-                className="flex min-h-[80px] w-full rounded-lg border border-border bg-white px-4 py-2 text-base"
-                placeholder="Notas internas"
-                value={notas}
-                onChange={(e) => setNotas(e.target.value)}
-              />
-            </div>
-            {error && <p className="text-sm text-red-600">{error}</p>}
-            <div className="flex gap-2 pt-4">
-              <Button type="button" variant="secondary" asChild>
-                <Link href={`/propiedades/${id}`}>Cancelar</Link>
-              </Button>
-              <Button type="submit" disabled={saving}>
-                {saving ? "Guardando…" : "Guardar cambios"}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+      <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Datos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <InmuebleForm
+              values={values}
+              onChange={(patch) => setValues((v) => ({ ...v, ...patch }))}
+              clientes={clientes}
+              onClienteCreado={(cliente) =>
+                setClientes((prev) => [...prev, cliente].sort((a, b) => a.nombre.localeCompare(b.nombre)))
+              }
+              cancelHref={`/propiedades/${id}`}
+              saving={saving}
+              error={error}
+              submitLabel="Guardar"
+              onSubmit={() => void handleSubmit()}
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Fotos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {user?.id ? (
+              <InmuebleGaleria propiedadId={id} userId={user.id} media={media} onChange={setMedia} />
+            ) : null}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

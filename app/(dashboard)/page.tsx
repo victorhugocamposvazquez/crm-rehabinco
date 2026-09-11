@@ -172,8 +172,8 @@ export default function DashboardPage() {
                   <p className="mt-4 text-2xl font-semibold tracking-tight text-foreground">
                     {stats.totalPropiedades}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-neutral-500">Propiedades</p>
-                  <p className="mt-2 text-xs font-medium text-accent">Ver propiedades →</p>
+                  <p className="mt-1 text-sm font-medium text-neutral-500">Inmuebles</p>
+                  <p className="mt-2 text-xs font-medium text-accent">Ver inmuebles →</p>
                 </CardContent>
               </Card>
             </Link>
@@ -206,7 +206,7 @@ export default function DashboardPage() {
           <Button asChild variant="secondary">
             <Link href="/propiedades/nueva" className="gap-2">
               <Building2 className="h-4 w-4" strokeWidth={1.5} />
-              Nueva propiedad
+              Nuevo inmueble
             </Link>
           </Button>
           <Button asChild variant="secondary">
@@ -275,7 +275,7 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between rounded-xl bg-neutral-50/80 px-4 py-3">
-                    <span className="text-neutral-600">Propiedades</span>
+                    <span className="text-neutral-600">Inmuebles</span>
                     <span className="font-semibold text-foreground">{stats.totalPropiedades}</span>
                   </div>
                 </>

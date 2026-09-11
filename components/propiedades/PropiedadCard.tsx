@@ -20,6 +20,9 @@ interface PropiedadCardProps {
   precio_alquiler: number | null;
   estado: string;
   ofertanteNombre: string;
+  referencia?: string | null;
+  tipo_inmueble?: string | null;
+  portadaUrl?: string | null;
 }
 
 export function PropiedadCard({
@@ -32,6 +35,9 @@ export function PropiedadCard({
   precio_alquiler,
   estado,
   ofertanteNombre,
+  referencia,
+  tipo_inmueble,
+  portadaUrl,
 }: PropiedadCardProps) {
   const router = useRouter();
   const cardRef = useRef<HTMLDivElement>(null);
@@ -107,6 +113,11 @@ export function PropiedadCard({
     <>
       <Card ref={cardRef} className={cn("relative overflow-visible bg-white/95 py-0", actionsOpen && "z-[200]")}>
         <div className="relative flex items-center justify-between gap-4 py-4">
+          {portadaUrl ? (
+            <img src={portadaUrl} alt="" className="h-16 w-20 shrink-0 rounded-lg object-cover" />
+          ) : (
+            <div className="h-16 w-20 shrink-0 rounded-lg bg-neutral-100" />
+          )}
           <div
             role="button"
             tabIndex={0}
@@ -119,7 +130,10 @@ export function PropiedadCard({
               onClick={(e) => actionsOpen && e.preventDefault()}
               className="block"
             >
-              <p className="font-semibold text-foreground">{titulo || direccion || "Sin título"}</p>
+              <p className="font-semibold text-foreground">
+                {referencia ? <span className="mr-2 text-neutral-400">{referencia}</span> : null}
+                {titulo || direccion || "Sin título"}
+              </p>
               <p className="truncate text-sm text-neutral-500">{subtitulo}</p>
               {precio && (
                 <p className="mt-0.5 text-sm font-medium text-emerald-700">{precio}</p>

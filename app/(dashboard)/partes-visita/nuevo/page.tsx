@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -14,8 +14,14 @@ import { toast } from "sonner";
 
 export default function NuevoParteVisitaPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
+  const propiedadFromUrl = searchParams.get("propiedad");
 
+  const [propiedades, setPropiedades] = useState<
+    Array<{ id: string; referencia: string | null; titulo: string | null; direccion: string | null }>
+  >([]);
+  const [propiedadId, setPropiedadId] = useState(propiedadFromUrl ?? "");
   const [visitanteNombre, setVisitanteNombre] = useState("");
   const [visitanteDocumento, setVisitanteDocumento] = useState("");
   const [visitanteTelefono, setVisitanteTelefono] = useState("");
@@ -36,10 +42,35 @@ export default function NuevoParteVisitaPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!agenteNombre && user?.email) {
-      setAgenteNombre(user.email.split("@")[0] ?? "");
-    }
-  }, [user?.email, agenteNombre]);
+    const supabase = createClient();
+    supabase
+      .from("propiedades")
+      .select("id, referencia, titulo, direccion")
+      .order("created_at", { ascending: false })
+      .then(({ data }) => setPropiedades(data ?? []));
+  }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const supabase = createClient();
+    supabase
+      .from("profiles")
+      .select("nombre_completo, email")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => {
+        const nombre = data?.nombre_completo || data?.email?.split("@")[0] || user.email.split("@")[0];
+        if (!agenteNombre) setAgenteNombre(nombre ?? "");
+      });
+  }, [user?.id, user?.email, agenteNombre]);
+
+  useEffect(() => {
+    if (!propiedadId) return;
+    const p = propiedades.find((x) => x.id === propiedadId);
+    if (!p) return;
+    if (p.direccion) setInmuebleDireccion(p.direccion);
+    if (p.referencia) setInmuebleReferencia(p.referencia);
+  }, [propiedadId, propiedades]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,6 +105,8 @@ export default function NuevoParteVisitaPage() {
         visitante_email: visitanteEmail.trim() || null,
         inmueble_direccion: inmuebleDireccion.trim(),
         inmueble_referencia: inmuebleReferencia.trim() || null,
+        propiedad_id: propiedadId || null,
+        comercial_id: authUser.id,
         fecha_visita: fechaVisita || null,
         hora_visita: horaVisita || null,
         agente_nombre: agenteNombre.trim(),
@@ -121,6 +154,21 @@ export default function NuevoParteVisitaPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Inmueble del stock</Label>
+                <select
+                  value={propiedadId}
+                  onChange={(e) => setPropiedadId(e.target.value)}
+                  className="flex h-10 w-full rounded-lg border border-border bg-white px-4 text-base"
+                >
+                  <option value="">Sin ficha (solo dirección)</option>
+                  {propiedades.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {[p.referencia, p.titulo || p.direccion].filter(Boolean).join(" · ")}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="inmueble_direccion">Dirección del inmueble *</Label>
                 <Input

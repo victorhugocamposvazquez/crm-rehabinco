@@ -10,9 +10,41 @@ export interface Database {
   public: {
     Tables: {
       profiles: {
-        Row: { id: string; email: string | null; role: string; created_at: string; updated_at: string };
-        Insert: { id: string; email?: string | null; role?: string };
-        Update: { email?: string | null; role?: string; updated_at?: string };
+        Row: {
+          id: string;
+          email: string | null;
+          role: string;
+          nombre_completo: string | null;
+          telefono: string | null;
+          foto_url: string | null;
+          color: string;
+          zona: string | null;
+          activo: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          email?: string | null;
+          role?: string;
+          nombre_completo?: string | null;
+          telefono?: string | null;
+          foto_url?: string | null;
+          color?: string;
+          zona?: string | null;
+          activo?: boolean;
+        };
+        Update: {
+          email?: string | null;
+          role?: string;
+          nombre_completo?: string | null;
+          telefono?: string | null;
+          foto_url?: string | null;
+          color?: string;
+          zona?: string | null;
+          activo?: boolean;
+          updated_at?: string;
+        };
       };
       clientes: {
         Row: {
@@ -205,6 +237,24 @@ export interface Database {
           habitaciones: number | null;
           estado: string;
           notas: string | null;
+          referencia: string | null;
+          tipo_inmueble: string | null;
+          tipologia: string | null;
+          banos: number | null;
+          aseos: number | null;
+          planta: string | null;
+          ascensor: boolean | null;
+          anio_construccion: number | null;
+          superficie_util: number | null;
+          superficie_construida: number | null;
+          superficie_parcela: number | null;
+          referencia_catastral: string | null;
+          lat: number | null;
+          lng: number | null;
+          descripcion: string | null;
+          video_url: string | null;
+          comercial_id: string | null;
+          publicado: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -222,6 +272,22 @@ export interface Database {
           habitaciones?: number | null;
           estado?: string;
           notas?: string | null;
+          referencia?: string | null;
+          tipo_inmueble?: string | null;
+          tipologia?: string | null;
+          banos?: number | null;
+          aseos?: number | null;
+          planta?: string | null;
+          ascensor?: boolean | null;
+          anio_construccion?: number | null;
+          superficie_util?: number | null;
+          superficie_construida?: number | null;
+          superficie_parcela?: number | null;
+          referencia_catastral?: string | null;
+          descripcion?: string | null;
+          video_url?: string | null;
+          comercial_id?: string | null;
+          publicado?: boolean;
         };
         Update: {
           ofertante_id?: string;
@@ -236,6 +302,22 @@ export interface Database {
           habitaciones?: number | null;
           estado?: string;
           notas?: string | null;
+          referencia?: string | null;
+          tipo_inmueble?: string | null;
+          tipologia?: string | null;
+          banos?: number | null;
+          aseos?: number | null;
+          planta?: string | null;
+          ascensor?: boolean | null;
+          anio_construccion?: number | null;
+          superficie_util?: number | null;
+          superficie_construida?: number | null;
+          superficie_parcela?: number | null;
+          referencia_catastral?: string | null;
+          descripcion?: string | null;
+          video_url?: string | null;
+          comercial_id?: string | null;
+          publicado?: boolean;
           updated_at?: string;
         };
       };
@@ -415,6 +497,9 @@ export interface Database {
           firma_visitante: string | null;
           firma_agente: string | null;
           firmado_en: string | null;
+          propiedad_id: string | null;
+          cliente_id: string | null;
+          comercial_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -436,6 +521,9 @@ export interface Database {
           firma_visitante?: string | null;
           firma_agente?: string | null;
           firmado_en?: string | null;
+          propiedad_id?: string | null;
+          cliente_id?: string | null;
+          comercial_id?: string | null;
         };
         Update: {
           estado?: "borrador" | "pendiente_firma" | "firmado";
@@ -453,7 +541,39 @@ export interface Database {
           firma_visitante?: string | null;
           firma_agente?: string | null;
           firmado_en?: string | null;
+          propiedad_id?: string | null;
+          cliente_id?: string | null;
+          comercial_id?: string | null;
           updated_at?: string;
+        };
+      };
+      inmueble_media: {
+        Row: {
+          id: string;
+          propiedad_id: string;
+          user_id: string;
+          tipo: "foto" | "video" | "plano";
+          path: string;
+          url: string;
+          orden: number;
+          portada: boolean;
+          created_at: string;
+        };
+        Insert: {
+          propiedad_id: string;
+          user_id: string;
+          tipo?: "foto" | "video" | "plano";
+          path: string;
+          url: string;
+          orden?: number;
+          portada?: boolean;
+        };
+        Update: {
+          tipo?: "foto" | "video" | "plano";
+          path?: string;
+          url?: string;
+          orden?: number;
+          portada?: boolean;
         };
       };
     };

@@ -27,6 +27,9 @@ export default function PropiedadesPage() {
       precio_alquiler: number | null;
       estado: string;
       ofertanteNombre: string;
+      referencia: string | null;
+      tipo_inmueble: string | null;
+      portadaUrl: string | null;
     }>
   >([]);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +38,7 @@ export default function PropiedadesPage() {
     const supabase = createClient();
     supabase
       .from("propiedades")
-      .select("id, titulo, direccion, localidad, tipo_operacion, precio_venta, precio_alquiler, estado, clientes:ofertante_id(nombre)")
+      .select("id, titulo, direccion, localidad, tipo_operacion, precio_venta, precio_alquiler, estado, referencia, tipo_inmueble, clientes:ofertante_id(nombre), inmueble_media(url, portada)")
       .order("created_at", { ascending: false })
       .then(({ data, error: err }) => {
         if (err) {
@@ -53,14 +56,22 @@ export default function PropiedadesPage() {
           precio_venta: number | null;
           precio_alquiler: number | null;
           estado: string;
+          referencia: string | null;
+          tipo_inmueble: string | null;
           clientes: { nombre: string } | { nombre: string }[] | null;
+          inmueble_media: Array<{ url: string; portada: boolean }> | null;
         }>;
         setPropiedades(
           rows.map((r) => {
             const c = Array.isArray(r.clientes) ? r.clientes[0] : r.clientes;
+            const fotos = r.inmueble_media ?? [];
+            const portada = fotos.find((f) => f.portada) ?? fotos[0];
             return {
               ...r,
               ofertanteNombre: c?.nombre ?? "—",
+              referencia: r.referencia,
+              tipo_inmueble: r.tipo_inmueble,
+              portadaUrl: portada?.url ?? null,
             };
           })
         );
@@ -76,6 +87,7 @@ export default function PropiedadesPage() {
         (p.titulo ?? "").toLowerCase().includes(q) ||
         (p.direccion ?? "").toLowerCase().includes(q) ||
         (p.localidad ?? "").toLowerCase().includes(q) ||
+        (p.referencia ?? "").toLowerCase().includes(q) ||
         p.ofertanteNombre.toLowerCase().includes(q);
       const matchEstado = filterEstado === "todos" || p.estado === filterEstado;
       const matchTipo = filterTipo === "todos" || p.tipo_operacion === filterTipo;
@@ -86,14 +98,14 @@ export default function PropiedadesPage() {
   return (
     <div>
       <PageHeader
-        breadcrumb={[{ label: "Propiedades", href: "/propiedades" }]}
-        title="Propiedades"
-        description="Oferta: inmuebles que tus clientes ponen a la venta o alquiler. La demanda (buscadores) se gestiona como clientes."
+        breadcrumb={[{ label: "Inmuebles", href: "/propiedades" }]}
+        title="Inmuebles"
+        description="Stock de la agencia. Cada ficha tiene referencia, fotos y visitas."
         actions={
           <Button asChild size="sm">
             <Link href="/propiedades/nueva" className="gap-2">
               <Plus className="h-4 w-4" strokeWidth={1.5} />
-              Nueva propiedad
+              Nuevo inmueble
             </Link>
           </Button>
         }
@@ -109,7 +121,7 @@ export default function PropiedadesPage() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" strokeWidth={1.5} aria-hidden />
             <Input
               type="search"
-              placeholder="Buscar por título, dirección, propietario..."
+              placeholder="Buscar por referencia, dirección, propietario..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -168,11 +180,11 @@ export default function PropiedadesPage() {
           </div>
         ) : propiedades.length === 0 && !error ? (
           <div className="rounded-2xl border border-dashed border-border bg-white p-8 text-center">
-            <p className="text-neutral-500">Aún no hay propiedades.</p>
+            <p className="text-neutral-500">Aún no hay inmuebles.</p>
             <Button asChild className="mt-4">
               <Link href="/propiedades/nueva" className="gap-2">
                 <Building2 className="h-4 w-4" strokeWidth={1.5} />
-                Añadir primera propiedad
+                Añadir primer inmueble
               </Link>
             </Button>
           </div>
@@ -195,6 +207,9 @@ export default function PropiedadesPage() {
                   precio_alquiler={p.precio_alquiler}
                   estado={p.estado}
                   ofertanteNombre={p.ofertanteNombre}
+                  referencia={p.referencia}
+                  tipo_inmueble={p.tipo_inmueble}
+                  portadaUrl={p.portadaUrl}
                 />
               ))
             )}
@@ -202,7 +217,7 @@ export default function PropiedadesPage() {
         )}
       </div>
 
-      <Fab href="/propiedades/nueva" label="Nueva propiedad" />
+      <Fab href="/propiedades/nueva" label="Nuevo inmueble" />
     </div>
   );
 }
