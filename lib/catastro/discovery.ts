@@ -368,11 +368,13 @@ function resultado(params: {
   prefilter?: PrefiltroCodigoPostal;
 }): DiscoveryResult {
   const merged = {
-    discoveryId: null as string | null,
-    page: 1,
-    pageSize: params.discovery.portalsProcessed,
-    hasNextPage: false,
-    nextCursor: null as string | null,
+    ...{
+      discoveryId: null as string | null,
+      page: 1,
+      pageSize: params.discovery.portalsProcessed,
+      hasNextPage: false,
+      nextCursor: null as string | null,
+    },
     ...params.discovery,
   };
   const complete =

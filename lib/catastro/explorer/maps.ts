@@ -23,7 +23,9 @@ const MAPS_SEARCH = "https://www.google.com/maps/search/?api=1&query=";
 function numeroOficialMaps(finca: FincaParaMaps): string {
   const numero = finca.address.numero?.trim() ?? "";
   if (!numero) return "";
-  return `${numero}${numeroSecundarioOficial(finca)}`;
+  return `${numero}${numeroSecundarioOficial({
+    address: { numero2: finca.address.numero2 ?? undefined },
+  })}`;
 }
 
 function viaOficialMaps(finca: FincaParaMaps): string {

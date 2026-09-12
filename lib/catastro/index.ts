@@ -88,7 +88,6 @@ export type {
   DiscoveryOptions,
   DiscoveryQuery,
   DiscoveryResult,
-  FincaDescubierta,
   PortalDescubierto,
 } from "./discovery";
 export {

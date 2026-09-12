@@ -62,11 +62,17 @@ export function encodeDiscoveryCursor(cursor: DiscoveryCursor): string {
 export function decodeDiscoveryCursor(raw: string): DiscoveryCursor | null {
   try {
     const parsed = JSON.parse(decodeBase64Url(raw)) as Partial<DiscoveryCursor>;
-    if (parsed.v !== 1 || typeof parsed.id !== "string" || !Number.isInteger(parsed.offset)) {
+    const offset = parsed.offset;
+    if (
+      parsed.v !== 1 ||
+      typeof parsed.id !== "string" ||
+      typeof offset !== "number" ||
+      !Number.isInteger(offset) ||
+      offset < 0
+    ) {
       return null;
     }
-    if (parsed.offset < 0) return null;
-    return { v: 1, id: parsed.id, offset: parsed.offset };
+    return { v: 1, id: parsed.id, offset };
   } catch {
     return null;
   }
