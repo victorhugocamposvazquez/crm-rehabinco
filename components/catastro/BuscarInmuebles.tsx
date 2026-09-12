@@ -135,6 +135,7 @@ export function BuscarInmuebles() {
   const zona = useBusquedaZona();
   const [recientesKey, setRecientesKey] = useState(0);
   const abortBusquedaRef = useRef<AbortController | null>(null);
+  const resultadosRef = useRef<HTMLElement | null>(null);
   /** `claveCriterios` de la búsqueda cuyos resultados están en pantalla. */
   const claveBusquedaRef = useRef<string | null>(null);
   const selectorMunicipiosRef = useRef<SelectorCatalogo<MunicipioUi> | null>(null);
@@ -163,6 +164,12 @@ export function BuscarInmuebles() {
   const buscarTodoElMunicipio = modo === "calle" && !ubicacion.calle && Boolean(criteriosMunicipio);
   const avisoCpZona = modo === "zona" && postalCode.trim() ? validarCodigoPostalZona(postalCode) : null;
   const zonaOcupada = zona.estado.fase === "preparando" || zona.estado.fase === "ejecutando";
+  const mostrarRecientes =
+    zona.estado.fase === "formulario" &&
+    !zona.estado.error &&
+    !loading &&
+    !buscado &&
+    !error;
   /** Clave de selección de la zona preparada (no del formulario): estable entre pasos. */
   const claveZonaActiva = zona.estado.snapshot ? claveZonaUi(zona.estado.snapshot.criteria) : null;
 
@@ -248,9 +255,14 @@ export function BuscarInmuebles() {
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
 
+  const irAResultados = () => {
+    resultadosRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   const onPrepararZona = (origen = criteriosZona) => {
     if (!origen || zonaOcupada) return;
     seleccionFincas.conservarPara(claveZonaUi(origen));
+    irAResultados();
     void zona.preparar(origen).finally(() => setRecientesKey((n) => n + 1));
   };
 
@@ -405,6 +417,7 @@ export function BuscarInmuebles() {
     // Repetir la misma búsqueda conserva la selección; otra distinta la vacía.
     seleccionFincas.conservarPara(claveCriterios(criterios));
     sincronizarUrl(criterios);
+    irAResultados();
     void ejecutarBusqueda(criterios, null, 0);
   };
 
@@ -428,6 +441,7 @@ export function BuscarInmuebles() {
       if (!origen || zonaOcupada) return;
       zona.nueva();
       seleccionFincas.conservarPara(claveZonaUi(origen));
+      irAResultados();
       void zona.preparar(origen).finally(() => setRecientesKey((n) => n + 1));
       return;
     }
@@ -437,6 +451,7 @@ export function BuscarInmuebles() {
     setIndice(0);
     seleccionFincas.conservarPara(claveCriterios(origen));
     sincronizarUrl(origen);
+    irAResultados();
     void ejecutarBusqueda(origen, null, 0);
   };
 
@@ -506,8 +521,6 @@ export function BuscarInmuebles() {
         title="Buscar fincas"
         description="Elige provincia y municipio. La calle es opcional: si no la pones, se recorre todo el pueblo. Por defecto solo ves candidatas a reforma."
       />
-
-      <BusquedasRecientes refreshKey={recientesKey} compact />
 
       <form
         onSubmit={onSubmit}
@@ -722,7 +735,7 @@ export function BuscarInmuebles() {
         </div>
       </form>
 
-      <section className="mt-8" aria-live="polite">
+      <section ref={resultadosRef} className="mt-8 scroll-mt-6" aria-live="polite">
         {modo === "zona" || zona.estado.fase !== "formulario" ? (
           <BuscarPorZona
             estado={zona.estado}
@@ -788,6 +801,8 @@ export function BuscarInmuebles() {
           </>
         )}
       </section>
+
+      {mostrarRecientes ? <BusquedasRecientes refreshKey={recientesKey} compact /> : null}
 
       {seleccionFincas.barra(onExportar, onExportarRevision)}
       {seleccionFincas.dialogo}

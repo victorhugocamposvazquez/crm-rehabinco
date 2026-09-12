@@ -17,8 +17,10 @@ import {
   accionesDisponibles,
   erroresVisiblesZona,
   listaErrores,
+  progresoIndeterminado,
   resultadosVisiblesZona,
   ritmoMedido,
+  textoActividadZona,
   textoCallesARevisar,
   textoEstadoFinal,
   textoPreparacion,
@@ -134,6 +136,8 @@ export function BuscarPorZona({
   }
 
   const textos = textosProgreso(snapshot, estado.acumulado);
+  const indeterminado = progresoIndeterminado(snapshot, estado);
+  const actividad = estado.fase === "ejecutando" ? textoActividadZona(snapshot, estado, ahora) : null;
   const ritmo = estado.fase === "ejecutando" ? ritmoMedido(snapshot, estado, ahora) : null;
   const estadoFinal = textoEstadoFinal(estado);
   const erroresListados = erroresVisiblesZona(estado);
@@ -150,7 +154,13 @@ export function BuscarPorZona({
       <div className="space-y-4 rounded-2xl border border-border bg-white p-5 sm:p-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-base font-semibold text-foreground">
+            <p className="flex items-center gap-2 text-base font-semibold text-foreground">
+              {enMarcha && !cancelando ? (
+                <span
+                  className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-neutral-200 border-t-accent"
+                  aria-hidden
+                />
+              ) : null}
               {enMarcha
                 ? cancelando
                   ? "Cancelando búsqueda…"
@@ -185,13 +195,20 @@ export function BuscarPorZona({
           aria-label="Calles revisadas"
           aria-valuemin={0}
           aria-valuemax={100}
-          aria-valuenow={textos.porcentaje}
-          className="h-2 w-full overflow-hidden rounded-full bg-neutral-100"
+          aria-valuenow={indeterminado ? undefined : textos.porcentaje}
+          aria-busy={enMarcha || undefined}
+          className="relative h-2 w-full overflow-hidden rounded-full bg-neutral-100"
         >
-          <div
-            className={enMarcha ? "h-full bg-accent transition-[width] duration-500" : "h-full bg-neutral-400 transition-[width] duration-500"}
-            style={{ width: `${textos.porcentaje}%` }}
-          />
+          {indeterminado ? (
+            <div
+              className="absolute inset-y-0 w-1/3 rounded-full bg-accent motion-safe:animate-[zonaBarra_1.2s_ease-in-out_infinite]"
+            />
+          ) : (
+            <div
+              className={enMarcha ? "h-full bg-accent transition-[width] duration-500" : "h-full bg-neutral-400 transition-[width] duration-500"}
+              style={{ width: `${textos.porcentaje}%` }}
+            />
+          )}
         </div>
 
         <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4" aria-live="polite">
@@ -201,7 +218,11 @@ export function BuscarPorZona({
           {textos.errores ? <Contador texto={textos.errores} alerta /> : null}
         </dl>
 
-        {ritmo ? <p className="text-xs text-neutral-500">{ritmo}</p> : null}
+        {actividad || ritmo ? (
+          <p className="text-xs text-neutral-500" role="status">
+            {actividad ?? ritmo}
+          </p>
+        ) : null}
         {estado.error ? (
           <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
             {estado.error}
@@ -299,7 +320,9 @@ export function BuscarPorZona({
               <p className="text-neutral-600">
                 {estado.fase === "caducada" && snapshot.progress.streetsProcessed === 0
                   ? "No se llegó a revisar ninguna calle de este bloque. Prepáralo de nuevo y empieza sin cambiar de pestaña."
-                  : "Todavía no hay resultados. Irán apareciendo calle a calle."}
+                  : enMarcha
+                    ? "Catastro está revisando las primeras calles. Aquí irán saliendo las fincas."
+                    : "Todavía no hay resultados. Irán apareciendo calle a calle."}
               </p>
             </div>
           )

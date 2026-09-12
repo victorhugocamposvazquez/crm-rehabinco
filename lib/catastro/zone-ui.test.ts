@@ -35,7 +35,9 @@ import {
   iniciarTramo,
   listaErrores,
   modoDesdeTexto,
+  progresoIndeterminado,
   ritmoMedido,
+  textoActividadZona,
   textoCallesARevisar,
   textoEstadoFinal,
   textoPreparacion,
@@ -210,6 +212,19 @@ describe("Zona UI: progreso y resultados", () => {
     const ritmo = ritmoMedido(enCurso, estado, 60_000);
     assert.equal(ritmo, "Ritmo medido: 17 calles/min · 340 portales revisados. La duración depende de los portales de cada calle.");
     assert.doesNotMatch(ritmo ?? "", /quedan|restante|ETA/i);
+    const arrancando = iniciarTramo(aplicarSnapshotZona(ESTADO_ZONA_INICIAL, snapshot()), 0);
+    assert.equal(progresoIndeterminado(snapshot(), arrancando), true);
+    assert.equal(
+      textoActividadZona(snapshot(), arrancando, 500),
+      "Empezando: pidiendo a Catastro las primeras calles."
+    );
+    assert.match(textoActividadZona(snapshot(), arrancando, 8_000) ?? "", /desde hace 8 s/);
+    assert.match(
+      textoActividadZona(snapshot({ progress: { portalsProcessed: 12 } }), arrancando, 8_000) ?? "",
+      /12 portales/
+    );
+    assert.equal(progresoIndeterminado(enCurso, arrancando), false);
+    assert.equal(textoActividadZona(enCurso, arrancando, 60_000), null);
   });
 
   it("6. los resultados llegan de forma progresiva con cada paso", async () => {

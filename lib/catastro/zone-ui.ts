@@ -475,6 +475,42 @@ export function textosProgreso(
   };
 }
 
+/** El primer paso dura menos para que la barra se mueva antes de 15 s. */
+export const ZONE_STEP_FIRST_BUDGET_MS = 5_000;
+
+/** Barra vacía mientras Catastro aún no ha cerrado ninguna calle. */
+export function progresoIndeterminado(
+  snapshot: ZoneSnapshotUi,
+  estado: Pick<EstadoZonaUi, "fase">
+): boolean {
+  return estado.fase === "ejecutando" && snapshot.progress.streetsProcessed === 0;
+}
+
+/**
+ * Texto inmediato al pulsar Empezar. El ritmo medido solo aparece tras varias calles.
+ */
+export function textoActividadZona(
+  snapshot: ZoneSnapshotUi,
+  estado: Pick<EstadoZonaUi, "fase" | "inicioMs" | "procesadasAlInicio">,
+  ahoraMs: number
+): string | null {
+  if (estado.fase !== "ejecutando") return null;
+  const delTramo = snapshot.progress.streetsProcessed - (estado.procesadasAlInicio ?? 0);
+  if (delTramo >= 5) return null;
+  const portales = snapshot.progress.portalsProcessed;
+  const segundos =
+    estado.inicioMs == null ? 0 : Math.max(0, Math.floor((ahoraMs - estado.inicioMs) / 1000));
+  if (snapshot.progress.streetsProcessed === 0 && portales === 0) {
+    return segundos <= 1
+      ? "Empezando: pidiendo a Catastro las primeras calles."
+      : `Consultando Catastro desde hace ${segundos} s. La primera calle suele tardar.`;
+  }
+  if (snapshot.progress.streetsProcessed === 0) {
+    return `Ya se han revisado ${portales} portales. Las calles se marcan al terminar cada una.`;
+  }
+  return `Catastro va calle a calle. Llevamos ${snapshot.progress.streetsProcessed} revisadas.`;
+}
+
 /**
  * Solo hechos medidos (calles/min y portales revisados) tras varias calles.
  * No estima tiempos: la duración depende de cuántos portales tenga cada calle.

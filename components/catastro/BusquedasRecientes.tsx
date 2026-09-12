@@ -88,7 +88,7 @@ export function BusquedasRecientes({
         </Button>
       </div>
       <ul className="mt-3 grid grid-cols-1 gap-3">
-        {items.map((item) => (
+        {(compact ? items.slice(0, 3) : items).map((item) => (
           <li key={item.id}>
             <TarjetaBusquedaReciente
               item={item}

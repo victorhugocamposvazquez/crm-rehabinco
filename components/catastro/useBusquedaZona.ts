@@ -15,6 +15,8 @@ import {
   fetchZonaReanudar,
   iniciarTramo,
   plegarBloque,
+  ZONE_STEP_CLIENT_BUDGET_MS,
+  ZONE_STEP_FIRST_BUDGET_MS,
   type CriteriosZonaUi,
   type EstadoZonaUi,
 } from "@/lib/catastro/zone-ui";
@@ -51,7 +53,7 @@ export function useBusquedaZona() {
 
   useEffect(() => {
     if (!ejecutando) return;
-    const timer = setInterval(() => setAhora(Date.now()), 5_000);
+    const timer = setInterval(() => setAhora(Date.now()), 1_000);
     return () => clearInterval(timer);
   }, [ejecutando]);
 
@@ -66,8 +68,13 @@ export function useBusquedaZona() {
     setAhora(Date.now());
     setEstado((prev) => iniciarTramo(prev, Date.now()));
     try {
+      let primerPaso = true;
       await ejecutarBucleZona({
-        paso: (signal) => fetchZonaPaso(zoneSearchId, signal),
+        paso: (signal) => {
+          const budgetMs = primerPaso ? ZONE_STEP_FIRST_BUDGET_MS : ZONE_STEP_CLIENT_BUDGET_MS;
+          primerPaso = false;
+          return fetchZonaPaso(zoneSearchId, signal, budgetMs);
+        },
         onSnapshot: (snapshot) => {
           if (controller.signal.aborted || zoneIdRef.current !== zoneSearchId) return;
           setEstado((prev) =>
