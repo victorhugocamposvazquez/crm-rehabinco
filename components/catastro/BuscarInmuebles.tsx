@@ -75,12 +75,14 @@ import {
   type ResultadoBusquedaUi,
 } from "@/lib/catastro/search-ui";
 import {
+  EXPLICACION_MUNICIPIO,
   EXPLICACION_ZONA,
   MODOS_BUSQUEDA,
   camposVisibles,
   claveZonaUi,
   coberturaExportacionZona,
   criteriosExportacionZona,
+  criteriosMunicipioListos,
   criteriosZonaListos,
   modoDesdeTexto,
   validarCodigoPostalZona,
@@ -152,6 +154,13 @@ export function BuscarInmuebles() {
     postalCode,
     horizontalDivision,
   });
+  const criteriosMunicipio = criteriosMunicipioListos({
+    provincia: ubicacion.provincia?.name,
+    municipio: ubicacion.municipio?.name,
+    postalCode,
+    horizontalDivision,
+  });
+  const buscarTodoElMunicipio = modo === "calle" && !ubicacion.calle && Boolean(criteriosMunicipio);
   const avisoCpZona = modo === "zona" && postalCode.trim() ? validarCodigoPostalZona(postalCode) : null;
   const zonaOcupada = zona.estado.fase === "preparando" || zona.estado.fase === "ejecutando";
   /** Clave de selección de la zona preparada (no del formulario): estable entre pasos. */
@@ -239,10 +248,10 @@ export function BuscarInmuebles() {
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
 
-  const onPrepararZona = () => {
-    if (!criteriosZona || zonaOcupada) return;
-    seleccionFincas.conservarPara(claveZonaUi(criteriosZona));
-    void zona.preparar(criteriosZona).finally(() => setRecientesKey((n) => n + 1));
+  const onPrepararZona = (origen = criteriosZona) => {
+    if (!origen || zonaOcupada) return;
+    seleccionFincas.conservarPara(claveZonaUi(origen));
+    void zona.preparar(origen).finally(() => setRecientesKey((n) => n + 1));
   };
 
   const cargarCalles = async (
@@ -324,6 +333,7 @@ export function BuscarInmuebles() {
 
   const onCalle = (calle: EstadoUbicacion["calle"]) => {
     resetResultados();
+    zona.nueva();
     setUbicacion((prev) => aplicarCambioCalle(prev, calle));
   };
 
@@ -385,6 +395,10 @@ export function BuscarInmuebles() {
       onPrepararZona();
       return;
     }
+    if (buscarTodoElMunicipio) {
+      onPrepararZona(criteriosMunicipio);
+      return;
+    }
     if (loading || !criterios) return;
     setPaginas([]);
     setIndice(0);
@@ -396,17 +410,25 @@ export function BuscarInmuebles() {
 
   const buscarConFiltroDivision = (filtro: string) => {
     setHorizontalDivision(filtro);
-    if (modo === "zona") {
-      const zonaListos = criteriosZonaListos({
-        provincia: ubicacion.provincia?.name,
-        municipio: ubicacion.municipio?.name,
-        postalCode,
-        horizontalDivision: filtro,
-      });
-      if (!zonaListos || zonaOcupada) return;
+    if (modo === "zona" || !ubicacion.calle) {
+      const origen =
+        modo === "zona"
+          ? criteriosZonaListos({
+              provincia: ubicacion.provincia?.name,
+              municipio: ubicacion.municipio?.name,
+              postalCode,
+              horizontalDivision: filtro,
+            })
+          : criteriosMunicipioListos({
+              provincia: ubicacion.provincia?.name,
+              municipio: ubicacion.municipio?.name,
+              postalCode,
+              horizontalDivision: filtro,
+            });
+      if (!origen || zonaOcupada) return;
       zona.nueva();
-      seleccionFincas.conservarPara(claveZonaUi(zonaListos));
-      void zona.preparar(zonaListos).finally(() => setRecientesKey((n) => n + 1));
+      seleccionFincas.conservarPara(claveZonaUi(origen));
+      void zona.preparar(origen).finally(() => setRecientesKey((n) => n + 1));
       return;
     }
     if (!criterios) return;
@@ -482,7 +504,7 @@ export function BuscarInmuebles() {
       <PageHeader
         breadcrumb={[{ label: "Catastro", href: RUTA_EXPLORER }]}
         title="Buscar fincas"
-        description="Elige una calle o un código postal. Por defecto te mostramos solo candidatas a reforma (sin división horizontal)."
+        description="Elige provincia y municipio. La calle es opcional: si no la pones, se recorre todo el pueblo. Por defecto solo ves candidatas a reforma."
       />
 
       <BusquedasRecientes refreshKey={recientesKey} compact />
@@ -522,6 +544,11 @@ export function BuscarInmuebles() {
           {modo === "zona" ? (
             <p className="mt-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-2.5 text-sm text-foreground">
               {EXPLICACION_ZONA}
+            </p>
+          ) : null}
+          {buscarTodoElMunicipio ? (
+            <p className="mt-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-2.5 text-sm text-foreground">
+              {EXPLICACION_MUNICIPIO}
             </p>
           ) : null}
         </fieldset>
@@ -572,7 +599,7 @@ export function BuscarInmuebles() {
 
           {campos.calle ? (
             <div className="space-y-2 md:col-span-2 xl:col-span-1">
-              <Label htmlFor="via">Calle</Label>
+              <Label htmlFor="via">Calle (opcional)</Label>
               <CatalogCombobox
                 id="via"
                 items={ubicacion.calles}
@@ -589,7 +616,7 @@ export function BuscarInmuebles() {
                   textoRevalidacionCalles(ubicacion.revalidandoCalles) ??
                   (ubicacion.calle
                     ? undefined
-                    : "La sigla la aporta Catastro al elegir la vía. Escribe para filtrar el callejero ya descargado.")
+                    : "Opcional. Si no eliges calle se recorre todo el municipio.")
                 }
                 emptyText="Escribe al menos 2 letras para filtrar el callejero oficial."
                 getKey={claveCalle}
@@ -600,7 +627,7 @@ export function BuscarInmuebles() {
             </div>
           ) : null}
 
-          {campos.numero ? (
+          {campos.numero && ubicacion.calle ? (
             <div className="space-y-2">
               <Label htmlFor="numero">Portal / número</Label>
               <Input
@@ -677,8 +704,12 @@ export function BuscarInmuebles() {
         ) : null}
 
         <div className="mt-6">
-          {modo === "zona" ? (
-            <Button type="submit" disabled={!criteriosZona || zonaOcupada} className="w-full sm:w-auto">
+          {modo === "zona" || buscarTodoElMunicipio ? (
+            <Button
+              type="submit"
+              disabled={(modo === "zona" ? !criteriosZona : !criteriosMunicipio) || zonaOcupada}
+              className="w-full sm:w-auto"
+            >
               <Search className="h-4 w-4" strokeWidth={1.5} aria-hidden />
               {zona.estado.fase === "preparando" ? "Preparando…" : "Continuar"}
             </Button>
@@ -692,7 +723,7 @@ export function BuscarInmuebles() {
       </form>
 
       <section className="mt-8" aria-live="polite">
-        {modo === "zona" ? (
+        {modo === "zona" || zona.estado.fase !== "formulario" ? (
           <BuscarPorZona
             estado={zona.estado}
             ahora={zona.ahora}

@@ -20,6 +20,7 @@ import {
   claveZonaUi,
   coberturaExportacionZona,
   criteriosExportacionZona,
+  criteriosMunicipioListos,
   criteriosZonaListos,
   debeContinuarPasos,
   etiquetaCandidatas,
@@ -122,6 +123,24 @@ describe("Zona UI: modo y formulario", () => {
       criteriosZonaListos({ provincia: "VALENCIA", municipio: "GODELLETA", postalCode: " 46388 ", horizontalDivision: "" }),
       { provincia: "VALENCIA", municipio: "GODELLETA", postalCode: "46388", horizontalDivision: "NO" }
     );
+    assert.deepEqual(
+      criteriosMunicipioListos({
+        provincia: "A CORUÑA",
+        municipio: "A CORUÑA",
+        postalCode: "",
+        horizontalDivision: "NO",
+      }),
+      { provincia: "A CORUÑA", municipio: "A CORUÑA", postalCode: "", horizontalDivision: "NO" }
+    );
+    assert.equal(
+      criteriosMunicipioListos({
+        provincia: "A CORUÑA",
+        municipio: "A CORUÑA",
+        postalCode: "150",
+        horizontalDivision: "NO",
+      }),
+      null
+    );
   });
 });
 
@@ -131,9 +150,10 @@ describe("Zona UI: preparación y confirmación", () => {
     assert.equal(estado.fase, "preparada");
     assert.equal(estado.zoneSearchId, "zona-1");
     assert.equal(
-      textoPreparacion(427),
+      textoPreparacion(427, "46388"),
       "Se han encontrado 427 calles oficiales en este municipio. La búsqueda recorrerá esas calles y filtrará después por código postal."
     );
+    assert.match(textoPreparacion(427), /todas esas calles del municipio/);
     assert.match(textoPreparacion(1), /^Se ha encontrado 1 calle oficial/);
     assert.match(textoPreparacion(0), /No hay nada que recorrer/);
     assert.equal(textoCallesARevisar(427), "Se revisarán 427 calles. Puedes parar cuando quieras.");

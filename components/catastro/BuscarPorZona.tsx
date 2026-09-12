@@ -97,7 +97,9 @@ export function BuscarPorZona({
     return (
       <div className="space-y-4 rounded-2xl border border-border bg-white p-5 sm:p-6" role="status">
         <div>
-          <p className="text-base font-semibold text-foreground">{textoPreparacion(snapshot.progress.streetsFound)}</p>
+          <p className="text-base font-semibold text-foreground">
+            {textoPreparacion(snapshot.progress.streetsFound, snapshot.criteria.postalCode)}
+          </p>
           <p className="mt-1 text-sm text-neutral-600">{textoCallesARevisar(snapshot.progress.streetsFound)}</p>
           <p className="mt-3 text-sm text-neutral-500">
             Esto puede tardar. Verás las fincas según se vayan revisando las calles. Puedes parar en cualquier momento.
@@ -130,10 +132,19 @@ export function BuscarPorZona({
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-base font-semibold text-foreground">
-              {enMarcha ? (cancelando ? "Cancelando búsqueda…" : "Buscando por código postal…") : "Búsqueda por código postal"}
+              {enMarcha
+                ? cancelando
+                  ? "Cancelando búsqueda…"
+                  : snapshot.criteria.postalCode
+                    ? "Buscando por código postal…"
+                    : "Recorriendo el municipio…"
+                : snapshot.criteria.postalCode
+                  ? "Búsqueda por código postal"
+                  : "Búsqueda por municipio"}
             </p>
             <p className="text-sm text-neutral-600">
-              {snapshot.criteria.municipio} · CP {snapshot.criteria.postalCode}
+              {snapshot.criteria.municipio}
+              {snapshot.criteria.postalCode ? ` · CP ${snapshot.criteria.postalCode}` : " · todas las calles"}
             </p>
           </div>
           {estadoFinal ? (

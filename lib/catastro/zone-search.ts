@@ -5,8 +5,8 @@
  *
  * Catastro no acepta el CP como criterio. Aquí se recorren las calles oficiales del
  * municipio con el discovery existente (una calle = una búsqueda comercial paginada) y se
- * conservan solo las fincas cuyo `postalCodes[]` contiene el CP. Con CP, discovery
- * aplica un prefiltro seguro antes de DNPRC/ltp; el filtro final se mantiene.
+ * conservan solo las fincas cuyo `postalCodes[]` contiene el CP. Sin CP se recorre
+ * el municipio entero. Con CP, discovery aplica un prefiltro seguro antes de DNPRC/ltp.
  */
 import { filtrarPorDivision, fusionarFincas, parsearFiltroDivision } from "./candidates";
 import { getCatastroClient, type CatastroClient } from "./client";
@@ -159,12 +159,11 @@ export function normalizarCriteriosZona(
   const faltan = [
     !provincia ? "provincia" : null,
     !municipio ? "municipio" : null,
-    !postalCode ? "postalCode" : null,
   ].filter((campo): campo is string => campo !== null);
   if (faltan.length > 0) {
     return { ok: false, error: `Faltan parámetros obligatorios: ${faltan.join(", ")}.` };
   }
-  if (!/^\d{5}$/.test(postalCode)) {
+  if (postalCode && !/^\d{5}$/.test(postalCode)) {
     return { ok: false, error: "El código postal debe tener 5 dígitos." };
   }
   const filtro = parsearFiltroDivision(input.horizontalDivision ?? "NO");
@@ -285,7 +284,7 @@ async function procesarCalle(
         municipio: session.municipioOficial,
         sigla: estado.calle.sigla,
         via: estado.calle.name,
-        postalCode: session.criterios.postalCode,
+        postalCode: session.criterios.postalCode || undefined,
         horizontalDivision: "ALL",
         pageSize: contexto.pageSize,
         cursor: estado.cursor ?? undefined,

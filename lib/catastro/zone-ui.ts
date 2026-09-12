@@ -16,7 +16,7 @@ export const MODOS_BUSQUEDA = [
   {
     value: "calle",
     label: "Una calle",
-    descripcion: "La forma rápida. Elige provincia, pueblo y vía.",
+    descripcion: "Provincia y municipio. Si no pones calle, se recorre todo el pueblo.",
   },
   {
     value: "zona",
@@ -31,6 +31,9 @@ export const MODOS_BUSQUEDA = [
 
 export const EXPLICACION_ZONA =
   "Catastro no permite buscar directamente por código postal. Recorremos el callejero oficial del municipio y nos quedamos solo con las fincas de ese CP.";
+
+export const EXPLICACION_MUNICIPIO =
+  "Sin calle se recorren todas las calles oficiales del municipio. En una ciudad grande (A Coruña, Madrid…) tarda; verás el número de calles antes de empezar y podrás parar.";
 
 export function modoDesdeTexto(raw: string | null | undefined): ModoBusqueda {
   return raw?.trim().toLowerCase() === "zona" ? "zona" : "calle";
@@ -78,6 +81,26 @@ export function criteriosZonaListos(input: {
   const municipio = input.municipio?.trim() ?? "";
   const postalCode = input.postalCode.replace(/\s+/g, "");
   if (!provincia || !municipio || validarCodigoPostalZona(postalCode)) return null;
+  return {
+    provincia,
+    municipio,
+    postalCode,
+    horizontalDivision: input.horizontalDivision.trim().toUpperCase() || "NO",
+  };
+}
+
+/** Provincia + municipio. El CP, si se indica, tiene que ser de 5 dígitos. */
+export function criteriosMunicipioListos(input: {
+  provincia: string | null | undefined;
+  municipio: string | null | undefined;
+  postalCode: string;
+  horizontalDivision: string;
+}): CriteriosZonaUi | null {
+  const provincia = input.provincia?.trim() ?? "";
+  const municipio = input.municipio?.trim() ?? "";
+  const postalCode = input.postalCode.replace(/\s+/g, "");
+  if (!provincia || !municipio) return null;
+  if (postalCode && !/^\d{5}$/.test(postalCode)) return null;
   return {
     provincia,
     municipio,
@@ -233,15 +256,18 @@ function plural(n: number, singular: string, pluralTexto: string): string {
   return n === 1 ? singular : pluralTexto;
 }
 
-export function textoPreparacion(streetsFound: number): string {
+export function textoPreparacion(streetsFound: number, postalCode?: string): string {
   if (streetsFound === 0) {
     return "Catastro no devuelve calles oficiales para este municipio. No hay nada que recorrer.";
   }
+  const alcance = postalCode?.trim()
+    ? "La búsqueda recorrerá esas calles y filtrará después por código postal."
+    : "La búsqueda recorrerá todas esas calles del municipio.";
   return `Se ${plural(streetsFound, "ha encontrado", "han encontrado")} ${streetsFound} ${plural(
     streetsFound,
     "calle oficial",
     "calles oficiales"
-  )} en este municipio. La búsqueda recorrerá esas calles y filtrará después por código postal.`;
+  )} en este municipio. ${alcance}`;
 }
 
 export function textoCallesARevisar(streetsFound: number): string {

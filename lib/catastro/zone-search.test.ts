@@ -261,13 +261,14 @@ const CALLES_BASE: CalleFalsa[] = [
 ];
 
 describe("Zona: criterios", () => {
-  it("exige provincia, municipio y código postal", () => {
+  it("exige provincia y municipio; el código postal es opcional", () => {
     const sinCp = normalizarCriteriosZona({ provincia: "Valencia", municipio: "Godelleta" });
-    assert.equal(sinCp.ok, false);
-    if (!sinCp.ok) assert.match(sinCp.error, /postalCode/);
+    assert.equal(sinCp.ok, true);
+    if (sinCp.ok) assert.equal(sinCp.criterios.postalCode, "");
     const vacio = normalizarCriteriosZona({});
     assert.equal(vacio.ok, false);
-    if (!vacio.ok) assert.match(vacio.error, /provincia, municipio, postalCode/);
+    if (!vacio.ok) assert.match(vacio.error, /provincia, municipio/);
+    assert.doesNotMatch(vacio.ok ? "" : vacio.error, /postalCode/);
   });
 
   it("el código postal debe tener 5 dígitos y no admite calle ni número", () => {
@@ -736,7 +737,7 @@ describe("Zona: adaptador HTTP", () => {
     assert.deepEqual(params, { zoneSearchId: "abc", budgetMs: "5", concurrency: "3", retryErrors: "true" });
   });
 
-  it("prepare: 401 sin sesión, 400 sin CP, 200 con calles", async () => {
+  it("prepare: 401 sin sesión, 200 sin CP (municipio), 400 con calle, 200 con CP", async () => {
     const mundo = mundoFalso(CALLES_BASE);
     const deps = depsFalsas(mundo, CALLES_BASE.map((item) => item.calle));
     assert.equal((await responderZonaPreparar(peticion("prepare", CRITERIOS), null, deps)).status, 401);
@@ -745,7 +746,7 @@ describe("Zona: adaptador HTTP", () => {
       USUARIO,
       deps
     );
-    assert.equal(sinCp.status, 400);
+    assert.equal(sinCp.status, 200);
     const conCalle = await responderZonaPreparar(
       peticion("prepare", { ...CRITERIOS, via: "MAYOR" }),
       USUARIO,
