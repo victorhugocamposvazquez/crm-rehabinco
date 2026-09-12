@@ -10,12 +10,22 @@ import { Fab } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Building2, Search } from "lucide-react";
+import {
+  FILTROS_DH_PROPERTY,
+  FILTROS_ORIGEN_CATASTRAL,
+  coincideDhCatastro,
+  coincideOrigenCatastral,
+  type FiltroDhProperty,
+  type FiltroOrigenCatastral,
+} from "@/lib/catastro/explorer";
 
 export default function PropiedadesPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterEstado, setFilterEstado] = useState<"todos" | string>("todos");
   const [filterTipo, setFilterTipo] = useState<"todos" | string>("todos");
+  const [filterOrigen, setFilterOrigen] = useState<FiltroOrigenCatastral>("ALL");
+  const [filterDh, setFilterDh] = useState<FiltroDhProperty>("ALL");
   const [propiedades, setPropiedades] = useState<
     Array<{
       id: string;
@@ -30,6 +40,8 @@ export default function PropiedadesPage() {
       referencia: string | null;
       tipo_inmueble: string | null;
       portadaUrl: string | null;
+      origen: string | null;
+      dhStatus: string | null;
     }>
   >([]);
   const [error, setError] = useState<string | null>(null);
@@ -38,9 +50,9 @@ export default function PropiedadesPage() {
     const supabase = createClient();
     supabase
       .from("propiedades")
-      .select("id, titulo, direccion, localidad, tipo_operacion, precio_venta, precio_alquiler, estado, referencia, tipo_inmueble, clientes:ofertante_id(nombre), inmueble_media(url, portada)")
+      .select("id, titulo, direccion, localidad, tipo_operacion, precio_venta, precio_alquiler, estado, referencia, tipo_inmueble, origen, clientes:ofertante_id(nombre), inmueble_media(url, portada), catastro_property_links(finca_reference)")
       .order("created_at", { ascending: false })
-      .then(({ data, error: err }) => {
+      .then(async ({ data, error: err }) => {
         if (err) {
           setError(err.message);
           setPropiedades([]);
@@ -58,20 +70,52 @@ export default function PropiedadesPage() {
           estado: string;
           referencia: string | null;
           tipo_inmueble: string | null;
+          origen: string | null;
           clientes: { nombre: string } | { nombre: string }[] | null;
           inmueble_media: Array<{ url: string; portada: boolean }> | null;
+          catastro_property_links:
+            | { finca_reference: string }
+            | { finca_reference: string }[]
+            | null;
         }>;
+        const refs = [
+          ...new Set(
+            rows
+              .map((r) => {
+                const link = Array.isArray(r.catastro_property_links)
+                  ? r.catastro_property_links[0]
+                  : r.catastro_property_links;
+                return link?.finca_reference;
+              })
+              .filter((ref): ref is string => Boolean(ref))
+          ),
+        ];
+        const dhPorFinca = new Map<string, string>();
+        if (refs.length > 0) {
+          const { data: fincas } = await supabase
+            .from("catastro_fincas")
+            .select("finca_reference, dh_status")
+            .in("finca_reference", refs);
+          for (const finca of fincas ?? []) {
+            dhPorFinca.set(finca.finca_reference, finca.dh_status);
+          }
+        }
         setPropiedades(
           rows.map((r) => {
             const c = Array.isArray(r.clientes) ? r.clientes[0] : r.clientes;
             const fotos = r.inmueble_media ?? [];
             const portada = fotos.find((f) => f.portada) ?? fotos[0];
+            const link = Array.isArray(r.catastro_property_links)
+              ? r.catastro_property_links[0]
+              : r.catastro_property_links;
             return {
               ...r,
               ofertanteNombre: c?.nombre ?? "—",
               referencia: r.referencia,
               tipo_inmueble: r.tipo_inmueble,
               portadaUrl: portada?.url ?? null,
+              origen: r.origen ?? null,
+              dhStatus: link?.finca_reference ? dhPorFinca.get(link.finca_reference) ?? null : null,
             };
           })
         );
@@ -91,9 +135,11 @@ export default function PropiedadesPage() {
         p.ofertanteNombre.toLowerCase().includes(q);
       const matchEstado = filterEstado === "todos" || p.estado === filterEstado;
       const matchTipo = filterTipo === "todos" || p.tipo_operacion === filterTipo;
-      return matchSearch && matchEstado && matchTipo;
+      const matchOrigen = coincideOrigenCatastral(p.origen, filterOrigen);
+      const matchDh = coincideDhCatastro(p.dhStatus, filterDh);
+      return matchSearch && matchEstado && matchTipo && matchOrigen && matchDh;
     });
-  }, [propiedades, search, filterEstado, filterTipo]);
+  }, [propiedades, search, filterEstado, filterTipo, filterOrigen, filterDh]);
 
   return (
     <div>
@@ -102,12 +148,20 @@ export default function PropiedadesPage() {
         title="Inmuebles"
         description="Stock de la agencia. Cada ficha tiene referencia, fotos y visitas."
         actions={
-          <Button asChild size="sm">
-            <Link href="/propiedades/nueva" className="gap-2">
-              <Plus className="h-4 w-4" strokeWidth={1.5} />
-              Nuevo inmueble
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild size="sm" variant="secondary">
+              <Link href="/catastro" className="gap-2">
+                <Search className="h-4 w-4" strokeWidth={1.5} />
+                Buscar en Catastro
+              </Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href="/propiedades/nueva" className="gap-2">
+                <Plus className="h-4 w-4" strokeWidth={1.5} />
+                Nuevo inmueble
+              </Link>
+            </Button>
+          </div>
         }
       />
 
@@ -157,6 +211,38 @@ export default function PropiedadesPage() {
                 }`}
               >
                 {e === "todos" ? "Tipo" : e.charAt(0).toUpperCase() + e.slice(1)}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-1 rounded-lg border border-border p-1" role="group" aria-label="Origen catastral">
+            {FILTROS_ORIGEN_CATASTRAL.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => setFilterOrigen(item.value)}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  filterOrigen === item.value
+                    ? "bg-foreground text-background"
+                    : "text-neutral-600 hover:bg-neutral-100"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-1 rounded-lg border border-border p-1" role="group" aria-label="División horizontal">
+            {FILTROS_DH_PROPERTY.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => setFilterDh(item.value)}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  filterDh === item.value
+                    ? "bg-foreground text-background"
+                    : "text-neutral-600 hover:bg-neutral-100"
+                }`}
+              >
+                {item.label}
               </button>
             ))}
           </div>
@@ -210,6 +296,7 @@ export default function PropiedadesPage() {
                   referencia={p.referencia}
                   tipo_inmueble={p.tipo_inmueble}
                   portadaUrl={p.portadaUrl}
+                  origen={p.origen}
                 />
               ))
             )}

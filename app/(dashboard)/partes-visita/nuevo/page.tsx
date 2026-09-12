@@ -11,12 +11,19 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
+import { VisitContextoCatastro } from "@/components/partes-visita/VisitContextoCatastro";
+import {
+  contextoCatastralDesdeProperty,
+  visitaDesdePropertyExigePropiedad,
+  type ContextoCatastralVisita,
+} from "@/lib/partes-visita";
 
 export default function NuevoParteVisitaPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const propiedadFromUrl = searchParams.get("propiedad");
+  const propiedadFromUrl = searchParams.get("propiedad") ?? searchParams.get("propiedadId");
+  const desdeProperty = Boolean(propiedadFromUrl);
 
   const [propiedades, setPropiedades] = useState<
     Array<{ id: string; referencia: string | null; titulo: string | null; direccion: string | null }>
@@ -40,6 +47,7 @@ export default function NuevoParteVisitaPage() {
   const [estado, setEstado] = useState<"borrador" | "pendiente_firma">("pendiente_firma");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [contextoCatastro, setContextoCatastro] = useState<ContextoCatastralVisita>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -65,15 +73,44 @@ export default function NuevoParteVisitaPage() {
   }, [user?.id, user?.email, agenteNombre]);
 
   useEffect(() => {
-    if (!propiedadId) return;
+    if (!propiedadId) {
+      setContextoCatastro(null);
+      return;
+    }
     const p = propiedades.find((x) => x.id === propiedadId);
-    if (!p) return;
-    if (p.direccion) setInmuebleDireccion(p.direccion);
-    if (p.referencia) setInmuebleReferencia(p.referencia);
+    if (p) {
+      if (p.direccion) setInmuebleDireccion(p.direccion);
+      if (p.referencia) setInmuebleReferencia(p.referencia);
+    }
+    const supabase = createClient();
+    void supabase
+      .from("propiedades")
+      .select("id, direccion, referencia, origen, referencia_catastral, catastro_property_links(finca_reference)")
+      .eq("id", propiedadId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return;
+        if (data.direccion) setInmuebleDireccion(data.direccion);
+        if (data.referencia) setInmuebleReferencia(data.referencia);
+        const link = Array.isArray(data.catastro_property_links)
+          ? data.catastro_property_links[0]
+          : data.catastro_property_links;
+        setContextoCatastro(
+          contextoCatastralDesdeProperty({
+            origen: data.origen,
+            referenciaCatastral: data.referencia_catastral,
+            link: link ? { fincaReference: link.finca_reference } : null,
+          })
+        );
+      });
   }, [propiedadId, propiedades]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!visitaDesdePropertyExigePropiedad(desdeProperty, propiedadId)) {
+      setError("Esta visita debe quedar ligada a la propiedad.");
+      return;
+    }
     if (!inmuebleDireccion.trim()) {
       setError("La dirección del inmueble es obligatoria");
       return;
@@ -105,7 +142,7 @@ export default function NuevoParteVisitaPage() {
         visitante_email: visitanteEmail.trim() || null,
         inmueble_direccion: inmuebleDireccion.trim(),
         inmueble_referencia: inmuebleReferencia.trim() || null,
-        propiedad_id: propiedadId || null,
+        propiedad_id: desdeProperty ? propiedadId : propiedadId || null,
         comercial_id: authUser.id,
         fecha_visita: fechaVisita || null,
         hora_visita: horaVisita || null,
@@ -153,21 +190,40 @@ export default function NuevoParteVisitaPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
+            {contextoCatastro ? (
+              <div className="mb-5">
+                <VisitContextoCatastro contexto={contextoCatastro} />
+              </div>
+            ) : null}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
-                <Label>Inmueble del stock</Label>
+                <Label>Inmueble del stock{desdeProperty ? " *" : ""}</Label>
                 <select
                   value={propiedadId}
-                  onChange={(e) => setPropiedadId(e.target.value)}
-                  className="flex h-10 w-full rounded-lg border border-border bg-white px-4 text-base"
+                  onChange={(e) => {
+                    if (!desdeProperty) setPropiedadId(e.target.value);
+                  }}
+                  disabled={desdeProperty}
+                  required={desdeProperty}
+                  className="flex h-10 w-full rounded-lg border border-border bg-white px-4 text-base disabled:bg-neutral-50"
                 >
-                  <option value="">Sin ficha (solo dirección)</option>
+                  {desdeProperty ? null : <option value="">Sin ficha (solo dirección)</option>}
+                  {desdeProperty &&
+                  propiedadId &&
+                  !propiedades.some((p) => p.id === propiedadId) ? (
+                    <option value={propiedadId}>Propiedad seleccionada</option>
+                  ) : null}
                   {propiedades.map((p) => (
                     <option key={p.id} value={p.id}>
                       {[p.referencia, p.titulo || p.direccion].filter(Boolean).join(" · ")}
                     </option>
                   ))}
                 </select>
+                {desdeProperty ? (
+                  <p className="text-xs text-neutral-500">
+                    Visita ligada a esta propiedad. No se puede crear sin ficha desde este flujo.
+                  </p>
+                ) : null}
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="inmueble_direccion">Dirección del inmueble *</Label>

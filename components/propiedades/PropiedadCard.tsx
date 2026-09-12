@@ -9,6 +9,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { MoreVertical, Eye, Pencil, Trash2 } from "lucide-react";
+import { BadgeCatastroExplorer } from "@/components/catastro/BadgeCatastroExplorer";
+import { esOrigenCatastroExplorer } from "@/lib/catastro/explorer";
 
 interface PropiedadCardProps {
   id: string;
@@ -23,6 +25,7 @@ interface PropiedadCardProps {
   referencia?: string | null;
   tipo_inmueble?: string | null;
   portadaUrl?: string | null;
+  origen?: string | null;
 }
 
 export function PropiedadCard({
@@ -38,6 +41,7 @@ export function PropiedadCard({
   referencia,
   tipo_inmueble,
   portadaUrl,
+  origen,
 }: PropiedadCardProps) {
   const router = useRouter();
   const cardRef = useRef<HTMLDivElement>(null);
@@ -134,6 +138,11 @@ export function PropiedadCard({
                 {referencia ? <span className="mr-2 text-neutral-400">{referencia}</span> : null}
                 {titulo || direccion || "Sin título"}
               </p>
+              {esOrigenCatastroExplorer(origen) ? (
+                <div className="mt-1">
+                  <BadgeCatastroExplorer />
+                </div>
+              ) : null}
               <p className="truncate text-sm text-neutral-500">{subtitulo}</p>
               {precio && (
                 <p className="mt-0.5 text-sm font-medium text-emerald-700">{precio}</p>

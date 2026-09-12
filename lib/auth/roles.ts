@@ -25,10 +25,16 @@ export function isComercial(role: Role | null | undefined): boolean {
   return role === "comercial";
 }
 
+export function puedeCrearPropiedad(role: Role | null | undefined): boolean {
+  return role === "admin" || role === "comercial";
+}
+
 const EDITOR_HOME = "/presupuestos";
 
 const EDITOR_BLOCKED_PREFIXES = [
   "/clientes",
+  "/buscar",
+  "/catastro",
   "/propiedades",
   "/inmuebles",
   "/partes-visita",

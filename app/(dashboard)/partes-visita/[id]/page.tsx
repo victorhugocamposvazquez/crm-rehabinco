@@ -21,9 +21,12 @@ import {
   EMPRESA_PARTE_VISITA,
   ESTADO_PARTE_LABELS,
   buildPublicFirmaUrl,
+  contextoCatastralDesdeProperty,
   formatFechaLargaEs,
   formatHoraVisita,
+  type ContextoCatastralVisita,
 } from "@/lib/partes-visita";
+import { VisitContextoCatastro } from "@/components/partes-visita/VisitContextoCatastro";
 
 interface ParteVisita {
   id: string;
@@ -43,6 +46,7 @@ interface ParteVisita {
   firma_visitante: string | null;
   firma_agente: string | null;
   firmado_en: string | null;
+  propiedad_id: string | null;
 }
 
 function estadoVariant(
@@ -64,6 +68,8 @@ export default function DetalleParteVisitaPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [activating, setActivating] = useState(false);
+  const [propiedadHref, setPropiedadHref] = useState<string | null>(null);
+  const [contextoCatastro, setContextoCatastro] = useState<ContextoCatastralVisita>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -72,12 +78,32 @@ export default function DetalleParteVisitaPage() {
       .select("*")
       .eq("id", id)
       .single()
-      .then(({ data, error: err }) => {
+      .then(async ({ data, error: err }) => {
         if (err) {
           setError(err.message);
           setParte(null);
-        } else {
-          setParte(data as ParteVisita);
+          setLoading(false);
+          return;
+        }
+        const parte = data as ParteVisita;
+        setParte(parte);
+        if (parte.propiedad_id) {
+          setPropiedadHref(`/propiedades/${parte.propiedad_id}`);
+          const { data: propiedad } = await supabase
+            .from("propiedades")
+            .select("origen, referencia_catastral, catastro_property_links(finca_reference)")
+            .eq("id", parte.propiedad_id)
+            .maybeSingle();
+          const link = Array.isArray(propiedad?.catastro_property_links)
+            ? propiedad?.catastro_property_links[0]
+            : propiedad?.catastro_property_links;
+          setContextoCatastro(
+            contextoCatastralDesdeProperty({
+              origen: propiedad?.origen,
+              referenciaCatastral: propiedad?.referencia_catastral,
+              link: link ? { fincaReference: link.finca_reference } : null,
+            })
+          );
         }
         setLoading(false);
       });
@@ -279,6 +305,15 @@ export default function DetalleParteVisitaPage() {
             <CardTitle>Inmueble y visita</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
+            {contextoCatastro ? <VisitContextoCatastro contexto={contextoCatastro} /> : null}
+            {propiedadHref ? (
+              <p>
+                <span className="text-neutral-500">Propiedad:</span>{" "}
+                <Link href={propiedadHref} className="font-medium hover:underline">
+                  Ver ficha
+                </Link>
+              </p>
+            ) : null}
             <p>
               <span className="text-neutral-500">Dirección:</span>{" "}
               {parte.inmueble_direccion ?? "—"}

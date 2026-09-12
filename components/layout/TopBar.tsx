@@ -10,6 +10,7 @@ import {
   ClipboardList,
   ClipboardPenLine,
   Building2,
+  Search,
   LogOut,
   KeyRound,
   Settings,
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/", label: "Inicio", icon: Home },
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/propiedades", label: "Inmuebles", icon: Building2 },
+  { href: "/catastro", label: "Catastro", icon: Search },
   { href: "/partes-visita", label: "Visitas", icon: ClipboardPenLine },
   { href: "/presupuestos", label: "Presupuestos", icon: ClipboardList },
   { href: "/facturas", label: "Facturas", icon: FileText },
@@ -105,6 +107,7 @@ export function TopBar() {
             {visibleNavItems.map(({ href, label, icon: Icon }) => {
               const isActive =
                 pathname === href ||
+                (href === "/catastro" && pathname.startsWith("/buscar")) ||
                 (href !== "/" && href !== "/settings" && pathname.startsWith(href)) ||
                 (href === "/settings" && pathname.startsWith("/settings"));
               return (

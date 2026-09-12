@@ -8,6 +8,7 @@ import {
   FileText,
   Building2,
   ClipboardList,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -17,6 +18,7 @@ const navItems = [
   { href: "/", label: "Inicio", icon: Home },
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/propiedades", label: "Inmuebles", icon: Building2 },
+  { href: "/catastro", label: "Catastro", icon: Search },
   { href: "/presupuestos", label: "Presupuestos", icon: ClipboardList },
   { href: "/facturas", label: "Facturas", icon: FileText },
 ];
@@ -38,6 +40,7 @@ export function MobileNav() {
         {items.map(({ href, label, icon: Icon }) => {
           const isActive =
             pathname === href ||
+            (href === "/catastro" && pathname.startsWith("/buscar")) ||
             (href !== "/" && pathname.startsWith(href));
           return (
             <Link

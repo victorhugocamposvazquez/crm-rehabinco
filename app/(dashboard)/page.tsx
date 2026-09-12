@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, TrendingUp, Clock, Building2, ClipboardList, ClipboardPenLine, UserPlus, Plus } from "lucide-react";
+import { Users, TrendingUp, Clock, Building2, ClipboardList, ClipboardPenLine, UserPlus, Plus, Search } from "lucide-react";
 
 interface MesFacturado {
   mes: string;
@@ -201,6 +201,12 @@ export default function DashboardPage() {
             <Link href="/presupuestos/nuevo" className="gap-2">
               <ClipboardList className="h-4 w-4" strokeWidth={1.5} />
               Nuevo presupuesto
+            </Link>
+          </Button>
+          <Button asChild variant="secondary">
+            <Link href="/catastro" className="gap-2">
+              <Search className="h-4 w-4" strokeWidth={1.5} />
+              Buscar fincas
             </Link>
           </Button>
           <Button asChild variant="secondary">

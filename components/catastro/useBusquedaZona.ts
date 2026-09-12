@@ -1,0 +1,161 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { ErrorBusquedaUi } from "@/lib/catastro/search-ui";
+import {
+  ESTADO_ZONA_INICIAL,
+  aplicarErrorZona,
+  aplicarSnapshotZona,
+  debeContinuarPasos,
+  ejecutarBucleZona,
+  fetchZonaCancelar,
+  fetchZonaEstado,
+  fetchZonaPaso,
+  fetchZonaPreparar,
+  fetchZonaReanudar,
+  iniciarTramo,
+  type CriteriosZonaUi,
+  type EstadoZonaUi,
+} from "@/lib/catastro/zone-ui";
+
+function esAbortError(error: unknown): boolean {
+  return error instanceof DOMException
+    ? error.name === "AbortError"
+    : error instanceof Error && error.name === "AbortError";
+}
+
+function errorDe(error: unknown): { status?: number; message: string } {
+  if (error instanceof ErrorBusquedaUi) return { status: error.status, message: error.message };
+  return { message: "No se ha podido continuar la búsqueda por zona. Inténtalo de nuevo." };
+}
+
+function esperar(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Estado asíncrono de la búsqueda por zona: preparar → comenzar → pasos encadenados →
+ * cancelar / reanudar. El `zoneSearchId` vive en memoria mientras dure la pestaña.
+ */
+export function useBusquedaZona() {
+  const [estado, setEstado] = useState<EstadoZonaUi>(ESTADO_ZONA_INICIAL);
+  const [cancelando, setCancelando] = useState(false);
+  const [ahora, setAhora] = useState(() => Date.now());
+  const abortRef = useRef<AbortController | null>(null);
+  const zoneIdRef = useRef<string | null>(null);
+
+  const ejecutando = estado.fase === "ejecutando";
+
+  useEffect(() => {
+    if (!ejecutando) return;
+    const timer = setInterval(() => setAhora(Date.now()), 5_000);
+    return () => clearInterval(timer);
+  }, [ejecutando]);
+
+  useEffect(() => {
+    return () => abortRef.current?.abort();
+  }, []);
+
+  const bucle = async (zoneSearchId: string) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setAhora(Date.now());
+    setEstado((prev) => iniciarTramo(prev, Date.now()));
+    try {
+      await ejecutarBucleZona({
+        paso: (signal) => fetchZonaPaso(zoneSearchId, signal),
+        onSnapshot: (snapshot) => {
+          if (controller.signal.aborted || zoneIdRef.current !== zoneSearchId) return;
+          setEstado((prev) =>
+            aplicarSnapshotZona(prev, snapshot, { ejecutando: debeContinuarPasos(snapshot) })
+          );
+          setAhora(Date.now());
+        },
+        signal: controller.signal,
+      });
+    } catch (error) {
+      if (esAbortError(error) || controller.signal.aborted) return;
+      setEstado((prev) => aplicarErrorZona(prev, errorDe(error)));
+    }
+  };
+
+  /** Si había una zona en marcha, se pide al servidor que deje de programar calles. */
+  const soltarZonaActual = () => {
+    abortRef.current?.abort();
+    const anterior = zoneIdRef.current;
+    if (anterior && (estado.fase === "ejecutando" || estado.fase === "preparada")) {
+      void fetchZonaCancelar(anterior).catch(() => undefined);
+    }
+  };
+
+  const preparar = async (criterios: CriteriosZonaUi) => {
+    soltarZonaActual();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    zoneIdRef.current = null;
+    setCancelando(false);
+    setEstado({ ...ESTADO_ZONA_INICIAL, fase: "preparando" });
+    try {
+      const snapshot = await fetchZonaPreparar(criterios, controller.signal);
+      if (controller.signal.aborted) return;
+      zoneIdRef.current = snapshot.zoneSearchId;
+      setEstado((prev) => aplicarSnapshotZona(prev, snapshot));
+    } catch (error) {
+      if (esAbortError(error) || controller.signal.aborted) return;
+      setEstado((prev) => aplicarErrorZona({ ...prev, fase: "formulario" }, errorDe(error)));
+    }
+  };
+
+  const comenzar = () => {
+    const id = zoneIdRef.current;
+    if (!id) return;
+    void bucle(id);
+  };
+
+  const cancelar = async () => {
+    const id = zoneIdRef.current;
+    if (!id) return;
+    abortRef.current?.abort();
+    setCancelando(true);
+    try {
+      let snapshot = await fetchZonaCancelar(id);
+      // El paso en vuelo termina solo al acabar la página en curso; esperamos a que lo haga.
+      for (let intento = 0; snapshot.status === "running" && intento < 20; intento += 1) {
+        await esperar(1_000);
+        snapshot = await fetchZonaEstado(id);
+      }
+      if (zoneIdRef.current !== id) return;
+      setEstado((prev) => aplicarSnapshotZona(prev, snapshot));
+    } catch (error) {
+      if (zoneIdRef.current !== id) return;
+      setEstado((prev) => aplicarErrorZona(prev, errorDe(error)));
+    } finally {
+      if (zoneIdRef.current === id) setCancelando(false);
+    }
+  };
+
+  const reanudar = async (reintentarErrores = false) => {
+    const id = zoneIdRef.current;
+    if (!id) return;
+    try {
+      const snapshot = await fetchZonaReanudar(id, reintentarErrores);
+      if (zoneIdRef.current !== id) return;
+      setEstado((prev) => aplicarSnapshotZona(prev, snapshot, { ejecutando: true }));
+    } catch (error) {
+      if (zoneIdRef.current !== id) return;
+      setEstado((prev) => aplicarErrorZona(prev, errorDe(error)));
+      return;
+    }
+    await bucle(id);
+  };
+
+  const nueva = () => {
+    soltarZonaActual();
+    zoneIdRef.current = null;
+    setCancelando(false);
+    setEstado(ESTADO_ZONA_INICIAL);
+  };
+
+  return { estado, ahora, cancelando, preparar, comenzar, cancelar, reanudar, nueva };
+}

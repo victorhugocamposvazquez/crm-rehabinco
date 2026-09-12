@@ -71,7 +71,9 @@ export function formatPrecioInmueble(p: number | null | undefined) {
 export type Inmueble = {
   id: string;
   user_id: string;
-  ofertante_id: string;
+  ofertante_id: string | null;
+  origen?: "MANUAL" | "CATASTRO_EXPLORER" | string | null;
+  catastro_linked_at?: string | null;
   titulo: string | null;
   direccion: string | null;
   codigo_postal: string | null;
@@ -99,6 +101,7 @@ export type Inmueble = {
   video_url: string | null;
   comercial_id: string | null;
   publicado: boolean;
+  created_at?: string | null;
 };
 
 export type InmuebleMedia = {

@@ -20,12 +20,19 @@ import {
 } from "@/lib/inmuebles/catalogo";
 import { useAuth } from "@/lib/auth/auth-context";
 import { ClipboardPenLine, Pencil, Trash2 } from "lucide-react";
+import { CatastroPropertyFicha } from "@/components/catastro/CatastroPropertyFicha";
+import { esOrigenCatastroExplorer, fincaReferenceDesdeVinculo } from "@/lib/catastro/explorer";
+import {
+  ESTADO_PARTE_LABELS,
+  partirVisitasPorFecha,
+  rutaNuevaVisitaDesdeProperty,
+} from "@/lib/partes-visita";
 
 type ParteMini = {
   id: string;
   fecha_visita: string | null;
   visitante_nombre: string | null;
-  estado: string;
+  estado: "borrador" | "pendiente_firma" | "firmado";
 };
 
 export default function DetallePropiedadPage() {
@@ -40,30 +47,47 @@ export default function DetallePropiedadPage() {
   const [visitas, setVisitas] = useState<ParteMini[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [fincaReference, setFincaReference] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
     Promise.all([
-      supabase.from("propiedades").select("*, clientes:ofertante_id(nombre)").eq("id", id).single(),
+      supabase.from("propiedades").select("*, clientes:ofertante_id(nombre), catastro_property_links(finca_reference, source)").eq("id", id).single(),
       supabase.from("inmueble_media").select("id, propiedad_id, tipo, path, url, orden, portada").eq("propiedad_id", id),
       supabase
         .from("partes_visita")
         .select("id, fecha_visita, visitante_nombre, estado")
         .eq("propiedad_id", id)
-        .order("fecha_visita", { ascending: false })
-        .limit(8),
+        .order("fecha_visita", { ascending: false }),
     ]).then(async ([prop, med, vis]) => {
       if (prop.error || !prop.data) {
         setError(prop.error?.message ?? "Inmueble no encontrado");
         setLoading(false);
         return;
       }
-      const raw = prop.data as Inmueble & { clientes?: { nombre: string } | { nombre: string }[] | null };
+      const raw = prop.data as Inmueble & {
+        clientes?: { nombre: string } | { nombre: string }[] | null;
+        catastro_property_links?:
+          | { finca_reference: string; source: string }
+          | { finca_reference: string; source: string }[]
+          | null;
+      };
       const cliente = Array.isArray(raw.clientes) ? raw.clientes[0] : raw.clientes;
+      const link = Array.isArray(raw.catastro_property_links)
+        ? raw.catastro_property_links[0]
+        : raw.catastro_property_links;
       setPropiedad(raw);
       setOfertanteNombre(cliente?.nombre ?? null);
+      setFincaReference(
+        fincaReferenceDesdeVinculo({
+          propertyId: raw.id,
+          origen: raw.origen,
+          referenciaCatastral: raw.referencia_catastral,
+          link: link ? { fincaReference: link.finca_reference } : null,
+        })
+      );
       setMedia((med.data ?? []) as InmuebleMedia[]);
       setVisitas((vis.data ?? []) as ParteMini[]);
       if (raw.comercial_id) {
@@ -113,6 +137,8 @@ export default function DetallePropiedadPage() {
 
   const titulo = propiedad.titulo || propiedad.direccion || propiedad.referencia || "Sin título";
   const portada = media.find((m) => m.portada) ?? media.find((m) => m.tipo === "foto");
+  const hoy = new Date().toISOString().slice(0, 10);
+  const { proximas, historial } = partirVisitasPorFecha(visitas, hoy);
 
   return (
     <div>
@@ -123,9 +149,9 @@ export default function DetallePropiedadPage() {
         actions={
           <div className="flex shrink-0 items-center gap-1">
             <Button variant="secondary" size="sm" asChild>
-              <Link href={`/partes-visita/nuevo?propiedad=${id}`} className="gap-2">
+              <Link href={rutaNuevaVisitaDesdeProperty(id)} className="gap-2">
                 <ClipboardPenLine className="h-4 w-4" strokeWidth={1.5} />
-                Parte de visita
+                Nueva visita
               </Link>
             </Button>
             <Button variant="secondary" size="sm" asChild>
@@ -134,9 +160,11 @@ export default function DetallePropiedadPage() {
                 Editar
               </Link>
             </Button>
-            <Button variant="secondary" size="sm" asChild>
-              <Link href={`/clientes/${propiedad.ofertante_id}`}>Propietario</Link>
-            </Button>
+            {propiedad.ofertante_id ? (
+              <Button variant="secondary" size="sm" asChild>
+                <Link href={`/clientes/${propiedad.ofertante_id}`}>Propietario</Link>
+              </Button>
+            ) : null}
             <Button
               variant="secondary"
               size="sm"
@@ -154,6 +182,12 @@ export default function DetallePropiedadPage() {
         <Badge variant="default">{labelTipoOperacion(propiedad.tipo_operacion)}</Badge>
         {propiedad.tipo_inmueble ? <Badge variant="default">{labelTipoInmueble(propiedad.tipo_inmueble)}</Badge> : null}
         {propiedad.publicado ? <Badge variant="default">Matching</Badge> : null}
+        {esOrigenCatastroExplorer(propiedad.origen) && fincaReference ? (
+          <CatastroPropertyFicha
+            fincaReference={fincaReference}
+            propertyCreatedAt={propiedad.created_at}
+          />
+        ) : null}
       </div>
 
       <AlertDialog
@@ -192,11 +226,23 @@ export default function DetallePropiedadPage() {
             <p>
               <span className="text-neutral-500">Catastro:</span> {propiedad.referencia_catastral ?? "—"}
             </p>
+            {esOrigenCatastroExplorer(propiedad.origen) ? (
+              <p>
+                <span className="text-neutral-500">Fecha de creación de Property:</span>{" "}
+                {propiedad.created_at
+                  ? new Date(propiedad.created_at).toLocaleString("es-ES")
+                  : "—"}
+              </p>
+            ) : null}
             <p>
               <span className="text-neutral-500">Propietario:</span>{" "}
-              <Link href={`/clientes/${propiedad.ofertante_id}`} className="font-medium hover:underline">
-                {ofertanteNombre ?? "—"}
-              </Link>
+              {propiedad.ofertante_id ? (
+                <Link href={`/clientes/${propiedad.ofertante_id}`} className="font-medium hover:underline">
+                  {ofertanteNombre ?? "—"}
+                </Link>
+              ) : (
+                <span>{ofertanteNombre ?? "Sin asignar"}</span>
+              )}
             </p>
             <p>
               <span className="text-neutral-500">Comercial:</span> {comercialNombre ?? "—"}
@@ -276,20 +322,46 @@ export default function DetallePropiedadPage() {
           <CardHeader>
             <CardTitle>Visitas</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
             {visitas.length === 0 ? (
               <p className="text-sm text-neutral-500">Aún no hay partes ligados a este inmueble.</p>
             ) : (
-              <ul className="divide-y divide-neutral-100 text-sm">
-                {visitas.map((v) => (
-                  <li key={v.id} className="flex items-center justify-between py-2">
-                    <Link href={`/partes-visita/${v.id}`} className="hover:underline">
-                      {v.visitante_nombre || "Visitante"} · {v.fecha_visita || "sin fecha"}
-                    </Link>
-                    <span className="text-neutral-400">{v.estado}</span>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">Próximas visitas</h3>
+                  {proximas.length === 0 ? (
+                    <p className="mt-2 text-sm text-neutral-500">No hay visitas próximas.</p>
+                  ) : (
+                    <ul className="mt-1 divide-y divide-neutral-100 text-sm">
+                      {proximas.map((v) => (
+                        <li key={v.id} className="flex items-center justify-between py-2">
+                          <Link href={`/partes-visita/${v.id}`} className="hover:underline">
+                            {v.visitante_nombre || "Visitante"} · {v.fecha_visita || "sin fecha"}
+                          </Link>
+                          <span className="text-neutral-400">{ESTADO_PARTE_LABELS[v.estado] ?? v.estado}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">Historial de visitas</h3>
+                  {historial.length === 0 ? (
+                    <p className="mt-2 text-sm text-neutral-500">Aún no hay visitas pasadas.</p>
+                  ) : (
+                    <ul className="mt-1 divide-y divide-neutral-100 text-sm">
+                      {historial.map((v) => (
+                        <li key={v.id} className="flex items-center justify-between py-2">
+                          <Link href={`/partes-visita/${v.id}`} className="hover:underline">
+                            {v.visitante_nombre || "Visitante"} · {v.fecha_visita || "sin fecha"}
+                          </Link>
+                          <span className="text-neutral-400">{ESTADO_PARTE_LABELS[v.estado] ?? v.estado}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
