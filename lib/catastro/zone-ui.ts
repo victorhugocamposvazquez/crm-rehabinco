@@ -3,6 +3,7 @@
  * El componente solo pinta lo que estas funciones deciden; así se prueba con node:test.
  * El navegador habla únicamente con `/api/catastro/zone/*`.
  */
+import { ZONE_MAX_STREETS_RUN } from "./constants";
 import type { CoberturaExportacion, CriteriosNombreArchivo } from "./selection-export";
 import { ErrorBusquedaUi, mensajeErrorBusqueda, type FincaBusquedaUi } from "./search-ui";
 
@@ -30,10 +31,10 @@ export const MODOS_BUSQUEDA = [
 }>;
 
 export const EXPLICACION_ZONA =
-  "Catastro no permite buscar directamente por código postal. Recorremos el callejero oficial del municipio y nos quedamos solo con las fincas de ese CP.";
+  "Catastro no permite buscar directamente por código postal. Recorremos el callejero oficial del municipio y nos quedamos solo con las fincas de ese CP. En una ciudad grande (A Coruña, Madrid…) no es viable: elige una calle.";
 
 export const EXPLICACION_MUNICIPIO =
-  "Sin calle se recorren todas las calles oficiales del municipio. En una ciudad grande (A Coruña, Madrid…) tarda; verás el número de calles antes de empezar y podrás parar.";
+  "Sin calle se recorren todas las calles oficiales del municipio. Solo funciona en pueblos pequeños. En A Coruña o Madrid hay que elegir una calle.";
 
 export function modoDesdeTexto(raw: string | null | undefined): ModoBusqueda {
   return raw?.trim().toLowerCase() === "zona" ? "zona" : "calle";
@@ -241,8 +242,10 @@ export function aplicarErrorZona(
     return {
       ...estado,
       fase: "caducada",
-      error:
-        "La búsqueda por zona ha caducado en el servidor. Los resultados ya obtenidos siguen disponibles; prepárala de nuevo para continuar.",
+      error: textoSesionCaducada({
+        streetsFound: estado.snapshot?.progress.streetsFound,
+        streetsProcessed: estado.snapshot?.progress.streetsProcessed,
+      }),
     };
   }
   return { ...estado, fase: "error", error: error.message };
@@ -274,6 +277,30 @@ export function textoCallesARevisar(streetsFound: number): string {
   return streetsFound === 1
     ? "Se revisará 1 calle. Puedes parar cuando quieras."
     : `Se revisarán ${streetsFound} calles. Puedes parar cuando quieras.`;
+}
+
+export function zonaDemasiadoGrande(streetsFound: number): boolean {
+  return streetsFound > ZONE_MAX_STREETS_RUN;
+}
+
+export function textoZonaDemasiadoGrande(streetsFound: number, municipio: string): string {
+  const nombre = municipio.trim() || "Este municipio";
+  return `${nombre} tiene ${streetsFound.toLocaleString("es-ES")} calles oficiales. Catastro no busca por código postal: habría que recorrerlas una a una y la sesión se pierde en el servidor (0 calles procesadas). Elige una calle concreta.`;
+}
+
+export function textoSesionCaducada(input: {
+  streetsFound?: number;
+  streetsProcessed?: number;
+}): string {
+  const encontradas = input.streetsFound ?? 0;
+  const procesadas = input.streetsProcessed ?? 0;
+  if (procesadas === 0 && zonaDemasiadoGrande(encontradas)) {
+    return textoZonaDemasiadoGrande(encontradas, "");
+  }
+  if (procesadas === 0) {
+    return "La sesión se ha perdido en el servidor antes de recorrer ninguna calle. En un municipio grande elige una calle. En uno pequeño, pulsa Continuar y Empezar ahora sin cambiar de pestaña.";
+  }
+  return "La búsqueda por zona ha caducado en el servidor. Los resultados ya obtenidos siguen disponibles; prepárala de nuevo para continuar.";
 }
 
 export function etiquetaCandidatas(horizontalDivision: string): string {
@@ -396,7 +423,9 @@ export function accionesDisponibles(estado: EstadoZonaUi): AccionesZona {
     case "preparada":
       return {
         preparar: false,
-        comenzar: (snapshot?.progress.streetsFound ?? 0) > 0,
+        comenzar:
+          (snapshot?.progress.streetsFound ?? 0) > 0 &&
+          !zonaDemasiadoGrande(snapshot?.progress.streetsFound ?? 0),
         cancelar: false,
         reanudar: false,
         reintentarErrores: false,

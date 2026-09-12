@@ -20,7 +20,9 @@ import {
   textoCallesARevisar,
   textoEstadoFinal,
   textoPreparacion,
+  textoZonaDemasiadoGrande,
   textosProgreso,
+  zonaDemasiadoGrande,
   type EstadoZonaUi,
 } from "@/lib/catastro/zone-ui";
 import { rutaFincaPersistida } from "@/lib/catastro/explorer/history-ui";
@@ -94,22 +96,33 @@ export function BuscarPorZona({
   if (!snapshot) return null;
 
   if (estado.fase === "preparada") {
+    const demasiadoGrande = zonaDemasiadoGrande(snapshot.progress.streetsFound);
     return (
       <div className="space-y-4 rounded-2xl border border-border bg-white p-5 sm:p-6" role="status">
         <div>
           <p className="text-base font-semibold text-foreground">
             {textoPreparacion(snapshot.progress.streetsFound, snapshot.criteria.postalCode)}
           </p>
-          <p className="mt-1 text-sm text-neutral-600">{textoCallesARevisar(snapshot.progress.streetsFound)}</p>
-          <p className="mt-3 text-sm text-neutral-500">
-            Esto puede tardar. Verás las fincas según se vayan revisando las calles. Puedes parar en cualquier momento.
-          </p>
+          {demasiadoGrande ? (
+            <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+              {textoZonaDemasiadoGrande(snapshot.progress.streetsFound, snapshot.criteria.municipio)}
+            </p>
+          ) : (
+            <>
+              <p className="mt-1 text-sm text-neutral-600">{textoCallesARevisar(snapshot.progress.streetsFound)}</p>
+              <p className="mt-3 text-sm text-neutral-500">
+                Esto puede tardar. Verás las fincas según se vayan revisando las calles. Puedes parar en cualquier momento.
+              </p>
+            </>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button type="button" onClick={onComenzar} disabled={!acciones.comenzar}>
-            <Play className="h-4 w-4" aria-hidden />
-            Empezar ahora
-          </Button>
+          {demasiadoGrande ? null : (
+            <Button type="button" onClick={onComenzar} disabled={!acciones.comenzar}>
+              <Play className="h-4 w-4" aria-hidden />
+              Empezar ahora
+            </Button>
+          )}
           <Button type="button" variant="secondary" onClick={onNuevaBusqueda}>
             Nueva búsqueda
           </Button>
@@ -266,7 +279,9 @@ export function BuscarPorZona({
           ) : (
             <div className="rounded-2xl border border-dashed border-border bg-white px-5 py-10 text-center">
               <p className="text-neutral-600">
-                Todavía no hay resultados. Irán apareciendo calle a calle.
+                {estado.fase === "caducada" && snapshot.progress.streetsProcessed === 0
+                  ? "No se llegó a revisar ninguna calle. En A Coruña u otra ciudad grande elige una calle concreta."
+                  : "Todavía no hay resultados. Irán apareciendo calle a calle."}
               </p>
             </div>
           )

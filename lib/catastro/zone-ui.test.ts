@@ -22,6 +22,9 @@ import {
   criteriosExportacionZona,
   criteriosMunicipioListos,
   criteriosZonaListos,
+  textoSesionCaducada,
+  textoZonaDemasiadoGrande,
+  zonaDemasiadoGrande,
   debeContinuarPasos,
   etiquetaCandidatas,
   ejecutarBucleZona,
@@ -58,10 +61,10 @@ type SnapshotParcial = Omit<Partial<ZoneSnapshotUi>, "progress" | "coverage"> & 
 
 function snapshot(parcial: SnapshotParcial = {}): ZoneSnapshotUi {
   const progress = {
-    streetsFound: 427,
+    streetsFound: 40,
     streetsProcessed: 0,
     streetsWithErrors: 0,
-    streetsPending: 427,
+    streetsPending: 40,
     streetsInProgress: 0,
     fincasFound: 0,
     candidates: 0,
@@ -96,7 +99,7 @@ function snapshot(parcial: SnapshotParcial = {}): ZoneSnapshotUi {
 const enCurso = snapshot({
   status: "paused",
   nextAction: "step",
-  progress: { streetsProcessed: 17, streetsPending: 410, fincasFound: 8, candidates: 5, streetsWithErrors: 1, steps: 3, portalsProcessed: 340 },
+  progress: { streetsFound: 427, streetsProcessed: 17, streetsPending: 410, fincasFound: 8, candidates: 5, streetsWithErrors: 1, steps: 3, portalsProcessed: 340 },
   results: [finca("2749704YJ0624N", "3")],
   errors: [{ street: "CL ROTA", error: "Error externo de Catastro o INSPIRE." }],
 });
@@ -157,6 +160,9 @@ describe("Zona UI: preparación y confirmación", () => {
     assert.match(textoPreparacion(1), /^Se ha encontrado 1 calle oficial/);
     assert.match(textoPreparacion(0), /No hay nada que recorrer/);
     assert.equal(textoCallesARevisar(427), "Se revisarán 427 calles. Puedes parar cuando quieras.");
+    assert.equal(zonaDemasiadoGrande(40), false);
+    assert.equal(zonaDemasiadoGrande(14991), true);
+    assert.match(textoZonaDemasiadoGrande(14991, "A CORUÑA"), /elige una calle/i);
   });
 
   it("4. la búsqueda solo arranca con confirmación explícita (Comenzar)", () => {
@@ -258,7 +264,7 @@ describe("Zona UI: cancelación y reanudación", () => {
   it("7. cancelar detiene el bucle, conserva los resultados y ofrece Reanudar / Nueva búsqueda", async () => {
     const controller = new AbortController();
     const entregados: ZoneSnapshotUi[] = [];
-    const parcial = snapshot({ status: "paused", progress: { streetsProcessed: 214, streetsPending: 213, steps: 9, fincasFound: 6, candidates: 4 }, results: [finca("A", "1")] });
+    const parcial = snapshot({ status: "paused", progress: { streetsFound: 427, streetsProcessed: 214, streetsPending: 213, steps: 9, fincasFound: 6, candidates: 4 }, results: [finca("A", "1")] });
     const final = await ejecutarBucleZona({
       paso: async () => parcial,
       onSnapshot: (s) => {
@@ -339,6 +345,12 @@ describe("Zona UI: cancelación y reanudación", () => {
     assert.equal(caducada.fase, "caducada");
     assert.equal(caducada.snapshot, terminada.snapshot, "los resultados siguen disponibles");
     assert.equal(accionesDisponibles(caducada).preparar, true);
+    assert.match(textoSesionCaducada({ streetsFound: 14991, streetsProcessed: 0 }), /elige una calle/i);
+    const enorme = aplicarSnapshotZona(
+      ESTADO_ZONA_INICIAL,
+      snapshot({ progress: { streetsFound: 14991, streetsPending: 14991 } })
+    );
+    assert.equal(accionesDisponibles(enorme).comenzar, false);
     const otro = aplicarErrorZona(terminada, { status: 502, message: "Catastro no está disponible." });
     assert.equal(otro.fase, "error");
     assert.equal(otro.error, "Catastro no está disponible.");

@@ -57,6 +57,12 @@ export const ZONE_SESSION_TTL_MS = 60 * 60 * 1000;
 export const ZONE_SESSION_MAX = 20;
 export const ZONE_MAX_ACTIVE_PER_USER = 2;
 /**
+ * Por encima de este callejero la zona no es ejecutable: Catastro no filtra por CP,
+ * habría que recorrer cada calle y la sesión en memoria se pierde (Vercel).
+ * Godelleta cabe; A Coruña (~15.000) no.
+ */
+export const ZONE_MAX_STREETS_RUN = 250;
+/**
  * Protección: con estos fallos de servicio seguidos (sin ningún éxito entre medias) la zona
  * se pausa en vez de martillear Catastro. Los HTTP 4xx de una calle concreta no cuentan.
  */
