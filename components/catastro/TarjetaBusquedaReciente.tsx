@@ -63,12 +63,12 @@ export function TarjetaBusquedaReciente({
         </p>
         <h3 className="mt-1 text-lg font-semibold tracking-tight text-foreground">{item.titulo}</h3>
         <p className="mt-2 text-sm text-neutral-700">
-          {formatoNumeroEs(item.fincas)} {item.fincas === 1 ? "finca" : "fincas"}
+          {formatoNumeroEs(item.fincas)} {item.fincas === 1 ? "finca vista" : "fincas vistas"}
+          {" · "}
+          {formatoNumeroEs(item.candidatas)}{" "}
+          {item.candidatas === 1 ? "candidata a reforma" : "candidatas a reforma"}
         </p>
-        <p className="text-sm text-neutral-700">
-          {formatoNumeroEs(item.candidatas)} {item.candidatas === 1 ? "candidata" : "candidatas"}
-        </p>
-        <p className="mt-1 font-mono text-xs tracking-wide text-neutral-600">
+        <p className="mt-1 text-xs font-medium text-neutral-600">
           {ESTADO_BUSQUEDA_UI[item.status]}
         </p>
         <p className="mt-1 text-sm text-neutral-500">{fechaBusquedaCorta(item.updatedAt)}</p>

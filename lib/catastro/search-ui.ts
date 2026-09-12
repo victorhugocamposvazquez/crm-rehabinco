@@ -7,12 +7,15 @@ import { etiquetaMotivoUnknownUi } from "./unknown-reason";
 export const FILTRO_DIVISION_POR_DEFECTO = "NO" as const;
 
 export const FILTROS_DIVISION = [
-  { value: "NO", label: "Sin división horizontal" },
+  { value: "NO", label: "Candidatas (sin DH)" },
   { value: "YES", label: "Con división horizontal" },
-  { value: "UNKNOWN", label: "Desconocida" },
+  { value: "UNKNOWN", label: "Sin clasificar" },
   { value: "NOT_APPLICABLE", label: "No aplicable" },
-  { value: "ALL", label: "Todas" },
+  { value: "ALL", label: "Todas las fincas" },
 ] as const;
+
+export const AYUDA_FILTRO_DIVISION =
+  "Por defecto solo ves parcelas o edificios que Catastro no tiene partidos en pisos. Es lo habitual para reforma. Si la lista sale vacía, elige «Todas las fincas».";
 
 export type FiltroDivisionUi = (typeof FILTROS_DIVISION)[number]["value"];
 
@@ -169,6 +172,44 @@ export function etiquetaEstadoDivision(status: string | undefined): string {
   return "NO DETERMINADO";
 }
 
+/** Etiqueta corta para listados. El CSV sigue usando `etiquetaEstadoDivision`. */
+export function etiquetaEstadoDivisionLista(status: string | undefined): string {
+  if (status === "NO") return "Candidata";
+  if (status === "YES") return "Con pisos";
+  if (status === "NOT_APPLICABLE") return "No aplica";
+  return "Sin clasificar";
+}
+
+export function resumenComercialFinca(finca: Pick<FincaBusquedaUi, "horizontalDivision" | "superficieSolar" | "properties">): string {
+  const status = finca.horizontalDivision?.status;
+  const inmuebles = finca.properties?.length ?? 0;
+  const partes: string[] = [];
+  if (status === "NO") partes.push("Sin dividir en pisos");
+  else if (status === "YES") partes.push("Ya tiene división horizontal");
+  else if (status === "NOT_APPLICABLE") partes.push("Tipología no aplicable a reforma de edificio");
+  else partes.push("Catastro no aclara si está dividida");
+  if (finca.superficieSolar != null) partes.push(`${finca.superficieSolar} m² de parcela`);
+  if (inmuebles === 1) partes.push("1 inmueble");
+  if (inmuebles > 1) partes.push(`${inmuebles} inmuebles`);
+  return partes.join(" · ");
+}
+
+export function textoVacioResultados(filtro: string): {
+  mensaje: string;
+  accion?: { label: string; filtro: "ALL" };
+} {
+  if (filtro.trim().toUpperCase() === "NO") {
+    return {
+      mensaje:
+        "No hay fincas candidatas (sin división horizontal) en esta búsqueda. En calles de pisos es lo normal.",
+      accion: { label: "Ver todas las fincas", filtro: "ALL" },
+    };
+  }
+  return {
+    mensaje: "No se han encontrado fincas que cumplan los filtros seleccionados.",
+  };
+}
+
 /** Subtítulo opcional bajo NO DETERMINADO. Nunca «SIN DIVISIÓN HORIZONTAL». */
 export function textoMotivoUnknownUi(
   horizontalDivision?: { status?: string; reasonCode?: string }
@@ -194,7 +235,7 @@ export function textosCobertura(input: {
         ? "Búsqueda completa"
         : null,
     masResultados: input.hasNextPage
-      ? "Hay más resultados. Continúa para revisar toda la zona."
+      ? "Hay más portales en esta calle. Pulsa Siguiente para continuar."
       : null,
     corte: input.possibleCut
       ? "Catastro indica que esta zona puede contener más resultados de los recuperados."

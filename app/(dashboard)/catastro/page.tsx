@@ -1,22 +1,23 @@
-"use client";
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { BuscarInmuebles } from "@/components/catastro/BuscarInmuebles";
 
-import { PageHeader } from "@/components/layout/PageHeader";
-import { AccionNuevaBusqueda } from "@/components/catastro/AccionNuevaBusqueda";
-import { BusquedasRecientes } from "@/components/catastro/BusquedasRecientes";
-import { CatastroSubnav } from "@/components/catastro/CatastroSubnav";
-import { RUTA_EXPLORER } from "@/lib/catastro/explorer/history-ui";
+export const metadata: Metadata = {
+  title: "Buscar en Catastro",
+};
+
+function BuscarFallback() {
+  return (
+    <div className="rounded-2xl border border-border bg-white px-5 py-10 text-center">
+      <p className="text-sm text-neutral-500">Cargando búsqueda…</p>
+    </div>
+  );
+}
 
 export default function CatastroExplorerPage() {
   return (
-    <div>
-      <CatastroSubnav />
-      <PageHeader
-        breadcrumb={[{ label: "Catastro Explorer", href: RUTA_EXPLORER }]}
-        title="Catastro Explorer"
-        description="Encuentra y analiza fincas utilizando información oficial de Catastro."
-        actions={<AccionNuevaBusqueda />}
-      />
-      <BusquedasRecientes />
-    </div>
+    <Suspense fallback={<BuscarFallback />}>
+      <BuscarInmuebles />
+    </Suspense>
   );
 }

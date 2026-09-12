@@ -124,7 +124,7 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
         <CatastroSubnav />
         <PageHeader
           breadcrumb={[
-            { label: "Catastro Explorer", href: RUTA_EXPLORER },
+            { label: "Catastro", href: RUTA_EXPLORER },
             { label: "Búsqueda" },
           ]}
           title="Búsqueda"
@@ -161,7 +161,7 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
       <CatastroSubnav />
       <PageHeader
         breadcrumb={[
-          { label: "Catastro Explorer", href: RUTA_EXPLORER },
+          { label: "Catastro", href: RUTA_EXPLORER },
           { label: data.summary.titulo },
         ]}
         title={data.summary.titulo}

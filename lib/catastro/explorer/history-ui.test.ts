@@ -92,7 +92,7 @@ function mockFetch(handler: (url: string) => { status: number; body: unknown }) 
 describe("Catastro Explorer — experiencia persistente", () => {
   it("1. las rutas profundas del módulo son estables", () => {
     assert.equal(RUTA_EXPLORER, "/catastro");
-    assert.equal(RUTA_NUEVA_BUSQUEDA, "/buscar");
+    assert.equal(RUTA_NUEVA_BUSQUEDA, "/catastro");
     assert.equal(rutaBusquedaHistorica("abc"), "/catastro/searches/abc");
     assert.equal(rutaFincaPersistida("2749704YJ0624N"), "/catastro/finca/2749704YJ0624N");
     assert.equal(rutaBusquedaHistorica("abc").includes("cursor"), false);
@@ -190,8 +190,8 @@ describe("Catastro Explorer — experiencia persistente", () => {
     assert.equal(llamaACatastro(urls[0]), false);
     assert.equal(recientes[0].id, "zona-cp");
     assert.equal(recientes[0].fincas, 3031);
-    assert.equal(etiquetaTipoBusqueda(recientes[0].mode), "POR CÓDIGO POSTAL");
-    assert.equal(etiquetaTipoBusqueda(recientes[1].mode), "POR CALLE");
+    assert.equal(etiquetaTipoBusqueda(recientes[0].mode), "Código postal");
+    assert.equal(etiquetaTipoBusqueda(recientes[1].mode), "Calle");
   });
 
   it("4. abrir una búsqueda usa la ruta histórica", () => {

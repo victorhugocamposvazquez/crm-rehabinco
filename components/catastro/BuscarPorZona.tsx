@@ -4,6 +4,7 @@ import { Play, RotateCcw, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { estaSeleccionada, type SeleccionFincas } from "@/lib/catastro/selection-export";
 import { textoContadorFincas, type FincaBusquedaUi } from "@/lib/catastro/search-ui";
+import { VacioResultados } from "./VacioResultados";
 import {
   FILTROS_REVISION_COMERCIAL,
   estaEnRevision,
@@ -41,6 +42,7 @@ type Props = {
   onToggleSeleccion: (finca: FincaBusquedaUi) => void;
   onToggleRevision: (finca: FincaBusquedaUi) => void;
   onExportarRevision: () => void;
+  onVerTodas: () => void;
 };
 
 /**
@@ -63,6 +65,7 @@ export function BuscarPorZona({
   onToggleSeleccion,
   onToggleRevision,
   onExportarRevision,
+  onVerTodas,
 }: Props) {
   const { snapshot } = estado;
   const acciones = accionesDisponibles(estado);
@@ -97,14 +100,13 @@ export function BuscarPorZona({
           <p className="text-base font-semibold text-foreground">{textoPreparacion(snapshot.progress.streetsFound)}</p>
           <p className="mt-1 text-sm text-neutral-600">{textoCallesARevisar(snapshot.progress.streetsFound)}</p>
           <p className="mt-3 text-sm text-neutral-500">
-            La duración depende de cuántos portales tenga cada calle; el progreso se irá mostrando calle a calle
-            y podrás cancelar en cualquier momento.
+            Esto puede tardar. Verás las fincas según se vayan revisando las calles. Puedes parar en cualquier momento.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button type="button" onClick={onComenzar} disabled={!acciones.comenzar}>
             <Play className="h-4 w-4" aria-hidden />
-            Comenzar búsqueda
+            Empezar ahora
           </Button>
           <Button type="button" variant="secondary" onClick={onNuevaBusqueda}>
             Nueva búsqueda
@@ -232,7 +234,7 @@ export function BuscarPorZona({
               className="flex h-11 rounded-lg border border-border bg-white px-3 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               value={filtroRevision}
               onChange={(event) => onFiltroRevision(event.target.value as FiltroRevisionComercial)}
-              aria-label="Filtro comercial local"
+              aria-label="Filtrar por revisión"
             >
               {FILTROS_REVISION_COMERCIAL.map((item) => (
                 <option key={item.value} value={item.value}>
@@ -248,13 +250,15 @@ export function BuscarPorZona({
           </div>
         </div>
         {visibles.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border bg-white px-5 py-10 text-center">
-            <p className="text-neutral-600">
-              {snapshot.status === "done"
-                ? "No se han encontrado fincas con ese código postal que cumplan el filtro."
-                : "Todavía no hay fincas con ese código postal. Aparecerán aquí según se revisen las calles."}
-            </p>
-          </div>
+          snapshot.status === "done" ? (
+            <VacioResultados filtro={snapshot.criteria.horizontalDivision} onVerTodas={onVerTodas} />
+          ) : (
+            <div className="rounded-2xl border border-dashed border-border bg-white px-5 py-10 text-center">
+              <p className="text-neutral-600">
+                Todavía no hay resultados. Irán apareciendo calle a calle.
+              </p>
+            </div>
+          )
         ) : (
           <ul className="space-y-3" aria-label="Fincas encontradas">
             {visibles.map((finca) => (

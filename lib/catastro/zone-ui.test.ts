@@ -136,7 +136,7 @@ describe("Zona UI: preparación y confirmación", () => {
     );
     assert.match(textoPreparacion(1), /^Se ha encontrado 1 calle oficial/);
     assert.match(textoPreparacion(0), /No hay nada que recorrer/);
-    assert.equal(textoCallesARevisar(427), "Calles a revisar: 427");
+    assert.equal(textoCallesARevisar(427), "Se revisarán 427 calles. Puedes parar cuando quieras.");
   });
 
   it("4. la búsqueda solo arranca con confirmación explícita (Comenzar)", () => {

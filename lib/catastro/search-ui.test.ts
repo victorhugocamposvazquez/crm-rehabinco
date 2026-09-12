@@ -11,7 +11,10 @@ import {
   searchParamsDesdeCriterios,
   textosCobertura,
   textoContadorFincas,
+  textoVacioResultados,
   tituloDireccionFinca,
+  etiquetaEstadoDivisionLista,
+  resumenComercialFinca,
 } from "./search-ui";
 
 describe("search-ui", () => {
@@ -111,7 +114,7 @@ describe("search-ui", () => {
     assert.equal(textos.completa, null);
     assert.equal(
       textos.masResultados,
-      "Hay más resultados. Continúa para revisar toda la zona."
+      "Hay más portales en esta calle. Pulsa Siguiente para continuar."
     );
     assert.match(textos.corte ?? "", /más resultados/);
   });
@@ -164,6 +167,24 @@ describe("search-ui", () => {
         address: { sigla: "CL", via: "FUENCARRAL", numero: "50", numero2: "BIS" },
       }),
       "CL FUENCARRAL 50BIS"
+    );
+  });
+
+  it("explica un vacío por filtro de candidatas y ofrece ver todas", () => {
+    const vacioNo = textoVacioResultados("NO");
+    assert.match(vacioNo.mensaje, /candidatas/);
+    assert.equal(vacioNo.accion?.filtro, "ALL");
+    assert.equal(textoVacioResultados("ALL").accion, undefined);
+    assert.equal(etiquetaEstadoDivisionLista("NO"), "Candidata");
+    assert.equal(etiquetaEstadoDivisionLista("YES"), "Con pisos");
+    assert.equal(etiquetaEstadoDivisionLista("UNKNOWN"), "Sin clasificar");
+    assert.match(
+      resumenComercialFinca({
+        horizontalDivision: { status: "NO" },
+        superficieSolar: 420,
+        properties: [],
+      }),
+      /Sin dividir/
     );
   });
 });

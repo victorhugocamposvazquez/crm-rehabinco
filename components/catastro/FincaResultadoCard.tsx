@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   codigosPostalesVisibles,
-  etiquetaEstadoDivision,
+  etiquetaEstadoDivisionLista,
+  resumenComercialFinca,
   textoMotivoUnknownUi,
   tituloDireccionFinca,
   type FincaBusquedaUi,
@@ -72,7 +73,7 @@ export function FincaResultadoCard({
   revision = REVISION_VACIA,
   href,
   detallesIniciales = false,
-  mostrarMaps = false,
+  mostrarMaps = true,
   onToggleSeleccion,
   onToggleRevision,
   accionesExtra,
@@ -131,8 +132,9 @@ export function FincaResultadoCard({
                 titulo
               )}
             </h3>
-            <p className="mt-1 font-mono text-sm tracking-wide text-neutral-700">
-              {finca.fincaReference}
+            <p className="mt-1 text-sm text-neutral-600">{resumenComercialFinca(finca)}</p>
+            <p className="mt-1 text-xs text-neutral-500">
+              Ref. {finca.fincaReference}
             </p>
             {seleccionable ? (
               <label
@@ -155,7 +157,7 @@ export function FincaResultadoCard({
               badgeDivision(status)
             )}
           >
-            {etiquetaEstadoDivision(status)}
+            {etiquetaEstadoDivisionLista(status)}
           </span>
           {subtituloRevision ? (
             <p className="max-w-[16rem] text-[11px] font-medium leading-snug text-stone-700">{subtituloRevision}</p>
@@ -169,7 +171,7 @@ export function FincaResultadoCard({
       <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         {cps.length > 0 ? <Dato label="Código postal" value={cps.join(", ")} /> : null}
         {finca.superficieSolar != null ? (
-          <Dato label="Superficie solar" value={`${finca.superficieSolar} m²`} />
+          <Dato label="Parcela" value={`${finca.superficieSolar} m²`} />
         ) : null}
         {portales.length > 0 ? (
           <Dato
@@ -180,6 +182,11 @@ export function FincaResultadoCard({
       </dl>
 
       <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+        {href ? (
+          <Button asChild size="sm">
+            <Link href={href}>Ver finca</Link>
+          </Button>
+        ) : null}
         <Button
           type="button"
           variant="secondary"

@@ -62,7 +62,7 @@ export function FincaPersistida({ fincaReference }: { fincaReference: string }) 
         <CatastroSubnav />
         <PageHeader
           breadcrumb={[
-            { label: "Catastro Explorer", href: RUTA_EXPLORER },
+            { label: "Catastro", href: RUTA_EXPLORER },
             { label: "Finca" },
           ]}
           title="Finca"
@@ -98,7 +98,7 @@ export function FincaPersistida({ fincaReference }: { fincaReference: string }) 
       <CatastroSubnav />
       <PageHeader
         breadcrumb={[
-          { label: "Catastro Explorer", href: RUTA_EXPLORER },
+          { label: "Catastro", href: RUTA_EXPLORER },
           { label: titulo },
         ]}
         title={titulo}

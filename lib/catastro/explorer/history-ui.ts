@@ -30,7 +30,7 @@ import {
 } from "./types";
 
 export const RUTA_EXPLORER = "/catastro";
-export const RUTA_NUEVA_BUSQUEDA = "/buscar";
+export const RUTA_NUEVA_BUSQUEDA = "/catastro";
 export const RUTA_HISTORICO = "/catastro/searches";
 
 export function rutaBusquedaHistorica(id: string): string {
@@ -107,12 +107,12 @@ export const FILTROS_HISTORICOS = [
 ] as const;
 
 export const ESTADO_BUSQUEDA_UI: Record<CatastroExplorerSearchStatus, string> = {
-  PREPARED: "PREPARED",
-  RUNNING: "RUNNING",
-  PAUSED: "PAUSED",
-  CANCELLED: "CANCELLED",
-  COMPLETED: "COMPLETED",
-  FAILED: "FAILED",
+  PREPARED: "Lista para empezar",
+  RUNNING: "En curso",
+  PAUSED: "Pausada",
+  CANCELLED: "Cancelada",
+  COMPLETED: "Terminada",
+  FAILED: "Con errores",
 };
 
 function errorHttp(status: number, fallback: string, notFound?: string): Error {
@@ -164,7 +164,7 @@ export function fincaUiDesdeRecord(finca: CatastroFinca): FincaBusquedaUi {
 }
 
 export function etiquetaTipoBusqueda(mode: CatastroExplorerSearch["criteria"]["mode"]): string {
-  return mode === "POSTAL_CODE" ? "POR CÓDIGO POSTAL" : "POR CALLE";
+  return mode === "POSTAL_CODE" ? "Código postal" : "Calle";
 }
 
 export function formatoNumeroEs(valor: number): string {

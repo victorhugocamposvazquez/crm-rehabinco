@@ -13,12 +13,24 @@ import { ErrorBusquedaUi, mensajeErrorBusqueda, type FincaBusquedaUi } from "./s
 export type ModoBusqueda = "calle" | "zona";
 
 export const MODOS_BUSQUEDA = [
-  { value: "calle", label: "Calle" },
-  { value: "zona", label: "Código postal" },
-] as const satisfies ReadonlyArray<{ value: ModoBusqueda; label: string }>;
+  {
+    value: "calle",
+    label: "Una calle",
+    descripcion: "La forma rápida. Elige provincia, pueblo y vía.",
+  },
+  {
+    value: "zona",
+    label: "Un código postal",
+    descripcion: "Recorre todas las calles de un CP. Tarda más.",
+  },
+] as const satisfies ReadonlyArray<{
+  value: ModoBusqueda;
+  label: string;
+  descripcion: string;
+}>;
 
 export const EXPLICACION_ZONA =
-  "El código postal se utiliza como filtro sobre los resultados oficiales de Catastro. Catastro no permite buscar directamente por código postal.";
+  "Catastro no permite buscar directamente por código postal. Recorremos el callejero oficial del municipio y nos quedamos solo con las fincas de ese CP.";
 
 export function modoDesdeTexto(raw: string | null | undefined): ModoBusqueda {
   return raw?.trim().toLowerCase() === "zona" ? "zona" : "calle";
@@ -233,7 +245,9 @@ export function textoPreparacion(streetsFound: number): string {
 }
 
 export function textoCallesARevisar(streetsFound: number): string {
-  return `Calles a revisar: ${streetsFound}`;
+  return streetsFound === 1
+    ? "Se revisará 1 calle. Puedes parar cuando quieras."
+    : `Se revisarán ${streetsFound} calles. Puedes parar cuando quieras.`;
 }
 
 export function etiquetaCandidatas(horizontalDivision: string): string {

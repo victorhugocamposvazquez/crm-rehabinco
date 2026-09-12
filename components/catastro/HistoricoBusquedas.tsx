@@ -51,7 +51,7 @@ export function HistoricoBusquedas() {
       <CatastroSubnav />
       <PageHeader
         breadcrumb={[
-          { label: "Catastro Explorer", href: RUTA_EXPLORER },
+          { label: "Catastro", href: RUTA_EXPLORER },
           { label: "Historial" },
         ]}
         title="Historial"

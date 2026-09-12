@@ -62,6 +62,7 @@ import {
   type ProvinciaUi,
 } from "@/lib/catastro/location-ui";
 import {
+  AYUDA_FILTRO_DIVISION,
   FILTROS_DIVISION,
   claveCriterios,
   criteriosListos,
@@ -87,11 +88,11 @@ import {
 } from "@/lib/catastro/zone-ui";
 import { cn } from "@/lib/utils";
 import { BuscarPorZona } from "./BuscarPorZona";
-import { AccionNuevaBusqueda } from "./AccionNuevaBusqueda";
 import { BusquedasRecientes } from "./BusquedasRecientes";
 import { CatalogCombobox } from "./CatalogCombobox";
 import { CatastroSubnav } from "./CatastroSubnav";
 import { FincaResultadoCard } from "./FincaResultadoCard";
+import { VacioResultados } from "./VacioResultados";
 import { useBusquedaZona } from "./useBusquedaZona";
 import { useSeleccionFincas } from "./useSeleccionFincas";
 import { persistirRevisionUi, RUTA_EXPLORER, rutaFincaPersistida } from "@/lib/catastro/explorer/history-ui";
@@ -393,6 +394,30 @@ export function BuscarInmuebles() {
     void ejecutarBusqueda(criterios, null, 0);
   };
 
+  const buscarConFiltroDivision = (filtro: string) => {
+    setHorizontalDivision(filtro);
+    if (modo === "zona") {
+      const zonaListos = criteriosZonaListos({
+        provincia: ubicacion.provincia?.name,
+        municipio: ubicacion.municipio?.name,
+        postalCode,
+        horizontalDivision: filtro,
+      });
+      if (!zonaListos || zonaOcupada) return;
+      zona.nueva();
+      seleccionFincas.conservarPara(claveZonaUi(zonaListos));
+      void zona.preparar(zonaListos).finally(() => setRecientesKey((n) => n + 1));
+      return;
+    }
+    if (!criterios) return;
+    const origen = { ...criterios, horizontalDivision: filtro };
+    setPaginas([]);
+    setIndice(0);
+    seleccionFincas.conservarPara(claveCriterios(origen));
+    sincronizarUrl(origen);
+    void ejecutarBusqueda(origen, null, 0);
+  };
+
   const irAnterior = () => {
     if (loading || indice === 0 || !criterios) return;
     const previa = paginas[indice - 1];
@@ -455,13 +480,9 @@ export function BuscarInmuebles() {
     <div className={cn((seleccion.fincas.length > 0 || revision.fincas.length > 0) && "pb-32 md:pb-24")}>
       <CatastroSubnav />
       <PageHeader
-        breadcrumb={[
-          { label: "Catastro Explorer", href: RUTA_EXPLORER },
-          { label: "Nueva búsqueda" },
-        ]}
-        title="Nueva búsqueda"
-        description="Localiza fincas catastrales, especialmente parcelas construidas sin división horizontal."
-        actions={<AccionNuevaBusqueda />}
+        breadcrumb={[{ label: "Catastro", href: RUTA_EXPLORER }]}
+        title="Buscar fincas"
+        description="Elige una calle o un código postal. Por defecto te mostramos solo candidatas a reforma (sin división horizontal)."
       />
 
       <BusquedasRecientes refreshKey={recientesKey} compact />
@@ -471,27 +492,30 @@ export function BuscarInmuebles() {
         className="mt-8 rounded-2xl border border-border bg-white p-4 shadow-[0_1px_3px_rgba(28,25,23,0.04)] sm:p-6"
       >
         <fieldset className="mb-5">
-          <legend className="text-sm font-medium text-foreground">Buscar por</legend>
-          <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Buscar por">
+          <legend className="text-sm font-medium text-foreground">¿Qué quieres buscar?</legend>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Qué quieres buscar">
             {MODOS_BUSQUEDA.map((item) => (
               <label
                 key={item.value}
                 className={cn(
-                  "flex cursor-pointer items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+                  "flex cursor-pointer flex-col gap-1 rounded-2xl border px-4 py-3 transition-colors",
                   modo === item.value
                     ? "border-accent bg-accent/10 text-foreground"
                     : "border-border bg-white text-neutral-600 hover:border-neutral-300"
                 )}
               >
-                <input
-                  type="radio"
-                  name="modo"
-                  value={item.value}
-                  checked={modo === item.value}
-                  onChange={() => onModo(item.value)}
-                  className="h-4 w-4 accent-[var(--accent,#0f766e)]"
-                />
-                {item.label}
+                <span className="flex items-center gap-2 text-sm font-semibold">
+                  <input
+                    type="radio"
+                    name="modo"
+                    value={item.value}
+                    checked={modo === item.value}
+                    onChange={() => onModo(item.value)}
+                    className="h-4 w-4 accent-[var(--accent,#0f766e)]"
+                  />
+                  {item.label}
+                </span>
+                <span className="pl-6 text-xs font-normal text-neutral-500">{item.descripcion}</span>
               </label>
             ))}
           </div>
@@ -578,7 +602,7 @@ export function BuscarInmuebles() {
 
           {campos.numero ? (
             <div className="space-y-2">
-              <Label htmlFor="numero">Número</Label>
+              <Label htmlFor="numero">Portal / número</Label>
               <Input
                 id="numero"
                 value={numero}
@@ -586,7 +610,7 @@ export function BuscarInmuebles() {
                   resetResultados();
                   setNumero(event.target.value);
                 }}
-                placeholder="Opcional"
+                placeholder="Ej. 14 — déjalo vacío para toda la calle"
                 inputMode="numeric"
               />
             </div>
@@ -596,7 +620,7 @@ export function BuscarInmuebles() {
             <Label htmlFor="postalCode">
               Código postal
               <span className="ml-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
-                {modo === "zona" ? "Obligatorio" : "Filtro"}
+                {modo === "zona" ? "Obligatorio" : "Opcional"}
               </span>
             </Label>
             <Input
@@ -617,13 +641,13 @@ export function BuscarInmuebles() {
             <p id="postalCode-ayuda" className={cn("text-xs", avisoCpZona ? "text-red-700" : "text-neutral-500")}>
               {avisoCpZona ??
                 (modo === "zona"
-                  ? "Solo se mostrarán las fincas cuyo código postal oficial coincida."
-                  : "Opcional. Filtra las fincas ya encontradas; no busca por código postal.")}
+                  ? "Obligatorio. Solo se quedan las fincas de ese CP."
+                  : "Si lo pones, oculta las fincas de otro código postal.")}
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="horizontalDivision">División horizontal</Label>
+            <Label htmlFor="horizontalDivision">Qué fincas quieres ver</Label>
             <select
               id="horizontalDivision"
               className={SELECT_CLASS}
@@ -639,6 +663,7 @@ export function BuscarInmuebles() {
                 </option>
               ))}
             </select>
+            <p className="text-xs text-neutral-500">{AYUDA_FILTRO_DIVISION}</p>
           </div>
         </div>
 
@@ -655,7 +680,7 @@ export function BuscarInmuebles() {
           {modo === "zona" ? (
             <Button type="submit" disabled={!criteriosZona || zonaOcupada} className="w-full sm:w-auto">
               <Search className="h-4 w-4" strokeWidth={1.5} aria-hidden />
-              {zona.estado.fase === "preparando" ? "Preparando búsqueda..." : "Preparar búsqueda"}
+              {zona.estado.fase === "preparando" ? "Preparando…" : "Continuar"}
             </Button>
           ) : (
             <Button type="submit" disabled={loading || !criterios} className="w-full sm:w-auto">
@@ -688,6 +713,7 @@ export function BuscarInmuebles() {
             onToggleSeleccion={onToggleSeleccion}
             onToggleRevision={onToggleRevision}
             onExportarRevision={onExportarRevision}
+            onVerTodas={() => buscarConFiltroDivision("ALL")}
           />
         ) : (
           <>
@@ -718,6 +744,7 @@ export function BuscarInmuebles() {
                 onExportarRevision={onExportarRevision}
                 onAnterior={irAnterior}
                 onSiguiente={irSiguiente}
+                onVerTodas={() => buscarConFiltroDivision("ALL")}
               />
             ) : null}
           </>
@@ -755,6 +782,7 @@ function ResultadosBusqueda({
   onExportarRevision,
   onAnterior,
   onSiguiente,
+  onVerTodas,
 }: {
   resultado: ResultadoBusquedaUi;
   loading: boolean;
@@ -768,6 +796,7 @@ function ResultadosBusqueda({
   onExportarRevision: () => void;
   onAnterior: () => void;
   onSiguiente: () => void;
+  onVerTodas: () => void;
 }) {
   const visibles = filtrarPorRevisionComercial(resultado.results, filtroRevision, revision);
   const seleccionadasEnPagina = visibles.filter((finca) =>
@@ -796,12 +825,12 @@ function ResultadosBusqueda({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <label className="flex items-center gap-2 text-sm text-neutral-600">
-            <span className="sr-only">Vista comercial</span>
+            <span className="sr-only">Filtrar por revisión</span>
             <select
               className={SELECT_CLASS}
               value={filtroRevision}
               onChange={(event) => onFiltroRevision(event.target.value as FiltroRevisionComercial)}
-              aria-label="Filtro comercial local"
+              aria-label="Filtrar por revisión"
             >
               {FILTROS_REVISION_COMERCIAL.map((item) => (
                 <option key={item.value} value={item.value}>
@@ -834,11 +863,10 @@ function ResultadosBusqueda({
       ) : null}
 
       {visibles.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-white px-5 py-10 text-center">
-          <p className="text-neutral-600">
-            No se han encontrado fincas que cumplan los filtros seleccionados.
-          </p>
-        </div>
+        <VacioResultados
+          filtro={resultado.search.horizontalDivision}
+          onVerTodas={onVerTodas}
+        />
       ) : (
         <ul className="space-y-3" aria-label="Fincas encontradas">
           {visibles.map((finca) => (
