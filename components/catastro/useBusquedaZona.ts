@@ -14,6 +14,7 @@ import {
   fetchZonaPreparar,
   fetchZonaReanudar,
   iniciarTramo,
+  plegarBloque,
   type CriteriosZonaUi,
   type EstadoZonaUi,
 } from "@/lib/catastro/zone-ui";
@@ -43,6 +44,8 @@ export function useBusquedaZona() {
   const [ahora, setAhora] = useState(() => Date.now());
   const abortRef = useRef<AbortController | null>(null);
   const zoneIdRef = useRef<string | null>(null);
+  const criteriosRef = useRef<CriteriosZonaUi | null>(null);
+  const reintento410 = useRef(false);
 
   const ejecutando = estado.fase === "ejecutando";
 
@@ -76,7 +79,18 @@ export function useBusquedaZona() {
       });
     } catch (error) {
       if (esAbortError(error) || controller.signal.aborted) return;
-      setEstado((prev) => aplicarErrorZona(prev, errorDe(error)));
+      const detalle = errorDe(error);
+      const criterios = criteriosRef.current;
+      if (detalle.status === 410 && criterios && !reintento410.current) {
+        reintento410.current = true;
+        await preparar(criterios, { conservarAcumulado: true });
+        const nuevoId = zoneIdRef.current;
+        if (nuevoId && !controller.signal.aborted) {
+          await bucle(nuevoId);
+          return;
+        }
+      }
+      setEstado((prev) => aplicarErrorZona(prev, detalle));
     }
   };
 
@@ -89,13 +103,22 @@ export function useBusquedaZona() {
     }
   };
 
-  const preparar = async (criterios: CriteriosZonaUi) => {
+  const preparar = async (
+    criterios: CriteriosZonaUi,
+    opciones: { conservarAcumulado?: boolean } = {}
+  ) => {
     soltarZonaActual();
     const controller = new AbortController();
     abortRef.current = controller;
     zoneIdRef.current = null;
+    criteriosRef.current = criterios;
+    if (!opciones.conservarAcumulado) reintento410.current = false;
     setCancelando(false);
-    setEstado({ ...ESTADO_ZONA_INICIAL, fase: "preparando" });
+    setEstado((prev) => ({
+      ...ESTADO_ZONA_INICIAL,
+      fase: "preparando",
+      acumulado: opciones.conservarAcumulado ? prev.acumulado : null,
+    }));
     try {
       const snapshot = await fetchZonaPreparar(criterios, controller.signal);
       if (controller.signal.aborted) return;
@@ -105,6 +128,14 @@ export function useBusquedaZona() {
       if (esAbortError(error) || controller.signal.aborted) return;
       setEstado((prev) => aplicarErrorZona({ ...prev, fase: "formulario" }, errorDe(error)));
     }
+  };
+
+  const siguienteBloque = async (criterios: CriteriosZonaUi) => {
+    const actual = estado.snapshot;
+    if (!actual) return;
+    const offset = (actual.coverage.streetOffset ?? 0) + actual.progress.streetsFound;
+    setEstado((prev) => plegarBloque(prev));
+    await preparar({ ...criterios, streetOffset: offset }, { conservarAcumulado: true });
   };
 
   const comenzar = () => {
@@ -157,5 +188,5 @@ export function useBusquedaZona() {
     setEstado(ESTADO_ZONA_INICIAL);
   };
 
-  return { estado, ahora, cancelando, preparar, comenzar, cancelar, reanudar, nueva };
+  return { estado, ahora, cancelando, preparar, comenzar, cancelar, reanudar, siguienteBloque, nueva };
 }

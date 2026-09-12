@@ -21,6 +21,8 @@ export type CriteriosZonaNormalizados = {
   municipio: string;
   postalCode: string;
   horizontalDivision: FiltroDivisionHorizontal;
+  /** Índice de la primera calle de este bloque en el callejero oficial. */
+  streetOffset: number;
 };
 
 export type EstadoCalleZona = {
@@ -55,6 +57,9 @@ export type ZoneSession = {
   provinciaOficial: string;
   municipioOficial: string;
   calles: EstadoCalleZona[];
+  /** Calles oficiales del municipio (todas, no solo este bloque). */
+  streetsTotal: number;
+  streetOffset: number;
   /** Única por fincaReference; portales acumulados entre calles. */
   fincas: Map<string, FincaDescubierta>;
   status: ZoneStatus;
@@ -77,9 +82,13 @@ export type ZoneSessionStore = {
     provinciaOficial: string;
     municipioOficial: string;
     calles: CalleCatalogo[];
+    streetsTotal: number;
+    streetOffset: number;
   }): { ok: true; session: ZoneSession } | { ok: false; error: string };
   get(id: string): ZoneSession | null;
   findByKey(userId: string, claveZona: string): ZoneSession | null;
+  /** Recupera una sesión hidratada (p. ej. desde archivo persistido). */
+  put(session: ZoneSession): void;
   touch(session: ZoneSession): void;
   delete(id: string): void;
   size(): number;
@@ -101,7 +110,7 @@ export function esZonaActiva(session: ZoneSession): boolean {
 }
 
 export function claveZona(criterios: CriteriosZonaNormalizados): string {
-  return [criterios.provincia, criterios.municipio, criterios.postalCode]
+  return [criterios.provincia, criterios.municipio, criterios.postalCode, String(criterios.streetOffset)]
     .map((valor) => valor.trim().toUpperCase())
     .join("|");
 }
@@ -181,6 +190,8 @@ export function createZoneStore(options: ZoneStoreOptions = {}): ZoneSessionStor
         provinciaOficial: input.provinciaOficial,
         municipioOficial: input.municipioOficial,
         calles: input.calles.map(estadoCalleInicial),
+        streetsTotal: input.streetsTotal,
+        streetOffset: input.streetOffset,
         fincas: new Map(),
         status: "prepared",
         cancelRequested: false,
@@ -205,6 +216,9 @@ export function createZoneStore(options: ZoneStoreOptions = {}): ZoneSessionStor
         if (session.userId === userId && session.claveZona === clave) return session;
       }
       return null;
+    },
+    put(session) {
+      sessions.set(session.id, session);
     },
     touch(session) {
       const t = now();

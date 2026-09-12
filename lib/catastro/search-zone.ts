@@ -18,6 +18,7 @@ import {
   type ExplorerClock,
   type ExplorerStore,
 } from "./explorer";
+import type { ZoneSessionArchive } from "./zone-archive";
 import { getZoneStore, type ZoneSession } from "./zone-session";
 import {
   cancelarZona,
@@ -32,6 +33,7 @@ import {
 
 export type ZoneHttpDeps = ZoneDeps & {
   explorerStore?: ExplorerStore;
+  archive?: ZoneSessionArchive;
   clock?: ExplorerClock;
 };
 
@@ -130,15 +132,31 @@ async function persistirZona(
   }
 }
 
-function sesionDe(
+async function guardarArchivo(session: ZoneSession, deps: ZoneHttpDeps): Promise<void> {
+  if (!deps.archive) return;
+  try {
+    await deps.archive.put(session);
+  } catch (error) {
+    console.error("[catastro:zone-archive]", error instanceof Error ? error.message : error);
+  }
+}
+
+async function sesionDe(
   params: Parametros,
   user: { id: string },
   deps: ZoneHttpDeps
-): { ok: true; session: ZoneSession } | { ok: false; response: Response } {
+): Promise<{ ok: true; session: ZoneSession } | { ok: false; response: Response }> {
   const id = params.zoneSearchId?.trim();
   if (!id) return { ok: false, response: error(400, "Falta el parámetro zoneSearchId.") };
   const store = deps.zoneStore ?? getZoneStore();
-  const session = store.get(id);
+  let session = store.get(id);
+  if ((!session || session.userId !== user.id) && deps.archive) {
+    const archivada = await deps.archive.get(id, user.id);
+    if (archivada && archivada.expiresAt > Date.now()) {
+      store.put(archivada);
+      session = archivada;
+    }
+  }
   if (!session || session.userId !== user.id) {
     return {
       ok: false,
@@ -161,6 +179,7 @@ export async function responderZonaPreparar(
       municipio: params.municipio,
       postalCode: params.postalCode ?? params.codigoPostal,
       horizontalDivision: params.horizontalDivision,
+      streetOffset: entero(params.streetOffset),
       via: params.via,
       calle: params.calle,
       sigla: params.sigla,
@@ -174,6 +193,7 @@ export async function responderZonaPreparar(
     return error(status, resultado.error);
   }
   const snapshot = snapshotZona(resultado.session);
+  await guardarArchivo(resultado.session, deps);
   await persistirZona(user.id, resultado.session, snapshot, deps);
   return json(cuerpoZona(snapshot, { reused: resultado.reused }));
 }
@@ -185,7 +205,7 @@ export async function responderZonaPaso(
 ): Promise<Response> {
   if (!user) return error(401, "Sesión expirada");
   const params = await leerParametrosZona(request);
-  const sesion = sesionDe(params, user, deps);
+  const sesion = await sesionDe(params, user, deps);
   if (!sesion.ok) return sesion.response;
   try {
     const snapshot = await ejecutarPasoZona(
@@ -197,6 +217,7 @@ export async function responderZonaPaso(
       },
       deps
     );
+    await guardarArchivo(sesion.session, deps);
     await persistirZona(user.id, sesion.session, snapshot, deps);
     return json(cuerpoZona(snapshot));
   } catch (err) {
@@ -213,9 +234,10 @@ export async function responderZonaCancelar(
 ): Promise<Response> {
   if (!user) return error(401, "Sesión expirada");
   const params = await leerParametrosZona(request);
-  const sesion = sesionDe(params, user, deps);
+  const sesion = await sesionDe(params, user, deps);
   if (!sesion.ok) return sesion.response;
   const snapshot = cancelarZona(sesion.session, deps);
+  await guardarArchivo(sesion.session, deps);
   await persistirZona(user.id, sesion.session, snapshot, deps);
   return json(cuerpoZona(snapshot));
 }
@@ -227,7 +249,7 @@ export async function responderZonaReanudar(
 ): Promise<Response> {
   if (!user) return error(401, "Sesión expirada");
   const params = await leerParametrosZona(request);
-  const sesion = sesionDe(params, user, deps);
+  const sesion = await sesionDe(params, user, deps);
   if (!sesion.ok) return sesion.response;
   try {
     const snapshot = reanudarZona(
@@ -235,6 +257,7 @@ export async function responderZonaReanudar(
       { reintentarErrores: params.retryErrors === "true" },
       deps
     );
+    await guardarArchivo(sesion.session, deps);
     await persistirZona(user.id, sesion.session, snapshot, deps);
     return json(cuerpoZona(snapshot));
   } catch (err) {
@@ -250,7 +273,7 @@ export async function responderZonaEstado(
 ): Promise<Response> {
   if (!user) return error(401, "Sesión expirada");
   const params = await leerParametrosZona(request);
-  const sesion = sesionDe(params, user, deps);
+  const sesion = await sesionDe(params, user, deps);
   if (!sesion.ok) return sesion.response;
   return json(cuerpoZona(snapshotZona(sesion.session)));
 }

@@ -21,8 +21,11 @@ import {
   coberturaExportacionZona,
   criteriosExportacionZona,
   criteriosMunicipioListos,
+  criteriosSiguienteBloque,
   criteriosZonaListos,
+  plegarBloque,
   textoSesionCaducada,
+  textoSiguienteBloque,
   textoZonaDemasiadoGrande,
   zonaDemasiadoGrande,
   debeContinuarPasos,
@@ -80,6 +83,9 @@ function snapshot(parcial: SnapshotParcial = {}): ZoneSnapshotUi {
     complete: false,
     completeCandidates: false,
     possibleCut: false,
+    streetsTotal: progress.streetsFound,
+    streetOffset: 0,
+    hasNextBlock: false,
     ...parcial.coverage,
   };
   return {
@@ -112,7 +118,7 @@ describe("Zona UI: modo y formulario", () => {
     assert.deepEqual(camposVisibles("calle"), { calle: true, numero: true, postalCode: true, division: true });
     assert.deepEqual(camposVisibles("zona"), { calle: false, numero: false, postalCode: true, division: true });
     assert.deepEqual(estadoAlCambiarModo(), ESTADO_ZONA_INICIAL, "al cambiar de modo se limpia la zona");
-    assert.match(EXPLICACION_ZONA, /no permite buscar directamente por código postal/);
+    assert.match(EXPLICACION_ZONA, /calles oficiales de ese CP|no permite buscar directamente por código postal/);
     assert.doesNotMatch(EXPLICACION_ZONA, /WFS|DNPLOC|INSPIRE/);
   });
 
@@ -162,7 +168,11 @@ describe("Zona UI: preparación y confirmación", () => {
     assert.equal(textoCallesARevisar(427), "Se revisarán 427 calles. Puedes parar cuando quieras.");
     assert.equal(zonaDemasiadoGrande(40), false);
     assert.equal(zonaDemasiadoGrande(14991), true);
-    assert.match(textoZonaDemasiadoGrande(14991, "A CORUÑA"), /elige una calle/i);
+    assert.match(textoZonaDemasiadoGrande(14991, "A CORUÑA"), /bloques de 250/i);
+    assert.match(
+      textoPreparacion(250, "15009", 14991),
+      /14[.\u00a0\s]?991 calles oficiales[\s\S]*15009[\s\S]*primer bloque tiene 250/
+    );
   });
 
   it("4. la búsqueda solo arranca con confirmación explícita (Comenzar)", () => {
@@ -345,12 +355,35 @@ describe("Zona UI: cancelación y reanudación", () => {
     assert.equal(caducada.fase, "caducada");
     assert.equal(caducada.snapshot, terminada.snapshot, "los resultados siguen disponibles");
     assert.equal(accionesDisponibles(caducada).preparar, true);
-    assert.match(textoSesionCaducada({ streetsFound: 14991, streetsProcessed: 0 }), /elige una calle/i);
+    assert.match(textoSesionCaducada({ streetsFound: 14991, streetsProcessed: 0 }), /este bloque|Prepara de nuevo/i);
     const enorme = aplicarSnapshotZona(
       ESTADO_ZONA_INICIAL,
-      snapshot({ progress: { streetsFound: 14991, streetsPending: 14991 } })
+      snapshot({
+        progress: { streetsFound: 250, streetsPending: 250 },
+        coverage: { streetsTotal: 14991, streetOffset: 0, hasNextBlock: true },
+      })
     );
-    assert.equal(accionesDisponibles(enorme).comenzar, false);
+    assert.equal(accionesDisponibles(enorme).comenzar, true, "una ciudad grande se arranca por bloques");
+    const bloqueHecho = aplicarSnapshotZona(
+      enorme,
+      snapshot({
+        status: "done",
+        progress: { streetsFound: 250, streetsProcessed: 250, streetsPending: 0, steps: 8 },
+        coverage: { complete: true, completeCandidates: true, streetsTotal: 14991, streetOffset: 0, hasNextBlock: true },
+      })
+    );
+    assert.equal(accionesDisponibles(bloqueHecho).siguienteBloque, true);
+    assert.match(textoSiguienteBloque(bloqueHecho.snapshot!), /251/);
+    const criterios = { provincia: "A CORUÑA", municipio: "A CORUÑA", postalCode: "15009", horizontalDivision: "NO" };
+    assert.deepEqual(criteriosSiguienteBloque(criterios, bloqueHecho.snapshot!), {
+      ...criterios,
+      streetOffset: 250,
+    });
+    const plegado = plegarBloque(
+      aplicarSnapshotZona(ESTADO_ZONA_INICIAL, snapshot({ results: [finca("A", "1")], progress: { streetsProcessed: 250, fincasFound: 1, candidates: 1 } }))
+    );
+    assert.equal(plegado.acumulado?.streetsProcessed, 250);
+    assert.equal(plegado.acumulado?.results.length, 1);
     const otro = aplicarErrorZona(terminada, { status: 502, message: "Catastro no está disponible." });
     assert.equal(otro.fase, "error");
     assert.equal(otro.error, "Catastro no está disponible.");

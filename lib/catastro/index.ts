@@ -157,6 +157,8 @@ export type {
 } from "./zone-search";
 export { createZoneStore, getZoneStore } from "./zone-session";
 export type { ZoneSession, ZoneSessionStore } from "./zone-session";
+export { hidratarSesionZona, serializarSesionZona } from "./zone-archive";
+export type { ZoneSessionArchive } from "./zone-archive";
 export {
   responderZonaCancelar,
   responderZonaEstado,

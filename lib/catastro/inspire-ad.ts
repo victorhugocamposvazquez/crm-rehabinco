@@ -5,6 +5,7 @@ export type DireccionInspire = {
   numero: string;
   codigoPostal: string | null;
   referenciaParcela: string | null;
+  codigoVia: string | null;
 };
 
 const RC_PARCELA = /\b(\d{7}[A-Z0-9]{7})\b/;
@@ -28,13 +29,16 @@ export function parsearDireccionesInspire(gml: string): {
     if (!numero) continue;
 
     const postal = miembro.match(/#ES\.SDGC\.PD\.[^.]+\.[^.]+\.(\d+)/);
+    const via = miembro.match(/#ES\.SDGC\.TN\.[^.]+\.[^.]+\.(\d+)/);
     const localId = miembro.match(/<base:localId>([^<]+)<\/base:localId>/i);
     const parcela = getFincaReference(localId?.[1]?.match(RC_PARCELA)?.[1]);
+    const segmentoVia = localId?.[1]?.split(".")[2];
 
     direcciones.push({
       numero,
       codigoPostal: postal?.[1] ?? null,
       referenciaParcela: parcela,
+      codigoVia: normalizarCodigoVia(via?.[1] ?? segmentoVia ?? null),
     });
   }
 
@@ -61,6 +65,18 @@ export function hayCorteWfs(gml: string, features: number): boolean {
     return true;
   }
   return false;
+}
+
+export function normalizarCodigoVia(valor: string | null | undefined): string | null {
+  const crudo = valor?.trim() ?? "";
+  if (!crudo) return null;
+  const n = Number(crudo);
+  return Number.isFinite(n) ? String(n) : crudo;
+}
+
+/** Códigos de vía oficiales (`dir.cv` / CODVIA) presentes en GetADByPostalCode. */
+export function codigosViaUnicos(direcciones: DireccionInspire[]): string[] {
+  return [...new Set(direcciones.map((item) => item.codigoVia).filter((item): item is string => Boolean(item)))];
 }
 
 export function numerosOficiales(direcciones: DireccionInspire[]): string[] {

@@ -307,6 +307,62 @@ describe("Zona: preparación", () => {
       session.calles.map((item) => item.calle.name),
       ["GUAYANA-MOJONERA", "MAYOR", "SIN PORTALES"]
     );
+    assert.equal(snapshot.coverage.streetsTotal, 3);
+    assert.equal(snapshot.coverage.streetOffset, 0);
+    assert.equal(snapshot.coverage.hasNextBlock, false);
+  });
+
+  it("parte un callejero grande en bloques y el siguiente offset continúa", async () => {
+    const calles = Array.from({ length: 300 }, (_, i) => calle(String(i + 1), `CALLE ${i + 1}`));
+    const mundo = mundoFalso(calles.map((item) => ({ calle: item })));
+    const deps = depsFalsas(mundo, calles);
+    const primero = await prepararOk(deps);
+    assert.equal(primero.calles.length, 250);
+    assert.equal(primero.streetsTotal, 300);
+    assert.equal(primero.streetOffset, 0);
+    const snap1 = snapshotZona(primero);
+    assert.equal(snap1.coverage.hasNextBlock, true);
+    assert.equal(snap1.coverage.streetsFound, 250);
+
+    const segundo = await prepararOk(deps, { ...CRITERIOS, streetOffset: "250" });
+    assert.equal(segundo.calles.length, 50);
+    assert.equal(segundo.streetOffset, 250);
+    assert.equal(segundo.id === primero.id, false);
+    const snap2 = snapshotZona(segundo);
+    assert.equal(snap2.coverage.hasNextBlock, false);
+    assert.equal(snap2.coverage.streetsTotal, 300);
+
+    const fuera = await prepararZona({ ...CRITERIOS, streetOffset: 300 }, USUARIO, deps);
+    assert.equal(fuera.ok, false);
+  });
+
+  it("con CP solo prepara las vías que GetADByPostalCode lista", async () => {
+    const calles = [calle("11", "AGRA MONTES"), calle("88", "MAYOR"), calle("999", "OTRA")];
+    const mundo = mundoFalso(calles.map((item) => ({ calle: item })));
+    const deps = depsFalsas(mundo, calles, {
+      client: {
+        obtenerDireccionesPorCodigoPostal: async () => `<gml:FeatureCollection>
+          <gml:featureMember><ad:Address>
+            <base:localId>15.900.11.10.8801701NJ4080S</base:localId>
+            <ad:LocatorDesignator><ad:designator>10</ad:designator></ad:LocatorDesignator>
+            <ad:component xlink:href="#ES.SDGC.PD.15.900.15009" />
+            <ad:component xlink:href="#ES.SDGC.TN.15.900.11" />
+          </ad:Address></gml:featureMember>
+          <gml:featureMember><ad:Address>
+            <base:localId>15.900.88.2.AAAAAAAAAAAAAA</base:localId>
+            <ad:LocatorDesignator><ad:designator>2</ad:designator></ad:LocatorDesignator>
+            <ad:component xlink:href="#ES.SDGC.TN.15.900.88" />
+          </ad:Address></gml:featureMember>
+        </gml:FeatureCollection>`,
+      } as CatastroClient,
+    });
+    const session = await prepararOk(deps, { ...CRITERIOS, postalCode: "15009" });
+    assert.deepEqual(
+      session.calles.map((item) => item.calle.code),
+      ["11", "88"]
+    );
+    assert.equal(session.streetsTotal, 2);
+    assert.equal(snapshotZona(session).coverage.hasNextBlock, false);
   });
 
   it("rechaza provincia o municipio no oficiales", async () => {
@@ -504,6 +560,9 @@ describe("Zona: cobertura", () => {
       complete: true,
       completeCandidates: true,
       possibleCut: false,
+      streetsTotal: 3,
+      streetOffset: 0,
+      hasNextBlock: false,
     });
   });
 
@@ -702,7 +761,8 @@ describe("Zona contra Catastro (acotada)", { skip: process.env.CATASTRO_SKIP_LIV
     const preparada = await prepararZona(CRITERIOS, { id: "live-zona" }, deps);
     assert.equal(preparada.ok, true);
     if (!preparada.ok) return;
-    assert.equal(preparada.session.calles.length, 400, "Godelleta tiene 400 calles oficiales");
+    assert.ok(preparada.session.calles.length > 0, "hay calles oficiales del CP");
+    assert.ok(preparada.session.calles.length <= 400, "no recorre más que el callejero de Godelleta");
     const paso = await ejecutarPasoZona(preparada.session, { budgetMs: 6_000, concurrency: 2 }, deps);
     assert.ok(paso.progress.streetsProcessed >= 1, "al menos una calle revisada");
     assert.ok(paso.progress.streetsProcessed < 400, "un paso corto no recorre el municipio");

@@ -17,12 +17,12 @@ export const MODOS_BUSQUEDA = [
   {
     value: "calle",
     label: "Una calle",
-    descripcion: "Provincia y municipio. Si no pones calle, se recorre todo el pueblo.",
+    descripcion: "Provincia y municipio. Si no pones calle, se recorre el pueblo por bloques.",
   },
   {
     value: "zona",
     label: "Un código postal",
-    descripcion: "Recorre todas las calles de un CP. Tarda más.",
+    descripcion: "Recorre las calles por bloques y se queda con las fincas de ese CP.",
   },
 ] as const satisfies ReadonlyArray<{
   value: ModoBusqueda;
@@ -31,10 +31,10 @@ export const MODOS_BUSQUEDA = [
 }>;
 
 export const EXPLICACION_ZONA =
-  "Catastro no permite buscar directamente por código postal. Recorremos el callejero oficial del municipio y nos quedamos solo con las fincas de ese CP. En una ciudad grande (A Coruña, Madrid…) no es viable: elige una calle.";
+  "Catastro no permite buscar directamente por código postal. Pedimos las calles oficiales de ese CP y las recorremos. Las fincas de ese código postal serán todos los resultados.";
 
 export const EXPLICACION_MUNICIPIO =
-  "Sin calle se recorren todas las calles oficiales del municipio. Solo funciona en pueblos pequeños. En A Coruña o Madrid hay que elegir una calle.";
+  "Sin calle se recorren las calles oficiales del municipio por bloques. En un pueblo cabe en uno; en A Coruña o Madrid puedes seguir bloque a bloque. Puedes parar cuando quieras.";
 
 export function modoDesdeTexto(raw: string | null | undefined): ModoBusqueda {
   return raw?.trim().toLowerCase() === "zona" ? "zona" : "calle";
@@ -63,6 +63,7 @@ export type CriteriosZonaUi = {
   municipio: string;
   postalCode: string;
   horizontalDivision: string;
+  streetOffset?: number;
 };
 
 export function validarCodigoPostalZona(valor: string): string | null {
@@ -138,6 +139,7 @@ export type ZoneSnapshotUi = {
     municipio: string;
     postalCode: string;
     horizontalDivision: string;
+    streetOffset?: number;
   };
   progress: {
     streetsFound: number;
@@ -158,6 +160,9 @@ export type ZoneSnapshotUi = {
     complete: boolean;
     completeCandidates: boolean;
     possibleCut: boolean;
+    streetsTotal?: number;
+    streetOffset?: number;
+    hasNextBlock?: boolean;
   };
   results: FincaBusquedaUi[];
   errors: Array<{ street: string; error: string }>;
@@ -176,6 +181,16 @@ export type FaseZona =
   | "caducada"
   | "error";
 
+export type AcumuladoZona = {
+  results: FincaBusquedaUi[];
+  errors: Array<{ street: string; error: string }>;
+  streetsProcessed: number;
+  streetsWithErrors: number;
+  fincasFound: number;
+  candidates: number;
+  portalsProcessed: number;
+};
+
 export type EstadoZonaUi = {
   fase: FaseZona;
   zoneSearchId: string | null;
@@ -185,6 +200,8 @@ export type EstadoZonaUi = {
   inicioMs: number | null;
   /** Calles ya procesadas al arrancar el tramo actual. */
   procesadasAlInicio: number;
+  /** Bloques anteriores de la misma búsqueda (el snapshot solo tiene el actual). */
+  acumulado: AcumuladoZona | null;
 };
 
 export const ESTADO_ZONA_INICIAL: EstadoZonaUi = {
@@ -194,7 +211,100 @@ export const ESTADO_ZONA_INICIAL: EstadoZonaUi = {
   error: null,
   inicioMs: null,
   procesadasAlInicio: 0,
+  acumulado: null,
 };
+
+export function fusionarResultadosZona(
+  previas: FincaBusquedaUi[],
+  nuevas: FincaBusquedaUi[]
+): FincaBusquedaUi[] {
+  const porRef = new Map(previas.map((finca) => [finca.fincaReference, finca] as const));
+  for (const finca of nuevas) {
+    const previa = porRef.get(finca.fincaReference);
+    if (!previa) {
+      porRef.set(finca.fincaReference, finca);
+      continue;
+    }
+    const portals = [...new Set([...(previa.portals ?? []), ...(finca.portals ?? [])])];
+    const postalCodes = [
+      ...new Set(
+        [...(previa.postalCodes ?? []), ...(finca.postalCodes ?? []), previa.postalCode, finca.postalCode].filter(
+          (item): item is string => Boolean(item)
+        )
+      ),
+    ];
+    porRef.set(finca.fincaReference, {
+      ...previa,
+      ...finca,
+      portals,
+      postalCodes,
+      postalCode: postalCodes[0] ?? finca.postalCode ?? previa.postalCode,
+    });
+  }
+  return [...porRef.values()];
+}
+
+export function plegarBloque(estado: EstadoZonaUi): EstadoZonaUi {
+  const snapshot = estado.snapshot;
+  if (!snapshot) return estado;
+  const previa = estado.acumulado;
+  return {
+    ...estado,
+    acumulado: {
+      results: fusionarResultadosZona(previa?.results ?? [], snapshot.results),
+      errors: [...(previa?.errors ?? []), ...snapshot.errors],
+      streetsProcessed: (previa?.streetsProcessed ?? 0) + snapshot.progress.streetsProcessed,
+      streetsWithErrors: (previa?.streetsWithErrors ?? 0) + snapshot.progress.streetsWithErrors,
+      fincasFound: (previa?.fincasFound ?? 0) + snapshot.progress.fincasFound,
+      candidates: fusionarResultadosZona(previa?.results ?? [], snapshot.results).length,
+      portalsProcessed: (previa?.portalsProcessed ?? 0) + snapshot.progress.portalsProcessed,
+    },
+  };
+}
+
+export function resultadosVisiblesZona(estado: EstadoZonaUi): FincaBusquedaUi[] {
+  return fusionarResultadosZona(estado.acumulado?.results ?? [], estado.snapshot?.results ?? []);
+}
+
+export function erroresVisiblesZona(estado: EstadoZonaUi): Array<{ street: string; error: string }> {
+  return [...(estado.acumulado?.errors ?? []), ...(estado.snapshot?.errors ?? [])];
+}
+
+export function resumenBloque(coverage: ZoneSnapshotUi["coverage"], streetsFound: number): {
+  total: number;
+  offset: number;
+  indice: number;
+  bloques: number;
+  desde: number;
+  hasta: number;
+  hasNext: boolean;
+} {
+  const total = coverage.streetsTotal && coverage.streetsTotal > 0 ? coverage.streetsTotal : streetsFound;
+  const offset = coverage.streetOffset ?? 0;
+  const bloques = Math.max(1, Math.ceil(total / ZONE_MAX_STREETS_RUN));
+  const indice = Math.min(bloques, Math.floor(offset / ZONE_MAX_STREETS_RUN) + 1);
+  return {
+    total,
+    offset,
+    indice,
+    bloques,
+    desde: streetsFound === 0 ? 0 : offset + 1,
+    hasta: offset + streetsFound,
+    hasNext: Boolean(coverage.hasNextBlock) || offset + streetsFound < total,
+  };
+}
+
+export function criteriosSiguienteBloque(
+  criterios: CriteriosZonaUi,
+  snapshot: ZoneSnapshotUi
+): CriteriosZonaUi | null {
+  const bloque = resumenBloque(snapshot.coverage, snapshot.progress.streetsFound);
+  if (!bloque.hasNext) return null;
+  return {
+    ...criterios,
+    streetOffset: bloque.offset + snapshot.progress.streetsFound,
+  };
+}
 
 export function estadoAlCambiarModo(): EstadoZonaUi {
   return ESTADO_ZONA_INICIAL;
@@ -259,9 +369,21 @@ function plural(n: number, singular: string, pluralTexto: string): string {
   return n === 1 ? singular : pluralTexto;
 }
 
-export function textoPreparacion(streetsFound: number, postalCode?: string): string {
-  if (streetsFound === 0) {
+export function textoPreparacion(
+  streetsFound: number,
+  postalCode?: string,
+  streetsTotal?: number
+): string {
+  if (streetsFound === 0 && !(streetsTotal && streetsTotal > 0)) {
     return "Catastro no devuelve calles oficiales para este municipio. No hay nada que recorrer.";
+  }
+  const total = streetsTotal && streetsTotal > 0 ? streetsTotal : streetsFound;
+  if (streetsTotal != null && streetsTotal > ZONE_MAX_STREETS_RUN) {
+    const bloques = Math.max(1, Math.ceil(total / ZONE_MAX_STREETS_RUN));
+    const alcance = postalCode?.trim()
+      ? `Si el código postal es ${postalCode.trim()}, esas fincas serán todos los resultados.`
+      : "Se recorrerá el municipio por bloques.";
+    return `Hay ${total.toLocaleString("es-ES")} calles oficiales. ${alcance} Este primer bloque tiene ${streetsFound} calles (${bloques} bloques en total).`;
   }
   const alcance = postalCode?.trim()
     ? "La búsqueda recorrerá esas calles y filtrará después por código postal."
@@ -285,7 +407,14 @@ export function zonaDemasiadoGrande(streetsFound: number): boolean {
 
 export function textoZonaDemasiadoGrande(streetsFound: number, municipio: string): string {
   const nombre = municipio.trim() || "Este municipio";
-  return `${nombre} tiene ${streetsFound.toLocaleString("es-ES")} calles oficiales. Catastro no busca por código postal: habría que recorrerlas una a una y la sesión se pierde en el servidor (0 calles procesadas). Elige una calle concreta.`;
+  return `${nombre} tiene ${streetsFound.toLocaleString("es-ES")} calles oficiales. Se buscará por bloques de ${ZONE_MAX_STREETS_RUN} calles para que no se pierda la sesión. Luego puedes seguir con el siguiente bloque.`;
+}
+
+export function textoSiguienteBloque(snapshot: ZoneSnapshotUi): string {
+  const bloque = resumenBloque(snapshot.coverage, snapshot.progress.streetsFound);
+  const siguienteDesde = bloque.hasta + 1;
+  const siguienteHasta = Math.min(bloque.hasta + ZONE_MAX_STREETS_RUN, bloque.total);
+  return `Siguiente bloque (calles ${siguienteDesde.toLocaleString("es-ES")}–${siguienteHasta.toLocaleString("es-ES")} de ${bloque.total.toLocaleString("es-ES")})`;
 }
 
 export function textoSesionCaducada(input: {
@@ -295,10 +424,10 @@ export function textoSesionCaducada(input: {
   const encontradas = input.streetsFound ?? 0;
   const procesadas = input.streetsProcessed ?? 0;
   if (procesadas === 0 && zonaDemasiadoGrande(encontradas)) {
-    return textoZonaDemasiadoGrande(encontradas, "");
+    return "La sesión se ha perdido en el servidor. Prepara de nuevo este bloque y, si puedes, no cambies de pestaña.";
   }
   if (procesadas === 0) {
-    return "La sesión se ha perdido en el servidor antes de recorrer ninguna calle. En un municipio grande elige una calle. En uno pequeño, pulsa Continuar y Empezar ahora sin cambiar de pestaña.";
+    return "La sesión se ha perdido en el servidor antes de recorrer ninguna calle. Pulsa Continuar y Empezar ahora sin cambiar de pestaña.";
   }
   return "La búsqueda por zona ha caducado en el servidor. Los resultados ya obtenidos siguen disponibles; prepárala de nuevo para continuar.";
 }
@@ -312,7 +441,10 @@ export function etiquetaCandidatas(horizontalDivision: string): string {
   return "Fincas con el código postal";
 }
 
-export function textosProgreso(snapshot: ZoneSnapshotUi): {
+export function textosProgreso(
+  snapshot: ZoneSnapshotUi,
+  acumulado?: AcumuladoZona | null
+): {
   calles: string;
   fincas: string;
   candidatas: string;
@@ -320,16 +452,25 @@ export function textosProgreso(snapshot: ZoneSnapshotUi): {
   porcentaje: number;
 } {
   const { progress } = snapshot;
+  const bloque = resumenBloque(snapshot.coverage, progress.streetsFound);
+  const procesadas = (acumulado?.streetsProcessed ?? 0) + progress.streetsProcessed;
+  const fincas = (acumulado?.fincasFound ?? 0) + progress.fincasFound;
+  const candidatas = acumulado
+    ? fusionarResultadosZona(acumulado.results, snapshot.results).length
+    : progress.candidates;
+  const erroresN = (acumulado?.streetsWithErrors ?? 0) + progress.streetsWithErrors;
+  const porBloques =
+    bloque.hasNext || bloque.offset > 0 || bloque.total > progress.streetsFound;
   const porcentaje =
-    progress.streetsFound === 0
-      ? 100
-      : Math.floor((progress.streetsProcessed / progress.streetsFound) * 100);
+    bloque.total === 0 ? 100 : Math.floor((procesadas / bloque.total) * 100);
+  const calles = porBloques
+    ? `Calles revisadas: ${procesadas} / ${bloque.total} · bloque ${bloque.indice} de ${bloque.bloques}`
+    : `Calles revisadas: ${progress.streetsProcessed} / ${progress.streetsFound}`;
   return {
-    calles: `Calles revisadas: ${progress.streetsProcessed} / ${progress.streetsFound}`,
-    fincas: `Fincas encontradas: ${progress.fincasFound}`,
-    candidatas: `${etiquetaCandidatas(snapshot.criteria.horizontalDivision)}: ${progress.candidates}`,
-    errores:
-      progress.streetsWithErrors > 0 ? `Calles con errores: ${progress.streetsWithErrors}` : null,
+    calles,
+    fincas: `Fincas encontradas: ${fincas}`,
+    candidatas: `${etiquetaCandidatas(snapshot.criteria.horizontalDivision)}: ${candidatas || progress.candidates}`,
+    errores: erroresN > 0 ? `Calles con errores: ${erroresN}` : null,
     porcentaje: Math.min(100, Math.max(0, porcentaje)),
   };
 }
@@ -365,6 +506,9 @@ export function textoEstadoFinal(estado: EstadoZonaUi): string | null {
     case "caducada":
       return `Búsqueda caducada en el servidor: ${procesadas}.`;
     case "completada":
+      if (resumenBloque(coverage, progress.streetsFound).hasNext) {
+        return `Bloque ${resumenBloque(coverage, progress.streetsFound).indice} de ${resumenBloque(coverage, progress.streetsFound).bloques} terminado. Puedes continuar con el siguiente.`;
+      }
       if (coverage.completeCandidates) return "Búsqueda completa: todas las calles del municipio revisadas.";
       if (coverage.streetsWithErrors > 0) {
         return `Búsqueda terminada con ${coverage.streetsWithErrors} ${plural(
@@ -401,59 +545,60 @@ export type AccionesZona = {
   reanudar: boolean;
   reintentarErrores: boolean;
   nuevaBusqueda: boolean;
+  siguienteBloque: boolean;
+};
+
+const ACCIONES_CERRADAS: AccionesZona = {
+  preparar: false,
+  comenzar: false,
+  cancelar: false,
+  reanudar: false,
+  reintentarErrores: false,
+  nuevaBusqueda: false,
+  siguienteBloque: false,
 };
 
 export function accionesDisponibles(estado: EstadoZonaUi): AccionesZona {
   const snapshot = estado.snapshot;
   const pendientes = (snapshot?.progress.streetsPending ?? 0) > 0;
   const conErrores = (snapshot?.progress.streetsWithErrors ?? 0) > 0;
+  const haySiguiente = Boolean(snapshot && resumenBloque(snapshot.coverage, snapshot.progress.streetsFound).hasNext);
   switch (estado.fase) {
     case "formulario":
     case "error":
       return {
+        ...ACCIONES_CERRADAS,
         preparar: true,
-        comenzar: false,
-        cancelar: false,
         reanudar: estado.fase === "error" && Boolean(snapshot) && pendientes,
-        reintentarErrores: false,
         nuevaBusqueda: Boolean(snapshot),
       };
     case "preparando":
-      return { preparar: false, comenzar: false, cancelar: false, reanudar: false, reintentarErrores: false, nuevaBusqueda: false };
+      return ACCIONES_CERRADAS;
     case "preparada":
       return {
-        preparar: false,
-        comenzar:
-          (snapshot?.progress.streetsFound ?? 0) > 0 &&
-          !zonaDemasiadoGrande(snapshot?.progress.streetsFound ?? 0),
-        cancelar: false,
-        reanudar: false,
-        reintentarErrores: false,
+        ...ACCIONES_CERRADAS,
+        comenzar: (snapshot?.progress.streetsFound ?? 0) > 0,
         nuevaBusqueda: true,
       };
     case "ejecutando":
-      return { preparar: false, comenzar: false, cancelar: true, reanudar: false, reintentarErrores: false, nuevaBusqueda: false };
+      return { ...ACCIONES_CERRADAS, cancelar: true };
     case "cancelada":
     case "pausada_por_catastro":
       return {
-        preparar: false,
-        comenzar: false,
-        cancelar: false,
+        ...ACCIONES_CERRADAS,
         reanudar: pendientes,
         reintentarErrores: !pendientes && conErrores,
         nuevaBusqueda: true,
       };
     case "completada":
       return {
-        preparar: false,
-        comenzar: false,
-        cancelar: false,
-        reanudar: false,
+        ...ACCIONES_CERRADAS,
         reintentarErrores: conErrores,
         nuevaBusqueda: true,
+        siguienteBloque: haySiguiente,
       };
     case "caducada":
-      return { preparar: true, comenzar: false, cancelar: false, reanudar: false, reintentarErrores: false, nuevaBusqueda: true };
+      return { ...ACCIONES_CERRADAS, preparar: true, nuevaBusqueda: true };
   }
 }
 
@@ -516,7 +661,10 @@ export async function ejecutarBucleZona(opciones: OpcionesBucleZona): Promise<Zo
 export function coberturaExportacionZona(snapshot: ZoneSnapshotUi | null): CoberturaExportacion {
   if (!snapshot) return { completeCandidates: false, possibleCut: false };
   return {
-    completeCandidates: snapshot.status === "done" && snapshot.coverage.completeCandidates,
+    completeCandidates:
+      snapshot.status === "done" &&
+      snapshot.coverage.completeCandidates &&
+      !snapshot.coverage.hasNextBlock,
     possibleCut: snapshot.coverage.possibleCut,
   };
 }
@@ -564,7 +712,19 @@ async function peticionZona(
 }
 
 export function fetchZonaPreparar(criterios: CriteriosZonaUi, signal?: AbortSignal): Promise<ZoneSnapshotUi> {
-  return peticionZona("/prepare", criterios, signal);
+  return peticionZona(
+    "/prepare",
+    {
+      provincia: criterios.provincia,
+      municipio: criterios.municipio,
+      postalCode: criterios.postalCode,
+      horizontalDivision: criterios.horizontalDivision,
+      ...(criterios.streetOffset && criterios.streetOffset > 0
+        ? { streetOffset: criterios.streetOffset }
+        : {}),
+    },
+    signal
+  );
 }
 
 export function fetchZonaPaso(

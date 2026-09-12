@@ -7,6 +7,6 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
 export async function POST(request: Request) {
-  const { user, store } = await explorerStoreDesdeSesion();
-  return responderZonaPaso(request, user, { explorerStore: store });
+  const { user, store, archive } = await explorerStoreDesdeSesion();
+  return responderZonaPaso(request, user, { explorerStore: store, archive });
 }

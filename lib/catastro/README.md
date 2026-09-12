@@ -167,7 +167,7 @@ Todo en el navegador, con los datos ya presentes en cada `Finca`. Sin peticiones
 
 ## Búsqueda por zona (`zone-search.ts`)
 
-Catastro no acepta el código postal como criterio. La zona recorre las **calles oficiales** del municipio y conserva las fincas cuyo `postalCodes[]` contiene el CP. Es una modalidad adicional en `/buscar` («Buscar por: Calle / Código postal»); la búsqueda por calle no cambia.
+Con CP, `GetADByPostalCode` recorta el callejero a las vías de ese código (p. ej. 15009 en A Coruña). Sin CP, un municipio grande se parte en bloques de `ZONE_MAX_STREETS_RUN`. La sesión se guarda en `catastro_zone_sessions` para no caducar entre peticiones de Vercel. Las fincas se filtran además por `postalCodes[]`. La búsqueda por calle no cambia.
 
 ```text
 HTTP (/api/catastro/zone/*)
@@ -183,7 +183,7 @@ fincas únicas por fincaReference (fusionarFincas: portales acumulados entre cal
 ```
 
 - Criterios: `{ provincia, municipio, postalCode (5 dígitos), horizontalDivision? }`. Calle o número → 400.
-- **Preparar** (`POST /zone/prepare`) solo lista las calles (`streetsFound`) y crea la sesión; no consulta ningún portal. La misma zona del mismo usuario se **reutiliza** con su progreso (y sus resultados) en vez de recorrerse otra vez. Cambiar el filtro de división no rehace nada: se aplica a la salida.
+- **Preparar** (`POST /zone/prepare`) lista un **bloque** de calles (`streetsFound`, tope `ZONE_MAX_STREETS_RUN`) y crea la sesión; no consulta ningún portal. `streetsTotal` / `streetOffset` / `hasNextBlock` dicen si quedan más. La misma zona+offset del mismo usuario se **reutiliza**. Cambiar el filtro de división no rehace nada: se aplica a la salida.
 - **Paso** (`POST /zone/step`, `budgetMs` ≤ 25 s, `concurrency` ≤ 5): trabaja hasta agotar el presupuesto y devuelve el snapshot completo (`progress`, `coverage`, `results`, `errors`, `nextAction`). El cliente encadena pasos; la UI nunca espera una promesa monolítica y cada petición HTTP queda acotada. Una calle a medias guarda su `cursor` de paginación y continúa en el paso siguiente. Un solo paso a la vez por sesión (409).
 - **Cancelar** (`/zone/cancel`): deja de programar calles y páginas; las peticiones en vuelo terminan solas (el cliente HTTP no expone abort). **Reanudar** (`/zone/resume`, opcional `retryErrors=true`) continúa por las calles pendientes sin reprocesar las completadas. `GET /zone?zoneSearchId=` devuelve el estado.
 - Vía oficial sin direcciones INSPIRE: el WFS responde `302 → /OVCError.aspx` (HTTP 404). `descubrirNumerosOficiales` lo trata como **0 portales** (no error); verificado en Godelleta (`DS DISEMINADO P 1`, `UR EL BOSQUE 1`). Un 5xx o un fallo de red siguen siendo error externo.
@@ -197,7 +197,7 @@ fincas únicas por fincaReference (fusionarFincas: portales acumulados entre cal
 ## Limitaciones
 
 - País Vasco y Navarra quedan fuera del DGC.
-- Búsqueda por zona: la sesión vive en memoria del servidor (TTL 1 h) y en la pestaña (`zoneSearchId`); si expira, los resultados ya recibidos siguen en pantalla pero hay que preparar de nuevo. El coste sigue siendo proporcional a los portales (DNPLOC + INSPIRE). El prefiltro evita DNPRC de fincas cuyo CP DNPLOC demuestra que no coincide; si el CP no viene en DNPLOC, se resuelve `ltp` como antes. Un CP minoritario sigue pagando todos los DNPLOC del municipio.
+- Búsqueda por zona: la sesión vive en memoria del servidor (TTL 1 h) y en la pestaña (`zoneSearchId`); si expira, los resultados ya recibidos siguen en pantalla pero hay que preparar de nuevo ese bloque. Un municipio grande se parte en bloques de 250 calles. El coste sigue siendo proporcional a los portales (DNPLOC + INSPIRE). El prefiltro evita DNPRC de fincas cuyo CP DNPLOC demuestra que no coincide; si el CP no viene en DNPLOC, se resuelve `ltp` como antes. Un CP minoritario sigue pagando los DNPLOC de las calles de cada bloque.
 - INSPIRE AD puede cortar calles grandes (`possibleCut`).
 - Sesiones de paginación en memoria (TTL 15 min). En una zona, una calle paginada cuyo cursor caduca (p. ej. tras cancelar y reanudar más de 15 min después, o si el equipo se suspende) se repite desde su primera página hasta 2 veces; si vuelve a caducar queda como `{ street, error: "La sesión de discovery ha expirado." }` y se recupera con «Reintentar calles con error».
 - Lista DNPLOC no incluye `finca.ltp` ni `lcons`; hay que resolver el detalle de **una** RC de 20.

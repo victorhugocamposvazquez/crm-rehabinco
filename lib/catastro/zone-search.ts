@@ -5,12 +5,16 @@
  *
  * Catastro no acepta el CP como criterio. Aquí se recorren las calles oficiales del
  * municipio con el discovery existente (una calle = una búsqueda comercial paginada) y se
- * conservan solo las fincas cuyo `postalCodes[]` contiene el CP. Sin CP se recorre
- * el municipio entero. Con CP, discovery aplica un prefiltro seguro antes de DNPRC/ltp.
+ * conservan solo las fincas cuyo `postalCodes[]` contiene el CP. Con CP, GetADByPostalCode
+ * recorta el callejero a las vías de ese código (p. ej. 15009 en A Coruña). Sin CP, un
+ * callejero grande se parte en bloques de `ZONE_MAX_STREETS_RUN` calles. Discovery aplica
+ * un prefiltro seguro antes de DNPRC/ltp.
  */
 import { filtrarPorDivision, fusionarFincas, parsearFiltroDivision } from "./candidates";
 import { getCatastroClient, type CatastroClient } from "./client";
-import { getCatalogCache, obtenerCallejeroOficial, type CatalogCache } from "./catalog";
+import { getCatalogCache, obtenerCallejeroOficial, type CalleCatalogo, type CatalogCache } from "./catalog";
+import { CatastroHttpError } from "./http";
+import { codigosViaUnicos, normalizarCodigoVia, parsearDireccionesInspire } from "./inspire-ad";
 import {
   buscarFincasComerciales,
   ordenarFincasComerciales,
@@ -20,10 +24,13 @@ import {
   type Finca,
 } from "./commercial-search";
 import {
+  INSPIRE_AD_MAX_FEATURES,
   ZONE_DEFAULT_CONCURRENCY,
+  ZONE_MAX_ACTIVE_PER_USER,
   ZONE_MAX_CONCURRENCY,
   ZONE_MAX_CONSECUTIVE_FAILURES,
   ZONE_MAX_ERRORS_REPORTED,
+  ZONE_MAX_STREETS_RUN,
   ZONE_STEP_DEFAULT_BUDGET_MS,
   ZONE_STEP_MAX_BUDGET_MS,
   ZONE_STREET_PAGE_SIZE,
@@ -34,6 +41,7 @@ import {
   sumarPrefiltroCodigoPostal,
   type PrefiltroCodigoPostal,
 } from "./finca";
+import type { ZoneSessionArchive } from "./zone-archive";
 import {
   claveZona,
   estadoCalleInicial,
@@ -52,6 +60,8 @@ export type CriteriosZona = {
   municipio?: string;
   postalCode?: string;
   horizontalDivision?: string;
+  /** Primera calle de este bloque en el callejero oficial. */
+  streetOffset?: number | string;
   /** Rechazados: la zona no admite calle ni número. */
   via?: string;
   calle?: string;
@@ -69,6 +79,7 @@ export type ZoneDeps = {
   catalogCache?: CatalogCache;
   discoveryStore?: DiscoverySessionStore;
   zoneStore?: ZoneSessionStore;
+  archive?: ZoneSessionArchive;
   /** Inyectable en tests; por defecto `buscarFincasComerciales`. */
   buscar?: BuscarCalle;
   now?: () => number;
@@ -81,6 +92,9 @@ export type CoberturaZona = {
   complete: boolean;
   completeCandidates: boolean;
   possibleCut: boolean;
+  streetsTotal: number;
+  streetOffset: number;
+  hasNextBlock: boolean;
 };
 
 export type ProgresoZona = {
@@ -109,6 +123,7 @@ export type ZoneSnapshot = {
     municipio: string;
     postalCode: string;
     horizontalDivision: CriteriosZonaNormalizados["horizontalDivision"];
+    streetOffset: number;
   };
   progress: ProgresoZona;
   coverage: CoberturaZona;
@@ -176,8 +191,16 @@ export function normalizarCriteriosZona(
       municipio: normalizarTexto(municipio),
       postalCode,
       horizontalDivision: filtro.value,
+      streetOffset: offsetZona(input.streetOffset),
     },
   };
+}
+
+function offsetZona(valor: number | string | undefined): number {
+  if (valor == null || valor === "") return 0;
+  const n = typeof valor === "number" ? valor : Number(valor);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.floor(n));
 }
 
 export type ResultadoPreparacionZona =
@@ -201,17 +224,44 @@ export async function prepararZona(
 
   const existente = zoneStore.findByKey(user.id, clave);
   if (existente) {
-    // El filtro de división se aplica a la salida; la misma zona no se vuelve a recorrer.
     existente.criterios = { ...existente.criterios, horizontalDivision: criterios.horizontalDivision };
     zoneStore.touch(existente);
     return { ok: true, session: existente, reused: true };
   }
 
+  const archivada = await deps.archive?.findByKey(user.id, clave);
+  if (archivada && archivada.expiresAt > Date.now()) {
+    archivada.criterios = { ...archivada.criterios, horizontalDivision: criterios.horizontalDivision };
+    zoneStore.put(archivada);
+    zoneStore.touch(archivada);
+    return { ok: true, session: archivada, reused: true };
+  }
+
+  if (deps.archive && (await deps.archive.countActive(user.id)) >= ZONE_MAX_ACTIVE_PER_USER) {
+    return {
+      ok: false,
+      code: "limit",
+      error: `Ya tienes ${ZONE_MAX_ACTIVE_PER_USER} búsquedas por zona en curso. Cancela o termina una antes de preparar otra.`,
+    };
+  }
+
+  const client = deps.client ?? getCatastroClient();
   const callejero = await obtenerCallejeroOficial(criterios.provincia, criterios.municipio, {
-    client: deps.client ?? getCatastroClient(),
+    client,
     cache: deps.catalogCache ?? getCatalogCache(),
   });
   if (!callejero.ok) return { ok: false, code: callejero.code, error: callejero.error };
+
+  let todas = callejero.callejero.calles;
+  if (criterios.postalCode) {
+    const delCp = await callesDelCodigoPostal(client, todas, criterios.postalCode);
+    if (!delCp.ok) return delCp;
+    todas = delCp.calles;
+  }
+  if (criterios.streetOffset > 0 && criterios.streetOffset >= todas.length) {
+    return { ok: false, code: "invalid", error: "No hay más calles en este municipio." };
+  }
+  const calles = todas.slice(criterios.streetOffset, criterios.streetOffset + ZONE_MAX_STREETS_RUN);
 
   const creada = zoneStore.create({
     userId: user.id,
@@ -219,10 +269,51 @@ export async function prepararZona(
     criterios,
     provinciaOficial: callejero.callejero.provincia.name,
     municipioOficial: callejero.callejero.municipio.name,
-    calles: callejero.callejero.calles,
+    calles,
+    streetsTotal: todas.length,
+    streetOffset: criterios.streetOffset,
   });
   if (!creada.ok) return { ok: false, code: "limit", error: creada.error };
   return { ok: true, session: creada.session, reused: false };
+}
+
+async function callesDelCodigoPostal(
+  client: CatastroClient,
+  callejero: CalleCatalogo[],
+  codigoPostal: string
+): Promise<{ ok: true; calles: CalleCatalogo[] } | { ok: false; code: "upstream"; error: string }> {
+  if (typeof client.obtenerDireccionesPorCodigoPostal !== "function") {
+    return { ok: true, calles: callejero };
+  }
+  try {
+    const vias = new Set<string>();
+    let startIndex = 0;
+    for (let pagina = 0; pagina < 4; pagina += 1) {
+      const gml = await client.obtenerDireccionesPorCodigoPostal({
+        codigoPostal,
+        ...(pagina > 0 ? { startIndex, count: INSPIRE_AD_MAX_FEATURES } : {}),
+      });
+      if (/ExceptionReport/i.test(gml)) {
+        return { ok: false, code: "upstream", error: "Catastro no ha podido listar las calles de ese código postal." };
+      }
+      const parsed = parsearDireccionesInspire(gml);
+      for (const codigo of codigosViaUnicos(parsed.direcciones)) vias.add(codigo);
+      if (!parsed.posibleCorte) break;
+      startIndex += INSPIRE_AD_MAX_FEATURES;
+    }
+    return {
+      ok: true,
+      calles: callejero.filter((calle) => {
+        const codigo = normalizarCodigoVia(calle.code);
+        return codigo != null && vias.has(codigo);
+      }),
+    };
+  } catch (error) {
+    if (error instanceof CatastroHttpError && error.status === 404) {
+      return { ok: true, calles: [] };
+    }
+    return { ok: false, code: "upstream", error: "Catastro no ha podido listar las calles de ese código postal." };
+  }
 }
 
 function etiquetaCalle(estado: EstadoCalleZona): string {
@@ -489,6 +580,8 @@ export function coberturaZona(session: ZoneSession): CoberturaZona {
     !possibleCut;
   const completeCandidates =
     complete && session.calles.every((calle) => calle.status !== "done" || calle.completeCandidates);
+  const streetOffset = session.streetOffset;
+  const streetsTotal = session.streetsTotal;
   return {
     streetsFound,
     streetsProcessed: procesadas.length,
@@ -496,6 +589,9 @@ export function coberturaZona(session: ZoneSession): CoberturaZona {
     complete,
     completeCandidates,
     possibleCut,
+    streetsTotal,
+    streetOffset,
+    hasNextBlock: streetOffset + streetsFound < streetsTotal,
   };
 }
 
@@ -524,6 +620,7 @@ export function snapshotZona(session: ZoneSession): ZoneSnapshot {
       municipio: session.municipioOficial,
       postalCode: session.criterios.postalCode,
       horizontalDivision: session.criterios.horizontalDivision,
+      streetOffset: session.streetOffset,
     },
     progress: {
       streetsFound: cobertura.streetsFound,

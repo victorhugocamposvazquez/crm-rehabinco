@@ -5,9 +5,9 @@ type SearchParams = Record<string, string | string[] | undefined>;
 export default async function BuscarPage({
   searchParams,
 }: {
-  searchParams: Promise<SearchParams> | SearchParams;
+  searchParams: Promise<SearchParams>;
 }) {
-  const params = await Promise.resolve(searchParams);
+  const params = await searchParams;
   const qs = new URLSearchParams();
   for (const [clave, valor] of Object.entries(params ?? {})) {
     if (typeof valor === "string" && valor) qs.set(clave, valor);

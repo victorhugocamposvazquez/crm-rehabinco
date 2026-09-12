@@ -122,6 +122,23 @@ export function createCatastroClient(options: CatastroClientOptions = {}) {
     return http.getText(url.toString());
   }
 
+  /** StoredQuery oficial GetADByPostalCode. Parámetro: POSTALCODE. */
+  async function obtenerDireccionesPorCodigoPostal(params: {
+    codigoPostal: string;
+    startIndex?: number;
+    count?: number;
+  }): Promise<string> {
+    const url = new URL(CATASTRO_INSPIRE_AD_WFS);
+    url.searchParams.set("service", "wfs");
+    url.searchParams.set("version", "2.0.0");
+    url.searchParams.set("request", "GetFeature");
+    url.searchParams.set("STOREDQUERIE_ID", "GetADByPostalCode");
+    url.searchParams.set("POSTALCODE", params.codigoPostal.trim());
+    if (params.startIndex != null) url.searchParams.set("startIndex", String(params.startIndex));
+    if (params.count != null) url.searchParams.set("count", String(params.count));
+    return http.getText(url.toString());
+  }
+
   return {
     consultarDireccion,
     consultarReferencia,
@@ -131,6 +148,7 @@ export function createCatastroClient(options: CatastroClientOptions = {}) {
     obtenerCallejero,
     obtenerNumerero,
     obtenerDireccionesPorCodigoVia,
+    obtenerDireccionesPorCodigoPostal,
     getStats: http.getStats,
   };
 }

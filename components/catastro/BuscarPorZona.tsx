@@ -15,11 +15,14 @@ import {
 } from "@/lib/catastro/revision-comercial";
 import {
   accionesDisponibles,
+  erroresVisiblesZona,
   listaErrores,
+  resultadosVisiblesZona,
   ritmoMedido,
   textoCallesARevisar,
   textoEstadoFinal,
   textoPreparacion,
+  textoSiguienteBloque,
   textoZonaDemasiadoGrande,
   textosProgreso,
   zonaDemasiadoGrande,
@@ -40,6 +43,7 @@ type Props = {
   onCancelar: () => void;
   onReanudar: () => void;
   onReintentarErrores: () => void;
+  onSiguienteBloque: () => void;
   onNuevaBusqueda: () => void;
   onToggleSeleccion: (finca: FincaBusquedaUi) => void;
   onToggleRevision: (finca: FincaBusquedaUi) => void;
@@ -63,6 +67,7 @@ export function BuscarPorZona({
   onCancelar,
   onReanudar,
   onReintentarErrores,
+  onSiguienteBloque,
   onNuevaBusqueda,
   onToggleSeleccion,
   onToggleRevision,
@@ -96,33 +101,30 @@ export function BuscarPorZona({
   if (!snapshot) return null;
 
   if (estado.fase === "preparada") {
-    const demasiadoGrande = zonaDemasiadoGrande(snapshot.progress.streetsFound);
+    const totalCalles = snapshot.coverage.streetsTotal ?? snapshot.progress.streetsFound;
+    const porBloques = zonaDemasiadoGrande(totalCalles);
     return (
       <div className="space-y-4 rounded-2xl border border-border bg-white p-5 sm:p-6" role="status">
         <div>
           <p className="text-base font-semibold text-foreground">
-            {textoPreparacion(snapshot.progress.streetsFound, snapshot.criteria.postalCode)}
+            {textoPreparacion(snapshot.progress.streetsFound, snapshot.criteria.postalCode, totalCalles)}
           </p>
-          {demasiadoGrande ? (
+          {porBloques ? (
             <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-              {textoZonaDemasiadoGrande(snapshot.progress.streetsFound, snapshot.criteria.municipio)}
+              {textoZonaDemasiadoGrande(totalCalles, snapshot.criteria.municipio)}
             </p>
           ) : (
-            <>
-              <p className="mt-1 text-sm text-neutral-600">{textoCallesARevisar(snapshot.progress.streetsFound)}</p>
-              <p className="mt-3 text-sm text-neutral-500">
-                Esto puede tardar. Verás las fincas según se vayan revisando las calles. Puedes parar en cualquier momento.
-              </p>
-            </>
+            <p className="mt-1 text-sm text-neutral-600">{textoCallesARevisar(snapshot.progress.streetsFound)}</p>
           )}
+          <p className="mt-3 text-sm text-neutral-500">
+            Esto puede tardar. Verás las fincas según se vayan revisando las calles. Puedes parar en cualquier momento.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {demasiadoGrande ? null : (
-            <Button type="button" onClick={onComenzar} disabled={!acciones.comenzar}>
-              <Play className="h-4 w-4" aria-hidden />
-              Empezar ahora
-            </Button>
-          )}
+          <Button type="button" onClick={onComenzar} disabled={!acciones.comenzar}>
+            <Play className="h-4 w-4" aria-hidden />
+            Empezar ahora
+          </Button>
           <Button type="button" variant="secondary" onClick={onNuevaBusqueda}>
             Nueva búsqueda
           </Button>
@@ -131,13 +133,17 @@ export function BuscarPorZona({
     );
   }
 
-  const textos = textosProgreso(snapshot);
+  const textos = textosProgreso(snapshot, estado.acumulado);
   const ritmo = estado.fase === "ejecutando" ? ritmoMedido(snapshot, estado, ahora) : null;
   const estadoFinal = textoEstadoFinal(estado);
-  const errores = listaErrores(snapshot.errors);
+  const erroresListados = erroresVisiblesZona(estado);
+  const errores = listaErrores(erroresListados);
   const enMarcha = estado.fase === "ejecutando";
-  const completa = snapshot.status === "done" && snapshot.coverage.completeCandidates;
-  const visibles = filtrarPorRevisionComercial(snapshot.results, filtroRevision, revision);
+  const completa =
+    snapshot.status === "done" &&
+    snapshot.coverage.completeCandidates &&
+    !snapshot.coverage.hasNextBlock;
+  const visibles = filtrarPorRevisionComercial(resultadosVisiblesZona(estado), filtroRevision, revision);
 
   return (
     <div className="space-y-6">
@@ -205,7 +211,7 @@ export function BuscarPorZona({
         {errores.lineas.length > 0 ? (
           <details className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
             <summary className="cursor-pointer font-medium">
-              {snapshot.errors.length === 1 ? "1 calle con error" : `${snapshot.errors.length} calles con errores`} (la búsqueda continúa)
+              {erroresListados.length === 1 ? "1 calle con error" : `${erroresListados.length} calles con errores`} (la búsqueda continúa)
             </summary>
             <ul className="mt-2 space-y-1">
               {errores.lineas.map((linea) => (
@@ -233,6 +239,12 @@ export function BuscarPorZona({
             <Button type="button" variant="secondary" onClick={onReintentarErrores}>
               <RotateCcw className="h-4 w-4" aria-hidden />
               Reintentar calles con error
+            </Button>
+          ) : null}
+          {acciones.siguienteBloque ? (
+            <Button type="button" onClick={onSiguienteBloque}>
+              <Play className="h-4 w-4" aria-hidden />
+              {textoSiguienteBloque(snapshot)}
             </Button>
           ) : null}
           {acciones.nuevaBusqueda ? (
@@ -274,13 +286,19 @@ export function BuscarPorZona({
           </div>
         </div>
         {visibles.length === 0 ? (
-          snapshot.status === "done" ? (
+          snapshot.status === "done" && !snapshot.coverage.hasNextBlock ? (
             <VacioResultados filtro={snapshot.criteria.horizontalDivision} onVerTodas={onVerTodas} />
+          ) : snapshot.status === "done" && snapshot.coverage.hasNextBlock ? (
+            <div className="rounded-2xl border border-dashed border-border bg-white px-5 py-10 text-center">
+              <p className="text-neutral-600">
+                Este bloque no ha dado fincas con ese filtro. Continúa con el siguiente bloque.
+              </p>
+            </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-border bg-white px-5 py-10 text-center">
               <p className="text-neutral-600">
                 {estado.fase === "caducada" && snapshot.progress.streetsProcessed === 0
-                  ? "No se llegó a revisar ninguna calle. En A Coruña u otra ciudad grande elige una calle concreta."
+                  ? "No se llegó a revisar ninguna calle de este bloque. Prepáralo de nuevo y empieza sin cambiar de pestaña."
                   : "Todavía no hay resultados. Irán apareciendo calle a calle."}
               </p>
             </div>

@@ -5,6 +5,7 @@ import {
   type ExplorerDbClient,
 } from "./supabase-explorer-store";
 import { createCrmPropertyIntegration, type PropertyIntegrationClient } from "./property-integration";
+import { createSupabaseZoneArchive } from "./supabase-zone-archive";
 
 export async function explorerStoreDesdeSesion() {
   const supabase = await createClient();
@@ -20,6 +21,7 @@ export async function explorerStoreDesdeSesion() {
     user,
     role,
     store: createSupabaseExplorerStore(supabase as unknown as ExplorerDbClient),
+    archive: createSupabaseZoneArchive(supabase as never),
     properties: createCrmPropertyIntegration(supabase as unknown as PropertyIntegrationClient),
   };
 }

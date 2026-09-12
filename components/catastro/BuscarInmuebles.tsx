@@ -736,6 +736,13 @@ export function BuscarInmuebles() {
             onCancelar={() => void zona.cancelar()}
             onReanudar={() => void zona.reanudar(false)}
             onReintentarErrores={() => void zona.reanudar(true)}
+            onSiguienteBloque={() => {
+              const origen =
+                modo === "zona"
+                  ? criteriosZona
+                  : criteriosMunicipio;
+              if (origen) void zona.siguienteBloque(origen);
+            }}
             onNuevaBusqueda={() => {
               zona.nueva();
               seleccionFincas.limpiar();
