@@ -63,6 +63,12 @@ export {
 export { consultaGoogleMaps, crearGoogleMapsUrl } from "./maps";
 export type { FincaParaMaps } from "./maps";
 export {
+  CATASTRO_CARTOGRAFIA_CROQUIS,
+  CATASTRO_CARTOGRAFIA_MAPA,
+  crearUrlCroquisCatastral,
+  crearUrlMapaCatastral,
+} from "./catastro-map";
+export {
   crearOReutilizarPropiedad,
   datosPropiedadDesdeFinca,
   etiquetasVinculoPropiedad,

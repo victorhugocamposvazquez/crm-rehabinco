@@ -26,7 +26,9 @@ import {
   textoRevisionUi,
   type RevisionFincas,
 } from "@/lib/catastro/revision-comercial";
+import { crearUrlMapaCatastral } from "@/lib/catastro/explorer/catastro-map";
 import { crearGoogleMapsUrl } from "@/lib/catastro/explorer/maps";
+import { MapaCatastral } from "./MapaCatastral";
 
 function Dato({ label, value }: { label: string; value?: string | number | null }) {
   if (value == null || value === "") return null;
@@ -61,6 +63,7 @@ type Props = {
   href?: string;
   detallesIniciales?: boolean;
   mostrarMaps?: boolean;
+  mostrarMapaCatastral?: boolean;
   onToggleSeleccion?: (finca: FincaBusquedaUi) => void;
   onToggleRevision?: (finca: FincaBusquedaUi) => void;
   accionesExtra?: ReactNode;
@@ -74,6 +77,7 @@ export function FincaResultadoCard({
   href,
   detallesIniciales = false,
   mostrarMaps = true,
+  mostrarMapaCatastral = true,
   onToggleSeleccion,
   onToggleRevision,
   accionesExtra,
@@ -92,6 +96,7 @@ export function FincaResultadoCard({
   const titulo = tituloDireccionFinca(finca);
   const direccion = direccionOficial(finca);
   const mapsUrl = mostrarMaps ? crearGoogleMapsUrl(finca) : null;
+  const mapaCatastralUrl = mostrarMapaCatastral ? crearUrlMapaCatastral(finca.fincaReference) : null;
   const seleccionable = Boolean(onToggleSeleccion);
 
   const copiar = async (texto: string, exito: string) => {
@@ -181,6 +186,12 @@ export function FincaResultadoCard({
         ) : null}
       </dl>
 
+      {mostrarMapaCatastral ? (
+        <div className="mt-4">
+          <MapaCatastral fincaReference={finca.fincaReference} />
+        </div>
+      ) : null}
+
       <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-3">
         {href ? (
           <Button asChild size="sm">
@@ -224,6 +235,14 @@ export function FincaResultadoCard({
           >
             <MapPin className="h-4 w-4" aria-hidden />
             Copiar dirección
+          </Button>
+        ) : null}
+        {mapaCatastralUrl ? (
+          <Button asChild variant="ghost" size="sm">
+            <a href={mapaCatastralUrl} target="_blank" rel="noreferrer">
+              <ExternalLink className="h-4 w-4" aria-hidden />
+              Mapa catastral
+            </a>
           </Button>
         ) : null}
         {mapsUrl ? (
