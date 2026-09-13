@@ -29,9 +29,12 @@ import {
   llamaACatastro,
   prepararExportacionHistorica,
   revisionDesdePersistida,
+  puedeReanudarHistorica,
   rutaBusquedaHistorica,
   rutaFincaPersistida,
   textosCoberturaHistorica,
+  TEXTO_REANUDAR_BUSQUEDA,
+  urlReanudarBusqueda,
 } from "./history-ui";
 import type { CatastroExplorerReview } from "./types";
 import type { FincaBusquedaUi } from "../search-ui";
@@ -98,6 +101,36 @@ describe("Catastro Explorer — experiencia persistente", () => {
     assert.equal(rutaBusquedaHistorica("abc").includes("cursor"), false);
     assert.equal(RUTA_HISTORICO, "/catastro/searches");
     assert.equal(TEXTO_VER_TODO, "Ver todo");
+    assert.equal(TEXTO_REANUDAR_BUSQUEDA, "Reanudar");
+    const reanudar = urlReanudarBusqueda("d406258d-f4ab-4445-9a19-61d635e68422", {
+      mode: "POSTAL_CODE",
+      provincia: "A CORUÑA",
+      municipio: "A CORUÑA",
+      postalCode: "15009",
+      horizontalDivision: "NO",
+    });
+    const params = new URL(reanudar, "https://crm.local").searchParams;
+    assert.equal(params.get("continuar"), "d406258d-f4ab-4445-9a19-61d635e68422");
+    assert.equal(params.get("modo"), "zona");
+    assert.equal(params.get("postalCode"), "15009");
+    assert.equal(params.get("horizontalDivision"), "NO");
+    assert.equal(
+      puedeReanudarHistorica({
+        mode: "POSTAL_CODE",
+        status: "PAUSED",
+        coverage: { complete: false, streetsFound: 127, streetsProcessed: 53 },
+      }),
+      true
+    );
+    assert.equal(puedeReanudarHistorica({ mode: "STREET", status: "PAUSED" }), false);
+    assert.equal(
+      puedeReanudarHistorica({
+        mode: "POSTAL_CODE",
+        status: "COMPLETED",
+        coverage: { complete: true, streetsFound: 127, streetsProcessed: 127 },
+      }),
+      false
+    );
     assert.match(TEXTO_CONFIRMAR_ELIMINAR, /Las fincas descubiertas no se eliminarán/);
   });
 

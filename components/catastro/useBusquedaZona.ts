@@ -195,5 +195,35 @@ export function useBusquedaZona() {
     setEstado(ESTADO_ZONA_INICIAL);
   };
 
-  return { estado, ahora, cancelando, preparar, comenzar, cancelar, reanudar, siguienteBloque, nueva };
+  const continuar = async (zoneSearchId: string) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    zoneIdRef.current = zoneSearchId;
+    setCancelando(false);
+    try {
+      const snapshot = await fetchZonaEstado(zoneSearchId, controller.signal);
+      if (controller.signal.aborted) return;
+      criteriosRef.current = {
+        provincia: snapshot.criteria.provincia,
+        municipio: snapshot.criteria.municipio,
+        postalCode: snapshot.criteria.postalCode,
+        horizontalDivision: snapshot.criteria.horizontalDivision,
+        streetOffset: snapshot.criteria.streetOffset,
+      };
+      setEstado((prev) => aplicarSnapshotZona(prev, snapshot));
+      if (snapshot.nextAction === "resume") {
+        await reanudar(false);
+        return;
+      }
+      if (snapshot.nextAction === "step") {
+        await bucle(zoneSearchId);
+      }
+    } catch (error) {
+      if (esAbortError(error) || controller.signal.aborted) return;
+      setEstado((prev) => aplicarErrorZona(prev, errorDe(error)));
+    }
+  };
+
+  return { estado, ahora, cancelando, preparar, comenzar, cancelar, reanudar, siguienteBloque, nueva, continuar };
 }

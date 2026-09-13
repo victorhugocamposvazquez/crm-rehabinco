@@ -26,6 +26,7 @@ import {
   type ZoneDeps,
   type ZoneSession,
 } from "./zone-search";
+import { hidratarSesionZona, serializarSesionZona, type ZoneSessionArchive } from "./zone-archive";
 import { createZoneStore } from "./zone-session";
 
 const USUARIO = { id: "user-1" };
@@ -881,6 +882,56 @@ describe("Zona: adaptador HTTP", () => {
     assert.equal(((await repetida.json()) as { reused: boolean }).reused, true);
     const otroUsuario = await responderZonaPreparar(peticion("prepare", CRITERIOS), { id: "user-2" }, deps);
     assert.equal(otroUsuario.status, 200, "el límite es por usuario");
+  });
+
+  it("resume recupera una sesión archivada aunque haya caducado", async () => {
+    const mundo = mundoFalso(CALLES_BASE);
+    const zoneStore = createZoneStore();
+    const filas = new Map<string, unknown>();
+    const archive: ZoneSessionArchive = {
+      async get(id, userId) {
+        const session = hidratarSesionZona(filas.get(id));
+        return session && session.userId === userId ? session : null;
+      },
+      async findByKey(userId, clave) {
+        for (const raw of filas.values()) {
+          const session = hidratarSesionZona(raw);
+          if (session && session.userId === userId && session.claveZona === clave) return session;
+        }
+        return null;
+      },
+      async put(session) {
+        filas.set(session.id, serializarSesionZona(session));
+      },
+      async countActive() {
+        return 0;
+      },
+    };
+    const deps = { ...depsFalsas(mundo, CALLES_BASE.map((item) => item.calle), { zoneStore }), archive };
+    const preparada = await responderZonaPreparar(peticion("prepare", CRITERIOS), USUARIO, deps);
+    const { zoneSearchId } = (await preparada.json()) as { zoneSearchId: string };
+    const session = zoneStore.get(zoneSearchId);
+    assert.ok(session);
+    session.status = "upstream_paused";
+    session.expiresAt = Date.now() - 60_000;
+    session.calles[0].status = "done";
+    await archive.put(session);
+    zoneStore.delete(zoneSearchId);
+
+    const estado = await responderZonaEstado(
+      peticion(`?zoneSearchId=${zoneSearchId}`, undefined, "GET"),
+      USUARIO,
+      deps
+    );
+    assert.equal(estado.status, 200);
+    const cuerpo = (await estado.json()) as { status: string; nextAction: string; progress: { streetsProcessed: number } };
+    assert.equal(cuerpo.status, "upstream_paused");
+    assert.equal(cuerpo.nextAction, "resume");
+    assert.equal(cuerpo.progress.streetsProcessed, 1);
+
+    const reanudada = await responderZonaReanudar(peticion("resume", { zoneSearchId }), USUARIO, deps);
+    assert.equal(reanudada.status, 200);
+    assert.equal(((await reanudada.json()) as { status: string }).status, "prepared");
   });
 });
 

@@ -41,6 +41,36 @@ export function rutaFincaPersistida(fincaReference: string): string {
   return `${RUTA_EXPLORER}/finca/${fincaReference}`;
 }
 
+export const TEXTO_REANUDAR_BUSQUEDA = "Reanudar";
+
+export function puedeReanudarHistorica(input: {
+  mode: CatastroExplorerSearch["criteria"]["mode"];
+  status: CatastroExplorerSearchStatus;
+  coverage?: Pick<CatastroExplorerCoverage, "complete" | "streetsFound" | "streetsProcessed">;
+}): boolean {
+  if (input.mode !== "POSTAL_CODE") return false;
+  if (input.status === "COMPLETED") {
+    const encontradas = input.coverage?.streetsFound ?? 0;
+    const procesadas = input.coverage?.streetsProcessed ?? 0;
+    return !input.coverage?.complete && encontradas > procesadas;
+  }
+  return true;
+}
+
+export function urlReanudarBusqueda(
+  searchId: string,
+  criteria?: CatastroExplorerSearchCriteria
+): string {
+  const params = new URLSearchParams({ continuar: searchId, modo: "zona" });
+  if (criteria?.mode === "POSTAL_CODE") {
+    params.set("provincia", criteria.provincia);
+    params.set("municipio", criteria.municipio);
+    params.set("postalCode", criteria.postalCode);
+    if (criteria.horizontalDivision) params.set("horizontalDivision", criteria.horizontalDivision);
+  }
+  return `${RUTA_EXPLORER}?${params}`;
+}
+
 export const TEXTO_CARGANDO_BUSQUEDAS = "Cargando búsquedas...";
 export const TEXTO_CARGANDO_BUSQUEDA = "Cargando búsqueda...";
 export const TEXTO_CARGANDO_FINCA = "Cargando finca...";

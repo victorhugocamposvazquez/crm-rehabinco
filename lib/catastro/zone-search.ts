@@ -230,7 +230,10 @@ export async function prepararZona(
   }
 
   const archivada = await deps.archive?.findByKey(user.id, clave);
-  if (archivada && archivada.expiresAt > Date.now()) {
+  const reutilizable =
+    archivada &&
+    (archivada.expiresAt > Date.now() || archivada.calles.some((calle) => calle.status === "pending"));
+  if (reutilizable && archivada) {
     archivada.criterios = { ...archivada.criterios, horizontalDivision: criterios.horizontalDivision };
     zoneStore.put(archivada);
     zoneStore.touch(archivada);

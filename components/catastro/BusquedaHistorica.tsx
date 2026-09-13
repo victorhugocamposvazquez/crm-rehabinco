@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download } from "lucide-react";
+import { Download, Play } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -26,8 +26,11 @@ import {
   claveHistorica,
   persistirRevisionUi,
   prepararExportacionHistorica,
+  puedeReanudarHistorica,
   revisionDesdePersistida,
   rutaFincaPersistida,
+  TEXTO_REANUDAR_BUSQUEDA,
+  urlReanudarBusqueda,
   textosCoberturaHistorica,
   type BusquedaRecuperadaUi,
   type FiltroHistorico,
@@ -165,9 +168,25 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
           { label: data.summary.titulo },
         ]}
         title={data.summary.titulo}
-        description={`${formatoNumeroEs(data.summary.fincas)} ${data.summary.fincas === 1 ? "finca" : "fincas"} · ${formatoNumeroEs(data.summary.candidatas)} ${data.summary.candidatas === 1 ? "candidata" : "candidatas"} · ${ESTADO_BUSQUEDA_UI[data.summary.status]}`}
+        description={`${formatoNumeroEs(data.summary.fincas)} ${data.summary.fincas === 1 ? "finca" : "fincas"} · ${formatoNumeroEs(data.summary.candidatas)} ${data.summary.candidatas === 1 ? "candidata" : "candidatas"} · ${ESTADO_BUSQUEDA_UI[data.summary.status]}${
+          data.search.coverage.streetsFound
+            ? ` · ${formatoNumeroEs(data.search.coverage.streetsProcessed ?? 0)} / ${formatoNumeroEs(data.search.coverage.streetsFound)} calles`
+            : ""
+        }`}
         actions={
           <div className="flex flex-wrap gap-2">
+            {puedeReanudarHistorica({
+              mode: data.search.criteria.mode,
+              status: data.search.status,
+              coverage: data.search.coverage,
+            }) ? (
+              <Button asChild size="sm">
+                <a href={urlReanudarBusqueda(data.search.id, data.search.criteria)}>
+                  <Play className="h-4 w-4" aria-hidden />
+                  {TEXTO_REANUDAR_BUSQUEDA}
+                </a>
+              </Button>
+            ) : null}
             <Button type="button" variant="secondary" size="sm" onClick={() => setConfirmar(true)}>
               {TEXTO_ELIMINAR_BUSQUEDA}
             </Button>

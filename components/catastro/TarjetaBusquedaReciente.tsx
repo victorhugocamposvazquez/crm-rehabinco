@@ -14,7 +14,10 @@ import {
   etiquetaTipoBusqueda,
   fechaBusquedaCorta,
   formatoNumeroEs,
+  puedeReanudarHistorica,
   rutaBusquedaHistorica,
+  TEXTO_REANUDAR_BUSQUEDA,
+  urlReanudarBusqueda,
   textosCoberturaHistorica,
   type ResumenBusquedaUi,
 } from "@/lib/catastro/explorer/history-ui";
@@ -28,6 +31,11 @@ export function TarjetaBusquedaReciente({
   onEliminada?: (id: string) => void;
 }) {
   const cobertura = textosCoberturaHistorica(item.coverage);
+  const reanudable = puedeReanudarHistorica({
+    mode: item.mode,
+    status: item.status,
+    coverage: item.coverage,
+  });
   const [menu, setMenu] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
   const [borrando, setBorrando] = useState(false);
@@ -76,7 +84,12 @@ export function TarjetaBusquedaReciente({
         {cobertura.corte ? <p className="mt-1 text-xs text-amber-800">{cobertura.corte}</p> : null}
       </div>
       <div className="flex shrink-0 items-start gap-2">
-        <Button asChild size="sm">
+        {reanudable ? (
+          <Button asChild size="sm">
+            <Link href={urlReanudarBusqueda(item.id)}>{TEXTO_REANUDAR_BUSQUEDA}</Link>
+          </Button>
+        ) : null}
+        <Button asChild size="sm" variant={reanudable ? "secondary" : "default"}>
           <Link href={rutaBusquedaHistorica(item.id)}>Abrir</Link>
         </Button>
         <div ref={menuRef} className="relative">

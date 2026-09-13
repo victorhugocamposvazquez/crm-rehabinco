@@ -141,6 +141,7 @@ export function BuscarInmuebles() {
   const selectorMunicipiosRef = useRef<SelectorCatalogo<MunicipioUi> | null>(null);
   const selectorCallesRef = useRef<SelectorCatalogo<CalleUi> | null>(null);
   const claveActivaRef = useRef<string | null>(null);
+  const continuarHechoRef = useRef<string | null>(null);
   selectorMunicipiosRef.current ??= crearSelectorCatalogo<MunicipioUi>();
   selectorCallesRef.current ??= crearSelectorCatalogo<CalleUi>();
 
@@ -512,6 +513,16 @@ export function BuscarInmuebles() {
     // Hidratación inicial desde la URL; no repetir en cada keystroke.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const id = searchParams.get("continuar")?.trim();
+    if (!id || continuarHechoRef.current === id) return;
+    continuarHechoRef.current = id;
+    setModo("zona");
+    void zona.continuar(id);
+    // Solo al abrir con ?continuar=; no depende del resto del hook.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   return (
     <div className={cn((seleccion.fincas.length > 0 || revision.fincas.length > 0) && "pb-32 md:pb-24")}>

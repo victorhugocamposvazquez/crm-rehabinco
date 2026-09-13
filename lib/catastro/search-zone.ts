@@ -152,8 +152,9 @@ async function sesionDe(
   let session = store.get(id);
   if ((!session || session.userId !== user.id) && deps.archive) {
     const archivada = await deps.archive.get(id, user.id);
-    if (archivada && archivada.expiresAt > Date.now()) {
+    if (archivada) {
       store.put(archivada);
+      store.touch(archivada);
       session = archivada;
     }
   }
