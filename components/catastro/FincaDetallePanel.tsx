@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeft, Copy } from "lucide-react";
+import { ChevronDown, Copy } from "lucide-react";
 import { toast } from "sonner";
 import {
   LEYENDA_ESTADOS_DIVISION,
@@ -172,6 +172,16 @@ export function FincaDetallePanel({
             </span>
           </div>
         </div>
+        {onCerrar ? (
+          <button
+            type="button"
+            onClick={onCerrar}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] border border-[#E6E3DD] text-[#131C1A]"
+            aria-label="Cerrar ficha"
+          >
+            <ChevronDown className="h-5 w-5" strokeWidth={2.2} aria-hidden />
+          </button>
+        ) : null}
       </div>
       <div className="mt-3">{accionPropiedad}</div>
       <div className="mt-4">{cuerpo}</div>
@@ -196,6 +206,8 @@ function HojaFinca({
   accion: ReactNode;
   children: React.ReactNode;
 }) {
+  const toqueInicio = useRef<number | null>(null);
+
   useEffect(() => {
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -210,43 +222,71 @@ function HojaFinca({
     };
   }, [cerrarRef, onCerrar]);
 
+  const cerrarSiBaja = (finY: number) => {
+    if (toqueInicio.current == null) return;
+    if (finY - toqueInicio.current > 56) onCerrar?.();
+    toqueInicio.current = null;
+  };
+
   if (typeof document === "undefined") return null;
 
   return createPortal(
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="ficha-finca-titulo"
-      className="fixed inset-0 z-[60] flex flex-col bg-white pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
-    >
-      <header className="flex items-center gap-2.5 border-b border-[#EFEDE7] px-3.5 py-3">
-        <button
-          ref={cerrarRef}
-          type="button"
-          onClick={onCerrar}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] border border-[#E6E3DD] text-[#131C1A]"
-          aria-label="Cerrar ficha"
-        >
-          <ChevronLeft className="h-4 w-4" strokeWidth={2.2} aria-hidden />
-        </button>
-        <div className="min-w-0 flex-1">
-          <h2 id="ficha-finca-titulo" className="truncate text-[15.5px] font-semibold tracking-tight text-[#131C1A]">
-            {titulo}
-          </h2>
-          <p className="mt-0.5 font-mono text-[11.5px] text-[#5D6B67]">{referencia}</p>
-        </div>
-        <span className={cn("shrink-0 rounded-md px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap", claseBadgeDivision(status))}>
-          {etiquetaEstadoDivisionLista(status)}
-        </span>
-      </header>
-      <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-3.5">{children}</div>
-      {accion ? (
-        <div className="border-t border-[#EFEDE7] bg-white px-3.5 py-2.5 shadow-[0_-6px_18px_rgba(19,28,26,.06)]">
-          <div className="[&_button]:h-[50px] [&_button]:w-full [&_button]:text-[14.5px] [&_a]:flex [&_a]:h-[50px] [&_a]:w-full [&_a]:items-center [&_a]:justify-center [&_a]:text-[14.5px]">
-            {accion}
+    <div className="fixed inset-0 z-[80] flex flex-col justify-end">
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/40"
+        aria-label="Cerrar ficha"
+        onClick={onCerrar}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ficha-finca-titulo"
+        className="relative z-10 flex max-h-[92dvh] flex-col rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_40px_rgba(19,28,26,.18)]"
+        onTouchStart={(evento) => {
+          toqueInicio.current = evento.changedTouches[0]?.clientY ?? null;
+        }}
+        onTouchEnd={(evento) => cerrarSiBaja(evento.changedTouches[0]?.clientY ?? 0)}
+      >
+        <header className="border-b border-[#EFEDE7] px-3.5 pb-3 pt-2">
+          <div className="flex justify-center pb-2">
+            <span className="h-1 w-12 rounded-full bg-[#DAD6CE]" aria-hidden />
           </div>
+          <div className="flex items-center gap-2.5">
+            <button
+              ref={cerrarRef}
+              type="button"
+              onClick={onCerrar}
+              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-[10px] border border-[#E6E3DD] px-3 text-[13.5px] font-semibold text-[#131C1A]"
+            >
+              <ChevronDown className="h-5 w-5" strokeWidth={2.2} aria-hidden />
+              Cerrar
+            </button>
+            <div className="min-w-0 flex-1">
+              <h2 id="ficha-finca-titulo" className="truncate text-[15.5px] font-semibold tracking-tight text-[#131C1A]">
+                {titulo}
+              </h2>
+              <p className="mt-0.5 font-mono text-[11.5px] text-[#5D6B67]">{referencia}</p>
+            </div>
+            <span className={cn("shrink-0 rounded-md px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap", claseBadgeDivision(status))}>
+              {etiquetaEstadoDivisionLista(status)}
+            </span>
+          </div>
+        </header>
+        <div
+          className="min-h-0 flex-1 overflow-y-auto px-3.5 py-3.5"
+          onTouchStart={(evento) => evento.stopPropagation()}
+        >
+          {children}
         </div>
-      ) : null}
+        {accion ? (
+          <div className="border-t border-[#EFEDE7] bg-white px-3.5 py-2.5 shadow-[0_-6px_18px_rgba(19,28,26,.06)]">
+            <div className="[&_button]:h-[50px] [&_button]:w-full [&_button]:text-[14.5px] [&_a]:flex [&_a]:h-[50px] [&_a]:w-full [&_a]:items-center [&_a]:justify-center [&_a]:text-[14.5px]">
+              {accion}
+            </div>
+          </div>
+        ) : null}
+      </div>
     </div>,
     document.body
   );

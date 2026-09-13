@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import {
@@ -9,6 +9,7 @@ import {
   recuentoEstadosDivision,
   type FincaBusquedaUi,
 } from "@/lib/catastro/search-ui";
+import { accionTecladoLista } from "@/lib/catastro/vista-movil";
 import { cn } from "@/lib/utils";
 import { FincaDetallePanel } from "./FincaDetallePanel";
 import { FincaResultadoRow } from "./FincaResultadoRow";
@@ -61,32 +62,52 @@ export function ListaFincasCatastro({
     if (!movil) setHoja(false);
   }, [movil]);
 
+  const cerrarFicha = useCallback(() => {
+    setHoja(false);
+    if (!movil) setSel(null);
+  }, [movil]);
+
   useEffect(() => {
-    if (movil) return;
     const onKey = (evento: KeyboardEvent) => {
       const destino = evento.target;
       if (destino instanceof HTMLInputElement || destino instanceof HTMLSelectElement || destino instanceof HTMLTextAreaElement) {
         return;
       }
-      if (evento.key !== "j" && evento.key !== "k" && evento.key !== "Enter") return;
-      if (visibles.length === 0) return;
+      const accion = accionTecladoLista(evento.key);
+      if (!accion || visibles.length === 0) return;
+      if (accion === "siguiente" || accion === "anterior") evento.preventDefault();
+      if (accion === "cerrar") {
+        cerrarFicha();
+        return;
+      }
       const indice = visibles.findIndex((finca) => finca.fincaReference === sel);
-      if (evento.key === "j") {
+      if (accion === "siguiente") {
         const siguiente = visibles[Math.min(visibles.length - 1, Math.max(0, indice) + 1)];
         if (siguiente) setSel(siguiente.fincaReference);
       }
-      if (evento.key === "k") {
+      if (accion === "anterior") {
         const anterior = visibles[Math.max(0, (indice < 0 ? 0 : indice) - 1)];
         if (anterior) setSel(anterior.fincaReference);
+      }
+      if (accion === "abrir") {
+        const actual = visibles[Math.max(0, indice)];
+        if (actual) {
+          setSel(actual.fincaReference);
+          setHoja(true);
+        }
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [visibles, sel, movil]);
+  }, [visibles, sel, cerrarFicha]);
 
   const abrir = (finca: FincaBusquedaUi) => {
+    if (hoja && sel === finca.fincaReference) {
+      setHoja(false);
+      return;
+    }
     setSel(finca.fincaReference);
-    if (movil) setHoja(true);
+    setHoja(true);
   };
 
   const irPropiedad = (finca: FincaBusquedaUi) => {
@@ -132,8 +153,7 @@ export function ListaFincasCatastro({
       </div>
 
       <p className="text-xs text-[#5D6B67]">
-        {LEYENDA_FILTRO_HINT}
-        <span className="hidden min-[780px]:inline"> · {TEXTO_ATAJOS_LISTA}</span>
+        {LEYENDA_FILTRO_HINT} · {TEXTO_ATAJOS_LISTA}
       </p>
 
       <div className="flex flex-col gap-4 min-[780px]:flex-row min-[780px]:items-start">
@@ -172,6 +192,7 @@ export function ListaFincasCatastro({
               href={hrefDe?.(ficha)}
               vinculada={Boolean(vinculada?.(ficha.fincaReference))}
               onProperty={onProperty || hrefDe?.(ficha) ? () => irPropiedad(ficha) : undefined}
+              onCerrar={cerrarFicha}
             />
           </div>
         ) : null}
@@ -184,7 +205,7 @@ export function ListaFincasCatastro({
           href={hrefDe?.(ficha)}
           vinculada={Boolean(vinculada?.(ficha.fincaReference))}
           onProperty={onProperty || hrefDe?.(ficha) ? () => irPropiedad(ficha) : undefined}
-          onCerrar={() => setHoja(false)}
+          onCerrar={cerrarFicha}
         />
       ) : null}
     </div>

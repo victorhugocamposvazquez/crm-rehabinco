@@ -75,7 +75,7 @@ export const TITULO_LEYENDA_DIVISION = "Qué significa cada estado";
 export const LEYENDA_FILTRO_TODAS =
   "La clasificación la da Catastro, no se marca a mano. «Todas las fincas» las muestra a la vez; no es un estado.";
 
-export const TEXTO_ATAJOS_LISTA = "J y K mueven la selección · Intro abre la ficha";
+export const TEXTO_ATAJOS_LISTA = "↑ y ↓ cambian de finca · Esc cierra la ficha";
 
 export function clasePuntoDivision(status: string | undefined): string {
   if (status === "NO") return "bg-[#0B7461]";

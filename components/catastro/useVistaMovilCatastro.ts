@@ -1,18 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { MEDIA_MOVIL_CATASTRO } from "@/lib/catastro/vista-movil";
 
+function subscribe(onStoreChange: () => void) {
+  const mql = window.matchMedia(MEDIA_MOVIL_CATASTRO);
+  mql.addEventListener("change", onStoreChange);
+  return () => mql.removeEventListener("change", onStoreChange);
+}
+
+function getSnapshot() {
+  return window.matchMedia(MEDIA_MOVIL_CATASTRO).matches;
+}
+
 export function useVistaMovilCatastro() {
-  const [movil, setMovil] = useState(false);
-
-  useEffect(() => {
-    const mql = window.matchMedia(MEDIA_MOVIL_CATASTRO);
-    const onChange = () => setMovil(mql.matches);
-    onChange();
-    mql.addEventListener("change", onChange);
-    return () => mql.removeEventListener("change", onChange);
-  }, []);
-
-  return movil;
+  return useSyncExternalStore(subscribe, getSnapshot, () => false);
 }
