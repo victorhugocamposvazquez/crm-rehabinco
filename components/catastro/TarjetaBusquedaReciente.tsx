@@ -76,7 +76,15 @@ export function TarjetaBusquedaReciente({
           {formatoNumeroEs(item.candidatas)}{" "}
           {item.candidatas === 1 ? "candidata a reforma" : "candidatas a reforma"}
         </p>
-        <p className="mt-1 text-xs font-medium text-neutral-600">
+        <p
+          className={
+            item.status === "RUNNING"
+              ? "mt-1 inline-flex rounded-full bg-[#E9EEF8] px-2 py-0.5 text-[11px] font-semibold text-[#2B4A8A]"
+              : item.status === "COMPLETED"
+                ? "mt-1 inline-flex rounded-full bg-[#E8F3EF] px-2 py-0.5 text-[11px] font-semibold text-[#0B7461]"
+                : "mt-1 inline-flex rounded-full bg-[#FBF0D8] px-2 py-0.5 text-[11px] font-semibold text-[#6A4F0C]"
+          }
+        >
           {ESTADO_BUSQUEDA_UI[item.status]}
         </p>
         <p className="mt-1 text-sm text-neutral-500">{fechaBusquedaCorta(item.updatedAt)}</p>

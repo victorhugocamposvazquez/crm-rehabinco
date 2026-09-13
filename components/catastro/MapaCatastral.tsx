@@ -8,34 +8,42 @@ import { crearUrlMapaCatastral } from "@/lib/catastro/explorer/catastro-map";
 export function MapaCatastral({
   fincaReference,
   alto = "h-44",
+  superficie,
 }: {
   fincaReference: string;
   alto?: string;
+  superficie?: string;
 }) {
   const mapa = crearUrlMapaCatastral(fincaReference);
   const [mostrar, setMostrar] = useState(false);
   if (!mapa) return null;
 
   return (
-    <figure className="overflow-hidden rounded-xl border border-border bg-neutral-50">
+    <figure className="overflow-hidden rounded-xl border border-[#E6E3DD] bg-[#F4F3EF]">
       {mostrar ? (
-        <a href={mapa} target="_blank" rel="noreferrer" className="block">
+        <a href={mapa} target="_blank" rel="noreferrer" className="relative block aspect-[16/10] overflow-hidden">
           <img
             src={`/api/catastro/fincas/${encodeURIComponent(fincaReference)}/mapa?img=1`}
             alt={`Cartografía catastral de ${fincaReference}`}
-            className={`w-full bg-neutral-100 object-cover ${alto}`}
+            className="absolute inset-0 h-full w-full object-cover [filter:saturate(.18)_contrast(1.06)_brightness(1.03)]"
           />
+          <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_46%_46%_at_50%_50%,rgba(244,243,239,0)_40%,rgba(244,243,239,.74)_100%)]" />
+          {superficie ? (
+            <span className="absolute left-1/2 top-[36%] -translate-x-1/2 rounded-md bg-[#0B7461] px-2 py-0.5 text-[11px] font-semibold text-white shadow">
+              {superficie}
+            </span>
+          ) : null}
         </a>
       ) : (
         <div className={`flex ${alto} flex-col items-center justify-center gap-3 px-4 text-center`}>
-          <p className="text-sm text-neutral-600">Cartografía oficial del Catastro</p>
+          <p className="text-sm text-[#5D6B67]">Cartografía oficial del Catastro</p>
           <Button type="button" size="sm" onClick={() => setMostrar(true)}>
             Ver cartografía
           </Button>
         </div>
       )}
-      <figcaption className="flex items-center justify-between gap-2 border-t border-border bg-white px-3 py-2">
-        <span className="text-xs text-neutral-500">Cartografía oficial del Catastro</span>
+      <figcaption className="flex items-center justify-between gap-2 border-t border-[#EFEDE7] bg-white px-3 py-2">
+        <span className="text-xs text-[#5D6B67]">Sede Electrónica del Catastro</span>
         <a
           href={mapa}
           target="_blank"

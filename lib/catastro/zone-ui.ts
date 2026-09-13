@@ -16,12 +16,12 @@ export type ModoBusqueda = "calle" | "zona";
 export const MODOS_BUSQUEDA = [
   {
     value: "calle",
-    label: "Una calle",
+    label: "Por calle",
     descripcion: "Provincia y municipio. Si no pones calle, se recorre el pueblo por bloques.",
   },
   {
     value: "zona",
-    label: "Un código postal",
+    label: "Por código postal",
     descripcion: "Recorre las calles por bloques y se queda con las fincas de ese CP.",
   },
 ] as const satisfies ReadonlyArray<{

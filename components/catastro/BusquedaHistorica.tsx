@@ -24,7 +24,6 @@ import {
   filtrarFincasHistoricas,
   formatoNumeroEs,
   claveHistorica,
-  persistirRevisionUi,
   prepararExportacionHistorica,
   puedeReanudarHistorica,
   revisionDesdePersistida,
@@ -41,14 +40,12 @@ import {
   type CatastroPropertyLink,
   type FiltroVinculoProperty,
 } from "@/lib/catastro/explorer";
-import { CatastroPropertyVinculo } from "./CatastroPropertyVinculo";
 import { EXPLORER_RESULTS_PAGE_SIZE } from "@/lib/catastro/explorer";
-import { estaEnRevision } from "@/lib/catastro/revision-comercial";
 import { descargarArchivoLocal, estaSeleccionada } from "@/lib/catastro/selection-export";
 import { CatastroSubnav } from "./CatastroSubnav";
 import { AccionNuevaBusqueda } from "./AccionNuevaBusqueda";
 import { ConfirmacionEliminarBusqueda } from "./ConfirmacionEliminarBusqueda";
-import { FincaResultadoCard } from "./FincaResultadoCard";
+import { ListaFincasCatastro } from "./ListaFincasCatastro";
 import { useSeleccionFincas } from "./useSeleccionFincas";
 
 export function BusquedaHistorica({ searchId }: { searchId: string }) {
@@ -249,36 +246,14 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
         {data.results.total > 0 ? ` · ${formatoNumeroEs(data.results.total)} guardadas` : null}
       </p>
 
-      <div className="mt-4 space-y-3">
-        {visibles.map((finca) => (
-          <FincaResultadoCard
-            key={finca.fincaReference}
-            finca={finca}
-            href={rutaFincaPersistida(finca.fincaReference)}
-            seleccionada={estaSeleccionada(seleccion, finca.fincaReference)}
-            enRevision={estaEnRevision(revision, finca.fincaReference)}
-            revision={revision}
-            onToggleSeleccion={() => seleccionFincas.alternar(finca, clave)}
-            onToggleRevision={() => {
-              const siguiente = estaEnRevision(revision, finca.fincaReference) ? "NONE" : "REVIEW";
-              seleccionFincas.alternarRevision(finca, clave);
-              void persistirRevisionUi(finca.fincaReference, siguiente).catch(() => undefined);
-            }}
-            accionesExtra={
-              <CatastroPropertyVinculo
-                compact
-                fincaReference={finca.fincaReference}
-                links={links.filter((item) => item.fincaReference === finca.fincaReference)}
-                onLinksChange={(siguientes) => {
-                  setLinks((prev) => [
-                    ...prev.filter((item) => item.fincaReference !== finca.fincaReference),
-                    ...siguientes,
-                  ]);
-                }}
-              />
-            }
-          />
-        ))}
+      <div className="mt-4">
+        <ListaFincasCatastro
+          fincas={visibles}
+          hrefDe={(finca) => rutaFincaPersistida(finca.fincaReference)}
+          seleccionada={(ref) => estaSeleccionada(seleccion, ref)}
+          vinculada={(ref) => links.some((item) => item.fincaReference === ref)}
+          onToggleSeleccion={(finca) => seleccionFincas.alternar(finca, clave)}
+        />
       </div>
 
       {data.results.total > data.results.limit ? (

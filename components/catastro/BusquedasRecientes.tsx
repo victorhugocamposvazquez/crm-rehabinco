@@ -87,7 +87,7 @@ export function BusquedasRecientes({
           <Link href={RUTA_HISTORICO}>{TEXTO_VER_TODO}</Link>
         </Button>
       </div>
-      <ul className="mt-3 grid grid-cols-1 gap-3">
+      <ul className="mt-3 overflow-hidden rounded-2xl border border-[#E6E3DD] bg-white">
         {(compact ? items.slice(0, 3) : items).map((item) => (
           <li key={item.id}>
             <TarjetaBusquedaReciente

@@ -2,45 +2,60 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Clock3, List, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RUTA_EXPLORER, RUTA_HISTORICO } from "@/lib/catastro/explorer/history-ui";
 
-function activa(pathname: string, href: string) {
-  if (href === RUTA_HISTORICO) {
-    return pathname === RUTA_HISTORICO || pathname.startsWith(`${RUTA_HISTORICO}/`);
-  }
-  if (href === RUTA_EXPLORER) {
-    return pathname === RUTA_EXPLORER || pathname.startsWith(`${RUTA_EXPLORER}/finca/`);
-  }
-  return false;
+function rutaResultados(pathname: string) {
+  if (/^\/catastro\/searches\/[^/]+$/.test(pathname)) return pathname;
+  return `${RUTA_EXPLORER}#resultados`;
 }
-
-const items = [
-  { href: RUTA_EXPLORER, label: "Buscar" },
-  { href: RUTA_HISTORICO, label: "Historial" },
-] as const;
 
 export function CatastroSubnav() {
   const pathname = usePathname();
+  const resultados = rutaResultados(pathname);
+  const items = [
+    {
+      href: RUTA_EXPLORER,
+      label: "Buscar",
+      icon: Search,
+      activa: pathname === RUTA_EXPLORER || pathname.startsWith(`${RUTA_EXPLORER}/finca/`),
+    },
+    {
+      href: resultados,
+      label: "Resultados",
+      icon: List,
+      activa: /^\/catastro\/searches\/[^/]+$/.test(pathname),
+    },
+    {
+      href: RUTA_HISTORICO,
+      label: "Historial",
+      icon: Clock3,
+      activa: pathname === RUTA_HISTORICO,
+    },
+  ] as const;
+
   return (
-    <nav
-      className="mb-6 flex flex-wrap gap-2 rounded-xl border border-border bg-neutral-50/80 p-1"
-      aria-label="Catastro"
-    >
-      {items.map((item) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          className={cn(
-            "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-            activa(pathname, item.href)
-              ? "bg-white text-accent shadow-sm"
-              : "text-neutral-600 hover:bg-white/70 hover:text-accent"
-          )}
-        >
-          {item.label}
-        </Link>
-      ))}
+    <nav className="-mx-4 mb-6 border-b border-[#E6E3DD] bg-white px-4 sm:-mx-6 sm:px-6" aria-label="Catastro">
+      <div className="flex gap-6">
+        {items.map((item) => {
+          const Icono = item.icon;
+          return (
+            <Link
+              key={item.label}
+              href={item.href}
+              className={cn(
+                "relative flex items-center gap-1.5 py-3 text-base font-medium",
+                item.activa ? "text-[#0B7461]" : "text-[#5D6B67] hover:text-[#0B7461]"
+              )}
+            >
+              <Icono className="h-4 w-4" strokeWidth={1.9} aria-hidden />
+              {item.label}
+              {item.activa ? <span className="absolute inset-x-0 -bottom-px h-[3px] bg-[#0B7461]" /> : null}
+            </Link>
+          );
+        })}
+      </div>
     </nav>
   );
 }

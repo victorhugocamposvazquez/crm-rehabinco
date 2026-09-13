@@ -54,8 +54,8 @@ export function HistoricoBusquedas() {
           { label: "Catastro", href: RUTA_EXPLORER },
           { label: "Historial" },
         ]}
-        title="Historial"
-        description="Todas tus búsquedas guardadas, sin volver a consultar Catastro."
+        title="Historial de rastreos"
+        description="Cada rastreo guarda sus fincas y su criba. Reanuda los que quedaron a medias."
         actions={<AccionNuevaBusqueda />}
       />
 
@@ -94,7 +94,7 @@ export function HistoricoBusquedas() {
           <p className="mt-4 text-sm text-neutral-600">
             {formatoNumeroEs(total)} {total === 1 ? "búsqueda" : "búsquedas"}
           </p>
-          <ul className="mt-3 grid grid-cols-1 gap-3">
+          <ul className="mt-3 overflow-hidden rounded-2xl border border-[#E6E3DD] bg-white">
             {items.map((item) => (
               <li key={item.id}>
                 <TarjetaBusquedaReciente

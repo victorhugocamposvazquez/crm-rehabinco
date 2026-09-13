@@ -8,10 +8,28 @@ export const FILTRO_DIVISION_POR_DEFECTO = "NO" as const;
 
 export const FILTROS_DIVISION = [
   { value: "NO", label: "Candidatas (sin DH)" },
-  { value: "YES", label: "Con división horizontal" },
+  { value: "YES", label: "Con pisos (con DH)" },
   { value: "UNKNOWN", label: "Sin clasificar" },
-  { value: "NOT_APPLICABLE", label: "No aplicable" },
+  { value: "NOT_APPLICABLE", label: "No aplica" },
   { value: "ALL", label: "Todas las fincas" },
+] as const;
+
+export const FILTROS_DIVISION_FORM = [
+  {
+    value: "NO",
+    label: "Candidatas (sin DH)",
+    ayuda: "Solo parcelas o edificios que Catastro no tiene partidos en pisos. Es lo habitual para reforma.",
+  },
+  {
+    value: "ALL",
+    label: "Todas las fincas",
+    ayuda: "Muestra los cuatro estados a la vez. No es un estado: es un filtro.",
+  },
+  {
+    value: "YES",
+    label: "Solo con DH",
+    ayuda: "Solo fincas que Catastro ya tiene partidas en pisos o locales.",
+  },
 ] as const;
 
 export const AYUDA_FILTRO_DIVISION =
@@ -25,43 +43,63 @@ export const LEYENDA_ESTADOS_DIVISION = [
   {
     status: "NO",
     etiqueta: "Candidata",
-    filtro: "Candidatas (sin DH)",
+    filtro: "Candidata (sin DH)",
     texto:
-      "Catastro indica que el edificio no está partido en pisos. Es la finca típica para reforma integral.",
+      "Catastro dice que el edificio está construido y no está partido en pisos. Es la finca típica para reforma integral, por eso sale por defecto.",
   },
   {
     status: "YES",
     etiqueta: "Con pisos",
-    filtro: "Con división horizontal",
+    filtro: "Con pisos (con DH)",
     texto:
-      "Catastro indica que ya hay división horizontal (pisos o locales). No es candidata de reforma de finca entera.",
+      "Catastro dice que ya hay división horizontal (pisos o locales). No es candidata de reforma de finca entera.",
   },
   {
     status: "NOT_APPLICABLE",
     etiqueta: "No aplica",
-    filtro: "No aplicable",
+    filtro: "No aplica",
     texto:
-      "Suelo sin edificar u obras de urbanización. La división horizontal no aplica.",
+      "Suelo sin edificar u obras de urbanización. Aquí no tiene sentido preguntar si hay DH, así que no se clasifica como con/sin.",
   },
   {
     status: "UNKNOWN",
     etiqueta: "Sin clasificar",
     filtro: "Sin clasificar",
     texto:
-      "Catastro no aclara si está dividida. No se trata como candidata. Puede ser una parcela urbano-rústica, faltar el dato o haber fallado la consulta.",
+      "Catastro no aclara si está dividida. No se trata como candidata: puede ser parcela urbano-rústica, faltar el dato o haber fallado la consulta.",
   },
 ] as const;
 
 export const TITULO_LEYENDA_DIVISION = "Qué significa cada estado";
 
 export const LEYENDA_FILTRO_TODAS =
-  "Solo hay estos cuatro. «Todas las fincas» las muestra a la vez; no es un estado.";
+  "La clasificación la da Catastro, no se marca a mano. «Todas las fincas» las muestra a la vez; no es un estado.";
+
+export const TEXTO_ATAJOS_LISTA = "J y K mueven la selección · Intro abre la ficha";
+
+export function clasePuntoDivision(status: string | undefined): string {
+  if (status === "NO") return "bg-[#0B7461]";
+  if (status === "YES") return "bg-[#B3ADA3]";
+  if (status === "NOT_APPLICABLE") return "bg-[#8579C4]";
+  return "bg-[#C79A22]";
+}
+
+export function claseTextoDivision(status: string | undefined): string {
+  if (status === "NO") return "text-[#0B7461]";
+  if (status === "YES") return "text-[#5D6B67]";
+  if (status === "NOT_APPLICABLE") return "text-[#4B3F8A]";
+  return "text-[#7A5A10]";
+}
 
 export function claseBadgeDivision(status: string | undefined): string {
-  if (status === "NO") return "border-teal-300 bg-teal-100 text-teal-900";
-  if (status === "YES") return "border-amber-200 bg-amber-50 text-amber-900";
-  if (status === "NOT_APPLICABLE") return "border-neutral-200 bg-neutral-50 text-neutral-600";
-  return "border-stone-200 bg-stone-100 text-stone-600";
+  if (status === "NO") return "border-[#0B7461]/20 bg-[#E8F3EF] text-[#0B7461]";
+  if (status === "YES") return "border-[#B3ADA3]/40 bg-[#F4F3EF] text-[#5D6B67]";
+  if (status === "NOT_APPLICABLE") return "border-[#8579C4]/30 bg-[#F1EFF8] text-[#4B3F8A]";
+  return "border-[#C79A22]/30 bg-[#FBF0D8] text-[#7A5A10]";
+}
+
+export function ayudaFiltroDivision(value: string): string {
+  return FILTROS_DIVISION_FORM.find((item) => item.value === value)?.ayuda ?? AYUDA_FILTRO_DIVISION;
 }
 
 export type FiltroDivisionUi = (typeof FILTROS_DIVISION)[number]["value"];
@@ -314,6 +352,57 @@ export function tituloDireccionFinca(finca: FincaBusquedaUi): string {
 export function codigosPostalesVisibles(finca: FincaBusquedaUi): string[] {
   if (finca.postalCodes && finca.postalCodes.length > 0) return finca.postalCodes;
   return finca.postalCode ? [finca.postalCode] : [];
+}
+
+export function metricasFincaLista(finca: FincaBusquedaUi): {
+  parcela: string;
+  inmuebles: string;
+  anio: string;
+  uso: string;
+} {
+  const usos = [...new Set((finca.properties ?? []).map((item) => item.uso?.trim()).filter(Boolean))];
+  const anios = [...new Set((finca.properties ?? []).map((item) => item.anio).filter((item): item is number => item != null))];
+  return {
+    parcela: finca.superficieSolar != null ? `${finca.superficieSolar.toLocaleString("es-ES")} m²` : "—",
+    inmuebles: String(finca.properties?.length ?? 0),
+    anio: anios.length === 1 ? String(anios[0]) : anios.length > 1 ? "Varios" : "—",
+    uso: usos.length === 1 ? usos[0] ?? "—" : usos.length > 1 ? "Varios" : "—",
+  };
+}
+
+export function recuentoEstadosDivision(fincas: FincaBusquedaUi[]): Record<string, number> {
+  const recuento: Record<string, number> = {
+    ALL: fincas.length,
+    NO: 0,
+    YES: 0,
+    UNKNOWN: 0,
+    NOT_APPLICABLE: 0,
+  };
+  for (const finca of fincas) {
+    const status = finca.horizontalDivision?.status ?? "UNKNOWN";
+    recuento[status] = (recuento[status] ?? 0) + 1;
+  }
+  return recuento;
+}
+
+export function filtrarListaFincas(
+  fincas: FincaBusquedaUi[],
+  input: { q?: string; status?: string }
+): FincaBusquedaUi[] {
+  const q = input.q?.trim().toLowerCase() ?? "";
+  const status = input.status?.trim().toUpperCase() || "ALL";
+  return fincas.filter((finca) => {
+    if (status !== "ALL" && (finca.horizontalDivision?.status ?? "UNKNOWN") !== status) return false;
+    if (!q) return true;
+    const haystack = [
+      tituloDireccionFinca(finca),
+      finca.fincaReference,
+      ...(finca.properties ?? []).map((item) => item.reference),
+    ]
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(q);
+  });
 }
 
 export async function fetchBusquedaCatastro(

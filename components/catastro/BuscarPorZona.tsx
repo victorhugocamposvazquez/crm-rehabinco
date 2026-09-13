@@ -2,12 +2,12 @@
 
 import { Pause, Play, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { estaSeleccionada, type SeleccionFincas } from "@/lib/catastro/selection-export";
 import { textoContadorFincas, type FincaBusquedaUi } from "@/lib/catastro/search-ui";
 import { VacioResultados } from "./VacioResultados";
 import {
   FILTROS_REVISION_COMERCIAL,
-  estaEnRevision,
   filtrarPorRevisionComercial,
   textoRevision,
   type FiltroRevisionComercial,
@@ -32,7 +32,7 @@ import {
   type EstadoZonaUi,
 } from "@/lib/catastro/zone-ui";
 import { rutaFincaPersistida } from "@/lib/catastro/explorer/history-ui";
-import { FincaResultadoCard } from "./FincaResultadoCard";
+import { ListaFincasCatastro } from "./ListaFincasCatastro";
 
 type Props = {
   estado: EstadoZonaUi;
@@ -152,7 +152,12 @@ export function BuscarPorZona({
 
   return (
     <div className="space-y-6">
-      <div className="space-y-4 rounded-2xl border border-border bg-white p-5 sm:p-6">
+      <div
+        className={cn(
+          "space-y-4 rounded-2xl border p-5 sm:p-6",
+          !enMarcha && !completa ? "border-[#F0DEB0] bg-[#FBF0D8] text-[#6A4F0C]" : "border-[#E6E3DD] bg-white"
+        )}
+      >
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="flex items-center gap-2 text-base font-semibold text-foreground">
@@ -329,21 +334,12 @@ export function BuscarPorZona({
             </div>
           )
         ) : (
-          <ul className="space-y-3" aria-label="Fincas encontradas">
-            {visibles.map((finca) => (
-              <li key={finca.fincaReference}>
-                <FincaResultadoCard
-                  finca={finca}
-                  href={rutaFincaPersistida(finca.fincaReference)}
-                  seleccionada={estaSeleccionada(seleccion, finca.fincaReference)}
-                  enRevision={estaEnRevision(revision, finca.fincaReference)}
-                  revision={revision}
-                  onToggleSeleccion={onToggleSeleccion}
-                  onToggleRevision={onToggleRevision}
-                />
-              </li>
-            ))}
-          </ul>
+          <ListaFincasCatastro
+            fincas={visibles}
+            hrefDe={(finca) => rutaFincaPersistida(finca.fincaReference)}
+            seleccionada={(ref) => estaSeleccionada(seleccion, ref)}
+            onToggleSeleccion={onToggleSeleccion}
+          />
         )}
       </section>
     </div>

@@ -179,8 +179,8 @@ function BarraSeleccion({
       aria-label="Fincas seleccionadas"
       className="pointer-events-none fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-40 px-3 md:bottom-4 md:px-6"
     >
-      <div className="pointer-events-auto mx-auto flex max-w-3xl flex-col gap-3 rounded-2xl border border-border bg-white/95 px-4 py-3 shadow-[0_10px_30px_rgba(28,25,23,0.16)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm font-semibold text-foreground" aria-live="polite">
+      <div className="pointer-events-auto mx-auto flex max-w-3xl flex-col gap-3 rounded-[14px] bg-[#131C1A] px-4 py-3 text-white shadow-[0_12px_30px_rgba(19,28,26,.25)] sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm font-semibold text-white" aria-live="polite">
           {textoBarraSeleccionYRevision(total, enRevision)}
         </p>
         <div className="flex flex-wrap items-center gap-2">

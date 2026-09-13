@@ -15,7 +15,11 @@ import {
   textoContadorFincas,
   textoVacioResultados,
   tituloDireccionFinca,
+  type FincaBusquedaUi,
   etiquetaEstadoDivisionLista,
+  filtrarListaFincas,
+  metricasFincaLista,
+  recuentoEstadosDivision,
   resumenComercialFinca,
 } from "./search-ui";
 
@@ -100,7 +104,7 @@ describe("search-ui", () => {
     );
     assert.equal(
       FILTROS_DIVISION.find((item) => item.value === "NOT_APPLICABLE")?.label,
-      "No aplicable"
+      "No aplica"
     );
     const leidos = criteriosDesdeSearchParams(
       new URLSearchParams("provincia=Valencia&municipio=Godelleta&via=Demo&horizontalDivision=NOT_APPLICABLE")
@@ -216,5 +220,34 @@ describe("search-ui", () => {
       }),
       /Sin dividir/
     );
+  });
+
+  it("filtra la lista por estado y texto sin cambiar la clasificación", () => {
+    const candidata: FincaBusquedaUi = {
+      fincaReference: "11111111111111",
+      portals: ["1"],
+      address: { sigla: "CL", via: "MAYOR", numero: "1" },
+      superficieSolar: 420,
+      horizontalDivision: { status: "NO" },
+      properties: [{ reference: "111111111111110001AA", anio: 1964, uso: "Residencial" }],
+    };
+    const conPisos: FincaBusquedaUi = {
+      fincaReference: "22222222222222",
+      portals: ["2"],
+      address: { sigla: "CL", via: "NUEVA", numero: "2" },
+      horizontalDivision: { status: "YES" },
+      properties: [{ reference: "222222222222220001AA", uso: "Residencial" }],
+    };
+    assert.deepEqual(recuentoEstadosDivision([candidata, conPisos]), {
+      ALL: 2,
+      NO: 1,
+      YES: 1,
+      UNKNOWN: 0,
+      NOT_APPLICABLE: 0,
+    });
+    assert.equal(filtrarListaFincas([candidata, conPisos], { status: "NO" }).length, 1);
+    assert.equal(filtrarListaFincas([candidata, conPisos], { q: "mayor" })[0]?.fincaReference, "11111111111111");
+    assert.equal(metricasFincaLista(candidata).parcela, "420 m²");
+    assert.equal(metricasFincaLista(candidata).anio, "1964");
   });
 });

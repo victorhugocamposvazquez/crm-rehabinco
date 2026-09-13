@@ -62,8 +62,8 @@ import {
   type ProvinciaUi,
 } from "@/lib/catastro/location-ui";
 import {
-  AYUDA_FILTRO_DIVISION,
-  FILTROS_DIVISION,
+  FILTROS_DIVISION_FORM,
+  ayudaFiltroDivision,
   claveCriterios,
   criteriosListos,
   ErrorBusquedaUi,
@@ -93,8 +93,7 @@ import { BuscarPorZona } from "./BuscarPorZona";
 import { BusquedasRecientes } from "./BusquedasRecientes";
 import { CatalogCombobox } from "./CatalogCombobox";
 import { CatastroSubnav } from "./CatastroSubnav";
-import { FincaResultadoCard } from "./FincaResultadoCard";
-import { LeyendaEstadosDivision } from "./LeyendaEstadosDivision";
+import { ListaFincasCatastro } from "./ListaFincasCatastro";
 import { VacioResultados } from "./VacioResultados";
 import { useBusquedaZona } from "./useBusquedaZona";
 import { useSeleccionFincas } from "./useSeleccionFincas";
@@ -528,27 +527,28 @@ export function BuscarInmuebles() {
   return (
     <div className={cn((seleccion.fincas.length > 0 || revision.fincas.length > 0) && "pb-32 md:pb-24")}>
       <CatastroSubnav />
+      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#5D6B67]">Catastro</p>
       <PageHeader
-        breadcrumb={[{ label: "Catastro", href: RUTA_EXPLORER }]}
         title="Buscar fincas"
-        description="Elige provincia y municipio. La calle es opcional: si no la pones, se recorre todo el pueblo. Por defecto solo ves candidatas a reforma."
+        description="Rastreamos Catastro por bloques y nos quedamos las fincas sin división horizontal: las candidatas reales a reforma."
+        descriptionClassName="max-w-[58ch] text-[15px] text-[#5D6B67]"
       />
 
       <form
         onSubmit={onSubmit}
-        className="mt-8 rounded-2xl border border-border bg-white p-4 shadow-[0_1px_3px_rgba(28,25,23,0.04)] sm:p-6"
+        className="mt-8 rounded-2xl border border-[#E6E3DD] bg-white p-[22px] shadow-[0_1px_2px_rgba(19,28,26,.04)]"
       >
         <fieldset className="mb-5">
-          <legend className="text-sm font-medium text-foreground">¿Qué quieres buscar?</legend>
+          <legend className="text-sm font-medium text-[#131C1A]">¿Qué quieres buscar?</legend>
           <div className="mt-3 grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Qué quieres buscar">
             {MODOS_BUSQUEDA.map((item) => (
               <label
                 key={item.value}
                 className={cn(
-                  "flex cursor-pointer flex-col gap-1 rounded-2xl border px-4 py-3 transition-colors",
+                  "flex cursor-pointer flex-col gap-1 rounded-2xl border-[1.5px] px-4 py-3 transition-colors",
                   modo === item.value
-                    ? "border-accent bg-accent/10 text-foreground"
-                    : "border-border bg-white text-neutral-600 hover:border-neutral-300"
+                    ? "border-[#0B7461] bg-[#E8F3EF] text-[#131C1A]"
+                    : "border-[#E6E3DD] bg-white text-[#5D6B67] hover:border-[#DAD6CE]"
                 )}
               >
                 <span className="flex items-center gap-2 text-sm font-semibold">
@@ -698,28 +698,31 @@ export function BuscarInmuebles() {
             </p>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="horizontalDivision">Qué fincas quieres ver</Label>
-            <select
-              id="horizontalDivision"
-              className={SELECT_CLASS}
-              value={horizontalDivision}
-              onChange={(event) => {
-                resetResultados();
-                setHorizontalDivision(event.target.value);
-              }}
-            >
-              {FILTROS_DIVISION.map((item) => (
-                <option key={item.value} value={item.value}>
+          <div className="space-y-2 md:col-span-2 xl:col-span-3">
+            <p className="text-sm font-medium text-[#131C1A]">Qué fincas quieres ver</p>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Qué fincas quieres ver">
+              {FILTROS_DIVISION_FORM.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => {
+                    resetResultados();
+                    setHorizontalDivision(item.value);
+                  }}
+                  className={cn(
+                    "rounded-full border px-3 py-1.5 text-[13px] font-semibold",
+                    horizontalDivision === item.value
+                      ? "border-[#0B7461] bg-[#E8F3EF] text-[#08594B]"
+                      : "border-[#E6E3DD] bg-white text-[#5D6B67]"
+                  )}
+                >
                   {item.label}
-                </option>
+                </button>
               ))}
-            </select>
-            <p className="text-xs text-neutral-500">{AYUDA_FILTRO_DIVISION}</p>
+            </div>
+            <p className="text-xs text-[#5D6B67]">{ayudaFiltroDivision(horizontalDivision)}</p>
           </div>
         </div>
-
-        <LeyendaEstadosDivision />
 
         {errorCatalogo ? (
           <p className="mt-4 text-sm text-red-700">{errorCatalogo}</p>
@@ -730,26 +733,27 @@ export function BuscarInmuebles() {
           </p>
         ) : null}
 
-        <div className="mt-6">
+        <div className="mt-6 flex flex-wrap items-center gap-3">
           {modo === "zona" || buscarTodoElMunicipio ? (
             <Button
               type="submit"
               disabled={(modo === "zona" ? !criteriosZona : !criteriosMunicipio) || zonaOcupada}
-              className="w-full sm:w-auto"
+              className="bg-[#0B7461] hover:bg-[#08594B]"
             >
               <Search className="h-4 w-4" strokeWidth={1.5} aria-hidden />
-              {zona.estado.fase === "preparando" ? "Preparando…" : "Continuar"}
+              {zona.estado.fase === "preparando" ? "Preparando…" : "Rastrear fincas"}
             </Button>
           ) : (
-            <Button type="submit" disabled={loading || !criterios} className="w-full sm:w-auto">
+            <Button type="submit" disabled={loading || !criterios} className="bg-[#0B7461] hover:bg-[#08594B]">
               <Search className="h-4 w-4" strokeWidth={1.5} aria-hidden />
-              {loading ? "Buscando en Catastro..." : "Buscar"}
+              {loading ? "Buscando en Catastro..." : "Rastrear fincas"}
             </Button>
           )}
+          <p className="text-xs text-[#5D6B67]">Tarda unos minutos. Puedes pausar cuando quieras.</p>
         </div>
       </form>
 
-      <section ref={resultadosRef} className="mt-8 scroll-mt-6" aria-live="polite">
+      <section id="resultados" ref={resultadosRef} className="mt-8 scroll-mt-6" aria-live="polite">
         {modo === "zona" || zona.estado.fase !== "formulario" ? (
           <BuscarPorZona
             estado={zona.estado}
@@ -935,21 +939,12 @@ function ResultadosBusqueda({
           onVerTodas={onVerTodas}
         />
       ) : (
-        <ul className="space-y-3" aria-label="Fincas encontradas">
-          {visibles.map((finca) => (
-            <li key={finca.fincaReference}>
-              <FincaResultadoCard
-                finca={finca}
-                href={rutaFincaPersistida(finca.fincaReference)}
-                seleccionada={estaSeleccionada(seleccion, finca.fincaReference)}
-                enRevision={estaEnRevision(revision, finca.fincaReference)}
-                revision={revision}
-                onToggleSeleccion={onToggleSeleccion}
-                onToggleRevision={onToggleRevision}
-              />
-            </li>
-          ))}
-        </ul>
+        <ListaFincasCatastro
+          fincas={visibles}
+          hrefDe={(finca) => rutaFincaPersistida(finca.fincaReference)}
+          seleccionada={(ref) => estaSeleccionada(seleccion, ref)}
+          onToggleSeleccion={onToggleSeleccion}
+        />
       )}
 
       {resultado.results.length > 0 || resultado.pagination.hasNextPage ? (

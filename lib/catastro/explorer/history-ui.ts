@@ -95,7 +95,7 @@ export const FILTROS_LISTADO_HISTORICO = [
 export type FiltroListadoHistorico = (typeof FILTROS_LISTADO_HISTORICO)[number]["value"];
 
 export const CLASES_TARJETA_BUSQUEDA =
-  "flex flex-col gap-3 rounded-2xl border border-border bg-white p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5";
+  "flex flex-col gap-3 border-b border-[#F2F0EB] bg-white px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between";
 
 export type CoberturaRecienteUi = Pick<CatastroExplorerCoverage, "complete" | "possibleCut">;
 
@@ -141,7 +141,7 @@ export const ESTADO_BUSQUEDA_UI: Record<CatastroExplorerSearchStatus, string> = 
   RUNNING: "En curso",
   PAUSED: "Pausada",
   CANCELLED: "Pausada",
-  COMPLETED: "Terminada",
+  COMPLETED: "Completada",
   FAILED: "Con errores",
 };
 
