@@ -27,6 +27,9 @@ describe("Property → Visit", () => {
     );
     assert.equal(vinculoUi.includes("Nueva visita"), false);
     assert.equal(vinculoUi.includes("partes-visita"), false);
+    const asignar = readFileSync(join(raiz, "../components/catastro/AsignarComercial.tsx"), "utf8");
+    assert.equal(asignar.includes("partes-visita"), false);
+    assert.equal(asignar.includes("Nueva visita"), false);
     assert.match(vinculoUi, /Crear propiedad|Ver propiedad/);
   });
 

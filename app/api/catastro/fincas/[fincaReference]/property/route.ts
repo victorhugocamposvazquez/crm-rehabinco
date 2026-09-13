@@ -4,7 +4,9 @@ import {
   crearOReutilizarPropiedad,
   identidadFinca,
 } from "@/lib/catastro/explorer";
+import { aplicarAsignacionAPropiedad } from "@/lib/catastro-host/aplicar-asignacion";
 import { explorerStoreDesdeSesion } from "@/lib/catastro-host/from-request";
+import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,6 +46,9 @@ export async function POST(
     const mapped = ERRORES_VINCULO_HTTP[resultado.error];
     return Response.json({ ok: false, error: mapped.error }, { status: mapped.status });
   }
+
+  const supabase = await createClient();
+  await aplicarAsignacionAPropiedad(supabase as never, fincaReference, resultado.link.propertyId);
 
   return Response.json({
     ok: true,

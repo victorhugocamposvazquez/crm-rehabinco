@@ -11,6 +11,7 @@ import {
 } from "@/lib/catastro/search-ui";
 import { accionTecladoLista } from "@/lib/catastro/vista-movil";
 import { cn } from "@/lib/utils";
+import type { AsignacionFinca } from "@/lib/catastro-host/finca-assignment";
 import { FincaDetallePanel } from "./FincaDetallePanel";
 import { FincaResultadoRow } from "./FincaResultadoRow";
 import { LeyendaEstadosDivision } from "./LeyendaEstadosDivision";
@@ -47,14 +48,51 @@ export function ListaFincasCatastro({
   const [filtro, setFiltro] = useState("ALL");
   const [sel, setSel] = useState<string | null>(null);
   const [hoja, setHoja] = useState(false);
+  const [soloMias, setSoloMias] = useState(false);
+  const [yo, setYo] = useState<string | null>(null);
+  const [asignaciones, setAsignaciones] = useState<Record<string, AsignacionFinca>>({});
   const recuento = recuentoEstadosDivision(fincas);
-  const visibles = useMemo(() => filtrarListaFincas(fincas, { q, status: filtro }), [fincas, q, filtro]);
+  const filtradas = useMemo(() => filtrarListaFincas(fincas, { q, status: filtro }), [fincas, q, filtro]);
+  const visibles = useMemo(() => {
+    if (!soloMias || !yo) return filtradas;
+    return filtradas.filter((finca) => asignaciones[finca.fincaReference]?.comercialId === yo);
+  }, [filtradas, soloMias, yo, asignaciones]);
 
   useEffect(() => {
     if (sel && visibles.some((finca) => finca.fincaReference === sel)) return;
     setSel(null);
     setHoja(false);
   }, [visibles, sel]);
+
+  const refsAsignacion = useMemo(
+    () => filtradas.map((finca) => finca.fincaReference).join(","),
+    [filtradas]
+  );
+
+  useEffect(() => {
+    if (!refsAsignacion) {
+      setAsignaciones({});
+      return;
+    }
+    let vivo = true;
+    void fetch(`/api/catastro/assignments?refs=${encodeURIComponent(refsAsignacion)}`)
+      .then(async (respuesta) => {
+        const json = (await respuesta.json()) as {
+          ok?: boolean;
+          me?: string;
+          assignments?: AsignacionFinca[];
+        };
+        if (!vivo || !respuesta.ok || !json.ok) return;
+        setYo(json.me ?? null);
+        const mapa: Record<string, AsignacionFinca> = {};
+        for (const item of json.assignments ?? []) mapa[item.fincaReference] = item;
+        setAsignaciones(mapa);
+      })
+      .catch(() => undefined);
+    return () => {
+      vivo = false;
+    };
+  }, [refsAsignacion, hoja]);
 
   const cerrarFicha = useCallback(() => {
     setHoja(false);
@@ -149,6 +187,23 @@ export function ListaFincasCatastro({
             <span className="ml-1 tabular-nums text-[#6B7A76]">{recuento[item.value] ?? 0}</span>
           </button>
         ))}
+        <button
+          type="button"
+          onClick={() => setSoloMias((prev) => !prev)}
+          className={cn(
+            "shrink-0 rounded-full border px-3 text-[12.5px] font-semibold min-h-[38px]",
+            soloMias
+              ? "border-[#0B7461] bg-[#E8F3EF] text-[#08594B]"
+              : "border-[#E6E3DD] bg-white text-[#5D6B67]"
+          )}
+        >
+          Mías
+          <span className="ml-1 tabular-nums text-[#6B7A76]">
+            {yo
+              ? Object.values(asignaciones).filter((item) => item.comercialId === yo).length
+              : 0}
+          </span>
+        </button>
       </div>
 
       <p className="text-xs text-[#5D6B67]">
@@ -176,6 +231,7 @@ export function ListaFincasCatastro({
                   onSelect={() => abrir(finca)}
                   onToggle={onToggleSeleccion ? () => onToggleSeleccion(finca) : undefined}
                   onProperty={onProperty || hrefDe?.(finca) ? () => irPropiedad(finca) : undefined}
+                  asignado={asignaciones[finca.fincaReference]?.nombre ?? null}
                 />
               </li>
             ))}

@@ -19,6 +19,8 @@ import { crearGoogleMapsUrl } from "@/lib/catastro/explorer/maps";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MapaCatastral } from "./MapaCatastral";
+import { AsignarComercial } from "./AsignarComercial";
+import { NotasFinca } from "./NotasFinca";
 
 type Props = {
   finca: FincaBusquedaUi;
@@ -128,6 +130,10 @@ export function FincaDetallePanel({
           </a>
         ) : null}
       </div>
+
+      <AsignarComercial fincaReference={finca.fincaReference} vinculada={Boolean(vinculada)} />
+
+      <NotasFinca fincaReference={finca.fincaReference} />
 
       <div className="mt-5 flex flex-wrap items-baseline gap-2">
         <h3 className="text-[15px] font-semibold text-[#131C1A]">Inmuebles</h3>

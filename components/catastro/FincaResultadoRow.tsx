@@ -22,6 +22,7 @@ type Props = {
   onSelect?: () => void;
   onToggle?: () => void;
   onProperty?: () => void;
+  asignado?: string | null;
 };
 
 export function FincaResultadoRow({
@@ -32,6 +33,7 @@ export function FincaResultadoRow({
   onSelect,
   onToggle,
   onProperty,
+  asignado = null,
 }: Props) {
   const metricas = metricasFincaLista(finca);
   const status = finca.horizontalDivision?.status;
@@ -97,6 +99,9 @@ export function FincaResultadoRow({
               {titulo}
             </p>
             <p className="mt-1 font-mono text-[11.5px] text-[#5D6B67]">{finca.fincaReference}</p>
+            {asignado ? (
+              <p className="mt-1 truncate text-[12px] font-medium text-[#0B7461]">{asignado}</p>
+            ) : null}
           </div>
           <span className={cn("mt-0.5 flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs font-medium min-[780px]:hidden", claseTextoDivision(status))}>
             <span className={cn("h-[7px] w-[7px] flex-none rounded-full", clasePuntoDivision(status))} aria-hidden />
