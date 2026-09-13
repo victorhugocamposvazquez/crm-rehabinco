@@ -110,7 +110,7 @@ export const ESTADO_BUSQUEDA_UI: Record<CatastroExplorerSearchStatus, string> = 
   PREPARED: "Lista para empezar",
   RUNNING: "En curso",
   PAUSED: "Pausada",
-  CANCELLED: "Cancelada",
+  CANCELLED: "Pausada",
   COMPLETED: "Terminada",
   FAILED: "Con errores",
 };

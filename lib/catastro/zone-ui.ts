@@ -536,7 +536,7 @@ export function textoEstadoFinal(estado: EstadoZonaUi): string | null {
   const procesadas = `${progress.streetsProcessed} / ${progress.streetsFound} calles procesadas`;
   switch (estado.fase) {
     case "cancelada":
-      return `Búsqueda cancelada: ${procesadas}.`;
+      return `Búsqueda pausada: ${procesadas}.`;
     case "pausada_por_catastro":
       return `Catastro no responde. Búsqueda pausada para no saturar el servicio: ${procesadas}.`;
     case "caducada":

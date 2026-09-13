@@ -307,7 +307,7 @@ describe("Zona UI: cancelación y reanudación", () => {
     );
     assert.equal(cancelada.fase, "cancelada");
     assert.equal(cancelada.snapshot?.results.length, 1, "los resultados se conservan");
-    assert.equal(textoEstadoFinal(cancelada), "Búsqueda cancelada: 214 / 427 calles procesadas.");
+    assert.equal(textoEstadoFinal(cancelada), "Búsqueda pausada: 214 / 427 calles procesadas.");
     const acciones = accionesDisponibles(cancelada);
     assert.equal(acciones.reanudar, true);
     assert.equal(acciones.nuevaBusqueda, true);

@@ -1,6 +1,6 @@
 "use client";
 
-import { Play, RotateCcw, Square } from "lucide-react";
+import { Pause, Play, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { estaSeleccionada, type SeleccionFincas } from "@/lib/catastro/selection-export";
 import { textoContadorFincas, type FincaBusquedaUi } from "@/lib/catastro/search-ui";
@@ -163,7 +163,7 @@ export function BuscarPorZona({
               ) : null}
               {enMarcha
                 ? cancelando
-                  ? "Cancelando búsqueda…"
+                  ? "Pausando búsqueda…"
                   : snapshot.criteria.postalCode
                     ? "Buscando por código postal…"
                     : "Recorriendo el municipio…"
@@ -246,8 +246,8 @@ export function BuscarPorZona({
         <div className="flex flex-wrap gap-2">
           {acciones.cancelar ? (
             <Button type="button" variant="secondary" onClick={onCancelar} disabled={cancelando}>
-              <Square className="h-4 w-4" aria-hidden />
-              {cancelando ? "Cancelando…" : "Cancelar búsqueda"}
+              <Pause className="h-4 w-4" aria-hidden />
+              {cancelando ? "Pausando…" : "Pausar"}
             </Button>
           ) : null}
           {acciones.reanudar ? (
