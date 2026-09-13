@@ -21,7 +21,7 @@ export function MapaCatastral({
   return (
     <figure className="overflow-hidden rounded-xl border border-[#E6E3DD] bg-[#F4F3EF]">
       {mostrar ? (
-        <a href={mapa} target="_blank" rel="noreferrer" className="relative block aspect-[16/10] overflow-hidden">
+        <a href={mapa} target="_blank" rel="noreferrer" className="relative block aspect-[4/3] overflow-hidden min-[780px]:aspect-[16/10]">
           <img
             src={`/api/catastro/fincas/${encodeURIComponent(fincaReference)}/mapa?img=1`}
             alt={`Cartografía catastral de ${fincaReference}`}

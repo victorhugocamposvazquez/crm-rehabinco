@@ -36,8 +36,8 @@ export function CatastroSubnav() {
   ] as const;
 
   return (
-    <nav className="-mx-4 mb-6 border-b border-[#E6E3DD] bg-white px-4 sm:-mx-6 sm:px-6" aria-label="Catastro">
-      <div className="flex gap-6">
+    <nav className="-mx-4 mb-6 border-b border-[#E6E3DD] bg-white px-2 sm:-mx-6 sm:px-6" aria-label="Catastro">
+      <div className="flex min-[780px]:gap-6">
         {items.map((item) => {
           const Icono = item.icon;
           return (
@@ -45,7 +45,7 @@ export function CatastroSubnav() {
               key={item.label}
               href={item.href}
               className={cn(
-                "relative flex items-center gap-1.5 py-3 text-base font-medium",
+                "relative flex min-h-11 flex-1 items-center justify-center gap-1.5 py-3 text-[13.5px] font-medium min-[780px]:flex-none min-[780px]:justify-start min-[780px]:text-base",
                 item.activa ? "text-[#0B7461]" : "text-[#5D6B67] hover:text-[#0B7461]"
               )}
             >

@@ -12,6 +12,7 @@ import {
   fetchBusquedasRecientes,
   type ResumenBusquedaUi,
 } from "@/lib/catastro/explorer/history-ui";
+import { CLASES_LISTA_BUSQUEDAS } from "@/lib/catastro/vista-movil";
 import { TarjetaBusquedaReciente } from "./TarjetaBusquedaReciente";
 
 export function BusquedasRecientes({
@@ -87,7 +88,7 @@ export function BusquedasRecientes({
           <Link href={RUTA_HISTORICO}>{TEXTO_VER_TODO}</Link>
         </Button>
       </div>
-      <ul className="mt-3 overflow-hidden rounded-2xl border border-[#E6E3DD] bg-white">
+      <ul className={CLASES_LISTA_BUSQUEDAS}>
         {(compact ? items.slice(0, 3) : items).map((item) => (
           <li key={item.id}>
             <TarjetaBusquedaReciente

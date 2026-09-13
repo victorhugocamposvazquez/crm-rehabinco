@@ -7,6 +7,7 @@ import {
   claseTextoDivision,
   etiquetaEstadoDivisionLista,
   metricasFincaLista,
+  resumenComercialFinca,
   tituloDireccionFinca,
   type FincaBusquedaUi,
 } from "@/lib/catastro/search-ui";
@@ -34,6 +35,7 @@ export function FincaResultadoRow({
 }: Props) {
   const metricas = metricasFincaLista(finca);
   const status = finca.horizontalDivision?.status;
+  const titulo = tituloDireccionFinca(finca);
 
   const copiar = async (evento: React.MouseEvent) => {
     evento.stopPropagation();
@@ -54,42 +56,59 @@ export function FincaResultadoRow({
         }
       }}
       className={cn(
-        "flex cursor-pointer flex-wrap items-center gap-3.5 border-b border-[#F2F0EB] px-3.5 py-2.5 text-[#131C1A] hover:bg-[#FBFBF9]",
-        selected && "bg-[#F4F8F6] shadow-[inset_3px_0_0_#0B7461]"
+        "bg-white text-[#131C1A]",
+        "max-[779px]:overflow-hidden max-[779px]:rounded-[13px] max-[779px]:border max-[779px]:border-[#E6E3DD]",
+        "min-[780px]:flex min-[780px]:cursor-pointer min-[780px]:flex-wrap min-[780px]:items-center min-[780px]:gap-3.5 min-[780px]:border-b min-[780px]:border-[#F2F0EB] min-[780px]:px-3.5 min-[780px]:py-2.5 min-[780px]:hover:bg-[#FBFBF9]",
+        selected && "min-[780px]:bg-[#F4F8F6] min-[780px]:shadow-[inset_3px_0_0_#0B7461]"
       )}
     >
-      <div className="flex min-w-0 flex-[1_1_250px] items-start gap-2.5">
+      <div className="flex min-w-0 flex-[1_1_250px] items-start gap-2.5 px-3.5 py-3 min-[780px]:p-0">
         {onToggle ? (
-          <input
-            type="checkbox"
-            checked={checked}
-            aria-label={`Seleccionar ${tituloDireccionFinca(finca)}`}
-            className="mt-1 h-[17px] w-[17px] cursor-pointer rounded-[5px] border-[#CFCBC2] accent-[#0B7461]"
+          <label
+            className="flex h-11 w-11 shrink-0 items-center justify-center min-[780px]:mt-0 min-[780px]:h-auto min-[780px]:w-auto"
             onClick={(evento) => evento.stopPropagation()}
-            onChange={() => onToggle()}
-          />
+          >
+            <input
+              type="checkbox"
+              checked={checked}
+              aria-label={`Seleccionar ${titulo}`}
+              className="h-[17px] w-[17px] cursor-pointer rounded-[5px] border-[#CFCBC2] accent-[#0B7461]"
+              onChange={() => onToggle()}
+            />
+          </label>
         ) : null}
-        <div className="min-w-0">
-          <p className="text-[14.5px] font-semibold tracking-tight">{tituloDireccionFinca(finca)}</p>
-          <p className="mt-1 font-mono text-[11.5px] text-[#5D6B67]">{finca.fincaReference}</p>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start gap-2.5">
+            <div className="min-w-0 flex-1">
+              <p className="text-[15px] font-semibold tracking-tight text-pretty min-[780px]:text-[14.5px]">
+                {titulo}
+              </p>
+              <p className="mt-1 font-mono text-[11.5px] text-[#5D6B67]">{finca.fincaReference}</p>
+            </div>
+            <span className={cn("mt-0.5 flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs font-medium min-[780px]:hidden", claseTextoDivision(status))}>
+              <span className={cn("h-1.5 w-1.5 flex-none rounded-full", clasePuntoDivision(status))} aria-hidden />
+              {etiquetaEstadoDivisionLista(status)}
+            </span>
+          </div>
+          <p className="mt-2 text-[12.5px] text-[#5D6B67] min-[780px]:hidden">{resumenComercialFinca(finca)}</p>
         </div>
       </div>
 
-      <div className="flex flex-none flex-wrap gap-1">
+      <div className="hidden flex-none flex-wrap gap-1 min-[780px]:flex">
         <Dato label="Parcela" value={metricas.parcela} ancho="w-[74px]" />
         <Dato label="Inmuebles" value={metricas.inmuebles} ancho="w-[74px]" />
         <Dato label="Año" value={metricas.anio} ancho="w-[62px]" />
         <Dato label="Uso" value={metricas.uso} ancho="w-[86px]" />
       </div>
 
-      <div className="flex w-[132px] flex-none items-center gap-1.5">
-        <span className={cn("h-1.5 w-1.5 flex-none rounded-full", clasePuntoDivision(status))} aria-hidden />
+      <div className="hidden w-[132px] flex-none items-center gap-1.5 min-[780px]:flex">
+        <span className={cn("h-1.5 w-1.5 flex-none rounded-full", clasePuntoDivision(status))} />
         <span className={cn("whitespace-nowrap text-[12.5px] font-medium", claseTextoDivision(status))}>
           {etiquetaEstadoDivisionLista(status)}
         </span>
       </div>
 
-      <div className="flex flex-none gap-1">
+      <div className="hidden flex-none gap-1 min-[780px]:flex">
         {onProperty ? (
           <button
             type="button"
@@ -112,6 +131,31 @@ export function FincaResultadoRow({
           className="flex h-[29px] w-[29px] items-center justify-center rounded-lg border border-[#E6E3DD] bg-white text-[#5D6B67]"
         >
           <Copy className="h-3.5 w-3.5" aria-hidden />
+        </button>
+      </div>
+
+      <div className="flex gap-px border-t border-[#EFEDE7] bg-[#EFEDE7] min-[780px]:hidden">
+        {onProperty ? (
+          <button
+            type="button"
+            onClick={(evento) => {
+              evento.stopPropagation();
+              onProperty();
+            }}
+            className={cn(
+              "flex min-h-[46px] flex-[1.3] items-center justify-center bg-white text-[12.5px] font-semibold",
+              vinculada ? "text-[#2B4A8A]" : "text-[#0B7461]"
+            )}
+          >
+            {vinculada ? "Ver propiedad" : "Crear propiedad"}
+          </button>
+        ) : null}
+        <button
+          type="button"
+          onClick={onSelect}
+          className="min-h-[46px] flex-none bg-white px-4 text-[12.5px] font-semibold text-[#5D6B67]"
+        >
+          Ficha
         </button>
       </div>
     </div>

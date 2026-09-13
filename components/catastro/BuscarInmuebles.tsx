@@ -100,7 +100,7 @@ import { useSeleccionFincas } from "./useSeleccionFincas";
 import { persistirRevisionUi, RUTA_EXPLORER, rutaFincaPersistida } from "@/lib/catastro/explorer/history-ui";
 
 const SELECT_CLASS =
-  "flex h-11 w-full rounded-lg border border-border bg-white px-3 py-2 text-base transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+  "flex min-h-[46px] w-full rounded-[10px] border border-[#DAD6CE] bg-white px-3 py-2 text-[15px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B7461] disabled:cursor-not-allowed disabled:opacity-50";
 
 type PaginaCache = {
   cursor: string | null;
@@ -536,7 +536,7 @@ export function BuscarInmuebles() {
 
       <form
         onSubmit={onSubmit}
-        className="mt-8 rounded-2xl border border-[#E6E3DD] bg-white p-[22px] shadow-[0_1px_2px_rgba(19,28,26,.04)]"
+        className="mt-8 rounded-2xl border border-[#E6E3DD] bg-white p-3.5 shadow-[0_1px_2px_rgba(19,28,26,.04)] min-[780px]:p-[22px]"
       >
         <fieldset className="mb-5">
           <legend className="text-sm font-medium text-[#131C1A]">¿Qué quieres buscar?</legend>
@@ -664,6 +664,7 @@ export function BuscarInmuebles() {
                 }}
                 placeholder="Ej. 14 — déjalo vacío para toda la calle"
                 inputMode="numeric"
+                className="min-h-[46px]"
               />
             </div>
           ) : null}
@@ -689,6 +690,7 @@ export function BuscarInmuebles() {
               }}
               placeholder={modo === "zona" ? "46388" : "28004"}
               autoComplete="postal-code"
+              className="min-h-[46px] font-mono"
             />
             <p id="postalCode-ayuda" className={cn("text-xs", avisoCpZona ? "text-red-700" : "text-neutral-500")}>
               {avisoCpZona ??
@@ -700,7 +702,7 @@ export function BuscarInmuebles() {
 
           <div className="space-y-2 md:col-span-2 xl:col-span-3">
             <p className="text-sm font-medium text-[#131C1A]">Qué fincas quieres ver</p>
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Qué fincas quieres ver">
+            <div className="flex flex-col gap-1.5 min-[780px]:flex-row min-[780px]:flex-wrap" role="group" aria-label="Qué fincas quieres ver">
               {FILTROS_DIVISION_FORM.map((item) => (
                 <button
                   key={item.value}
@@ -710,7 +712,7 @@ export function BuscarInmuebles() {
                     setHorizontalDivision(item.value);
                   }}
                   className={cn(
-                    "rounded-full border px-3 py-1.5 text-[13px] font-semibold",
+                    "min-h-11 rounded-[10px] border px-3.5 text-left text-[13.5px] font-medium min-[780px]:min-h-0 min-[780px]:rounded-full min-[780px]:px-3 min-[780px]:py-1.5 min-[780px]:text-[13px] min-[780px]:font-semibold",
                     horizontalDivision === item.value
                       ? "border-[#0B7461] bg-[#E8F3EF] text-[#08594B]"
                       : "border-[#E6E3DD] bg-white text-[#5D6B67]"
@@ -733,23 +735,27 @@ export function BuscarInmuebles() {
           </p>
         ) : null}
 
-        <div className="mt-6 flex flex-wrap items-center gap-3">
+        <div className="mt-6 flex flex-col gap-3 min-[780px]:flex-row min-[780px]:flex-wrap min-[780px]:items-center">
           {modo === "zona" || buscarTodoElMunicipio ? (
             <Button
               type="submit"
               disabled={(modo === "zona" ? !criteriosZona : !criteriosMunicipio) || zonaOcupada}
-              className="bg-[#0B7461] hover:bg-[#08594B]"
+              className="h-[50px] w-full bg-[#0B7461] text-[15px] hover:bg-[#08594B] min-[780px]:h-auto min-[780px]:w-auto min-[780px]:text-sm"
             >
               <Search className="h-4 w-4" strokeWidth={1.5} aria-hidden />
               {zona.estado.fase === "preparando" ? "Preparando…" : "Rastrear fincas"}
             </Button>
           ) : (
-            <Button type="submit" disabled={loading || !criterios} className="bg-[#0B7461] hover:bg-[#08594B]">
+            <Button
+              type="submit"
+              disabled={loading || !criterios}
+              className="h-[50px] w-full bg-[#0B7461] text-[15px] hover:bg-[#08594B] min-[780px]:h-auto min-[780px]:w-auto min-[780px]:text-sm"
+            >
               <Search className="h-4 w-4" strokeWidth={1.5} aria-hidden />
               {loading ? "Buscando en Catastro..." : "Rastrear fincas"}
             </Button>
           )}
-          <p className="text-xs text-[#5D6B67]">Tarda unos minutos. Puedes pausar cuando quieras.</p>
+          <p className="text-center text-xs text-[#5D6B67] min-[780px]:text-left">Tarda unos minutos. Puedes pausar cuando quieras.</p>
         </div>
       </form>
 

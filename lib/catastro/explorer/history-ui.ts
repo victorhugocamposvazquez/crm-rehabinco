@@ -95,7 +95,7 @@ export const FILTROS_LISTADO_HISTORICO = [
 export type FiltroListadoHistorico = (typeof FILTROS_LISTADO_HISTORICO)[number]["value"];
 
 export const CLASES_TARJETA_BUSQUEDA =
-  "flex flex-col gap-3 border-b border-[#F2F0EB] bg-white px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between";
+  "flex flex-col gap-3 rounded-[13px] border border-[#E6E3DD] bg-white px-3.5 py-3.5 min-[780px]:flex-row min-[780px]:items-center min-[780px]:justify-between min-[780px]:rounded-none min-[780px]:border-0 min-[780px]:border-b min-[780px]:border-[#F2F0EB] min-[780px]:px-4";
 
 export type CoberturaRecienteUi = Pick<CatastroExplorerCoverage, "complete" | "possibleCut">;
 

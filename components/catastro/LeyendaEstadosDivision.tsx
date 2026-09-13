@@ -23,13 +23,13 @@ export function LeyendaEstadosDivision({
       <div>
         <button
           type="button"
-          className="text-[13px] font-semibold text-[#0B7461] hover:underline"
+          className="inline-flex min-h-9 items-center gap-1.5 text-[12.5px] font-semibold text-[#0B7461] hover:underline"
           onClick={() => setAbierta((prev) => !prev)}
         >
           {abierta ? "Ocultar estados" : TITULO_LEYENDA_DIVISION}
         </button>
         {abierta ? (
-          <div className="mt-3 grid gap-4 rounded-xl bg-[#FBFBF9] p-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-3 grid gap-3.5 rounded-xl border border-[#E6E3DD] bg-white p-3.5 min-[780px]:grid-cols-2 min-[780px]:border-0 min-[780px]:bg-[#FBFBF9] min-[780px]:p-4 xl:grid-cols-4">
             {LEYENDA_ESTADOS_DIVISION.map((item) => (
               <div key={item.status}>
                 <p className={cn("flex items-center gap-2 text-[13px] font-semibold", claseTextoDivision(item.status))}>

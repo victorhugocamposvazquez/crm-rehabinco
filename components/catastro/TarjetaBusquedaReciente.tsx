@@ -91,13 +91,13 @@ export function TarjetaBusquedaReciente({
         <p className="mt-2 text-xs font-medium text-neutral-600">{cobertura.estado}</p>
         {cobertura.corte ? <p className="mt-1 text-xs text-amber-800">{cobertura.corte}</p> : null}
       </div>
-      <div className="flex shrink-0 items-start gap-2">
+      <div className="flex shrink-0 items-center gap-2">
         {reanudable ? (
-          <Button asChild size="sm">
+          <Button asChild size="sm" className="min-h-10">
             <Link href={urlReanudarBusqueda(item.id)}>{TEXTO_REANUDAR_BUSQUEDA}</Link>
           </Button>
         ) : null}
-        <Button asChild size="sm" variant={reanudable ? "secondary" : "default"}>
+        <Button asChild size="sm" variant={reanudable ? "secondary" : "default"} className="min-h-10">
           <Link href={rutaBusquedaHistorica(item.id)}>Abrir</Link>
         </Button>
         <div ref={menuRef} className="relative">

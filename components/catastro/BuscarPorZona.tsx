@@ -123,7 +123,7 @@ export function BuscarPorZona({
             Esto puede tardar. Verás las fincas según se vayan revisando las calles. Puedes parar en cualquier momento.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 [&_button]:min-h-10">
           <Button type="button" onClick={onComenzar} disabled={!acciones.comenzar}>
             <Play className="h-4 w-4" aria-hidden />
             Empezar ahora
@@ -250,7 +250,7 @@ export function BuscarPorZona({
           </details>
         ) : null}
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 [&_button]:min-h-10">
           {acciones.cancelar ? (
             <Button type="button" variant="secondary" onClick={onCancelar} disabled={cancelando}>
               <Pause className="h-4 w-4" aria-hidden />

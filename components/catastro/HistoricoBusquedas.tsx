@@ -15,6 +15,7 @@ import {
   type ResumenBusquedaUi,
 } from "@/lib/catastro/explorer/history-ui";
 import { EXPLORER_SEARCHES_PAGE_SIZE } from "@/lib/catastro/explorer";
+import { CLASES_LISTA_BUSQUEDAS } from "@/lib/catastro/vista-movil";
 import { AccionNuevaBusqueda } from "./AccionNuevaBusqueda";
 import { CatastroSubnav } from "./CatastroSubnav";
 import { TarjetaBusquedaReciente } from "./TarjetaBusquedaReciente";
@@ -94,7 +95,7 @@ export function HistoricoBusquedas() {
           <p className="mt-4 text-sm text-neutral-600">
             {formatoNumeroEs(total)} {total === 1 ? "búsqueda" : "búsquedas"}
           </p>
-          <ul className="mt-3 overflow-hidden rounded-2xl border border-[#E6E3DD] bg-white">
+          <ul className={CLASES_LISTA_BUSQUEDAS}>
             {items.map((item) => (
               <li key={item.id}>
                 <TarjetaBusquedaReciente
