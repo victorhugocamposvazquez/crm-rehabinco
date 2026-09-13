@@ -1,6 +1,8 @@
 export { createCatastroClient, getCatastroClient } from "./client";
 export type { CatastroClient } from "./client";
 export { CatastroHttpError } from "./http";
+export { parsearCoordenadasCpmrc } from "./coordenadas";
+export type { CoordenadaParcela } from "./coordenadas";
 export {
   asArray,
   componerReferencia,
@@ -240,6 +242,8 @@ export {
   API_MAX_CONCURRENCY,
   API_MAX_PORTALS,
   CATASTRO_CALLEJERO_JSON,
+  CATASTRO_COORDENADAS_JSON,
+  CATASTRO_WMS,
   CATASTRO_OPERATIONS,
   DEFAULT_DISCOVERY_CONCURRENCY,
   DEFAULT_MAX_PORTALS,

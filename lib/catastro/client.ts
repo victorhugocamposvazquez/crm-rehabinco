@@ -1,4 +1,5 @@
-import { CATASTRO_INSPIRE_AD_WFS, CATASTRO_OPERATIONS } from "./constants";
+import { CATASTRO_COORDENADAS_JSON, CATASTRO_INSPIRE_AD_WFS, CATASTRO_OPERATIONS } from "./constants";
+import { getFincaReference } from "./references";
 import { createCatastroHttp } from "./http";
 import { parseConsultaDnp, separarTipoVia } from "./parse";
 import type {
@@ -139,6 +140,19 @@ export function createCatastroClient(options: CatastroClientOptions = {}) {
     return http.getText(url.toString());
   }
 
+  /** Consulta_CPMRC: centroide oficial de la parcela. RefCat de 14. */
+  async function consultarCoordenadasPorReferencia(refCat: string): Promise<JsonValue> {
+    const rc = getFincaReference(refCat);
+    if (!rc) {
+      throw new Error("La referencia catastral de finca debe tener 14 caracteres.");
+    }
+    const url = new URL(`${CATASTRO_COORDENADAS_JSON}/Consulta_CPMRC`);
+    url.searchParams.set("RefCat", rc);
+    url.searchParams.set("SRS", "EPSG:4326");
+    const texto = await http.getText(url.toString(), "application/json");
+    return JSON.parse(texto) as JsonValue;
+  }
+
   return {
     consultarDireccion,
     consultarReferencia,
@@ -149,6 +163,7 @@ export function createCatastroClient(options: CatastroClientOptions = {}) {
     obtenerNumerero,
     obtenerDireccionesPorCodigoVia,
     obtenerDireccionesPorCodigoPostal,
+    consultarCoordenadasPorReferencia,
     getStats: http.getStats,
   };
 }

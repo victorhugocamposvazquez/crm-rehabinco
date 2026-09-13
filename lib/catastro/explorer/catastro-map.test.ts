@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { CATASTRO_WMS } from "../constants";
 import {
-  CATASTRO_CARTOGRAFIA_CROQUIS,
   CATASTRO_CARTOGRAFIA_MAPA,
-  crearUrlCroquisCatastral,
   crearUrlMapaCatastral,
+  crearUrlWmsCatastral,
 } from "./catastro-map";
 
 describe("URLs de mapa catastral", () => {
@@ -18,17 +18,23 @@ describe("URLs de mapa catastral", () => {
     assert.equal(url, `${CATASTRO_CARTOGRAFIA_MAPA}?refcat=0751301VK4705B`);
   });
 
-  it("el croquis apunta al mapaC oficial con la misma parcela", () => {
-    const url = crearUrlCroquisCatastral("0751301VK4705B");
-    assert.ok(url?.startsWith(`${CATASTRO_CARTOGRAFIA_CROQUIS}?`));
+  it("el WMS recorta alrededor del centroide oficial", () => {
+    const url = crearUrlWmsCatastral({
+      x: -3.70043812348364,
+      y: 40.4233944345358,
+      srs: "EPSG:4326",
+    });
+    assert.ok(url?.startsWith(`${CATASTRO_WMS}?`));
     const params = new URL(url!).searchParams;
-    assert.equal(params.get("refcat"), "0751301VK4705B");
-    assert.equal(params.get("from"), "OVCBusq");
+    assert.equal(params.get("REQUEST"), "GetMap");
+    assert.equal(params.get("LAYERS"), "CATASTRO");
+    assert.equal(params.get("SRS"), "EPSG:4326");
+    assert.match(params.get("BBOX") ?? "", /^-3\.70/);
   });
 
-  it("sin referencia oficial no inventa URL", () => {
+  it("sin referencia o sin coordenadas no inventa URL", () => {
     assert.equal(crearUrlMapaCatastral(""), null);
     assert.equal(crearUrlMapaCatastral("ABC"), null);
-    assert.equal(crearUrlCroquisCatastral("123"), null);
+    assert.equal(crearUrlWmsCatastral({ x: Number.NaN, y: 40, srs: "EPSG:4326" }), null);
   });
 });

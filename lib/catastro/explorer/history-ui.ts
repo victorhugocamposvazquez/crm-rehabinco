@@ -405,6 +405,31 @@ export async function fetchBusquedaPersistida(
   return (await respuesta.json()) as BusquedaRecuperadaUi;
 }
 
+export type MapaCatastralUi = {
+  imageUrl: string;
+  mapaUrl: string | null;
+};
+
+export async function fetchMapaCatastral(
+  fincaReference: string,
+  signal?: AbortSignal
+): Promise<MapaCatastralUi> {
+  const respuesta = await fetch(`/api/catastro/fincas/${encodeURIComponent(fincaReference)}/mapa`, {
+    signal,
+  });
+  const cuerpo = (await respuesta.json().catch(() => null)) as
+    | { ok: true; imageUrl: string; mapaUrl?: string | null }
+    | { ok: false; error?: string }
+    | null;
+  if (!respuesta.ok || !cuerpo || !("ok" in cuerpo) || !cuerpo.ok) {
+    throw errorHttp(
+      respuesta.status,
+      (cuerpo && "error" in cuerpo && cuerpo.error) || "No se ha podido cargar el mapa catastral."
+    );
+  }
+  return { imageUrl: cuerpo.imageUrl, mapaUrl: cuerpo.mapaUrl ?? null };
+}
+
 export async function fetchFincaPersistida(
   fincaReference: string,
   signal?: AbortSignal

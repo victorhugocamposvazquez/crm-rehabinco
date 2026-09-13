@@ -9,6 +9,13 @@
 export const CATASTRO_CALLEJERO_JSON =
   "https://ovc.catastro.meh.es/OVCServWeb/OVCWcfCallejero/COVCCallejero.svc/json";
 
+/** Coordenadas oficiales. Help: /OVCWcfCallejero/COVCCoordenadas.svc/json/help */
+export const CATASTRO_COORDENADAS_JSON =
+  "https://ovc.catastro.meh.es/OVCServWeb/OVCWcfCallejero/COVCCoordenadas.svc/json";
+
+/** WMS de cartografía catastral. https://www.catastro.hacienda.gob.es/es-ES/wms.html */
+export const CATASTRO_WMS = "https://ovc.catastro.meh.es/Cartografia/WMS/ServidorWMS.aspx";
+
 /** WFS INSPIRE de direcciones. Docs: webinspire/documentos/inspire-ad-WFS.pdf */
 export const CATASTRO_INSPIRE_AD_WFS = "https://ovc.catastro.meh.es/INSPIRE/wfsAD.aspx";
 
