@@ -204,6 +204,13 @@ export type EstadoZonaUi = {
   acumulado: AcumuladoZona | null;
 };
 
+export function idZonaActiva(
+  estado: Pick<EstadoZonaUi, "zoneSearchId" | "snapshot">,
+  reserva: string | null = null
+): string | null {
+  return estado.zoneSearchId ?? estado.snapshot?.zoneSearchId ?? reserva;
+}
+
 export const ESTADO_ZONA_INICIAL: EstadoZonaUi = {
   fase: "formulario",
   zoneSearchId: null,

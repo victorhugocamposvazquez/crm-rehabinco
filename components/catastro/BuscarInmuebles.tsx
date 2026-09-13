@@ -140,7 +140,6 @@ export function BuscarInmuebles() {
   const selectorMunicipiosRef = useRef<SelectorCatalogo<MunicipioUi> | null>(null);
   const selectorCallesRef = useRef<SelectorCatalogo<CalleUi> | null>(null);
   const claveActivaRef = useRef<string | null>(null);
-  const continuarHechoRef = useRef<string | null>(null);
   selectorMunicipiosRef.current ??= crearSelectorCatalogo<MunicipioUi>();
   selectorCallesRef.current ??= crearSelectorCatalogo<CalleUi>();
 
@@ -513,15 +512,14 @@ export function BuscarInmuebles() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const continuarId = searchParams.get("continuar")?.trim() ?? "";
   useEffect(() => {
-    const id = searchParams.get("continuar")?.trim();
-    if (!id || continuarHechoRef.current === id) return;
-    continuarHechoRef.current = id;
+    if (!continuarId) return;
     setModo("zona");
-    void zona.continuar(id);
-    // Solo al abrir con ?continuar=; no depende del resto del hook.
+    void zona.continuar(continuarId);
+    // Al cambiar el id de la URL (o recargar) se hidrata de nuevo, como al recargar.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [continuarId]);
 
   return (
     <div className={cn((seleccion.fincas.length > 0 || revision.fincas.length > 0) && "pb-32 md:pb-24")}>

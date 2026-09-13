@@ -13,6 +13,7 @@ import {
   fetchZonaPaso,
   fetchZonaPreparar,
   fetchZonaReanudar,
+  idZonaActiva,
   iniciarTramo,
   plegarBloque,
   ZONE_STEP_CLIENT_BUDGET_MS,
@@ -48,6 +49,9 @@ export function useBusquedaZona() {
   const zoneIdRef = useRef<string | null>(null);
   const criteriosRef = useRef<CriteriosZonaUi | null>(null);
   const reintento410 = useRef(false);
+  const opRef = useRef(0);
+  const estadoRef = useRef(estado);
+  estadoRef.current = estado;
 
   const ejecutando = estado.fase === "ejecutando";
 
@@ -61,7 +65,7 @@ export function useBusquedaZona() {
     return () => abortRef.current?.abort();
   }, []);
 
-  const bucle = async (zoneSearchId: string) => {
+  const bucle = async (zoneSearchId: string, op: number) => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -76,7 +80,8 @@ export function useBusquedaZona() {
           return fetchZonaPaso(zoneSearchId, signal, budgetMs);
         },
         onSnapshot: (snapshot) => {
-          if (controller.signal.aborted || zoneIdRef.current !== zoneSearchId) return;
+          if (opRef.current !== op || controller.signal.aborted) return;
+          zoneIdRef.current = snapshot.zoneSearchId;
           setEstado((prev) =>
             aplicarSnapshotZona(prev, snapshot, { ejecutando: debeContinuarPasos(snapshot) })
           );
@@ -85,18 +90,19 @@ export function useBusquedaZona() {
         signal: controller.signal,
       });
     } catch (error) {
-      if (esAbortError(error) || controller.signal.aborted) return;
+      if (opRef.current !== op || esAbortError(error) || controller.signal.aborted) return;
       const detalle = errorDe(error);
       const criterios = criteriosRef.current;
       if (detalle.status === 410 && criterios && !reintento410.current) {
         reintento410.current = true;
         await preparar(criterios, { conservarAcumulado: true });
         const nuevoId = zoneIdRef.current;
-        if (nuevoId && !controller.signal.aborted) {
-          await bucle(nuevoId);
+        if (nuevoId) {
+          await bucle(nuevoId, opRef.current);
           return;
         }
       }
+      if (opRef.current !== op) return;
       setEstado((prev) => aplicarErrorZona(prev, detalle));
     }
   };
@@ -105,7 +111,7 @@ export function useBusquedaZona() {
   const soltarZonaActual = () => {
     abortRef.current?.abort();
     const anterior = zoneIdRef.current;
-    if (anterior && (estado.fase === "ejecutando" || estado.fase === "preparada")) {
+    if (anterior && (estadoRef.current.fase === "ejecutando" || estadoRef.current.fase === "preparada")) {
       void fetchZonaCancelar(anterior).catch(() => undefined);
     }
   };
@@ -114,6 +120,7 @@ export function useBusquedaZona() {
     criterios: CriteriosZonaUi,
     opciones: { conservarAcumulado?: boolean } = {}
   ) => {
+    const op = ++opRef.current;
     soltarZonaActual();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -128,11 +135,11 @@ export function useBusquedaZona() {
     }));
     try {
       const snapshot = await fetchZonaPreparar(criterios, controller.signal);
-      if (controller.signal.aborted) return;
+      if (opRef.current !== op || controller.signal.aborted) return;
       zoneIdRef.current = snapshot.zoneSearchId;
       setEstado((prev) => aplicarSnapshotZona(prev, snapshot));
     } catch (error) {
-      if (esAbortError(error) || controller.signal.aborted) return;
+      if (opRef.current !== op || esAbortError(error) || controller.signal.aborted) return;
       setEstado((prev) => aplicarErrorZona({ ...prev, fase: "formulario" }, errorDe(error)));
     }
   };
@@ -146,49 +153,66 @@ export function useBusquedaZona() {
   };
 
   const comenzar = () => {
-    const id = zoneIdRef.current;
+    const id = idZonaActiva(estadoRef.current, zoneIdRef.current);
     if (!id) return;
-    void bucle(id);
+    zoneIdRef.current = id;
+    void bucle(id, ++opRef.current);
   };
 
   const cancelar = async () => {
-    const id = zoneIdRef.current;
+    const id = idZonaActiva(estadoRef.current, zoneIdRef.current);
     if (!id) return;
+    const op = ++opRef.current;
     abortRef.current?.abort();
     setCancelando(true);
     try {
       let snapshot = await fetchZonaCancelar(id);
-      // El paso en vuelo termina solo al acabar la página en curso; esperamos a que lo haga.
       for (let intento = 0; snapshot.status === "running" && intento < 20; intento += 1) {
+        if (opRef.current !== op) return;
         await esperar(1_000);
         snapshot = await fetchZonaEstado(id);
       }
-      if (zoneIdRef.current !== id) return;
+      if (opRef.current !== op) return;
+      zoneIdRef.current = snapshot.zoneSearchId;
       setEstado((prev) => aplicarSnapshotZona(prev, snapshot));
     } catch (error) {
-      if (zoneIdRef.current !== id) return;
+      if (opRef.current !== op) return;
       setEstado((prev) => aplicarErrorZona(prev, errorDe(error)));
     } finally {
-      if (zoneIdRef.current === id) setCancelando(false);
+      if (opRef.current === op) setCancelando(false);
     }
   };
 
   const reanudar = async (reintentarErrores = false) => {
-    const zoneSearchId = zoneIdRef.current;
-    if (!zoneSearchId) return;
+    const zoneSearchId = idZonaActiva(estadoRef.current, zoneIdRef.current);
+    if (!zoneSearchId) {
+      setEstado((prev) =>
+        aplicarErrorZona(prev, {
+          message: "No hay una zona pausada en esta pestaña. Ábrela de nuevo desde el historial.",
+        })
+      );
+      return;
+    }
+    const op = ++opRef.current;
+    zoneIdRef.current = zoneSearchId;
+    abortRef.current?.abort();
+    setCancelando(false);
     try {
       const snapshot = await fetchZonaReanudar(zoneSearchId, reintentarErrores);
-      if (zoneIdRef.current !== zoneSearchId) return;
+      if (opRef.current !== op) return;
+      zoneIdRef.current = snapshot.zoneSearchId;
       setEstado((prev) => aplicarSnapshotZona(prev, snapshot, { ejecutando: true }));
     } catch (error) {
-      if (zoneIdRef.current !== zoneSearchId) return;
+      if (opRef.current !== op) return;
       setEstado((prev) => aplicarErrorZona(prev, errorDe(error)));
       return;
     }
-    await bucle(zoneSearchId);
+    if (opRef.current !== op) return;
+    await bucle(zoneIdRef.current ?? zoneSearchId, op);
   };
 
   const nueva = () => {
+    opRef.current += 1;
     soltarZonaActual();
     zoneIdRef.current = null;
     setCancelando(false);
@@ -196,6 +220,9 @@ export function useBusquedaZona() {
   };
 
   const continuar = async (zoneSearchId: string) => {
+    if (!zoneSearchId) return;
+    if (zoneIdRef.current === zoneSearchId && estadoRef.current.fase === "ejecutando") return;
+    const op = ++opRef.current;
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -203,7 +230,8 @@ export function useBusquedaZona() {
     setCancelando(false);
     try {
       const snapshot = await fetchZonaEstado(zoneSearchId, controller.signal);
-      if (controller.signal.aborted) return;
+      if (opRef.current !== op || controller.signal.aborted) return;
+      zoneIdRef.current = snapshot.zoneSearchId;
       criteriosRef.current = {
         provincia: snapshot.criteria.provincia,
         municipio: snapshot.criteria.municipio,
@@ -212,15 +240,17 @@ export function useBusquedaZona() {
         streetOffset: snapshot.criteria.streetOffset,
       };
       setEstado((prev) => aplicarSnapshotZona(prev, snapshot));
-      if (snapshot.nextAction === "resume") {
-        await reanudar(false);
-        return;
-      }
-      if (snapshot.nextAction === "step") {
-        await bucle(zoneSearchId);
+      if (snapshot.nextAction === "resume" || snapshot.nextAction === "step") {
+        if (snapshot.nextAction === "resume") {
+          const reanudada = await fetchZonaReanudar(snapshot.zoneSearchId, false);
+          if (opRef.current !== op) return;
+          zoneIdRef.current = reanudada.zoneSearchId;
+          setEstado((prev) => aplicarSnapshotZona(prev, reanudada, { ejecutando: true }));
+        }
+        await bucle(zoneIdRef.current ?? snapshot.zoneSearchId, op);
       }
     } catch (error) {
-      if (esAbortError(error) || controller.signal.aborted) return;
+      if (opRef.current !== op || esAbortError(error) || controller.signal.aborted) return;
       setEstado((prev) => aplicarErrorZona(prev, errorDe(error)));
     }
   };

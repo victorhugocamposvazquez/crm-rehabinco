@@ -33,6 +33,7 @@ import {
   etiquetaCandidatas,
   ejecutarBucleZona,
   estadoAlCambiarModo,
+  idZonaActiva,
   iniciarTramo,
   listaErrores,
   modoDesdeTexto,
@@ -328,6 +329,8 @@ describe("Zona UI: cancelación y reanudación", () => {
     );
     assert.equal(reanudada.fase, "ejecutando");
     assert.equal(reanudada.zoneSearchId, "zona-1");
+    assert.equal(idZonaActiva(cancelada, null), "zona-1");
+    assert.equal(idZonaActiva(ESTADO_ZONA_INICIAL, "zona-1"), "zona-1");
     assert.equal(reanudada.procesadasAlInicio, 214, "el ritmo se mide desde la reanudación");
     let procesadas = 214;
     const final = await ejecutarBucleZona({
