@@ -17,7 +17,6 @@ import {
 import { EXPLORER_SEARCHES_PAGE_SIZE } from "@/lib/catastro/explorer";
 import { CLASES_LISTA_BUSQUEDAS } from "@/lib/catastro/vista-movil";
 import { AccionNuevaBusqueda } from "./AccionNuevaBusqueda";
-import { CatastroSubnav } from "./CatastroSubnav";
 import { TarjetaBusquedaReciente } from "./TarjetaBusquedaReciente";
 
 export function HistoricoBusquedas() {
@@ -49,7 +48,6 @@ export function HistoricoBusquedas() {
 
   return (
     <div>
-      <CatastroSubnav />
       <PageHeader
         breadcrumb={[
           { label: "Catastro", href: RUTA_EXPLORER },

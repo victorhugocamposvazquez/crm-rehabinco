@@ -92,7 +92,6 @@ import { cn } from "@/lib/utils";
 import { BuscarPorZona } from "./BuscarPorZona";
 import { BusquedasRecientes } from "./BusquedasRecientes";
 import { CatalogCombobox } from "./CatalogCombobox";
-import { CatastroSubnav } from "./CatastroSubnav";
 import { ListaFincasCatastro } from "./ListaFincasCatastro";
 import { VacioResultados } from "./VacioResultados";
 import { useBusquedaZona } from "./useBusquedaZona";
@@ -526,7 +525,6 @@ export function BuscarInmuebles() {
 
   return (
     <div className={cn((seleccion.fincas.length > 0 || revision.fincas.length > 0) && "pb-32 md:pb-24")}>
-      <CatastroSubnav />
       <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#5D6B67]">Catastro</p>
       <PageHeader
         title="Buscar fincas"
@@ -759,7 +757,7 @@ export function BuscarInmuebles() {
         </div>
       </form>
 
-      <section id="resultados" ref={resultadosRef} className="mt-8 scroll-mt-6" aria-live="polite">
+      <section id="resultados" ref={resultadosRef} className="mt-8 scroll-mt-[6.5rem]" aria-live="polite">
         {modo === "zona" || zona.estado.fase !== "formulario" ? (
           <BuscarPorZona
             estado={zona.estado}

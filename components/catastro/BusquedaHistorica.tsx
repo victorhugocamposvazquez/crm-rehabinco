@@ -42,7 +42,6 @@ import {
 } from "@/lib/catastro/explorer";
 import { EXPLORER_RESULTS_PAGE_SIZE } from "@/lib/catastro/explorer";
 import { descargarArchivoLocal, estaSeleccionada } from "@/lib/catastro/selection-export";
-import { CatastroSubnav } from "./CatastroSubnav";
 import { AccionNuevaBusqueda } from "./AccionNuevaBusqueda";
 import { ConfirmacionEliminarBusqueda } from "./ConfirmacionEliminarBusqueda";
 import { ListaFincasCatastro } from "./ListaFincasCatastro";
@@ -121,7 +120,6 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
   if (error) {
     return (
       <div>
-        <CatastroSubnav />
         <PageHeader
           breadcrumb={[
             { label: "Catastro", href: RUTA_EXPLORER },
@@ -143,7 +141,6 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
   if (!data) {
     return (
       <div>
-        <CatastroSubnav />
         <p className="mt-8 text-sm text-neutral-500" aria-live="polite">
           {TEXTO_CARGANDO_BUSQUEDA}
         </p>
@@ -158,7 +155,6 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
 
   return (
     <div className={cn((seleccion.fincas.length > 0 || revision.fincas.length > 0) && "pb-32 md:pb-24")}>
-      <CatastroSubnav />
       <PageHeader
         breadcrumb={[
           { label: "Catastro", href: RUTA_EXPLORER },

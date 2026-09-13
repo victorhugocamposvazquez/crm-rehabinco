@@ -30,6 +30,10 @@ import {
   prepararExportacionHistorica,
   revisionDesdePersistida,
   puedeReanudarHistorica,
+  destinoResultadosCatastro,
+  esRutaResultadosHistorica,
+  leerRutaResultados,
+  recordarRutaResultados,
   rutaBusquedaHistorica,
   rutaFincaPersistida,
   textosCoberturaHistorica,
@@ -100,6 +104,35 @@ describe("Catastro Explorer — experiencia persistente", () => {
     assert.equal(rutaFincaPersistida("2749704YJ0624N"), "/catastro/finca/2749704YJ0624N");
     assert.equal(rutaBusquedaHistorica("abc").includes("cursor"), false);
     assert.equal(RUTA_HISTORICO, "/catastro/searches");
+    assert.equal(esRutaResultadosHistorica("/catastro/searches/abc"), true);
+    assert.equal(esRutaResultadosHistorica("/catastro/searches"), false);
+    assert.deepEqual(destinoResultadosCatastro("/catastro", null), {
+      href: "#resultados",
+      scrollLocal: true,
+      activa: false,
+    });
+    assert.deepEqual(destinoResultadosCatastro("/catastro/searches/abc", null), {
+      href: "/catastro/searches/abc",
+      scrollLocal: false,
+      activa: true,
+    });
+    assert.deepEqual(destinoResultadosCatastro("/catastro/searches", "/catastro/searches/abc"), {
+      href: "/catastro/searches/abc",
+      scrollLocal: false,
+      activa: false,
+    });
+    const memoria = new Map<string, string>();
+    recordarRutaResultados("/catastro/searches", {
+      setItem: (clave, valor) => memoria.set(clave, valor),
+    });
+    assert.equal(memoria.size, 0);
+    recordarRutaResultados("/catastro/searches/abc", {
+      setItem: (clave, valor) => memoria.set(clave, valor),
+    });
+    assert.equal(
+      leerRutaResultados({ getItem: (clave) => memoria.get(clave) ?? null }),
+      "/catastro/searches/abc"
+    );
     assert.equal(TEXTO_VER_TODO, "Ver todo");
     assert.equal(TEXTO_REANUDAR_BUSQUEDA, "Reanudar");
     const reanudar = urlReanudarBusqueda("d406258d-f4ab-4445-9a19-61d635e68422", {

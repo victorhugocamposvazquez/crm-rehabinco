@@ -22,7 +22,6 @@ import {
 } from "@/lib/catastro/revision-comercial";
 import { AccionNuevaBusqueda } from "./AccionNuevaBusqueda";
 import { CatastroPropertyVinculo } from "./CatastroPropertyVinculo";
-import { CatastroSubnav } from "./CatastroSubnav";
 import { FincaResultadoCard } from "./FincaResultadoCard";
 import type { CatastroPropertyLink } from "@/lib/catastro/explorer";
 
@@ -59,7 +58,6 @@ export function FincaPersistida({ fincaReference }: { fincaReference: string }) 
   if (error) {
     return (
       <div>
-        <CatastroSubnav />
         <PageHeader
           breadcrumb={[
             { label: "Catastro", href: RUTA_EXPLORER },
@@ -81,7 +79,6 @@ export function FincaPersistida({ fincaReference }: { fincaReference: string }) 
   if (!data) {
     return (
       <div>
-        <CatastroSubnav />
         <p className="mt-8 text-sm text-neutral-500" aria-live="polite">
           {TEXTO_CARGANDO_FINCA}
         </p>
@@ -95,7 +92,6 @@ export function FincaPersistida({ fincaReference }: { fincaReference: string }) 
 
   return (
     <div>
-      <CatastroSubnav />
       <PageHeader
         breadcrumb={[
           { label: "Catastro", href: RUTA_EXPLORER },

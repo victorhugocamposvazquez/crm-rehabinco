@@ -41,6 +41,48 @@ export function rutaFincaPersistida(fincaReference: string): string {
   return `${RUTA_EXPLORER}/finca/${fincaReference}`;
 }
 
+const RUTA_RESULTADOS_HISTORICA = /^\/catastro\/searches\/([^/]+)$/;
+export const CLAVE_ULTIMA_RESULTADOS = "catastro:ultima-resultados";
+
+export function esRutaResultadosHistorica(pathname: string): boolean {
+  return RUTA_RESULTADOS_HISTORICA.test(pathname);
+}
+
+export function recordarRutaResultados(
+  pathname: string,
+  storage?: Pick<Storage, "setItem"> | null
+): void {
+  if (!esRutaResultadosHistorica(pathname)) return;
+  const destino = storage ?? (typeof sessionStorage === "undefined" ? null : sessionStorage);
+  destino?.setItem(CLAVE_ULTIMA_RESULTADOS, pathname);
+}
+
+export function leerRutaResultados(storage?: Pick<Storage, "getItem"> | null): string | null {
+  const origen = storage ?? (typeof sessionStorage === "undefined" ? null : sessionStorage);
+  const valor = origen?.getItem(CLAVE_ULTIMA_RESULTADOS)?.trim() ?? "";
+  return esRutaResultadosHistorica(valor) ? valor : null;
+}
+
+/**
+ * Resultados no puede ir a `/catastro#resultados`: recarga el formulario y relanza la búsqueda.
+ * En la página de buscar solo hace scroll. Fuera, abre el último rastreo visto.
+ */
+export function destinoResultadosCatastro(
+  pathname: string,
+  ultima: string | null = null
+): { href: string; scrollLocal: boolean; activa: boolean } {
+  if (esRutaResultadosHistorica(pathname)) {
+    return { href: pathname, scrollLocal: false, activa: true };
+  }
+  if (pathname === RUTA_EXPLORER) {
+    return { href: "#resultados", scrollLocal: true, activa: false };
+  }
+  if (ultima && esRutaResultadosHistorica(ultima)) {
+    return { href: ultima, scrollLocal: false, activa: false };
+  }
+  return { href: RUTA_HISTORICO, scrollLocal: false, activa: false };
+}
+
 export const TEXTO_REANUDAR_BUSQUEDA = "Reanudar";
 
 export function puedeReanudarHistorica(input: {
