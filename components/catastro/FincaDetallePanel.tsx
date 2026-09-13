@@ -130,14 +130,22 @@ export function FincaDetallePanel({
       ) : null}
 
       {visibles.length > 1 ? (
-        <ul className="mt-2 divide-y divide-[#F2F0EB]">
-          {visibles.slice(0, 24).map((item) => (
-            <li key={item.reference} className="flex flex-wrap gap-2 py-2 text-[12.5px]">
-              <span className="w-[66px] shrink-0 font-mono text-[#5D6B67]">{item.reference.slice(-6)}</span>
-              <span>{item.planta ? `Planta ${item.planta}` : "—"}</span>
-              <span>{item.puerta ?? ""}</span>
-              <span className="tabular-nums">{item.superficie != null ? `${item.superficie} m²` : ""}</span>
-              <span className="text-[#5D6B67]">{item.uso ?? ""}</span>
+        <ul className="mt-2 space-y-3">
+          {agruparPorPlanta(visibles).map((grupo) => (
+            <li key={grupo.planta}>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-[#6B7A76]">
+                {grupo.planta === "—" ? "Sin planta" : `Planta ${grupo.planta}`}
+              </p>
+              <ul className="mt-1 divide-y divide-[#F2F0EB]">
+                {grupo.items.map((item) => (
+                  <li key={item.reference} className="flex flex-wrap items-center gap-2 py-2 text-[12.5px]">
+                    <span className="w-[66px] shrink-0 font-mono text-[#5D6B67]">{item.reference.slice(-6)}</span>
+                    <span>{item.puerta || "—"}</span>
+                    <span className="tabular-nums">{item.superficie != null ? `${item.superficie} m²` : ""}</span>
+                    <span className="text-[#5D6B67]">{item.uso ?? ""}</span>
+                  </li>
+                ))}
+              </ul>
             </li>
           ))}
         </ul>
@@ -231,7 +239,7 @@ function HojaFinca({
   if (typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[80] flex flex-col justify-end">
+    <div className="fixed inset-0 z-[80] flex items-end justify-center min-[780px]:items-center min-[780px]:p-6">
       <button
         type="button"
         className="absolute inset-0 bg-black/40"
@@ -242,14 +250,14 @@ function HojaFinca({
         role="dialog"
         aria-modal="true"
         aria-labelledby="ficha-finca-titulo"
-        className="relative z-10 flex max-h-[92dvh] flex-col rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_40px_rgba(19,28,26,.18)]"
+        className="relative z-10 flex max-h-[92dvh] w-full flex-col rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_40px_rgba(19,28,26,.18)] min-[780px]:max-h-[86dvh] min-[780px]:max-w-2xl min-[780px]:rounded-2xl min-[780px]:shadow-[0_16px_48px_rgba(19,28,26,.22)]"
         onTouchStart={(evento) => {
           toqueInicio.current = evento.changedTouches[0]?.clientY ?? null;
         }}
         onTouchEnd={(evento) => cerrarSiBaja(evento.changedTouches[0]?.clientY ?? 0)}
       >
         <header className="border-b border-[#EFEDE7] px-3.5 pb-3 pt-2">
-          <div className="flex justify-center pb-2">
+          <div className="flex justify-center pb-2 min-[780px]:hidden">
             <span className="h-1 w-12 rounded-full bg-[#DAD6CE]" aria-hidden />
           </div>
           <div className="flex items-center gap-2.5">
@@ -281,7 +289,7 @@ function HojaFinca({
         </div>
         {accion ? (
           <div className="border-t border-[#EFEDE7] bg-white px-3.5 py-2.5 shadow-[0_-6px_18px_rgba(19,28,26,.06)]">
-            <div className="[&_button]:h-[50px] [&_button]:w-full [&_button]:text-[14.5px] [&_a]:flex [&_a]:h-[50px] [&_a]:w-full [&_a]:items-center [&_a]:justify-center [&_a]:text-[14.5px]">
+            <div className="[&_button]:h-[50px] [&_button]:w-full [&_button]:text-[14.5px] [&_a]:flex [&_a]:h-[50px] [&_a]:w-full [&_a]:items-center [&_a]:justify-center [&_a]:text-[14.5px] min-[780px]:[&_a]:h-10 min-[780px]:[&_a]:w-auto min-[780px]:[&_button]:h-10 min-[780px]:[&_button]:w-auto">
               {accion}
             </div>
           </div>
@@ -308,4 +316,17 @@ function normalizarUso(uso: string | undefined): string {
 
 function usosDeInmuebles(inmuebles: NonNullable<FincaBusquedaUi["properties"]>): string[] {
   return [...new Set(inmuebles.map((item) => normalizarUso(item.uso)))].sort((a, b) => a.localeCompare(b, "es"));
+}
+
+function agruparPorPlanta(inmuebles: NonNullable<FincaBusquedaUi["properties"]>) {
+  const grupos = new Map<string, NonNullable<FincaBusquedaUi["properties"]>>();
+  for (const item of inmuebles) {
+    const planta = item.planta?.trim() || "—";
+    const lista = grupos.get(planta) ?? [];
+    lista.push(item);
+    grupos.set(planta, lista);
+  }
+  return [...grupos.entries()]
+    .sort(([a], [b]) => a.localeCompare(b, "es", { numeric: true }))
+    .map(([planta, items]) => ({ planta, items }));
 }
