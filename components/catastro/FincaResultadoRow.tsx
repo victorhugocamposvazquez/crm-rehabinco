@@ -1,13 +1,13 @@
 "use client";
 
-import { Copy } from "lucide-react";
+import { Copy, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   clasePuntoDivision,
   claseTextoDivision,
   etiquetaEstadoDivisionLista,
   metricasFincaLista,
-  resumenComercialFinca,
+  resumenTarjetaMovil,
   tituloDireccionFinca,
   type FincaBusquedaUi,
 } from "@/lib/catastro/search-ui";
@@ -44,6 +44,20 @@ export function FincaResultadoRow({
     else toast.error("No se ha podido copiar.");
   };
 
+  const irPropiedad = (evento: React.MouseEvent) => {
+    evento.stopPropagation();
+    onProperty?.();
+  };
+
+  const irOportunidad = (evento: React.MouseEvent) => {
+    evento.stopPropagation();
+    if (vinculada && onProperty) {
+      onProperty();
+      return;
+    }
+    toast.message("La visita se crea desde la propiedad, no desde Catastro.");
+  };
+
   return (
     <div
       role="button"
@@ -62,36 +76,34 @@ export function FincaResultadoRow({
         selected && "min-[780px]:bg-[#F4F8F6] min-[780px]:shadow-[inset_3px_0_0_#0B7461]"
       )}
     >
-      <div className="flex min-w-0 flex-[1_1_250px] items-start gap-2.5 px-3.5 py-3 min-[780px]:p-0">
-        {onToggle ? (
-          <label
-            className="flex h-11 w-11 shrink-0 items-center justify-center min-[780px]:mt-0 min-[780px]:h-auto min-[780px]:w-auto"
-            onClick={(evento) => evento.stopPropagation()}
-          >
-            <input
-              type="checkbox"
-              checked={checked}
-              aria-label={`Seleccionar ${titulo}`}
-              className="h-[17px] w-[17px] cursor-pointer rounded-[5px] border-[#CFCBC2] accent-[#0B7461]"
-              onChange={() => onToggle()}
-            />
-          </label>
-        ) : null}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start gap-2.5">
-            <div className="min-w-0 flex-1">
-              <p className="text-[15px] font-semibold tracking-tight text-pretty min-[780px]:text-[14.5px]">
-                {titulo}
-              </p>
-              <p className="mt-1 font-mono text-[11.5px] text-[#5D6B67]">{finca.fincaReference}</p>
-            </div>
-            <span className={cn("mt-0.5 flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs font-medium min-[780px]:hidden", claseTextoDivision(status))}>
-              <span className={cn("h-1.5 w-1.5 flex-none rounded-full", clasePuntoDivision(status))} aria-hidden />
-              {etiquetaEstadoDivisionLista(status)}
-            </span>
+      <div className="min-w-0 flex-[1_1_250px] px-3.5 pb-[11px] pt-[13px] min-[780px]:p-0">
+        <div className="flex items-start gap-2.5">
+          {onToggle ? (
+            <label
+              className="mt-0.5 hidden h-[17px] w-[17px] shrink-0 min-[780px]:block"
+              onClick={(evento) => evento.stopPropagation()}
+            >
+              <input
+                type="checkbox"
+                checked={checked}
+                aria-label={`Seleccionar ${titulo}`}
+                className="h-[17px] w-[17px] cursor-pointer rounded-[5px] border-[#CFCBC2] accent-[#0B7461]"
+                onChange={() => onToggle()}
+              />
+            </label>
+          ) : null}
+          <div className="min-w-0 flex-1">
+            <p className="text-[15px] font-semibold tracking-[-0.01em] text-pretty min-[780px]:text-[14.5px]">
+              {titulo}
+            </p>
+            <p className="mt-1 font-mono text-[11.5px] text-[#5D6B67]">{finca.fincaReference}</p>
           </div>
-          <p className="mt-2 text-[12.5px] text-[#5D6B67] min-[780px]:hidden">{resumenComercialFinca(finca)}</p>
+          <span className={cn("mt-0.5 flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs font-medium min-[780px]:hidden", claseTextoDivision(status))}>
+            <span className={cn("h-[7px] w-[7px] flex-none rounded-full", clasePuntoDivision(status))} aria-hidden />
+            {etiquetaEstadoDivisionLista(status)}
+          </span>
         </div>
+        <p className="mt-2.5 text-[12.5px] text-[#5D6B67] min-[780px]:hidden">{resumenTarjetaMovil(finca)}</p>
       </div>
 
       <div className="hidden flex-none flex-wrap gap-1 min-[780px]:flex">
@@ -112,10 +124,7 @@ export function FincaResultadoRow({
         {onProperty ? (
           <button
             type="button"
-            onClick={(evento) => {
-              evento.stopPropagation();
-              onProperty();
-            }}
+            onClick={irPropiedad}
             className={cn(
               "h-[29px] rounded-lg border border-[#DAD6CE] bg-white px-2.5 text-xs font-semibold",
               vinculada ? "text-[#2B4A8A]" : "text-[#0B7461]"
@@ -138,22 +147,30 @@ export function FincaResultadoRow({
         {onProperty ? (
           <button
             type="button"
-            onClick={(evento) => {
-              evento.stopPropagation();
-              onProperty();
-            }}
+            onClick={irPropiedad}
             className={cn(
-              "flex min-h-[46px] flex-[1.3] items-center justify-center bg-white text-[12.5px] font-semibold",
+              "flex min-h-[46px] flex-[1.3] items-center justify-center gap-1.5 bg-white text-[12.5px] font-semibold",
               vinculada ? "text-[#2B4A8A]" : "text-[#0B7461]"
             )}
           >
+            {vinculada ? null : <Plus className="h-3.5 w-3.5" strokeWidth={2.6} aria-hidden />}
             {vinculada ? "Ver propiedad" : "Crear propiedad"}
           </button>
         ) : null}
         <button
           type="button"
-          onClick={onSelect}
-          className="min-h-[46px] flex-none bg-white px-4 text-[12.5px] font-semibold text-[#5D6B67]"
+          onClick={irOportunidad}
+          className="flex min-h-[46px] flex-1 items-center justify-center bg-white text-[12.5px] font-semibold text-[#5D6B67]"
+        >
+          Oportunidad
+        </button>
+        <button
+          type="button"
+          onClick={(evento) => {
+            evento.stopPropagation();
+            onSelect?.();
+          }}
+          className="min-h-[46px] w-[62px] shrink-0 bg-white text-[12.5px] font-semibold text-[#5D6B67]"
         >
           Ficha
         </button>

@@ -354,6 +354,10 @@ export function codigosPostalesVisibles(finca: FincaBusquedaUi): string[] {
   return finca.postalCode ? [finca.postalCode] : [];
 }
 
+function metrosEs(valor: number): string {
+  return Math.round(valor).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
 export function metricasFincaLista(finca: FincaBusquedaUi): {
   parcela: string;
   inmuebles: string;
@@ -362,12 +366,27 @@ export function metricasFincaLista(finca: FincaBusquedaUi): {
 } {
   const usos = [...new Set((finca.properties ?? []).map((item) => item.uso?.trim()).filter(Boolean))];
   const anios = [...new Set((finca.properties ?? []).map((item) => item.anio).filter((item): item is number => item != null))];
+  const sinUso = usos.length === 0;
   return {
-    parcela: finca.superficieSolar != null ? `${finca.superficieSolar.toLocaleString("es-ES")} m²` : "—",
+    parcela: finca.superficieSolar != null ? `${metrosEs(finca.superficieSolar)} m²` : "—",
     inmuebles: String(finca.properties?.length ?? 0),
     anio: anios.length === 1 ? String(anios[0]) : anios.length > 1 ? "Varios" : "—",
-    uso: usos.length === 1 ? usos[0] ?? "—" : usos.length > 1 ? "Varios" : "—",
+    uso:
+      usos.length === 1
+        ? usos[0] ?? "—"
+        : usos.length > 1
+          ? "Varios"
+          : finca.horizontalDivision?.status === "NOT_APPLICABLE" && sinUso
+            ? "Suelo"
+            : "—",
   };
+}
+
+/** Línea de la tarjeta móvil: «3.617 m² de parcela · 0 inmuebles · — · Suelo». */
+export function resumenTarjetaMovil(finca: FincaBusquedaUi): string {
+  const metricas = metricasFincaLista(finca);
+  const inmuebles = metricas.inmuebles === "1" ? "1 inmueble" : `${metricas.inmuebles} inmuebles`;
+  return `${metricas.parcela} de parcela · ${inmuebles} · ${metricas.anio} · ${metricas.uso}`;
 }
 
 export function recuentoEstadosDivision(fincas: FincaBusquedaUi[]): Record<string, number> {

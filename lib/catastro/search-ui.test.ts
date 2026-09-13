@@ -20,6 +20,7 @@ import {
   filtrarListaFincas,
   metricasFincaLista,
   recuentoEstadosDivision,
+  resumenTarjetaMovil,
   resumenComercialFinca,
 } from "./search-ui";
 
@@ -249,5 +250,17 @@ describe("search-ui", () => {
     assert.equal(filtrarListaFincas([candidata, conPisos], { q: "mayor" })[0]?.fincaReference, "11111111111111");
     assert.equal(metricasFincaLista(candidata).parcela, "420 m²");
     assert.equal(metricasFincaLista(candidata).anio, "1964");
+    assert.equal(resumenTarjetaMovil(candidata), "420 m² de parcela · 1 inmueble · 1964 · Residencial");
+    assert.equal(
+      resumenTarjetaMovil({
+        fincaReference: "33333333333333",
+        portals: ["10"],
+        address: { sigla: "LG", via: "AGRA MONTES", numero: "10" },
+        superficieSolar: 3617,
+        horizontalDivision: { status: "NOT_APPLICABLE" },
+        properties: [],
+      }),
+      "3.617 m² de parcela · 0 inmuebles · — · Suelo"
+    );
   });
 });
