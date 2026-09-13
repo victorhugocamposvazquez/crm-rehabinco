@@ -149,6 +149,15 @@ export class ZoneBusyError extends Error {
   }
 }
 
+/** Candado solo en memoria: un `running` archivado no bloquea el reanudar. */
+const pasosEnCurso = new WeakSet<ZoneSession>();
+
+function soltarCallesColgadas(session: ZoneSession): void {
+  for (const calle of session.calles) {
+    if (calle.status === "running") calle.status = "pending";
+  }
+}
+
 function normalizarTexto(valor: string): string {
   return valor.trim().replace(/\s+/g, " ").toUpperCase();
 }
@@ -371,6 +380,7 @@ async function procesarCalle(
   estado.status = "running";
   estado.attempts += 1;
 
+  try {
   while (true) {
     const respuesta = await contexto.buscar(
       {
@@ -433,6 +443,12 @@ async function procesarCalle(
     estado.cursor = null;
     return;
   }
+  } catch (error) {
+    estado.status = "error";
+    estado.error = error instanceof Error ? error.message : "Error inesperado al consultar la calle.";
+    estado.cursor = null;
+    if (cuentaParaProteccion(estado.error)) session.consecutiveFailures += 1;
+  }
 }
 
 function recalcularEstado(session: ZoneSession): void {
@@ -461,7 +477,11 @@ export async function ejecutarPasoZona(
   opciones: OpcionesPasoZona = {},
   deps: ZoneDeps = {}
 ): Promise<ZoneSnapshot> {
-  if (session.status === "running") throw new ZoneBusyError();
+  if (pasosEnCurso.has(session)) throw new ZoneBusyError();
+  if (session.status === "running" && !pasosEnCurso.has(session)) {
+    session.status = "paused";
+    soltarCallesColgadas(session);
+  }
   const now = deps.now ?? Date.now;
   const zoneStore = deps.zoneStore ?? getZoneStore();
 
@@ -484,6 +504,7 @@ export async function ejecutarPasoZona(
     session.cancelRequested ||
     session.consecutiveFailures >= ZONE_MAX_CONSECUTIVE_FAILURES;
 
+  pasosEnCurso.add(session);
   session.status = "running";
   if (budgetMs > 0) session.steps += 1;
 
@@ -508,9 +529,8 @@ export async function ejecutarPasoZona(
       Array.from({ length: Math.min(concurrency, Math.max(pendientes, 1)) }, () => worker())
     );
   } finally {
-    for (const calle of session.calles) {
-      if (calle.status === "running") calle.status = "pending";
-    }
+    pasosEnCurso.delete(session);
+    soltarCallesColgadas(session);
     session.workMs += now() - inicio;
     recalcularEstado(session);
     zoneStore.touch(session);
@@ -534,7 +554,11 @@ export function reanudarZona(
   opciones: { reintentarErrores?: boolean } = {},
   deps: ZoneDeps = {}
 ): ZoneSnapshot {
-  if (session.status === "running") throw new ZoneBusyError();
+  if (pasosEnCurso.has(session)) throw new ZoneBusyError();
+  if (session.status === "running") {
+    session.status = "paused";
+    soltarCallesColgadas(session);
+  }
   session.cancelRequested = false;
   session.consecutiveFailures = 0;
   if (opciones.reintentarErrores) {

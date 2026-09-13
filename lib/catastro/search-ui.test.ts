@@ -5,6 +5,8 @@ import {
   criteriosDesdeSearchParams,
   criteriosListos,
   FILTROS_DIVISION,
+  LEYENDA_ESTADOS_DIVISION,
+  LEYENDA_FILTRO_TODAS,
   etiquetaEstadoDivision,
   mensajeErrorBusqueda,
   textoMotivoUnknownUi,
@@ -61,6 +63,34 @@ describe("search-ui", () => {
     assert.equal(textoMotivoUnknownUi({ status: "NO" }), null);
     assert.notEqual(textoMotivoUnknownUi({ status: "UNKNOWN", reasonCode: "MIXED_URBAN_RURAL" }), "SIN DIVISIÓN HORIZONTAL");
     assert.notEqual(etiquetaEstadoDivision("UNKNOWN"), "SIN DIVISIÓN HORIZONTAL");
+  });
+
+  it("explica los cuatro estados de división horizontal y no trata ALL como estado", () => {
+    assert.deepEqual(
+      LEYENDA_ESTADOS_DIVISION.map((item) => item.status),
+      ["NO", "YES", "NOT_APPLICABLE", "UNKNOWN"]
+    );
+    assert.equal(
+      LEYENDA_ESTADOS_DIVISION.find((item) => item.status === "NO")?.etiqueta,
+      etiquetaEstadoDivisionLista("NO")
+    );
+    assert.equal(
+      LEYENDA_ESTADOS_DIVISION.find((item) => item.status === "YES")?.etiqueta,
+      etiquetaEstadoDivisionLista("YES")
+    );
+    assert.match(LEYENDA_ESTADOS_DIVISION[0]?.texto ?? "", /no está partido en pisos/);
+    assert.match(LEYENDA_ESTADOS_DIVISION[1]?.texto ?? "", /ya hay división horizontal/);
+    assert.match(LEYENDA_ESTADOS_DIVISION[2]?.texto ?? "", /Suelo sin edificar/);
+    assert.match(LEYENDA_ESTADOS_DIVISION[3]?.texto ?? "", /No se trata como candidata/);
+    assert.equal(
+      LEYENDA_ESTADOS_DIVISION[3]?.texto.includes("SIN DIVISIÓN HORIZONTAL"),
+      false
+    );
+    assert.match(LEYENDA_FILTRO_TODAS, /Todas las fincas/);
+    assert.equal(
+      LEYENDA_ESTADOS_DIVISION.some((item) => item.status === "ALL"),
+      false
+    );
   });
 
   it("15. el filtro UI incluye NOT_APPLICABLE y no lo etiqueta como candidato", () => {

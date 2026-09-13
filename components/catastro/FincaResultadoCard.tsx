@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
+  claseBadgeDivision,
   codigosPostalesVisibles,
   etiquetaEstadoDivisionLista,
   resumenComercialFinca,
@@ -40,19 +41,6 @@ function Dato({ label, value }: { label: string; value?: string | number | null 
       <dd className="mt-0.5 text-sm text-foreground">{value}</dd>
     </div>
   );
-}
-
-function badgeDivision(status: string | undefined) {
-  if (status === "NO") {
-    return "border-teal-300 bg-teal-100 text-teal-900";
-  }
-  if (status === "YES") {
-    return "border-amber-200 bg-amber-50 text-amber-900";
-  }
-  if (status === "NOT_APPLICABLE") {
-    return "border-neutral-200 bg-neutral-50 text-neutral-600";
-  }
-  return "border-stone-200 bg-stone-100 text-stone-600";
 }
 
 type Props = {
@@ -159,7 +147,7 @@ export function FincaResultadoCard({
           <span
             className={cn(
               "inline-flex w-fit rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-wide",
-              badgeDivision(status)
+              claseBadgeDivision(status)
             )}
           >
             {etiquetaEstadoDivisionLista(status)}

@@ -933,6 +933,52 @@ describe("Zona: adaptador HTTP", () => {
     assert.equal(reanudada.status, 200);
     assert.equal(((await reanudada.json()) as { status: string }).status, "prepared");
   });
+
+  it("resume y step desatascan un running archivado; un throw de calle no devuelve 502", async () => {
+    const mundo = mundoFalso(CALLES_BASE);
+    const zoneStore = createZoneStore();
+    const filas = new Map<string, unknown>();
+    const archive: ZoneSessionArchive = {
+      async get(id, userId) {
+        const session = hidratarSesionZona(filas.get(id));
+        return session && session.userId === userId ? session : null;
+      },
+      async findByKey() {
+        return null;
+      },
+      async put(session) {
+        filas.set(session.id, serializarSesionZona(session));
+      },
+      async countActive() {
+        return 0;
+      },
+    };
+    const deps = { ...depsFalsas(mundo, CALLES_BASE.map((item) => item.calle), { zoneStore }), archive };
+    const preparada = await responderZonaPreparar(peticion("prepare", CRITERIOS), USUARIO, deps);
+    const { zoneSearchId } = (await preparada.json()) as { zoneSearchId: string };
+    const session = zoneStore.get(zoneSearchId);
+    assert.ok(session);
+    session.status = "running";
+    session.calles[0].status = "running";
+    await archive.put(session);
+    zoneStore.delete(zoneSearchId);
+
+    const reanudada = await responderZonaReanudar(peticion("resume", { zoneSearchId }), USUARIO, deps);
+    assert.equal(reanudada.status, 200);
+    assert.equal(((await reanudada.json()) as { status: string }).status, "prepared");
+
+    const depsThrow = {
+      ...deps,
+      buscar: (async () => {
+        throw new Error("boom inesperado");
+      }) as ZoneDeps["buscar"],
+    };
+    const paso = await responderZonaPaso(peticion("step", { zoneSearchId, budgetMs: 1000 }), USUARIO, depsThrow);
+    assert.equal(paso.status, 200);
+    const cuerpo = (await paso.json()) as { status: string; progress: { streetsWithErrors: number } };
+    assert.notEqual(cuerpo.status, "running");
+    assert.ok(cuerpo.progress.streetsWithErrors >= 1);
+  });
 });
 
 describe("Zona: prefiltro CP (pipeline real)", () => {

@@ -224,7 +224,14 @@ export async function responderZonaPaso(
   } catch (err) {
     if (err instanceof ZoneBusyError) return error(409, err.message);
     console.error("[catastro:zone]", err instanceof Error ? err.message : err);
-    return error(502, "No se ha podido continuar la búsqueda por zona. Inténtalo de nuevo.");
+    try {
+      await guardarArchivo(sesion.session, deps);
+      const snapshot = snapshotZona(sesion.session);
+      await persistirZona(user.id, sesion.session, snapshot, deps);
+      return json(cuerpoZona(snapshot));
+    } catch {
+      return error(502, "No se ha podido continuar la búsqueda por zona. Inténtalo de nuevo.");
+    }
   }
 }
 

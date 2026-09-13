@@ -25,10 +25,25 @@ const ESTADOS: ReadonlySet<ZoneStatus> = new Set([
   "done",
 ]);
 
+function fincaArchivada(finca: FincaDescubierta): FincaDescubierta {
+  return {
+    ...finca,
+    properties: finca.properties.map((propiedad) => ({ ...propiedad, unidades: [] })),
+  };
+}
+
+function calleArchivada(calle: ZoneSession["calles"][number]): ZoneSession["calles"][number] {
+  if (calle.status !== "running") return calle;
+  return { ...calle, status: "pending" };
+}
+
+/** `running` es efímero del isolate: en disco siempre queda pausada. */
 export function serializarSesionZona(session: ZoneSession): ZoneSessionPayload {
   return {
     ...session,
-    fincas: [...session.fincas.entries()],
+    status: session.status === "running" ? "paused" : session.status,
+    calles: session.calles.map(calleArchivada),
+    fincas: [...session.fincas.entries()].map(([clave, finca]) => [clave, fincaArchivada(finca)]),
   };
 }
 
@@ -45,6 +60,7 @@ export function hidratarSesionZona(raw: unknown): ZoneSession | null {
       fincas.set(entrada[0], entrada[1] as FincaDescubierta);
     }
   }
+  const calles = payload.calles.map(calleArchivada);
   return {
     id: payload.id,
     userId: payload.userId,
@@ -52,11 +68,11 @@ export function hidratarSesionZona(raw: unknown): ZoneSession | null {
     criterios: payload.criterios,
     provinciaOficial: payload.provinciaOficial ?? "",
     municipioOficial: payload.municipioOficial ?? "",
-    calles: payload.calles,
+    calles,
     streetsTotal: Number(payload.streetsTotal) || payload.calles.length,
     streetOffset: Number(payload.streetOffset) || 0,
     fincas,
-    status: payload.status,
+    status: payload.status === "running" ? "paused" : payload.status,
     cancelRequested: Boolean(payload.cancelRequested),
     consecutiveFailures: Number(payload.consecutiveFailures) || 0,
     steps: Number(payload.steps) || 0,

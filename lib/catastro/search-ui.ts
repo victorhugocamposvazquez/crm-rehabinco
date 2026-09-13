@@ -17,6 +17,53 @@ export const FILTROS_DIVISION = [
 export const AYUDA_FILTRO_DIVISION =
   "Por defecto solo ves parcelas o edificios que Catastro no tiene partidos en pisos. Es lo habitual para reforma. Si la lista sale vacía, elige «Todas las fincas».";
 
+/**
+ * Leyenda de los 4 estados de división horizontal.
+ * «Todas las fincas» no entra: es un filtro, no una clasificación.
+ */
+export const LEYENDA_ESTADOS_DIVISION = [
+  {
+    status: "NO",
+    etiqueta: "Candidata",
+    filtro: "Candidatas (sin DH)",
+    texto:
+      "Catastro indica que el edificio no está partido en pisos. Es la finca típica para reforma integral.",
+  },
+  {
+    status: "YES",
+    etiqueta: "Con pisos",
+    filtro: "Con división horizontal",
+    texto:
+      "Catastro indica que ya hay división horizontal (pisos o locales). No es candidata de reforma de finca entera.",
+  },
+  {
+    status: "NOT_APPLICABLE",
+    etiqueta: "No aplica",
+    filtro: "No aplicable",
+    texto:
+      "Suelo sin edificar u obras de urbanización. La división horizontal no aplica.",
+  },
+  {
+    status: "UNKNOWN",
+    etiqueta: "Sin clasificar",
+    filtro: "Sin clasificar",
+    texto:
+      "Catastro no aclara si está dividida. No se trata como candidata. Puede ser una parcela urbano-rústica, faltar el dato o haber fallado la consulta.",
+  },
+] as const;
+
+export const TITULO_LEYENDA_DIVISION = "Qué significa cada estado";
+
+export const LEYENDA_FILTRO_TODAS =
+  "Solo hay estos cuatro. «Todas las fincas» las muestra a la vez; no es un estado.";
+
+export function claseBadgeDivision(status: string | undefined): string {
+  if (status === "NO") return "border-teal-300 bg-teal-100 text-teal-900";
+  if (status === "YES") return "border-amber-200 bg-amber-50 text-amber-900";
+  if (status === "NOT_APPLICABLE") return "border-neutral-200 bg-neutral-50 text-neutral-600";
+  return "border-stone-200 bg-stone-100 text-stone-600";
+}
+
 export type FiltroDivisionUi = (typeof FILTROS_DIVISION)[number]["value"];
 
 export type CriteriosBusquedaUi = {

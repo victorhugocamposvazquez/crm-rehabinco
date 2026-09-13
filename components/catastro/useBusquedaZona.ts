@@ -174,18 +174,18 @@ export function useBusquedaZona() {
   };
 
   const reanudar = async (reintentarErrores = false) => {
-    const id = zoneIdRef.current;
-    if (!id) return;
+    const zoneSearchId = zoneIdRef.current;
+    if (!zoneSearchId) return;
     try {
-      const snapshot = await fetchZonaReanudar(id, reintentarErrores);
-      if (zoneIdRef.current !== id) return;
+      const snapshot = await fetchZonaReanudar(zoneSearchId, reintentarErrores);
+      if (zoneIdRef.current !== zoneSearchId) return;
       setEstado((prev) => aplicarSnapshotZona(prev, snapshot, { ejecutando: true }));
     } catch (error) {
-      if (zoneIdRef.current !== id) return;
+      if (zoneIdRef.current !== zoneSearchId) return;
       setEstado((prev) => aplicarErrorZona(prev, errorDe(error)));
       return;
     }
-    await bucle(id);
+    await bucle(zoneSearchId);
   };
 
   const nueva = () => {

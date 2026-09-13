@@ -94,6 +94,7 @@ import { BusquedasRecientes } from "./BusquedasRecientes";
 import { CatalogCombobox } from "./CatalogCombobox";
 import { CatastroSubnav } from "./CatastroSubnav";
 import { FincaResultadoCard } from "./FincaResultadoCard";
+import { LeyendaEstadosDivision } from "./LeyendaEstadosDivision";
 import { VacioResultados } from "./VacioResultados";
 import { useBusquedaZona } from "./useBusquedaZona";
 import { useSeleccionFincas } from "./useSeleccionFincas";
@@ -717,6 +718,8 @@ export function BuscarInmuebles() {
             <p className="text-xs text-neutral-500">{AYUDA_FILTRO_DIVISION}</p>
           </div>
         </div>
+
+        <LeyendaEstadosDivision />
 
         {errorCatalogo ? (
           <p className="mt-4 text-sm text-red-700">{errorCatalogo}</p>
