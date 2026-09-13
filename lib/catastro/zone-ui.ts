@@ -562,6 +562,9 @@ export function textoEstadoFinal(estado: EstadoZonaUi): string | null {
   }
 }
 
+export const AYUDA_ERRORES_CALLE =
+  "No son calles inválidas: Catastro cortó o caducó la consulta. Al reanudar se vuelven a intentar.";
+
 export function listaErrores(
   errores: ZoneSnapshotUi["errors"],
   maximo = 5

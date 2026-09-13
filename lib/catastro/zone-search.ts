@@ -361,6 +361,20 @@ export function cuentaParaProteccion(mensaje: string): boolean {
   return !/HTTP 4\d\d/.test(mensaje);
 }
 
+/** Cortes de Catastro o sesión interna: se reintentan al reanudar. */
+export function esErrorTransitorioCalle(error: string | null | undefined): boolean {
+  if (!error) return false;
+  return (
+    /sesi[oó]n de discovery ha expirado/i.test(error) ||
+    /error externo de catastro o inspire/i.test(error)
+  );
+}
+
+function reintentarCalle(calle: EstadoCalleZona): void {
+  const limpia = estadoCalleInicial(calle.calle);
+  Object.assign(calle, { ...limpia, attempts: calle.attempts });
+}
+
 /**
  * Procesa una calle página a página hasta terminarla o agotar presupuesto/cancelación.
  * Un fallo individual deja la calle en `error` y no detiene la zona.
@@ -561,12 +575,10 @@ export function reanudarZona(
   }
   session.cancelRequested = false;
   session.consecutiveFailures = 0;
-  if (opciones.reintentarErrores) {
-    for (const calle of session.calles) {
-      if (calle.status === "error") {
-        const limpia = estadoCalleInicial(calle.calle);
-        Object.assign(calle, { ...limpia, attempts: calle.attempts });
-      }
+  for (const calle of session.calles) {
+    if (calle.status !== "error") continue;
+    if (opciones.reintentarErrores || esErrorTransitorioCalle(calle.error)) {
+      reintentarCalle(calle);
     }
   }
   const pendientes = session.calles.some((calle) => calle.status === "pending");

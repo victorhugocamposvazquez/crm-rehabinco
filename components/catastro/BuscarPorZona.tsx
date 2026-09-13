@@ -14,6 +14,7 @@ import {
   type RevisionFincas,
 } from "@/lib/catastro/revision-comercial";
 import {
+  AYUDA_ERRORES_CALLE,
   accionesDisponibles,
   erroresVisiblesZona,
   listaErrores,
@@ -240,6 +241,7 @@ export function BuscarPorZona({
               ))}
               {errores.resto > 0 ? <li>… y {errores.resto} más.</li> : null}
             </ul>
+            <p className="mt-2 text-xs text-amber-900/80">{AYUDA_ERRORES_CALLE}</p>
           </details>
         ) : null}
 

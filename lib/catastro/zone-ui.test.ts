@@ -12,6 +12,7 @@ import {
 import { ErrorBusquedaUi, type FincaBusquedaUi } from "./search-ui";
 import {
   ESTADO_ZONA_INICIAL,
+  AYUDA_ERRORES_CALLE,
   EXPLICACION_ZONA,
   accionesDisponibles,
   aplicarErrorZona,
@@ -351,6 +352,8 @@ describe("Zona UI: cancelación y reanudación", () => {
     assert.equal(estado.fase, "ejecutando");
     assert.equal(textosProgreso(enCurso).errores, "Calles con errores: 1");
     const muchos = Array.from({ length: 8 }, (_, i) => ({ street: `CL ${i}`, error: "Error" }));
+    assert.match(AYUDA_ERRORES_CALLE, /reanudar/);
+    assert.doesNotMatch(AYUDA_ERRORES_CALLE, /WFS|DNPLOC|INSPIRE/);
     const lista = listaErrores(muchos);
     assert.equal(lista.lineas.length, 5);
     assert.equal(lista.resto, 3);

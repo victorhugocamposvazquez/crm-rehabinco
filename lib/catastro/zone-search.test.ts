@@ -16,6 +16,7 @@ import {
 import {
   cancelarZona,
   cuentaParaProteccion,
+  esErrorTransitorioCalle,
   ejecutarPasoZona,
   normalizarCriteriosZona,
   ordenarFincasZona,
@@ -653,6 +654,27 @@ describe("Zona: control de ejecución", () => {
     assert.equal(final.status, "done");
     assert.equal(final.results.length, 5);
     for (const [, veces] of mundo.llamadasPorCalle) assert.equal(veces, 1);
+  });
+
+  it("reanudar reintenta cortes de Catastro y deja los 4xx", async () => {
+    const mundo = mundoFalso(CALLES_BASE);
+    const deps = depsFalsas(mundo, CALLES_BASE.map((item) => item.calle));
+    const session = await prepararOk(deps);
+    session.status = "cancelled";
+    session.calles[0].status = "error";
+    session.calles[0].error = "La sesión de discovery ha expirado.";
+    session.calles[1].status = "error";
+    session.calles[1].error = "Error externo de Catastro o INSPIRE.";
+    session.calles[2].status = "error";
+    session.calles[2].error = "Catastro respondió HTTP 404 en Consulta_DNPLOC";
+    const reanudada = reanudarZona(session, {}, deps);
+    assert.equal(session.calles[0]?.status, "pending");
+    assert.equal(session.calles[1]?.status, "pending");
+    assert.equal(session.calles[2]?.status, "error");
+    assert.equal(reanudada.progress.streetsPending, 2);
+    assert.equal(esErrorTransitorioCalle("La sesión de discovery ha expirado."), true);
+    assert.equal(esErrorTransitorioCalle("Error externo de Catastro o INSPIRE."), true);
+    assert.equal(esErrorTransitorioCalle("Catastro respondió HTTP 404 en Consulta_DNPLOC"), false);
   });
 
   it("respeta el límite de calles simultáneas (defecto 2, máximo 5)", async () => {
