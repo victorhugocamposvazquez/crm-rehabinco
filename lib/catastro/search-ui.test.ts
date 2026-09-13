@@ -18,6 +18,7 @@ import {
   type FincaBusquedaUi,
   etiquetaEstadoDivisionLista,
   filtrarListaFincas,
+  etiquetaUsoLista,
   metricasFincaLista,
   recuentoEstadosDivision,
   resumenTarjetaMovil,
@@ -250,6 +251,14 @@ describe("search-ui", () => {
     assert.equal(filtrarListaFincas([candidata, conPisos], { q: "mayor" })[0]?.fincaReference, "11111111111111");
     assert.equal(metricasFincaLista(candidata).parcela, "420 m²");
     assert.equal(metricasFincaLista(candidata).anio, "1964");
+    assert.equal(etiquetaUsoLista("Obras de urbanización y jardineria, suelos sin edificar"), "Urbanización");
+    assert.equal(
+      metricasFincaLista({
+        ...candidata,
+        properties: [{ reference: "111111111111110001AA", uso: "Obras de urbanización y jardineria, suelos sin edificar" }],
+      }).uso,
+      "Urbanización"
+    );
     assert.equal(resumenTarjetaMovil(candidata), "420 m² de parcela · 1 inmueble · 1964 · Residencial");
     assert.equal(
       resumenTarjetaMovil({

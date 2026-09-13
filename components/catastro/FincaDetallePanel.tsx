@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, Copy } from "lucide-react";
+import { ExternalLink, MapPin, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   LEYENDA_ESTADOS_DIVISION,
@@ -13,7 +13,9 @@ import {
   tituloDireccionFinca,
   type FincaBusquedaUi,
 } from "@/lib/catastro/search-ui";
-import { copiarAlPortapapeles } from "@/lib/catastro/selection-export";
+import { copiarAlPortapapeles, direccionOficial } from "@/lib/catastro/selection-export";
+import { crearUrlMapaCatastral } from "@/lib/catastro/explorer/catastro-map";
+import { crearGoogleMapsUrl } from "@/lib/catastro/explorer/maps";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MapaCatastral } from "./MapaCatastral";
@@ -24,7 +26,6 @@ type Props = {
   vinculada?: boolean;
   onProperty?: () => void;
   onCerrar?: () => void;
-  variante?: "panel" | "hoja";
 };
 
 export function FincaDetallePanel({
@@ -33,7 +34,6 @@ export function FincaDetallePanel({
   vinculada,
   onProperty,
   onCerrar,
-  variante = "panel",
 }: Props) {
   const status = finca.horizontalDivision?.status;
   const leyenda = LEYENDA_ESTADOS_DIVISION.find((item) => item.status === status);
@@ -47,9 +47,13 @@ export function FincaDetallePanel({
     setUso("Todos");
   }, [finca.fincaReference]);
 
-  const copiar = async () => {
-    const ok = await copiarAlPortapapeles(finca.fincaReference);
-    if (ok) toast.success("Referencia copiada");
+  const direccion = direccionOficial(finca);
+  const mapsUrl = crearGoogleMapsUrl(finca);
+  const mapaCatastralUrl = crearUrlMapaCatastral(finca.fincaReference);
+
+  const copiar = async (texto: string, exito: string) => {
+    const ok = await copiarAlPortapapeles(texto);
+    if (ok) toast.success(exito);
     else toast.error("No se ha podido copiar.");
   };
 
@@ -93,14 +97,36 @@ export function FincaDetallePanel({
         </div>
       </dl>
 
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 flex flex-wrap gap-2">
         <button
           type="button"
-          onClick={() => void copiar()}
-          className="min-h-11 flex-1 rounded-[10px] border border-[#DAD6CE] bg-white text-[13px] font-medium text-[#131C1A]"
+          onClick={() => void copiar(finca.fincaReference, "Referencia copiada")}
+          className={CLASE_ACCION}
         >
           Copiar referencia
         </button>
+        {direccion ? (
+          <button
+            type="button"
+            onClick={() => void copiar(direccion, "Dirección copiada")}
+            className={CLASE_ACCION}
+          >
+            <MapPin className="h-3.5 w-3.5" aria-hidden />
+            Copiar dirección
+          </button>
+        ) : null}
+        {mapaCatastralUrl ? (
+          <a href={mapaCatastralUrl} target="_blank" rel="noreferrer" className={CLASE_ACCION}>
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+            Mapa catastral
+          </a>
+        ) : null}
+        {mapsUrl ? (
+          <a href={mapsUrl} target="_blank" rel="noreferrer" className={CLASE_ACCION}>
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+            Ver en Google Maps
+          </a>
+        ) : null}
       </div>
 
       <div className="mt-5 flex flex-wrap items-baseline gap-2">
@@ -159,45 +185,21 @@ export function FincaDetallePanel({
     </>
   );
 
-  if (variante === "hoja") {
-    return <HojaFinca titulo={tituloDireccionFinca(finca)} referencia={finca.fincaReference} status={status} onCerrar={onCerrar} cerrarRef={cerrarRef} accion={accionPropiedad}>{cuerpo}</HojaFinca>;
-  }
-
   return (
-    <aside className="rounded-2xl border border-[#E6E3DD] bg-white p-4 shadow-[0_1px_2px_rgba(19,28,26,.04)] sm:p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-lg font-semibold tracking-tight text-[#131C1A]">{tituloDireccionFinca(finca)}</h2>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span className="rounded bg-[#F4F3EF] px-1.5 py-0.5 font-mono text-[11.5px] text-[#5D6B67]">
-              {finca.fincaReference}
-            </span>
-            <button type="button" onClick={() => void copiar()} className="text-[#5D6B67]" title="Copiar referencia">
-              <Copy className="h-3.5 w-3.5" aria-hidden />
-            </button>
-            <span className={cn("rounded-md px-2.5 py-1 text-[11px] font-semibold", claseBadgeDivision(status))}>
-              {etiquetaEstadoDivisionLista(status)}
-            </span>
-          </div>
-        </div>
-        {onCerrar ? (
-          <button
-            type="button"
-            onClick={onCerrar}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] border border-[#E6E3DD] text-[#131C1A]"
-            aria-label="Cerrar ficha"
-          >
-            <ChevronDown className="h-5 w-5" strokeWidth={2.2} aria-hidden />
-          </button>
-        ) : null}
-      </div>
-      <div className="mt-3">{accionPropiedad}</div>
-      <div className="mt-4">{cuerpo}</div>
-    </aside>
+    <PanelLateralFinca
+      titulo={tituloDireccionFinca(finca)}
+      referencia={finca.fincaReference}
+      status={status}
+      onCerrar={onCerrar}
+      cerrarRef={cerrarRef}
+      accion={accionPropiedad}
+    >
+      {cuerpo}
+    </PanelLateralFinca>
   );
 }
 
-function HojaFinca({
+function PanelLateralFinca({
   titulo,
   referencia,
   status,
@@ -230,19 +232,19 @@ function HojaFinca({
     };
   }, [cerrarRef, onCerrar]);
 
-  const cerrarSiBaja = (finY: number) => {
+  const cerrarSiDesliza = (finX: number) => {
     if (toqueInicio.current == null) return;
-    if (finY - toqueInicio.current > 56) onCerrar?.();
+    if (finX - toqueInicio.current > 56) onCerrar?.();
     toqueInicio.current = null;
   };
 
   if (typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[80] flex items-end justify-center min-[780px]:items-center min-[780px]:p-6">
+    <div className="fixed inset-0 z-[80]">
       <button
         type="button"
-        className="absolute inset-0 bg-black/40"
+        className="absolute inset-0 bg-black/35"
         aria-label="Cerrar ficha"
         onClick={onCerrar}
       />
@@ -250,45 +252,46 @@ function HojaFinca({
         role="dialog"
         aria-modal="true"
         aria-labelledby="ficha-finca-titulo"
-        className="relative z-10 flex max-h-[92dvh] w-full flex-col rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_40px_rgba(19,28,26,.18)] min-[780px]:max-h-[86dvh] min-[780px]:max-w-2xl min-[780px]:rounded-2xl min-[780px]:shadow-[0_16px_48px_rgba(19,28,26,.22)]"
+        className="absolute inset-y-0 right-0 z-10 flex w-full max-w-none flex-col bg-white pb-[env(safe-area-inset-bottom)] shadow-[-16px_0_40px_rgba(19,28,26,.16)] animate-[slideInFromRight_0.28s_ease-out] min-[780px]:w-[min(46rem,52vw)]"
         onTouchStart={(evento) => {
-          toqueInicio.current = evento.changedTouches[0]?.clientY ?? null;
+          toqueInicio.current = evento.changedTouches[0]?.clientX ?? null;
         }}
-        onTouchEnd={(evento) => cerrarSiBaja(evento.changedTouches[0]?.clientY ?? 0)}
+        onTouchEnd={(evento) => cerrarSiDesliza(evento.changedTouches[0]?.clientX ?? 0)}
       >
-        <header className="border-b border-[#EFEDE7] px-3.5 pb-3 pt-2">
-          <div className="flex justify-center pb-2 min-[780px]:hidden">
-            <span className="h-1 w-12 rounded-full bg-[#DAD6CE]" aria-hidden />
-          </div>
-          <div className="flex items-center gap-2.5">
+        <header
+          className="border-b border-[#EFEDE7] px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] min-[780px]:px-6 min-[780px]:pt-5"
+        >
+          <div className="flex items-start gap-3">
+            <div className="min-w-0 flex-1">
+              <h2 id="ficha-finca-titulo" className="text-[17px] font-semibold leading-snug tracking-tight text-[#131C1A] min-[780px]:text-[19px]">
+                {titulo}
+              </h2>
+              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                <p className="font-mono text-[11.5px] text-[#5D6B67]">{referencia}</p>
+                <span className={cn("rounded-md px-2.5 py-1 text-[11px] font-semibold", claseBadgeDivision(status))}>
+                  {etiquetaEstadoDivisionLista(status)}
+                </span>
+              </div>
+            </div>
             <button
               ref={cerrarRef}
               type="button"
               onClick={onCerrar}
-              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-[10px] border border-[#E6E3DD] px-3 text-[13.5px] font-semibold text-[#131C1A]"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] text-[#5D6B67] hover:bg-[#F4F3EF]"
+              aria-label="Cerrar ficha"
             >
-              <ChevronDown className="h-5 w-5" strokeWidth={2.2} aria-hidden />
-              Cerrar
+              <X className="h-5 w-5" strokeWidth={2.2} aria-hidden />
             </button>
-            <div className="min-w-0 flex-1">
-              <h2 id="ficha-finca-titulo" className="truncate text-[15.5px] font-semibold tracking-tight text-[#131C1A]">
-                {titulo}
-              </h2>
-              <p className="mt-0.5 font-mono text-[11.5px] text-[#5D6B67]">{referencia}</p>
-            </div>
-            <span className={cn("shrink-0 rounded-md px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap", claseBadgeDivision(status))}>
-              {etiquetaEstadoDivisionLista(status)}
-            </span>
           </div>
         </header>
         <div
-          className="min-h-0 flex-1 overflow-y-auto px-3.5 py-3.5"
+          className="min-h-0 flex-1 overflow-y-auto px-4 py-4 min-[780px]:px-6 min-[780px]:py-5"
           onTouchStart={(evento) => evento.stopPropagation()}
         >
           {children}
         </div>
         {accion ? (
-          <div className="border-t border-[#EFEDE7] bg-white px-3.5 py-2.5 shadow-[0_-6px_18px_rgba(19,28,26,.06)]">
+          <div className="border-t border-[#EFEDE7] bg-white px-4 py-3 shadow-[0_-6px_18px_rgba(19,28,26,.06)] min-[780px]:px-6">
             <div className="[&_button]:h-[50px] [&_button]:w-full [&_button]:text-[14.5px] [&_a]:flex [&_a]:h-[50px] [&_a]:w-full [&_a]:items-center [&_a]:justify-center [&_a]:text-[14.5px] min-[780px]:[&_a]:h-10 min-[780px]:[&_a]:w-auto min-[780px]:[&_button]:h-10 min-[780px]:[&_button]:w-auto">
               {accion}
             </div>
@@ -299,6 +302,9 @@ function HojaFinca({
     document.body
   );
 }
+
+const CLASE_ACCION =
+  "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-[10px] border border-[#DAD6CE] bg-white px-3 text-[13px] font-medium text-[#131C1A]";
 
 function Dato({ label, value }: { label: string; value: string }) {
   return (

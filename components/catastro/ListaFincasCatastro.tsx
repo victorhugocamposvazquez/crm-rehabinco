@@ -186,7 +186,6 @@ export function ListaFincasCatastro({
 
       {ficha && hoja ? (
         <FincaDetallePanel
-          variante="hoja"
           finca={ficha}
           href={hrefDe?.(ficha)}
           vinculada={Boolean(vinculada?.(ficha.fincaReference))}

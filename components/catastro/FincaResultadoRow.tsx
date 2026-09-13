@@ -72,7 +72,7 @@ export function FincaResultadoRow({
       className={cn(
         "bg-white text-[#131C1A]",
         "max-[779px]:overflow-hidden max-[779px]:rounded-[13px] max-[779px]:border max-[779px]:border-[#E6E3DD]",
-        "min-[780px]:flex min-[780px]:cursor-pointer min-[780px]:flex-wrap min-[780px]:items-center min-[780px]:gap-3.5 min-[780px]:border-b min-[780px]:border-[#F2F0EB] min-[780px]:px-3.5 min-[780px]:py-2.5 min-[780px]:hover:bg-[#FBFBF9]",
+        "min-[780px]:flex min-[780px]:cursor-pointer min-[780px]:flex-nowrap min-[780px]:items-center min-[780px]:gap-3.5 min-[780px]:border-b min-[780px]:border-[#F2F0EB] min-[780px]:px-3.5 min-[780px]:py-2.5 min-[780px]:hover:bg-[#FBFBF9]",
         selected && "min-[780px]:bg-[#F4F8F6] min-[780px]:shadow-[inset_3px_0_0_#0B7461]"
       )}
     >
@@ -93,7 +93,7 @@ export function FincaResultadoRow({
             </label>
           ) : null}
           <div className="min-w-0 flex-1">
-            <p className="text-[15px] font-semibold tracking-[-0.01em] text-pretty min-[780px]:text-[14.5px]">
+            <p className="text-[15px] font-semibold tracking-[-0.01em] text-pretty min-[780px]:truncate min-[780px]:text-[14.5px]">
               {titulo}
             </p>
             <p className="mt-1 font-mono text-[11.5px] text-[#5D6B67]">{finca.fincaReference}</p>
@@ -106,11 +106,11 @@ export function FincaResultadoRow({
         <p className="mt-2.5 text-[12.5px] text-[#5D6B67] min-[780px]:hidden">{resumenTarjetaMovil(finca)}</p>
       </div>
 
-      <div className="hidden flex-none flex-wrap gap-1 min-[780px]:flex">
+      <div className="hidden flex-none items-start gap-1 min-[780px]:flex">
         <Dato label="Parcela" value={metricas.parcela} ancho="w-[74px]" />
         <Dato label="Inmuebles" value={metricas.inmuebles} ancho="w-[74px]" />
-        <Dato label="Año" value={metricas.anio} ancho="w-[62px]" />
-        <Dato label="Uso" value={metricas.uso} ancho="w-[86px]" />
+        <Dato label="Año" value={metricas.anio} ancho="w-[52px]" />
+        <Dato label="Uso" value={metricas.uso} ancho="w-[118px]" />
       </div>
 
       <div className="hidden w-[132px] flex-none items-center gap-1.5 min-[780px]:flex">
@@ -181,9 +181,11 @@ export function FincaResultadoRow({
 
 function Dato({ label, value, ancho }: { label: string; value: string; ancho: string }) {
   return (
-    <div className={ancho}>
+    <div className={cn(ancho, "min-w-0")}>
       <p className="text-[11px] uppercase tracking-wider text-[#6B7A76]">{label}</p>
-      <p className="mt-0.5 text-[13.5px] tabular-nums">{value}</p>
+      <p className="mt-0.5 truncate text-[13.5px] tabular-nums" title={value}>
+        {value}
+      </p>
     </div>
   );
 }

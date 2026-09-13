@@ -358,6 +358,20 @@ function metrosEs(valor: number): string {
   return Math.round(valor).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
+/**
+ * Catastro manda literales larguísimos («Obras de urbanización y jardinería…»).
+ * En la lista solo cabe una línea; el modal sigue mostrando el texto oficial.
+ */
+export function etiquetaUsoLista(uso: string): string {
+  const n = uso
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  if (/obras de urbanizacion/.test(n) || /urbanizacion y jardineria/.test(n)) return "Urbanización";
+  if (/suelo(?:s)? sin edificar/.test(n)) return "Suelo";
+  return uso;
+}
+
 export function metricasFincaLista(finca: FincaBusquedaUi): {
   parcela: string;
   inmuebles: string;
@@ -373,7 +387,7 @@ export function metricasFincaLista(finca: FincaBusquedaUi): {
     anio: anios.length === 1 ? String(anios[0]) : anios.length > 1 ? "Varios" : "—",
     uso:
       usos.length === 1
-        ? usos[0] ?? "—"
+        ? etiquetaUsoLista(usos[0] ?? "—")
         : usos.length > 1
           ? "Varios"
           : finca.horizontalDivision?.status === "NOT_APPLICABLE" && sinUso
