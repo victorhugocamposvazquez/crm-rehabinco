@@ -18,6 +18,8 @@ type Props = {
   compacto?: boolean;
   disabled?: boolean;
   etiquetaVacia?: string;
+  tono?: "claro" | "oscuro";
+  menuArriba?: boolean;
   onCambio?: (asignacion: AsignacionFinca | null) => void;
   onCambioLote?: (input: {
     refs: string[];
@@ -25,6 +27,8 @@ type Props = {
     nombre: string | null;
   }) => void;
 };
+
+export const EVENTO_ASIGNACION_FINCAS = "crm:catastro-asignacion-fincas";
 
 export async function guardarAsignacionFinca(
   fincaReference: string,
@@ -73,6 +77,8 @@ export function AsignacionFincaSelect({
   compacto = false,
   disabled = false,
   etiquetaVacia = "Sin asignar",
+  tono = "claro",
+  menuArriba = false,
   onCambio,
   onCambioLote,
 }: Props) {
@@ -98,22 +104,22 @@ export function AsignacionFincaSelect({
     try {
       const assignments = await guardarAsignacionFincas(refs, comercialId || null);
       const comercial = comerciales.find((item) => item.id === comercialId);
-      if (lote) {
-        onCambioLote?.({
-          refs,
-          comercialId: comercialId || null,
-          nombre: comercial?.nombre ?? null,
-        });
-        toast.success(
-          comercialId
+      const siguiente = assignments[0] ?? null;
+      onCambioLote?.({
+        refs,
+        comercialId: comercialId || null,
+        nombre: comercial?.nombre ?? siguiente?.nombre ?? null,
+      });
+      if (!lote) onCambio?.(siguiente);
+      toast.success(
+        lote
+          ? comercialId
             ? `${refs.length} fincas asignadas a ${comercial?.nombre ?? "comercial"}.`
             : `${refs.length} fincas sin comercial.`
-        );
-      } else {
-        const siguiente = assignments[0] ?? null;
-        onCambio?.(siguiente);
-        toast.success(siguiente ? `Asignada a ${siguiente.nombre}.` : "Sin comercial asignado.");
-      }
+          : siguiente
+            ? `Asignada a ${siguiente.nombre}.`
+            : "Sin comercial asignado."
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se ha podido asignar.");
     } finally {
@@ -136,9 +142,13 @@ export function AsignacionFincaSelect({
         onPointerDown={(evento) => evento.stopPropagation()}
         onKeyDown={(evento) => evento.stopPropagation()}
         className={cn(
-          "inline-flex w-full items-center justify-between gap-1 rounded-lg border border-[#DAD6CE] bg-white font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B7461] disabled:opacity-60",
+          "inline-flex w-full items-center justify-between gap-1 rounded-lg border font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B7461] disabled:opacity-60",
           compacto ? "h-[29px] max-w-[168px] px-2 text-[11.5px]" : "mt-2 h-9 px-2.5 text-[13px]",
-          !lote && asignacion ? "text-[#0B7461]" : "text-[#5D6B67]"
+          tono === "oscuro"
+            ? "h-8 max-w-[15rem] border-white/20 bg-white/10 text-white hover:bg-white/15"
+            : !lote && asignacion
+              ? "border-[#DAD6CE] bg-white text-[#0B7461]"
+              : "border-[#DAD6CE] bg-white text-[#5D6B67]"
         )}
       >
         <span className="min-w-0 truncate">{guardando ? "Guardando…" : etiqueta}</span>
@@ -147,7 +157,10 @@ export function AsignacionFincaSelect({
       {abierto ? (
         <ul
           role="listbox"
-          className="absolute right-0 z-30 mt-1 max-h-56 min-w-[11.5rem] overflow-auto rounded-xl border border-[#E6E3DD] bg-white p-1 shadow-lg"
+          className={cn(
+            "absolute z-50 max-h-56 min-w-[11.5rem] overflow-auto rounded-xl border border-[#E6E3DD] bg-white p-1 shadow-lg",
+            menuArriba ? "bottom-full right-0 mb-1" : "right-0 mt-1"
+          )}
         >
           <li>
             <button

@@ -31,7 +31,7 @@ import {
 import { FincaDetallePanel } from "./FincaDetallePanel";
 import { FincaResultadoRow } from "./FincaResultadoRow";
 import { LeyendaEstadosDivision } from "./LeyendaEstadosDivision";
-import { AsignacionFincaSelect } from "./AsignacionFincaSelect";
+import { AsignacionFincaSelect, EVENTO_ASIGNACION_FINCAS } from "./AsignacionFincaSelect";
 
 const CHIP =
   "inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[11.5px] font-semibold min-h-[26px] leading-none";
@@ -149,6 +149,20 @@ export function ListaFincasCatastro({
     },
     []
   );
+
+  useEffect(() => {
+    const onLote = (evento: Event) => {
+      const detail = (evento as CustomEvent<{
+        refs: string[];
+        comercialId: string | null;
+        nombre: string | null;
+      }>).detail;
+      if (!detail?.refs?.length) return;
+      aplicarAsignacionLote(detail);
+    };
+    window.addEventListener(EVENTO_ASIGNACION_FINCAS, onLote);
+    return () => window.removeEventListener(EVENTO_ASIGNACION_FINCAS, onLote);
+  }, [aplicarAsignacionLote]);
 
   const aplicarOrden = (campo: CampoOrdenLista) => {
     setOrden((prev) => aplicarCriterioOrdenLista(prev, campo));

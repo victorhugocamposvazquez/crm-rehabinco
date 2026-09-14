@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Download, X } from "lucide-react";
 import { toast } from "sonner";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { isAdmin } from "@/lib/auth/roles";
+import { useAuth } from "@/lib/auth/auth-context";
+import type { ComercialAsignable } from "@/lib/catastro-host/finca-assignment";
 import {
   SELECCION_VACIA,
   alternarSeleccion,
@@ -27,6 +30,7 @@ import {
   type RevisionFincas,
 } from "@/lib/catastro/revision-comercial";
 import type { FincaBusquedaUi } from "@/lib/catastro/search-ui";
+import { AsignacionFincaSelect, EVENTO_ASIGNACION_FINCAS } from "./AsignacionFincaSelect";
 
 type ExportacionLista = Extract<ExportacionPreparada, { ok: true }>;
 
@@ -116,6 +120,7 @@ export function useSeleccionFincas() {
     seleccion.fincas.length > 0 || revision.fincas.length > 0 ? (
       <BarraSeleccion
         total={seleccion.fincas.length}
+        refs={seleccion.fincas.map((finca) => finca.fincaReference)}
         enRevision={revision.fincas.length}
         onExportar={onExportar}
         onExportarRevision={revision.fincas.length > 0 ? onExportarRevision : undefined}
@@ -167,29 +172,63 @@ export function useSeleccionFincas() {
 
 function BarraSeleccion({
   total,
+  refs,
   enRevision,
   onExportar,
   onExportarRevision,
   onLimpiar,
 }: {
   total: number;
+  refs: string[];
   enRevision: number;
   onExportar: () => void;
   onExportarRevision?: () => void;
   onLimpiar: () => void;
 }) {
+  const { user } = useAuth();
+  const puedeAsignar = isAdmin(user?.role);
+  const [comerciales, setComerciales] = useState<ComercialAsignable[]>([]);
   const haySeleccion = total > 0;
+
+  useEffect(() => {
+    if (!puedeAsignar || !haySeleccion) return;
+    let vivo = true;
+    void fetch("/api/catastro/assignments")
+      .then(async (respuesta) => {
+        const json = (await respuesta.json()) as { ok?: boolean; comerciales?: ComercialAsignable[] };
+        if (!vivo || !respuesta.ok || !json.ok) return;
+        setComerciales(json.comerciales ?? []);
+      })
+      .catch(() => undefined);
+    return () => {
+      vivo = false;
+    };
+  }, [puedeAsignar, haySeleccion]);
+
   return (
     <div
       role="region"
       aria-label="Fincas seleccionadas"
       className="pointer-events-none fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-40 px-3 md:bottom-4 md:px-6"
     >
-      <div className="pointer-events-auto mx-auto flex max-w-3xl flex-col gap-3 rounded-[14px] bg-[#131C1A] px-4 py-3 text-white shadow-[0_12px_30px_rgba(19,28,26,.25)] sm:flex-row sm:items-center sm:justify-between">
+      <div className="pointer-events-auto mx-auto flex max-w-4xl flex-col gap-3 rounded-[14px] bg-[#131C1A] px-4 py-3 text-white shadow-[0_12px_30px_rgba(19,28,26,.25)] sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm font-semibold text-white" aria-live="polite">
           {textoBarraSeleccionYRevision(total, enRevision)}
         </p>
         <div className="flex flex-wrap items-center gap-2">
+          {haySeleccion && puedeAsignar && comerciales.length > 0 ? (
+            <AsignacionFincaSelect
+              fincaReferences={refs}
+              comerciales={comerciales}
+              compacto
+              tono="oscuro"
+              menuArriba
+              etiquetaVacia="Asignar a comercial"
+              onCambioLote={(input) => {
+                window.dispatchEvent(new CustomEvent(EVENTO_ASIGNACION_FINCAS, { detail: input }));
+              }}
+            />
+          ) : null}
           {haySeleccion ? (
             <Button type="button" size="sm" onClick={onExportar}>
               <Download className="h-4 w-4" aria-hidden />
