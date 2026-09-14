@@ -259,6 +259,7 @@ export function TareaPanel({
   };
 
   return (
+    <>
     <Sheet open onOpenChange={(open) => !open && onClose()} variant="side" side="right">
       <div className="flex h-full flex-col">
         <div className="flex items-center gap-2.5 border-b border-[var(--border-soft)] px-4 py-3.5">
@@ -582,5 +583,7 @@ export function TareaPanel({
         </div>
       </div>
     </Sheet>
+    <VinculoPeek destino={peek} onClose={() => setPeek(null)} />
+    </>
   );
 }

@@ -197,7 +197,7 @@ export function VinculoPeek({
         <div className="min-h-0 flex-1 overflow-y-auto">
           {loading ? (
             <p className="px-4 py-8 text-center text-[13px] text-[var(--text-2)]">Cargando…</p>
-          ) : destino?.tipo === "propiedad" ? (
+          ) : destino?.tipo === "propiedad" && inmueble ? (
             <PanelInmueble inmueble={inmueble} embedded />
           ) : destino?.tipo === "cliente" && cliente ? (
             <FichaCliente cliente={cliente} />

@@ -41,15 +41,17 @@ export function Sheet({
     document.body.style.overflow = "hidden";
     document.body.style.touchAction = "none";
     const onKey = (evento: KeyboardEvent) => {
-      if (evento.key === "Escape") onOpenChange(false);
+      if (evento.key !== "Escape") return;
+      if (elevated) evento.stopImmediatePropagation();
+      onOpenChange(false);
     };
-    window.addEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, elevated);
     return () => {
       document.body.style.overflow = overflowRef.current || "";
       document.body.style.touchAction = "";
-      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keydown", onKey, elevated);
     };
-  }, [open, onOpenChange]);
+  }, [open, onOpenChange, elevated]);
 
   if (!open) return null;
 

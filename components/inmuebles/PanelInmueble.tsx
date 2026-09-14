@@ -218,7 +218,7 @@ export function PanelInmueble({
             : "sticky top-[72px] min-w-[300px] flex-[1_1_330px] rounded-[14px] border border-border"
       )}
     >
-      <div className="max-h-[100dvh] overflow-y-auto">
+      <div className={cn(!embedded && "max-h-[100dvh] overflow-y-auto")}>
         <div
           className="relative aspect-video bg-[var(--surface-soft)] bg-cover bg-center"
           style={inmueble.portadaUrl ? { backgroundImage: `url(${inmueble.portadaUrl})` } : undefined}
