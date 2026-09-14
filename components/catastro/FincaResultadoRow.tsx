@@ -7,7 +7,6 @@ import {
   claseTextoDivision,
   etiquetaEstadoDivisionLista,
   metricasFincaLista,
-  resumenTarjetaMovil,
   tituloDireccionFinca,
   type FincaBusquedaUi,
 } from "@/lib/catastro/search-ui";
@@ -105,31 +104,17 @@ export function FincaResultadoRow({
               {titulo}
             </p>
             <p className="mt-1 font-mono text-[11.5px] text-[#5D6B67]">{finca.fincaReference}</p>
-            <p className={cn("mt-1 truncate text-[12px] font-medium min-[780px]:hidden", asignacion ? "text-[#0B7461]" : "text-[#6B7A76]")}>
-              {asignacion ? asignacion.nombre : "Sin asignar"}
-            </p>
-            {comerciales.length > 0 ? (
-              <div className="min-[780px]:hidden">
-                <AsignacionFincaSelect
-                  fincaReference={finca.fincaReference}
-                  comerciales={comerciales}
-                  asignacion={asignacion}
-                  onCambio={onAsignacion}
-                />
-              </div>
-            ) : null}
+            <span className={cn("mt-1 flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs font-medium min-[780px]:hidden", claseTextoDivision(status))}>
+              <span className={cn("h-[7px] w-[7px] flex-none rounded-full", clasePuntoDivision(status))} aria-hidden />
+              {etiquetaEstadoDivisionLista(status)}
+            </span>
           </div>
-          <span className={cn("mt-0.5 flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs font-medium min-[780px]:hidden", claseTextoDivision(status))}>
-            <span className={cn("h-[7px] w-[7px] flex-none rounded-full", clasePuntoDivision(status))} aria-hidden />
-            {etiquetaEstadoDivisionLista(status)}
-          </span>
         </div>
-        <p className="mt-2.5 text-[12.5px] text-[#5D6B67] min-[780px]:hidden">{resumenTarjetaMovil(finca)}</p>
       </div>
 
-      <div className="hidden flex-none items-start gap-1 min-[780px]:flex">
-        <Dato label="Parcela" value={metricas.parcela} ancho="w-[74px]" />
-        <Dato label="Inmuebles" value={metricas.inmuebles} ancho="w-[74px]" />
+      <div className="flex flex-none flex-wrap items-start gap-2 px-3.5 pb-2 min-[780px]:flex-nowrap min-[780px]:gap-1 min-[780px]:px-0 min-[780px]:pb-0">
+        <Dato label="m² parcela" value={metricas.parcela} ancho="w-[74px]" />
+        <Dato label="N.º inmuebles" value={metricas.inmuebles} ancho="w-[90px]" />
         <Dato label="Año" value={metricas.anio} ancho="w-[52px]" />
         <Dato label="Uso" value={metricas.uso} ancho="w-[118px]" />
       </div>
@@ -141,7 +126,7 @@ export function FincaResultadoRow({
         </span>
       </div>
 
-      <div className="hidden w-[168px] flex-none min-[780px]:block">
+      <div className="w-full px-3.5 pb-2 min-[780px]:w-[168px] min-[780px]:flex-none min-[780px]:px-0 min-[780px]:pb-0">
         {comerciales.length > 0 ? (
           <AsignacionFincaSelect
             fincaReference={finca.fincaReference}

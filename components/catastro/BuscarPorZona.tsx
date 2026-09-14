@@ -4,7 +4,7 @@ import { Pause, Play, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { estaSeleccionada, type SeleccionFincas } from "@/lib/catastro/selection-export";
-import { textoContadorFincas, type FincaBusquedaUi } from "@/lib/catastro/search-ui";
+import { recuentoEstadosDivision, type FincaBusquedaUi } from "@/lib/catastro/search-ui";
 import { VacioResultados } from "./VacioResultados";
 import {
   FILTROS_REVISION_COMERCIAL,
@@ -150,6 +150,7 @@ export function BuscarPorZona({
     snapshot.coverage.completeCandidates &&
     !snapshot.coverage.hasNextBlock;
   const visibles = filtrarPorRevisionComercial(resultadosVisiblesZona(estado), filtroRevision, revision);
+  const recuento = recuentoEstadosDivision(visibles);
 
   return (
     <div className="space-y-6">
@@ -290,7 +291,7 @@ export function BuscarPorZona({
           <div>
             <h2 className="text-base font-semibold text-foreground">Resultados</h2>
             <p className="text-sm text-neutral-600">
-              {textoContadorFincas(visibles.length)}
+              {`${recuento.ALL.toLocaleString("es-ES")} fincas · ${recuento.NO.toLocaleString("es-ES")} candidatas`}
               {revision.fincas.length > 0 ? ` · ${textoRevision(revision.fincas.length)}` : null}
               {snapshot.status !== "done" ? " · resultados provisionales; se actualizan calle a calle." : null}
             </p>

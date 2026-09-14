@@ -346,6 +346,50 @@ export function formatoNumeroEs(valor: number): string {
   return valor.toLocaleString("es-ES");
 }
 
+/** Página actual, total de páginas y texto visible. No recarga: solo describe offset/limit. */
+export function resumenPaginacion(input: {
+  offset: number;
+  limit: number;
+  total: number;
+}): {
+  pagina: number;
+  paginas: number;
+  desde: number;
+  hasta: number;
+  hayAnterior: boolean;
+  haySiguiente: boolean;
+  rango: string;
+  etiqueta: string;
+} {
+  const limit = Math.max(1, Math.floor(input.limit) || 1);
+  const total = Math.max(0, Math.floor(input.total) || 0);
+  const offset = Math.max(0, Math.floor(input.offset) || 0);
+  const paginas = Math.max(1, Math.ceil(total / limit) || 1);
+  const pagina = total === 0 ? 1 : Math.min(paginas, Math.floor(offset / limit) + 1);
+  const desde = total === 0 ? 0 : offset + 1;
+  const hasta = total === 0 ? 0 : Math.min(total, offset + limit);
+  const rango =
+    total === 0
+      ? "Sin resultados"
+      : `${formatoNumeroEs(desde)}–${formatoNumeroEs(hasta)} de ${formatoNumeroEs(total)}`;
+  return {
+    pagina,
+    paginas,
+    desde,
+    hasta,
+    hayAnterior: offset > 0,
+    haySiguiente: hasta < total,
+    rango,
+    etiqueta: total === 0 ? "Sin resultados" : `Página ${formatoNumeroEs(pagina)} de ${formatoNumeroEs(paginas)} · ${rango}`,
+  };
+}
+
+export function offsetDesdePagina(pagina: number, limit: number): number {
+  const tamano = Math.max(1, Math.floor(limit) || 1);
+  const indice = Math.max(1, Math.floor(pagina) || 1);
+  return (indice - 1) * tamano;
+}
+
 export function fechaBusquedaCorta(iso: string): string {
   const fecha = new Date(iso);
   if (Number.isNaN(fecha.getTime())) return iso;

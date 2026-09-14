@@ -47,6 +47,8 @@ import {
   rutaFincaPersistida,
   recuentoEstadosDesdeTotales,
   textosCoberturaHistorica,
+  resumenPaginacion,
+  offsetDesdePagina,
   TEXTO_REANUDAR_BUSQUEDA,
   urlReanudarBusqueda,
 } from "./history-ui";
@@ -306,6 +308,22 @@ describe("Catastro Explorer — experiencia persistente", () => {
     assert.equal(llamaACatastro(urls[0]), false);
     assert.equal(data.results.offset, 50);
     assert.equal(data.results.fincas[0].fincaReference, "2749704YJ0624N");
+    assert.deepEqual(resumenPaginacion({ offset: 50, limit: 50, total: 80 }), {
+      pagina: 2,
+      paginas: 2,
+      desde: 51,
+      hasta: 80,
+      hayAnterior: true,
+      haySiguiente: false,
+      rango: "51–80 de 80",
+      etiqueta: "Página 2 de 2 · 51–80 de 80",
+    });
+    const grande = resumenPaginacion({ offset: 0, limit: 50, total: 1325 });
+    assert.equal(grande.pagina, 1);
+    assert.equal(grande.paginas, 27);
+    assert.equal(grande.hasta, 50);
+    assert.match(grande.etiqueta, /^Página 1 de 27 · 1–50 de /);
+    assert.equal(offsetDesdePagina(3, 50), 100);
     await fetchBusquedaPersistida("s1", { limit: 50, offset: 0, status: "NO" });
     assert.match(urls[1], /status=NO/);
     assert.deepEqual(

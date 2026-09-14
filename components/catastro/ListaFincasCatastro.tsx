@@ -22,6 +22,7 @@ import {
   FILTRO_ASIGNACION_TODAS,
   filtrarPorAsignacion,
   recuentoFiltrosAsignacion,
+  trocearRefs,
   type AsignacionFinca,
   type ComercialAsignable,
 } from "@/lib/catastro-host/finca-assignment";
@@ -35,6 +36,7 @@ const CHIP =
 const CHIP_ACTIVA = "border-[#0B7461] bg-[#E8F3EF] text-[#08594B]";
 const CHIP_INACTIVA = "border-[#E6E3DD] bg-white text-[#5D6B67]";
 
+const TAM_PAGINA_LISTA = 80;
 const FILTROS_LISTA = [
   { value: "ALL", label: "Todas" },
   { value: "NO", label: "Candidata" },
@@ -53,6 +55,7 @@ type Props = {
   fincasSeleccionadas?: string[];
   onProperty?: (finca: FincaBusquedaUi) => void;
   pie?: ReactNode;
+  paginacion?: ReactNode;
   recuentoEstados?: Record<string, number>;
   filtroEstado?: string;
   onFiltroEstado?: (status: string) => void;
@@ -68,6 +71,7 @@ export function ListaFincasCatastro({
   fincasSeleccionadas,
   onProperty,
   pie,
+  paginacion,
   recuentoEstados,
   filtroEstado,
   onFiltroEstado,
@@ -82,16 +86,28 @@ export function ListaFincasCatastro({
   const [yo, setYo] = useState<string | null>(null);
   const [comerciales, setComerciales] = useState<ComercialAsignable[]>([]);
   const [asignaciones, setAsignaciones] = useState<Record<string, AsignacionFinca>>({});
-  const [orden, setOrden] = useState<CriterioOrdenLista[]>([]);
+  const [orden, setOrden] = useState<CriterioOrdenLista[]>([{ campo: "inmuebles", direccion: "desc" }]);
+  const [minParcela, setMinParcela] = useState("");
+  const [minInmuebles, setMinInmuebles] = useState("");
+  const [tope, setTope] = useState(TAM_PAGINA_LISTA);
   const recuento = recuentoEstados ?? recuentoEstadosDivision(fincas);
+  const minParcelaN = numeroFiltroLista(minParcela);
+  const minInmueblesN = numeroFiltroLista(minInmuebles);
   const filtradas = useMemo(
-    () => filtrarListaFincas(fincas, { q, status: onFiltroEstado ? "ALL" : filtro }),
-    [fincas, q, filtro, onFiltroEstado]
+    () =>
+      filtrarListaFincas(fincas, {
+        q,
+        status: onFiltroEstado ? "ALL" : filtro,
+        minParcela: minParcelaN,
+        minInmuebles: minInmueblesN,
+      }),
+    [fincas, q, filtro, onFiltroEstado, minParcelaN, minInmueblesN]
   );
   const visibles = useMemo(
     () => ordenarListaFincas(filtrarPorAsignacion(filtradas, asignaciones, filtroAsignacion, yo), orden),
     [filtradas, asignaciones, filtroAsignacion, yo, orden]
   );
+  const pagina = visibles.slice(0, tope);
   const recuentoAsignacion = useMemo(
     () => recuentoFiltrosAsignacion(filtradas, asignaciones, yo, comerciales),
     [filtradas, asignaciones, yo, comerciales]
@@ -131,41 +147,73 @@ export function ListaFincasCatastro({
   };
 
   useEffect(() => {
-    if (sel && visibles.some((finca) => finca.fincaReference === sel)) return;
+    setTope(TAM_PAGINA_LISTA);
+  }, [q, filtro, filtroAsignacion, orden, fincas.length, minParcelaN, minInmueblesN]);
+
+  useEffect(() => {
+    if (sel && pagina.some((finca) => finca.fincaReference === sel)) return;
     setSel(null);
     setHoja(false);
-  }, [visibles, sel]);
+  }, [pagina, sel]);
 
   const refsAsignacion = useMemo(
-    () => filtradas.map((finca) => finca.fincaReference).join(","),
+    () => filtradas.map((finca) => finca.fincaReference),
     [filtradas]
   );
+  const claveRefs = refsAsignacion.join(",");
 
   useEffect(() => {
     let vivo = true;
-    const url = refsAsignacion
-      ? `/api/catastro/assignments?refs=${encodeURIComponent(refsAsignacion)}`
-      : "/api/catastro/assignments";
-    void fetch(url)
+    void fetch("/api/catastro/assignments")
       .then(async (respuesta) => {
         const json = (await respuesta.json()) as {
           ok?: boolean;
           me?: string;
           comerciales?: ComercialAsignable[];
-          assignments?: AsignacionFinca[];
         };
         if (!vivo || !respuesta.ok || !json.ok) return;
         setYo(json.me ?? null);
         setComerciales(json.comerciales ?? []);
+      })
+      .catch(() => undefined);
+    return () => {
+      vivo = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const refs = claveRefs ? claveRefs.split(",") : [];
+    if (refs.length === 0) {
+      setAsignaciones({});
+      return;
+    }
+    let vivo = true;
+    const trozos = trocearRefs(refs);
+    void Promise.all(
+      trozos.map((trozo) =>
+        fetch(`/api/catastro/assignments?refs=${encodeURIComponent(trozo.join(","))}`).then(async (respuesta) => {
+          const json = (await respuesta.json()) as {
+            ok?: boolean;
+            assignments?: AsignacionFinca[];
+          };
+          if (!respuesta.ok || !json.ok) return [] as AsignacionFinca[];
+          return json.assignments ?? [];
+        })
+      )
+    )
+      .then((lotes) => {
+        if (!vivo) return;
         const mapa: Record<string, AsignacionFinca> = {};
-        for (const item of json.assignments ?? []) mapa[item.fincaReference] = item;
+        for (const lote of lotes) {
+          for (const item of lote) mapa[item.fincaReference] = item;
+        }
         setAsignaciones(mapa);
       })
       .catch(() => undefined);
     return () => {
       vivo = false;
     };
-  }, [refsAsignacion]);
+  }, [claveRefs]);
 
   const cerrarFicha = useCallback(() => {
     setHoja(false);
@@ -178,29 +226,29 @@ export function ListaFincasCatastro({
         return;
       }
       const accion = accionTecladoLista(evento.key);
-      if (!accion || visibles.length === 0) return;
+      if (!accion || pagina.length === 0) return;
       if (accion === "siguiente" || accion === "anterior") evento.preventDefault();
       if (accion === "cerrar") {
         cerrarFicha();
         return;
       }
-      const indice = visibles.findIndex((finca) => finca.fincaReference === sel);
+      const indice = pagina.findIndex((finca) => finca.fincaReference === sel);
       if (accion === "siguiente") {
-        const siguiente = visibles[Math.min(visibles.length - 1, Math.max(0, indice) + 1)];
+        const siguiente = pagina[Math.min(pagina.length - 1, Math.max(0, indice) + 1)];
         if (siguiente) {
           setSel(siguiente.fincaReference);
           if (hoja) setHoja(true);
         }
       }
       if (accion === "anterior") {
-        const anterior = visibles[Math.max(0, (indice < 0 ? 0 : indice) - 1)];
+        const anterior = pagina[Math.max(0, (indice < 0 ? 0 : indice) - 1)];
         if (anterior) {
           setSel(anterior.fincaReference);
           if (hoja) setHoja(true);
         }
       }
       if (accion === "abrir") {
-        const actual = visibles[Math.max(0, indice)];
+        const actual = pagina[Math.max(0, indice)];
         if (actual) {
           setSel(actual.fincaReference);
           setHoja(true);
@@ -209,7 +257,7 @@ export function ListaFincasCatastro({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [visibles, sel, hoja, cerrarFicha]);
+  }, [pagina, sel, hoja, cerrarFicha]);
 
   const abrir = (finca: FincaBusquedaUi) => {
     if (hoja && sel === finca.fincaReference) {
@@ -228,7 +276,80 @@ export function ListaFincasCatastro({
   const ficha = visibles.find((finca) => finca.fincaReference === sel) ?? null;
 
   return (
-    <div className="space-y-4">
+    <div id="listado-fincas-catastro" className="scroll-mt-[6.4rem] space-y-4 sm:scroll-mt-[6.9rem]">
+      <div className="sticky top-[6.4rem] z-20 space-y-3 rounded-2xl border border-[#DAD6CE] bg-white px-3.5 py-3 shadow-[0_8px_24px_rgba(19,28,26,0.06)] sm:top-[6.9rem]">
+        <p className="text-[15px] leading-snug text-[#131C1A]">
+          <span className="font-semibold tabular-nums text-[#08594B]">
+            {(recuento.NO ?? 0).toLocaleString("es-ES")} candidatas
+          </span>
+          {" · "}
+          <span className="tabular-nums">{(recuento.ALL ?? 0).toLocaleString("es-ES")} fincas</span>
+        </p>
+        {paginacion}
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Ordenar listado">
+          <p className="mr-1 text-[11px] font-semibold uppercase tracking-wide text-[#6B7A76]">Ordenar</p>
+          {CAMPOS_ORDEN_LISTA.map((item) => {
+            const indice = orden.findIndex((criterio) => criterio.campo === item.value);
+            const criterio = indice >= 0 ? orden[indice] : null;
+            const etiquetaDir = criterio?.direccion === "asc" ? "menos a más" : "más a menos";
+            return (
+              <button
+                key={item.value}
+                type="button"
+                aria-pressed={criterio != null}
+                aria-label={
+                  criterio
+                    ? criterio.direccion === "asc"
+                      ? `Ordenado por ${item.label}, ${etiquetaDir}. Pulsar para quitar`
+                      : `Ordenado por ${item.label}, ${etiquetaDir}. Pulsar para invertir`
+                    : `Añadir orden por ${item.label}, más a menos`
+                }
+                onClick={() => aplicarOrden(item.value)}
+                className={cn(CHIP, "gap-1", criterio ? CHIP_ACTIVA : CHIP_INACTIVA)}
+              >
+                {item.label}
+                {criterio ? (
+                  <span className="tabular-nums text-[#6B7A76]" aria-hidden>
+                    {orden.length > 1 ? `${indice + 1} ` : ""}
+                    {criterio.direccion === "desc" ? "↓" : "↑"}
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex flex-wrap items-end gap-2">
+          <label className="min-w-[7.5rem] flex-1">
+            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[#6B7A76]">
+              Desde m²
+            </span>
+            <input
+              type="number"
+              min={0}
+              inputMode="numeric"
+              value={minParcela}
+              onChange={(evento) => setMinParcela(evento.target.value)}
+              placeholder="p. ej. 200"
+              className="h-9 w-full rounded-[10px] border border-[#DAD6CE] bg-white px-2.5 text-[13.5px] tabular-nums text-[#131C1A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B7461]"
+            />
+          </label>
+          <label className="min-w-[7.5rem] flex-1">
+            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[#6B7A76]">
+              Desde n.º inmuebles
+            </span>
+            <input
+              type="number"
+              min={0}
+              inputMode="numeric"
+              value={minInmuebles}
+              onChange={(evento) => setMinInmuebles(evento.target.value)}
+              placeholder="p. ej. 2"
+              className="h-9 w-full rounded-[10px] border border-[#DAD6CE] bg-white px-2.5 text-[13.5px] tabular-nums text-[#131C1A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B7461]"
+            />
+          </label>
+        </div>
+      </div>
+
       <label className="relative block">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#5D6B67]" aria-hidden />
         <input
@@ -295,39 +416,6 @@ export function ListaFincasCatastro({
         {LEYENDA_FILTRO_HINT} · {TEXTO_ATAJOS_LISTA}
       </p>
 
-      <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Ordenar listado">
-        <p className="mr-1 text-[11px] font-semibold uppercase tracking-wide text-[#6B7A76]">Ordenar</p>
-        {CAMPOS_ORDEN_LISTA.map((item) => {
-          const indice = orden.findIndex((criterio) => criterio.campo === item.value);
-          const criterio = indice >= 0 ? orden[indice] : null;
-          const etiquetaDir = criterio?.direccion === "asc" ? "menos a más" : "más a menos";
-          return (
-            <button
-              key={item.value}
-              type="button"
-              aria-pressed={criterio != null}
-              aria-label={
-                criterio
-                  ? criterio.direccion === "asc"
-                    ? `Ordenado por ${item.label}, ${etiquetaDir}. Pulsar para quitar`
-                    : `Ordenado por ${item.label}, ${etiquetaDir}. Pulsar para invertir`
-                  : `Añadir orden por ${item.label}, más a menos`
-              }
-              onClick={() => aplicarOrden(item.value)}
-              className={cn(CHIP, "gap-1", criterio ? CHIP_ACTIVA : CHIP_INACTIVA)}
-            >
-              {item.label}
-              {criterio ? (
-                <span className="tabular-nums text-[#6B7A76]" aria-hidden>
-                  {orden.length > 1 ? `${indice + 1} ` : ""}
-                  {criterio.direccion === "desc" ? "↓" : "↑"}
-                </span>
-              ) : null}
-            </button>
-          );
-        })}
-      </div>
-
       <div
         className={cn(
           "min-w-0",
@@ -335,13 +423,13 @@ export function ListaFincasCatastro({
           "min-[780px]:overflow-hidden min-[780px]:rounded-2xl min-[780px]:border min-[780px]:border-[#E6E3DD] min-[780px]:bg-white"
         )}
       >
-        {visibles.length === 0 ? (
+        {pagina.length === 0 ? (
           <p className="px-4 py-10 text-center text-sm text-[#5D6B67]">No hay fincas con ese filtro.</p>
         ) : (
           <>
             {onToggleSeleccion ? (
               <BarraSeleccionLista
-                visibles={visibles}
+                visibles={pagina}
                 seleccionada={seleccionada}
                 fincasSeleccionadas={fincasSeleccionadas}
                 onMarcarPagina={onMarcarPagina}
@@ -349,8 +437,18 @@ export function ListaFincasCatastro({
                 onAsignacionLote={aplicarAsignacionLote}
               />
             ) : null}
+            <div className="hidden border-b border-[#F2F0EB] bg-[#FBFBF9] px-3.5 py-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-[#6B7A76] min-[780px]:flex min-[780px]:items-center min-[780px]:gap-3.5">
+              <span className="min-w-0 flex-[1_1_250px]">Dirección</span>
+              <span className="w-[74px]">m² parcela</span>
+              <span className="w-[90px]">N.º inmuebles</span>
+              <span className="w-[52px]">Año</span>
+              <span className="w-[118px]">Uso</span>
+              <span className="w-[132px]">Estado</span>
+              <span className="w-[168px]">Comercial</span>
+              <span className="w-[92px]" />
+            </div>
             <ul aria-label="Fincas encontradas" className="max-[779px]:space-y-2.5">
-              {visibles.map((finca) => (
+              {pagina.map((finca) => (
                 <li key={finca.fincaReference}>
                   <FincaResultadoRow
                     finca={finca}
@@ -367,6 +465,17 @@ export function ListaFincasCatastro({
                 </li>
               ))}
             </ul>
+            {visibles.length > tope ? (
+              <div className="border-t border-[#F2F0EB] px-4 py-3">
+                <button
+                  type="button"
+                  className={cn(CHIP, CHIP_INACTIVA)}
+                  onClick={() => setTope((n) => n + TAM_PAGINA_LISTA)}
+                >
+                  Mostrar más ({tope} de {visibles.length})
+                </button>
+              </div>
+            ) : null}
           </>
         )}
         {pie}
@@ -450,3 +559,11 @@ function BarraSeleccionLista({
 }
 
 const LEYENDA_FILTRO_HINT = "La clasificación la da Catastro, no se marca a mano";
+
+function numeroFiltroLista(valor: string): number | null {
+  const limpio = valor.trim().replace(",", ".");
+  if (!limpio) return null;
+  const n = Number(limpio);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return n;
+}

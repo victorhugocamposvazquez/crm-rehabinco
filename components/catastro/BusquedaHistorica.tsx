@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Download, Play } from "lucide-react";
 import { toast } from "sonner";
@@ -27,6 +27,8 @@ import {
   prepararExportacionHistorica,
   puedeReanudarHistorica,
   recuentoEstadosDesdeTotales,
+  resumenPaginacion,
+  offsetDesdePagina,
   revisionDesdePersistida,
   rutaFincaPersistida,
   TEXTO_REANUDAR_BUSQUEDA,
@@ -44,6 +46,7 @@ import {
 import { EXPLORER_RESULTS_PAGE_SIZE } from "@/lib/catastro/explorer";
 import { descargarArchivoLocal, estaSeleccionada } from "@/lib/catastro/selection-export";
 import { AccionNuevaBusqueda } from "./AccionNuevaBusqueda";
+import { BarraPaginacion } from "./BarraPaginacion";
 import { ConfirmacionEliminarBusqueda } from "./ConfirmacionEliminarBusqueda";
 import { ListaFincasCatastro } from "./ListaFincasCatastro";
 import { useSeleccionFincas } from "./useSeleccionFincas";
@@ -60,15 +63,26 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
   const [intento, setIntento] = useState(0);
   const [confirmar, setConfirmar] = useState(false);
   const [borrando, setBorrando] = useState(false);
+  const [cambiandoPagina, setCambiandoPagina] = useState(false);
+  const [errorPagina, setErrorPagina] = useState<string | null>(null);
+  const anclarListado = useRef(false);
+  const searchIdCargado = useRef<string | null>(null);
   const seleccionFincas = useSeleccionFincas();
   const { seleccion, revision } = seleccionFincas;
   const clave = claveHistorica(searchId);
 
   useEffect(() => {
     const controller = new AbortController();
+    const mismaBusqueda = searchIdCargado.current === searchId;
     setError(null);
-    setData(null);
-    setLinks([]);
+    setErrorPagina(null);
+    if (!mismaBusqueda) {
+      setData(null);
+      setLinks([]);
+      setCambiandoPagina(false);
+    } else {
+      setCambiandoPagina(true);
+    }
     fetchBusquedaPersistida(
       searchId,
       {
@@ -79,8 +93,10 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
       controller.signal
     )
       .then((recuperada) => {
+        searchIdCargado.current = searchId;
         setData(recuperada);
         setLinks(recuperada.links ?? []);
+        setCambiandoPagina(false);
         seleccionFincas.conservarPara(clave);
         seleccionFincas.hidratarRevision(
           clave,
@@ -94,11 +110,25 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
       })
       .catch((err) => {
         if (err instanceof DOMException && err.name === "AbortError") return;
-        setError(err instanceof Error ? err.message : ERROR_BUSQUEDA_404);
+        setCambiandoPagina(false);
+        const mensaje = err instanceof Error ? err.message : ERROR_BUSQUEDA_404;
+        if (searchIdCargado.current === searchId) setErrorPagina(mensaje);
+        else setError(mensaje);
       });
     return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchId, offset, intento, filtroEstado]);
+
+  useEffect(() => {
+    if (!data || cambiandoPagina || !anclarListado.current) return;
+    anclarListado.current = false;
+    document.getElementById("listado-fincas-catastro")?.scrollIntoView({ block: "start", behavior: "auto" });
+  }, [data, cambiandoPagina]);
+
+  const irPagina = (nuevoOffset: number) => {
+    anclarListado.current = true;
+    setOffset(Math.max(0, nuevoOffset));
+  };
 
   const visibles = useMemo(() => {
     if (!data) return [];
@@ -160,8 +190,24 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
 
   const cobertura = textosCoberturaHistorica(data.summary.coverage ?? data.search.coverage);
   const criterios = criteriosVisibles(data.search.criteria);
-  const hayAnterior = data.results.offset > 0;
-  const haySiguiente = data.results.offset + data.results.fincas.length < data.results.total;
+  const pagina = resumenPaginacion({
+    offset: data.results.offset,
+    limit: data.results.limit,
+    total: data.results.total,
+  });
+  const barraPaginas = (
+    <BarraPaginacion
+      etiqueta={pagina.etiqueta}
+      pagina={pagina.pagina}
+      paginas={pagina.paginas}
+      hayAnterior={pagina.hayAnterior}
+      haySiguiente={pagina.haySiguiente}
+      cargando={cambiandoPagina}
+      onAnterior={() => irPagina(data.results.offset - data.results.limit)}
+      onSiguiente={() => irPagina(data.results.offset + data.results.limit)}
+      onIrA={(n) => irPagina(offsetDesdePagina(n, data.results.limit))}
+    />
+  );
 
   return (
     <div className={cn((seleccion.fincas.length > 0 || revision.fincas.length > 0) && "pb-32 md:pb-24")}>
@@ -247,53 +293,31 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
         </Button>
       </div>
 
-      <p className="mt-4 text-sm text-neutral-600">
-        {visibles.length === 1 ? "1 finca en esta página" : `${visibles.length} fincas en esta página`}
-        {data.results.total > 0
-          ? ` · ${formatoNumeroEs(data.results.total)} ${filtroEstado === "ALL" ? "en la búsqueda" : "con este filtro"}`
-          : null}
-      </p>
-
-      <div className="mt-4">
+      <div className={cn("mt-4", cambiandoPagina && "pointer-events-none opacity-60")}>
+        {errorPagina ? (
+          <p className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
+            {errorPagina}
+          </p>
+        ) : null}
         <ListaFincasCatastro
           fincas={visibles}
           hrefDe={(finca) => rutaFincaPersistida(finca.fincaReference)}
           seleccionada={(ref) => estaSeleccionada(seleccion, ref)}
           vinculada={(ref) => links.some((item) => item.fincaReference === ref)}
           onToggleSeleccion={(finca) => seleccionFincas.alternar(finca, clave)}
-          onMarcarPagina={(pagina, marcar) => seleccionFincas.marcarPagina(pagina, clave, marcar)}
+          onMarcarPagina={(paginaLista, marcar) => seleccionFincas.marcarPagina(paginaLista, clave, marcar)}
           fincasSeleccionadas={seleccion.fincas.map((finca) => finca.fincaReference)}
           recuentoEstados={recuentoEstadosDesdeTotales(data.search.totals)}
           filtroEstado={filtroEstado}
           onFiltroEstado={(status) => {
+            anclarListado.current = true;
             setFiltroEstado(status);
             setOffset(0);
           }}
+          paginacion={barraPaginas}
+          pie={pagina.paginas > 1 ? <div className="border-t border-[#F2F0EB] px-3.5 py-3">{barraPaginas}</div> : null}
         />
       </div>
-
-      {data.results.total > data.results.limit ? (
-        <div className="mt-6 flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            disabled={!hayAnterior}
-            onClick={() => setOffset(Math.max(0, data.results.offset - data.results.limit))}
-          >
-            Anterior
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            disabled={!haySiguiente}
-            onClick={() => setOffset(data.results.offset + data.results.limit)}
-          >
-            Siguiente
-          </Button>
-        </div>
-      ) : null}
 
       {seleccionFincas.barra(() =>
         seleccionFincas.exportar(

@@ -6,5 +6,5 @@ export default async function CatastroBusquedaPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <BusquedaHistorica searchId={id} />;
+  return <BusquedaHistorica key={id} searchId={id} />;
 }

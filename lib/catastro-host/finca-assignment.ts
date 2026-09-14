@@ -85,6 +85,14 @@ export function filtrarPorAsignacion<T extends { fincaReference: string }>(
 }
 
 export const MAX_ASIGNACION_LOTE = 100;
+/** GET `/assignments?refs=` se parte para no reventar la URL con cientos de fincas. */
+export const MAX_REFS_GET_ASIGNACION = 80;
+
+export function trocearRefs(refs: string[], tamano = MAX_REFS_GET_ASIGNACION): string[][] {
+  const trozos: string[][] = [];
+  for (let i = 0; i < refs.length; i += tamano) trozos.push(refs.slice(i, i + tamano));
+  return trozos;
+}
 
 export function refsDesdeCuerpoAsignacion(cuerpo: {
   fincaReference?: unknown;

@@ -425,8 +425,8 @@ export function recuentoEstadosDivision(fincas: FincaBusquedaUi[]): Record<strin
 }
 
 export const CAMPOS_ORDEN_LISTA = [
-  { value: "parcela", label: "m²" },
-  { value: "inmuebles", label: "Inmuebles" },
+  { value: "parcela", label: "m² parcela" },
+  { value: "inmuebles", label: "N.º inmuebles" },
   { value: "anio", label: "Año" },
 ] as const;
 
@@ -486,12 +486,17 @@ export function ordenarListaFincas(
 
 export function filtrarListaFincas(
   fincas: FincaBusquedaUi[],
-  input: { q?: string; status?: string }
+  input: { q?: string; status?: string; minParcela?: number | null; minInmuebles?: number | null }
 ): FincaBusquedaUi[] {
   const q = input.q?.trim().toLowerCase() ?? "";
   const status = input.status?.trim().toUpperCase() || "ALL";
+  const minParcela = input.minParcela != null && Number.isFinite(input.minParcela) ? input.minParcela : null;
+  const minInmuebles =
+    input.minInmuebles != null && Number.isFinite(input.minInmuebles) ? input.minInmuebles : null;
   return fincas.filter((finca) => {
     if (status !== "ALL" && (finca.horizontalDivision?.status ?? "UNKNOWN") !== status) return false;
+    if (minParcela != null && (finca.superficieSolar ?? -1) < minParcela) return false;
+    if (minInmuebles != null && (finca.properties?.length ?? 0) < minInmuebles) return false;
     if (!q) return true;
     const haystack = [
       tituloDireccionFinca(finca),

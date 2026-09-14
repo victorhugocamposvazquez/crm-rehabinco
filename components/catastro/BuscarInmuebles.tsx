@@ -68,8 +68,8 @@ import {
   criteriosListos,
   ErrorBusquedaUi,
   fetchBusquedaCatastro,
+  recuentoEstadosDivision,
   textosCobertura,
-  textoContadorFincas,
   type CriteriosBusquedaUi,
   type FincaBusquedaUi,
   type ResultadoBusquedaUi,
@@ -882,9 +882,46 @@ function ResultadosBusqueda({
   onVerTodas: () => void;
 }) {
   const visibles = filtrarPorRevisionComercial(resultado.results, filtroRevision, revision);
+  const recuento = recuentoEstadosDivision(visibles);
   const seleccionadasEnPagina = visibles.filter((finca) =>
     estaSeleccionada(seleccion, finca.fincaReference)
   ).length;
+  const listadoRef = useRef<HTMLDivElement>(null);
+  const montado = useRef(false);
+  useEffect(() => {
+    if (!montado.current) {
+      montado.current = true;
+      return;
+    }
+    listadoRef.current?.scrollIntoView({ block: "start", behavior: "auto" });
+  }, [indice]);
+  const etiquetaPagina = resultado.pagination.hasNextPage
+    ? `Página ${indice + 1} · hay más`
+    : indice === 0
+      ? "Página 1"
+      : `Página ${indice + 1} de ${indice + 1}`;
+  const barraPaginas =
+    resultado.results.length > 0 || resultado.pagination.hasNextPage ? (
+      <nav className="flex flex-wrap items-center gap-2" aria-label="Paginación">
+        <Button type="button" variant="secondary" size="sm" onClick={onAnterior} disabled={loading || indice === 0}>
+          Anterior
+        </Button>
+        <p className="min-w-0 flex-1 text-[13px] font-medium tabular-nums text-[#131C1A]" aria-live="polite">
+          {etiquetaPagina}
+          {seleccionadasEnPagina > 0 ? ` · ${seleccionadasEnPagina} seleccionadas aquí` : null}
+          {loading ? " · cargando…" : null}
+        </p>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={onSiguiente}
+          disabled={loading || !resultado.pagination.hasNextPage}
+        >
+          Siguiente
+        </Button>
+      </nav>
+    ) : null;
   const cobertura = textosCobertura({
     complete: resultado.coverage.complete,
     completeCandidates: resultado.coverage.completeCandidates,
@@ -893,11 +930,11 @@ function ResultadosBusqueda({
   });
 
   return (
-    <div className="space-y-4">
+    <div ref={listadoRef} className="scroll-mt-[6.4rem] space-y-4 sm:scroll-mt-[6.9rem]">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-base font-semibold text-foreground">
-            {textoContadorFincas(visibles.length)}
+            {`${recuento.ALL.toLocaleString("es-ES")} fincas · ${recuento.NO.toLocaleString("es-ES")} candidatas`}
             {revision.fincas.length > 0 ? ` · ${textoRevision(revision.fincas.length)}` : null}
           </p>
           {resultado.pagination.hasNextPage || !resultado.coverage.complete ? (
@@ -958,33 +995,11 @@ function ResultadosBusqueda({
           onToggleSeleccion={onToggleSeleccion}
           onMarcarPagina={onMarcarPagina}
           fincasSeleccionadas={seleccion.fincas.map((finca) => finca.fincaReference)}
+          paginacion={barraPaginas}
         />
       )}
 
-      {resultado.results.length > 0 || resultado.pagination.hasNextPage ? (
-        <nav
-          className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-white px-4 py-3"
-          aria-label="Paginación de resultados"
-        >
-          <Button type="button" variant="secondary" size="sm" onClick={onAnterior} disabled={loading || indice === 0}>
-            Anterior
-          </Button>
-          <p className="text-sm font-medium text-neutral-600">
-            Página {indice + 1}
-            {seleccionadasEnPagina > 0 ? ` · ${seleccionadasEnPagina} seleccionadas aquí` : null}
-            {loading ? " · actualizando…" : null}
-          </p>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={onSiguiente}
-            disabled={loading || !resultado.pagination.hasNextPage}
-          >
-            Siguiente
-          </Button>
-        </nav>
-      ) : null}
+      {barraPaginas ? <div className="rounded-2xl border border-border bg-white px-4 py-3">{barraPaginas}</div> : null}
     </div>
   );
 }

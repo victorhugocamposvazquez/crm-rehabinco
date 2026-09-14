@@ -14,6 +14,7 @@ import {
   nombreComercial,
   recuentoFiltrosAsignacion,
   refsDesdeCuerpoAsignacion,
+  trocearRefs,
   uuidComercial,
 } from "./finca-assignment";
 
@@ -85,6 +86,8 @@ describe("finca-assignment", () => {
       ["AAA", "BBB"]
     );
     assert.deepEqual(refsDesdeCuerpoAsignacion({}), []);
+    assert.deepEqual(trocearRefs(["a", "b", "c", "d"], 2), [["a", "b"], ["c", "d"]]);
+    assert.deepEqual(trocearRefs([]), []);
   });
 
   it("la migración no crea visitas ni toca la clasificación", () => {

@@ -253,6 +253,8 @@ describe("search-ui", () => {
     });
     assert.equal(filtrarListaFincas([candidata, conPisos], { status: "NO" }).length, 1);
     assert.equal(filtrarListaFincas([candidata, conPisos], { q: "mayor" })[0]?.fincaReference, "11111111111111");
+    assert.equal(filtrarListaFincas([candidata, conPisos], { minParcela: 400 }).length, 1);
+    assert.equal(filtrarListaFincas([candidata, conPisos], { minInmuebles: 2 }).length, 0);
     const chica: FincaBusquedaUi = { ...conPisos, superficieSolar: 80, properties: [{ reference: "x", anio: 2001 }] };
     const sinDato: FincaBusquedaUi = { ...conPisos, fincaReference: "33333333333333", superficieSolar: undefined, properties: [] };
     assert.deepEqual(
