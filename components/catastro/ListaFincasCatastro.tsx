@@ -358,28 +358,11 @@ export function ListaFincasCatastro({
       <ChipsOrdenLista orden={orden} onOrden={aplicarOrden} />
 
       <div>
-        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#6B7A76]">
-          Filtrar · se aplican a la vez
-        </p>
+        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#6B7A76]">Filtrar</p>
         <div className="grid grid-cols-1 gap-2 min-[480px]:grid-cols-3">
-          <FiltroNumero
-            etiqueta="Desde m² parcela"
-            value={minParcela}
-            ayuda="Vacío = cualquiera"
-            onChange={setMinParcela}
-          />
-          <FiltroNumero
-            etiqueta="Desde n.º inmuebles"
-            value={minInmuebles}
-            ayuda="Vacío = cualquiera"
-            onChange={setMinInmuebles}
-          />
-          <FiltroNumero
-            etiqueta="Hasta año"
-            value={maxAnio}
-            ayuda="Año más nuevo de la finca. Vacío = todos"
-            onChange={setMaxAnio}
-          />
+          <FiltroNumero etiqueta="Desde m² parcela" value={minParcela} onChange={setMinParcela} />
+          <FiltroNumero etiqueta="Desde n.º inmuebles" value={minInmuebles} onChange={setMinInmuebles} />
+          <FiltroNumero etiqueta="Hasta año" value={maxAnio} onChange={setMaxAnio} />
         </div>
         {hayFiltroMetrica ? (
           <p className="mt-1.5 text-[12px] tabular-nums text-[#5D6B67]">
@@ -536,12 +519,10 @@ function BarraSeleccionLista({
 function FiltroNumero({
   etiqueta,
   value,
-  ayuda,
   onChange,
 }: {
   etiqueta: string;
   value: string;
-  ayuda: string;
   onChange: (valor: string) => void;
 }) {
   const activo = numeroFiltroLista(value) != null;
@@ -559,7 +540,6 @@ function FiltroNumero({
           activo ? "border-[#0B7461]" : "border-[#DAD6CE]"
         )}
       />
-      <span className="mt-1 block text-[11px] text-[#8A9692]">{activo ? `Filtro: ${value}` : ayuda}</span>
     </label>
   );
 }
@@ -596,8 +576,7 @@ function ChipsOrdenLista({
             >
               {item.label}
               {criterio ? (
-                <span className="ml-1 tabular-nums">
-                  {orden.length > 1 ? `${indice + 1} ` : null}
+                <span className="ml-1" aria-hidden>
                   {criterio.direccion === "desc" ? "↓" : "↑"}
                 </span>
               ) : null}

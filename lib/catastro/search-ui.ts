@@ -467,24 +467,20 @@ export function valorOrdenLista(finca: FincaBusquedaUi, campo: CampoOrdenLista):
 }
 
 /**
- * El último campo pulsado manda. Los demás quedan como desempate.
- * En el primero: más→menos; otra pulsación lo invierte; la tercera lo quita.
+ * Enciende, invierte o apaga un criterio. Varios a la vez pesan igual.
  */
 export function aplicarCriterioOrdenLista(
   criterios: readonly CriterioOrdenLista[],
   campo: CampoOrdenLista
 ): CriterioOrdenLista[] {
   const indice = criterios.findIndex((item) => item.campo === campo);
-  if (indice < 0) return [{ campo, direccion: "desc" }, ...criterios];
+  if (indice < 0) return [...criterios, { campo, direccion: "desc" }];
   const actual = criterios[indice];
   if (!actual) return [...criterios];
-  if (indice > 0) {
-    return [actual, ...criterios.filter((_, i) => i !== indice)];
-  }
   if (actual.direccion === "desc") {
-    return [{ campo, direccion: "asc" }, ...criterios.slice(1)];
+    return criterios.map((item, i) => (i === indice ? { campo, direccion: "asc" as const } : item));
   }
-  return criterios.slice(1);
+  return criterios.filter((_, i) => i !== indice);
 }
 
 export function numeroFiltroLista(valor: string): number | null {
@@ -495,25 +491,53 @@ export function numeroFiltroLista(valor: string): number | null {
   return n;
 }
 
+function rangosCriterioLista(
+  fincas: readonly FincaBusquedaUi[],
+  criterio: CriterioOrdenLista
+): number[] {
+  const n = fincas.length;
+  const filas = fincas.map((finca, indice) => ({
+    indice,
+    valor: valorOrdenLista(finca, criterio.campo),
+  }));
+  filas.sort((a, b) => {
+    if (a.valor == null && b.valor == null) return a.indice - b.indice;
+    if (a.valor == null) return 1;
+    if (b.valor == null) return -1;
+    if (a.valor !== b.valor) {
+      return criterio.direccion === "asc" ? a.valor - b.valor : b.valor - a.valor;
+    }
+    return a.indice - b.indice;
+  });
+  const rangos = Array<number>(n).fill(n);
+  let puesto = 1;
+  for (let i = 0; i < filas.length; ) {
+    const actual = filas[i]!;
+    let j = i + 1;
+    while (j < filas.length && filas[j]!.valor === actual.valor) j += 1;
+    for (let k = i; k < j; k += 1) {
+      const fila = filas[k];
+      if (fila) rangos[fila.indice] = puesto;
+    }
+    puesto += j - i;
+    i = j;
+  }
+  return rangos;
+}
+
 export function ordenarListaFincas(
   fincas: FincaBusquedaUi[],
   criterios: readonly CriterioOrdenLista[] = []
 ): FincaBusquedaUi[] {
   if (criterios.length === 0) return fincas;
+  const rangos = criterios.map((criterio) => rangosCriterioLista(fincas, criterio));
   return fincas
-    .map((finca, indice) => ({ finca, indice }))
-    .sort((a, b) => {
-      for (const criterio of criterios) {
-        const va = valorOrdenLista(a.finca, criterio.campo);
-        const vb = valorOrdenLista(b.finca, criterio.campo);
-        const signo = criterio.direccion === "asc" ? 1 : -1;
-        if (va == null && vb == null) continue;
-        if (va == null) return 1;
-        if (vb == null) return -1;
-        if (va !== vb) return (va - vb) * signo;
-      }
-      return a.indice - b.indice;
-    })
+    .map((finca, indice) => ({
+      finca,
+      indice,
+      puntuacion: rangos.reduce((suma, columna) => suma + (columna[indice] ?? fincas.length), 0),
+    }))
+    .sort((a, b) => a.puntuacion - b.puntuacion || a.indice - b.indice)
     .map((item) => item.finca);
 }
 
