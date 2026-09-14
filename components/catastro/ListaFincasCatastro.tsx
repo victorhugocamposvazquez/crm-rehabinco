@@ -6,11 +6,12 @@ import { Search } from "lucide-react";
 import {
   CAMPOS_ORDEN_LISTA,
   TEXTO_ATAJOS_LISTA,
+  aplicarCriterioOrdenLista,
   filtrarListaFincas,
   ordenarListaFincas,
   recuentoEstadosDivision,
   type CampoOrdenLista,
-  type DireccionOrdenLista,
+  type CriterioOrdenLista,
   type FincaBusquedaUi,
 } from "@/lib/catastro/search-ui";
 import { accionTecladoLista } from "@/lib/catastro/vista-movil";
@@ -28,6 +29,11 @@ import { FincaDetallePanel } from "./FincaDetallePanel";
 import { FincaResultadoRow } from "./FincaResultadoRow";
 import { LeyendaEstadosDivision } from "./LeyendaEstadosDivision";
 
+const CHIP =
+  "inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[11.5px] font-semibold min-h-[26px] leading-none";
+const CHIP_ACTIVA = "border-[#0B7461] bg-[#E8F3EF] text-[#08594B]";
+const CHIP_INACTIVA = "border-[#E6E3DD] bg-white text-[#5D6B67]";
+
 const FILTROS_LISTA = [
   { value: "ALL", label: "Todas" },
   { value: "NO", label: "Candidata" },
@@ -44,6 +50,9 @@ type Props = {
   onToggleSeleccion?: (finca: FincaBusquedaUi) => void;
   onProperty?: (finca: FincaBusquedaUi) => void;
   pie?: ReactNode;
+  recuentoEstados?: Record<string, number>;
+  filtroEstado?: string;
+  onFiltroEstado?: (status: string) => void;
 };
 
 export function ListaFincasCatastro({
@@ -54,28 +63,29 @@ export function ListaFincasCatastro({
   onToggleSeleccion,
   onProperty,
   pie,
+  recuentoEstados,
+  filtroEstado,
+  onFiltroEstado,
 }: Props) {
   const router = useRouter();
   const [q, setQ] = useState("");
-  const [filtro, setFiltro] = useState("ALL");
+  const [filtroLocal, setFiltroLocal] = useState("ALL");
+  const filtro = filtroEstado ?? filtroLocal;
   const [sel, setSel] = useState<string | null>(null);
   const [hoja, setHoja] = useState(false);
   const [filtroAsignacion, setFiltroAsignacion] = useState(FILTRO_ASIGNACION_TODAS);
   const [yo, setYo] = useState<string | null>(null);
   const [comerciales, setComerciales] = useState<ComercialAsignable[]>([]);
   const [asignaciones, setAsignaciones] = useState<Record<string, AsignacionFinca>>({});
-  const [ordenCampo, setOrdenCampo] = useState<CampoOrdenLista | null>(null);
-  const [ordenDir, setOrdenDir] = useState<DireccionOrdenLista>("desc");
-  const recuento = recuentoEstadosDivision(fincas);
-  const filtradas = useMemo(() => filtrarListaFincas(fincas, { q, status: filtro }), [fincas, q, filtro]);
+  const [orden, setOrden] = useState<CriterioOrdenLista[]>([]);
+  const recuento = recuentoEstados ?? recuentoEstadosDivision(fincas);
+  const filtradas = useMemo(
+    () => filtrarListaFincas(fincas, { q, status: onFiltroEstado ? "ALL" : filtro }),
+    [fincas, q, filtro, onFiltroEstado]
+  );
   const visibles = useMemo(
-    () =>
-      ordenarListaFincas(
-        filtrarPorAsignacion(filtradas, asignaciones, filtroAsignacion, yo),
-        ordenCampo,
-        ordenDir
-      ),
-    [filtradas, asignaciones, filtroAsignacion, yo, ordenCampo, ordenDir]
+    () => ordenarListaFincas(filtrarPorAsignacion(filtradas, asignaciones, filtroAsignacion, yo), orden),
+    [filtradas, asignaciones, filtroAsignacion, yo, orden]
   );
   const recuentoAsignacion = useMemo(
     () => recuentoFiltrosAsignacion(filtradas, asignaciones, yo, comerciales),
@@ -92,12 +102,7 @@ export function ListaFincasCatastro({
   }, []);
 
   const aplicarOrden = (campo: CampoOrdenLista) => {
-    if (ordenCampo === campo) {
-      setOrdenDir((prev) => (prev === "desc" ? "asc" : "desc"));
-      return;
-    }
-    setOrdenCampo(campo);
-    setOrdenDir("desc");
+    setOrden((prev) => aplicarCriterioOrdenLista(prev, campo));
   };
 
   useEffect(() => {
@@ -218,19 +223,20 @@ export function ListaFincasCatastro({
             type="button"
             role="tab"
             aria-selected={filtro === item.value}
-            onClick={() => setFiltro(item.value)}
-            className={cn(
-              "shrink-0 rounded-full border px-3 text-[12.5px] font-semibold min-h-[38px]",
-              filtro === item.value
-                ? "border-[#0B7461] bg-[#E8F3EF] text-[#08594B]"
-                : "border-[#E6E3DD] bg-white text-[#5D6B67]"
-            )}
+            onClick={() => {
+              if (onFiltroEstado) onFiltroEstado(item.value);
+              else setFiltroLocal(item.value);
+            }}
+            className={cn(CHIP, filtro === item.value ? CHIP_ACTIVA : CHIP_INACTIVA)}
           >
             {item.label}
-            <span className="ml-1 tabular-nums text-[#6B7A76]">{recuento[item.value] ?? 0}</span>
+            <span className="ml-1 tabular-nums text-[#6B7A76]">{(recuento[item.value] ?? 0).toLocaleString("es-ES")}</span>
           </button>
         ))}
       </div>
+      {recuentoEstados ? (
+        <p className="text-[11px] text-[#6B7A76]">Recuento de toda la búsqueda, no de esta página.</p>
+      ) : null}
 
       <div>
         <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#6B7A76]">Comercial</p>
@@ -251,12 +257,7 @@ export function ListaFincasCatastro({
               role="tab"
               aria-selected={filtroAsignacion === item.value}
               onClick={() => setFiltroAsignacion(item.value)}
-              className={cn(
-                "inline-flex shrink-0 items-center rounded-full border px-3 text-[12.5px] font-semibold min-h-[38px]",
-                filtroAsignacion === item.value
-                  ? "border-[#0B7461] bg-[#E8F3EF] text-[#08594B]"
-                  : "border-[#E6E3DD] bg-white text-[#5D6B67]"
-              )}
+              className={cn(CHIP, filtroAsignacion === item.value ? CHIP_ACTIVA : CHIP_INACTIVA)}
             >
               <span className="max-w-[11rem] truncate">{item.label}</span>
               <span className="ml-1 tabular-nums text-[#6B7A76]">{item.n}</span>
@@ -269,33 +270,34 @@ export function ListaFincasCatastro({
         {LEYENDA_FILTRO_HINT} · {TEXTO_ATAJOS_LISTA}
       </p>
 
-      <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Ordenar listado">
+      <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Ordenar listado">
         <p className="mr-1 text-[11px] font-semibold uppercase tracking-wide text-[#6B7A76]">Ordenar</p>
         {CAMPOS_ORDEN_LISTA.map((item) => {
-          const activa = ordenCampo === item.value;
-          const etiquetaDir = ordenDir === "desc" ? "más a menos" : "menos a más";
+          const indice = orden.findIndex((criterio) => criterio.campo === item.value);
+          const criterio = indice >= 0 ? orden[indice] : null;
+          const etiquetaDir = criterio?.direccion === "asc" ? "menos a más" : "más a menos";
           return (
             <button
               key={item.value}
               type="button"
-              aria-pressed={activa}
+              aria-pressed={criterio != null}
               aria-label={
-                activa
-                  ? `Ordenado por ${item.label}, ${etiquetaDir}. Pulsar para invertir`
-                  : `Ordenar por ${item.label}, más a menos`
+                criterio
+                  ? criterio.direccion === "asc"
+                    ? `Ordenado por ${item.label}, ${etiquetaDir}. Pulsar para quitar`
+                    : `Ordenado por ${item.label}, ${etiquetaDir}. Pulsar para invertir`
+                  : `Añadir orden por ${item.label}, más a menos`
               }
               onClick={() => aplicarOrden(item.value)}
-              className={cn(
-                "inline-flex min-h-[38px] shrink-0 items-center gap-1.5 rounded-full border px-3 text-[12.5px] font-semibold",
-                activa
-                  ? "border-[#0B7461] bg-[#E8F3EF] text-[#08594B]"
-                  : "border-[#E6E3DD] bg-white text-[#5D6B67]"
-              )}
+              className={cn(CHIP, "gap-1", criterio ? CHIP_ACTIVA : CHIP_INACTIVA)}
             >
               {item.label}
-              <span className="tabular-nums text-[#6B7A76]" aria-hidden>
-                {activa ? (ordenDir === "desc" ? "↓" : "↑") : "↕"}
-              </span>
+              {criterio ? (
+                <span className="tabular-nums text-[#6B7A76]" aria-hidden>
+                  {orden.length > 1 ? `${indice + 1} ` : ""}
+                  {criterio.direccion === "desc" ? "↓" : "↑"}
+                </span>
+              ) : null}
             </button>
           );
         })}

@@ -28,6 +28,7 @@ import {
   textoSiguienteBloque,
   textoZonaDemasiadoGrande,
   textosProgreso,
+  TEXTO_SEGUNDO_PLANO,
   zonaDemasiadoGrande,
   type EstadoZonaUi,
 } from "@/lib/catastro/zone-ui";
@@ -119,9 +120,7 @@ export function BuscarPorZona({
           ) : (
             <p className="mt-1 text-sm text-neutral-600">{textoCallesARevisar(snapshot.progress.streetsFound)}</p>
           )}
-          <p className="mt-3 text-sm text-neutral-500">
-            Esto puede tardar. Verás las fincas según se vayan revisando las calles. Puedes parar en cualquier momento.
-          </p>
+          <p className="mt-3 text-sm text-neutral-500">{TEXTO_SEGUNDO_PLANO}</p>
         </div>
         <div className="flex flex-wrap gap-2 [&_button]:min-h-10">
           <Button type="button" onClick={onComenzar} disabled={!acciones.comenzar}>
@@ -229,6 +228,7 @@ export function BuscarPorZona({
             {actividad ?? ritmo}
           </p>
         ) : null}
+        {enMarcha ? <p className="text-xs text-neutral-500">{TEXTO_SEGUNDO_PLANO}</p> : null}
         {estado.error ? (
           <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
             {estado.error}

@@ -30,6 +30,7 @@ import {
   textoZonaDemasiadoGrande,
   zonaDemasiadoGrande,
   debeContinuarPasos,
+  esFalloTransitorioZona,
   etiquetaCandidatas,
   ejecutarBucleZona,
   estadoAlCambiarModo,
@@ -124,6 +125,9 @@ describe("Zona UI: modo y formulario", () => {
     assert.deepEqual(estadoAlCambiarModo(), ESTADO_ZONA_INICIAL, "al cambiar de modo se limpia la zona");
     assert.match(EXPLICACION_ZONA, /calles oficiales de ese CP|no permite buscar directamente por código postal/);
     assert.doesNotMatch(EXPLICACION_ZONA, /WFS|DNPLOC|INSPIRE/);
+    assert.equal(esFalloTransitorioZona(502), true);
+    assert.equal(esFalloTransitorioZona(401), false);
+    assert.equal(esFalloTransitorioZona(undefined), true);
   });
 
   it("2. el formulario de zona exige provincia, municipio y CP de 5 dígitos (NO por defecto)", () => {

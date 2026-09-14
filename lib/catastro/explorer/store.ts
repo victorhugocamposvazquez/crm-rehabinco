@@ -86,6 +86,7 @@ export function crearStoreMemoriaExplorer(): ExplorerStore {
     async listResultsPage(searchId, query) {
       const todos = [...results.values()]
         .filter((item) => item.searchId === searchId)
+        .filter((item) => !query.status || item.classificationAtDiscovery.status === query.status)
         .sort((a, b) => {
           const porFecha = a.discoveredAt.localeCompare(b.discoveredAt);
           if (porFecha !== 0) return porFecha;

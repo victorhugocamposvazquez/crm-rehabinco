@@ -1,7 +1,5 @@
-import {
-  consultaHistoricoBusquedas,
-  resumenBusquedaReciente,
-} from "@/lib/catastro/explorer";
+import { consultaHistoricoBusquedas } from "@/lib/catastro/explorer";
+import { resumenDesdeBusqueda } from "@/lib/catastro/explorer/history-ui";
 import { explorerStoreDesdeSesion } from "@/lib/catastro-host/from-request";
 
 export const runtime = "nodejs";
@@ -24,15 +22,7 @@ export async function GET(request: Request) {
 
   return Response.json({
     ok: true,
-    searches: pagina.items.map((search) => ({
-      id: search.id,
-      mode: search.criteria.mode,
-      ...resumenBusquedaReciente(search),
-      coverage: {
-        complete: search.coverage.complete,
-        possibleCut: search.coverage.possibleCut,
-      },
-    })),
+    searches: pagina.items.map(resumenDesdeBusqueda),
     total: pagina.total,
     limit: pagina.limit,
     offset: pagina.offset,

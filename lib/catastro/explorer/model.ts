@@ -16,6 +16,7 @@ import {
   type CatastroExplorerTotals,
   type CatastroFinca,
   type CatastroFincaRecord,
+  type EstadoDhFinca,
   type ExplorerSearchesQuery,
 } from "./types";
 
@@ -231,6 +232,22 @@ export function acotarPaginaResultados(limit: number | undefined, offset: number
     limit: Math.min(EXPLORER_RESULTS_PAGE_MAX, Math.max(1, bruto)),
     offset: Math.max(0, Math.floor(offset ?? 0)),
   };
+}
+
+const ESTADOS_DH_RESULTADO = new Set<EstadoDhFinca>(["NO", "YES", "UNKNOWN", "NOT_APPLICABLE"]);
+
+/** Página de fincas de una búsqueda. `status` filtra por clasificación, no por página. */
+export function consultaResultadosBusqueda(input: {
+  limit?: number;
+  offset?: number;
+  status?: string | null;
+}): { limit: number; offset: number; status?: EstadoDhFinca } {
+  const pagina = acotarPaginaResultados(input.limit, input.offset);
+  const status =
+    input.status && ESTADOS_DH_RESULTADO.has(input.status as EstadoDhFinca)
+      ? (input.status as EstadoDhFinca)
+      : undefined;
+  return status ? { ...pagina, status } : pagina;
 }
 
 export function acotarPaginaHistorico(limit: number | undefined, offset: number | undefined): {

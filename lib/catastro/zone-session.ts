@@ -109,6 +109,38 @@ export function esZonaActiva(session: ZoneSession): boolean {
   return ESTADOS_ACTIVOS.has(session.status);
 }
 
+/**
+ * Una zona empezada sigue en servidor aunque el navegador se haya ido.
+ * No arranca un prepare que el usuario aún no ha pulsado «Empezar».
+ */
+export function sesionContinuaEnSegundoPlano(
+  session: Pick<ZoneSession, "status" | "cancelRequested" | "expiresAt" | "steps" | "calles">,
+  now = Date.now()
+): boolean {
+  if (session.expiresAt <= now) return false;
+  if (session.cancelRequested) return false;
+  if (session.status === "cancelled" || session.status === "done") return false;
+  const pendientes = session.calles.some((calle) => calle.status === "pending");
+  if (!pendientes) return false;
+  if (session.status === "prepared" && session.steps === 0) return false;
+  return (
+    session.status === "paused" ||
+    session.status === "running" ||
+    session.status === "upstream_paused" ||
+    session.status === "prepared"
+  );
+}
+
+export function snapshotContinuaEnSegundoPlano(snapshot: {
+  status: string;
+  progress?: { streetsPending?: number; steps?: number };
+}): boolean {
+  if (snapshot.status === "cancelled" || snapshot.status === "done") return false;
+  if ((snapshot.progress?.streetsPending ?? 0) <= 0) return false;
+  if (snapshot.status === "prepared" && (snapshot.progress?.steps ?? 0) === 0) return false;
+  return true;
+}
+
 export function claveZona(criterios: CriteriosZonaNormalizados): string {
   return [criterios.provincia, criterios.municipio, criterios.postalCode, String(criterios.streetOffset)]
     .map((valor) => valor.trim().toUpperCase())

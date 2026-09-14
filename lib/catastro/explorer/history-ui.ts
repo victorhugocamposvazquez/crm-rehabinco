@@ -12,6 +12,7 @@ import {
   type ExportacionPreparada,
   type SeleccionFincas,
 } from "../selection-export";
+import { ZONE_MAX_STREETS_RUN } from "../constants";
 import { FILTROS_DIVISION, type FincaBusquedaUi } from "../search-ui";
 import { REVISION_VACIA, type EstadoRevision, type RevisionFincas } from "../revision-comercial";
 import { resumenBusquedaReciente } from "./model";
@@ -128,7 +129,7 @@ export const ERROR_BUSQUEDA_404 = "Esta búsqueda no existe o no tienes acceso."
 export const ERROR_FINCA_404 = "No se ha encontrado la finca.";
 export const ERROR_ELIMINAR = "No se ha podido eliminar la búsqueda.";
 export const TEXTO_REINTENTAR = "Reintentar";
-export const TEXTO_VER_TODO = "Ver todo";
+export const TEXTO_VER_TODO = "Ver historial";
 export const TEXTO_ELIMINAR_BUSQUEDA = "Eliminar búsqueda";
 export const TEXTO_CONFIRMAR_ELIMINAR_TITULO = "¿Eliminar esta búsqueda?";
 export const TEXTO_CONFIRMAR_ELIMINAR =
@@ -143,9 +144,33 @@ export const FILTROS_LISTADO_HISTORICO = [
 export type FiltroListadoHistorico = (typeof FILTROS_LISTADO_HISTORICO)[number]["value"];
 
 export const CLASES_TARJETA_BUSQUEDA =
-  "flex flex-col gap-3 rounded-[13px] border border-[#E6E3DD] bg-white px-3.5 py-3.5 min-[780px]:flex-row min-[780px]:items-center min-[780px]:justify-between min-[780px]:rounded-none min-[780px]:border-0 min-[780px]:border-b min-[780px]:border-[#F2F0EB] min-[780px]:px-4";
+  "flex flex-col gap-3 rounded-[13px] border border-[#E6E3DD] bg-white px-3.5 py-3 min-[780px]:flex-row min-[780px]:items-center min-[780px]:justify-between min-[780px]:gap-4 min-[780px]:rounded-none min-[780px]:border-0 min-[780px]:border-b min-[780px]:border-[#F2F0EB] min-[780px]:px-4 min-[780px]:py-3 min-[780px]:last:border-b-0";
 
-export type CoberturaRecienteUi = Pick<CatastroExplorerCoverage, "complete" | "possibleCut">;
+export const CLASE_CHIP_ESTADO =
+  "inline-flex shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold";
+
+export const CLASES_CHIP_ESTADO: Record<CatastroExplorerSearchStatus, string> = {
+  PREPARED: "bg-neutral-100 text-neutral-700",
+  RUNNING: "bg-[#E9EEF8] text-[#2B4A8A]",
+  PAUSED: "bg-[#FBF0D8] text-[#6A4F0C]",
+  CANCELLED: "bg-[#FBF0D8] text-[#6A4F0C]",
+  COMPLETED: "bg-[#E8F3EF] text-[#0B7461]",
+  FAILED: "bg-red-50 text-red-800",
+};
+
+export const CLASES_PUNTO_ESTADO: Record<CatastroExplorerSearchStatus, string> = {
+  PREPARED: "bg-neutral-400",
+  RUNNING: "bg-[#3B6BC7]",
+  PAUSED: "bg-[#C9A227]",
+  CANCELLED: "bg-[#C9A227]",
+  COMPLETED: "bg-[#0B7461]",
+  FAILED: "bg-red-600",
+};
+
+export type CoberturaRecienteUi = Pick<
+  CatastroExplorerCoverage,
+  "complete" | "possibleCut" | "streetsFound" | "streetsProcessed" | "streetsTotal" | "streetOffset"
+>;
 
 export type ResumenBusquedaUi = ReturnType<typeof resumenBusquedaReciente> & {
   id: string;
@@ -174,6 +199,22 @@ export type FincaPersistidaUi = {
   links?: CatastroPropertyLink[];
 };
 
+export function recuentoEstadosDesdeTotales(totals: {
+  fincas: number;
+  candidates: number;
+  yes: number;
+  unknown: number;
+  notApplicable: number;
+}): Record<string, number> {
+  return {
+    ALL: totals.fincas,
+    NO: totals.candidates,
+    YES: totals.yes,
+    UNKNOWN: totals.unknown,
+    NOT_APPLICABLE: totals.notApplicable,
+  };
+}
+
 export type FiltroHistorico = "ALL" | "CANDIDATES" | "UNKNOWN" | "NOT_APPLICABLE" | "REVIEW";
 
 export const FILTROS_HISTORICOS = [
@@ -192,6 +233,65 @@ export const ESTADO_BUSQUEDA_UI: Record<CatastroExplorerSearchStatus, string> = 
   COMPLETED: "Completada",
   FAILED: "Con errores",
 };
+
+export type ProgresoListaBusqueda = {
+  ratio: number;
+  etiqueta: string;
+};
+
+export function coberturaListaDesdeBusqueda(
+  coverage: CatastroExplorerCoverage
+): CoberturaRecienteUi {
+  return {
+    complete: coverage.complete,
+    possibleCut: coverage.possibleCut,
+    ...(coverage.streetsFound != null ? { streetsFound: coverage.streetsFound } : {}),
+    ...(coverage.streetsProcessed != null ? { streetsProcessed: coverage.streetsProcessed } : {}),
+    ...(coverage.streetsTotal != null ? { streetsTotal: coverage.streetsTotal } : {}),
+    ...(coverage.streetOffset != null ? { streetOffset: coverage.streetOffset } : {}),
+  };
+}
+
+export function progresoListaBusqueda(input: {
+  mode: CatastroExplorerSearch["criteria"]["mode"];
+  status: CatastroExplorerSearchStatus;
+  coverage?: CoberturaRecienteUi;
+}): ProgresoListaBusqueda {
+  const coverage = input.coverage;
+  if (input.mode === "STREET") {
+    return input.status === "COMPLETED"
+      ? { ratio: 1, etiqueta: "completo" }
+      : { ratio: 0, etiqueta: "" };
+  }
+  if (coverage?.complete) {
+    return { ratio: 1, etiqueta: "completo" };
+  }
+
+  const encontradas = coverage?.streetsFound ?? 0;
+  const procesadas = coverage?.streetsProcessed ?? 0;
+  const total = coverage?.streetsTotal && coverage.streetsTotal > 0 ? coverage.streetsTotal : 0;
+  const offset = coverage?.streetOffset ?? 0;
+
+  if (total > 0) {
+    const bloques = Math.max(1, Math.ceil(total / ZONE_MAX_STREETS_RUN));
+    const indice = Math.min(bloques, Math.floor(offset / ZONE_MAX_STREETS_RUN) + 1);
+    const avanzado = Math.min(total, Math.max(0, offset + procesadas));
+    return {
+      ratio: avanzado / total,
+      etiqueta: `bloque ${indice}/${bloques}`,
+    };
+  }
+
+  if (encontradas > 0) {
+    const bloques = Math.max(1, Math.ceil(encontradas / ZONE_MAX_STREETS_RUN));
+    return {
+      ratio: Math.min(1, procesadas / encontradas),
+      etiqueta: `bloque 1/${bloques}`,
+    };
+  }
+
+  return { ratio: 0, etiqueta: "" };
+}
 
 function errorHttp(status: number, fallback: string, notFound?: string): Error {
   if (status === 401) return new Error("Tu sesión ha caducado. Vuelve a iniciar sesión.");
@@ -220,10 +320,7 @@ export function resumenDesdeBusqueda(search: CatastroExplorerSearch): ResumenBus
   return {
     id: search.id,
     mode: search.criteria.mode,
-    coverage: {
-      complete: search.coverage.complete,
-      possibleCut: search.coverage.possibleCut,
-    },
+    coverage: coberturaListaDesdeBusqueda(search.coverage),
     ...resumenBusquedaReciente(search),
   };
 }
@@ -253,6 +350,22 @@ export function fechaBusquedaCorta(iso: string): string {
   const fecha = new Date(iso);
   if (Number.isNaN(fecha.getTime())) return iso;
   return fecha.toLocaleDateString("es-ES");
+}
+
+export function fechaBusquedaLista(iso: string, ahora: Date = new Date()): string {
+  const fecha = new Date(iso);
+  if (Number.isNaN(fecha.getTime())) return iso;
+  if (fecha.toLocaleDateString("es-ES") === ahora.toLocaleDateString("es-ES")) return "hoy";
+  return fecha.toLocaleDateString("es-ES");
+}
+
+export function lineaMetaListaBusqueda(
+  item: Pick<ResumenBusquedaUi, "fincas" | "candidatas" | "updatedAt">,
+  ahora: Date = new Date()
+): string {
+  const fincas = `${formatoNumeroEs(item.fincas)} ${item.fincas === 1 ? "finca" : "fincas"}`;
+  const candidatas = `${formatoNumeroEs(item.candidatas)} ${item.candidatas === 1 ? "candidata" : "candidatas"}`;
+  return `${fincas} · ${candidatas} · ${fechaBusquedaLista(item.updatedAt, ahora)}`;
 }
 
 export function textosCoberturaHistorica(coverage?: CoberturaRecienteUi): {
@@ -438,12 +551,13 @@ export async function fetchBusquedasRecientes(
 
 export async function fetchBusquedaPersistida(
   id: string,
-  query: { limit?: number; offset?: number } = {},
+  query: { limit?: number; offset?: number; status?: string } = {},
   signal?: AbortSignal
 ): Promise<BusquedaRecuperadaUi> {
   const params = new URLSearchParams();
   params.set("limit", String(query.limit ?? EXPLORER_RESULTS_PAGE_SIZE));
   params.set("offset", String(query.offset ?? 0));
+  if (query.status && query.status !== "ALL") params.set("status", query.status);
   const respuesta = await fetch(`/api/catastro/searches/${encodeURIComponent(id)}?${params}`, {
     signal,
   });

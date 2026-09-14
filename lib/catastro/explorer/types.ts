@@ -58,6 +58,8 @@ export type CatastroExplorerCoverage = {
   streetsFound?: number;
   streetsProcessed?: number;
   streetsWithErrors?: number;
+  streetsTotal?: number;
+  streetOffset?: number;
 };
 
 export type CatastroExplorerTotals = {

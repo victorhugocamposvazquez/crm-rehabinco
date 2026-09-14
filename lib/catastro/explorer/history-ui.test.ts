@@ -17,7 +17,12 @@ import {
   RUTA_NUEVA_BUSQUEDA,
   TEXTO_CONFIRMAR_ELIMINAR,
   TEXTO_VER_TODO,
+  coberturaListaDesdeBusqueda,
   eliminarBusquedaUi,
+  fechaBusquedaLista,
+  lineaMetaListaBusqueda,
+  progresoListaBusqueda,
+  resumenDesdeBusqueda,
   esUrlHistorica,
   fetchHistoricoBusquedas,
   paramsHistoricoBusquedas,
@@ -40,6 +45,7 @@ import {
   recordarRutaResultados,
   rutaBusquedaHistorica,
   rutaFincaPersistida,
+  recuentoEstadosDesdeTotales,
   textosCoberturaHistorica,
   TEXTO_REANUDAR_BUSQUEDA,
   urlReanudarBusqueda,
@@ -145,7 +151,7 @@ describe("Catastro Explorer — experiencia persistente", () => {
       leerRutaResultados({ getItem: (clave) => memoria.get(clave) ?? null }),
       "/catastro/searches/abc"
     );
-    assert.equal(TEXTO_VER_TODO, "Ver todo");
+    assert.equal(TEXTO_VER_TODO, "Ver historial");
     assert.equal(TEXTO_REANUDAR_BUSQUEDA, "Reanudar");
     const reanudar = urlReanudarBusqueda("d406258d-f4ab-4445-9a19-61d635e68422", {
       mode: "POSTAL_CODE",
@@ -300,6 +306,18 @@ describe("Catastro Explorer — experiencia persistente", () => {
     assert.equal(llamaACatastro(urls[0]), false);
     assert.equal(data.results.offset, 50);
     assert.equal(data.results.fincas[0].fincaReference, "2749704YJ0624N");
+    await fetchBusquedaPersistida("s1", { limit: 50, offset: 0, status: "NO" });
+    assert.match(urls[1], /status=NO/);
+    assert.deepEqual(
+      recuentoEstadosDesdeTotales({
+        fincas: 1325,
+        candidates: 443,
+        yes: 41,
+        unknown: 0,
+        notApplicable: 2,
+      }),
+      { ALL: 1325, NO: 443, YES: 41, UNKNOWN: 0, NOT_APPLICABLE: 2 }
+    );
   });
 
   it("6. el filtro local no mezcla candidatos, UNKNOWN y NOT_APPLICABLE", () => {
@@ -432,6 +450,90 @@ describe("Catastro Explorer — experiencia persistente", () => {
     assert.match(CLASES_TARJETA_BUSQUEDA, /flex-col/);
     assert.match(CLASES_TARJETA_BUSQUEDA, /min-\[780px\]:flex-row/);
     assert.match(CLASES_TARJETA_BUSQUEDA, /border/);
+  });
+
+  it("la lista reciente resume fecha, fincas y progreso por bloques", () => {
+    const ahora = new Date("2026-09-14T10:00:00.000Z");
+    assert.equal(fechaBusquedaLista("2026-09-14T08:00:00.000Z", ahora), "hoy");
+    assert.equal(fechaBusquedaLista("2026-09-12T18:00:00.000Z", ahora), new Date("2026-09-12T18:00:00.000Z").toLocaleDateString("es-ES"));
+    assert.equal(
+      lineaMetaListaBusqueda(
+        { fincas: 559, candidatas: 191, updatedAt: "2026-09-12T18:00:00.000Z" },
+        ahora
+      ),
+      `559 fincas · 191 candidatas · ${new Date("2026-09-12T18:00:00.000Z").toLocaleDateString("es-ES")}`
+    );
+    assert.deepEqual(
+      progresoListaBusqueda({
+        mode: "POSTAL_CODE",
+        status: "PAUSED",
+        coverage: {
+          complete: false,
+          possibleCut: false,
+          streetsTotal: 4750,
+          streetOffset: 2750,
+          streetsFound: 250,
+          streetsProcessed: 80,
+        },
+      }),
+      { ratio: (2750 + 80) / 4750, etiqueta: "bloque 12/19" }
+    );
+    assert.deepEqual(
+      progresoListaBusqueda({
+        mode: "POSTAL_CODE",
+        status: "RUNNING",
+        coverage: {
+          complete: false,
+          possibleCut: false,
+          streetsTotal: 4500,
+          streetOffset: 1500,
+          streetsFound: 250,
+          streetsProcessed: 40,
+        },
+      }),
+      { ratio: (1500 + 40) / 4500, etiqueta: "bloque 7/18" }
+    );
+    assert.deepEqual(
+      progresoListaBusqueda({
+        mode: "STREET",
+        status: "COMPLETED",
+        coverage: { complete: true, possibleCut: false },
+      }),
+      { ratio: 1, etiqueta: "completo" }
+    );
+  });
+
+  it("el resumen de recientes incluye el progreso de zona", () => {
+    const search = actualizarBusqueda(
+      crearBusqueda({
+        id: "zona-15009",
+        now: "2026-09-12T10:00:00.000Z",
+        criteria: {
+          mode: "POSTAL_CODE",
+          provincia: "A CORUÑA",
+          municipio: "A CORUÑA",
+          postalCode: "15009",
+          horizontalDivision: "NO",
+        },
+      }),
+      {
+        status: "PAUSED",
+        coverage: {
+          complete: false,
+          completeCandidates: false,
+          possibleCut: false,
+          streetsFound: 250,
+          streetsProcessed: 80,
+          streetsTotal: 4750,
+          streetOffset: 2750,
+        },
+        now: "2026-09-12T18:00:00.000Z",
+      }
+    );
+    const resumen = resumenDesdeBusqueda(search);
+    assert.deepEqual(resumen.coverage, coberturaListaDesdeBusqueda(search.coverage));
+    assert.equal(resumen.coverage?.streetsTotal, 4750);
+    assert.equal(resumen.coverage?.streetOffset, 2750);
   });
 
   it("muestra cobertura sin inventar recortes", () => {

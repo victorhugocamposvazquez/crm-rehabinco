@@ -426,6 +426,10 @@ export const CAMPOS_ORDEN_LISTA = [
 
 export type CampoOrdenLista = (typeof CAMPOS_ORDEN_LISTA)[number]["value"];
 export type DireccionOrdenLista = "desc" | "asc";
+export type CriterioOrdenLista = {
+  campo: CampoOrdenLista;
+  direccion: DireccionOrdenLista;
+};
 
 export function valorOrdenLista(finca: FincaBusquedaUi, campo: CampoOrdenLista): number | null {
   if (campo === "parcela") return finca.superficieSolar ?? null;
@@ -437,23 +441,39 @@ export function valorOrdenLista(finca: FincaBusquedaUi, campo: CampoOrdenLista):
   return Math.max(...anios);
 }
 
+/** Primer toque añade el criterio (más→menos); el segundo lo invierte; el tercero lo quita. */
+export function aplicarCriterioOrdenLista(
+  criterios: readonly CriterioOrdenLista[],
+  campo: CampoOrdenLista
+): CriterioOrdenLista[] {
+  const indice = criterios.findIndex((item) => item.campo === campo);
+  if (indice < 0) return [...criterios, { campo, direccion: "desc" }];
+  const actual = criterios[indice];
+  if (!actual) return [...criterios];
+  if (actual.direccion === "desc") {
+    return criterios.map((item, i) => (i === indice ? { campo, direccion: "asc" as const } : item));
+  }
+  return criterios.filter((_, i) => i !== indice);
+}
+
 export function ordenarListaFincas(
   fincas: FincaBusquedaUi[],
-  campo: CampoOrdenLista | null,
-  direccion: DireccionOrdenLista = "desc"
+  criterios: readonly CriterioOrdenLista[] = []
 ): FincaBusquedaUi[] {
-  if (!campo) return fincas;
-  const signo = direccion === "asc" ? 1 : -1;
+  if (criterios.length === 0) return fincas;
   return fincas
     .map((finca, indice) => ({ finca, indice }))
     .sort((a, b) => {
-      const va = valorOrdenLista(a.finca, campo);
-      const vb = valorOrdenLista(b.finca, campo);
-      if (va == null && vb == null) return a.indice - b.indice;
-      if (va == null) return 1;
-      if (vb == null) return -1;
-      if (va === vb) return a.indice - b.indice;
-      return (va - vb) * signo;
+      for (const criterio of criterios) {
+        const va = valorOrdenLista(a.finca, criterio.campo);
+        const vb = valorOrdenLista(b.finca, criterio.campo);
+        const signo = criterio.direccion === "asc" ? 1 : -1;
+        if (va == null && vb == null) continue;
+        if (va == null) return 1;
+        if (vb == null) return -1;
+        if (va !== vb) return (va - vb) * signo;
+      }
+      return a.indice - b.indice;
     })
     .map((item) => item.finca);
 }

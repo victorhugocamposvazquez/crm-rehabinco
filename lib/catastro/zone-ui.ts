@@ -572,6 +572,14 @@ export function textoEstadoFinal(estado: EstadoZonaUi): string | null {
 export const AYUDA_ERRORES_CALLE =
   "No son calles inválidas: Catastro cortó o caducó la consulta. Al reanudar se vuelven a intentar.";
 
+export const TEXTO_SEGUNDO_PLANO =
+  "Puedes cerrar el CRM: la búsqueda sigue en el servidor. Pausar la detiene.";
+
+export function esFalloTransitorioZona(status?: number): boolean {
+  if (status == null) return true;
+  return status === 408 || status === 409 || status === 425 || status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+}
+
 export function listaErrores(
   errores: ZoneSnapshotUi["errors"],
   maximo = 5

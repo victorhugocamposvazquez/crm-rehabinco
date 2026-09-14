@@ -1,9 +1,5 @@
-import {
-  acotarPaginaResultados,
-  eliminarBusqueda,
-  resumenBusquedaReciente,
-} from "@/lib/catastro/explorer";
-import { fincaUiDesdeRecord } from "@/lib/catastro/explorer/history-ui";
+import { consultaResultadosBusqueda, eliminarBusqueda } from "@/lib/catastro/explorer";
+import { fincaUiDesdeRecord, resumenDesdeBusqueda } from "@/lib/catastro/explorer/history-ui";
 import { explorerStoreDesdeSesion } from "@/lib/catastro-host/from-request";
 
 export const runtime = "nodejs";
@@ -25,10 +21,11 @@ export async function GET(
   }
 
   const params = new URL(request.url).searchParams;
-  const pagina = acotarPaginaResultados(
-    params.get("limit") ? Number(params.get("limit")) : undefined,
-    params.get("offset") ? Number(params.get("offset")) : undefined
-  );
+  const pagina = consultaResultadosBusqueda({
+    limit: params.get("limit") ? Number(params.get("limit")) : undefined,
+    offset: params.get("offset") ? Number(params.get("offset")) : undefined,
+    status: params.get("status"),
+  });
   const results = await store.listResultsPage(id, pagina);
   const fincas = await store.getFincas(results.items.map((item) => item.fincaReference));
   const porRef = new Map(fincas.map((finca) => [finca.fincaReference, finca]));
@@ -43,15 +40,7 @@ export async function GET(
   return Response.json({
     ok: true,
     search,
-    summary: {
-      id: search.id,
-      mode: search.criteria.mode,
-      ...resumenBusquedaReciente(search),
-      coverage: {
-        complete: search.coverage.complete,
-        possibleCut: search.coverage.possibleCut,
-      },
-    },
+    summary: resumenDesdeBusqueda(search),
     results: {
       items: results.items,
       fincas: results.items

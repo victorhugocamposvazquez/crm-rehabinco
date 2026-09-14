@@ -166,11 +166,11 @@ export function TopBar() {
             setPasswordError(null);
           }
         }}
-        fullScreenOnMobile
+        variant="side"
         showCloseButton
       >
-        <div className="px-4 pb-24 pt-4 md:pb-8">
-          <h2 className="mb-6 text-xl font-semibold">Ajustes</h2>
+        <div className="px-5 pb-8 pt-[max(3.5rem,calc(env(safe-area-inset-top)+2.75rem))]">
+          <h2 className="mb-6 pr-8 text-xl font-semibold">Ajustes</h2>
           <div className="mb-6 rounded-2xl bg-neutral-50 px-4 py-4">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
               Sesión iniciada

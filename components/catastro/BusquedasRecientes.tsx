@@ -84,9 +84,12 @@ export function BusquedasRecientes({
     <section className={compact ? "mt-6" : "mt-2"}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold text-foreground">Búsquedas recientes</h2>
-        <Button asChild variant="ghost" size="sm">
-          <Link href={RUTA_HISTORICO}>{TEXTO_VER_TODO}</Link>
-        </Button>
+        <Link
+          href={RUTA_HISTORICO}
+          className="text-sm font-medium text-[#0B7461] hover:underline"
+        >
+          {TEXTO_VER_TODO}
+        </Link>
       </div>
       <ul className={CLASES_LISTA_BUSQUEDAS}>
         {(compact ? items.slice(0, 3) : items).map((item) => (

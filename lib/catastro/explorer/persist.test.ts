@@ -8,6 +8,7 @@ import {
   crearBusqueda,
   crearStoreMemoriaExplorer,
   consultaHistoricoBusquedas,
+  consultaResultadosBusqueda,
   eliminarBusqueda,
   persistirBusqueda,
   persistirRevision,
@@ -291,6 +292,8 @@ describe("Catastro Explorer — persistencia", () => {
           streetsFound: 12,
           streetsProcessed: 12,
           streetsWithErrors: 0,
+          streetsTotal: 12,
+          streetOffset: 0,
         },
         fincas: [FINCA_001, FINCA_002, FINCA_003],
         now: "2026-09-12T18:00:00.000Z",
@@ -300,6 +303,8 @@ describe("Catastro Explorer — persistencia", () => {
     );
     assert.equal(search.criteria.mode, "POSTAL_CODE");
     assert.equal(search.coverage.streetsFound, 12);
+    assert.equal(search.coverage.streetsTotal, 12);
+    assert.equal(search.coverage.streetOffset, 0);
     assert.equal(search.coverage.complete, true);
     assert.equal(search.totals.fincas, 3);
     assert.equal(search.totals.candidates, 1);
@@ -401,6 +406,11 @@ describe("Catastro Explorer — persistencia", () => {
     assert.equal(pagina.items.length, 2);
     assert.equal(siguiente.items.length, 1);
     assert.equal(siguiente.offset, 2);
+    const candidatas = await store.listResultsPage("paginada", { limit: 10, offset: 0, status: "NO" });
+    assert.equal(candidatas.total, 1);
+    assert.equal(candidatas.items[0]?.classificationAtDiscovery.status, "NO");
+    assert.equal(consultaResultadosBusqueda({ status: "NO" }).status, "NO");
+    assert.equal(consultaResultadosBusqueda({ status: "ALL" }).status, undefined);
   });
 
   it("elimina búsqueda y resultados sin borrar finca ni review", async () => {

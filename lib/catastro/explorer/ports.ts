@@ -8,6 +8,7 @@ import type {
   CatastroExplorerSearch,
   CatastroExplorerSearchResult,
   CatastroFincaRecord,
+  EstadoDhFinca,
   ExplorerResultsPage,
   ExplorerSearchesPage,
   ExplorerSearchesQuery,
@@ -32,6 +33,7 @@ export type ExplorerAuth = {
 export type ExplorerResultsQuery = {
   limit: number;
   offset: number;
+  status?: EstadoDhFinca;
 };
 
 /**

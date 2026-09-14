@@ -19,6 +19,7 @@ import {
   type ExplorerStore,
 } from "./explorer";
 import type { ZoneSessionArchive } from "./zone-archive";
+import { ZONE_STEP_MAX_BUDGET_MS } from "./constants";
 import { getZoneStore, type ZoneSession } from "./zone-session";
 import {
   cancelarZona,
@@ -120,6 +121,8 @@ async function persistirZona(
           streetsFound: snapshot.coverage.streetsFound,
           streetsProcessed: snapshot.coverage.streetsProcessed,
           streetsWithErrors: snapshot.coverage.streetsWithErrors,
+          streetsTotal: snapshot.coverage.streetsTotal,
+          streetOffset: snapshot.coverage.streetOffset,
         },
         fincas,
         now,
@@ -214,7 +217,6 @@ export async function responderZonaPaso(
       {
         budgetMs: entero(params.budgetMs),
         concurrency: entero(params.concurrency),
-        signal: request.signal,
       },
       deps
     );
@@ -284,4 +286,27 @@ export async function responderZonaEstado(
   const sesion = await sesionDe(params, user, deps);
   if (!sesion.ok) return sesion.response;
   return json(cuerpoZona(snapshotZona(sesion.session)));
+}
+
+/**
+ * Continúa una zona ya persistida sin el navegador.
+ * No usa el abort de la petición HTTP: cerrar el CRM no debe parar el paso.
+ */
+export async function avanzarZonaEnServidor(
+  session: ZoneSession,
+  deps: ZoneHttpDeps = {}
+): Promise<ZoneSnapshot> {
+  const store = deps.zoneStore ?? getZoneStore();
+  store.put(session);
+  store.touch(session);
+  if (session.status === "upstream_paused") {
+    reanudarZona(session, {}, deps);
+  }
+  if (session.status === "cancelled" || session.status === "done") {
+    return snapshotZona(session);
+  }
+  const snapshot = await ejecutarPasoZona(session, { budgetMs: ZONE_STEP_MAX_BUDGET_MS }, deps);
+  await guardarArchivo(session, deps);
+  await persistirZona(session.userId, session, snapshot, deps);
+  return snapshot;
 }

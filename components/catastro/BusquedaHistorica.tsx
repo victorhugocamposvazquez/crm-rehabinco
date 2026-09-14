@@ -26,6 +26,7 @@ import {
   claveHistorica,
   prepararExportacionHistorica,
   puedeReanudarHistorica,
+  recuentoEstadosDesdeTotales,
   revisionDesdePersistida,
   rutaFincaPersistida,
   TEXTO_REANUDAR_BUSQUEDA,
@@ -53,6 +54,7 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [offset, setOffset] = useState(0);
   const [filtro, setFiltro] = useState<FiltroHistorico>("ALL");
+  const [filtroEstado, setFiltroEstado] = useState("ALL");
   const [filtroVinculo, setFiltroVinculo] = useState<FiltroVinculoProperty>("ALL");
   const [links, setLinks] = useState<CatastroPropertyLink[]>([]);
   const [intento, setIntento] = useState(0);
@@ -67,7 +69,15 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
     setError(null);
     setData(null);
     setLinks([]);
-    fetchBusquedaPersistida(searchId, { limit: EXPLORER_RESULTS_PAGE_SIZE, offset }, controller.signal)
+    fetchBusquedaPersistida(
+      searchId,
+      {
+        limit: EXPLORER_RESULTS_PAGE_SIZE,
+        offset,
+        status: filtroEstado,
+      },
+      controller.signal
+    )
       .then((recuperada) => {
         setData(recuperada);
         setLinks(recuperada.links ?? []);
@@ -88,15 +98,15 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
       });
     return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchId, offset, intento]);
+  }, [searchId, offset, intento, filtroEstado]);
 
   const visibles = useMemo(() => {
     if (!data) return [];
-    return filtrarPorVinculoPropiedad(
-      filtrarFincasHistoricas(data.results.fincas, filtro, revision),
-      links,
-      filtroVinculo
-    );
+    const base =
+      filtro === "REVIEW"
+        ? filtrarFincasHistoricas(data.results.fincas, "REVIEW", revision)
+        : data.results.fincas;
+    return filtrarPorVinculoPropiedad(base, links, filtroVinculo);
   }, [data, filtro, filtroVinculo, links, revision]);
 
   const exportarPagina = () => {
@@ -205,13 +215,13 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap gap-2" role="tablist" aria-label="Filtro local">
-            {FILTROS_HISTORICOS.map((item) => (
+            {FILTROS_HISTORICOS.filter((item) => item.value === "REVIEW").map((item) => (
               <Button
                 key={item.value}
                 type="button"
                 size="sm"
                 variant={filtro === item.value ? "default" : "secondary"}
-                onClick={() => setFiltro(item.value)}
+                onClick={() => setFiltro((prev) => (prev === "REVIEW" ? "ALL" : "REVIEW"))}
               >
                 {item.label}
               </Button>
@@ -239,7 +249,9 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
 
       <p className="mt-4 text-sm text-neutral-600">
         {visibles.length === 1 ? "1 finca en esta página" : `${visibles.length} fincas en esta página`}
-        {data.results.total > 0 ? ` · ${formatoNumeroEs(data.results.total)} guardadas` : null}
+        {data.results.total > 0
+          ? ` · ${formatoNumeroEs(data.results.total)} ${filtroEstado === "ALL" ? "en la búsqueda" : "con este filtro"}`
+          : null}
       </p>
 
       <div className="mt-4">
@@ -249,6 +261,12 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
           seleccionada={(ref) => estaSeleccionada(seleccion, ref)}
           vinculada={(ref) => links.some((item) => item.fincaReference === ref)}
           onToggleSeleccion={(finca) => seleccionFincas.alternar(finca, clave)}
+          recuentoEstados={recuentoEstadosDesdeTotales(data.search.totals)}
+          filtroEstado={filtroEstado}
+          onFiltroEstado={(status) => {
+            setFiltroEstado(status);
+            setOffset(0);
+          }}
         />
       </div>
 

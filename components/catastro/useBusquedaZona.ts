@@ -8,6 +8,7 @@ import {
   aplicarErrorZona,
   aplicarSnapshotZona,
   debeContinuarPasos,
+  esFalloTransitorioZona,
   ejecutarBucleZona,
   fetchZonaCancelar,
   fetchZonaEstado,
@@ -67,6 +68,24 @@ export function useBusquedaZona() {
   }, [ejecutando]);
 
   useEffect(() => {
+    if (!ejecutando) return;
+    const id = zoneIdRef.current;
+    if (!id) return;
+    const timer = setInterval(() => {
+      void fetchZonaEstado(id)
+        .then((snapshot) => {
+          if (!zoneIdRef.current || zoneIdRef.current !== snapshot.zoneSearchId) return;
+          recordarZona(snapshot.zoneSearchId);
+          setEstado((prev) =>
+            aplicarSnapshotZona(prev, snapshot, { ejecutando: debeContinuarPasos(snapshot) })
+          );
+        })
+        .catch(() => undefined);
+    }, 8_000);
+    return () => clearInterval(timer);
+  }, [ejecutando]);
+
+  useEffect(() => {
     return () => abortRef.current?.abort();
   }, []);
 
@@ -109,6 +128,28 @@ export function useBusquedaZona() {
         }
       }
       if (opRef.current !== op) return;
+      if (
+        esFalloTransitorioZona(detalle.status) &&
+        estadoRef.current.snapshot &&
+        debeContinuarPasos(estadoRef.current.snapshot)
+      ) {
+        await esperar(2_000);
+        if (opRef.current !== op) return;
+        try {
+          const snapshot = await fetchZonaEstado(zoneSearchId);
+          if (opRef.current !== op) return;
+          zoneIdRef.current = snapshot.zoneSearchId;
+          recordarZona(snapshot.zoneSearchId);
+          setEstado((prev) =>
+            aplicarSnapshotZona(prev, snapshot, { ejecutando: debeContinuarPasos(snapshot) })
+          );
+          if (debeContinuarPasos(snapshot)) await bucle(zoneSearchId, op);
+          return;
+        } catch {
+          // El servidor puede seguir; no pintamos el error rojo de la pestaña.
+          return;
+        }
+      }
       setEstado((prev) => aplicarErrorZona(prev, detalle));
     }
   };

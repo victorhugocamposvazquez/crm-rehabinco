@@ -392,9 +392,11 @@ export function createSupabaseExplorerStore(client: ExplorerDbClient): ExplorerS
     },
     async listResultsPage(searchId, query) {
       const to = query.offset + Math.max(0, query.limit) - 1;
-      const resultado = await (tabla<ResultRow>("catastro_explorer_search_results")
+      let consulta = tabla<ResultRow>("catastro_explorer_search_results")
         .select("*", { count: "exact" })
-        .eq("search_id", searchId)
+        .eq("search_id", searchId);
+      if (query.status) consulta = consulta.eq("classification_status", query.status);
+      const resultado = await (consulta
         .order("discovered_at", { ascending: true })
         .order("finca_reference", { ascending: true })
         .range(query.offset, Math.max(query.offset, to)) as unknown as Promise<

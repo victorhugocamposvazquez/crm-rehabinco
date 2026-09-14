@@ -28,6 +28,7 @@ export {
   acotarPaginaHistorico,
   acotarPaginaResultados,
   consultaHistoricoBusquedas,
+  consultaResultadosBusqueda,
   actualizarBusqueda,
   crearBusqueda,
   criteriosHaciaCatastro,
