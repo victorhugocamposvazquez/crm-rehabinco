@@ -1,4 +1,5 @@
 import type { ZoneStatus } from "../zone-session";
+import { ZONE_MAX_STREETS_RUN } from "../constants";
 import { fusionarFincas } from "../candidates";
 import { getFincaReference } from "../references";
 import type { EstadoRevision } from "../revision-comercial";
@@ -183,11 +184,35 @@ export function ordenarBusquedasRecientes(
 export function tituloBusquedaReciente(search: CatastroExplorerSearch): string {
   const municipio = search.criteria.municipio.trim();
   if (search.criteria.mode === "POSTAL_CODE") {
-    return `${municipio} · CP ${search.criteria.postalCode}`;
+    const titulo = `${municipio} · CP ${search.criteria.postalCode}`;
+    const total = search.coverage.streetsTotal ?? 0;
+    if (total <= ZONE_MAX_STREETS_RUN) return titulo;
+    const offset = search.coverage.streetOffset ?? 0;
+    const bloques = Math.max(1, Math.ceil(total / ZONE_MAX_STREETS_RUN));
+    const indice = Math.min(bloques, Math.floor(offset / ZONE_MAX_STREETS_RUN) + 1);
+    return `${titulo} · bloque ${indice}/${bloques}`;
   }
   const via = [search.criteria.sigla, search.criteria.via].filter(Boolean).join(" ").trim();
   const numero = search.criteria.numero?.trim();
   return numero ? `${municipio} · ${via} ${numero}` : `${municipio} · ${via}`;
+}
+
+/** PREPARED con calles ya recorridas es una reanudación persistida mal, no una búsqueda nueva. */
+export function estadoVisibleBusqueda(
+  status: CatastroExplorerSearchStatus,
+  coverage?: Pick<CatastroExplorerCoverage, "streetsFound" | "streetsProcessed">
+): CatastroExplorerSearchStatus {
+  const encontradas = coverage?.streetsFound ?? 0;
+  const procesadas = coverage?.streetsProcessed ?? 0;
+  if (
+    encontradas > 0 &&
+    procesadas >= encontradas &&
+    (status === "PREPARED" || status === "PAUSED" || status === "RUNNING")
+  ) {
+    return "COMPLETED";
+  }
+  if (status === "PREPARED" && procesadas > 0) return "PAUSED";
+  return status;
 }
 
 export function resumenBusquedaReciente(search: CatastroExplorerSearch): {
@@ -201,9 +226,17 @@ export function resumenBusquedaReciente(search: CatastroExplorerSearch): {
     titulo: tituloBusquedaReciente(search),
     fincas: search.totals.fincas,
     candidatas: search.totals.candidates,
-    status: search.status,
+    status: estadoVisibleBusqueda(search.status, search.coverage),
     updatedAt: search.updatedAt,
   };
+}
+
+function noRegresarAPreparada(
+  previo: CatastroExplorerSearchStatus,
+  siguiente: CatastroExplorerSearchStatus
+): CatastroExplorerSearchStatus {
+  if (siguiente === "PREPARED" && previo !== "PREPARED") return previo;
+  return siguiente;
 }
 
 /** Conserva createdAt y ownerId; actualiza estado, cobertura y totales. */
@@ -215,7 +248,7 @@ export function fusionarBusquedaPersistida(
   return {
     ...previa,
     criteria: propuesta.criteria,
-    status: propuesta.status,
+    status: noRegresarAPreparada(previa.status, propuesta.status),
     coverage: propuesta.coverage,
     totals: propuesta.totals,
     updatedAt: propuesta.updatedAt,

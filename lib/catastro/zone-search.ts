@@ -700,7 +700,7 @@ export function reanudarZona(
   }
   if (reintentadas > 0) session.steps += 1;
   const pendientes = session.calles.some((calle) => calle.status === "pending");
-  session.status = pendientes ? "prepared" : "done";
+  session.status = pendientes ? "paused" : "done";
   (deps.zoneStore ?? getZoneStore()).touch(session);
   return snapshotZona(session);
 }

@@ -8,6 +8,8 @@ import {
   crearBusqueda,
   criteriosHaciaCatastro,
   estadoDesdeZona,
+  estadoVisibleBusqueda,
+  fusionarBusquedaPersistida,
   identidadFinca,
   ordenarBusquedasRecientes,
   recordDesdeFinca,
@@ -256,5 +258,60 @@ describe("Catastro Explorer — frontera y modelo", () => {
     assert.equal(estadoDesdeZona("upstream_paused"), "PAUSED");
     assert.equal(estadoDesdeZona("done"), "COMPLETED");
     assert.equal(estadoDesdeZona("cancelled"), "CANCELLED");
+  });
+
+  it("un prepare posterior no borra Completada; los bloques se distinguen en el título", () => {
+    const previa = actualizarBusqueda(
+      crearBusqueda({
+        id: "zona-15009",
+        ownerId: "user-1",
+        now: "2026-09-14T12:00:00.000Z",
+        criteria: {
+          mode: "POSTAL_CODE",
+          provincia: "A CORUÑA",
+          municipio: "A CORUÑA",
+          postalCode: "15009",
+          horizontalDivision: "NO",
+        },
+      }),
+      { status: "COMPLETED", now: "2026-09-14T12:19:00.000Z" }
+    );
+    const fusion = fusionarBusquedaPersistida(previa, { ...previa, status: "PREPARED", updatedAt: "2026-09-14T17:21:00.000Z" });
+    assert.equal(fusion.status, "COMPLETED");
+    assert.equal(
+      estadoVisibleBusqueda("PREPARED", { streetsFound: 127, streetsProcessed: 126 }),
+      "PAUSED"
+    );
+    assert.equal(
+      estadoVisibleBusqueda("PREPARED", { streetsFound: 16, streetsProcessed: 16 }),
+      "COMPLETED"
+    );
+    const segundoBloque = actualizarBusqueda(
+      crearBusqueda({
+        id: "zona-28100-b2",
+        ownerId: "user-1",
+        now: "2026-09-14T12:00:00.000Z",
+        criteria: {
+          mode: "POSTAL_CODE",
+          provincia: "MADRID",
+          municipio: "ALCOBENDAS",
+          postalCode: "28100",
+          horizontalDivision: "NO",
+        },
+      }),
+      {
+        coverage: {
+          complete: false,
+          completeCandidates: false,
+          possibleCut: false,
+          streetsTotal: 266,
+          streetOffset: 250,
+          streetsFound: 16,
+          streetsProcessed: 16,
+        },
+        now: "2026-09-14T12:08:00.000Z",
+      }
+    );
+    assert.equal(tituloBusquedaReciente(segundoBloque), "ALCOBENDAS · CP 28100 · bloque 2/2");
   });
 });

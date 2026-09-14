@@ -672,7 +672,7 @@ describe("Zona: control de ejecución", () => {
     const procesadasAntes = snapshotZona(session).progress.streetsProcessed;
     assert.ok(procesadasAntes >= 1 && procesadasAntes < 5);
     const reanudada = reanudarZona(session, {}, deps);
-    assert.equal(reanudada.status, "prepared");
+    assert.equal(reanudada.status, "paused");
     assert.equal(reanudada.nextAction, "step");
     const final = await ejecutarHastaTerminar(session, deps);
     assert.equal(final.status, "done");
@@ -758,7 +758,7 @@ describe("Zona: control de ejecución", () => {
     const reanudada = reanudarZona(session, { reintentarErrores: true }, deps);
     assert.equal(reanudada.progress.streetsWithErrors, 0);
     assert.equal(reanudada.progress.streetsPending, 12);
-    assert.equal(reanudada.status, "prepared");
+    assert.equal(reanudada.status, "paused");
     assert.ok(reanudada.progress.steps > snapshot.progress.steps);
   });
 
@@ -937,7 +937,7 @@ describe("Zona: adaptador HTTP", () => {
     const reanudada = (await (
       await responderZonaReanudar(peticion("resume", { zoneSearchId }), USUARIO, deps)
     ).json()) as { status: string };
-    assert.equal(reanudada.status, "prepared");
+    assert.equal(reanudada.status, "paused");
   });
 
   it("limita las zonas activas por usuario (429) y reutiliza la misma zona", async () => {
@@ -1013,7 +1013,7 @@ describe("Zona: adaptador HTTP", () => {
 
     const reanudada = await responderZonaReanudar(peticion("resume", { zoneSearchId }), USUARIO, deps);
     assert.equal(reanudada.status, 200);
-    assert.equal(((await reanudada.json()) as { status: string }).status, "prepared");
+    assert.equal(((await reanudada.json()) as { status: string }).status, "paused");
   });
 
   it("GET no sustituye un progreso en memoria por un archivo a cero", async () => {
@@ -1096,7 +1096,7 @@ describe("Zona: adaptador HTTP", () => {
 
     const reanudada = await responderZonaReanudar(peticion("resume", { zoneSearchId }), USUARIO, deps);
     assert.equal(reanudada.status, 200);
-    assert.equal(((await reanudada.json()) as { status: string }).status, "prepared");
+    assert.equal(((await reanudada.json()) as { status: string }).status, "paused");
 
     const depsThrow = {
       ...deps,
