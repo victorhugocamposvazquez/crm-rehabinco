@@ -5,6 +5,7 @@ import {
   isAdmin,
   isComercial,
   isComercialBlockedPath,
+  isEditorBlockedPath,
   parseRole,
   puedeAsignarFincas,
   puedeCrearPropiedad,
@@ -41,5 +42,12 @@ describe("roles", () => {
     assert.equal(isComercialBlockedPath("/catastro"), false);
     assert.equal(isComercialBlockedPath("/catastro/finca/12345678901234"), false);
     assert.equal(comercialHomePath(), "/");
+  });
+
+  it("el editor no entra a captación, agenda ni tareas", () => {
+    assert.equal(isEditorBlockedPath("/tareas"), true);
+    assert.equal(isEditorBlockedPath("/calendario"), true);
+    assert.equal(isEditorBlockedPath("/partes-visita"), true);
+    assert.equal(isEditorBlockedPath("/presupuestos"), false);
   });
 });

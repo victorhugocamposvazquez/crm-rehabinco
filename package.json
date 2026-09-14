@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "tsx --test \"lib/catastro/**/*.test.ts\" \"lib/catastro-host/**/*.test.ts\" \"lib/captacion/**/*.test.ts\" \"lib/demandas/**/*.test.ts\" \"lib/citas/**/*.test.ts\" \"lib/inmuebles/**/*.test.ts\" \"lib/partes-visita.test.ts\" \"lib/auth/**/*.test.ts\"",
+    "test": "tsx --test \"lib/catastro/**/*.test.ts\" \"lib/catastro-host/**/*.test.ts\" \"lib/captacion/**/*.test.ts\" \"lib/demandas/**/*.test.ts\" \"lib/citas/**/*.test.ts\" \"lib/tareas/**/*.test.ts\" \"lib/inmuebles/**/*.test.ts\" \"lib/partes-visita.test.ts\" \"lib/auth/**/*.test.ts\"",
     "catastro:explore": "tsx lib/catastro/explore.ts"
   },
   "dependencies": {

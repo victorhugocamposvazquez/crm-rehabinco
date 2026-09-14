@@ -1,0 +1,27 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import { agruparTareas, bandejaDeTarea, recuentoTareas } from "./tareas";
+
+describe("organizador de tareas", () => {
+  it("separa vencidas, hoy y próximas", () => {
+    assert.equal(bandejaDeTarea("2026-09-10", "2026-09-14", "pendiente"), "VENCIDAS");
+    assert.equal(bandejaDeTarea("2026-09-14", "2026-09-14", "pendiente"), "HOY");
+    assert.equal(bandejaDeTarea("2026-09-20", "2026-09-14", "pendiente"), "PROXIMAS");
+    assert.equal(bandejaDeTarea(null, "2026-09-14", "pendiente"), "SIN_FECHA");
+    assert.equal(bandejaDeTarea("2026-09-10", "2026-09-14", "hecha"), "HECHAS");
+  });
+
+  it("recuenta la bandeja del comercial", () => {
+    const grupos = agruparTareas(
+      [
+        { id: "1", vence: "2026-09-01", estado: "pendiente" },
+        { id: "2", vence: "2026-09-14", estado: "pendiente" },
+        { id: "3", vence: null, estado: "hecha" },
+      ],
+      "2026-09-14"
+    );
+    assert.equal(grupos.VENCIDAS.length, 1);
+    assert.equal(grupos.HOY.length, 1);
+    assert.equal(recuentoTareas(grupos.VENCIDAS.concat(grupos.HOY), "2026-09-14").HOY, 1);
+  });
+});

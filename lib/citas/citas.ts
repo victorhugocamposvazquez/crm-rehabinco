@@ -24,6 +24,51 @@ export function relacionUno<T>(valor: T | T[] | null | undefined): T | null {
   return Array.isArray(valor) ? (valor[0] ?? null) : valor;
 }
 
+export const TIPO_CITA_LABEL: Record<TipoCita, string> = {
+  visita: "Visita",
+  llamada: "Llamada",
+  firma: "Firma",
+  otro: "Otro",
+};
+
+export const ESTADO_CITA_LABEL: Record<EstadoCita, string> = {
+  prevista: "Prevista",
+  hecha: "Hecha",
+  no_asistio: "No asistió",
+  cancelada: "Cancelada",
+};
+
+export function puedeHacerParte(cita: { tipo: string; estado: string }): boolean {
+  return cita.tipo === "visita" && cita.estado === "prevista";
+}
+
+export function horaCita(empieza: string): string {
+  const fecha = new Date(empieza);
+  if (Number.isNaN(fecha.getTime())) return empieza.slice(11, 16) || "—";
+  return `${String(fecha.getHours()).padStart(2, "0")}:${String(fecha.getMinutes()).padStart(2, "0")}`;
+}
+
+export function citasAgrupadasPorDia<T extends { empieza: string }>(citas: T[], dias: string[]): Map<string, T[]> {
+  const mapa = new Map(dias.map((dia) => [dia, [] as T[]]));
+  for (const cita of citas) {
+    const clave = cita.empieza.slice(0, 10);
+    mapa.get(clave)?.push(cita);
+  }
+  for (const [clave, lista] of mapa) {
+    mapa.set(
+      clave,
+      [...lista].sort((a, b) => a.empieza.localeCompare(b.empieza))
+    );
+  }
+  return mapa;
+}
+
+export function moverSemana(dia: string, semanas: number): string {
+  const base = new Date(`${dia.slice(0, 10)}T12:00:00`);
+  base.setDate(base.getDate() + semanas * 7);
+  return base.toISOString().slice(0, 10);
+}
+
 export function rutaNuevaCita(input: { propiedadId?: string | null; clienteId?: string | null }): string {
   const params = new URLSearchParams();
   if (input.propiedadId) params.set("propiedad", input.propiedadId);

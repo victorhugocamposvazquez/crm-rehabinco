@@ -16,6 +16,7 @@ import {
   Settings,
   CalendarDays,
   BarChart3,
+  ListTodo,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,7 @@ const navItems = [
   { href: "/propiedades", label: "Inmuebles", icon: Building2 },
   { href: "/demandas", label: "Demandas", icon: Users },
   { href: "/calendario", label: "Calendario", icon: CalendarDays },
+  { href: "/tareas", label: "Tareas", icon: ListTodo },
   { href: "/informes", label: "Informes", icon: BarChart3 },
   { href: "/partes-visita", label: "Visitas", icon: ClipboardPenLine },
   { href: "/clientes", label: "Clientes", icon: Users },

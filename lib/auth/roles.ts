@@ -54,6 +54,7 @@ const EDITOR_BLOCKED_PREFIXES = [
   "/visitas",
   "/demandas",
   "/calendario",
+  "/tareas",
   "/informes",
   "/facturas",
   "/settings/empresa",

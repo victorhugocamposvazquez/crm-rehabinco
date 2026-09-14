@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { citasDelDia, prefillParteDesdeCita, relacionUno, rutaNuevaCita, rutaNuevaVisitaDesdeCita, semanaDesde } from "./citas";
+import { citasAgrupadasPorDia, citasDelDia, horaCita, moverSemana, puedeHacerParte, prefillParteDesdeCita, relacionUno, rutaNuevaCita, rutaNuevaVisitaDesdeCita, semanaDesde } from "./citas";
 
 describe("citas", () => {
   it("el parte se abre prellenado desde la cita, no al revés", () => {
@@ -40,5 +40,23 @@ describe("citas", () => {
     assert.deepEqual(relacionUno({ color: "#123" }), { color: "#123" });
     assert.deepEqual(relacionUno([{ color: "#abc" }]), { color: "#abc" });
     assert.equal(relacionUno(null), null);
+  });
+
+  it("arma la semana en columnas y mueve de semana en semana", () => {
+    const semana = semanaDesde("2026-09-16");
+    const mapa = citasAgrupadasPorDia(
+      [
+        { id: "a", empieza: "2026-09-14T09:00:00.000Z" },
+        { id: "b", empieza: "2026-09-16T18:00:00.000Z" },
+      ],
+      semana
+    );
+    assert.equal(mapa.get("2026-09-14")?.length, 1);
+    assert.equal(mapa.get("2026-09-16")?.[0]?.id, "b");
+    assert.equal(moverSemana("2026-09-16", 1), "2026-09-23");
+    assert.equal(horaCita("2026-09-16T18:00:00"), "18:00");
+    assert.equal(puedeHacerParte({ tipo: "visita", estado: "prevista" }), true);
+    assert.equal(puedeHacerParte({ tipo: "llamada", estado: "prevista" }), false);
+    assert.equal(puedeHacerParte({ tipo: "visita", estado: "hecha" }), false);
   });
 });

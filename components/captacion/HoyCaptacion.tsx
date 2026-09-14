@@ -12,6 +12,7 @@ import { tituloDireccionFinca } from "@/lib/catastro/search-ui";
 import { rutaFincaPersistida } from "@/lib/catastro/explorer/history-ui";
 import { citasDelDia, relacionUno, rutaNuevaVisitaDesdeCita } from "@/lib/citas/citas";
 import { ESTADO_CAPTACION_LABEL } from "@/lib/captacion/estados";
+import { agruparTareas, recuentoTareas } from "@/lib/tareas/tareas";
 import { FiltroComercial, type ComercialFiltro } from "@/components/captacion/FiltroComercial";
 
 type TareaHoy = { id: string; titulo: string; vence: string | null; finca_reference: string | null; estado: string; comercial_id?: string };
@@ -107,7 +108,10 @@ export function HoyCaptacion() {
     filtroComercial ? citas.filter((item) => item.comercial_id === filtroComercial) : citas,
     hoy
   );
-  const tareasHoy = filtroComercial ? tareas.filter((item) => item.comercial_id === filtroComercial) : tareas;
+  const tareasFiltradas = filtroComercial ? tareas.filter((item) => item.comercial_id === filtroComercial) : tareas;
+  const gruposTareas = agruparTareas(tareasFiltradas, hoy);
+  const recuento = recuentoTareas(tareasFiltradas, hoy);
+  const tareasUrgentes = [...gruposTareas.VENCIDAS, ...gruposTareas.HOY];
 
   const marcarTarea = async (id: string) => {
     const supabase = createClient();
@@ -124,9 +128,10 @@ export function HoyCaptacion() {
       ) : null}
       {admin ? <FiltroComercial comerciales={comerciales} valor={filtroComercial} onChange={setFiltroComercial} /> : null}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Kpi href="/catastro" label="Fincas a tocar" valor={String(pendientesFinca.length)} />
         <Kpi href="/calendario" label="Citas hoy" valor={String(citasHoy.length)} />
+        <Kpi href="/tareas" label="Tareas de hoy" valor={String(recuento.VENCIDAS + recuento.HOY)} />
         <Kpi href="/partes-visita" label="Partes sin firmar" valor={String(partes.length)} />
         <Kpi href="/demandas" label="Demandas activas" valor={String(demandasNuevas)} />
       </div>
@@ -168,9 +173,14 @@ export function HoyCaptacion() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-base font-semibold">Tareas</h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-base font-semibold">Tareas</h2>
+          <Button asChild size="sm" variant="secondary">
+            <Link href="/tareas">Ver todas</Link>
+          </Button>
+        </div>
         <ul className="space-y-2">
-          {tareasHoy.map((tarea) => (
+          {tareasUrgentes.map((tarea) => (
             <li key={tarea.id} className="flex items-center justify-between rounded-xl border border-[#E6E3DD] bg-white px-4 py-3">
               <div>
                 <p className="font-medium">{tarea.titulo}</p>
@@ -188,7 +198,7 @@ export function HoyCaptacion() {
               </div>
             </li>
           ))}
-          {tareasHoy.length === 0 ? <li className="text-sm text-[#5D6B67]">No hay tareas pendientes.</li> : null}
+          {tareasUrgentes.length === 0 ? <li className="text-sm text-[#5D6B67]">Nada vencido ni para hoy.</li> : null}
         </ul>
       </section>
 

@@ -4,10 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home,
-  Users,
   Building2,
   Search,
   ClipboardPenLine,
+  ListTodo,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -16,8 +16,8 @@ import { isEditor } from "@/lib/auth/roles";
 const navItems = [
   { href: "/", label: "Hoy", icon: Home },
   { href: "/catastro", label: "Catastro", icon: Search },
+  { href: "/tareas", label: "Tareas", icon: ListTodo },
   { href: "/propiedades", label: "Inmuebles", icon: Building2 },
-  { href: "/demandas", label: "Demandas", icon: Users },
   { href: "/partes-visita", label: "Visitas", icon: ClipboardPenLine },
 ];
 

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, ClipboardPenLine, Search } from "lucide-react";
 import { ESTADO_PARTE_LABELS } from "@/lib/partes-visita";
+import { AgendaVisitas } from "@/components/citas/AgendaVisitas";
 
 type ParteRow = {
   id: string;
@@ -23,6 +24,7 @@ type ParteRow = {
 };
 
 export default function PartesVisitaPage() {
+  const [tab, setTab] = useState<"agenda" | "partes">("agenda");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterEstado, setFilterEstado] = useState<"todos" | ParteRow["estado"]>("todos");
@@ -64,24 +66,55 @@ export default function PartesVisitaPage() {
   return (
     <div>
       <PageHeader
-        breadcrumb={[{ label: "Partes de visita", href: "/partes-visita" }]}
-        title="Partes de visita"
-        description="Documenta cada visita y comparte un enlace para que el visitante firme con el dedo."
+        breadcrumb={[{ label: "Visitas", href: "/partes-visita" }]}
+        title="Visitas"
+        description="La agenda es la cita. El parte es el acta que firma el visitante."
         actions={
-          <Button asChild size="sm">
-            <Link href="/partes-visita/nuevo" className="gap-2">
-              <Plus className="h-4 w-4" strokeWidth={1.5} />
-              Nuevo parte
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild size="sm" variant="secondary">
+              <Link href="/calendario">Concertar visita</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href="/partes-visita/nuevo" className="gap-2">
+                <Plus className="h-4 w-4" strokeWidth={1.5} />
+                Nuevo parte
+              </Link>
+            </Button>
+          </div>
         }
       />
 
-      {error && (
+      <div className="mt-4 flex flex-wrap gap-2">
+        {(
+          [
+            { value: "agenda", label: "Agenda" },
+            { value: "partes", label: "Partes" },
+          ] as const
+        ).map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            onClick={() => setTab(item.value)}
+            className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+              tab === item.value ? "border-[#0B7461] bg-[#E8F3EF]" : "border-[#E6E3DD] bg-white"
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "agenda" ? (
+        <div className="mt-6">
+          <AgendaVisitas />
+        </div>
+      ) : null}
+
+      {tab === "partes" && error && (
         <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
       )}
 
-      {!loading && partes.length > 0 && (
+      {tab === "partes" && !loading && partes.length > 0 && (
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
           <div className="relative min-w-[200px] flex-1">
             <Search
@@ -119,45 +152,47 @@ export default function PartesVisitaPage() {
         </div>
       )}
 
-      <div className="mt-6 space-y-3">
-        {loading && (
-          <div className="flex min-h-[30vh] items-center justify-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-foreground" />
-          </div>
-        )}
+      {tab === "partes" ? (
+        <div className="mt-6 space-y-3">
+          {loading && (
+            <div className="flex min-h-[30vh] items-center justify-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-foreground" />
+            </div>
+          )}
 
-        {!loading && filtered.length === 0 && (
-          <Card className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-            <ClipboardPenLine className="h-10 w-10 text-neutral-300" strokeWidth={1.5} />
-            <p className="text-base font-medium text-foreground">
-              {partes.length === 0
-                ? "Aún no hay partes de visita"
-                : "No hay resultados con ese filtro"}
-            </p>
-            {partes.length === 0 && (
-              <Button asChild size="sm">
-                <Link href="/partes-visita/nuevo">Crear el primero</Link>
-              </Button>
-            )}
-          </Card>
-        )}
+          {!loading && filtered.length === 0 && (
+            <Card className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+              <ClipboardPenLine className="h-10 w-10 text-neutral-300" strokeWidth={1.5} />
+              <p className="text-base font-medium text-foreground">
+                {partes.length === 0
+                  ? "Aún no hay partes de visita"
+                  : "No hay resultados con ese filtro"}
+              </p>
+              {partes.length === 0 && (
+                <Button asChild size="sm">
+                  <Link href="/partes-visita/nuevo">Crear el primero</Link>
+                </Button>
+              )}
+            </Card>
+          )}
 
-        {!loading &&
-          filtered.map((p) => (
-            <ParteVisitaCard
-              key={p.id}
-              id={p.id}
-              visitante_nombre={p.visitante_nombre}
-              inmueble_direccion={p.inmueble_direccion}
-              fecha_visita={p.fecha_visita}
-              hora_visita={p.hora_visita}
-              estado={p.estado}
-              agente_nombre={p.agente_nombre}
-            />
-          ))}
-      </div>
+          {!loading &&
+            filtered.map((p) => (
+              <ParteVisitaCard
+                key={p.id}
+                id={p.id}
+                visitante_nombre={p.visitante_nombre}
+                inmueble_direccion={p.inmueble_direccion}
+                fecha_visita={p.fecha_visita}
+                hora_visita={p.hora_visita}
+                estado={p.estado}
+                agente_nombre={p.agente_nombre}
+              />
+            ))}
+        </div>
+      ) : null}
 
-      <Fab href="/partes-visita/nuevo" label="Nuevo parte" />
+      {tab === "partes" ? <Fab href="/partes-visita/nuevo" label="Nuevo parte" /> : null}
     </div>
   );
 }
