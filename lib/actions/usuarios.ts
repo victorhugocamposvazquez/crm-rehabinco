@@ -59,6 +59,7 @@ export async function createUser(
       email: emailTrimmed,
       password,
       email_confirm: true,
+      app_metadata: { role },
       user_metadata: { role },
     });
 

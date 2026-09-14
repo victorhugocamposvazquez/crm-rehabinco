@@ -2,11 +2,18 @@ import { getCatastroClient } from "@/lib/catastro/client";
 import { CATASTRO_USER_AGENT } from "@/lib/catastro/constants";
 import { parsearCoordenadasCpmrc } from "@/lib/catastro/coordenadas";
 import { identidadFinca } from "@/lib/catastro/explorer";
-import { crearUrlMapaCatastral, crearUrlWmsCatastral } from "@/lib/catastro/explorer/catastro-map";
+import {
+  crearUrlMapaCatastral,
+  crearUrlWmsCatastral,
+  esBytesImagenCartografia,
+} from "@/lib/catastro/explorer/catastro-map";
 import { explorerStoreDesdeSesion } from "@/lib/catastro-host/from-request";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
+
+const WMS_TIMEOUT_MS = 10_000;
 
 export async function GET(
   request: Request,
@@ -36,16 +43,13 @@ export async function GET(
       );
     }
     if (quiereImagen) {
-      const wms = await fetch(imageUrl, {
-        headers: { Accept: "image/png", "User-Agent": CATASTRO_USER_AGENT },
-        cache: "no-store",
-      });
-      if (!wms.ok) {
+      const imagen = await descargarImagenWms(imageUrl);
+      if (!imagen) {
         return Response.json({ ok: false, error: "No se ha podido cargar el mapa catastral." }, { status: 502 });
       }
-      return new Response(wms.body, {
+      return new Response(imagen.bytes, {
         headers: {
-          "content-type": wms.headers.get("content-type") || "image/png",
+          "content-type": imagen.contentType,
           "cache-control": "private, max-age=3600",
         },
       });
@@ -61,4 +65,30 @@ export async function GET(
       { status: 502 }
     );
   }
+}
+
+async function descargarImagenWms(
+  imageUrl: string
+): Promise<{ bytes: ArrayBuffer; contentType: string } | null> {
+  for (let intento = 0; intento < 2; intento += 1) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), WMS_TIMEOUT_MS);
+    try {
+      const wms = await fetch(imageUrl, {
+        headers: { Accept: "image/png", "User-Agent": CATASTRO_USER_AGENT },
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      if (!wms.ok) continue;
+      const bytes = await wms.arrayBuffer();
+      const contentType = wms.headers.get("content-type") || "image/png";
+      if (!esBytesImagenCartografia(bytes, contentType)) continue;
+      return { bytes, contentType: contentType.includes("image/") ? contentType : "image/png" };
+    } catch {
+      continue;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  return null;
 }

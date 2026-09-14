@@ -121,7 +121,7 @@ export function useBusquedaZona() {
       const criterios = criteriosRef.current;
       if (detalle.status === 410 && criterios && !reintento410.current) {
         reintento410.current = true;
-        await preparar(criterios, { conservarAcumulado: true });
+        await preparar(criterios, { conservarAcumulado: true, noCancelar: true });
         const nuevoId = zoneIdRef.current;
         if (nuevoId) {
           await bucle(nuevoId, opRef.current);
@@ -166,10 +166,10 @@ export function useBusquedaZona() {
 
   const preparar = async (
     criterios: CriteriosZonaUi,
-    opciones: { conservarAcumulado?: boolean } = {}
+    opciones: { conservarAcumulado?: boolean; noCancelar?: boolean } = {}
   ) => {
     const op = ++opRef.current;
-    soltarZonaActual();
+    if (!opciones.noCancelar) soltarZonaActual();
     const controller = new AbortController();
     abortRef.current = controller;
     zoneIdRef.current = null;

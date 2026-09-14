@@ -18,7 +18,7 @@ import {
   type ExplorerClock,
   type ExplorerStore,
 } from "./explorer";
-import type { ZoneSessionArchive } from "./zone-archive";
+import { elegirSesionZona, type ZoneSessionArchive } from "./zone-archive";
 import { ZONE_STEP_MAX_BUDGET_MS } from "./constants";
 import { getZoneStore, type ZoneSession } from "./zone-session";
 import {
@@ -173,14 +173,14 @@ async function sesionDe(
   const id = params.zoneSearchId?.trim();
   if (!id) return { ok: false, response: error(400, "Falta el parámetro zoneSearchId.") };
   const store = deps.zoneStore ?? getZoneStore();
-  let session = store.get(id);
-  if ((!session || session.userId !== user.id) && deps.archive) {
+  let enMemoria = store.get(id);
+  if (enMemoria && enMemoria.userId !== user.id) enMemoria = null;
+  let session = enMemoria;
+  if (deps.archive) {
     const archivada = await deps.archive.get(id, user.id);
-    if (archivada) {
-      store.put(archivada);
-      store.touch(archivada);
-      session = archivada;
-    }
+    const elegida = elegirSesionZona(enMemoria, archivada);
+    if (elegida && elegida !== enMemoria) store.put(elegida);
+    session = elegida;
   }
   if (!session || session.userId !== user.id) {
     return {
@@ -232,6 +232,12 @@ export async function responderZonaPaso(
   const params = await leerParametrosZona(request);
   const sesion = await sesionDe(params, user, deps);
   if (!sesion.ok) return sesion.response;
+  const archive = deps.archive;
+  let claimed = true;
+  if (archive?.tryClaim) {
+    claimed = await archive.tryClaim(sesion.session.id, user.id);
+    if (!claimed) return error(409, "La búsqueda por zona ya está procesando un paso.");
+  }
   try {
     const snapshot = await ejecutarPasoZona(
       sesion.session,
@@ -254,6 +260,10 @@ export async function responderZonaPaso(
       return json(cuerpoZona(snapshot));
     } catch {
       return error(502, "No se ha podido continuar la búsqueda por zona. Inténtalo de nuevo.");
+    }
+  } finally {
+    if (claimed && archive?.releaseClaim) {
+      await archive.releaseClaim(sesion.session.id, user.id).catch(() => undefined);
     }
   }
 }

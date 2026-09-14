@@ -8,6 +8,7 @@ import {
   coincideFiltroAsignacion,
   esRolAsignable,
   filtrarPorAsignacion,
+  filtroAsignacionPorDefecto,
   FILTRO_ASIGNACION_MIAS,
   FILTRO_ASIGNACION_SIN,
   FILTRO_ASIGNACION_TODAS,
@@ -24,6 +25,8 @@ describe("finca-assignment", () => {
     assert.equal(nombreComercial({ nombre_completo: "  ", email: "hugo@x.com" }), "hugo");
     assert.equal(esRolAsignable("comercial"), true);
     assert.equal(esRolAsignable("editor"), false);
+    assert.equal(filtroAsignacionPorDefecto("comercial"), FILTRO_ASIGNACION_MIAS);
+    assert.equal(filtroAsignacionPorDefecto("admin"), FILTRO_ASIGNACION_TODAS);
     assert.equal(uuidComercial("no-es-uuid"), null);
   });
 

@@ -5,6 +5,7 @@ import {
   CATASTRO_CARTOGRAFIA_MAPA,
   crearUrlMapaCatastral,
   crearUrlWmsCatastral,
+  esBytesImagenCartografia,
 } from "./catastro-map";
 
 describe("URLs de mapa catastral", () => {
@@ -27,8 +28,9 @@ describe("URLs de mapa catastral", () => {
     assert.ok(url?.startsWith(`${CATASTRO_WMS}?`));
     const params = new URL(url!).searchParams;
     assert.equal(params.get("REQUEST"), "GetMap");
-    assert.equal(params.get("LAYERS"), "CATASTRO");
+    assert.equal(params.get("LAYERS"), "Catastro");
     assert.equal(params.get("SRS"), "EPSG:4326");
+    assert.equal(params.get("TRANSPARENT"), null);
     assert.match(params.get("BBOX") ?? "", /^-3\.70/);
   });
 
@@ -36,5 +38,14 @@ describe("URLs de mapa catastral", () => {
     assert.equal(crearUrlMapaCatastral(""), null);
     assert.equal(crearUrlMapaCatastral("ABC"), null);
     assert.equal(crearUrlWmsCatastral({ x: Number.NaN, y: 40, srs: "EPSG:4326" }), null);
+  });
+
+  it("no trata un error XML del WMS como imagen", () => {
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const xml = new TextEncoder().encode('<?xml version="1.0"?><ServiceExceptionReport/>');
+    assert.equal(esBytesImagenCartografia(png.buffer, "image/png"), true);
+    assert.equal(esBytesImagenCartografia(xml.buffer, "image/png"), false);
+    assert.equal(esBytesImagenCartografia(xml.buffer, "application/xml"), false);
+    assert.equal(esBytesImagenCartografia(new ArrayBuffer(4), "image/png"), false);
   });
 });

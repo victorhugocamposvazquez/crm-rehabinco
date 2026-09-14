@@ -10,7 +10,47 @@ export type ZoneSessionArchive = {
   findByKey(userId: string, claveZona: string): Promise<ZoneSession | null>;
   put(session: ZoneSession): Promise<void>;
   countActive(userId: string): Promise<number>;
+  /** Host: un solo paso a la vez entre isolates. Si falta, el candado es solo en memoria. */
+  tryClaim?(id: string, userId: string, ms?: number): Promise<boolean>;
+  releaseClaim?(id: string, userId: string): Promise<void>;
 };
+
+export function callesProcesadasSesionZona(session: Pick<ZoneSession, "calles">): number {
+  return session.calles.filter((calle) => calle.status === "done" || calle.status === "error").length;
+}
+
+/**
+ * Un isolate lento no debe pisar otro con más calles hechas.
+ * Sí puede escribir un resume/cancel posterior (menos hechas, `updatedAt` más nuevo, mismos o más pasos).
+ */
+export function permiteEscribirSesionZona(
+  incoming: ZoneSession,
+  existing: ZoneSession | null | undefined
+): boolean {
+  if (!existing) return true;
+  const hechasEntrante = callesProcesadasSesionZona(incoming);
+  const hechasActual = callesProcesadasSesionZona(existing);
+  if (hechasEntrante > hechasActual) return true;
+  if (hechasEntrante < hechasActual) {
+    return (
+      incoming.steps >= existing.steps &&
+      incoming.updatedAt > existing.updatedAt &&
+      incoming.status !== "running"
+    );
+  }
+  if (incoming.steps !== existing.steps) return incoming.steps > existing.steps;
+  if (incoming.fincas.size !== existing.fincas.size) return incoming.fincas.size > existing.fincas.size;
+  return incoming.updatedAt >= existing.updatedAt;
+}
+
+export function elegirSesionZona(
+  memoria: ZoneSession | null | undefined,
+  archivada: ZoneSession | null | undefined
+): ZoneSession | null {
+  if (!memoria) return archivada ?? null;
+  if (!archivada) return memoria;
+  return permiteEscribirSesionZona(archivada, memoria) ? archivada : memoria;
+}
 
 export type ZoneSessionPayload = Omit<ZoneSession, "fincas"> & {
   fincas: Array<[string, FincaDescubierta]>;
@@ -33,8 +73,11 @@ function fincaArchivada(finca: FincaDescubierta): FincaDescubierta {
 }
 
 function calleArchivada(calle: ZoneSession["calles"][number]): ZoneSession["calles"][number] {
-  if (calle.status !== "running") return calle;
-  return { ...calle, status: "pending" };
+  return {
+    ...calle,
+    calle: { ...calle.calle },
+    status: calle.status === "running" ? "pending" : calle.status,
+  };
 }
 
 /** `running` es efímero del isolate: en disco siempre queda pausada. */

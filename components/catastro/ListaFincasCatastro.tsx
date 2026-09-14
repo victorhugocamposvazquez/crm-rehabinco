@@ -14,12 +14,15 @@ import {
   type FincaBusquedaUi,
 } from "@/lib/catastro/search-ui";
 import { accionTecladoLista } from "@/lib/catastro/vista-movil";
+import { isAdmin, isComercial } from "@/lib/auth/roles";
+import { useAuth } from "@/lib/auth/auth-context";
 import { cn } from "@/lib/utils";
 import {
   FILTRO_ASIGNACION_MIAS,
   FILTRO_ASIGNACION_SIN,
   FILTRO_ASIGNACION_TODAS,
   filtrarPorAsignacion,
+  filtroAsignacionPorDefecto,
   recuentoFiltrosAsignacion,
   trocearRefs,
   type AsignacionFinca,
@@ -79,12 +82,17 @@ export function ListaFincasCatastro({
   topeExterno = false,
 }: Props) {
   const router = useRouter();
+  const { user } = useAuth();
+  const soloMias = isComercial(user?.role);
+  const puedeAsignar = isAdmin(user?.role);
   const [q, setQ] = useState("");
   const [filtroLocal, setFiltroLocal] = useState("ALL");
   const filtro = filtroEstado ?? filtroLocal;
   const [sel, setSel] = useState<string | null>(null);
   const [hoja, setHoja] = useState(false);
-  const [filtroAsignacion, setFiltroAsignacion] = useState(FILTRO_ASIGNACION_TODAS);
+  const [filtroAsignacion, setFiltroAsignacion] = useState(() =>
+    filtroAsignacionPorDefecto(user?.role)
+  );
   const [yo, setYo] = useState<string | null>(null);
   const [comerciales, setComerciales] = useState<ComercialAsignable[]>([]);
   const [asignaciones, setAsignaciones] = useState<Record<string, AsignacionFinca>>({});
@@ -149,6 +157,10 @@ export function ListaFincasCatastro({
   useEffect(() => {
     setTope(TAM_PAGINA_LISTA);
   }, [q, filtro, filtroAsignacion, orden, fincas.length]);
+
+  useEffect(() => {
+    if (soloMias) setFiltroAsignacion(FILTRO_ASIGNACION_MIAS);
+  }, [soloMias]);
 
   useEffect(() => {
     if (sel && pagina.some((finca) => finca.fincaReference === sel)) return;
@@ -274,6 +286,7 @@ export function ListaFincasCatastro({
   };
 
   const ficha = visibles.find((finca) => finca.fincaReference === sel) ?? null;
+  const comercialesUi = puedeAsignar ? comerciales : [];
 
   return (
     <div id="listado-fincas-catastro" className="space-y-4">
@@ -306,37 +319,41 @@ export function ListaFincasCatastro({
           </button>
         ))}
       </div>
-      {recuentoEstados ? (
+      {recuentoEstados && !soloMias ? (
         <p className="text-[11px] text-[#6B7A76]">Los recuentos de arriba son de toda la búsqueda.</p>
       ) : null}
 
-      <div>
-        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#6B7A76]">Comercial</p>
-        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 min-[780px]:flex-wrap min-[780px]:overflow-visible" role="tablist" aria-label="Filtrar por comercial">
-          {[
-            { value: FILTRO_ASIGNACION_TODAS, label: "Todas", n: recuentoAsignacion.todas },
-            { value: FILTRO_ASIGNACION_SIN, label: "Sin asignar", n: recuentoAsignacion.sinAsignar },
-            { value: FILTRO_ASIGNACION_MIAS, label: "Mías", n: recuentoAsignacion.mias },
-            ...comerciales.map((item) => ({
-              value: item.id,
-              label: item.nombre,
-              n: recuentoAsignacion.porComercial[item.id] ?? 0,
-            })),
-          ].map((item) => (
-            <button
-              key={item.value}
-              type="button"
-              role="tab"
-              aria-selected={filtroAsignacion === item.value}
-              onClick={() => setFiltroAsignacion(item.value)}
-              className={cn(CHIP, filtroAsignacion === item.value ? CHIP_ACTIVA : CHIP_INACTIVA)}
-            >
-              <span className="max-w-[11rem] truncate">{item.label}</span>
-              <span className="ml-1 tabular-nums text-[#6B7A76]">{item.n}</span>
-            </button>
-          ))}
+      {soloMias ? (
+        <p className="text-[13px] text-[#5D6B67]">Solo ves las fincas que te han asignado.</p>
+      ) : (
+        <div>
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#6B7A76]">Comercial</p>
+          <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 min-[780px]:flex-wrap min-[780px]:overflow-visible" role="tablist" aria-label="Filtrar por comercial">
+            {[
+              { value: FILTRO_ASIGNACION_TODAS, label: "Todas", n: recuentoAsignacion.todas },
+              { value: FILTRO_ASIGNACION_SIN, label: "Sin asignar", n: recuentoAsignacion.sinAsignar },
+              { value: FILTRO_ASIGNACION_MIAS, label: "Mías", n: recuentoAsignacion.mias },
+              ...comerciales.map((item) => ({
+                value: item.id,
+                label: item.nombre,
+                n: recuentoAsignacion.porComercial[item.id] ?? 0,
+              })),
+            ].map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                role="tab"
+                aria-selected={filtroAsignacion === item.value}
+                onClick={() => setFiltroAsignacion(item.value)}
+                className={cn(CHIP, filtroAsignacion === item.value ? CHIP_ACTIVA : CHIP_INACTIVA)}
+              >
+                <span className="max-w-[11rem] truncate">{item.label}</span>
+                <span className="ml-1 tabular-nums text-[#6B7A76]">{item.n}</span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <label className="relative block">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#5D6B67]" aria-hidden />
@@ -372,7 +389,7 @@ export function ListaFincasCatastro({
                 seleccionada={seleccionada}
                 fincasSeleccionadas={fincasSeleccionadas}
                 onMarcarPagina={onMarcarPagina}
-                comerciales={comerciales}
+                comerciales={comercialesUi}
                 onAsignacionLote={aplicarAsignacionLote}
               />
             ) : null}
@@ -389,8 +406,12 @@ export function ListaFincasCatastro({
                     onToggle={onToggleSeleccion ? () => onToggleSeleccion(finca) : undefined}
                     onProperty={onProperty || hrefDe?.(finca) ? () => irPropiedad(finca) : undefined}
                     asignacion={asignaciones[finca.fincaReference] ?? null}
-                    comerciales={comerciales}
-                    onAsignacion={(asignacion) => aplicarAsignacion(finca.fincaReference, asignacion)}
+                    comerciales={comercialesUi}
+                    onAsignacion={
+                      puedeAsignar
+                        ? (asignacion) => aplicarAsignacion(finca.fincaReference, asignacion)
+                        : undefined
+                    }
                   />
                 </li>
               ))}
@@ -421,9 +442,11 @@ export function ListaFincasCatastro({
           vinculada={Boolean(vinculada?.(ficha.fincaReference))}
           onProperty={onProperty || hrefDe?.(ficha) ? () => irPropiedad(ficha) : undefined}
           onCerrar={cerrarFicha}
-          comerciales={comerciales}
+          comerciales={comercialesUi}
           asignacion={asignaciones[ficha.fincaReference] ?? null}
-          onAsignacion={(asignacion) => aplicarAsignacion(ficha.fincaReference, asignacion)}
+          onAsignacion={
+            puedeAsignar ? (asignacion) => aplicarAsignacion(ficha.fincaReference, asignacion) : undefined
+          }
         />
       ) : null}
     </div>

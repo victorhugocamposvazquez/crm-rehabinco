@@ -1,4 +1,4 @@
-import { puedeCrearPropiedad } from "@/lib/auth/roles";
+import { puedeAsignarFincas, puedeCrearPropiedad } from "@/lib/auth/roles";
 import { identidadFinca } from "@/lib/catastro/explorer";
 import { explorerStoreDesdeSesion } from "@/lib/catastro-host/from-request";
 import {
@@ -44,7 +44,10 @@ export async function GET(request: Request) {
   const refs = new URL(request.url).searchParams.get("refs")?.split(",") ?? [];
   const fincas = [...new Set(refs.map((item) => identidadFinca(item.trim()) ?? "").filter(Boolean))];
   const supabase = await createClient();
-  const comerciales = await comercialesAsignables(supabase);
+  const todos = await comercialesAsignables(supabase);
+  const comerciales = puedeAsignarFincas(role)
+    ? todos
+    : todos.filter((item) => item.id === user.id);
 
   if (fincas.length === 0) {
     return Response.json({ ok: true, me: user.id, comerciales, assignments: [] });
@@ -72,6 +75,9 @@ export async function PUT(request: Request) {
   }
   if (!puedeCrearPropiedad(role)) {
     return Response.json({ ok: false, error: "No tienes permiso." }, { status: 403 });
+  }
+  if (!puedeAsignarFincas(role)) {
+    return Response.json({ ok: false, error: "Solo un administrador puede asignar fincas." }, { status: 403 });
   }
 
   let cuerpo: { fincaReference?: unknown; fincaReferences?: unknown; comercialId?: unknown } = {};

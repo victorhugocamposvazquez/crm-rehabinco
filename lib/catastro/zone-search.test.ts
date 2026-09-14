@@ -979,6 +979,55 @@ describe("Zona: adaptador HTTP", () => {
     assert.equal(((await reanudada.json()) as { status: string }).status, "prepared");
   });
 
+  it("GET no sustituye un progreso en memoria por un archivo a cero", async () => {
+    const mundo = mundoFalso(CALLES_BASE);
+    const zoneStore = createZoneStore();
+    const filas = new Map<string, unknown>();
+    const archive: ZoneSessionArchive = {
+      async get(id, userId) {
+        const session = hidratarSesionZona(filas.get(id));
+        return session && session.userId === userId ? session : null;
+      },
+      async findByKey(userId, clave) {
+        for (const raw of filas.values()) {
+          const session = hidratarSesionZona(raw);
+          if (session && session.userId === userId && session.claveZona === clave) return session;
+        }
+        return null;
+      },
+      async put(session) {
+        filas.set(session.id, serializarSesionZona(session));
+      },
+      async countActive() {
+        return 0;
+      },
+    };
+    const deps = { ...depsFalsas(mundo, CALLES_BASE.map((item) => item.calle), { zoneStore }), archive };
+    const preparada = await responderZonaPreparar(peticion("prepare", CRITERIOS), USUARIO, deps);
+    const { zoneSearchId } = (await preparada.json()) as { zoneSearchId: string };
+    const session = zoneStore.get(zoneSearchId);
+    assert.ok(session);
+    session.calles[0].status = "done";
+    session.calles[1].status = "done";
+    session.steps = 2;
+    session.updatedAt = Date.now();
+    const atrasada = hidratarSesionZona(serializarSesionZona(session));
+    assert.ok(atrasada);
+    atrasada.steps = 0;
+    atrasada.updatedAt = session.updatedAt - 20_000;
+    for (const calle of atrasada.calles) calle.status = "pending";
+    filas.set(zoneSearchId, serializarSesionZona(atrasada));
+
+    const estado = await responderZonaEstado(
+      peticion(`?zoneSearchId=${zoneSearchId}`, undefined, "GET"),
+      USUARIO,
+      deps
+    );
+    assert.equal(estado.status, 200);
+    const cuerpo = (await estado.json()) as { progress: { streetsProcessed: number } };
+    assert.equal(cuerpo.progress.streetsProcessed, 2);
+  });
+
   it("resume y step desatascan un running archivado; un throw de calle no devuelve 502", async () => {
     const mundo = mundoFalso(CALLES_BASE);
     const zoneStore = createZoneStore();

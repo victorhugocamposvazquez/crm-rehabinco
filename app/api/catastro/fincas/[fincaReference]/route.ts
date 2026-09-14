@@ -1,3 +1,4 @@
+import { isComercial } from "@/lib/auth/roles";
 import { identidadFinca } from "@/lib/catastro/explorer";
 import { fincaUiDesdeRecord } from "@/lib/catastro/explorer/history-ui";
 import { explorerStoreDesdeSesion } from "@/lib/catastro-host/from-request";
@@ -9,7 +10,7 @@ export async function GET(
   _request: Request,
   context: { params: Promise<{ fincaReference: string }> }
 ) {
-  const { user, store, properties } = await explorerStoreDesdeSesion();
+  const { user, role, store, properties, supabase } = await explorerStoreDesdeSesion();
   if (!user) {
     return Response.json({ ok: false, error: "Sesión expirada" }, { status: 401 });
   }
@@ -18,6 +19,18 @@ export async function GET(
   const fincaReference = identidadFinca(bruto ?? "");
   if (!fincaReference) {
     return Response.json({ ok: false, error: "Finca no encontrada." }, { status: 404 });
+  }
+
+  if (isComercial(role)) {
+    const { data: asignada } = await supabase
+      .from("catastro_explorer_assignments")
+      .select("finca_reference")
+      .eq("finca_reference", fincaReference)
+      .eq("comercial_id", user.id)
+      .maybeSingle();
+    if (!asignada) {
+      return Response.json({ ok: false, error: "Finca no encontrada." }, { status: 404 });
+    }
   }
 
   const finca = await store.getFinca(fincaReference);

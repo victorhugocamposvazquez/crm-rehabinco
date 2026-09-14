@@ -55,6 +55,10 @@ export const FILTRO_ASIGNACION_TODAS = "ALL";
 export const FILTRO_ASIGNACION_SIN = "UNASSIGNED";
 export const FILTRO_ASIGNACION_MIAS = "MINE";
 
+export function filtroAsignacionPorDefecto(role: string | null | undefined): string {
+  return role === "comercial" || role === "agente" ? FILTRO_ASIGNACION_MIAS : FILTRO_ASIGNACION_TODAS;
+}
+
 export type RecuentoAsignacionLista = {
   todas: number;
   sinAsignar: number;

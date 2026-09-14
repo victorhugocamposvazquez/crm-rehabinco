@@ -207,6 +207,21 @@ describe("Zona UI: preparación y confirmación", () => {
 });
 
 describe("Zona UI: progreso y resultados", () => {
+  it("un GET atrasado no baja las calles revisadas de la misma zona", () => {
+    const avanzado = aplicarSnapshotZona(
+      ESTADO_ZONA_INICIAL,
+      snapshot({ status: "running", progress: { streetsFound: 48, streetsProcessed: 12, streetsPending: 36, steps: 2 } }),
+      { ejecutando: true }
+    );
+    const atrasado = aplicarSnapshotZona(
+      avanzado,
+      snapshot({ status: "running", progress: { streetsFound: 48, streetsProcessed: 0, streetsPending: 48, steps: 0 } }),
+      { ejecutando: true }
+    );
+    assert.equal(atrasado.snapshot?.progress.streetsProcessed, 12);
+    assert.equal(atrasado.fase, "ejecutando");
+  });
+
   it("5. muestra el progreso con calles, fincas, candidatas y errores", () => {
     const textos = textosProgreso(enCurso);
     assert.equal(textos.calles, "Calles revisadas: 17 / 427");

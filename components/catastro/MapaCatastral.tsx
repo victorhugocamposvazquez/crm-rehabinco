@@ -16,28 +16,71 @@ export function MapaCatastral({
 }) {
   const mapa = crearUrlMapaCatastral(fincaReference);
   const [mostrar, setMostrar] = useState(false);
+  const [intento, setIntento] = useState(0);
+  const [estado, setEstado] = useState<"cargando" | "ok" | "error">("cargando");
   if (!mapa) return null;
+
+  const cargar = () => {
+    setEstado("cargando");
+    setMostrar(true);
+  };
+
+  const reintentar = () => {
+    setEstado("cargando");
+    setIntento((n) => n + 1);
+  };
 
   return (
     <figure className="overflow-hidden rounded-xl border border-[#E6E3DD] bg-[#F4F3EF]">
       {mostrar ? (
-        <a href={mapa} target="_blank" rel="noreferrer" className="relative block aspect-[4/3] overflow-hidden min-[780px]:aspect-[16/10]">
-          <img
-            src={`/api/catastro/fincas/${encodeURIComponent(fincaReference)}/mapa?img=1`}
-            alt={`Cartografía catastral de ${fincaReference}`}
-            className="absolute inset-0 h-full w-full object-cover [filter:saturate(.18)_contrast(1.06)_brightness(1.03)]"
-          />
-          <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_46%_46%_at_50%_50%,rgba(244,243,239,0)_40%,rgba(244,243,239,.74)_100%)]" />
-          {superficie ? (
-            <span className="absolute left-1/2 top-[36%] -translate-x-1/2 rounded-md bg-[#0B7461] px-2 py-0.5 text-[11px] font-semibold text-white shadow">
-              {superficie}
-            </span>
+        <div className="relative aspect-[4/3] overflow-hidden min-[780px]:aspect-[16/10]">
+          {estado !== "error" ? (
+            <a href={mapa} target="_blank" rel="noreferrer" className="absolute inset-0 block">
+              <img
+                key={intento}
+                src={`/api/catastro/fincas/${encodeURIComponent(fincaReference)}/mapa?img=1&n=${intento}`}
+                alt={estado === "ok" ? `Cartografía catastral de ${fincaReference}` : ""}
+                onLoad={() => setEstado("ok")}
+                onError={() => setEstado("error")}
+                className={
+                  estado === "ok"
+                    ? "absolute inset-0 h-full w-full object-cover"
+                    : "absolute inset-0 h-full w-full opacity-0"
+                }
+              />
+              {superficie && estado === "ok" ? (
+                <span className="absolute bottom-2 left-2 rounded-md bg-[#0B7461] px-2 py-0.5 text-[11px] font-semibold text-white shadow">
+                  {superficie}
+                </span>
+              ) : null}
+            </a>
           ) : null}
-        </a>
+          {estado === "cargando" ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center">
+              <span className="h-6 w-6 animate-spin rounded-full border-2 border-[#DAD6CE] border-t-[#0B7461]" aria-hidden />
+              <p className="text-sm text-[#5D6B67]">Cargando cartografía…</p>
+            </div>
+          ) : null}
+          {estado === "error" ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-4 text-center">
+              <p className="text-sm text-[#5D6B67]">Catastro no ha enviado el mapa esta vez.</p>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <Button type="button" size="sm" onClick={reintentar}>
+                  Reintentar
+                </Button>
+                <Button type="button" size="sm" variant="secondary" asChild>
+                  <a href={mapa} target="_blank" rel="noreferrer">
+                    Abrir en Catastro
+                  </a>
+                </Button>
+              </div>
+            </div>
+          ) : null}
+        </div>
       ) : (
         <div className={`flex ${alto} flex-col items-center justify-center gap-3 px-4 text-center`}>
           <p className="text-sm text-[#5D6B67]">Cartografía oficial del Catastro</p>
-          <Button type="button" size="sm" onClick={() => setMostrar(true)}>
+          <Button type="button" size="sm" onClick={cargar}>
             Ver cartografía
           </Button>
         </div>

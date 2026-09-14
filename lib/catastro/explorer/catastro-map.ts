@@ -25,15 +25,37 @@ export function crearUrlWmsCatastral(geo: Pick<CoordenadaParcela, "x" | "y" | "s
   url.searchParams.set("SERVICE", "WMS");
   url.searchParams.set("VERSION", "1.1.1");
   url.searchParams.set("REQUEST", "GetMap");
-  url.searchParams.set("LAYERS", "CATASTRO");
+  url.searchParams.set("LAYERS", "Catastro");
+  url.searchParams.set("STYLES", "");
   url.searchParams.set("SRS", geo.srs);
   url.searchParams.set(
     "BBOX",
     `${geo.x - margen},${geo.y - margen},${geo.x + margen},${geo.y + margen}`
   );
-  url.searchParams.set("WIDTH", "640");
-  url.searchParams.set("HEIGHT", "320");
+  url.searchParams.set("WIDTH", "800");
+  url.searchParams.set("HEIGHT", "500");
   url.searchParams.set("FORMAT", "image/png");
-  url.searchParams.set("TRANSPARENT", "TRUE");
   return url.toString();
+}
+
+/** El WMS a veces responde 200 con XML de error. Eso no se puede pintar. */
+export function esBytesImagenCartografia(
+  bytes: ArrayBuffer,
+  contentType?: string | null
+): boolean {
+  if (bytes.byteLength < 8) return false;
+  const tipo = (contentType ?? "").toLowerCase();
+  if (
+    tipo.includes("xml") ||
+    tipo.includes("html") ||
+    tipo.includes("json") ||
+    tipo.includes("text/")
+  ) {
+    return false;
+  }
+  const u8 = new Uint8Array(bytes, 0, 8);
+  const png = u8[0] === 0x89 && u8[1] === 0x50 && u8[2] === 0x4e && u8[3] === 0x47;
+  const jpg = u8[0] === 0xff && u8[1] === 0xd8;
+  const gif = u8[0] === 0x47 && u8[1] === 0x49 && u8[2] === 0x46;
+  return png || jpg || gif;
 }

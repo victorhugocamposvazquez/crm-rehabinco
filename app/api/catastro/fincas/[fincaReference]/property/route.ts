@@ -1,4 +1,4 @@
-import { puedeCrearPropiedad } from "@/lib/auth/roles";
+import { isComercial, puedeCrearPropiedad } from "@/lib/auth/roles";
 import {
   ERRORES_VINCULO_HTTP,
   crearOReutilizarPropiedad,
@@ -6,7 +6,6 @@ import {
 } from "@/lib/catastro/explorer";
 import { aplicarAsignacionAPropiedad } from "@/lib/catastro-host/aplicar-asignacion";
 import { explorerStoreDesdeSesion } from "@/lib/catastro-host/from-request";
-import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,7 +14,7 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ fincaReference: string }> }
 ) {
-  const { user, role, store, properties } = await explorerStoreDesdeSesion();
+  const { user, role, store, properties, supabase: db } = await explorerStoreDesdeSesion();
   if (!user) {
     return Response.json({ ok: false, error: "Sesión expirada" }, { status: 401 });
   }
@@ -24,6 +23,18 @@ export async function POST(
   const fincaReference = identidadFinca(bruto ?? "");
   if (!fincaReference) {
     return Response.json({ ok: false, error: ERRORES_VINCULO_HTTP.NOT_FOUND.error }, { status: 404 });
+  }
+
+  if (isComercial(role)) {
+    const { data: asignada } = await db
+      .from("catastro_explorer_assignments")
+      .select("finca_reference")
+      .eq("finca_reference", fincaReference)
+      .eq("comercial_id", user.id)
+      .maybeSingle();
+    if (!asignada) {
+      return Response.json({ ok: false, error: ERRORES_VINCULO_HTTP.NOT_FOUND.error }, { status: 404 });
+    }
   }
 
   let ofertanteId: string | null = null;
@@ -47,8 +58,7 @@ export async function POST(
     return Response.json({ ok: false, error: mapped.error }, { status: mapped.status });
   }
 
-  const supabase = await createClient();
-  await aplicarAsignacionAPropiedad(supabase as never, fincaReference, resultado.link.propertyId);
+  await aplicarAsignacionAPropiedad(db as never, fincaReference, resultado.link.propertyId);
 
   return Response.json({
     ok: true,

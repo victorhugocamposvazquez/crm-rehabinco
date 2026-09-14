@@ -17,6 +17,10 @@ export function roleLabel(role: Role | null | undefined): string {
   return ROLE_LABELS[role] ?? role;
 }
 
+export function isAdmin(role: Role | null | undefined): boolean {
+  return role === "admin";
+}
+
 export function isEditor(role: Role | null | undefined): boolean {
   return role === "editor";
 }
@@ -27,6 +31,15 @@ export function isComercial(role: Role | null | undefined): boolean {
 
 export function puedeCrearPropiedad(role: Role | null | undefined): boolean {
   return role === "admin" || role === "comercial";
+}
+
+/** Solo dirección rastrea Catastro y reparte fincas. */
+export function puedeRastrearCatastro(role: Role | null | undefined): boolean {
+  return role === "admin";
+}
+
+export function puedeAsignarFincas(role: Role | null | undefined): boolean {
+  return role === "admin";
 }
 
 const EDITOR_HOME = "/presupuestos";
@@ -54,6 +67,19 @@ export function editorHomePath(): string {
 export function isEditorBlockedPath(pathname: string): boolean {
   if (pathname === "/") return true;
   return EDITOR_BLOCKED_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}
+
+const COMERCIAL_BLOCKED_PREFIXES = ["/buscar", "/catastro/searches"];
+
+export function comercialHomePath(): string {
+  return "/catastro";
+}
+
+/** El comercial no rastrea ni abre el histórico de búsquedas del equipo. */
+export function isComercialBlockedPath(pathname: string): boolean {
+  return COMERCIAL_BLOCKED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   );
 }

@@ -343,11 +343,37 @@ export function aplicarSnapshotZona(
   snapshot: ZoneSnapshotUi,
   opciones: { ejecutando?: boolean } = {}
 ): EstadoZonaUi {
+  const previa = estado.snapshot;
+  let siguiente = snapshot;
+  if (
+    previa &&
+    previa.zoneSearchId === snapshot.zoneSearchId &&
+    snapshot.progress.streetsProcessed < previa.progress.streetsProcessed
+  ) {
+    siguiente = {
+      ...snapshot,
+      progress: {
+        ...snapshot.progress,
+        streetsProcessed: previa.progress.streetsProcessed,
+        streetsWithErrors: Math.max(previa.progress.streetsWithErrors, snapshot.progress.streetsWithErrors),
+        fincasFound: Math.max(previa.progress.fincasFound, snapshot.progress.fincasFound),
+        candidates: Math.max(previa.progress.candidates, snapshot.progress.candidates),
+        portalsProcessed: Math.max(previa.progress.portalsProcessed, snapshot.progress.portalsProcessed),
+        steps: Math.max(previa.progress.steps, snapshot.progress.steps),
+        streetsPending: Math.min(previa.progress.streetsPending, snapshot.progress.streetsPending),
+      },
+      coverage: {
+        ...snapshot.coverage,
+        streetsProcessed: Math.max(previa.coverage.streetsProcessed, snapshot.coverage.streetsProcessed),
+      },
+      results: fusionarResultadosZona(previa.results, snapshot.results),
+    };
+  }
   return {
     ...estado,
-    fase: faseDesdeSnapshot(snapshot, Boolean(opciones.ejecutando)),
-    zoneSearchId: snapshot.zoneSearchId,
-    snapshot,
+    fase: faseDesdeSnapshot(siguiente, Boolean(opciones.ejecutando)),
+    zoneSearchId: siguiente.zoneSearchId,
+    snapshot: siguiente,
     error: null,
   };
 }

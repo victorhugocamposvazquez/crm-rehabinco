@@ -1,7 +1,14 @@
 "use client";
 
 import { useAuth } from "@/lib/auth/auth-context";
-import { editorHomePath, isEditor, isEditorBlockedPath } from "@/lib/auth/roles";
+import {
+  comercialHomePath,
+  editorHomePath,
+  isComercial,
+  isComercialBlockedPath,
+  isEditor,
+  isEditorBlockedPath,
+} from "@/lib/auth/roles";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -11,6 +18,8 @@ export function Protected({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [redirecting, setRedirecting] = useState(false);
   const editorBlocked = !!user && isEditor(user.role) && isEditorBlockedPath(pathname ?? "/");
+  const comercialBlocked =
+    !!user && isComercial(user.role) && isComercialBlockedPath(pathname ?? "/");
 
   useEffect(() => {
     if (isLoading) return;
@@ -22,10 +31,15 @@ export function Protected({ children }: { children: React.ReactNode }) {
     if (isEditor(user.role) && isEditorBlockedPath(pathname ?? "/")) {
       setRedirecting(true);
       router.replace(editorHomePath());
+      return;
+    }
+    if (isComercial(user.role) && isComercialBlockedPath(pathname ?? "/")) {
+      setRedirecting(true);
+      router.replace(comercialHomePath());
     }
   }, [user, isLoading, router, pathname]);
 
-  const showLoader = isLoading || (redirecting && !user) || editorBlocked;
+  const showLoader = isLoading || (redirecting && !user) || editorBlocked || comercialBlocked;
 
   if (showLoader || !user) {
     return (

@@ -3,7 +3,12 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
-import { hidratarSesionZona, serializarSesionZona } from "./zone-archive";
+import {
+  elegirSesionZona,
+  hidratarSesionZona,
+  permiteEscribirSesionZona,
+  serializarSesionZona,
+} from "./zone-archive";
 import { createZoneStore, sesionContinuaEnSegundoPlano, snapshotContinuaEnSegundoPlano } from "./zone-session";
 
 describe("Archivo de sesión de zona", () => {
@@ -139,5 +144,58 @@ describe("Archivo de sesión de zona", () => {
       snapshotContinuaEnSegundoPlano({ status: "prepared", progress: { streetsPending: 20, steps: 0 } }),
       false
     );
+  });
+});
+
+describe("Archivo de sesión de zona: no retroceder", () => {
+  function sesionPrueba(id: string) {
+    const store = createZoneStore({ idFactory: () => id });
+    const creada = store.create({
+      userId: "user-1",
+      claveZona: "MADRID|ALCOBENDAS|28703|0",
+      criterios: {
+        provincia: "MADRID",
+        municipio: "ALCOBENDAS",
+        postalCode: "28703",
+        horizontalDivision: "NO",
+        streetOffset: 0,
+      },
+      provinciaOficial: "Madrid",
+      municipioOficial: "Alcobendas",
+      calles: [
+        { code: "1", sigla: "CL", name: "A" },
+        { code: "2", sigla: "CL", name: "B" },
+      ],
+      streetsTotal: 48,
+      streetOffset: 0,
+    });
+    assert.equal(creada.ok, true);
+    if (!creada.ok) throw new Error("sesión");
+    return creada.session;
+  }
+
+  it("un prepare a 0 no pisa 8 calles ya hechas", () => {
+    const avanzada = sesionPrueba("zona-avanzada");
+    avanzada.calles[0].status = "done";
+    avanzada.steps = 2;
+    avanzada.updatedAt = 2_000;
+    const atrasada = sesionPrueba("zona-atrasada");
+    atrasada.updatedAt = 9_000;
+    assert.equal(permiteEscribirSesionZona(atrasada, avanzada), false);
+    assert.equal(elegirSesionZona(avanzada, atrasada), avanzada);
+  });
+
+  it("un paso con más calles sí sustituye el archivo", () => {
+    const previa = sesionPrueba("zona-previa");
+    previa.calles[0].status = "done";
+    previa.steps = 1;
+    previa.updatedAt = 1_000;
+    const siguiente = sesionPrueba("zona-previa");
+    siguiente.calles[0].status = "done";
+    siguiente.calles[1].status = "done";
+    siguiente.steps = 2;
+    siguiente.updatedAt = 2_000;
+    assert.equal(permiteEscribirSesionZona(siguiente, previa), true);
+    assert.equal(elegirSesionZona(previa, siguiente), siguiente);
   });
 });
