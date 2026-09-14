@@ -25,8 +25,8 @@ export function PageHeader({
       {breadcrumb && breadcrumb.length > 0 && (
         <Breadcrumb items={breadcrumb} className="mb-4" />
       )}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
+      <div className="flex flex-col gap-3 min-[820px]:flex-row min-[820px]:flex-wrap min-[820px]:items-end min-[820px]:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground min-[820px]:text-[28px]">
             {title}
           </h1>
@@ -36,7 +36,7 @@ export function PageHeader({
             </p>
           )}
         </div>
-        {actions && <div className="shrink-0">{actions}</div>}
+        {actions && <div className="flex w-full min-w-0 flex-wrap min-[820px]:w-auto">{actions}</div>}
       </div>
     </div>
   );

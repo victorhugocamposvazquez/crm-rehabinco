@@ -17,6 +17,8 @@ interface SheetProps {
   variant?: "sheet" | "studio" | "side";
   /** Solo aplica a `variant="side"`. */
   side?: "left" | "right";
+  /** Encima de otro sheet (peek de ficha desde una tarea, etc.). */
+  elevated?: boolean;
 }
 
 export function Sheet({
@@ -28,6 +30,7 @@ export function Sheet({
   showCloseButton = false,
   variant = "sheet",
   side = "right",
+  elevated = false,
 }: SheetProps) {
   const overflowRef = React.useRef<string>("");
   const toqueInicio = React.useRef<number | null>(null);
@@ -65,7 +68,7 @@ export function Sheet({
   );
 
   const content = (
-    <div className="fixed inset-0 z-[9999]">
+      <div className={cn("fixed inset-0", elevated ? "z-[10050]" : "z-[9999]")}>
       <button
         type="button"
         className="absolute inset-0 bg-black/40 transition-opacity duration-300"

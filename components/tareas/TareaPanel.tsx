@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
@@ -9,9 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/sheet";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { CampoComentario, TextoConMenciones } from "@/components/tareas/CampoComentario";
+import { VinculoPeek, type VinculoPeekDestino } from "@/components/tareas/VinculoPeek";
 import { relacionUno } from "@/lib/citas/citas";
 import { nombreYApellido } from "@/lib/ui/tokens";
-import { rutaFincaPersistida } from "@/lib/catastro/explorer/history-ui";
 import {
   COLUMNAS_TAREA,
   columnaDeTarea,
@@ -78,10 +77,12 @@ export function TareaPanel({
   const [cliOpts, setCliOpts] = useState<Array<{ id: string; label: string }>>([]);
   const [demOpts, setDemOpts] = useState<Array<{ id: string; label: string }>>([]);
   const [parteOpts, setParteOpts] = useState<Array<{ id: string; label: string; propiedadId: string | null }>>([]);
+  const [peek, setPeek] = useState<VinculoPeekDestino | null>(null);
 
   useEffect(() => {
     setTitulo(tarea?.titulo ?? "");
     setFinca(tarea?.finca_reference ?? "");
+    setPeek(null);
   }, [tarea?.id, tarea?.titulo]);
 
   useEffect(() => {
@@ -214,16 +215,16 @@ export function TareaPanel({
     demanda: tarea.demandas?.tipo_operacion ? `Demanda ${tarea.demandas.tipo_operacion}` : null,
     parte: tarea.partes_visita?.inmueble_direccion,
   });
-  const hrefVinculo = tarea.propiedad_id
-    ? `/propiedades/${tarea.propiedad_id}`
+  const destinoPrincipal: VinculoPeekDestino | null = tarea.propiedad_id
+    ? { tipo: "propiedad", id: tarea.propiedad_id }
     : tarea.cliente_id
-      ? `/clientes/${tarea.cliente_id}`
+      ? { tipo: "cliente", id: tarea.cliente_id }
       : tarea.finca_reference
-        ? rutaFincaPersistida(tarea.finca_reference)
+        ? { tipo: "finca", id: tarea.finca_reference }
         : tarea.demanda_id
-          ? `/demandas/${tarea.demanda_id}`
+          ? { tipo: "demanda", id: tarea.demanda_id }
           : tarea.parte_visita_id
-            ? `/partes-visita/${tarea.parte_visita_id}`
+            ? { tipo: "parte", id: tarea.parte_visita_id }
             : null;
 
   const guardarTitulo = () => {
@@ -379,10 +380,14 @@ export function TareaPanel({
             </div>
             <div className="col-span-2">
               <div className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">Vinculado a</div>
-              {hrefVinculo && vinculo !== "Sin vincular" ? (
-                <Link href={hrefVinculo} className="mt-1 block truncate text-[13.5px] text-accent">
+              {destinoPrincipal && vinculo !== "Sin vincular" ? (
+                <button
+                  type="button"
+                  onClick={() => setPeek(destinoPrincipal)}
+                  className="mt-1 block w-full truncate text-left text-[13.5px] text-accent"
+                >
                   {vinculo}
-                </Link>
+                </button>
               ) : (
                 <p className="mt-1 text-[13.5px] text-[var(--text-2)]">Sin vincular</p>
               )}
@@ -419,7 +424,14 @@ export function TareaPanel({
 
           <div className="mt-[18px] grid gap-2">
             <label className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">
-              Inmueble
+              <span className="flex items-center justify-between gap-2">
+                Inmueble
+                {tarea.propiedad_id ? (
+                  <button type="button" className="normal-case tracking-normal text-accent" onClick={() => setPeek({ tipo: "propiedad", id: tarea.propiedad_id! })}>
+                    Ver
+                  </button>
+                ) : null}
+              </span>
               <select
                 value={tarea.propiedad_id ?? ""}
                 onChange={(e) =>
@@ -436,7 +448,14 @@ export function TareaPanel({
               </select>
             </label>
             <label className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">
-              Cliente
+              <span className="flex items-center justify-between gap-2">
+                Cliente
+                {tarea.cliente_id ? (
+                  <button type="button" className="normal-case tracking-normal text-accent" onClick={() => setPeek({ tipo: "cliente", id: tarea.cliente_id! })}>
+                    Ver
+                  </button>
+                ) : null}
+              </span>
               <select
                 value={tarea.cliente_id ?? ""}
                 onChange={(e) =>
@@ -453,7 +472,14 @@ export function TareaPanel({
               </select>
             </label>
             <label className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">
-              Demanda
+              <span className="flex items-center justify-between gap-2">
+                Demanda
+                {tarea.demanda_id ? (
+                  <button type="button" className="normal-case tracking-normal text-accent" onClick={() => setPeek({ tipo: "demanda", id: tarea.demanda_id! })}>
+                    Ver
+                  </button>
+                ) : null}
+              </span>
               <select
                 value={tarea.demanda_id ?? ""}
                 onChange={(e) =>
@@ -470,7 +496,14 @@ export function TareaPanel({
               </select>
             </label>
             <label className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">
-              Parte de visita
+              <span className="flex items-center justify-between gap-2">
+                Parte de visita
+                {tarea.parte_visita_id ? (
+                  <button type="button" className="normal-case tracking-normal text-accent" onClick={() => setPeek({ tipo: "parte", id: tarea.parte_visita_id! })}>
+                    Ver
+                  </button>
+                ) : null}
+              </span>
               <select
                 value={tarea.parte_visita_id ?? ""}
                 onChange={(e) => {
@@ -495,7 +528,14 @@ export function TareaPanel({
               </select>
             </label>
             <label className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">
-              Finca (Catastro)
+              <span className="flex items-center justify-between gap-2">
+                Finca (Catastro)
+                {tarea.finca_reference ? (
+                  <button type="button" className="normal-case tracking-normal text-accent" onClick={() => setPeek({ tipo: "finca", id: tarea.finca_reference! })}>
+                    Ver
+                  </button>
+                ) : null}
+              </span>
               <input
                 value={finca}
                 onChange={(e) => setFinca(e.target.value)}

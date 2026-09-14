@@ -161,7 +161,7 @@ export default function DetallePropiedadPage() {
         title={titulo}
         description={propiedad.referencia ? `Ref. ${propiedad.referencia}` : undefined}
         actions={
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5">
             <Button variant="secondary" size="sm" asChild>
               <Link href={rutaNuevaCita({ propiedadId: id, clienteId: propiedad.ofertante_id })} className="gap-2">
                 Concertar visita

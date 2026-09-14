@@ -27,11 +27,13 @@ type MatchVista = {
 export function PanelInmueble({
   inmueble,
   overlay = false,
+  embedded = false,
   loading = false,
   onClose,
 }: {
   inmueble: InmueblePanel | null;
   overlay?: boolean;
+  embedded?: boolean;
   loading?: boolean;
   onClose?: () => void;
 }) {
@@ -175,8 +177,8 @@ export function PanelInmueble({
     return (
       <aside
         className={cn(
-          "overflow-hidden rounded-[14px] border border-border bg-white",
-          overlay ? "fixed inset-0 z-50 rounded-none" : "sticky top-[72px] min-w-[300px] flex-[1_1_330px]"
+          "overflow-hidden bg-white",
+          overlay ? "fixed inset-0 z-50 rounded-none" : embedded ? "" : "sticky top-[72px] min-w-[300px] flex-[1_1_330px] rounded-[14px] border border-border"
         )}
       >
         <div className="aspect-video bg-[var(--surface-soft)]" />
@@ -208,8 +210,12 @@ export function PanelInmueble({
   return (
     <aside
       className={cn(
-        "overflow-hidden rounded-[14px] border border-border bg-white",
-        overlay ? "fixed inset-0 z-50 rounded-none" : "sticky top-[72px] min-w-[300px] flex-[1_1_330px]"
+        "overflow-hidden bg-white",
+        overlay
+          ? "fixed inset-0 z-50 rounded-none"
+          : embedded
+            ? ""
+            : "sticky top-[72px] min-w-[300px] flex-[1_1_330px] rounded-[14px] border border-border"
       )}
     >
       <div className="max-h-[100dvh] overflow-y-auto">
@@ -305,10 +311,10 @@ export function PanelInmueble({
           ) : (
             matches.map((m) => (
               <div key={m.demandaId} className="mb-1.5 flex items-center gap-2.5 rounded-[9px] border border-[var(--border-soft)] bg-[#FDFDFC] px-2.5 py-2">
-                <Link href={`/demandas/${m.demandaId}`} className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1">
                   <div className="text-[13px] font-semibold">{m.cliente}</div>
                   <div className="text-[11.5px] text-[var(--text-2)]">{m.criterios}</div>
-                </Link>
+                </div>
                 <span className="text-[11.5px] font-semibold tabular-nums text-accent">{m.score}%</span>
                 <div className="flex gap-0.5">
                   <button
@@ -331,9 +337,11 @@ export function PanelInmueble({
               </div>
             ))
           )}
-          <Link href={`/propiedades/${inmueble.id}`} className="mt-2 inline-block text-[12.5px] font-medium text-accent hover:underline">
-            Abrir ficha completa
-          </Link>
+          {embedded ? null : (
+            <Link href={`/propiedades/${inmueble.id}`} className="mt-2 inline-block text-[12.5px] font-medium text-accent hover:underline">
+              Abrir ficha completa
+            </Link>
+          )}
         </div>
       </div>
     </aside>
