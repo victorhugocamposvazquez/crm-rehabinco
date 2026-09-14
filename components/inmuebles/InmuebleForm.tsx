@@ -52,14 +52,13 @@ export function InmuebleForm({
       <section className="space-y-4">
         <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-neutral-400">Captación</h2>
         <div className="space-y-2">
-          <Label>Propietario (ofertante) *</Label>
+          <Label>Propietario (ofertante, opcional)</Label>
           <select
             value={values.ofertante_id}
             onChange={(e) => set({ ofertante_id: e.target.value })}
-            required
             className="flex h-10 w-full rounded-lg border border-border bg-white px-4 text-base"
           >
-            <option value="">Selecciona un cliente</option>
+            <option value="">Sin propietario aún</option>
             {clientes.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.nombre}

@@ -45,14 +45,15 @@ export function CatastroPropertyVinculo({
       .then(({ data }) => setClientes(data ?? []));
   }, [eligiendo]);
 
-  const crear = async () => {
-    if (creando || links.length > 0 || !ofertanteId) {
-      if (!ofertanteId) toast.error("Selecciona un propietario (ofertante)");
+  const crear = async (conOfertante: boolean) => {
+    if (creando || links.length > 0) return;
+    if (conOfertante && !ofertanteId) {
+      toast.error("Selecciona un propietario (ofertante)");
       return;
     }
     setCreando(true);
     try {
-      const resultado = await crearPropiedadDesdeFincaUi(fincaReference, ofertanteId);
+      const resultado = await crearPropiedadDesdeFincaUi(fincaReference, conOfertante ? ofertanteId : null);
       onLinksChange?.([resultado.link]);
       setEligiendo(false);
       toast.success(resultado.created ? "Propiedad creada." : "Esta finca ya estaba vinculada.");
@@ -97,18 +98,17 @@ export function CatastroPropertyVinculo({
             aria-labelledby="ofertante-catastro-title"
           >
             <h2 id="ofertante-catastro-title" className="text-base font-semibold text-foreground">
-              Propietario (ofertante)
+              Crear propiedad
             </h2>
             <p className="mt-1 text-sm text-neutral-600">
-              Igual que en el alta de inmuebles: elige un cliente. No se inventa un ofertante.
+              Puedes crear el inmueble ahora y añadir el propietario cuando lo localices. No se inventa un cliente.
             </p>
             <div className="mt-4 space-y-2">
-              <Label htmlFor="ofertante-catastro">Cliente *</Label>
+              <Label htmlFor="ofertante-catastro">Propietario (opcional)</Label>
               <select
                 id="ofertante-catastro"
                 value={ofertanteId}
                 onChange={(e) => setOfertanteId(e.target.value)}
-                required
                 className="flex h-10 w-full rounded-lg border border-border bg-white px-4 text-base"
               >
                 <option value="">Selecciona un cliente</option>
@@ -130,7 +130,10 @@ export function CatastroPropertyVinculo({
               <Button type="button" variant="secondary" size="sm" onClick={() => setEligiendo(false)} disabled={creando}>
                 Cancelar
               </Button>
-              <Button type="button" size="sm" onClick={() => void crear()} disabled={creando || !ofertanteId}>
+              <Button type="button" variant="secondary" size="sm" onClick={() => void crear(false)} disabled={creando}>
+                {creando ? "Creando…" : "Crear sin propietario"}
+              </Button>
+              <Button type="button" size="sm" onClick={() => void crear(true)} disabled={creando}>
                 {creando ? "Creando…" : "Crear propiedad"}
               </Button>
             </div>

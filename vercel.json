@@ -3,6 +3,18 @@
   "functions": {
     "app/api/presupuestos/copiloto/route.ts": {
       "maxDuration": 60
+    },
+    "app/api/cron/catastro-zone/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/catastro/zone/step/route.ts": {
+      "maxDuration": 120
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/catastro-zone",
+      "schedule": "*/5 * * * *"
+    }
+  ]
 }

@@ -37,6 +37,7 @@ export default function DetalleClientePage() {
   const [facturas, setFacturas] = useState<Array<{ id: string; numero: string; estado: string; total?: number }>>([]);
   const [empresasAsociadas, setEmpresasAsociadas] = useState<Array<{ id: string; nombre: string }>>([]);
   const [propiedades, setPropiedades] = useState<Array<{ id: string; titulo: string | null; direccion: string | null; localidad: string | null; tipo_operacion: string; estado: string }>>([]);
+  const [demandas, setDemandas] = useState<Array<{ id: string; tipo_operacion: string; estado: string; zonas: string[] | null }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -97,6 +98,17 @@ export default function DetalleClientePage() {
       .then(({ data }) => {
         setPropiedades(data ?? []);
       });
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    const supabase = createClient();
+    supabase
+      .from("demandas")
+      .select("id, tipo_operacion, estado, zonas")
+      .eq("cliente_id", id)
+      .order("updated_at", { ascending: false })
+      .then(({ data }) => setDemandas(data ?? []));
   }, [id]);
 
   const handleDelete = async () => {
@@ -250,7 +262,7 @@ export default function DetalleClientePage() {
         </Card>
         <Card className="md:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Inmuebles</CardTitle>
+            <CardTitle>Inmuebles que ofrece</CardTitle>
             <Button variant="secondary" size="sm" asChild>
               <Link href={`/propiedades/nueva?ofertante=${id}`} className="gap-1.5">
                 <Plus className="h-4 w-4" strokeWidth={1.5} />
@@ -280,6 +292,33 @@ export default function DetalleClientePage() {
                         {p.estado}
                       </Badge>
                     </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+        <Card className="md:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Lo que busca</CardTitle>
+            <Button variant="secondary" size="sm" asChild>
+              <Link href={`/demandas/nueva?cliente=${id}`} className="gap-1.5">
+                <Plus className="h-4 w-4" strokeWidth={1.5} />
+                Nueva demanda
+              </Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {demandas.length === 0 ? (
+              <p className="text-sm text-neutral-500">Sin demandas. Este cliente aún no busca un inmueble.</p>
+            ) : (
+              <ul className="space-y-2">
+                {demandas.map((d) => (
+                  <li key={d.id}>
+                    <Link href={`/demandas/${d.id}`} className="text-sm font-medium hover:underline">
+                      {d.tipo_operacion}
+                      {d.zonas?.length ? ` · ${d.zonas.join(", ")}` : ""} · {d.estado}
+                    </Link>
                   </li>
                 ))}
               </ul>

@@ -1,0 +1,43 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import { citasDelDia, prefillParteDesdeCita, relacionUno, rutaNuevaVisitaDesdeCita, semanaDesde } from "./citas";
+
+describe("citas", () => {
+  it("el parte se abre prellenado desde la cita, no al revés", () => {
+    const cita = {
+      id: "c1",
+      titulo: "Visita Oleiros",
+      empieza: "2026-09-17T18:00:00.000Z",
+      propiedadId: "p1",
+    };
+    assert.equal(rutaNuevaVisitaDesdeCita(cita), "/partes-visita/nuevo?cita=c1&propiedad=p1");
+    const prefill = prefillParteDesdeCita(cita);
+    assert.equal(prefill.propiedadId, "p1");
+    assert.equal(prefill.fechaVisita, "2026-09-17");
+    assert.equal(prefill.observaciones, "Visita Oleiros");
+  });
+
+  it("agrupa citas del día y calcula semana lunes-domingo", () => {
+    const semana = semanaDesde("2026-09-16");
+    assert.equal(semana[0], "2026-09-14");
+    assert.equal(semana[6], "2026-09-20");
+    const delDia = citasDelDia(
+      [
+        { id: "a", empieza: "2026-09-16T09:00:00.000Z" },
+        { id: "b", empieza: "2026-09-16T18:00:00.000Z" },
+        { id: "c", empieza: "2026-09-17T10:00:00.000Z" },
+      ],
+      "2026-09-16"
+    );
+    assert.deepEqual(
+      delDia.map((item) => item.id),
+      ["a", "b"]
+    );
+  });
+
+  it("normaliza el join de perfil aunque Supabase lo devuelva en array", () => {
+    assert.deepEqual(relacionUno({ color: "#123" }), { color: "#123" });
+    assert.deepEqual(relacionUno([{ color: "#abc" }]), { color: "#abc" });
+    assert.equal(relacionUno(null), null);
+  });
+});

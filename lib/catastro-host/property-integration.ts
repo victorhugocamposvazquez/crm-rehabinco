@@ -48,7 +48,9 @@ function linkDesdeFila(row: PropertyLinkRow): CatastroPropertyLink {
 export function errorDesdeRpc(code?: string, message?: string): ResultadoVinculoPropiedad {
   if (code === "42501" || message?.includes("FORBIDDEN")) return { ok: false, error: "FORBIDDEN" };
   if (code === "P0002" || message?.includes("FINCA_NOT_FOUND")) return { ok: false, error: "NOT_FOUND" };
-  if (message?.includes("OFERTANTE_REQUIRED")) return { ok: false, error: "OFERTANTE_REQUIRED" };
+  if (message?.includes("OFERTANTE_REQUIRED") || message?.includes("OFERTANTE_INVALID")) {
+    return { ok: false, error: "OFERTANTE_REQUIRED" };
+  }
   if (message?.includes("propiedades") && !message.includes("catastro_property_links")) {
     return { ok: false, error: "PROPERTY_FAILED" };
   }

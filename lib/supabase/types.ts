@@ -225,7 +225,7 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
-          ofertante_id: string;
+          ofertante_id: string | null;
           titulo: string | null;
           direccion: string | null;
           codigo_postal: string | null;
@@ -260,7 +260,7 @@ export interface Database {
         };
         Insert: {
           user_id: string;
-          ofertante_id: string;
+          ofertante_id?: string | null;
           titulo?: string | null;
           direccion?: string | null;
           codigo_postal?: string | null;
@@ -290,7 +290,7 @@ export interface Database {
           publicado?: boolean;
         };
         Update: {
-          ofertante_id?: string;
+          ofertante_id?: string | null;
           titulo?: string | null;
           direccion?: string | null;
           codigo_postal?: string | null;
@@ -500,6 +500,7 @@ export interface Database {
           propiedad_id: string | null;
           cliente_id: string | null;
           comercial_id: string | null;
+          cita_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -524,6 +525,7 @@ export interface Database {
           propiedad_id?: string | null;
           cliente_id?: string | null;
           comercial_id?: string | null;
+          cita_id?: string | null;
         };
         Update: {
           estado?: "borrador" | "pendiente_firma" | "firmado";
@@ -544,6 +546,7 @@ export interface Database {
           propiedad_id?: string | null;
           cliente_id?: string | null;
           comercial_id?: string | null;
+          cita_id?: string | null;
           updated_at?: string;
         };
       };
@@ -574,6 +577,207 @@ export interface Database {
           url?: string;
           orden?: number;
           portada?: boolean;
+        };
+      };
+      catastro_explorer_pipeline: {
+        Row: {
+          finca_reference: string;
+          estado: string;
+          proxima_accion: string | null;
+          proxima_accion_en: string | null;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          finca_reference: string;
+          estado?: string;
+          proxima_accion?: string | null;
+          proxima_accion_en?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          estado?: string;
+          proxima_accion?: string | null;
+          proxima_accion_en?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+      };
+      catastro_explorer_actividad: {
+        Row: {
+          id: string;
+          finca_reference: string;
+          actor_id: string | null;
+          tipo: string;
+          detalle: string | null;
+          payload: Json;
+          created_at: string;
+        };
+        Insert: {
+          finca_reference: string;
+          actor_id?: string | null;
+          tipo: string;
+          detalle?: string | null;
+          payload?: Json;
+        };
+        Update: {
+          tipo?: string;
+          detalle?: string | null;
+          payload?: Json;
+        };
+      };
+      demandas: {
+        Row: {
+          id: string;
+          cliente_id: string;
+          comercial_id: string;
+          tipo_operacion: string;
+          tipos_inmueble: string[];
+          zonas: string[];
+          presupuesto_min: number | null;
+          presupuesto_max: number | null;
+          superficie_min: number | null;
+          superficie_max: number | null;
+          habitaciones_min: number | null;
+          banos_min: number | null;
+          requisitos: string | null;
+          estado: string;
+          origen: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          cliente_id: string;
+          comercial_id: string;
+          tipo_operacion?: string;
+          tipos_inmueble?: string[];
+          zonas?: string[];
+          presupuesto_min?: number | null;
+          presupuesto_max?: number | null;
+          superficie_min?: number | null;
+          superficie_max?: number | null;
+          habitaciones_min?: number | null;
+          banos_min?: number | null;
+          requisitos?: string | null;
+          estado?: string;
+          origen?: string | null;
+        };
+        Update: {
+          tipo_operacion?: string;
+          tipos_inmueble?: string[];
+          zonas?: string[];
+          presupuesto_min?: number | null;
+          presupuesto_max?: number | null;
+          superficie_min?: number | null;
+          superficie_max?: number | null;
+          habitaciones_min?: number | null;
+          banos_min?: number | null;
+          requisitos?: string | null;
+          estado?: string;
+          origen?: string | null;
+          updated_at?: string;
+        };
+      };
+      demanda_inmuebles: {
+        Row: {
+          id: string;
+          demanda_id: string;
+          propiedad_id: string;
+          origen: string;
+          puntuacion: number;
+          estado: string;
+          notas: string | null;
+          created_at: string;
+        };
+        Insert: {
+          demanda_id: string;
+          propiedad_id: string;
+          origen?: string;
+          puntuacion?: number;
+          estado?: string;
+          notas?: string | null;
+        };
+        Update: {
+          origen?: string;
+          puntuacion?: number;
+          estado?: string;
+          notas?: string | null;
+        };
+      };
+      citas: {
+        Row: {
+          id: string;
+          comercial_id: string;
+          tipo: string;
+          titulo: string;
+          empieza: string;
+          termina: string;
+          propiedad_id: string | null;
+          cliente_id: string | null;
+          demanda_id: string | null;
+          finca_reference: string | null;
+          estado: string;
+          created_at: string;
+        };
+        Insert: {
+          comercial_id: string;
+          tipo?: string;
+          titulo: string;
+          empieza: string;
+          termina: string;
+          propiedad_id?: string | null;
+          cliente_id?: string | null;
+          demanda_id?: string | null;
+          finca_reference?: string | null;
+          estado?: string;
+        };
+        Update: {
+          tipo?: string;
+          titulo?: string;
+          empieza?: string;
+          termina?: string;
+          propiedad_id?: string | null;
+          cliente_id?: string | null;
+          demanda_id?: string | null;
+          finca_reference?: string | null;
+          estado?: string;
+        };
+      };
+      tareas: {
+        Row: {
+          id: string;
+          comercial_id: string;
+          titulo: string;
+          vence: string | null;
+          estado: string;
+          finca_reference: string | null;
+          propiedad_id: string | null;
+          cliente_id: string | null;
+          demanda_id: string | null;
+          cita_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          comercial_id: string;
+          titulo: string;
+          vence?: string | null;
+          estado?: string;
+          finca_reference?: string | null;
+          propiedad_id?: string | null;
+          cliente_id?: string | null;
+          demanda_id?: string | null;
+          cita_id?: string | null;
+        };
+        Update: {
+          titulo?: string;
+          vence?: string | null;
+          estado?: string;
+          finca_reference?: string | null;
+          propiedad_id?: string | null;
+          cliente_id?: string | null;
+          demanda_id?: string | null;
+          cita_id?: string | null;
         };
       };
     };

@@ -44,10 +44,6 @@ export default function NuevaPropiedadPage() {
   }, [ofertanteFromUrl]);
 
   const handleSubmit = async () => {
-    if (!values.ofertante_id) {
-      setError("Selecciona un propietario (ofertante)");
-      return;
-    }
     setError(null);
     setSaving(true);
     const supabase = createClient();

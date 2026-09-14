@@ -91,7 +91,6 @@ function integrationMemoria(): CatastroPropertyIntegration & {
       return fincaReferences.map((ref) => links.get(ref)).filter((item): item is CatastroPropertyLink => Boolean(item));
     },
     async createPropertyFromCatastro(input) {
-      if (!input.ofertanteId) return { ok: false, error: "OFERTANTE_REQUIRED" };
       if (api.failCreate) return { ok: false, error: api.failCreate };
       const existente = links.get(input.datos.fincaReference);
       if (existente) return { ok: true, created: false, link: existente };
@@ -103,7 +102,7 @@ function integrationMemoria(): CatastroPropertyIntegration & {
       };
       links.set(link.fincaReference, link);
       api.created.push(link);
-      api.ofertantes.push(input.ofertanteId);
+      if (input.ofertanteId) api.ofertantes.push(input.ofertanteId);
       return { ok: true, created: true, link };
     },
   };
@@ -334,7 +333,7 @@ describe("Catastro Explorer → Property", () => {
     assert.equal(etiquetasVinculoPropiedad(links).badge, "VINCULADA A PROPERTY");
   });
 
-  it("el alta desde Explorer respeta ofertante_id y no lo inventa", async () => {
+  it("el alta desde Explorer no inventa un ofertante; el propietario es opcional", async () => {
     const store = crearStoreMemoriaExplorer();
     await store.putFinca(recordDesdeFinca(GODELLETA, "2026-01-01T08:00:00.000Z"));
     assert.equal(ofertanteParaAltaCatastro(""), null);
@@ -342,14 +341,16 @@ describe("Catastro Explorer → Property", () => {
     assert.equal(ofertanteParaAltaCatastro("cliente-1"), "cliente-1");
     assert.notEqual(ofertanteParaAltaCatastro("cliente-1"), "user-1");
 
-    const sinOfertante = await crearOReutilizarPropiedad(store, integrationMemoria(), {
+    const integrationFria = integrationMemoria();
+    const sinOfertante = await crearOReutilizarPropiedad(store, integrationFria, {
       fincaReference: GODELLETA.fincaReference,
       userId: "user-1",
       now: "2026-09-12T11:00:00.000Z",
       puedeCrear: true,
     });
-    assert.deepEqual(sinOfertante, { ok: false, error: "OFERTANTE_REQUIRED" });
-    assert.equal(ERRORES_VINCULO_HTTP.OFERTANTE_REQUIRED.status, 400);
+    assert.equal(sinOfertante.ok, true);
+    assert.deepEqual(integrationFria.ofertantes, []);
+    assert.equal(integrationFria.ofertantes.includes("user-1"), false);
 
     const integration = integrationMemoria();
     const creada = await crearOReutilizarPropiedad(store, integration, {

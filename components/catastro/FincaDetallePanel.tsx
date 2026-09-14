@@ -79,6 +79,11 @@ export function FincaDetallePanel({
   const cuerpo = (
     <>
       <p className="text-sm text-[#5D6B67]">{resumenComercialFinca(finca)}</p>
+      {vinculada ? (
+        <p className="mt-1 text-xs font-semibold text-sky-800">Esta referencia ya es una propiedad del CRM.</p>
+      ) : asignacion ? (
+        <p className="mt-1 text-xs font-semibold text-[#0B7461]">Asignada a {asignacion.nombre}.</p>
+      ) : null}
       {textoMotivoUnknownUi(finca.horizontalDivision) ? (
         <p className="mt-1 text-xs text-[#5D6B67]">{textoMotivoUnknownUi(finca.horizontalDivision)}</p>
       ) : null}

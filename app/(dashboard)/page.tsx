@@ -7,6 +7,9 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, TrendingUp, Clock, Building2, ClipboardList, ClipboardPenLine, UserPlus, Plus, Search } from "lucide-react";
+import { useAuth } from "@/lib/auth/auth-context";
+import { isAdmin, isComercial } from "@/lib/auth/roles";
+import { HoyCaptacion } from "@/components/captacion/HoyCaptacion";
 
 interface MesFacturado {
   mes: string;
@@ -49,10 +52,17 @@ function ListSkeleton({ rows = 4 }: { rows?: number }) {
 }
 
 export default function DashboardPage() {
+  const { user } = useAuth();
+  const mostrarFacturacion = isAdmin(user?.role) && !isComercial(user?.role);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) return;
+    if (!mostrarFacturacion) {
+      setLoading(false);
+      return;
+    }
     const supabase = createClient();
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
@@ -100,15 +110,22 @@ export default function DashboardPage() {
       });
       setLoading(false);
     });
-  }, []);
+  }, [user, mostrarFacturacion]);
 
   return (
     <div className="animate-[fadeIn_0.3s_ease-out]">
       <PageHeader
-        breadcrumb={[{ label: "Inicio" }]}
-        title="Inicio"
-        description="Resumen y acceso rápido"
+        breadcrumb={[{ label: "Hoy" }]}
+        title="Hoy"
+        description="Lo que hay que hacer antes de las 20:00"
       />
+
+      <div className="mt-8">
+        <HoyCaptacion />
+      </div>
+
+      {mostrarFacturacion ? (
+      <>
 
       {/* KPI cards */}
       <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
@@ -325,6 +342,8 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+      </>
+      ) : null}
     </div>
   );
 }

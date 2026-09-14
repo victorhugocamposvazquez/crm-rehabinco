@@ -683,12 +683,12 @@ export const ERROR_CREAR_PROPIEDAD = "No se ha podido crear la propiedad.";
 
 export async function crearPropiedadDesdeFincaUi(
   fincaReference: string,
-  ofertanteId: string
+  ofertanteId?: string | null
 ): Promise<{ created: boolean; link: CatastroPropertyLink }> {
   const respuesta = await fetch(`/api/catastro/fincas/${encodeURIComponent(fincaReference)}/property`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ ofertanteId }),
+    body: JSON.stringify({ ofertanteId: ofertanteId ?? null }),
   });
   const cuerpo = (await respuesta.json().catch(() => null)) as
     | { ok: true; created: boolean; link: CatastroPropertyLink }

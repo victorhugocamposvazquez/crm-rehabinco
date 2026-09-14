@@ -104,6 +104,11 @@ export function FincaResultadoRow({
               {titulo}
             </p>
             <p className="mt-1 font-mono text-[11.5px] text-[#5D6B67]">{finca.fincaReference}</p>
+            {vinculada ? (
+              <p className="mt-1 text-[11px] font-semibold text-sky-800">Ya es propiedad del CRM</p>
+            ) : asignacion ? (
+              <p className="mt-1 text-[11px] font-semibold text-[#0B7461]">Asignada a {asignacion.nombre}</p>
+            ) : null}
             <span className={cn("mt-1 flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs font-medium min-[780px]:hidden", claseTextoDivision(status))}>
               <span className={cn("h-[7px] w-[7px] flex-none rounded-full", clasePuntoDivision(status))} aria-hidden />
               {etiquetaEstadoDivisionLista(status)}

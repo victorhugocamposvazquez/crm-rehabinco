@@ -23,6 +23,8 @@ import {
 import { AccionNuevaBusqueda } from "./AccionNuevaBusqueda";
 import { CatastroPropertyVinculo } from "./CatastroPropertyVinculo";
 import { FincaResultadoCard } from "./FincaResultadoCard";
+import { PipelineFinca } from "@/components/captacion/PipelineFinca";
+import { alertaDuplicadoFinca } from "@/lib/captacion/estados";
 import type { CatastroPropertyLink } from "@/lib/catastro/explorer";
 
 export function FincaPersistida({ fincaReference }: { fincaReference: string }) {
@@ -107,6 +109,14 @@ export function FincaPersistida({ fincaReference }: { fincaReference: string }) 
           links={links}
           onLinksChange={setLinks}
         />
+      </div>
+      {links[0] ? (
+        <p className="mt-3 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">
+          {alertaDuplicadoFinca({ propertyId: links[0].propertyId }).texto}
+        </p>
+      ) : null}
+      <div className="mt-4">
+        <PipelineFinca fincaReference={data.finca.fincaReference} propertyId={links[0]?.propertyId} />
       </div>
       <div className="mt-6">
         <FincaResultadoCard

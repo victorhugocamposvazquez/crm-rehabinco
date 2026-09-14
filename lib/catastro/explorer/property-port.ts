@@ -54,6 +54,6 @@ export type CatastroPropertyIntegration = {
     datos: DatosPropiedadDesdeCatastro;
     userId: string;
     now: string;
-    ofertanteId: string;
+    ofertanteId?: string | null;
   }): Promise<ResultadoVinculoPropiedad>;
 };

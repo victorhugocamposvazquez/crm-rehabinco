@@ -71,10 +71,15 @@ export function isEditorBlockedPath(pathname: string): boolean {
   );
 }
 
-const COMERCIAL_BLOCKED_PREFIXES = ["/buscar", "/catastro/searches"];
+const COMERCIAL_BLOCKED_PREFIXES = [
+  "/buscar",
+  "/catastro/searches",
+  "/catastro/equipo",
+  "/catastro/cobertura",
+];
 
 export function comercialHomePath(): string {
-  return "/catastro";
+  return "/";
 }
 
 /** El comercial no rastrea ni abre el histórico de búsquedas del equipo. */

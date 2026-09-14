@@ -36,8 +36,10 @@ describe("roles", () => {
     assert.equal(isComercialBlockedPath("/buscar"), true);
     assert.equal(isComercialBlockedPath("/catastro/searches"), true);
     assert.equal(isComercialBlockedPath("/catastro/searches/abc"), true);
+    assert.equal(isComercialBlockedPath("/catastro/equipo"), true);
+    assert.equal(isComercialBlockedPath("/catastro/cobertura"), true);
     assert.equal(isComercialBlockedPath("/catastro"), false);
     assert.equal(isComercialBlockedPath("/catastro/finca/12345678901234"), false);
-    assert.equal(comercialHomePath(), "/catastro");
+    assert.equal(comercialHomePath(), "/");
   });
 });

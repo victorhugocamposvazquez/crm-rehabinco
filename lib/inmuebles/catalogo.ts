@@ -179,7 +179,7 @@ function numOrNull(v: string) {
 
 export function inmuebleDesdeForm(values: InmuebleFormValues) {
   return {
-    ofertante_id: values.ofertante_id,
+    ofertante_id: values.ofertante_id.trim() || null,
     titulo: values.titulo.trim() || null,
     direccion: values.direccion.trim() || null,
     codigo_postal: values.codigo_postal.trim() || null,

@@ -50,7 +50,7 @@ export const ERRORES_VINCULO_HTTP = {
   PROPERTY_FAILED: { status: 500, error: "No se ha podido crear la propiedad." },
   LINK_FAILED: { status: 500, error: "No se ha podido vincular la finca." },
   FAILED: { status: 500, error: "No se ha podido crear la propiedad." },
-  OFERTANTE_REQUIRED: { status: 400, error: "Selecciona un propietario (ofertante)" },
+  OFERTANTE_REQUIRED: { status: 400, error: "El propietario indicado no es un cliente válido." },
 } as const;
 
 /** Misma regla que el alta manual: el ofertante es un cliente elegido, nunca inventado. */
@@ -218,7 +218,6 @@ export async function crearOReutilizarPropiedad(
     return { ok: true, created: false, link: existentes[0] };
   }
   const ofertanteId = ofertanteParaAltaCatastro(input.ofertanteId);
-  if (!ofertanteId) return { ok: false, error: "OFERTANTE_REQUIRED" };
   return integration.createPropertyFromCatastro({
     finca,
     datos: datosPropiedadDesdeFinca(finca),

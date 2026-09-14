@@ -17,12 +17,14 @@ import {
   visitaDesdePropertyExigePropiedad,
   type ContextoCatastralVisita,
 } from "@/lib/partes-visita";
+import { prefillParteDesdeCita } from "@/lib/citas/citas";
 
 export default function NuevoParteVisitaPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const propiedadFromUrl = searchParams.get("propiedad") ?? searchParams.get("propiedadId");
+  const citaFromUrl = searchParams.get("cita");
   const desdeProperty = Boolean(propiedadFromUrl);
 
   const [propiedades, setPropiedades] = useState<
@@ -57,6 +59,28 @@ export default function NuevoParteVisitaPage() {
       .order("created_at", { ascending: false })
       .then(({ data }) => setPropiedades(data ?? []));
   }, []);
+
+  useEffect(() => {
+    if (!citaFromUrl) return;
+    const supabase = createClient();
+    void supabase
+      .from("citas")
+      .select("id, titulo, empieza, propiedad_id")
+      .eq("id", citaFromUrl)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return;
+        const prefill = prefillParteDesdeCita({
+          titulo: data.titulo,
+          empieza: data.empieza,
+          propiedadId: data.propiedad_id,
+        });
+        if (prefill.propiedadId) setPropiedadId(prefill.propiedadId);
+        setFechaVisita(prefill.fechaVisita);
+        setHoraVisita(prefill.horaVisita);
+        if (prefill.observaciones) setObservaciones(prefill.observaciones);
+      });
+  }, [citaFromUrl]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -148,9 +172,14 @@ export default function NuevoParteVisitaPage() {
         hora_visita: horaVisita || null,
         agente_nombre: agenteNombre.trim(),
         observaciones: observaciones.trim() || null,
+        cita_id: citaFromUrl || null,
       })
       .select("id")
       .single();
+
+    if (!err && data && citaFromUrl) {
+      await supabase.from("citas").update({ estado: "hecha" }).eq("id", citaFromUrl);
+    }
 
     setSaving(false);
     if (err) {

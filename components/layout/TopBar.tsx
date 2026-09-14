@@ -14,6 +14,7 @@ import {
   LogOut,
   KeyRound,
   Settings,
+  CalendarDays,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -25,11 +26,13 @@ import { editorHomePath, isEditor, roleLabel } from "@/lib/auth/roles";
 import { Sheet } from "@/components/ui/sheet";
 
 const navItems = [
-  { href: "/", label: "Inicio", icon: Home },
-  { href: "/clientes", label: "Clientes", icon: Users },
-  { href: "/propiedades", label: "Inmuebles", icon: Building2 },
+  { href: "/", label: "Hoy", icon: Home },
   { href: "/catastro", label: "Catastro", icon: Search },
+  { href: "/propiedades", label: "Inmuebles", icon: Building2 },
+  { href: "/demandas", label: "Demandas", icon: Users },
+  { href: "/calendario", label: "Calendario", icon: CalendarDays },
   { href: "/partes-visita", label: "Visitas", icon: ClipboardPenLine },
+  { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/presupuestos", label: "Presupuestos", icon: ClipboardList },
   { href: "/facturas", label: "Facturas", icon: FileText },
   { href: "/settings", label: "Ajustes", icon: Settings },

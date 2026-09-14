@@ -5,29 +5,27 @@ import { usePathname } from "next/navigation";
 import {
   Home,
   Users,
-  FileText,
   Building2,
-  ClipboardList,
   Search,
+  ClipboardPenLine,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth/auth-context";
 import { isEditor } from "@/lib/auth/roles";
 
 const navItems = [
-  { href: "/", label: "Inicio", icon: Home },
-  { href: "/clientes", label: "Clientes", icon: Users },
-  { href: "/propiedades", label: "Inmuebles", icon: Building2 },
+  { href: "/", label: "Hoy", icon: Home },
   { href: "/catastro", label: "Catastro", icon: Search },
-  { href: "/presupuestos", label: "Presupuestos", icon: ClipboardList },
-  { href: "/facturas", label: "Facturas", icon: FileText },
+  { href: "/propiedades", label: "Inmuebles", icon: Building2 },
+  { href: "/demandas", label: "Demandas", icon: Users },
+  { href: "/partes-visita", label: "Visitas", icon: ClipboardPenLine },
 ];
 
 export function MobileNav() {
   const pathname = usePathname();
   const { user } = useAuth();
   const items = isEditor(user?.role)
-    ? navItems.filter((item) => item.href === "/presupuestos")
+    ? [{ href: "/presupuestos", label: "Presupuestos", icon: ClipboardPenLine }]
     : navItems;
 
   return (

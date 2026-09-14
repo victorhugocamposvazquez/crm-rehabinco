@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Clock3, List, Search } from "lucide-react";
+import { Clock3, List, Map, Search, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isAdmin, isComercial } from "@/lib/auth/roles";
+import { useAuth } from "@/lib/auth/auth-context";
 import {
   RUTA_EXPLORER,
   RUTA_HISTORICO,
@@ -14,11 +16,18 @@ import {
   recordarRutaResultados,
 } from "@/lib/catastro/explorer/history-ui";
 
+export const RUTA_EQUIPO_CATASTRO = "/catastro/equipo";
+export const RUTA_COBERTURA_CATASTRO = "/catastro/cobertura";
+
 export function CatastroSubnav() {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const admin = isAdmin(user?.role);
+  const comercial = isComercial(user?.role);
   const [ultima, setUltima] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!admin) return;
     recordarRutaResultados(pathname);
     const local = leerRutaResultados();
     setUltima(local);
@@ -36,29 +45,51 @@ export function CatastroSubnav() {
     return () => {
       vivo = false;
     };
-  }, [pathname]);
+  }, [pathname, admin]);
 
   const resultados = destinoResultadosCatastro(pathname, ultima);
-  const items = [
-    {
-      href: RUTA_EXPLORER,
-      label: "Buscar",
-      icon: Search,
-      activa: pathname === RUTA_EXPLORER || pathname.startsWith(`${RUTA_EXPLORER}/finca/`),
-    },
-    {
-      href: resultados.href,
-      label: "Resultados",
-      icon: List,
-      activa: resultados.activa,
-    },
-    {
-      href: RUTA_HISTORICO,
-      label: "Historial",
-      icon: Clock3,
-      activa: pathname === RUTA_HISTORICO,
-    },
-  ] as const;
+  if (!user) return null;
+  const items = comercial
+    ? [
+        {
+          href: RUTA_EXPLORER,
+          label: "Tus fincas",
+          icon: List,
+          activa: pathname === RUTA_EXPLORER || pathname.startsWith(`${RUTA_EXPLORER}/finca/`),
+        },
+      ]
+    : [
+        {
+          href: RUTA_EXPLORER,
+          label: "Buscar",
+          icon: Search,
+          activa: pathname === RUTA_EXPLORER || pathname.startsWith(`${RUTA_EXPLORER}/finca/`),
+        },
+        {
+          href: resultados.href,
+          label: "Resultados",
+          icon: List,
+          activa: resultados.activa,
+        },
+        {
+          href: RUTA_HISTORICO,
+          label: "Historial",
+          icon: Clock3,
+          activa: pathname === RUTA_HISTORICO,
+        },
+        {
+          href: RUTA_EQUIPO_CATASTRO,
+          label: "Equipo",
+          icon: Users,
+          activa: pathname.startsWith(RUTA_EQUIPO_CATASTRO),
+        },
+        {
+          href: RUTA_COBERTURA_CATASTRO,
+          label: "Cobertura",
+          icon: Map,
+          activa: pathname.startsWith(RUTA_COBERTURA_CATASTRO),
+        },
+      ];
 
   return (
     <nav
