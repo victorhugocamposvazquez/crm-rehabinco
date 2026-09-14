@@ -63,7 +63,16 @@ function fincaFalsa(input: FincaFalsa): Finca {
         reference: `${input.ref}0001AA`,
         postalCode: postalCodes[0],
         numero: input.numero,
-        unidades: [],
+        unidades: [
+          {
+            uso: "VIVIENDA",
+            tipologia: null,
+            superficie: 80,
+            escalera: null,
+            planta: null,
+            puerta: null,
+          },
+        ],
       },
     ],
     portals: [input.numero],
@@ -431,6 +440,7 @@ describe("Zona: resultados", () => {
     );
     assert.equal(snapshot.progress.fincasFound, 2);
     assert.equal(snapshot.progress.candidates, 1);
+    assert.deepEqual(snapshot.results[1]?.properties[0]?.unidades, []);
   });
 
   it("varias coincidencias en orden vía → número oficial", async () => {

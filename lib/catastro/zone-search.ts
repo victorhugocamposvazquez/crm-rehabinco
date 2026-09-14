@@ -634,6 +634,13 @@ export function coberturaZona(session: ZoneSession): CoberturaZona {
   };
 }
 
+function fincaParaSnapshotZona(finca: Finca): Finca {
+  return {
+    ...finca,
+    properties: finca.properties.map((propiedad) => ({ ...propiedad, unidades: [] })),
+  };
+}
+
 function siguienteAccion(session: ZoneSession): ZoneSnapshot["nextAction"] {
   if (session.status === "prepared") return session.steps === 0 ? "start" : "step";
   if (session.status === "paused" || session.status === "running") return "step";
@@ -675,7 +682,8 @@ export function snapshotZona(session: ZoneSession): ZoneSnapshot {
     },
     coverage: cobertura,
     // El listado lleva todas las fincas del CP; el filtro de división solo alimenta `candidates`.
-    results: ordenarFincasZona(todas),
+    // Sin unidades constructivas: el JSON de cada paso no debe hincharse (504 en Vercel).
+    results: ordenarFincasZona(todas).map(fincaParaSnapshotZona),
     errors: errores,
     nextAction: siguienteAccion(session),
     stats: { ...session.prefilter },

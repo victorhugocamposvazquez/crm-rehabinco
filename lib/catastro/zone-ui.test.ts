@@ -25,6 +25,7 @@ import {
   criteriosSiguienteBloque,
   criteriosZonaListos,
   plegarBloque,
+  puedeSeguirTrasFalloZona,
   contarCandidatasZona,
   textoSesionCaducada,
   textoSiguienteBloque,
@@ -265,9 +266,14 @@ describe("Zona UI: progreso y resultados", () => {
     assert.equal(debeContinuarPasos(pasos[2]!), false);
     assert.equal(debeContinuarPasos(snapshot({ status: "cancelled" })), false);
     assert.equal(debeContinuarPasos(snapshot({ status: "upstream_paused" })), false);
+    assert.equal(
+      puedeSeguirTrasFalloZona(snapshot({ status: "upstream_paused", progress: { streetsPending: 24 } })),
+      true
+    );
+    assert.equal(puedeSeguirTrasFalloZona(snapshot({ status: "done", progress: { streetsPending: 0 } })), false);
   });
 
-  it("6b. si otro paso está en curso (409) espera y reintenta sin duplicar trabajo", async () => {
+  it("6b. si otro paso está en curso (409) o hay un 504, espera y reintenta sin duplicar trabajo", async () => {
     let llamadas = 0;
     const esperas: number[] = [];
     const final = await ejecutarBucleZona({
@@ -284,6 +290,21 @@ describe("Zona UI: progreso y resultados", () => {
     });
     assert.equal(final?.status, "done");
     assert.deepEqual(esperas, [1_000]);
+
+    let cortes = 0;
+    const tras504 = await ejecutarBucleZona({
+      paso: async () => {
+        cortes += 1;
+        if (cortes === 1) throw new ErrorBusquedaUi(504, "Gateway Timeout");
+        return snapshot({ status: "done", nextAction: "none" });
+      },
+      onSnapshot: () => {},
+      signal: new AbortController().signal,
+      esperar: async () => {},
+    });
+    assert.equal(tras504?.status, "done");
+    assert.equal(cortes, 2);
+
     await assert.rejects(
       ejecutarBucleZona({
         paso: async () => {
@@ -291,6 +312,8 @@ describe("Zona UI: progreso y resultados", () => {
         },
         onSnapshot: () => {},
         signal: new AbortController().signal,
+        esperar: async () => {},
+        maxReintentosOcupado: 0,
       }),
       (error: unknown) => error instanceof ErrorBusquedaUi && error.status === 502
     );

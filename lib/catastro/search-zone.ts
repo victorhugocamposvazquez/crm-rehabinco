@@ -36,6 +36,8 @@ export type ZoneHttpDeps = ZoneDeps & {
   explorerStore?: ExplorerStore;
   archive?: ZoneSessionArchive;
   clock?: ExplorerClock;
+  /** Host: persiste el explorer store fuera del tiempo de respuesta HTTP. */
+  diferir?: (tarea: () => Promise<void>) => void;
 };
 
 type Parametros = Record<string, string>;
@@ -135,6 +137,25 @@ async function persistirZona(
   }
 }
 
+async function persistirExplorerTrasPaso(
+  userId: string,
+  session: ZoneSession,
+  snapshot: ZoneSnapshot,
+  deps: ZoneHttpDeps
+): Promise<void> {
+  if (!deps.explorerStore) return;
+  const tarea = () => persistirZona(userId, session, snapshot, deps);
+  if (deps.diferir) {
+    deps.diferir(() =>
+      tarea().catch((error) => {
+        console.error("[catastro:explorer-store]", error instanceof Error ? error.message : error);
+      })
+    );
+    return;
+  }
+  await tarea();
+}
+
 async function guardarArchivo(session: ZoneSession, deps: ZoneHttpDeps): Promise<void> {
   if (!deps.archive) return;
   try {
@@ -221,7 +242,7 @@ export async function responderZonaPaso(
       deps
     );
     await guardarArchivo(sesion.session, deps);
-    await persistirZona(user.id, sesion.session, snapshot, deps);
+    await persistirExplorerTrasPaso(user.id, sesion.session, snapshot, deps);
     return json(cuerpoZona(snapshot));
   } catch (err) {
     if (err instanceof ZoneBusyError) return error(409, err.message);
@@ -229,7 +250,7 @@ export async function responderZonaPaso(
     try {
       await guardarArchivo(sesion.session, deps);
       const snapshot = snapshotZona(sesion.session);
-      await persistirZona(user.id, sesion.session, snapshot, deps);
+      await persistirExplorerTrasPaso(user.id, sesion.session, snapshot, deps);
       return json(cuerpoZona(snapshot));
     } catch {
       return error(502, "No se ha podido continuar la búsqueda por zona. Inténtalo de nuevo.");

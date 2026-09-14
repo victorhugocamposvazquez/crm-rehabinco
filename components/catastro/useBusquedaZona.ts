@@ -18,6 +18,7 @@ import {
   idZonaActiva,
   iniciarTramo,
   plegarBloque,
+  puedeSeguirTrasFalloZona,
   ZONE_STEP_CLIENT_BUDGET_MS,
   ZONE_STEP_FIRST_BUDGET_MS,
   type CriteriosZonaUi,
@@ -128,22 +129,22 @@ export function useBusquedaZona() {
         }
       }
       if (opRef.current !== op) return;
-      if (
-        esFalloTransitorioZona(detalle.status) &&
-        estadoRef.current.snapshot &&
-        debeContinuarPasos(estadoRef.current.snapshot)
-      ) {
+      if (esFalloTransitorioZona(detalle.status) && puedeSeguirTrasFalloZona(estadoRef.current.snapshot)) {
         await esperar(2_000);
         if (opRef.current !== op) return;
         try {
-          const snapshot = await fetchZonaEstado(zoneSearchId);
+          let snapshot = await fetchZonaEstado(zoneSearchId);
           if (opRef.current !== op) return;
+          if (snapshot.nextAction === "resume") {
+            snapshot = await fetchZonaReanudar(snapshot.zoneSearchId, false);
+            if (opRef.current !== op) return;
+          }
           zoneIdRef.current = snapshot.zoneSearchId;
           recordarZona(snapshot.zoneSearchId);
           setEstado((prev) =>
             aplicarSnapshotZona(prev, snapshot, { ejecutando: debeContinuarPasos(snapshot) })
           );
-          if (debeContinuarPasos(snapshot)) await bucle(zoneSearchId, op);
+          if (puedeSeguirTrasFalloZona(snapshot)) await bucle(zoneSearchId, op);
           return;
         } catch {
           // El servidor puede seguir; no pintamos el error rojo de la pestaña.

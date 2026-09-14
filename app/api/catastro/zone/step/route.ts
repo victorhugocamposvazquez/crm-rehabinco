@@ -1,5 +1,6 @@
 import { responderZonaPaso } from "@/lib/catastro/search-zone";
 import { explorerStoreDesdeSesion } from "@/lib/catastro-host/from-request";
+import { after } from "next/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,5 +9,13 @@ export const maxDuration = 120;
 
 export async function POST(request: Request) {
   const { user, store, archive } = await explorerStoreDesdeSesion();
-  return responderZonaPaso(request, user, { explorerStore: store, archive });
+  return responderZonaPaso(request, user, {
+    explorerStore: store,
+    archive,
+    diferir: (tarea) => {
+      after(() => {
+        void tarea();
+      });
+    },
+  });
 }

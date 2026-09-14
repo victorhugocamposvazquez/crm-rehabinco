@@ -247,6 +247,12 @@ export function mensajeErrorBusqueda(status: number): string {
   if (status === 404) return "No hemos encontrado esa calle o ubicación en Catastro.";
   if (status === 410) return "La búsqueda ha caducado. Vuelve a pulsar Buscar.";
   if (status === 502) return "Catastro no está disponible en este momento. Inténtalo de nuevo.";
+  if (status === 408 || status === 504) {
+    return "Se ha cortado la conexión con el servidor. Lo ya encontrado se conserva: pulsa Reanudar.";
+  }
+  if (status === 500 || status === 503) {
+    return "El servidor ha tardado demasiado. Lo ya encontrado se conserva: pulsa Reanudar.";
+  }
   return "No se ha podido completar la búsqueda. Inténtalo de nuevo.";
 }
 

@@ -675,6 +675,13 @@ export function debeContinuarPasos(snapshot: ZoneSnapshotUi): boolean {
   return snapshot.status === "prepared" || snapshot.status === "paused" || snapshot.status === "running";
 }
 
+/** Tras un 502/504 no tiramos la búsqueda si aún quedan calles: se reintenta o se ofrece Reanudar. */
+export function puedeSeguirTrasFalloZona(snapshot: ZoneSnapshotUi | null | undefined): boolean {
+  if (!snapshot) return false;
+  if (snapshot.status === "cancelled" || snapshot.status === "done") return false;
+  return debeContinuarPasos(snapshot) || (snapshot.progress.streetsPending ?? 0) > 0;
+}
+
 export type OpcionesBucleZona = {
   paso: (signal: AbortSignal) => Promise<ZoneSnapshotUi>;
   onSnapshot: (snapshot: ZoneSnapshotUi) => void;
@@ -692,10 +699,11 @@ function esperarReal(ms: number): Promise<void> {
 /**
  * Encadena pasos hasta que la zona termine, se cancele o el usuario aborte.
  * Cada snapshot se entrega en cuanto llega: los resultados aparecen de forma progresiva.
+ * 409 (otro paso) y 502/504 (corte de Vercel/Catastro) se reintentan: no son el final de la búsqueda.
  */
 export async function ejecutarBucleZona(opciones: OpcionesBucleZona): Promise<ZoneSnapshotUi | null> {
   const esperar = opciones.esperar ?? esperarReal;
-  const maxReintentos = opciones.maxReintentosOcupado ?? 5;
+  const maxReintentos = opciones.maxReintentosOcupado ?? 8;
   const maxPasos = opciones.maxPasos ?? 10_000;
   let ultimo: ZoneSnapshotUi | null = null;
   let ocupados = 0;
@@ -706,9 +714,13 @@ export async function ejecutarBucleZona(opciones: OpcionesBucleZona): Promise<Zo
       snapshot = await opciones.paso(opciones.signal);
     } catch (error) {
       if (opciones.signal.aborted) return ultimo;
-      if (error instanceof ErrorBusquedaUi && error.status === 409 && ocupados < maxReintentos) {
+      if (
+        error instanceof ErrorBusquedaUi &&
+        esFalloTransitorioZona(error.status) &&
+        ocupados < maxReintentos
+      ) {
         ocupados += 1;
-        await esperar(1_000 * ocupados);
+        await esperar(Math.min(8_000, 1_000 * ocupados));
         continue;
       }
       throw error;

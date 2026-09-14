@@ -38,6 +38,8 @@ describe("search-ui", () => {
       mensajeErrorBusqueda(502),
       "Catastro no está disponible en este momento. Inténtalo de nuevo."
     );
+    assert.match(mensajeErrorBusqueda(504), /Reanudar/);
+    assert.match(mensajeErrorBusqueda(500), /Reanudar/);
     assert.equal(mensajeErrorBusqueda(500).includes("XML"), false);
   });
 
