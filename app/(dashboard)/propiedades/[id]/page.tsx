@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -10,6 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { InmuebleGaleria } from "@/components/inmuebles/InmuebleGaleria";
+import { InmuebleDocumentos, type DocInmueble } from "@/components/inmuebles/InmuebleDocumentos";
+import { InmuebleMatching } from "@/components/inmuebles/InmuebleMatching";
+import { FichaCompletitudBarra } from "@/components/inmuebles/FichaCompletitudBarra";
+import { completitudFicha } from "@/lib/inmuebles/completitud";
+import { rutaNuevaCita } from "@/lib/citas/citas";
 import {
   formatPrecioInmueble,
   labelEstadoInmueble,
@@ -19,7 +24,7 @@ import {
   type InmuebleMedia,
 } from "@/lib/inmuebles/catalogo";
 import { useAuth } from "@/lib/auth/auth-context";
-import { ClipboardPenLine, Pencil, Trash2 } from "lucide-react";
+import { ClipboardPenLine, Pencil, Printer, Trash2 } from "lucide-react";
 import { CatastroPropertyFicha } from "@/components/catastro/CatastroPropertyFicha";
 import { esOrigenCatastroExplorer, fincaReferenceDesdeVinculo } from "@/lib/catastro/explorer";
 import {
@@ -38,6 +43,8 @@ type ParteMini = {
 export default function DetallePropiedadPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const alta = searchParams.get("alta") === "1";
   const { user } = useAuth();
   const id = params.id as string;
   const [propiedad, setPropiedad] = useState<Inmueble | null>(null);
@@ -45,6 +52,7 @@ export default function DetallePropiedadPage() {
   const [comercialNombre, setComercialNombre] = useState<string | null>(null);
   const [media, setMedia] = useState<InmuebleMedia[]>([]);
   const [visitas, setVisitas] = useState<ParteMini[]>([]);
+  const [documentos, setDocumentos] = useState<DocInmueble[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fincaReference, setFincaReference] = useState<string | null>(null);
@@ -61,7 +69,8 @@ export default function DetallePropiedadPage() {
         .select("id, fecha_visita, visitante_nombre, estado")
         .eq("propiedad_id", id)
         .order("fecha_visita", { ascending: false }),
-    ]).then(async ([prop, med, vis]) => {
+      supabase.from("inmueble_documentos").select("id, tipo, nombre, path, created_at").eq("propiedad_id", id),
+    ]).then(async ([prop, med, vis, docs]) => {
       if (prop.error || !prop.data) {
         setError(prop.error?.message ?? "Inmueble no encontrado");
         setLoading(false);
@@ -90,6 +99,7 @@ export default function DetallePropiedadPage() {
       );
       setMedia((med.data ?? []) as InmuebleMedia[]);
       setVisitas((vis.data ?? []) as ParteMini[]);
+      setDocumentos((docs.data ?? []) as DocInmueble[]);
       if (raw.comercial_id) {
         const { data: perfil } = await supabase
           .from("profiles")
@@ -139,6 +149,10 @@ export default function DetallePropiedadPage() {
   const portada = media.find((m) => m.portada) ?? media.find((m) => m.tipo === "foto");
   const hoy = new Date().toISOString().slice(0, 10);
   const { proximas, historial } = partirVisitasPorFecha(visitas, hoy);
+  const ficha = completitudFicha({
+    inmueble: propiedad,
+    fotos: media.filter((item) => item.tipo === "foto").length,
+  });
 
   return (
     <div>
@@ -149,10 +163,19 @@ export default function DetallePropiedadPage() {
         actions={
           <div className="flex shrink-0 items-center gap-1">
             <Button variant="secondary" size="sm" asChild>
+              <Link href={rutaNuevaCita({ propiedadId: id, clienteId: propiedad.ofertante_id })} className="gap-2">
+                Concertar visita
+              </Link>
+            </Button>
+            <Button variant="secondary" size="sm" asChild>
               <Link href={rutaNuevaVisitaDesdeProperty(id)} className="gap-2">
                 <ClipboardPenLine className="h-4 w-4" strokeWidth={1.5} />
                 Nueva visita
               </Link>
+            </Button>
+            <Button type="button" variant="secondary" size="sm" className="gap-2 print:hidden" onClick={() => window.print()}>
+              <Printer className="h-4 w-4" strokeWidth={1.5} />
+              Imprimir
             </Button>
             <Button variant="secondary" size="sm" asChild>
               <Link href={`/propiedades/${id}/editar`} className="gap-2">
@@ -177,6 +200,14 @@ export default function DetallePropiedadPage() {
           </div>
         }
       />
+      {alta ? (
+        <p className="mb-4 rounded-xl border border-[#0B7461]/30 bg-[#E8F3EF] px-4 py-3 text-sm text-[#08594B]">
+          Inmueble creado. Sube fotos, rellena lo que falte y marca «publicado» para que entre en matching.
+        </p>
+      ) : null}
+      <div className="mb-6 print:hidden">
+        <FichaCompletitudBarra ficha={ficha} />
+      </div>
       <div className="mb-6 flex flex-wrap items-center gap-2">
         <Badge variant="default">{labelEstadoInmueble(propiedad.estado)}</Badge>
         <Badge variant="default">{labelTipoOperacion(propiedad.tipo_operacion)}</Badge>
@@ -318,6 +349,14 @@ export default function DetallePropiedadPage() {
             ) : null}
           </CardContent>
         </Card>
+        <Card className="lg:col-span-2 print:hidden">
+          <CardHeader>
+            <CardTitle>Demandas que encajan</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <InmuebleMatching inmueble={propiedad} />
+          </CardContent>
+        </Card>
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Visitas</CardTitle>
@@ -363,6 +402,21 @@ export default function DetallePropiedadPage() {
                 </div>
               </>
             )}
+          </CardContent>
+        </Card>
+        <Card className="lg:col-span-2 print:hidden">
+          <CardHeader>
+            <CardTitle>Documentos privados</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {user?.id ? (
+              <InmuebleDocumentos
+                propiedadId={id}
+                userId={user.id}
+                documentos={documentos}
+                onChange={setDocumentos}
+              />
+            ) : null}
           </CardContent>
         </Card>
         {propiedad.notas ? (

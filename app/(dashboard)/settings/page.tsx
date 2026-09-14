@@ -13,6 +13,7 @@ import { createUser } from "@/lib/actions/usuarios";
 import { ROLE_LABELS, roleLabel, type Role } from "@/lib/auth/roles";
 import { UserPlus, Building2 } from "lucide-react";
 import { PerfilComercialCard } from "@/components/settings/PerfilComercialCard";
+import { EquipoComercialesCard } from "@/components/settings/EquipoComercialesCard";
 
 export default function SettingsPage() {
   const { user, signOut } = useAuth();
@@ -79,6 +80,7 @@ export default function SettingsPage() {
         </Card>
 
         {user?.id && user.role !== "editor" && <PerfilComercialCard userId={user.id} />}
+        {user?.role === "admin" && <EquipoComercialesCard />}
 
         <Card>
           <CardHeader>

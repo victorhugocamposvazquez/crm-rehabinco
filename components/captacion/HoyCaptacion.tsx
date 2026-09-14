@@ -12,10 +12,12 @@ import { tituloDireccionFinca } from "@/lib/catastro/search-ui";
 import { rutaFincaPersistida } from "@/lib/catastro/explorer/history-ui";
 import { citasDelDia, relacionUno, rutaNuevaVisitaDesdeCita } from "@/lib/citas/citas";
 import { ESTADO_CAPTACION_LABEL } from "@/lib/captacion/estados";
+import { FiltroComercial, type ComercialFiltro } from "@/components/captacion/FiltroComercial";
 
-type TareaHoy = { id: string; titulo: string; vence: string | null; finca_reference: string | null; estado: string };
+type TareaHoy = { id: string; titulo: string; vence: string | null; finca_reference: string | null; estado: string; comercial_id?: string };
 type CitaHoy = {
   id: string;
+  comercial_id?: string;
   titulo: string;
   empieza: string;
   tipo: string;
@@ -34,6 +36,8 @@ export function HoyCaptacion() {
   const [citas, setCitas] = useState<CitaHoy[]>([]);
   const [partes, setPartes] = useState<ParteHoy[]>([]);
   const [demandasNuevas, setDemandasNuevas] = useState(0);
+  const [comerciales, setComerciales] = useState<ComercialFiltro[]>([]);
+  const [filtroComercial, setFiltroComercial] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -47,14 +51,14 @@ export function HoyCaptacion() {
 
     let tareasQ = supabase
       .from("tareas")
-      .select("id, titulo, vence, finca_reference, estado")
+      .select("id, titulo, vence, finca_reference, estado, comercial_id")
       .eq("estado", "pendiente")
       .order("vence");
     if (!admin) tareasQ = tareasQ.eq("comercial_id", user.id);
 
     let citasQ = supabase
       .from("citas")
-      .select("id, titulo, empieza, tipo, propiedad_id, estado, profiles:comercial_id(color)")
+      .select("id, comercial_id, titulo, empieza, tipo, propiedad_id, estado, profiles:comercial_id(color)")
       .eq("estado", "prevista")
       .gte("empieza", `${hoy}T00:00:00`)
       .lt("empieza", `${hoy}T23:59:59`);
@@ -76,6 +80,22 @@ export function HoyCaptacion() {
       setPartes((p.data ?? []) as ParteHoy[]);
       setDemandasNuevas(d.count ?? 0);
     });
+    if (admin) {
+      void supabase
+        .from("profiles")
+        .select("id, nombre_completo, email, color")
+        .in("role", ["comercial", "admin"])
+        .eq("activo", true)
+        .then(({ data }) =>
+          setComerciales(
+            (data ?? []).map((item) => ({
+              id: item.id,
+              nombre: item.nombre_completo || item.email || "Comercial",
+              color: item.color,
+            }))
+          )
+        );
+    }
   }, [user, admin, hoy]);
 
   const pendientesFinca = fincas.filter(
@@ -83,7 +103,11 @@ export function HoyCaptacion() {
       item.estado === "nueva" ||
       (item.proximaAccionEn != null && item.proximaAccionEn <= hoy && item.estado !== "descartada")
   );
-  const citasHoy = citasDelDia(citas, hoy);
+  const citasHoy = citasDelDia(
+    filtroComercial ? citas.filter((item) => item.comercial_id === filtroComercial) : citas,
+    hoy
+  );
+  const tareasHoy = filtroComercial ? tareas.filter((item) => item.comercial_id === filtroComercial) : tareas;
 
   const marcarTarea = async (id: string) => {
     const supabase = createClient();
@@ -93,6 +117,13 @@ export function HoyCaptacion() {
 
   return (
     <div className="space-y-8">
+      {citasHoy.length > 0 ? (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Hoy hay {citasHoy.length} {citasHoy.length === 1 ? "cita" : "citas"}. No se te olvide firmar el parte.
+        </p>
+      ) : null}
+      {admin ? <FiltroComercial comerciales={comerciales} valor={filtroComercial} onChange={setFiltroComercial} /> : null}
+
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi href="/catastro" label="Fincas a tocar" valor={String(pendientesFinca.length)} />
         <Kpi href="/calendario" label="Citas hoy" valor={String(citasHoy.length)} />
@@ -139,7 +170,7 @@ export function HoyCaptacion() {
       <section>
         <h2 className="mb-3 text-base font-semibold">Tareas</h2>
         <ul className="space-y-2">
-          {tareas.map((tarea) => (
+          {tareasHoy.map((tarea) => (
             <li key={tarea.id} className="flex items-center justify-between rounded-xl border border-[#E6E3DD] bg-white px-4 py-3">
               <div>
                 <p className="font-medium">{tarea.titulo}</p>
@@ -157,7 +188,7 @@ export function HoyCaptacion() {
               </div>
             </li>
           ))}
-          {tareas.length === 0 ? <li className="text-sm text-[#5D6B67]">No hay tareas pendientes.</li> : null}
+          {tareasHoy.length === 0 ? <li className="text-sm text-[#5D6B67]">No hay tareas pendientes.</li> : null}
         </ul>
       </section>
 

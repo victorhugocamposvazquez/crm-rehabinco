@@ -579,6 +579,29 @@ export interface Database {
           portada?: boolean;
         };
       };
+      inmueble_documentos: {
+        Row: {
+          id: string;
+          propiedad_id: string;
+          user_id: string;
+          tipo: string;
+          nombre: string;
+          path: string;
+          created_at: string;
+        };
+        Insert: {
+          propiedad_id: string;
+          user_id: string;
+          tipo?: string;
+          nombre: string;
+          path: string;
+        };
+        Update: {
+          tipo?: string;
+          nombre?: string;
+          path?: string;
+        };
+      };
       catastro_explorer_pipeline: {
         Row: {
           finca_reference: string;

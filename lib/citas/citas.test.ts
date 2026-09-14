@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { citasDelDia, prefillParteDesdeCita, relacionUno, rutaNuevaVisitaDesdeCita, semanaDesde } from "./citas";
+import { citasDelDia, prefillParteDesdeCita, relacionUno, rutaNuevaCita, rutaNuevaVisitaDesdeCita, semanaDesde } from "./citas";
 
 describe("citas", () => {
   it("el parte se abre prellenado desde la cita, no al revés", () => {
@@ -15,6 +15,7 @@ describe("citas", () => {
     assert.equal(prefill.propiedadId, "p1");
     assert.equal(prefill.fechaVisita, "2026-09-17");
     assert.equal(prefill.observaciones, "Visita Oleiros");
+    assert.equal(rutaNuevaCita({ propiedadId: "p1", clienteId: "c1" }), "/calendario?propiedad=p1&cliente=c1");
   });
 
   it("agrupa citas del día y calcula semana lunes-domingo", () => {

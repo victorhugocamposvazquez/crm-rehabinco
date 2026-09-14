@@ -157,3 +157,19 @@ export function matchingDemandas(
     .filter((item) => item.ok)
     .sort((a, b) => b.puntuacion - a.puntuacion);
 }
+
+export type DemandaParaMatching = CriteriosDemanda & { id: string };
+
+export function matchingInmuebleDemandas(
+  inmueble: InmuebleParaMatching,
+  demandas: DemandaParaMatching[]
+): Array<ResultadoMatching & { demandaId: string }> {
+  return demandas
+    .map((demanda) => ({ ...encajaDemandaInmueble(demanda, inmueble), demandaId: demanda.id }))
+    .filter((item) => item.ok)
+    .sort((a, b) => b.puntuacion - a.puntuacion);
+}
+
+export function matchingPasaAVisitado(estado: string | null | undefined): boolean {
+  return estado === "propuesto" || estado === "presentado";
+}

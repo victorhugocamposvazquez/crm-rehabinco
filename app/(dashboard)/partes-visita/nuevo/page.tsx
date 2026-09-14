@@ -50,6 +50,7 @@ export default function NuevoParteVisitaPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [contextoCatastro, setContextoCatastro] = useState<ContextoCatastralVisita>(null);
+  const [clienteId, setClienteId] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -65,7 +66,7 @@ export default function NuevoParteVisitaPage() {
     const supabase = createClient();
     void supabase
       .from("citas")
-      .select("id, titulo, empieza, propiedad_id")
+      .select("id, titulo, empieza, propiedad_id, cliente_id")
       .eq("id", citaFromUrl)
       .maybeSingle()
       .then(({ data }) => {
@@ -79,6 +80,7 @@ export default function NuevoParteVisitaPage() {
         setFechaVisita(prefill.fechaVisita);
         setHoraVisita(prefill.horaVisita);
         if (prefill.observaciones) setObservaciones(prefill.observaciones);
+        if (data.cliente_id) setClienteId(data.cliente_id);
       });
   }, [citaFromUrl]);
 
@@ -173,6 +175,7 @@ export default function NuevoParteVisitaPage() {
         agente_nombre: agenteNombre.trim(),
         observaciones: observaciones.trim() || null,
         cita_id: citaFromUrl || null,
+        cliente_id: clienteId,
       })
       .select("id")
       .single();

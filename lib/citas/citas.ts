@@ -24,6 +24,14 @@ export function relacionUno<T>(valor: T | T[] | null | undefined): T | null {
   return Array.isArray(valor) ? (valor[0] ?? null) : valor;
 }
 
+export function rutaNuevaCita(input: { propiedadId?: string | null; clienteId?: string | null }): string {
+  const params = new URLSearchParams();
+  if (input.propiedadId) params.set("propiedad", input.propiedadId);
+  if (input.clienteId) params.set("cliente", input.clienteId);
+  const query = params.toString();
+  return query ? `/calendario?${query}` : "/calendario";
+}
+
 export function rutaNuevaVisitaDesdeCita(cita: {
   id: string;
   propiedadId?: string | null;

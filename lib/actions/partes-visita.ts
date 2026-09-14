@@ -85,7 +85,7 @@ export async function firmarParteVisitaPublic(
 
     const { data: existing, error: fetchError } = await admin
       .from("partes_visita")
-      .select("id, estado")
+      .select("id, estado, propiedad_id, cliente_id, cita_id")
       .eq("token", values.token)
       .maybeSingle();
 
@@ -121,6 +121,25 @@ export async function firmarParteVisitaPublic(
 
     if (updateError) {
       return { success: false, error: "No se pudo guardar la firma." };
+    }
+
+    if (existing.cita_id) {
+      await admin.from("citas").update({ estado: "hecha" }).eq("id", existing.cita_id);
+    }
+    if (existing.propiedad_id && existing.cliente_id) {
+      const { data: demandas } = await admin
+        .from("demandas")
+        .select("id")
+        .eq("cliente_id", existing.cliente_id);
+      const ids = (demandas ?? []).map((item) => item.id);
+      if (ids.length > 0) {
+        await admin
+          .from("demanda_inmuebles")
+          .update({ estado: "visitado" })
+          .eq("propiedad_id", existing.propiedad_id)
+          .in("demanda_id", ids)
+          .in("estado", ["propuesto", "presentado"]);
+      }
     }
 
     return { success: true };

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { encajaDemandaInmueble, matchingDemandas } from "./matching";
+import { encajaDemandaInmueble, matchingDemandas, matchingInmuebleDemandas, matchingPasaAVisitado } from "./matching";
 
 const DEMANDA = {
   tipoOperacion: "compra",
@@ -53,5 +53,20 @@ describe("matching demanda ↔ inmueble", () => {
     ]);
     assert.equal(lista.length, 2);
     assert.equal(lista[0]?.propiedadId, "p3");
+  });
+
+  it("desde el inmueble lista las demandas que encajan", () => {
+    const lista = matchingInmuebleDemandas(PISO, [
+      { ...DEMANDA, id: "d1" },
+      { ...DEMANDA, id: "d2", zonas: ["Arteixo"] },
+    ]);
+    assert.equal(lista.length, 1);
+    assert.equal(lista[0]?.demandaId, "d1");
+  });
+
+  it("al firmar la visita, propuesto y presentado pasan a visitado", () => {
+    assert.equal(matchingPasaAVisitado("propuesto"), true);
+    assert.equal(matchingPasaAVisitado("presentado"), true);
+    assert.equal(matchingPasaAVisitado("descartado"), false);
   });
 });

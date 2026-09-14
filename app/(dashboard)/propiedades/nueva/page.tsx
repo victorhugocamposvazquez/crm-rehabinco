@@ -72,7 +72,7 @@ export default function NuevaPropiedadPage() {
       return;
     }
     toast.success("Inmueble creado. Ya puedes subir fotos.");
-    router.push(`/propiedades/${data.id}`);
+    router.push(`/propiedades/${data.id}?alta=1`);
     router.refresh();
   };
 
