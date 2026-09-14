@@ -341,7 +341,7 @@ function FichaPeekHost({
             </svg>
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y">
           {loading ? (
             <p className="px-4 py-8 text-center text-[13px] text-[var(--text-2)]">Cargando…</p>
           ) : destino?.tipo === "propiedad" && inmueble ? (

@@ -4,6 +4,33 @@ import * as React from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
+let scrollLocks = 0;
+let prevBodyOverflow = "";
+let prevHtmlOverflow = "";
+
+function bloquearScrollPagina() {
+  if (typeof document === "undefined") return;
+  if (scrollLocks === 0) {
+    const bodyOv = document.body.style.overflow;
+    const htmlOv = document.documentElement.style.overflow;
+    prevBodyOverflow = bodyOv === "hidden" ? "" : bodyOv;
+    prevHtmlOverflow = htmlOv === "hidden" ? "" : htmlOv;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.touchAction = "";
+  }
+  scrollLocks += 1;
+}
+
+function liberarScrollPagina() {
+  if (typeof document === "undefined") return;
+  scrollLocks = Math.max(0, scrollLocks - 1);
+  if (scrollLocks > 0) return;
+  document.body.style.overflow = prevBodyOverflow;
+  document.documentElement.style.overflow = prevHtmlOverflow;
+  document.body.style.touchAction = "";
+}
+
 interface SheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -32,14 +59,11 @@ export function Sheet({
   side = "right",
   elevated = false,
 }: SheetProps) {
-  const overflowRef = React.useRef<string>("");
   const toqueInicio = React.useRef<number | null>(null);
 
   React.useEffect(() => {
     if (!open) return;
-    overflowRef.current = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    document.body.style.touchAction = "none";
+    bloquearScrollPagina();
     const onKey = (evento: KeyboardEvent) => {
       if (evento.key !== "Escape") return;
       if (elevated) evento.stopImmediatePropagation();
@@ -47,8 +71,7 @@ export function Sheet({
     };
     window.addEventListener("keydown", onKey, elevated);
     return () => {
-      document.body.style.overflow = overflowRef.current || "";
-      document.body.style.touchAction = "";
+      liberarScrollPagina();
       window.removeEventListener("keydown", onKey, elevated);
     };
   }, [open, onOpenChange, elevated]);
@@ -112,7 +135,7 @@ export function Sheet({
           }}
         >
           {showCloseButton ? cerrar : null}
-          <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y">{children}</div>
         </div>
       ) : (
       <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center">
@@ -131,7 +154,7 @@ export function Sheet({
           {showCloseButton ? cerrar : null}
           <div className={cn("h-1 w-12 shrink-0 rounded-full bg-neutral-200", showCloseButton && "invisible")} aria-hidden />
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y">{children}</div>
         </div>
       </div>
       )}
