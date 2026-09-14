@@ -88,14 +88,14 @@ export function FincaResultadoRow({
         <div className="flex items-start gap-2.5">
           {onToggle ? (
             <label
-              className="mt-0.5 hidden h-[17px] w-[17px] shrink-0 min-[780px]:block"
+              className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center"
               onClick={(evento) => evento.stopPropagation()}
             >
               <input
                 type="checkbox"
                 checked={checked}
                 aria-label={`Seleccionar ${titulo}`}
-                className="h-[17px] w-[17px] cursor-pointer rounded-[5px] border-[#CFCBC2] accent-[#0B7461]"
+                className="h-3.5 w-3.5 cursor-pointer rounded-[3px] border-[#CFCBC2] accent-[#0B7461]"
                 onChange={() => onToggle()}
               />
             </label>

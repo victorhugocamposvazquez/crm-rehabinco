@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   SELECCION_VACIA,
   alternarSeleccion,
+  aplicarSeleccionPagina,
   descargarArchivoLocal,
   prepararExportacionCsv,
   prepararExportacionRevisionCsv,
@@ -40,6 +41,10 @@ export function useSeleccionFincas() {
 
   const alternar = (finca: FincaBusquedaUi, claveBusqueda: string) => {
     setSeleccion((prev) => alternarSeleccion(prev, finca, claveBusqueda));
+  };
+
+  const marcarPagina = (fincas: FincaBusquedaUi[], claveBusqueda: string, marcar: boolean) => {
+    setSeleccion((prev) => aplicarSeleccionPagina(prev, fincas, claveBusqueda, marcar));
   };
 
   const alternarMarcaRevision = (finca: FincaBusquedaUi, claveBusqueda: string) => {
@@ -148,6 +153,7 @@ export function useSeleccionFincas() {
     seleccion,
     revision,
     alternar,
+    marcarPagina,
     alternarRevision: alternarMarcaRevision,
     hidratarRevision,
     limpiar,

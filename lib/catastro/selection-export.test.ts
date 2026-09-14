@@ -9,6 +9,7 @@ import {
   SELECCION_VACIA,
   advertenciaExportacion,
   alternarSeleccion,
+  aplicarSeleccionPagina,
   coberturaExportacion,
   copiarAlPortapapeles,
   csvDesdeFincas,
@@ -278,6 +279,21 @@ describe("exportación CSV", () => {
     assert.equal(preparada.ok, false);
     if (!preparada.ok) assert.match(preparada.motivo, /No hay fincas seleccionadas/);
     assert.equal(lineas(csvDesdeFincas([])).length, 1);
+  });
+
+  it("marca o desmarca una página sin mezclar otra búsqueda", () => {
+    const pagina = [A, B];
+    const conA = alternarSeleccion(SELECCION_VACIA, A, CLAVE_FUENCARRAL);
+    const todas = aplicarSeleccionPagina(conA, pagina, CLAVE_FUENCARRAL, true);
+    assert.deepEqual(
+      todas.fincas.map((finca) => finca.fincaReference),
+      [A.fincaReference, B.fincaReference]
+    );
+    const ninguna = aplicarSeleccionPagina(todas, pagina, CLAVE_FUENCARRAL, false);
+    assert.equal(ninguna.fincas.length, 0);
+    const otra = aplicarSeleccionPagina(conA, [GODELLETA], CLAVE_GODELLETA, true);
+    assert.equal(otra.claveBusqueda, CLAVE_GODELLETA);
+    assert.equal(otra.fincas[0]?.fincaReference, GODELLETA.fincaReference);
   });
 
   it("no duplica fincas seleccionadas en páginas distintas", () => {

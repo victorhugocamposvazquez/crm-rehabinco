@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import {
@@ -28,6 +28,7 @@ import {
 import { FincaDetallePanel } from "./FincaDetallePanel";
 import { FincaResultadoRow } from "./FincaResultadoRow";
 import { LeyendaEstadosDivision } from "./LeyendaEstadosDivision";
+import { AsignacionFincaSelect } from "./AsignacionFincaSelect";
 
 const CHIP =
   "inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[11.5px] font-semibold min-h-[26px] leading-none";
@@ -48,6 +49,8 @@ type Props = {
   seleccionada?: (ref: string) => boolean;
   vinculada?: (ref: string) => boolean;
   onToggleSeleccion?: (finca: FincaBusquedaUi) => void;
+  onMarcarPagina?: (fincas: FincaBusquedaUi[], marcar: boolean) => void;
+  fincasSeleccionadas?: string[];
   onProperty?: (finca: FincaBusquedaUi) => void;
   pie?: ReactNode;
   recuentoEstados?: Record<string, number>;
@@ -61,6 +64,8 @@ export function ListaFincasCatastro({
   seleccionada,
   vinculada,
   onToggleSeleccion,
+  onMarcarPagina,
+  fincasSeleccionadas,
   onProperty,
   pie,
   recuentoEstados,
@@ -100,6 +105,26 @@ export function ListaFincasCatastro({
       return siguiente;
     });
   }, []);
+
+  const aplicarAsignacionLote = useCallback(
+    (input: { refs: string[]; comercialId: string | null; nombre: string | null }) => {
+      setAsignaciones((prev) => {
+        const siguiente = { ...prev };
+        for (const ref of input.refs) {
+          if (!input.comercialId) delete siguiente[ref];
+          else {
+            siguiente[ref] = {
+              fincaReference: ref,
+              comercialId: input.comercialId,
+              nombre: input.nombre ?? "Comercial",
+            };
+          }
+        }
+        return siguiente;
+      });
+    },
+    []
+  );
 
   const aplicarOrden = (campo: CampoOrdenLista) => {
     setOrden((prev) => aplicarCriterioOrdenLista(prev, campo));
@@ -313,24 +338,36 @@ export function ListaFincasCatastro({
         {visibles.length === 0 ? (
           <p className="px-4 py-10 text-center text-sm text-[#5D6B67]">No hay fincas con ese filtro.</p>
         ) : (
-          <ul aria-label="Fincas encontradas" className="max-[779px]:space-y-2.5">
-            {visibles.map((finca) => (
-              <li key={finca.fincaReference}>
-                <FincaResultadoRow
-                  finca={finca}
-                  selected={hoja && sel === finca.fincaReference}
-                  checked={Boolean(seleccionada?.(finca.fincaReference))}
-                  vinculada={Boolean(vinculada?.(finca.fincaReference))}
-                  onSelect={() => abrir(finca)}
-                  onToggle={onToggleSeleccion ? () => onToggleSeleccion(finca) : undefined}
-                  onProperty={onProperty || hrefDe?.(finca) ? () => irPropiedad(finca) : undefined}
-                  asignacion={asignaciones[finca.fincaReference] ?? null}
-                  comerciales={comerciales}
-                  onAsignacion={(asignacion) => aplicarAsignacion(finca.fincaReference, asignacion)}
-                />
-              </li>
-            ))}
-          </ul>
+          <>
+            {onToggleSeleccion ? (
+              <BarraSeleccionLista
+                visibles={visibles}
+                seleccionada={seleccionada}
+                fincasSeleccionadas={fincasSeleccionadas}
+                onMarcarPagina={onMarcarPagina}
+                comerciales={comerciales}
+                onAsignacionLote={aplicarAsignacionLote}
+              />
+            ) : null}
+            <ul aria-label="Fincas encontradas" className="max-[779px]:space-y-2.5">
+              {visibles.map((finca) => (
+                <li key={finca.fincaReference}>
+                  <FincaResultadoRow
+                    finca={finca}
+                    selected={hoja && sel === finca.fincaReference}
+                    checked={Boolean(seleccionada?.(finca.fincaReference))}
+                    vinculada={Boolean(vinculada?.(finca.fincaReference))}
+                    onSelect={() => abrir(finca)}
+                    onToggle={onToggleSeleccion ? () => onToggleSeleccion(finca) : undefined}
+                    onProperty={onProperty || hrefDe?.(finca) ? () => irPropiedad(finca) : undefined}
+                    asignacion={asignaciones[finca.fincaReference] ?? null}
+                    comerciales={comerciales}
+                    onAsignacion={(asignacion) => aplicarAsignacion(finca.fincaReference, asignacion)}
+                  />
+                </li>
+              ))}
+            </ul>
+          </>
         )}
         {pie}
       </div>
@@ -345,6 +382,67 @@ export function ListaFincasCatastro({
           comerciales={comerciales}
           asignacion={asignaciones[ficha.fincaReference] ?? null}
           onAsignacion={(asignacion) => aplicarAsignacion(ficha.fincaReference, asignacion)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function BarraSeleccionLista({
+  visibles,
+  seleccionada,
+  fincasSeleccionadas,
+  onMarcarPagina,
+  comerciales,
+  onAsignacionLote,
+}: {
+  visibles: FincaBusquedaUi[];
+  seleccionada?: (ref: string) => boolean;
+  fincasSeleccionadas?: string[];
+  onMarcarPagina?: (fincas: FincaBusquedaUi[], marcar: boolean) => void;
+  comerciales: ComercialAsignable[];
+  onAsignacionLote: (input: {
+    refs: string[];
+    comercialId: string | null;
+    nombre: string | null;
+  }) => void;
+}) {
+  const checkRef = useRef<HTMLInputElement>(null);
+  const marcadasPagina = visibles.filter((finca) => seleccionada?.(finca.fincaReference));
+  const todasPagina = visibles.length > 0 && marcadasPagina.length === visibles.length;
+  const algunasPagina = marcadasPagina.length > 0 && !todasPagina;
+  const refsLote =
+    fincasSeleccionadas && fincasSeleccionadas.length > 0
+      ? fincasSeleccionadas
+      : marcadasPagina.map((finca) => finca.fincaReference);
+
+  useEffect(() => {
+    if (checkRef.current) checkRef.current.indeterminate = algunasPagina;
+  }, [algunasPagina]);
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 border-b border-[#F2F0EB] bg-[#FBFBF9] px-3 py-2 max-[779px]:rounded-[13px] max-[779px]:border max-[779px]:border-[#E6E3DD] max-[779px]:bg-white">
+      <label className="flex items-center gap-2 text-[12px] font-medium text-[#5D6B67]">
+        <input
+          ref={checkRef}
+          type="checkbox"
+          checked={todasPagina}
+          disabled={!onMarcarPagina}
+          aria-label="Seleccionar todas las fincas de esta página"
+          className="h-3.5 w-3.5 cursor-pointer rounded-[3px] border-[#CFCBC2] accent-[#0B7461]"
+          onChange={() => onMarcarPagina?.(visibles, !todasPagina)}
+        />
+        {refsLote.length > 0
+          ? `${refsLote.length} ${refsLote.length === 1 ? "seleccionada" : "seleccionadas"}`
+          : "Seleccionar página"}
+      </label>
+      {refsLote.length > 0 && comerciales.length > 0 ? (
+        <AsignacionFincaSelect
+          fincaReferences={refsLote}
+          comerciales={comerciales}
+          compacto
+          etiquetaVacia="Asignar a…"
+          onCambioLote={onAsignacionLote}
         />
       ) : null}
     </div>

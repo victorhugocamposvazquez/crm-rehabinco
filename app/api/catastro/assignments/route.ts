@@ -4,7 +4,9 @@ import { explorerStoreDesdeSesion } from "@/lib/catastro-host/from-request";
 import {
   asignacionDesdeFila,
   esRolAsignable,
+  MAX_ASIGNACION_LOTE,
   nombreComercial,
+  refsDesdeCuerpoAsignacion,
   uuidComercial,
   type ComercialAsignable,
 } from "@/lib/catastro-host/finca-assignment";
@@ -72,16 +74,32 @@ export async function PUT(request: Request) {
     return Response.json({ ok: false, error: "No tienes permiso." }, { status: 403 });
   }
 
-  let cuerpo: { fincaReference?: unknown; comercialId?: unknown } = {};
+  let cuerpo: { fincaReference?: unknown; fincaReferences?: unknown; comercialId?: unknown } = {};
   try {
-    cuerpo = (await request.json()) as { fincaReference?: unknown; comercialId?: unknown };
+    cuerpo = (await request.json()) as {
+      fincaReference?: unknown;
+      fincaReferences?: unknown;
+      comercialId?: unknown;
+    };
   } catch {
     return Response.json({ ok: false, error: "Cuerpo inválido." }, { status: 400 });
   }
 
-  const fincaReference = identidadFinca(typeof cuerpo.fincaReference === "string" ? cuerpo.fincaReference : "");
-  if (!fincaReference) {
+  const refs = [
+    ...new Set(
+      refsDesdeCuerpoAsignacion(cuerpo)
+        .map((item) => identidadFinca(item) ?? "")
+        .filter(Boolean)
+    ),
+  ];
+  if (refs.length === 0) {
     return Response.json({ ok: false, error: "Finca no encontrada." }, { status: 404 });
+  }
+  if (refs.length > MAX_ASIGNACION_LOTE) {
+    return Response.json(
+      { ok: false, error: `Como máximo ${MAX_ASIGNACION_LOTE} fincas de una vez.` },
+      { status: 400 }
+    );
   }
 
   const supabase = await createClient();
@@ -102,31 +120,41 @@ export async function PUT(request: Request) {
     const { error } = await supabase
       .from("catastro_explorer_assignments")
       .delete()
-      .eq("finca_reference", fincaReference);
+      .in("finca_reference", refs);
     if (error) {
       return Response.json({ ok: false, error: "No se ha podido quitar la asignación." }, { status: 500 });
     }
-    await sincronizarComercialPropiedad(supabase, properties, fincaReference, null);
-    return Response.json({ ok: true, assignment: null, comerciales });
+    for (const ref of refs) {
+      await sincronizarComercialPropiedad(supabase, properties, ref, null);
+    }
+    const assignments = refs.map(() => null);
+    return Response.json({ ok: true, assignment: null, assignments, comerciales });
   }
 
+  const ahora = new Date().toISOString();
   const { error } = await supabase.from("catastro_explorer_assignments").upsert(
-    {
-      finca_reference: fincaReference,
+    refs.map((ref) => ({
+      finca_reference: ref,
       comercial_id: comercialId,
       assigned_by: user.id,
-      assigned_at: new Date().toISOString(),
-    },
+      assigned_at: ahora,
+    })),
     { onConflict: "finca_reference" }
   );
   if (error) {
     return Response.json({ ok: false, error: "No se ha podido asignar el comercial." }, { status: 500 });
   }
 
-  await sincronizarComercialPropiedad(supabase, properties, fincaReference, comercialId);
+  for (const ref of refs) {
+    await sincronizarComercialPropiedad(supabase, properties, ref, comercialId);
+  }
+  const assignments = refs.map((ref) =>
+    asignacionDesdeFila(ref, { comercial_id: comercialId }, comerciales)
+  );
   return Response.json({
     ok: true,
-    assignment: asignacionDesdeFila(fincaReference, { comercial_id: comercialId }, comerciales),
+    assignment: assignments[0] ?? null,
+    assignments,
     comerciales,
   });
 }

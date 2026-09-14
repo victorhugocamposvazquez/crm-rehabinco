@@ -261,6 +261,8 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
           seleccionada={(ref) => estaSeleccionada(seleccion, ref)}
           vinculada={(ref) => links.some((item) => item.fincaReference === ref)}
           onToggleSeleccion={(finca) => seleccionFincas.alternar(finca, clave)}
+          onMarcarPagina={(pagina, marcar) => seleccionFincas.marcarPagina(pagina, clave, marcar)}
+          fincasSeleccionadas={seleccion.fincas.map((finca) => finca.fincaReference)}
           recuentoEstados={recuentoEstadosDesdeTotales(data.search.totals)}
           filtroEstado={filtroEstado}
           onFiltroEstado={(status) => {

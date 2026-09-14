@@ -84,6 +84,29 @@ export function filtrarPorAsignacion<T extends { fincaReference: string }>(
   );
 }
 
+export const MAX_ASIGNACION_LOTE = 100;
+
+export function refsDesdeCuerpoAsignacion(cuerpo: {
+  fincaReference?: unknown;
+  fincaReferences?: unknown;
+}): string[] {
+  const brutos = Array.isArray(cuerpo.fincaReferences)
+    ? cuerpo.fincaReferences
+    : cuerpo.fincaReference != null
+      ? [cuerpo.fincaReference]
+      : [];
+  const vistos = new Set<string>();
+  const refs: string[] = [];
+  for (const item of brutos) {
+    if (typeof item !== "string") continue;
+    const ref = item.trim();
+    if (!ref || vistos.has(ref)) continue;
+    vistos.add(ref);
+    refs.push(ref);
+  }
+  return refs;
+}
+
 export function recuentoFiltrosAsignacion(
   fincas: Array<{ fincaReference: string }>,
   asignaciones: Record<string, AsignacionFinca>,

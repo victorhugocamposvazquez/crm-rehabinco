@@ -13,6 +13,7 @@ import {
   FILTRO_ASIGNACION_TODAS,
   nombreComercial,
   recuentoFiltrosAsignacion,
+  refsDesdeCuerpoAsignacion,
   uuidComercial,
 } from "./finca-assignment";
 
@@ -75,6 +76,15 @@ describe("finca-assignment", () => {
       mias: 1,
       porComercial: { [rocío]: 1, [hugo]: 1 },
     });
+  });
+
+  it("acepta una finca o un lote en el cuerpo de asignación", () => {
+    assert.deepEqual(refsDesdeCuerpoAsignacion({ fincaReference: "AAA" }), ["AAA"]);
+    assert.deepEqual(
+      refsDesdeCuerpoAsignacion({ fincaReferences: ["AAA", "AAA", "BBB", ""] }),
+      ["AAA", "BBB"]
+    );
+    assert.deepEqual(refsDesdeCuerpoAsignacion({}), []);
   });
 
   it("la migración no crea visitas ni toca la clasificación", () => {

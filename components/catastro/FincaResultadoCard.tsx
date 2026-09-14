@@ -110,7 +110,7 @@ export function FincaResultadoCard({
                 type="checkbox"
                 checked={seleccionada}
                 onChange={() => onToggleSeleccion?.(finca)}
-                className="h-5 w-5 cursor-pointer rounded border-border accent-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="h-3.5 w-3.5 cursor-pointer rounded-[3px] border-border accent-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 aria-describedby={`${idBase}-titulo`}
               />
             </div>

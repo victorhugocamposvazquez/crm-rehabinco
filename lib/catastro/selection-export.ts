@@ -35,6 +35,22 @@ export function estaSeleccionada(seleccion: SeleccionFincas, fincaReference: str
   return seleccion.fincas.some((finca) => finca.fincaReference === fincaReference);
 }
 
+/** Marca o desmarca todas las fincas de una página sin tocar las de otras. */
+export function aplicarSeleccionPagina(
+  seleccion: SeleccionFincas,
+  pagina: FincaBusquedaUi[],
+  claveBusqueda: string,
+  marcar: boolean
+): SeleccionFincas {
+  const base = seleccionParaBusqueda(seleccion, claveBusqueda);
+  const refsPagina = new Set(pagina.map((finca) => finca.fincaReference));
+  const resto = base.fincas.filter((finca) => !refsPagina.has(finca.fincaReference));
+  return {
+    claveBusqueda,
+    fincas: marcar ? [...resto, ...pagina] : resto,
+  };
+}
+
 /**
  * Añade o quita una finca. Si la selección era de otra búsqueda, se descarta primero:
  * nunca se mezclan candidatos de dos búsquedas.

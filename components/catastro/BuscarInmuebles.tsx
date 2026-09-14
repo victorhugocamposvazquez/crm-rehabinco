@@ -192,6 +192,12 @@ export function BuscarInmuebles() {
     seleccionFincas.alternar(finca, clave);
   };
 
+  const onMarcarPagina = (fincas: FincaBusquedaUi[], marcar: boolean) => {
+    const clave = modo === "zona" ? claveZonaActiva : claveBusquedaRef.current;
+    if (!clave) return;
+    seleccionFincas.marcarPagina(fincas, clave, marcar);
+  };
+
   const onToggleRevision = (finca: FincaBusquedaUi) => {
     const clave = modo === "zona" ? claveZonaActiva : claveBusquedaRef.current;
     if (!clave) return;
@@ -782,6 +788,7 @@ export function BuscarInmuebles() {
               setFiltroRevision("ALL");
             }}
             onToggleSeleccion={onToggleSeleccion}
+            onMarcarPagina={onMarcarPagina}
             onToggleRevision={onToggleRevision}
             onExportarRevision={onExportarRevision}
             onVerTodas={() => buscarConFiltroDivision("ALL")}
@@ -811,6 +818,7 @@ export function BuscarInmuebles() {
                 filtroRevision={filtroRevision}
                 onFiltroRevision={setFiltroRevision}
                 onToggleSeleccion={onToggleSeleccion}
+                onMarcarPagina={onMarcarPagina}
                 onToggleRevision={onToggleRevision}
                 onExportarRevision={onExportarRevision}
                 onAnterior={irAnterior}
@@ -851,6 +859,7 @@ function ResultadosBusqueda({
   filtroRevision,
   onFiltroRevision,
   onToggleSeleccion,
+  onMarcarPagina,
   onToggleRevision,
   onExportarRevision,
   onAnterior,
@@ -865,6 +874,7 @@ function ResultadosBusqueda({
   filtroRevision: FiltroRevisionComercial;
   onFiltroRevision: (filtro: FiltroRevisionComercial) => void;
   onToggleSeleccion: (finca: FincaBusquedaUi) => void;
+  onMarcarPagina: (fincas: FincaBusquedaUi[], marcar: boolean) => void;
   onToggleRevision: (finca: FincaBusquedaUi) => void;
   onExportarRevision: () => void;
   onAnterior: () => void;
@@ -946,6 +956,8 @@ function ResultadosBusqueda({
           hrefDe={(finca) => rutaFincaPersistida(finca.fincaReference)}
           seleccionada={(ref) => estaSeleccionada(seleccion, ref)}
           onToggleSeleccion={onToggleSeleccion}
+          onMarcarPagina={onMarcarPagina}
+          fincasSeleccionadas={seleccion.fincas.map((finca) => finca.fincaReference)}
         />
       )}
 

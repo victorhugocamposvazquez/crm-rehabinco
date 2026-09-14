@@ -50,6 +50,7 @@ type Props = {
   onSiguienteBloque: () => void;
   onNuevaBusqueda: () => void;
   onToggleSeleccion: (finca: FincaBusquedaUi) => void;
+  onMarcarPagina: (fincas: FincaBusquedaUi[], marcar: boolean) => void;
   onToggleRevision: (finca: FincaBusquedaUi) => void;
   onExportarRevision: () => void;
   onVerTodas: () => void;
@@ -74,6 +75,7 @@ export function BuscarPorZona({
   onSiguienteBloque,
   onNuevaBusqueda,
   onToggleSeleccion,
+  onMarcarPagina,
   onToggleRevision,
   onExportarRevision,
   onVerTodas,
@@ -339,6 +341,8 @@ export function BuscarPorZona({
             hrefDe={(finca) => rutaFincaPersistida(finca.fincaReference)}
             seleccionada={(ref) => estaSeleccionada(seleccion, ref)}
             onToggleSeleccion={onToggleSeleccion}
+            onMarcarPagina={onMarcarPagina}
+            fincasSeleccionadas={seleccion.fincas.map((finca) => finca.fincaReference)}
           />
         )}
       </section>

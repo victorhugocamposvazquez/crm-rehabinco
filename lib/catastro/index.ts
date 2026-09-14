@@ -202,6 +202,7 @@ export {
   direccionOficial,
   escaparCsv,
   estaSeleccionada,
+  aplicarSeleccionPagina,
   generarCsv,
   nombreArchivoExportacion,
   prepararExportacionCsv,
