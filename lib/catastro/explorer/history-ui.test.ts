@@ -532,6 +532,38 @@ describe("Catastro Explorer — experiencia persistente", () => {
       }),
       { ratio: 1, etiqueta: "completo" }
     );
+    assert.deepEqual(
+      progresoListaBusqueda({
+        mode: "POSTAL_CODE",
+        status: "COMPLETED",
+        coverage: {
+          complete: false,
+          possibleCut: false,
+          streetsFound: 241,
+          streetsProcessed: 241,
+          streetsWithErrors: 3,
+          streetsTotal: 241,
+          streetOffset: 0,
+        },
+      }),
+      { ratio: 1, etiqueta: "terminada" }
+    );
+    assert.deepEqual(
+      progresoListaBusqueda({
+        mode: "POSTAL_CODE",
+        status: "COMPLETED",
+        coverage: {
+          complete: false,
+          possibleCut: false,
+          streetsFound: 250,
+          streetsProcessed: 250,
+          streetsWithErrors: 2,
+          streetsTotal: 4750,
+          streetOffset: 0,
+        },
+      }),
+      { ratio: 250 / 4750, etiqueta: "bloque 1/19" }
+    );
   });
 
   it("el resumen de recientes incluye el progreso de zona", () => {
@@ -576,6 +608,16 @@ describe("Catastro Explorer — experiencia persistente", () => {
       estado: "Búsqueda incompleta",
       corte: "Cobertura potencialmente incompleta por limitación de Catastro.",
     });
+    assert.deepEqual(
+      textosCoberturaHistorica(
+        { complete: false, possibleCut: false, streetsWithErrors: 4 },
+        "COMPLETED"
+      ),
+      {
+        estado: "Búsqueda terminada",
+        corte: "Terminó con 4 calles con error. Puedes reintentarlas.",
+      }
+    );
   });
 
   it("los criterios visibles son los guardados", () => {

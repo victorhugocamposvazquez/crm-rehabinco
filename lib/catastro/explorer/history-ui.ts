@@ -169,7 +169,13 @@ export const CLASES_PUNTO_ESTADO: Record<CatastroExplorerSearchStatus, string> =
 
 export type CoberturaRecienteUi = Pick<
   CatastroExplorerCoverage,
-  "complete" | "possibleCut" | "streetsFound" | "streetsProcessed" | "streetsTotal" | "streetOffset"
+  | "complete"
+  | "possibleCut"
+  | "streetsFound"
+  | "streetsProcessed"
+  | "streetsWithErrors"
+  | "streetsTotal"
+  | "streetOffset"
 >;
 
 export type ResumenBusquedaUi = ReturnType<typeof resumenBusquedaReciente> & {
@@ -247,6 +253,7 @@ export function coberturaListaDesdeBusqueda(
     possibleCut: coverage.possibleCut,
     ...(coverage.streetsFound != null ? { streetsFound: coverage.streetsFound } : {}),
     ...(coverage.streetsProcessed != null ? { streetsProcessed: coverage.streetsProcessed } : {}),
+    ...(coverage.streetsWithErrors != null ? { streetsWithErrors: coverage.streetsWithErrors } : {}),
     ...(coverage.streetsTotal != null ? { streetsTotal: coverage.streetsTotal } : {}),
     ...(coverage.streetOffset != null ? { streetOffset: coverage.streetOffset } : {}),
   };
@@ -263,21 +270,26 @@ export function progresoListaBusqueda(input: {
       ? { ratio: 1, etiqueta: "completo" }
       : { ratio: 0, etiqueta: "" };
   }
-  if (coverage?.complete) {
-    return { ratio: 1, etiqueta: "completo" };
-  }
 
   const encontradas = coverage?.streetsFound ?? 0;
   const procesadas = coverage?.streetsProcessed ?? 0;
   const total = coverage?.streetsTotal && coverage.streetsTotal > 0 ? coverage.streetsTotal : 0;
   const offset = coverage?.streetOffset ?? 0;
+  const avanzadoMunicipio = total > 0 ? Math.min(total, Math.max(0, offset + procesadas)) : 0;
+  const municipioPendiente = total > 0 && avanzadoMunicipio < total;
+
+  if (input.status === "COMPLETED" && !municipioPendiente) {
+    return { ratio: 1, etiqueta: coverage?.complete ? "completo" : "terminada" };
+  }
+  if (coverage?.complete) {
+    return { ratio: 1, etiqueta: "completo" };
+  }
 
   if (total > 0) {
     const bloques = Math.max(1, Math.ceil(total / ZONE_MAX_STREETS_RUN));
     const indice = Math.min(bloques, Math.floor(offset / ZONE_MAX_STREETS_RUN) + 1);
-    const avanzado = Math.min(total, Math.max(0, offset + procesadas));
     return {
-      ratio: avanzado / total,
+      ratio: avanzadoMunicipio / total,
       etiqueta: `bloque ${indice}/${bloques}`,
     };
   }
@@ -442,16 +454,30 @@ export function lineaMetaListaBusqueda(
   return `${fincas} · ${candidatas} · ${fechaBusquedaLista(item.updatedAt, ahora)}`;
 }
 
-export function textosCoberturaHistorica(coverage?: CoberturaRecienteUi): {
-  estado: "Búsqueda completa" | "Búsqueda incompleta";
+export function textosCoberturaHistorica(
+  coverage?: CoberturaRecienteUi,
+  status?: CatastroExplorerSearchStatus
+): {
+  estado: "Búsqueda completa" | "Búsqueda terminada" | "Búsqueda incompleta";
   corte: string | null;
 } {
-  return {
-    estado: coverage?.complete ? "Búsqueda completa" : "Búsqueda incompleta",
-    corte: coverage?.possibleCut
-      ? "Cobertura potencialmente incompleta por limitación de Catastro."
-      : null,
-  };
+  if (coverage?.complete) {
+    return { estado: "Búsqueda completa", corte: null };
+  }
+  const errores = coverage?.streetsWithErrors ?? 0;
+  const corteCorte = coverage?.possibleCut
+    ? "Cobertura potencialmente incompleta por limitación de Catastro."
+    : null;
+  if (status === "COMPLETED") {
+    return {
+      estado: "Búsqueda terminada",
+      corte:
+        errores > 0
+          ? `Terminó con ${errores} ${errores === 1 ? "calle con error" : "calles con error"}. Puedes reintentarlas.`
+          : corteCorte,
+    };
+  }
+  return { estado: "Búsqueda incompleta", corte: corteCorte };
 }
 
 export type CriterioVisible = { label: string; value: string };

@@ -26,11 +26,14 @@ import {
   textoCallesARevisar,
   textoEstadoFinal,
   textoPreparacion,
+  textoResumenErroresZona,
   textoSiguienteBloque,
   textoZonaDemasiadoGrande,
   textosProgreso,
   TEXTO_SEGUNDO_PLANO,
   zonaDemasiadoGrande,
+  busquedaZonaCerrada,
+  busquedaZonaExhaustiva,
   type EstadoZonaUi,
 } from "@/lib/catastro/zone-ui";
 import { rutaFincaPersistida } from "@/lib/catastro/explorer/history-ui";
@@ -155,10 +158,8 @@ export function BuscarPorZona({
   const erroresListados = erroresVisiblesZona(estado);
   const errores = listaErrores(erroresListados);
   const enMarcha = estado.fase === "ejecutando";
-  const completa =
-    snapshot.status === "done" &&
-    snapshot.coverage.completeCandidates &&
-    !snapshot.coverage.hasNextBlock;
+  const cerrada = busquedaZonaCerrada(snapshot);
+  const completa = busquedaZonaExhaustiva(snapshot);
   const visibles = filtrarPorRevisionComercial(resultadosVisiblesZona(estado), filtroRevision, revision);
   const recuento = recuentoEstadosDivision(visibles);
 
@@ -167,7 +168,7 @@ export function BuscarPorZona({
       <div
         className={cn(
           "space-y-4 rounded-2xl border p-5 sm:p-6",
-          !enMarcha && !completa ? "border-[#F0DEB0] bg-[#FBF0D8] text-[#6A4F0C]" : "border-[#E6E3DD] bg-white"
+          !enMarcha && !cerrada ? "border-[#F0DEB0] bg-[#FBF0D8] text-[#6A4F0C]" : "border-[#E6E3DD] bg-white"
         )}
       >
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -201,7 +202,9 @@ export function BuscarPorZona({
               className={
                 completa
                   ? "text-sm font-medium text-teal-800"
-                  : "rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950"
+                  : cerrada
+                    ? "text-sm font-medium text-foreground"
+                    : "rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950"
               }
               role="status"
             >
@@ -254,7 +257,7 @@ export function BuscarPorZona({
         {errores.lineas.length > 0 ? (
           <details className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
             <summary className="cursor-pointer font-medium">
-              {erroresListados.length === 1 ? "1 calle con error" : `${erroresListados.length} calles con errores`} (la búsqueda continúa)
+              {textoResumenErroresZona(estado)}
             </summary>
             <ul className="mt-2 space-y-1">
               {errores.lineas.map((linea) => (

@@ -203,7 +203,10 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
     );
   }
 
-  const cobertura = textosCoberturaHistorica(data.summary.coverage ?? data.search.coverage);
+  const cobertura = textosCoberturaHistorica(
+    data.summary.coverage ?? data.search.coverage,
+    data.summary.status
+  );
   const criterios = criteriosVisibles(data.search.criteria);
   const cargadas = data.results.fincas.length;
   const totalListado = data.results.total;

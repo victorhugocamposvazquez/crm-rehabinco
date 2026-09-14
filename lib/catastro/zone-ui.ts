@@ -699,6 +699,21 @@ export function textoEstadoFinal(estado: EstadoZonaUi): string | null {
   }
 }
 
+export function busquedaZonaCerrada(snapshot: ZoneSnapshotUi): boolean {
+  return snapshot.status === "done" && !snapshot.coverage.hasNextBlock;
+}
+
+export function busquedaZonaExhaustiva(snapshot: ZoneSnapshotUi): boolean {
+  return busquedaZonaCerrada(snapshot) && snapshot.coverage.completeCandidates;
+}
+
+export function textoResumenErroresZona(estado: EstadoZonaUi): string {
+  const n = erroresVisiblesZona(estado).length;
+  const cuantos = n === 1 ? "1 calle con error" : `${n} calles con errores`;
+  if (estado.fase === "ejecutando") return `${cuantos} (la búsqueda continúa)`;
+  return cuantos;
+}
+
 export const AYUDA_ERRORES_CALLE =
   "No son calles inválidas: Catastro cortó o caducó la consulta. Al reanudar se vuelven a intentar.";
 

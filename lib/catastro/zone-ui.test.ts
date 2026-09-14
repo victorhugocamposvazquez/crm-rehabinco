@@ -47,8 +47,11 @@ import {
   textoCallesARevisar,
   textoEstadoFinal,
   textoPreparacion,
+  textoResumenErroresZona,
   textosProgreso,
   validarCodigoPostalZona,
+  busquedaZonaCerrada,
+  busquedaZonaExhaustiva,
   type EstadoZonaUi,
   type ZoneSnapshotUi,
 } from "./zone-ui";
@@ -493,11 +496,20 @@ describe("Zona UI: cancelación y reanudación", () => {
     assert.equal(lista.lineas[0], "CL 0: Error");
     const terminada = aplicarSnapshotZona(
       ESTADO_ZONA_INICIAL,
-      snapshot({ status: "done", progress: { streetsProcessed: 427, streetsPending: 0, streetsWithErrors: 1, steps: 20 }, coverage: { complete: false, completeCandidates: false } })
+      snapshot({
+        status: "done",
+        progress: { streetsProcessed: 427, streetsPending: 0, streetsWithErrors: 1, steps: 20 },
+        coverage: { complete: false, completeCandidates: false },
+        errors: [{ street: "CL ROTA", error: "Error externo de Catastro o INSPIRE." }],
+      })
     );
     assert.equal(terminada.fase, "completada");
     assert.match(textoEstadoFinal(terminada) ?? "", /1 calle con error/);
     assert.equal(accionesDisponibles(terminada).reintentarErrores, true);
+    assert.equal(busquedaZonaCerrada(terminada.snapshot!), true);
+    assert.equal(busquedaZonaExhaustiva(terminada.snapshot!), false);
+    assert.equal(textoResumenErroresZona(terminada), "1 calle con error");
+    assert.equal(textoResumenErroresZona(estado), "1 calle con error (la búsqueda continúa)");
     const caida = aplicarSnapshotZona(
       ESTADO_ZONA_INICIAL,
       snapshot({ status: "upstream_paused", progress: { streetsProcessed: 4, streetsWithErrors: 4, streetsPending: 423 } }),
