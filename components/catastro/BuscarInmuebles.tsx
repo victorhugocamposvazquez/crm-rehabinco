@@ -93,6 +93,7 @@ import { BuscarPorZona } from "./BuscarPorZona";
 import { BusquedasRecientes } from "./BusquedasRecientes";
 import { CatalogCombobox } from "./CatalogCombobox";
 import { ListaFincasCatastro } from "./ListaFincasCatastro";
+import { BarraPaginacion } from "./BarraPaginacion";
 import { VacioResultados } from "./VacioResultados";
 import { useBusquedaZona } from "./useBusquedaZona";
 import { useSeleccionFincas } from "./useSeleccionFincas";
@@ -123,7 +124,6 @@ export function BuscarInmuebles() {
   const [postalCode, setPostalCode] = useState(iniciales.postalCode);
   const [horizontalDivision, setHorizontalDivision] = useState(iniciales.horizontalDivision);
   const [paginas, setPaginas] = useState<PaginaCache[]>([]);
-  const [indice, setIndice] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorCatalogo, setErrorCatalogo] = useState<string | null>(null);
@@ -143,8 +143,13 @@ export function BuscarInmuebles() {
   selectorMunicipiosRef.current ??= crearSelectorCatalogo<MunicipioUi>();
   selectorCallesRef.current ??= crearSelectorCatalogo<CalleUi>();
 
-  const paginaActual = paginas[indice] ?? null;
-  const resultado = paginaActual?.data ?? null;
+  const resultado =
+    paginas.length === 0
+      ? null
+      : {
+          ...paginas[paginas.length - 1]!.data,
+          results: paginas.flatMap((pagina) => pagina.data.results),
+        };
   const extras = { numero, postalCode, horizontalDivision };
   const criterios = criteriosDesdeUbicacion(ubicacion, extras);
   const campos = camposVisibles(modo);
@@ -178,7 +183,6 @@ export function BuscarInmuebles() {
     claveBusquedaRef.current = null;
     setLoading(false);
     setPaginas([]);
-    setIndice(0);
     setError(null);
     setBuscado(false);
     // Cambian los criterios: no se mezclan candidatos ni revisiones de dos búsquedas.
@@ -382,13 +386,11 @@ export function BuscarInmuebles() {
         copia[destinoIndice] = { cursor, data };
         return copia;
       });
-      setIndice(destinoIndice);
       setBuscado(true);
       setRecientesKey((n) => n + 1);
     } catch (err) {
       if (esAbortError(err) || claveActivaRef.current !== clave) return;
       setPaginas([]);
-      setIndice(0);
       setBuscado(true);
       setError(
         err instanceof ErrorBusquedaUi
@@ -418,7 +420,6 @@ export function BuscarInmuebles() {
     }
     if (loading || !criterios) return;
     setPaginas([]);
-    setIndice(0);
     // Repetir la misma búsqueda conserva la selección; otra distinta la vacía.
     seleccionFincas.conservarPara(claveCriterios(criterios));
     sincronizarUrl(criterios);
@@ -453,33 +454,18 @@ export function BuscarInmuebles() {
     if (!criterios) return;
     const origen = { ...criterios, horizontalDivision: filtro };
     setPaginas([]);
-    setIndice(0);
     seleccionFincas.conservarPara(claveCriterios(origen));
     sincronizarUrl(origen);
     irAResultados();
     void ejecutarBusqueda(origen, null, 0);
   };
 
-  const irAnterior = () => {
-    if (loading || indice === 0 || !criterios) return;
-    const previa = paginas[indice - 1];
-    if (previa) {
-      setIndice(indice - 1);
-      return;
-    }
-    void ejecutarBusqueda(criterios, null, 0);
-  };
-
   const irSiguiente = () => {
-    if (loading || !criterios || !resultado?.pagination.hasNextPage || !resultado.pagination.nextCursor) {
+    const ultima = paginas[paginas.length - 1]?.data;
+    if (loading || !criterios || !ultima?.pagination.hasNextPage || !ultima.pagination.nextCursor) {
       return;
     }
-    const siguiente = paginas[indice + 1];
-    if (siguiente) {
-      setIndice(indice + 1);
-      return;
-    }
-    void ejecutarBusqueda(criterios, resultado.pagination.nextCursor, indice + 1);
+    void ejecutarBusqueda(criterios, ultima.pagination.nextCursor, paginas.length);
   };
 
   useEffect(() => {
@@ -812,16 +798,13 @@ export function BuscarInmuebles() {
               <ResultadosBusqueda
                 resultado={resultado}
                 loading={loading}
-                indice={indice}
                 seleccion={seleccion}
                 revision={revision}
                 filtroRevision={filtroRevision}
                 onFiltroRevision={setFiltroRevision}
                 onToggleSeleccion={onToggleSeleccion}
                 onMarcarPagina={onMarcarPagina}
-                onToggleRevision={onToggleRevision}
                 onExportarRevision={onExportarRevision}
-                onAnterior={irAnterior}
                 onSiguiente={irSiguiente}
                 onVerTodas={() => buscarConFiltroDivision("ALL")}
               />
@@ -853,31 +836,25 @@ function claveCalle(item: NonNullable<EstadoUbicacion["calle"]>) {
 function ResultadosBusqueda({
   resultado,
   loading,
-  indice,
   seleccion,
   revision,
   filtroRevision,
   onFiltroRevision,
   onToggleSeleccion,
   onMarcarPagina,
-  onToggleRevision,
   onExportarRevision,
-  onAnterior,
   onSiguiente,
   onVerTodas,
 }: {
   resultado: ResultadoBusquedaUi;
   loading: boolean;
-  indice: number;
   seleccion: SeleccionFincas;
   revision: RevisionFincas;
   filtroRevision: FiltroRevisionComercial;
   onFiltroRevision: (filtro: FiltroRevisionComercial) => void;
   onToggleSeleccion: (finca: FincaBusquedaUi) => void;
   onMarcarPagina: (fincas: FincaBusquedaUi[], marcar: boolean) => void;
-  onToggleRevision: (finca: FincaBusquedaUi) => void;
   onExportarRevision: () => void;
-  onAnterior: () => void;
   onSiguiente: () => void;
   onVerTodas: () => void;
 }) {
@@ -886,41 +863,15 @@ function ResultadosBusqueda({
   const seleccionadasEnPagina = visibles.filter((finca) =>
     estaSeleccionada(seleccion, finca.fincaReference)
   ).length;
-  const listadoRef = useRef<HTMLDivElement>(null);
-  const montado = useRef(false);
-  useEffect(() => {
-    if (!montado.current) {
-      montado.current = true;
-      return;
-    }
-    listadoRef.current?.scrollIntoView({ block: "start", behavior: "auto" });
-  }, [indice]);
-  const etiquetaPagina = resultado.pagination.hasNextPage
-    ? `Página ${indice + 1} · hay más`
-    : indice === 0
-      ? "Página 1"
-      : `Página ${indice + 1} de ${indice + 1}`;
   const barraPaginas =
     resultado.results.length > 0 || resultado.pagination.hasNextPage ? (
-      <nav className="flex flex-wrap items-center gap-2" aria-label="Paginación">
-        <Button type="button" variant="secondary" size="sm" onClick={onAnterior} disabled={loading || indice === 0}>
-          Anterior
-        </Button>
-        <p className="min-w-0 flex-1 text-[13px] font-medium tabular-nums text-[#131C1A]" aria-live="polite">
-          {etiquetaPagina}
-          {seleccionadasEnPagina > 0 ? ` · ${seleccionadasEnPagina} seleccionadas aquí` : null}
-          {loading ? " · cargando…" : null}
-        </p>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={onSiguiente}
-          disabled={loading || !resultado.pagination.hasNextPage}
-        >
-          Siguiente
-        </Button>
-      </nav>
+      <BarraPaginacion
+        viendo={resultado.results.length}
+        total={resultado.results.length}
+        hayMas={resultado.pagination.hasNextPage}
+        cargando={loading}
+        onMas={onSiguiente}
+      />
     ) : null;
   const cobertura = textosCobertura({
     complete: resultado.coverage.complete,
@@ -930,12 +881,13 @@ function ResultadosBusqueda({
   });
 
   return (
-    <div ref={listadoRef} className="scroll-mt-[6.4rem] space-y-4 sm:scroll-mt-[6.9rem]">
+    <div className="scroll-mt-[6.4rem] space-y-4 sm:scroll-mt-[6.9rem]">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-base font-semibold text-foreground">
             {`${recuento.ALL.toLocaleString("es-ES")} fincas · ${recuento.NO.toLocaleString("es-ES")} candidatas`}
             {revision.fincas.length > 0 ? ` · ${textoRevision(revision.fincas.length)}` : null}
+            {seleccionadasEnPagina > 0 ? ` · ${seleccionadasEnPagina} seleccionadas` : null}
           </p>
           {resultado.pagination.hasNextPage || !resultado.coverage.complete ? (
             <p className="text-sm text-neutral-500">
@@ -995,11 +947,10 @@ function ResultadosBusqueda({
           onToggleSeleccion={onToggleSeleccion}
           onMarcarPagina={onMarcarPagina}
           fincasSeleccionadas={seleccion.fincas.map((finca) => finca.fincaReference)}
-          paginacion={barraPaginas}
+          topeExterno
+          pie={barraPaginas ? <div className="border-t border-[#F2F0EB] px-3.5 py-3">{barraPaginas}</div> : null}
         />
       )}
-
-      {barraPaginas ? <div className="rounded-2xl border border-border bg-white px-4 py-3">{barraPaginas}</div> : null}
     </div>
   );
 }

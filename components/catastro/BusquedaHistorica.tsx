@@ -27,8 +27,7 @@ import {
   prepararExportacionHistorica,
   puedeReanudarHistorica,
   recuentoEstadosDesdeTotales,
-  resumenPaginacion,
-  offsetDesdePagina,
+  acumularFincasLista,
   revisionDesdePersistida,
   rutaFincaPersistida,
   TEXTO_REANUDAR_BUSQUEDA,
@@ -66,6 +65,7 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
   const [cambiandoPagina, setCambiandoPagina] = useState(false);
   const [errorPagina, setErrorPagina] = useState<string | null>(null);
   const anclarListado = useRef(false);
+  const acumularRef = useRef(false);
   const searchIdCargado = useRef<string | null>(null);
   const seleccionFincas = useSeleccionFincas();
   const { seleccion, revision } = seleccionFincas;
@@ -93,8 +93,20 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
       controller.signal
     )
       .then((recuperada) => {
+        const acumular = acumularRef.current;
+        acumularRef.current = false;
         searchIdCargado.current = searchId;
-        setData(recuperada);
+        let fincas = recuperada.results.fincas;
+        setData((prev) => {
+          fincas =
+            acumular && prev && prev.search.id === recuperada.search.id
+              ? acumularFincasLista(prev.results.fincas, recuperada.results.fincas)
+              : recuperada.results.fincas;
+          return {
+            ...recuperada,
+            results: { ...recuperada.results, fincas },
+          };
+        });
         setLinks(recuperada.links ?? []);
         setCambiandoPagina(false);
         seleccionFincas.conservarPara(clave);
@@ -102,7 +114,7 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
           clave,
           revisionDesdePersistida(
             clave,
-            recuperada.results.fincas,
+            fincas,
             recuperada.reviews,
             recuperada.search.ownerId
           ).fincas
@@ -125,9 +137,12 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
     document.getElementById("listado-fincas-catastro")?.scrollIntoView({ block: "start", behavior: "auto" });
   }, [data, cambiandoPagina]);
 
-  const irPagina = (nuevoOffset: number) => {
-    anclarListado.current = true;
-    setOffset(Math.max(0, nuevoOffset));
+  const cargarMas = () => {
+    if (!data || cambiandoPagina) return;
+    acumularRef.current = true;
+    const siguiente = data.results.fincas.length;
+    if (offset === siguiente) setIntento((n) => n + 1);
+    else setOffset(siguiente);
   };
 
   const visibles = useMemo(() => {
@@ -190,22 +205,15 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
 
   const cobertura = textosCoberturaHistorica(data.summary.coverage ?? data.search.coverage);
   const criterios = criteriosVisibles(data.search.criteria);
-  const pagina = resumenPaginacion({
-    offset: data.results.offset,
-    limit: data.results.limit,
-    total: data.results.total,
-  });
+  const cargadas = data.results.fincas.length;
+  const totalListado = data.results.total;
   const barraPaginas = (
     <BarraPaginacion
-      etiqueta={pagina.etiqueta}
-      pagina={pagina.pagina}
-      paginas={pagina.paginas}
-      hayAnterior={pagina.hayAnterior}
-      haySiguiente={pagina.haySiguiente}
+      viendo={cargadas}
+      total={totalListado}
+      hayMas={cargadas < totalListado}
       cargando={cambiandoPagina}
-      onAnterior={() => irPagina(data.results.offset - data.results.limit)}
-      onSiguiente={() => irPagina(data.results.offset + data.results.limit)}
-      onIrA={(n) => irPagina(offsetDesdePagina(n, data.results.limit))}
+      onMas={cargarMas}
     />
   );
 
@@ -293,7 +301,7 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
         </Button>
       </div>
 
-      <div className={cn("mt-4", cambiandoPagina && "pointer-events-none opacity-60")}>
+      <div className={cn("mt-4", cambiandoPagina && offset === 0 && "pointer-events-none opacity-60")}>
         {errorPagina ? (
           <p className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
             {errorPagina}
@@ -311,11 +319,16 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
           filtroEstado={filtroEstado}
           onFiltroEstado={(status) => {
             anclarListado.current = true;
+            acumularRef.current = false;
             setFiltroEstado(status);
             setOffset(0);
           }}
-          paginacion={barraPaginas}
-          pie={pagina.paginas > 1 ? <div className="border-t border-[#F2F0EB] px-3.5 py-3">{barraPaginas}</div> : null}
+          topeExterno
+          pie={
+            totalListado > 0 ? (
+              <div className="border-t border-[#F2F0EB] px-3.5 py-3">{barraPaginas}</div>
+            ) : null
+          }
         />
       </div>
 

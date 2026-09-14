@@ -58,6 +58,8 @@ type Props = {
   recuentoEstados?: Record<string, number>;
   filtroEstado?: string;
   onFiltroEstado?: (status: string) => void;
+  /** El padre carga más fincas: no recortar el listado a 80. */
+  topeExterno?: boolean;
 };
 
 export function ListaFincasCatastro({
@@ -74,6 +76,7 @@ export function ListaFincasCatastro({
   recuentoEstados,
   filtroEstado,
   onFiltroEstado,
+  topeExterno = false,
 }: Props) {
   const router = useRouter();
   const [q, setQ] = useState("");
@@ -96,7 +99,7 @@ export function ListaFincasCatastro({
     () => ordenarListaFincas(filtrarPorAsignacion(filtradas, asignaciones, filtroAsignacion, yo), orden),
     [filtradas, asignaciones, filtroAsignacion, yo, orden]
   );
-  const pagina = visibles.slice(0, tope);
+  const pagina = topeExterno ? visibles : visibles.slice(0, tope);
   const recuentoAsignacion = useMemo(
     () => recuentoFiltrosAsignacion(filtradas, asignaciones, yo, comerciales),
     [filtradas, asignaciones, yo, comerciales]
@@ -296,7 +299,7 @@ export function ListaFincasCatastro({
         ))}
       </div>
       {recuentoEstados ? (
-        <p className="text-[11px] text-[#6B7A76]">Recuento de toda la búsqueda, no de esta página.</p>
+        <p className="text-[11px] text-[#6B7A76]">Los recuentos de arriba son de toda la búsqueda.</p>
       ) : null}
 
       <div>
@@ -337,16 +340,18 @@ export function ListaFincasCatastro({
         />
       </label>
 
+      <ChipsOrdenLista orden={orden} onOrden={aplicarOrden} />
+
       <div
         className={cn(
           "min-w-0",
           "max-[779px]:flex max-[779px]:flex-col max-[779px]:gap-2.5",
-          "min-[780px]:overflow-hidden min-[780px]:rounded-2xl min-[780px]:border min-[780px]:border-[#E6E3DD] min-[780px]:bg-white"
+          "min-[780px]:overflow-x-auto min-[780px]:rounded-2xl min-[780px]:border min-[780px]:border-[#E6E3DD] min-[780px]:bg-white"
         )}
       >
         {pagina.length === 0 ? (
           <>
-            <CabeceraOrdenLista orden={orden} onOrden={aplicarOrden} />
+            <CabeceraOrdenLista />
             <p className="px-4 py-10 text-center text-sm text-[#5D6B67]">No hay fincas con ese filtro.</p>
           </>
         ) : (
@@ -361,7 +366,7 @@ export function ListaFincasCatastro({
                 onAsignacionLote={aplicarAsignacionLote}
               />
             ) : null}
-            <CabeceraOrdenLista orden={orden} onOrden={aplicarOrden} />
+            <CabeceraOrdenLista />
             <ul aria-label="Fincas encontradas" className="max-[779px]:space-y-2.5">
               {pagina.map((finca) => (
                 <li key={finca.fincaReference}>
@@ -380,15 +385,18 @@ export function ListaFincasCatastro({
                 </li>
               ))}
             </ul>
-            {visibles.length > tope ? (
+            {visibles.length > tope && !topeExterno ? (
               <div className="border-t border-[#F2F0EB] px-4 py-3">
                 <button
                   type="button"
                   className={cn(CHIP, CHIP_INACTIVA)}
                   onClick={() => setTope((n) => n + TAM_PAGINA_LISTA)}
                 >
-                  Mostrar más ({tope} de {visibles.length})
+                  Mostrar más
                 </button>
+                <p className="mt-1.5 text-[12px] tabular-nums text-[#6B7A76]">
+                  Viendo {tope.toLocaleString("es-ES")} de {visibles.length.toLocaleString("es-ES")} fincas
+                </p>
               </div>
             ) : null}
           </>
@@ -473,7 +481,7 @@ function BarraSeleccionLista({
   );
 }
 
-function CabeceraOrdenLista({
+function ChipsOrdenLista({
   orden,
   onOrden,
 }: {
@@ -481,60 +489,60 @@ function CabeceraOrdenLista({
   onOrden: (campo: CampoOrdenLista) => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-[#F2F0EB] bg-[#FBFBF9] px-3.5 py-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-[#6B7A76] max-[779px]:rounded-[13px] max-[779px]:border max-[779px]:border-[#E6E3DD] min-[780px]:flex-nowrap min-[780px]:gap-3.5">
-      <span className="hidden min-w-0 flex-[1_1_250px] min-[780px]:block">Dirección</span>
-      <TituloOrden campo="parcela" ancho="w-[74px]" orden={orden} onOrden={onOrden} />
-      <TituloOrden campo="inmuebles" ancho="w-[90px]" orden={orden} onOrden={onOrden} />
-      <TituloOrden campo="anio" ancho="w-[52px]" orden={orden} onOrden={onOrden} />
-      <span className="hidden w-[118px] min-[780px]:block">Uso</span>
-      <span className="hidden w-[132px] min-[780px]:block">Estado</span>
-      <span className="hidden w-[168px] min-[780px]:block">Comercial</span>
-      <span className="hidden w-[92px] min-[780px]:block" />
+    <div>
+      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#6B7A76]">Ordenar</p>
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Ordenar listado">
+        {CAMPOS_ORDEN_LISTA.map((item) => {
+          const indice = orden.findIndex((criterio) => criterio.campo === item.value);
+          const criterio = indice >= 0 ? orden[indice] : null;
+          const etiquetaDir = criterio?.direccion === "asc" ? "menos a más" : "más a menos";
+          return (
+            <button
+              key={item.value}
+              type="button"
+              className={cn(CHIP, criterio ? CHIP_ACTIVA : CHIP_INACTIVA)}
+              aria-pressed={criterio != null}
+              aria-label={
+                criterio
+                  ? criterio.direccion === "asc"
+                    ? `Ordenado por ${item.label}, ${etiquetaDir}. Pulsar para quitar`
+                    : `Ordenado por ${item.label}, ${etiquetaDir}. Pulsar para invertir`
+                  : `Ordenar por ${item.label}, más a menos`
+              }
+              onClick={() => onOrden(item.value)}
+            >
+              {item.label}
+              {criterio ? (
+                <span className="ml-1 tabular-nums">
+                  {orden.length > 1 ? `${indice + 1} ` : null}
+                  {criterio.direccion === "desc" ? "↓" : "↑"}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-function TituloOrden({
-  campo,
-  ancho,
-  orden,
-  onOrden,
-}: {
-  campo: CampoOrdenLista;
-  ancho: string;
-  orden: CriterioOrdenLista[];
-  onOrden: (campo: CampoOrdenLista) => void;
-}) {
-  const item = CAMPOS_ORDEN_LISTA.find((criterio) => criterio.value === campo);
-  const indice = orden.findIndex((criterio) => criterio.campo === campo);
-  const criterio = indice >= 0 ? orden[indice] : null;
-  const etiquetaDir = criterio?.direccion === "asc" ? "menos a más" : "más a menos";
+function CabeceraOrdenLista() {
   return (
-    <button
-      type="button"
-      className={cn(
-        ancho,
-        "inline-flex shrink-0 items-center gap-0.5 text-left leading-tight hover:text-[#08594B]",
-        criterio && "text-[#08594B]"
-      )}
-      aria-pressed={criterio != null}
-      aria-label={
-        criterio
-          ? criterio.direccion === "asc"
-            ? `Ordenado por ${item?.label}, ${etiquetaDir}. Pulsar para quitar`
-            : `Ordenado por ${item?.label}, ${etiquetaDir}. Pulsar para invertir`
-          : `Ordenar por ${item?.label}, más a menos`
-      }
-      onClick={() => onOrden(campo)}
-    >
-      {item?.label}
-      {criterio ? (
-        <span className="tabular-nums normal-case tracking-normal" aria-hidden>
-          {orden.length > 1 ? `${indice + 1}` : ""}
-          {criterio.direccion === "desc" ? "↓" : "↑"}
+    <div className="hidden items-center gap-3.5 border-b border-[#F2F0EB] bg-[#FBFBF9] px-3.5 py-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-[#6B7A76] min-[780px]:flex">
+      <span className="min-w-0 flex-[1_1_250px]">Dirección</span>
+      {CAMPOS_ORDEN_LISTA.map((item) => (
+        <span
+          key={item.value}
+          className={item.value === "parcela" ? "w-[74px]" : item.value === "inmuebles" ? "w-[90px]" : "w-[52px]"}
+        >
+          {item.label}
         </span>
-      ) : null}
-    </button>
+      ))}
+      <span className="w-[118px]">Uso</span>
+      <span className="w-[132px]">Estado</span>
+      <span className="w-[168px]">Comercial</span>
+      <span className="w-[92px]" />
+    </div>
   );
 }
 

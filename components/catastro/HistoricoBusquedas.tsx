@@ -10,10 +10,8 @@ import {
   RUTA_EXPLORER,
   TEXTO_CARGANDO_BUSQUEDAS,
   TEXTO_REINTENTAR,
+  UNIDAD_BUSQUEDAS,
   fetchHistoricoBusquedas,
-  formatoNumeroEs,
-  offsetDesdePagina,
-  resumenPaginacion,
   type FiltroListadoHistorico,
   type ResumenBusquedaUi,
 } from "@/lib/catastro/explorer/history-ui";
@@ -31,8 +29,8 @@ export function HistoricoBusquedas() {
   const [error, setError] = useState<string | null>(null);
   const [intento, setIntento] = useState(0);
   const [cambiandoPagina, setCambiandoPagina] = useState(false);
-  const anclarListado = useRef(false);
   const hayListado = useRef(false);
+  const acumularRef = useRef(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -48,47 +46,34 @@ export function HistoricoBusquedas() {
     )
       .then((data) => {
         hayListado.current = true;
-        setItems(data.searches);
+        const acumular = acumularRef.current;
+        acumularRef.current = false;
+        setItems((prev) => {
+          if (acumular && prev) {
+            const ids = new Set(prev.map((item) => item.id));
+            return [...prev, ...data.searches.filter((item) => !ids.has(item.id))];
+          }
+          return data.searches;
+        });
         setTotal(data.total);
         setCambiandoPagina(false);
       })
       .catch((err) => {
         if (err instanceof DOMException && err.name === "AbortError") return;
+        acumularRef.current = false;
         setCambiandoPagina(false);
         setError(ERROR_HISTORICO);
       });
     return () => controller.abort();
   }, [offset, filtro, intento]);
 
-  useEffect(() => {
-    if (!items || cambiandoPagina || !anclarListado.current) return;
-    anclarListado.current = false;
-    document.getElementById("listado-historico-catastro")?.scrollIntoView({ block: "start", behavior: "auto" });
-  }, [items, cambiandoPagina]);
-
-  const irPagina = (nuevoOffset: number) => {
-    anclarListado.current = true;
-    setOffset(Math.max(0, nuevoOffset));
+  const cargarMas = () => {
+    if (!items || cambiandoPagina || items.length >= total) return;
+    acumularRef.current = true;
+    const siguiente = items.length;
+    if (offset === siguiente) setIntento((n) => n + 1);
+    else setOffset(siguiente);
   };
-
-  const pagina = resumenPaginacion({
-    offset,
-    limit: EXPLORER_SEARCHES_PAGE_SIZE,
-    total,
-  });
-  const barraPaginas = (
-    <BarraPaginacion
-      etiqueta={pagina.etiqueta}
-      pagina={pagina.pagina}
-      paginas={pagina.paginas}
-      hayAnterior={pagina.hayAnterior}
-      haySiguiente={pagina.haySiguiente}
-      cargando={cambiandoPagina}
-      onAnterior={() => irPagina(offset - EXPLORER_SEARCHES_PAGE_SIZE)}
-      onSiguiente={() => irPagina(offset + EXPLORER_SEARCHES_PAGE_SIZE)}
-      onIrA={(n) => irPagina(offsetDesdePagina(n, EXPLORER_SEARCHES_PAGE_SIZE))}
-    />
-  );
 
   return (
     <div>
@@ -111,6 +96,7 @@ export function HistoricoBusquedas() {
             variant={filtro === item.value ? "default" : "secondary"}
             onClick={() => {
               hayListado.current = false;
+              acumularRef.current = false;
               setFiltro(item.value);
               setOffset(0);
             }}
@@ -134,12 +120,11 @@ export function HistoricoBusquedas() {
       ) : items.length === 0 ? (
         <p className="mt-6 text-sm text-neutral-500">Todavía no hay búsquedas guardadas.</p>
       ) : (
-        <div id="listado-historico-catastro" className={cn("scroll-mt-[6.4rem] sm:scroll-mt-[6.9rem]", cambiandoPagina && "pointer-events-none opacity-60")}>
-          <p className="mt-4 text-sm text-neutral-600">
-            {formatoNumeroEs(total)} {total === 1 ? "búsqueda" : "búsquedas"}
-          </p>
-          <div className="mt-3">{barraPaginas}</div>
-          <ul className={CLASES_LISTA_BUSQUEDAS}>
+        <div
+          id="listado-historico-catastro"
+          className={cn("scroll-mt-[6.4rem] sm:scroll-mt-[6.9rem]", cambiandoPagina && offset === 0 && "pointer-events-none opacity-60")}
+        >
+          <ul className={cn("mt-4", CLASES_LISTA_BUSQUEDAS)}>
             {items.map((item) => (
               <li key={item.id}>
                 <TarjetaBusquedaReciente
@@ -148,7 +133,9 @@ export function HistoricoBusquedas() {
                     setItems((prev) => {
                       const resto = prev?.filter((busqueda) => busqueda.id !== id) ?? [];
                       if (resto.length === 0 && offset > 0) {
-                        irPagina(offset - EXPLORER_SEARCHES_PAGE_SIZE);
+                        acumularRef.current = false;
+                        hayListado.current = false;
+                        setOffset(0);
                       }
                       return resto;
                     });
@@ -158,7 +145,16 @@ export function HistoricoBusquedas() {
               </li>
             ))}
           </ul>
-          <div className="mt-6">{barraPaginas}</div>
+          <div className="mt-6">
+            <BarraPaginacion
+              viendo={items.length}
+              total={total}
+              unidad={UNIDAD_BUSQUEDAS}
+              hayMas={items.length < total}
+              cargando={cambiandoPagina}
+              onMas={cargarMas}
+            />
+          </div>
         </div>
       )}
     </div>

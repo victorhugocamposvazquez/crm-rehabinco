@@ -346,6 +346,35 @@ export function formatoNumeroEs(valor: number): string {
   return valor.toLocaleString("es-ES");
 }
 
+export type UnidadListado = { singular: string; plural: string };
+
+export const UNIDAD_FINCAS: UnidadListado = { singular: "finca", plural: "fincas" };
+export const UNIDAD_BUSQUEDAS: UnidadListado = { singular: "búsqueda", plural: "búsquedas" };
+
+/** Cuántas hay a la vista frente al total del listado. Sin páginas. */
+export function textoListadoParcial(
+  viendo: number,
+  total: number,
+  unidad: UnidadListado = UNIDAD_FINCAS
+): string {
+  const cargadas = Math.max(0, Math.floor(viendo) || 0);
+  const todas = Math.max(0, Math.floor(total) || 0);
+  const nombre = todas === 1 ? unidad.singular : unidad.plural;
+  if (todas <= 0) return `Sin ${unidad.plural}`;
+  if (cargadas >= todas) return `${formatoNumeroEs(todas)} ${nombre}`;
+  return `Viendo ${formatoNumeroEs(cargadas)} de ${formatoNumeroEs(todas)} ${nombre}`;
+}
+
+export function acumularFincasLista(
+  actuales: FincaBusquedaUi[],
+  nuevas: FincaBusquedaUi[]
+): FincaBusquedaUi[] {
+  if (actuales.length === 0) return nuevas;
+  const vistos = new Set(actuales.map((finca) => finca.fincaReference));
+  const extra = nuevas.filter((finca) => !vistos.has(finca.fincaReference));
+  return extra.length === 0 ? actuales : [...actuales, ...extra];
+}
+
 /** Página actual, total de páginas y texto visible. No recarga: solo describe offset/limit. */
 export function resumenPaginacion(input: {
   offset: number;
@@ -368,6 +397,7 @@ export function resumenPaginacion(input: {
   const pagina = total === 0 ? 1 : Math.min(paginas, Math.floor(offset / limit) + 1);
   const desde = total === 0 ? 0 : offset + 1;
   const hasta = total === 0 ? 0 : Math.min(total, offset + limit);
+  const viendo = total === 0 ? 0 : Math.min(total, offset + limit);
   const rango =
     total === 0
       ? "Sin resultados"
@@ -380,7 +410,7 @@ export function resumenPaginacion(input: {
     hayAnterior: offset > 0,
     haySiguiente: hasta < total,
     rango,
-    etiqueta: total === 0 ? "Sin resultados" : `Página ${formatoNumeroEs(pagina)} de ${formatoNumeroEs(paginas)} · ${rango}`,
+    etiqueta: textoListadoParcial(viendo, total),
   };
 }
 

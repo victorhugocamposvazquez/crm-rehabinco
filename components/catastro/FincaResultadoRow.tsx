@@ -204,8 +204,8 @@ export function FincaResultadoRow({
 function Dato({ label, value, ancho }: { label: string; value: string; ancho: string }) {
   return (
     <div className={cn(ancho, "min-w-0")}>
-      <p className="text-[11px] uppercase tracking-wider text-[#6B7A76]">{label}</p>
-      <p className="mt-0.5 truncate text-[13.5px] tabular-nums" title={value}>
+      <p className="text-[11px] uppercase tracking-wider text-[#6B7A76] min-[780px]:hidden">{label}</p>
+      <p className="mt-0.5 truncate text-[13.5px] tabular-nums min-[780px]:mt-0" title={value}>
         {value}
       </p>
     </div>

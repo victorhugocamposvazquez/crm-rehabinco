@@ -45,9 +45,12 @@ import {
   recordarRutaResultados,
   rutaBusquedaHistorica,
   rutaFincaPersistida,
+  formatoNumeroEs,
   recuentoEstadosDesdeTotales,
   textosCoberturaHistorica,
   resumenPaginacion,
+  textoListadoParcial,
+  acumularFincasLista,
   offsetDesdePagina,
   TEXTO_REANUDAR_BUSQUEDA,
   urlReanudarBusqueda,
@@ -316,13 +319,23 @@ describe("Catastro Explorer — experiencia persistente", () => {
       hayAnterior: true,
       haySiguiente: false,
       rango: "51–80 de 80",
-      etiqueta: "Página 2 de 2 · 51–80 de 80",
+      etiqueta: "80 fincas",
     });
     const grande = resumenPaginacion({ offset: 0, limit: 50, total: 1325 });
     assert.equal(grande.pagina, 1);
     assert.equal(grande.paginas, 27);
     assert.equal(grande.hasta, 50);
-    assert.match(grande.etiqueta, /^Página 1 de 27 · 1–50 de /);
+    assert.equal(grande.etiqueta, textoListadoParcial(50, 1325));
+    assert.equal(textoListadoParcial(50, 1392), `Viendo 50 de ${formatoNumeroEs(1392)} fincas`);
+    assert.equal(textoListadoParcial(1392, 1392), `${formatoNumeroEs(1392)} fincas`);
+    assert.equal(textoListadoParcial(0, 0), "Sin fincas");
+    assert.deepEqual(
+      acumularFincasLista([GODELLETA_3], [{ ...GODELLETA_3, fincaReference: "otra" }]).map(
+        (finca) => finca.fincaReference
+      ),
+      [GODELLETA_3.fincaReference, "otra"]
+    );
+    assert.equal(acumularFincasLista([GODELLETA_3], [GODELLETA_3]).length, 1);
     assert.equal(offsetDesdePagina(3, 50), 100);
     await fetchBusquedaPersistida("s1", { limit: 50, offset: 0, status: "NO" });
     assert.match(urls[1], /status=NO/);
