@@ -4,19 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
-  Home,
-  Users,
-  FileText,
-  ClipboardList,
-  ClipboardPenLine,
   Building2,
-  Search,
   LogOut,
   KeyRound,
   Settings,
-  CalendarDays,
-  BarChart3,
-  ListTodo,
+  Menu,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -26,26 +18,14 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth/auth-context";
 import { editorHomePath, isEditor, navHrefsForRole, roleLabel } from "@/lib/auth/roles";
 import { Sheet } from "@/components/ui/sheet";
-
-const navItems = [
-  { href: "/", label: "Hoy", icon: Home },
-  { href: "/catastro", label: "Catastro", icon: Search },
-  { href: "/propiedades", label: "Inmuebles", icon: Building2 },
-  { href: "/demandas", label: "Demandas", icon: Users },
-  { href: "/calendario", label: "Calendario", icon: CalendarDays },
-  { href: "/tareas", label: "Tareas", icon: ListTodo },
-  { href: "/informes", label: "Informes", icon: BarChart3 },
-  { href: "/partes-visita", label: "Visitas", icon: ClipboardPenLine },
-  { href: "/clientes", label: "Clientes", icon: Users },
-  { href: "/presupuestos", label: "Presupuestos", icon: ClipboardList },
-  { href: "/facturas", label: "Facturas", icon: FileText },
-  { href: "/settings", label: "Ajustes", icon: Settings },
-];
+import { MenuLateral } from "./MenuLateral";
+import { itemsDesdeHrefs, navItemActivo } from "./nav-items";
 
 export function TopBar() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
@@ -76,9 +56,7 @@ export function TopBar() {
     setConfirmPassword("");
   };
 
-  const visibleNavItems = navHrefsForRole(user?.role, "desktop")
-    .map((href) => navItems.find((item) => item.href === href))
-    .filter((item): item is (typeof navItems)[number] => Boolean(item));
+  const visibleNavItems = itemsDesdeHrefs(navHrefsForRole(user?.role, "top"));
 
   const initials = useMemo(() => {
     const source = user?.email?.split("@")[0] ?? "U";
@@ -94,29 +72,39 @@ export function TopBar() {
         role="banner"
       >
         <div className="mx-auto flex h-14 w-full max-w-[1600px] items-center justify-between gap-3 px-4 sm:h-16 sm:px-6 lg:px-8">
-          <Link
-            href={isEditor(user?.role) ? editorHomePath() : "/"}
-            className="flex shrink-0 items-center gap-2"
-            aria-label="REHABINCO - Inicio"
-          >
-            <img
-              src="/images/logo-web.png"
-              alt=""
-              className="h-8 w-auto object-contain sm:h-9"
-            />
-          </Link>
+          <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setSheetOpen(false);
+                setMenuOpen(true);
+              }}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-neutral-600 transition-colors hover:bg-neutral-50 hover:text-accent"
+              aria-label="Abrir menú"
+              aria-expanded={menuOpen}
+            >
+              <Menu className="h-5 w-5" strokeWidth={1.75} aria-hidden />
+            </button>
+            <Link
+              href={isEditor(user?.role) ? editorHomePath() : "/"}
+              className="flex shrink-0 items-center gap-2"
+              aria-label="REHABINCO - Inicio"
+            >
+              <img
+                src="/images/logo-web.png"
+                alt=""
+                className="h-8 w-auto object-contain sm:h-9"
+              />
+            </Link>
+          </div>
 
           <nav
-            className="hidden max-w-[min(100%,56rem)] items-center gap-0.5 overflow-x-auto rounded-xl border border-border bg-neutral-50/70 p-1 md:flex"
+            className="hidden items-center gap-0.5 rounded-xl border border-border bg-neutral-50/70 p-1 md:flex"
             role="navigation"
             aria-label="Navegación principal"
           >
             {visibleNavItems.map(({ href, label, icon: Icon }) => {
-              const isActive =
-                pathname === href ||
-                (href === "/catastro" && pathname.startsWith("/buscar")) ||
-                (href !== "/" && href !== "/settings" && pathname.startsWith(href)) ||
-                (href === "/settings" && pathname.startsWith("/settings"));
+              const isActive = navItemActivo(pathname, href);
               return (
                 <Link
                   key={href}
@@ -146,7 +134,10 @@ export function TopBar() {
             </Link>
             <button
               type="button"
-              onClick={() => setSheetOpen(true)}
+              onClick={() => {
+                setMenuOpen(false);
+                setSheetOpen(true);
+              }}
               className="flex shrink-0 items-center gap-2 rounded-full border border-border bg-white px-2 py-1.5 shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:bg-neutral-50 active:scale-[0.98]"
               aria-label="Abrir menú de sesión"
             >
@@ -161,6 +152,12 @@ export function TopBar() {
           )}
         </div>
       </header>
+
+      <MenuLateral
+        abierta={menuOpen}
+        onCerrar={() => setMenuOpen(false)}
+        role={user?.role}
+      />
 
       <Sheet
         open={sheetOpen}

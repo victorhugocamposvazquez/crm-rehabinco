@@ -96,7 +96,7 @@ export function isComercialBlockedPath(pathname: string): boolean {
   );
 }
 
-/** Menú de escritorio: el comercial vive en el día, no en facturación. */
+/** Menú completo por rol. El hamburguesa muestra esta lista entera. */
 export const NAV_DESKTOP_BY_ROLE: Record<Role, readonly string[]> = {
   admin: [
     "/",
@@ -126,6 +126,13 @@ export const NAV_DESKTOP_BY_ROLE: Record<Role, readonly string[]> = {
   editor: ["/presupuestos", "/settings"],
 };
 
+/** Atajos de la barra: lo del día a día. El resto vive en el menú lateral. */
+export const NAV_TOP_BY_ROLE: Record<Role, readonly string[]> = {
+  admin: ["/", "/catastro", "/propiedades", "/demandas", "/calendario"],
+  comercial: ["/", "/tareas", "/calendario", "/propiedades", "/demandas"],
+  editor: ["/presupuestos"],
+};
+
 export const NAV_MOBILE_BY_ROLE: Record<Role, readonly string[]> = {
   admin: ["/", "/catastro", "/propiedades", "/partes-visita", "/facturas"],
   comercial: ["/", "/tareas", "/calendario", "/propiedades", "/partes-visita"],
@@ -134,8 +141,13 @@ export const NAV_MOBILE_BY_ROLE: Record<Role, readonly string[]> = {
 
 export function navHrefsForRole(
   role: Role | null | undefined,
-  variant: "desktop" | "mobile"
+  variant: "desktop" | "mobile" | "top"
 ): readonly string[] {
   const resolved: Role = role ?? "comercial";
-  return variant === "mobile" ? NAV_MOBILE_BY_ROLE[resolved] : NAV_DESKTOP_BY_ROLE[resolved];
+  if (variant === "mobile") return NAV_MOBILE_BY_ROLE[resolved];
+  if (variant === "top") {
+    const permitidos = new Set(NAV_DESKTOP_BY_ROLE[resolved]);
+    return NAV_TOP_BY_ROLE[resolved].filter((href) => permitidos.has(href));
+  }
+  return NAV_DESKTOP_BY_ROLE[resolved];
 }

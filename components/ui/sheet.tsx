@@ -15,6 +15,8 @@ interface SheetProps {
   showCloseButton?: boolean;
   /** Estudio a pantalla completa, sheet inferior o panel lateral. */
   variant?: "sheet" | "studio" | "side";
+  /** Solo aplica a `variant="side"`. */
+  side?: "left" | "right";
 }
 
 export function Sheet({
@@ -25,6 +27,7 @@ export function Sheet({
   fullScreenOnMobile = false,
   showCloseButton = false,
   variant = "sheet",
+  side = "right",
 }: SheetProps) {
   const overflowRef = React.useRef<string>("");
   const toqueInicio = React.useRef<number | null>(null);
@@ -80,7 +83,10 @@ export function Sheet({
           role="dialog"
           aria-modal="true"
           className={cn(
-            "absolute inset-y-0 right-0 z-10 flex w-full flex-col bg-white pb-[env(safe-area-inset-bottom)] shadow-[-16px_0_40px_rgba(19,28,26,.16)] animate-[slideInFromRight_0.28s_ease-out] min-[780px]:w-[min(28rem,92vw)]",
+            "absolute inset-y-0 z-10 flex w-full flex-col bg-white pb-[env(safe-area-inset-bottom)] min-[780px]:w-[min(28rem,92vw)]",
+            side === "left"
+              ? "left-0 shadow-[16px_0_40px_rgba(19,28,26,.16)] animate-[slideInFromLeft_0.28s_ease-out]"
+              : "right-0 shadow-[-16px_0_40px_rgba(19,28,26,.16)] animate-[slideInFromRight_0.28s_ease-out]",
             className
           )}
           onTouchStart={(evento) => {
@@ -90,7 +96,9 @@ export function Sheet({
             const inicio = toqueInicio.current;
             const fin = evento.changedTouches[0]?.clientX ?? 0;
             toqueInicio.current = null;
-            if (inicio != null && fin - inicio > 56) onOpenChange(false);
+            if (inicio == null) return;
+            const delta = fin - inicio;
+            if (side === "left" ? delta < -56 : delta > 56) onOpenChange(false);
           }}
         >
           {showCloseButton ? cerrar : null}

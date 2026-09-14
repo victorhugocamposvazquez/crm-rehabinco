@@ -71,6 +71,15 @@ textarea {
   }
 }
 
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
 @keyframes zonaBarra {
   0% {
     transform: translateX(-120%);
