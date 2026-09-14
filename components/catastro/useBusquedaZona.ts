@@ -20,6 +20,7 @@ import {
   iniciarTramo,
   plegarBloque,
   puedeSeguirTrasFalloZona,
+  snapshotReintentandoErrores,
   ZONE_STEP_CLIENT_BUDGET_MS,
   ZONE_STEP_FIRST_BUDGET_MS,
   type CriteriosZonaUi,
@@ -91,7 +92,7 @@ export function useBusquedaZona() {
     return () => abortRef.current?.abort();
   }, []);
 
-  const bucle = async (zoneSearchId: string, op: number) => {
+  const bucle = async (zoneSearchId: string, op: number, retryErrorsEnPrimerPaso = false) => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -102,8 +103,9 @@ export function useBusquedaZona() {
       await ejecutarBucleZona({
         paso: (signal) => {
           const budgetMs = primerPaso ? ZONE_STEP_FIRST_BUDGET_MS : ZONE_STEP_CLIENT_BUDGET_MS;
+          const retryErrors = primerPaso && retryErrorsEnPrimerPaso;
           primerPaso = false;
-          return fetchZonaPaso(zoneSearchId, signal, budgetMs);
+          return fetchZonaPaso(zoneSearchId, signal, budgetMs, retryErrors);
         },
         onSnapshot: (snapshot) => {
           if (opRef.current !== op || controller.signal.aborted) return;
@@ -273,6 +275,12 @@ export function useBusquedaZona() {
     recordarZona(zoneSearchId);
     abortRef.current?.abort();
     setCancelando(false);
+    const actual = estadoRef.current.snapshot;
+    if (reintentarErrores && actual && (actual.progress.streetsWithErrors ?? 0) > 0) {
+      setEstado((prev) =>
+        aplicarSnapshotZona(prev, snapshotReintentandoErrores(actual), { ejecutando: true })
+      );
+    }
     try {
       const snapshot = await fetchZonaReanudar(zoneSearchId, reintentarErrores);
       if (opRef.current !== op) return;
@@ -285,7 +293,7 @@ export function useBusquedaZona() {
       return;
     }
     if (opRef.current !== op) return;
-    await bucle(zoneIdRef.current ?? zoneSearchId, op);
+    await bucle(zoneIdRef.current ?? zoneSearchId, op, reintentarErrores);
   };
 
   const nueva = () => {

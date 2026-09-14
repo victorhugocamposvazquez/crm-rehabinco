@@ -244,6 +244,7 @@ export async function responderZonaPaso(
       {
         budgetMs: entero(params.budgetMs),
         concurrency: entero(params.concurrency),
+        retryErrors: params.retryErrors === "true",
       },
       deps
     );

@@ -285,7 +285,9 @@ export function resultadosVisiblesZona(estado: EstadoZonaUi): FincaBusquedaUi[] 
 }
 
 export function erroresVisiblesZona(estado: EstadoZonaUi): Array<{ street: string; error: string }> {
-  return [...(estado.acumulado?.errors ?? []), ...(estado.snapshot?.errors ?? [])];
+  const delBloque =
+    (estado.snapshot?.progress.streetsWithErrors ?? 0) > 0 ? (estado.snapshot?.errors ?? []) : [];
+  return [...(estado.acumulado?.errors ?? []), ...delBloque];
 }
 
 export function resumenBloque(coverage: ZoneSnapshotUi["coverage"], streetsFound: number): {
@@ -341,12 +343,56 @@ export function faseDesdeSnapshot(snapshot: ZoneSnapshotUi, ejecutando: boolean)
   return snapshot.progress.steps === 0 ? "preparada" : "cancelada";
 }
 
+export function esSnapshotZonaObsoleto(previa: ZoneSnapshotUi, incoming: ZoneSnapshotUi): boolean {
+  if (previa.zoneSearchId !== incoming.zoneSearchId) return false;
+  const pendientesPrevias = previa.progress.streetsPending ?? 0;
+  const pendientesNuevas = incoming.progress.streetsPending ?? 0;
+  const erroresPrevios = previa.progress.streetsWithErrors ?? 0;
+  const erroresNuevos = incoming.progress.streetsWithErrors ?? 0;
+  return (
+    incoming.status === "done" &&
+    (previa.status === "prepared" || previa.status === "paused" || previa.status === "running") &&
+    pendientesNuevas < pendientesPrevias &&
+    erroresNuevos > erroresPrevios
+  );
+}
+
+export function snapshotReintentandoErrores(snapshot: ZoneSnapshotUi): ZoneSnapshotUi {
+  const errores = snapshot.progress.streetsWithErrors ?? 0;
+  if (errores <= 0) return snapshot;
+  return {
+    ...snapshot,
+    status: "prepared",
+    errors: [],
+    nextAction: "step",
+    progress: {
+      ...snapshot.progress,
+      streetsWithErrors: 0,
+      streetsPending: errores,
+      streetsProcessed: Math.max(0, snapshot.progress.streetsProcessed - errores),
+    },
+    coverage: {
+      ...snapshot.coverage,
+      streetsWithErrors: 0,
+      complete: false,
+      completeCandidates: false,
+    },
+  };
+}
+
 export function aplicarSnapshotZona(
   estado: EstadoZonaUi,
   snapshot: ZoneSnapshotUi,
   opciones: { ejecutando?: boolean } = {}
 ): EstadoZonaUi {
   const previa = estado.snapshot;
+  if (previa && esSnapshotZonaObsoleto(previa, snapshot)) {
+    return {
+      ...estado,
+      fase: opciones.ejecutando || estado.fase === "ejecutando" ? "ejecutando" : estado.fase,
+      error: null,
+    };
+  }
   let siguiente = snapshot;
   const reintentoErrores = Boolean(
     previa &&
@@ -450,7 +496,7 @@ export function textoPreparacion(
     const cual =
       indice === 1
         ? `Este primer bloque tiene ${streetsFound} calles`
-        : `Este bloque ${indice} de ${bloques} tiene ${streetsFound} calles (${desde.toLocaleString("es-ES")}–${hasta.toLocaleString("es-ES")})`;
+        : `Continuamos con el bloque ${indice} de ${bloques}: ${streetsFound} calles (${desde.toLocaleString("es-ES")}–${hasta.toLocaleString("es-ES")}). Lo ya encontrado se conserva`;
     return `Hay ${total.toLocaleString("es-ES")} calles oficiales. ${alcance} ${cual} (${bloques} bloques en total).`;
   }
   const alcance = postalCode?.trim()
@@ -463,10 +509,20 @@ export function textoPreparacion(
   )} en este municipio. ${alcance}`;
 }
 
-export function textoCallesARevisar(streetsFound: number): string {
+export function textoCallesARevisar(streetsFound: number, continuar = false): string {
+  if (continuar) {
+    return streetsFound === 1
+      ? "Queda 1 calle de este bloque. Las fincas ya encontradas se conservan."
+      : `Quedan ${streetsFound} calles de este bloque. Las fincas ya encontradas se conservan.`;
+  }
   return streetsFound === 1
     ? "Se revisará 1 calle. Puedes parar cuando quieras."
     : `Se revisarán ${streetsFound} calles. Puedes parar cuando quieras.`;
+}
+
+export function esContinuacionZona(estado: Pick<EstadoZonaUi, "acumulado" | "snapshot">): boolean {
+  const offset = estado.snapshot?.coverage.streetOffset ?? estado.snapshot?.criteria.streetOffset ?? 0;
+  return offset > 0 || (estado.acumulado?.streetsProcessed ?? 0) > 0;
 }
 
 export function zonaDemasiadoGrande(streetsFound: number): boolean {
@@ -557,9 +613,10 @@ export const ZONE_STEP_FIRST_BUDGET_MS = 5_000;
 /** Barra vacía mientras Catastro aún no ha cerrado ninguna calle. */
 export function progresoIndeterminado(
   snapshot: ZoneSnapshotUi,
-  estado: Pick<EstadoZonaUi, "fase">
+  estado: Pick<EstadoZonaUi, "fase" | "acumulado">
 ): boolean {
-  return estado.fase === "ejecutando" && snapshot.progress.streetsProcessed === 0;
+  if (estado.fase !== "ejecutando" || snapshot.progress.streetsProcessed > 0) return false;
+  return (estado.acumulado?.streetsProcessed ?? 0) === 0;
 }
 
 /**
@@ -567,7 +624,7 @@ export function progresoIndeterminado(
  */
 export function textoActividadZona(
   snapshot: ZoneSnapshotUi,
-  estado: Pick<EstadoZonaUi, "fase" | "inicioMs" | "procesadasAlInicio">,
+  estado: Pick<EstadoZonaUi, "fase" | "inicioMs" | "procesadasAlInicio" | "acumulado">,
   ahoraMs: number
 ): string | null {
   if (estado.fase !== "ejecutando") return null;
@@ -576,7 +633,11 @@ export function textoActividadZona(
   const portales = snapshot.progress.portalsProcessed;
   const segundos =
     estado.inicioMs == null ? 0 : Math.max(0, Math.floor((ahoraMs - estado.inicioMs) / 1000));
+  const continuar = esContinuacionZona({ snapshot, acumulado: estado.acumulado });
   if (snapshot.progress.streetsProcessed === 0 && portales === 0) {
+    if (continuar) {
+      return "Continuando con el siguiente bloque. Lo ya encontrado se conserva.";
+    }
     return segundos <= 1
       ? "Empezando: pidiendo a Catastro las primeras calles."
       : `Consultando Catastro desde hace ${segundos} s. La primera calle suele tardar.`;
@@ -869,9 +930,14 @@ export function fetchZonaPreparar(criterios: CriteriosZonaUi, signal?: AbortSign
 export function fetchZonaPaso(
   zoneSearchId: string,
   signal?: AbortSignal,
-  budgetMs = ZONE_STEP_CLIENT_BUDGET_MS
+  budgetMs = ZONE_STEP_CLIENT_BUDGET_MS,
+  retryErrors = false
 ): Promise<ZoneSnapshotUi> {
-  return peticionZona("/step", { zoneSearchId, budgetMs }, signal);
+  return peticionZona(
+    "/step",
+    { zoneSearchId, budgetMs, ...(retryErrors ? { retryErrors: true } : {}) },
+    signal
+  );
 }
 
 export function fetchZonaCancelar(zoneSearchId: string): Promise<ZoneSnapshotUi> {

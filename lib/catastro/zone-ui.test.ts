@@ -42,6 +42,7 @@ import {
   modoDesdeTexto,
   progresoIndeterminado,
   ritmoMedido,
+  snapshotReintentandoErrores,
   textoActividadZona,
   textoCallesARevisar,
   textoEstadoFinal,
@@ -190,8 +191,9 @@ describe("Zona UI: preparación y confirmación", () => {
     );
     assert.match(
       textoPreparacion(16, "28100", 266, 250),
-      /bloque 2 de 2 tiene 16 calles \(251–266\)/
+      /Continuamos con el bloque 2 de 2[\s\S]*251–266[\s\S]*se conserva/
     );
+    assert.match(textoCallesARevisar(16, true), /Quedan 16 calles de este bloque[\s\S]*se conservan/);
   });
 
   it("4. la búsqueda solo arranca con confirmación explícita (Comenzar)", () => {
@@ -246,6 +248,18 @@ describe("Zona UI: progreso y resultados", () => {
     assert.equal(reintento.snapshot?.progress.streetsWithErrors, 0);
     assert.equal(reintento.snapshot?.progress.streetsProcessed, 124);
     assert.equal(reintento.fase, "ejecutando");
+    const hechoViejo = aplicarSnapshotZona(
+      reintento,
+      snapshot({
+        status: "done",
+        progress: { streetsFound: 127, streetsProcessed: 127, streetsPending: 0, streetsWithErrors: 3, steps: 40 },
+      }),
+      { ejecutando: true }
+    );
+    assert.equal(hechoViejo.snapshot?.progress.streetsPending, 3, "un GET done no cancela el reintento");
+    assert.equal(hechoViejo.fase, "ejecutando");
+    assert.equal(snapshotReintentandoErrores(terminada.snapshot!).progress.streetsPending, 3);
+    assert.equal(snapshotReintentandoErrores(terminada.snapshot!).errors.length, 0);
   });
 
   it("5. muestra el progreso con calles, fincas, candidatas y errores", () => {
@@ -287,6 +301,32 @@ describe("Zona UI: progreso y resultados", () => {
     );
     assert.equal(progresoIndeterminado(enCurso, arrancando), false);
     assert.equal(textoActividadZona(enCurso, arrancando, 60_000), null);
+    const segundoBloque = iniciarTramo(
+      {
+        ...aplicarSnapshotZona(
+          ESTADO_ZONA_INICIAL,
+          snapshot({
+            progress: { streetsFound: 16, streetsProcessed: 0, streetsPending: 16 },
+            coverage: { streetsTotal: 266, streetOffset: 250, streetsFound: 16, hasNextBlock: false },
+          })
+        ),
+        acumulado: {
+          results: [],
+          errors: [],
+          streetsProcessed: 250,
+          streetsWithErrors: 0,
+          fincasFound: 695,
+          candidates: 200,
+          portalsProcessed: 1_000,
+        },
+      },
+      0
+    );
+    assert.equal(progresoIndeterminado(segundoBloque.snapshot!, segundoBloque), false);
+    assert.equal(
+      textoActividadZona(segundoBloque.snapshot!, segundoBloque, 500),
+      "Continuando con el siguiente bloque. Lo ya encontrado se conserva."
+    );
   });
 
   it("6. los resultados llegan de forma progresiva con cada paso", async () => {

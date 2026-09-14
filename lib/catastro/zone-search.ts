@@ -139,6 +139,10 @@ export type OpcionesPasoZona = {
   concurrency?: number;
   signal?: AbortSignal;
   pageSize?: number;
+  /** El primer paso tras «Reintentar» vuelve a poner en pending las calles con error. */
+  retryErrors?: boolean;
+  /** Espera entre reintentos transitorios de una misma calle. 0 en tests. */
+  reintentoCalleMs?: number;
 };
 
 export class ZoneBusyError extends Error {
@@ -471,8 +475,7 @@ export function esErrorTransitorioCalle(error: string | null | undefined): boole
 }
 
 function reintentarCalle(calle: EstadoCalleZona): void {
-  const limpia = estadoCalleInicial(calle.calle);
-  Object.assign(calle, { ...limpia, attempts: calle.attempts });
+  Object.assign(calle, estadoCalleInicial(calle.calle));
 }
 
 /**
@@ -489,6 +492,8 @@ async function procesarCalle(
     deadline: number;
     now: () => number;
     debeParar: () => boolean;
+    reintentoCalleMs: number;
+    reintentarTransitorio: boolean;
   }
 ): Promise<void> {
   estado.status = "running";
@@ -526,8 +531,15 @@ async function procesarCalle(
         estado.status = "pending";
         return;
       }
+      const mensaje = mensajeError(respuesta);
+      if (esErrorTransitorioCalle(mensaje) && contexto.reintentarTransitorio && estado.attempts < 3 && !contexto.debeParar()) {
+        const pausa = contexto.reintentoCalleMs * estado.attempts;
+        if (pausa > 0) await new Promise<void>((resolve) => setTimeout(resolve, pausa));
+        estado.attempts += 1;
+        continue;
+      }
       estado.status = "error";
-      estado.error = mensajeError(respuesta);
+      estado.error = mensaje;
       estado.cursor = null;
       if (cuentaParaProteccion(estado.error)) session.consecutiveFailures += 1;
       return;
@@ -599,6 +611,9 @@ export async function ejecutarPasoZona(
     session.consecutiveFailures = 0;
     session.status = "paused";
   }
+  if (opciones.retryErrors) {
+    reanudarZona(session, { reintentarErrores: true }, deps);
+  }
   if (session.status === "done" || session.status === "cancelled") {
     return snapshotZona(session);
   }
@@ -630,6 +645,9 @@ export async function ejecutarPasoZona(
         deadline,
         now,
         debeParar,
+        reintentoCalleMs:
+          opciones.reintentoCalleMs ?? (process.env.CATASTRO_SKIP_LIVE === "1" ? 0 : 400),
+        reintentarTransitorio: Boolean(opciones.retryErrors),
       });
     }
   }

@@ -762,6 +762,23 @@ describe("Zona: control de ejecución", () => {
     assert.ok(reanudada.progress.steps > snapshot.progress.steps);
   });
 
+  it("un paso con retryErrors reabre el bloque terminado y vuelve a consultar las calles rotas", async () => {
+    const calles: CalleFalsa[] = Array.from({ length: 3 }, (_, i) => ({
+      calle: calle(String(i), `CALLE ${i}`),
+      error: "upstream",
+    }));
+    const mundo = mundoFalso(calles);
+    const deps = depsFalsas(mundo, calles.map((item) => item.calle));
+    const session = await prepararOk(deps);
+    const snapshot = await ejecutarHastaTerminar(session, deps);
+    assert.equal(snapshot.status, "done");
+    assert.equal(snapshot.progress.streetsWithErrors, 3);
+    const antes = mundo.llamadas.length;
+    const reintento = await ejecutarPasoZona(session, { budgetMs: 5_000, retryErrors: true }, deps);
+    assert.ok(mundo.llamadas.length > antes, "vuelve a llamar a Catastro sin recargar");
+    assert.equal(reintento.progress.streetsPending, 0);
+  });
+
   it("los HTTP 4xx de calles concretas no activan la pausa de protección", async () => {
     const calles: CalleFalsa[] = Array.from({ length: 12 }, (_, i) => ({
       calle: calle(String(i), `CALLE ${i}`),

@@ -22,6 +22,7 @@ import {
   resultadosVisiblesZona,
   ritmoMedido,
   textoActividadZona,
+  esContinuacionZona,
   textoCallesARevisar,
   textoEstadoFinal,
   textoPreparacion,
@@ -109,6 +110,7 @@ export function BuscarPorZona({
   if (estado.fase === "preparada") {
     const totalCalles = snapshot.coverage.streetsTotal ?? snapshot.progress.streetsFound;
     const offset = snapshot.coverage.streetOffset ?? snapshot.criteria.streetOffset ?? 0;
+    const continuar = esContinuacionZona(estado);
     const porBloques = zonaDemasiadoGrande(totalCalles) && offset === 0;
     return (
       <div className="space-y-4 rounded-2xl border border-border bg-white p-5 sm:p-6" role="status">
@@ -126,14 +128,16 @@ export function BuscarPorZona({
               {textoZonaDemasiadoGrande(totalCalles, snapshot.criteria.municipio)}
             </p>
           ) : (
-            <p className="mt-1 text-sm text-neutral-600">{textoCallesARevisar(snapshot.progress.streetsFound)}</p>
+            <p className="mt-1 text-sm text-neutral-600">
+              {textoCallesARevisar(snapshot.progress.streetsFound, continuar)}
+            </p>
           )}
           <p className="mt-3 text-sm text-neutral-500">{TEXTO_SEGUNDO_PLANO}</p>
         </div>
         <div className="flex flex-wrap gap-2 [&_button]:min-h-10">
           <Button type="button" onClick={onComenzar} disabled={!acciones.comenzar}>
             <Play className="h-4 w-4" aria-hidden />
-            Empezar ahora
+            {continuar ? "Continuar" : "Empezar ahora"}
           </Button>
           <Button type="button" variant="secondary" onClick={onNuevaBusqueda}>
             Nueva búsqueda
@@ -178,9 +182,11 @@ export function BuscarPorZona({
               {enMarcha
                 ? cancelando
                   ? "Pausando búsqueda…"
-                  : snapshot.criteria.postalCode
-                    ? "Buscando por código postal…"
-                    : "Recorriendo el municipio…"
+                  : esContinuacionZona(estado)
+                    ? "Continuando el siguiente bloque…"
+                    : snapshot.criteria.postalCode
+                      ? "Buscando por código postal…"
+                      : "Recorriendo el municipio…"
                 : snapshot.criteria.postalCode
                   ? "Búsqueda por código postal"
                   : "Búsqueda por municipio"}
