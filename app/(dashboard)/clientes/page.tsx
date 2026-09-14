@@ -11,6 +11,7 @@ import { UserPlus, Search, X } from "lucide-react";
 import { inicialesNombre } from "@/lib/ui/tokens";
 import { telWhatsApp } from "@/lib/ui/estados-vista";
 import { cn } from "@/lib/utils";
+import { FichaLink } from "@/components/crm/FichaPeek";
 
 type ClienteLista = {
   id: string;
@@ -27,7 +28,7 @@ type ClienteLista = {
   codigo_postal: string | null;
   ofrece: Array<{ id: string; a: string; b: string }>;
   busca: Array<{ id: string; a: string; b: string }>;
-  visitas: Array<{ id: string; a: string; b: string }>;
+  visitas: Array<{ id: string; a: string; b: string; propiedad_id: string | null }>;
   docs: Array<{ id: string; a: string; b: string; href: string }>;
 };
 
@@ -87,7 +88,7 @@ export default function ClientesPage() {
         supabase.from("demandas").select("id, cliente_id, tipo_operacion, estado, zonas").in("cliente_id", ids),
         supabase.from("presupuestos").select("id, cliente_id, numero, estado, total").in("cliente_id", ids),
         supabase.from("facturas").select("id, cliente_id, numero, estado, total").in("cliente_id", ids),
-        supabase.from("citas").select("id, cliente_id, titulo, empieza, estado").eq("tipo", "visita").in("cliente_id", ids),
+        supabase.from("citas").select("id, cliente_id, titulo, empieza, estado, propiedad_id").eq("tipo", "visita").in("cliente_id", ids),
       ]);
       const byCliente = (rows: Array<{ cliente_id?: string | null; ofertante_id?: string | null }> | null, key: "cliente_id" | "ofertante_id") => {
         const map = new Map<string, typeof rows>();
@@ -138,6 +139,7 @@ export default function ClientesPage() {
             titulo: string;
             empieza: string;
             estado: string;
+            propiedad_id: string | null;
           }>;
           return {
             ...c,
@@ -155,6 +157,7 @@ export default function ClientesPage() {
               id: v.id,
               a: v.titulo,
               b: v.empieza.slice(0, 10),
+              propiedad_id: v.propiedad_id,
             })),
             docs: [
               ...pres.slice(0, 2).map((p) => ({
@@ -376,10 +379,41 @@ export default function ClientesPage() {
                 </div>
               </div>
               {[
-                { label: "Inmuebles que ofrece", n: selected.ofrece.length, items: selected.ofrece.map((p) => ({ ...p, href: `/propiedades/${p.id}` })) },
-                { label: "Demandas", n: selected.busca.length, items: selected.busca.map((d) => ({ ...d, href: `/demandas/${d.id}` })) },
-                { label: "Visitas", n: selected.visitas.length, items: selected.visitas.map((v) => ({ ...v, href: "/calendario" })) },
-                { label: "Presupuestos y facturas", n: selected.docs.length, items: selected.docs },
+                {
+                  label: "Inmuebles que ofrece",
+                  n: selected.ofrece.length,
+                  items: selected.ofrece.map((p) => ({
+                    id: p.id,
+                    a: p.a,
+                    b: p.b,
+                    peek: { tipo: "propiedad" as const, id: p.id },
+                  })),
+                },
+                {
+                  label: "Demandas",
+                  n: selected.busca.length,
+                  items: selected.busca.map((d) => ({
+                    id: d.id,
+                    a: d.a,
+                    b: d.b,
+                    peek: { tipo: "demanda" as const, id: d.id },
+                  })),
+                },
+                {
+                  label: "Visitas",
+                  n: selected.visitas.length,
+                  items: selected.visitas.map((v) => ({
+                    id: v.id,
+                    a: v.a,
+                    b: v.b,
+                    peek: v.propiedad_id ? { tipo: "propiedad" as const, id: v.propiedad_id } : undefined,
+                  })),
+                },
+                {
+                  label: "Presupuestos y facturas",
+                  n: selected.docs.length,
+                  items: selected.docs.map((d) => ({ id: d.id, a: d.a, b: d.b, href: d.href })),
+                },
               ].map((bloque) => (
                 <div key={bloque.label} className="border-b border-[var(--border-row)] px-4 py-2.5">
                   <div className="flex items-baseline justify-between">
@@ -389,16 +423,34 @@ export default function ClientesPage() {
                   {bloque.items.length === 0 ? (
                     <p className="mt-1.5 text-[12.5px] text-[var(--text-3)]">Ninguno</p>
                   ) : (
-                    bloque.items.map((item) => (
-                      <Link
-                        key={item.id}
-                        href={item.href}
-                        className="mt-1.5 flex justify-between gap-2.5 text-[13px] hover:text-accent"
-                      >
-                        <span className="min-w-0 truncate">{item.a}</span>
-                        <span className="whitespace-nowrap tabular-nums text-[var(--text-2)]">{item.b}</span>
-                      </Link>
-                    ))
+                    bloque.items.map((item) => {
+                      const inner = (
+                        <>
+                          <span className="min-w-0 truncate">{item.a}</span>
+                          <span className="whitespace-nowrap tabular-nums text-[var(--text-2)]">{item.b}</span>
+                        </>
+                      );
+                      const cls = "mt-1.5 flex w-full justify-between gap-2.5 text-[13px] hover:text-accent";
+                      if ("peek" in item && item.peek) {
+                        return (
+                          <FichaLink key={item.id} tipo={item.peek.tipo} id={item.peek.id} className={cls}>
+                            {inner}
+                          </FichaLink>
+                        );
+                      }
+                      if ("href" in item && item.href) {
+                        return (
+                          <Link key={item.id} href={item.href} className={cls}>
+                            {inner}
+                          </Link>
+                        );
+                      }
+                      return (
+                        <div key={item.id} className="mt-1.5 flex justify-between gap-2.5 text-[13px]">
+                          {inner}
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               ))}

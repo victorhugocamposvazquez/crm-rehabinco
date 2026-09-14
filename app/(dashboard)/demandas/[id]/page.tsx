@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { matchingDemandas, ESTADOS_MATCHING, type CriteriosDemanda } from "@/lib/demandas/matching";
-import { rutaPropiedadCrm } from "@/lib/catastro/explorer";
+import { FichaLink } from "@/components/crm/FichaPeek";
 import { relacionUno } from "@/lib/citas/citas";
 
 type Demanda = {
@@ -152,7 +151,15 @@ export default function DemandaDetallePage() {
     <div>
       <PageHeader
         breadcrumb={[{ label: "Demandas", href: "/demandas" }, { label: demanda.clientes?.nombre ?? "Demanda" }]}
-        title={demanda.clientes?.nombre ?? "Demanda"}
+        title={
+          demanda.cliente_id ? (
+            <FichaLink tipo="cliente" id={demanda.cliente_id} className="text-inherit font-semibold text-foreground hover:text-accent">
+              {demanda.clientes?.nombre ?? "Demanda"}
+            </FichaLink>
+          ) : (
+            (demanda.clientes?.nombre ?? "Demanda")
+          )
+        }
         description={`${demanda.tipo_operacion}${demanda.zonas?.length ? ` · ${demanda.zonas.join(", ")}` : ""}`}
         actions={
           <Button type="button" size="sm" onClick={() => void buscar()}>
@@ -166,9 +173,9 @@ export default function DemandaDetallePage() {
           <li key={item.id} className="rounded-2xl border border-[#E6E3DD] bg-white px-4 py-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <Link href={rutaPropiedadCrm(item.propiedad_id)} className="font-semibold hover:underline">
+                <FichaLink tipo="propiedad" id={item.propiedad_id} className="font-semibold text-foreground">
                   {item.propiedades?.titulo || item.propiedades?.direccion || "Inmueble"}
-                </Link>
+                </FichaLink>
                 <p className="text-sm text-[#5D6B67]">
                   {item.propiedades?.localidad} · {Math.round(Number(item.puntuacion))} pts · {item.estado}
                 </p>

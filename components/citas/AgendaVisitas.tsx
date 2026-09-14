@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -9,6 +8,7 @@ import { isAdmin } from "@/lib/auth/roles";
 import { Card } from "@/components/ui/card";
 import { FiltroComercial, type ComercialFiltro } from "@/components/captacion/FiltroComercial";
 import { CitaAcciones } from "@/components/citas/CitaAcciones";
+import { FichaLink } from "@/components/crm/FichaPeek";
 import { ESTADO_CITA_LABEL, horaCita, relacionUno, type EstadoCita } from "@/lib/citas/citas";
 
 type CitaAgenda = {
@@ -215,14 +215,25 @@ function ListaGrupo({
                     {` · ${ESTADO_CITA_LABEL[(cita.estado as EstadoCita) ?? "prevista"] ?? cita.estado}`}
                   </p>
                   <p className="mt-1 text-xs text-[#5D6B67]">
-                    {cita.propiedades ? (
-                      <Link href={`/propiedades/${cita.propiedad_id}`} className="underline-offset-2 hover:underline">
+                    {cita.propiedad_id && cita.propiedades ? (
+                      <FichaLink tipo="propiedad" id={cita.propiedad_id} className="text-inherit">
                         {[cita.propiedades.referencia, cita.propiedades.titulo || cita.propiedades.direccion]
                           .filter(Boolean)
                           .join(" · ")}
-                      </Link>
+                      </FichaLink>
                     ) : null}
-                    {cita.clientes?.nombre ? ` · ${cita.clientes.nombre}` : ""}
+                    {cita.clientes?.nombre && cita.cliente_id ? (
+                      <>
+                        {cita.propiedades ? " · " : ""}
+                        <FichaLink tipo="cliente" id={cita.cliente_id} className="text-inherit">
+                          {cita.clientes.nombre}
+                        </FichaLink>
+                      </>
+                    ) : cita.clientes?.nombre ? (
+                      ` · ${cita.clientes.nombre}`
+                    ) : (
+                      ""
+                    )}
                   </p>
                 </div>
               </div>

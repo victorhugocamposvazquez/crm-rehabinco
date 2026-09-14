@@ -27,6 +27,7 @@ import {
   type ContextoCatastralVisita,
 } from "@/lib/partes-visita";
 import { VisitContextoCatastro } from "@/components/partes-visita/VisitContextoCatastro";
+import { FichaLink } from "@/components/crm/FichaPeek";
 
 interface ParteVisita {
   id: string;
@@ -68,7 +69,6 @@ export default function DetalleParteVisitaPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [activating, setActivating] = useState(false);
-  const [propiedadHref, setPropiedadHref] = useState<string | null>(null);
   const [contextoCatastro, setContextoCatastro] = useState<ContextoCatastralVisita>(null);
 
   useEffect(() => {
@@ -88,7 +88,6 @@ export default function DetalleParteVisitaPage() {
         const parte = data as ParteVisita;
         setParte(parte);
         if (parte.propiedad_id) {
-          setPropiedadHref(`/propiedades/${parte.propiedad_id}`);
           const { data: propiedad } = await supabase
             .from("propiedades")
             .select("origen, referencia_catastral, catastro_property_links(finca_reference)")
@@ -306,12 +305,12 @@ export default function DetalleParteVisitaPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             {contextoCatastro ? <VisitContextoCatastro contexto={contextoCatastro} /> : null}
-            {propiedadHref ? (
+            {parte.propiedad_id ? (
               <p>
                 <span className="text-neutral-500">Propiedad:</span>{" "}
-                <Link href={propiedadHref} className="font-medium hover:underline">
+                <FichaLink tipo="propiedad" id={parte.propiedad_id} className="font-medium">
                   Ver ficha
-                </Link>
+                </FichaLink>
               </p>
             ) : null}
             <p>

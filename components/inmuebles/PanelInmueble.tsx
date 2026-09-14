@@ -13,6 +13,7 @@ import { rutaNuevaVisitaDesdeProperty } from "@/lib/partes-visita";
 import { matchingInmuebleDemandas, type CriteriosDemanda } from "@/lib/demandas/matching";
 import { relacionUno } from "@/lib/citas/citas";
 import { colorEstado } from "@/lib/ui/estados-vista";
+import { FichaLink } from "@/components/crm/FichaPeek";
 import { cn } from "@/lib/utils";
 
 type MatchVista = {
@@ -284,17 +285,26 @@ export function PanelInmueble({
             ["Baños", inmueble.banos != null ? String(inmueble.banos) : "—"],
             ["Planta", inmueble.planta || "—"],
             ["Año", inmueble.anio_construccion != null ? String(inmueble.anio_construccion) : "—"],
-            ["Propietario", inmueble.ofertanteNombre],
             ["Comercial", inmueble.comercialNombre ?? "—"],
             ["Catastro", inmueble.referencia_catastral || inmueble.fincaReference || "—"],
           ].map(([label, value]) => (
             <div key={label} className={label === "Catastro" ? "min-w-0" : undefined}>
               <div className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">{label}</div>
-              <div className={cn("mt-0.5 truncate text-[13.5px]", label === "Catastro" && "font-mono text-[11.5px]", label === "Propietario" && "text-accent")}>
+              <div className={cn("mt-0.5 truncate text-[13.5px]", label === "Catastro" && "font-mono text-[11.5px]")}>
                 {value}
               </div>
             </div>
           ))}
+          <div>
+            <div className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">Propietario</div>
+            {inmueble.ofertante_id ? (
+              <FichaLink tipo="cliente" id={inmueble.ofertante_id} className="mt-0.5 block truncate text-[13.5px]">
+                {inmueble.ofertanteNombre}
+              </FichaLink>
+            ) : (
+              <div className="mt-0.5 truncate text-[13.5px]">{inmueble.ofertanteNombre}</div>
+            )}
+          </div>
         </div>
         {inmueble.descripcion ? (
           <p className="border-b border-[var(--border-soft)] px-4 py-3 text-[13px] leading-relaxed text-[var(--text-2)]">{inmueble.descripcion}</p>
@@ -311,10 +321,10 @@ export function PanelInmueble({
           ) : (
             matches.map((m) => (
               <div key={m.demandaId} className="mb-1.5 flex items-center gap-2.5 rounded-[9px] border border-[var(--border-soft)] bg-[#FDFDFC] px-2.5 py-2">
-                <div className="min-w-0 flex-1">
+                <FichaLink tipo="demanda" id={m.demandaId} className="min-w-0 flex-1 text-foreground hover:text-accent">
                   <div className="text-[13px] font-semibold">{m.cliente}</div>
                   <div className="text-[11.5px] text-[var(--text-2)]">{m.criterios}</div>
-                </div>
+                </FichaLink>
                 <span className="text-[11.5px] font-semibold tabular-nums text-accent">{m.score}%</span>
                 <div className="flex gap-0.5">
                   <button

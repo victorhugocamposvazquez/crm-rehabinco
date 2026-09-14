@@ -21,6 +21,7 @@ import {
   type PresupuestoPdfCliente,
 } from "@/lib/presupuesto-pdf";
 import { hidratarDestacadosEnLineas, chipsDePartida, parsePropuesta } from "@/lib/presupuesto-propuesta";
+import { FichaLink } from "@/components/crm/FichaPeek";
 import { PresupuestoCopiloto } from "@/components/presupuestos/PresupuestoCopiloto";
 import {
   aplicarPropuestaTexto,
@@ -455,7 +456,13 @@ export default function DetallePresupuestoPage() {
             </p>
             <p>
               <span className="text-neutral-500">Cliente:</span>{" "}
-              {clienteNombre ?? "—"}
+              {presupuesto.cliente_id && clienteNombre ? (
+                <FichaLink tipo="cliente" id={presupuesto.cliente_id} className="font-medium">
+                  {clienteNombre}
+                </FichaLink>
+              ) : (
+                (clienteNombre ?? "—")
+              )}
             </p>
             <p>
               <span className="text-neutral-500">Fecha:</span>{" "}

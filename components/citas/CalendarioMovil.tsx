@@ -1,9 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
-import Link from "next/link";
 import { GripVertical } from "lucide-react";
 import { CitaAcciones } from "@/components/citas/CitaAcciones";
+import { FichaLink } from "@/components/crm/FichaPeek";
 import {
   CAL_HORA_FIN,
   CAL_HORA_INICIO,
@@ -226,11 +226,11 @@ export function CalendarioMovil({
                     {ESTADO_CITA_LABEL[(cita.estado as EstadoCita) ?? "prevista"] ?? cita.estado}
                   </p>
                   {cita.propiedad_id ? (
-                    <Link href={`/propiedades/${cita.propiedad_id}`} className="mt-1 inline-block text-[12px] text-accent">
+                    <FichaLink tipo="propiedad" id={cita.propiedad_id} className="mt-1 inline-block text-[12px]">
                       {[cita.propiedades?.referencia, cita.propiedades?.titulo || cita.propiedades?.direccion]
                         .filter(Boolean)
                         .join(" · ") || "Ver inmueble"}
-                    </Link>
+                    </FichaLink>
                   ) : null}
                   {prevista ? (
                     <label className="mt-2 flex items-center gap-2 text-[12.5px] text-[var(--text-2)]">

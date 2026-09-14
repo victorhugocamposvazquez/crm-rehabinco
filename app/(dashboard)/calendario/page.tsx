@@ -36,6 +36,7 @@ import {
 import { FiltroComercial, type ComercialFiltro } from "@/components/captacion/FiltroComercial";
 import { useFiltroComercial } from "@/lib/ui/filtro-comercial";
 import { CitaAcciones } from "@/components/citas/CitaAcciones";
+import { FichaLink } from "@/components/crm/FichaPeek";
 import { CalendarioMovil } from "@/components/citas/CalendarioMovil";
 
 type CitaRow = {
@@ -459,11 +460,11 @@ export default function CalendarioPage() {
                   {ESTADO_CITA_LABEL[(cita.estado as EstadoCita) ?? "prevista"] ?? cita.estado}
                 </p>
                 {cita.propiedad_id ? (
-                  <Link href={`/propiedades/${cita.propiedad_id}`} className="mt-1 inline-block text-xs text-[#0B7461] underline-offset-2 hover:underline">
+                  <FichaLink tipo="propiedad" id={cita.propiedad_id} className="mt-1 inline-block text-xs">
                     {[cita.propiedades?.referencia, cita.propiedades?.titulo || cita.propiedades?.direccion]
                       .filter(Boolean)
                       .join(" · ") || "Ver inmueble"}
-                  </Link>
+                  </FichaLink>
                 ) : null}
               </div>
             </div>

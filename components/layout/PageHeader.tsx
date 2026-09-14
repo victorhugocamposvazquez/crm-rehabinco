@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 interface PageHeaderProps {
   breadcrumb?: BreadcrumbItem[];
-  title: string;
+  title: React.ReactNode;
   description?: string;
   descriptionClassName?: string;
   actions?: React.ReactNode;

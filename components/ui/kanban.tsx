@@ -101,6 +101,7 @@ export function Kanban<C extends string, T extends { id: string }>({
 
 export function KanbanCard({
   href,
+  onClick,
   title,
   meta,
   tag,
@@ -108,6 +109,7 @@ export function KanbanCard({
   className,
 }: {
   href?: string;
+  onClick?: () => void;
   title: string;
   meta?: string;
   tag?: string;
@@ -123,6 +125,21 @@ export function KanbanCard({
     </>
   );
   const cls = cn("block rounded-[11px] border border-border bg-white px-3 py-2.5 hover:border-accent", className);
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        draggable={false}
+        className={cn(cls, "w-full text-left")}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
+      >
+        {inner}
+      </button>
+    );
+  }
   if (href) {
     return (
       <a href={href} draggable={false} className={cls} onClick={(e) => e.stopPropagation()}>

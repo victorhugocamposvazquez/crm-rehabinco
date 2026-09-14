@@ -375,7 +375,6 @@ export default function TareasPage() {
             onToggle={(id) => void marcar(id)}
             onAbrir={setSel}
             onCrearEnColumna={(col, texto) => void crearCon(texto, col)}
-            onRenombrar={(id, tituloNuevo) => void guardarPatch(id, { titulo: tituloNuevo })}
           />
         ) : (
           <ul className="overflow-hidden rounded-[14px] border border-border bg-white">

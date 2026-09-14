@@ -30,6 +30,7 @@ import { ESTADOS_DEMANDA, ESTADO_DEMANDA_DOT, type EstadoDemanda } from "@/lib/d
 import { ESTADOS_INMUEBLE, ESTADO_INMUEBLE_LABEL, formatPrecioInmueble, parseEstadoInmueble } from "@/lib/inmuebles/catalogo";
 import { colorEstado } from "@/lib/ui/estados-vista";
 import { relacionUno } from "@/lib/citas/citas";
+import { useFichaPeek } from "@/components/crm/FichaPeek";
 
 type Tablero = "fincas" | "demandas" | "inmuebles";
 
@@ -67,6 +68,7 @@ export default function SeguimientoPage() {
   const [panelLoading, setPanelLoading] = useState(false);
   const [narrow, setNarrow] = useState(false);
   const hoy = new Date().toISOString().slice(0, 10);
+  const { abrir: abrirFicha } = useFichaPeek();
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 819px)");
@@ -324,7 +326,7 @@ export default function SeguimientoPage() {
             onMove={(id, col) => void moverDemanda(id, col)}
             renderCard={(item) => (
               <KanbanCard
-                href={`/demandas/${item.id}`}
+                onClick={() => abrirFicha({ tipo: "demanda", id: item.id })}
                 title={item.cliente}
                 meta={item.tipo}
                 tag={item.zonas?.slice(0, 2).join(" · ") || undefined}

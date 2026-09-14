@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Pencil, FileDown, Trash2, FileEdit } from "lucide-react";
+import { FichaLink } from "@/components/crm/FichaPeek";
 
 interface FacturaRow {
   id: string;
@@ -549,9 +550,9 @@ export default function DetalleFacturaPage() {
             <p>
               <span className="text-neutral-500">Cliente:</span>{" "}
               {factura.clientes ? (
-                <Link href={`/clientes/${factura.clientes.id}`} className="font-medium hover:underline">
+                <FichaLink tipo="cliente" id={factura.clientes.id} className="font-medium">
                   {factura.clientes.nombre}
-                </Link>
+                </FichaLink>
               ) : (
                 "—"
               )}

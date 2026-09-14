@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/sheet";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { CampoComentario, TextoConMenciones } from "@/components/tareas/CampoComentario";
-import { VinculoPeek, type VinculoPeekDestino } from "@/components/tareas/VinculoPeek";
+import { useFichaPeek } from "@/components/crm/FichaPeek";
 import { relacionUno } from "@/lib/citas/citas";
 import { nombreYApellido } from "@/lib/ui/tokens";
 import {
@@ -77,12 +77,11 @@ export function TareaPanel({
   const [cliOpts, setCliOpts] = useState<Array<{ id: string; label: string }>>([]);
   const [demOpts, setDemOpts] = useState<Array<{ id: string; label: string }>>([]);
   const [parteOpts, setParteOpts] = useState<Array<{ id: string; label: string; propiedadId: string | null }>>([]);
-  const [peek, setPeek] = useState<VinculoPeekDestino | null>(null);
+  const { abrir: abrirFicha } = useFichaPeek();
 
   useEffect(() => {
     setTitulo(tarea?.titulo ?? "");
     setFinca(tarea?.finca_reference ?? "");
-    setPeek(null);
   }, [tarea?.id, tarea?.titulo]);
 
   useEffect(() => {
@@ -215,16 +214,16 @@ export function TareaPanel({
     demanda: tarea.demandas?.tipo_operacion ? `Demanda ${tarea.demandas.tipo_operacion}` : null,
     parte: tarea.partes_visita?.inmueble_direccion,
   });
-  const destinoPrincipal: VinculoPeekDestino | null = tarea.propiedad_id
-    ? { tipo: "propiedad", id: tarea.propiedad_id }
+  const destinoPrincipal = tarea.propiedad_id
+    ? ({ tipo: "propiedad", id: tarea.propiedad_id } as const)
     : tarea.cliente_id
-      ? { tipo: "cliente", id: tarea.cliente_id }
+      ? ({ tipo: "cliente", id: tarea.cliente_id } as const)
       : tarea.finca_reference
-        ? { tipo: "finca", id: tarea.finca_reference }
+        ? ({ tipo: "finca", id: tarea.finca_reference } as const)
         : tarea.demanda_id
-          ? { tipo: "demanda", id: tarea.demanda_id }
+          ? ({ tipo: "demanda", id: tarea.demanda_id } as const)
           : tarea.parte_visita_id
-            ? { tipo: "parte", id: tarea.parte_visita_id }
+            ? ({ tipo: "parte", id: tarea.parte_visita_id } as const)
             : null;
 
   const guardarTitulo = () => {
@@ -259,7 +258,6 @@ export function TareaPanel({
   };
 
   return (
-    <>
     <Sheet open onOpenChange={(open) => !open && onClose()} variant="side" side="right">
       <div className="flex h-full flex-col">
         <div className="flex items-center gap-2.5 border-b border-[var(--border-soft)] px-4 py-3.5">
@@ -384,8 +382,12 @@ export function TareaPanel({
               {destinoPrincipal && vinculo !== "Sin vincular" ? (
                 <button
                   type="button"
-                  onClick={() => setPeek(destinoPrincipal)}
-                  className="mt-1 block w-full truncate text-left text-[13.5px] text-accent"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    abrirFicha(destinoPrincipal);
+                  }}
+                  className="mt-1 flex min-h-11 w-full items-center truncate rounded-[9px] bg-accent-soft px-3 text-left text-[13.5px] font-medium text-accent"
                 >
                   {vinculo}
                 </button>
@@ -423,22 +425,18 @@ export function TareaPanel({
             </div>
           </div>
 
-          <div className="mt-[18px] grid gap-2">
-            <label className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">
-              <span className="flex items-center justify-between gap-2">
-                Inmueble
-                {tarea.propiedad_id ? (
-                  <button type="button" className="normal-case tracking-normal text-accent" onClick={() => setPeek({ tipo: "propiedad", id: tarea.propiedad_id! })}>
-                    Ver
-                  </button>
-                ) : null}
-              </span>
+          <div className="mt-[18px] grid gap-3">
+            <CampoVinculo
+              label="Inmueble"
+              valor={tarea.propiedad_id ? (propsOpts.find((p) => p.id === tarea.propiedad_id)?.label || vinculo) : null}
+              onVer={tarea.propiedad_id ? () => abrirFicha({ tipo: "propiedad", id: tarea.propiedad_id! }) : undefined}
+            >
               <select
                 value={tarea.propiedad_id ?? ""}
                 onChange={(e) =>
                   void onPatch(tarea.id, { propiedad_id: e.target.value || null }, e.target.value ? "Vinculada a un inmueble" : undefined)
                 }
-                className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 text-[13.5px] normal-case tracking-normal text-foreground"
+                className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 text-[13.5px] text-foreground"
               >
                 <option value="">Sin inmueble</option>
                 {propsOpts.map((p) => (
@@ -447,22 +445,18 @@ export function TareaPanel({
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">
-              <span className="flex items-center justify-between gap-2">
-                Cliente
-                {tarea.cliente_id ? (
-                  <button type="button" className="normal-case tracking-normal text-accent" onClick={() => setPeek({ tipo: "cliente", id: tarea.cliente_id! })}>
-                    Ver
-                  </button>
-                ) : null}
-              </span>
+            </CampoVinculo>
+            <CampoVinculo
+              label="Cliente"
+              valor={tarea.cliente_id ? (cliOpts.find((c) => c.id === tarea.cliente_id)?.label || tarea.clientes?.nombre) : null}
+              onVer={tarea.cliente_id ? () => abrirFicha({ tipo: "cliente", id: tarea.cliente_id! }) : undefined}
+            >
               <select
                 value={tarea.cliente_id ?? ""}
                 onChange={(e) =>
                   void onPatch(tarea.id, { cliente_id: e.target.value || null }, e.target.value ? "Vinculada a un cliente" : undefined)
                 }
-                className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 text-[13.5px] normal-case tracking-normal text-foreground"
+                className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 text-[13.5px] text-foreground"
               >
                 <option value="">Sin cliente</option>
                 {cliOpts.map((c) => (
@@ -471,22 +465,18 @@ export function TareaPanel({
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">
-              <span className="flex items-center justify-between gap-2">
-                Demanda
-                {tarea.demanda_id ? (
-                  <button type="button" className="normal-case tracking-normal text-accent" onClick={() => setPeek({ tipo: "demanda", id: tarea.demanda_id! })}>
-                    Ver
-                  </button>
-                ) : null}
-              </span>
+            </CampoVinculo>
+            <CampoVinculo
+              label="Demanda"
+              valor={tarea.demanda_id ? (demOpts.find((d) => d.id === tarea.demanda_id)?.label || tarea.demandas?.tipo_operacion) : null}
+              onVer={tarea.demanda_id ? () => abrirFicha({ tipo: "demanda", id: tarea.demanda_id! }) : undefined}
+            >
               <select
                 value={tarea.demanda_id ?? ""}
                 onChange={(e) =>
                   void onPatch(tarea.id, { demanda_id: e.target.value || null }, e.target.value ? "Vinculada a una demanda" : undefined)
                 }
-                className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 text-[13.5px] normal-case tracking-normal text-foreground"
+                className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 text-[13.5px] text-foreground"
               >
                 <option value="">Sin demanda</option>
                 {demOpts.map((d) => (
@@ -495,16 +485,12 @@ export function TareaPanel({
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">
-              <span className="flex items-center justify-between gap-2">
-                Parte de visita
-                {tarea.parte_visita_id ? (
-                  <button type="button" className="normal-case tracking-normal text-accent" onClick={() => setPeek({ tipo: "parte", id: tarea.parte_visita_id! })}>
-                    Ver
-                  </button>
-                ) : null}
-              </span>
+            </CampoVinculo>
+            <CampoVinculo
+              label="Parte de visita"
+              valor={tarea.parte_visita_id ? (parteOpts.find((p) => p.id === tarea.parte_visita_id)?.label || tarea.partes_visita?.inmueble_direccion) : null}
+              onVer={tarea.parte_visita_id ? () => abrirFicha({ tipo: "parte", id: tarea.parte_visita_id! }) : undefined}
+            >
               <select
                 value={tarea.parte_visita_id ?? ""}
                 onChange={(e) => {
@@ -518,7 +504,7 @@ export function TareaPanel({
                     e.target.value ? "Vinculada a un parte de visita" : undefined
                   );
                 }}
-                className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 text-[13.5px] normal-case tracking-normal text-foreground"
+                className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 text-[13.5px] text-foreground"
               >
                 <option value="">Sin parte</option>
                 {parteOpts.map((p) => (
@@ -527,16 +513,12 @@ export function TareaPanel({
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">
-              <span className="flex items-center justify-between gap-2">
-                Finca (Catastro)
-                {tarea.finca_reference ? (
-                  <button type="button" className="normal-case tracking-normal text-accent" onClick={() => setPeek({ tipo: "finca", id: tarea.finca_reference! })}>
-                    Ver
-                  </button>
-                ) : null}
-              </span>
+            </CampoVinculo>
+            <CampoVinculo
+              label="Finca (Catastro)"
+              valor={tarea.finca_reference}
+              onVer={tarea.finca_reference ? () => abrirFicha({ tipo: "finca", id: tarea.finca_reference! }) : undefined}
+            >
               <input
                 value={finca}
                 onChange={(e) => setFinca(e.target.value)}
@@ -546,9 +528,9 @@ export function TareaPanel({
                   void onPatch(tarea.id, { finca_reference: valor }, valor ? `Vinculada a la finca ${valor}` : undefined);
                 }}
                 placeholder="Referencia catastral"
-                className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 font-mono text-[12.5px] normal-case tracking-normal text-foreground"
+                className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 font-mono text-[12.5px] text-foreground"
               />
-            </label>
+            </CampoVinculo>
           </div>
 
           <div className="mt-[18px]">
@@ -583,7 +565,38 @@ export function TareaPanel({
         </div>
       </div>
     </Sheet>
-    <VinculoPeek destino={peek} onClose={() => setPeek(null)} />
-    </>
+  );
+}
+
+function CampoVinculo({
+  label,
+  valor,
+  onVer,
+  children,
+}: {
+  label: string;
+  valor?: string | null;
+  onVer?: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div>
+      <div className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">{label}</div>
+      {valor && onVer ? (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onVer();
+          }}
+          className="mt-1 flex min-h-11 w-full items-center justify-between gap-2 rounded-[9px] bg-accent-soft px-3 text-left text-[13.5px] font-medium text-accent"
+        >
+          <span className="min-w-0 truncate">{valor}</span>
+          <span className="shrink-0 text-[12px]">Ver ficha</span>
+        </button>
+      ) : null}
+      {children}
+    </div>
   );
 }

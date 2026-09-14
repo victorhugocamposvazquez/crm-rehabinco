@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { FichaLink } from "@/components/crm/FichaPeek";
 import {
   ESTADOS_MATCHING,
   matchingInmuebleDemandas,
@@ -128,9 +128,9 @@ export function InmuebleMatching({ inmueble }: { inmueble: Inmueble }) {
       <ul className="space-y-2">
         {matches.map((item) => (
           <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#E6E3DD] px-3 py-2">
-            <Link href={`/demandas/${item.demanda_id}`} className="text-sm font-medium hover:underline">
+            <FichaLink tipo="demanda" id={item.demanda_id} className="text-sm font-medium">
               {item.demandas?.clientes?.nombre ?? "Demanda"} · {Math.round(Number(item.puntuacion))} pts
-            </Link>
+            </FichaLink>
             <select
               value={item.estado}
               onChange={(e) => void cambiar(item.id, e.target.value)}

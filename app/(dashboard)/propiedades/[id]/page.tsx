@@ -24,6 +24,7 @@ import {
   type InmuebleMedia,
 } from "@/lib/inmuebles/catalogo";
 import { useAuth } from "@/lib/auth/auth-context";
+import { FichaLink, useFichaPeek } from "@/components/crm/FichaPeek";
 import { ClipboardPenLine, Pencil, Printer, Trash2 } from "lucide-react";
 import { CatastroPropertyFicha } from "@/components/catastro/CatastroPropertyFicha";
 import { esOrigenCatastroExplorer, fincaReferenceDesdeVinculo } from "@/lib/catastro/explorer";
@@ -46,6 +47,7 @@ export default function DetallePropiedadPage() {
   const searchParams = useSearchParams();
   const alta = searchParams.get("alta") === "1";
   const { user } = useAuth();
+  const { abrir: abrirFicha } = useFichaPeek();
   const id = params.id as string;
   const [propiedad, setPropiedad] = useState<Inmueble | null>(null);
   const [ofertanteNombre, setOfertanteNombre] = useState<string | null>(null);
@@ -184,8 +186,13 @@ export default function DetallePropiedadPage() {
               </Link>
             </Button>
             {propiedad.ofertante_id ? (
-              <Button variant="secondary" size="sm" asChild>
-                <Link href={`/clientes/${propiedad.ofertante_id}`}>Propietario</Link>
+              <Button
+                variant="secondary"
+                size="sm"
+                type="button"
+                onClick={() => abrirFicha({ tipo: "cliente", id: propiedad.ofertante_id! })}
+              >
+                Propietario
               </Button>
             ) : null}
             <Button
@@ -268,9 +275,9 @@ export default function DetallePropiedadPage() {
             <p>
               <span className="text-neutral-500">Propietario:</span>{" "}
               {propiedad.ofertante_id ? (
-                <Link href={`/clientes/${propiedad.ofertante_id}`} className="font-medium hover:underline">
+                <FichaLink tipo="cliente" id={propiedad.ofertante_id}>
                   {ofertanteNombre ?? "—"}
-                </Link>
+                </FichaLink>
               ) : (
                 <span>{ofertanteNombre ?? "Sin asignar"}</span>
               )}
@@ -374,9 +381,9 @@ export default function DetallePropiedadPage() {
                     <ul className="mt-1 divide-y divide-neutral-100 text-sm">
                       {proximas.map((v) => (
                         <li key={v.id} className="flex items-center justify-between py-2">
-                          <Link href={`/partes-visita/${v.id}`} className="hover:underline">
+                          <FichaLink tipo="parte" id={v.id} className="text-foreground">
                             {v.visitante_nombre || "Visitante"} · {v.fecha_visita || "sin fecha"}
-                          </Link>
+                          </FichaLink>
                           <span className="text-neutral-400">{ESTADO_PARTE_LABELS[v.estado] ?? v.estado}</span>
                         </li>
                       ))}
@@ -391,9 +398,9 @@ export default function DetallePropiedadPage() {
                     <ul className="mt-1 divide-y divide-neutral-100 text-sm">
                       {historial.map((v) => (
                         <li key={v.id} className="flex items-center justify-between py-2">
-                          <Link href={`/partes-visita/${v.id}`} className="hover:underline">
+                          <FichaLink tipo="parte" id={v.id} className="text-foreground">
                             {v.visitante_nombre || "Visitante"} · {v.fecha_visita || "sin fecha"}
-                          </Link>
+                          </FichaLink>
                           <span className="text-neutral-400">{ESTADO_PARTE_LABELS[v.estado] ?? v.estado}</span>
                         </li>
                       ))}

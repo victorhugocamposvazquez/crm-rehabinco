@@ -8,6 +8,7 @@ import { Sidebar } from "./Sidebar";
 import { isWizardRoute } from "./wizard-chrome";
 import { cn } from "@/lib/utils";
 import { FiltroComercialProvider } from "@/lib/ui/filtro-comercial";
+import { FichaPeekProvider } from "@/components/crm/FichaPeek";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
 import { bandejaDeTarea } from "@/lib/tareas/tareas";
@@ -39,6 +40,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <FiltroComercialProvider>
+      <FichaPeekProvider>
       <div className="flex min-h-screen bg-[var(--background)]">
         <a
           href="#main-content"
@@ -63,6 +65,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {!wizard && <MobileNav />}
         </div>
       </div>
+      </FichaPeekProvider>
     </FiltroComercialProvider>
   );
 }

@@ -70,7 +70,7 @@ export function Sheet({
   );
 
   const content = (
-      <div className={cn("fixed inset-0", elevated ? "z-[10050]" : "z-[9999]")}>
+      <div className="fixed inset-0" style={{ zIndex: elevated ? 11000 : 9999 }}>
       <button
         type="button"
         className="absolute inset-0 bg-black/40 transition-opacity duration-300"
@@ -98,6 +98,11 @@ export function Sheet({
             toqueInicio.current = evento.changedTouches[0]?.clientX ?? null;
           }}
           onTouchEnd={(evento) => {
+            const destinoToque = evento.target as HTMLElement | null;
+            if (destinoToque?.closest("button, a, select, input, textarea, [role='dialog']")) {
+              toqueInicio.current = null;
+              return;
+            }
             const inicio = toqueInicio.current;
             const fin = evento.changedTouches[0]?.clientX ?? 0;
             toqueInicio.current = null;

@@ -118,33 +118,26 @@ export function TareasBoard({
   onToggle,
   onAbrir,
   onCrearEnColumna,
-  onRenombrar,
 }: {
   tareas: TareaTarjeta[];
   onMover: (id: string, col: ColumnaTarea) => void;
   onToggle: (id: string) => void;
   onAbrir: (id: string) => void;
   onCrearEnColumna: (col: ColumnaTarea, titulo: string) => void;
-  onRenombrar: (id: string, titulo: string) => void;
 }) {
   const [over, setOver] = useState<ColumnaTarea | null>(null);
   const [nuevaCol, setNuevaCol] = useState<ColumnaTarea | null>(null);
   const [textoCol, setTextoCol] = useState("");
-  const [editId, setEditId] = useState<string | null>(null);
-  const [editTexto, setEditTexto] = useState("");
   const draggingRef = useRef(false);
   const hechoRef = useRef(false);
-  const originalRef = useRef("");
-  const estadoRef = useRef({ nuevaCol, textoCol, editId, editTexto });
-  const accRef = useRef({ onCrearEnColumna, onRenombrar });
-  estadoRef.current = { nuevaCol, textoCol, editId, editTexto };
-  accRef.current = { onCrearEnColumna, onRenombrar };
+  const estadoRef = useRef({ nuevaCol, textoCol });
+  const accRef = useRef({ onCrearEnColumna });
+  estadoRef.current = { nuevaCol, textoCol };
+  accRef.current = { onCrearEnColumna };
 
   const cerrarCampos = () => {
     setNuevaCol(null);
     setTextoCol("");
-    setEditId(null);
-    setEditTexto("");
   };
 
   const confirmarNueva = (col: ColumnaTarea) => {
@@ -155,16 +148,6 @@ export function TareasBoard({
     if (titulo) accRef.current.onCrearEnColumna(col, titulo);
   };
 
-  const confirmarEdicion = () => {
-    if (hechoRef.current) return;
-    const { editId: id, editTexto: texto } = estadoRef.current;
-    if (!id) return;
-    hechoRef.current = true;
-    const limpio = texto.trim();
-    cerrarCampos();
-    if (limpio && limpio !== originalRef.current) accRef.current.onRenombrar(id, limpio);
-  };
-
   const cancelar = () => {
     if (hechoRef.current) return;
     hechoRef.current = true;
@@ -172,16 +155,15 @@ export function TareasBoard({
   };
 
   useEffect(() => {
-    if (!nuevaCol && !editId) return;
+    if (!nuevaCol) return;
     hechoRef.current = false;
     const onPointerDown = (e: PointerEvent) => {
       if ((e.target as HTMLElement | null)?.closest("[data-titulo-tarea]")) return;
       if (estadoRef.current.nuevaCol) confirmarNueva(estadoRef.current.nuevaCol);
-      else confirmarEdicion();
     };
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [nuevaCol, editId]);
+  }, [nuevaCol]);
 
   return (
     <div className="flex items-start gap-3 overflow-x-auto pb-2.5">
@@ -218,7 +200,6 @@ export function TareasBoard({
                 type="button"
                 aria-label={`Nueva tarea en ${col.label}`}
                 onClick={() => {
-                  setEditId(null);
                   setNuevaCol(col.id);
                   setTextoCol("");
                   hechoRef.current = false;
@@ -228,17 +209,7 @@ export function TareasBoard({
                 <Plus size={14} strokeWidth={2.6} />
               </button>
             </div>
-            {items.map((t) =>
-              editId === t.id ? (
-                <div key={t.id} className="mb-2">
-                  <CampoTituloTarea
-                    valor={editTexto}
-                    onChange={setEditTexto}
-                    onConfirmar={confirmarEdicion}
-                    onCancelar={cancelar}
-                  />
-                </div>
-              ) : (
+            {items.map((t) => (
                 <div
                   key={t.id}
                   draggable
@@ -274,23 +245,9 @@ export function TareasBoard({
                         background: t.hecha ? "#0B7461" : "#fff",
                       }}
                     />
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setNuevaCol(null);
-                        setEditId(t.id);
-                        setEditTexto(t.titulo);
-                        originalRef.current = t.titulo;
-                        hechoRef.current = false;
-                      }}
-                      className={cn(
-                        "min-w-0 flex-1 text-left text-[13.5px] font-medium leading-snug",
-                        t.hecha && "line-through"
-                      )}
-                    >
+                    <p className={cn("min-w-0 flex-1 text-left text-[13.5px] font-medium leading-snug", t.hecha && "line-through")}>
                       {t.titulo}
-                    </button>
+                    </p>
                   </div>
                   {t.link ? (
                     <div className="ml-[25px] mt-2 w-fit max-w-full truncate rounded-md bg-accent-soft px-1.5 py-0.5 text-[11.5px] text-accent">
@@ -317,8 +274,7 @@ export function TareasBoard({
                     <AvataresTarea creador={t.creador} asignado={t.asignado} />
                   </div>
                 </div>
-              )
-            )}
+            ))}
             {nuevaCol === col.id ? (
               <div className="mb-2">
                 <CampoTituloTarea
@@ -334,7 +290,6 @@ export function TareasBoard({
               <button
                 type="button"
                 onClick={() => {
-                  setEditId(null);
                   setNuevaCol(col.id);
                   setTextoCol("");
                   hechoRef.current = false;

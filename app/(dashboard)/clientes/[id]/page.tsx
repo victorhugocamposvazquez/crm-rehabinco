@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog } from "@/components/ui/alert-dialog";
+import { FichaLink } from "@/components/crm/FichaPeek";
 import { Pencil, Trash2, FileText, Building2, Plus, Home } from "lucide-react";
 
 interface Cliente {
@@ -236,13 +237,10 @@ export default function DetalleClientePage() {
               <ul className="space-y-2">
                 {empresasAsociadas.map((e) => (
                   <li key={e.id}>
-                    <Link
-                      href={`/clientes/${e.id}`}
-                      className="flex items-center gap-2 text-sm font-medium text-foreground hover:underline"
-                    >
+                    <FichaLink tipo="cliente" id={e.id} className="flex items-center gap-2 text-sm text-foreground">
                       <Building2 className="h-4 w-4 shrink-0 text-neutral-400" strokeWidth={1.5} />
                       {e.nombre}
-                    </Link>
+                    </FichaLink>
                   </li>
                 ))}
               </ul>
@@ -277,13 +275,10 @@ export default function DetalleClientePage() {
               <ul className="space-y-2">
                 {propiedades.map((p) => (
                   <li key={p.id}>
-                    <Link
-                      href={`/propiedades/${p.id}`}
-                      className="flex items-center gap-2 text-sm font-medium text-foreground hover:underline"
-                    >
+                    <FichaLink tipo="propiedad" id={p.id} className="flex items-center gap-2 text-sm text-foreground">
                       <Home className="h-4 w-4 shrink-0 text-neutral-400" strokeWidth={1.5} />
                       {p.titulo || p.direccion || p.localidad || "Sin título"}
-                    </Link>
+                    </FichaLink>
                     <div className="ml-6 flex flex-wrap items-center gap-1.5">
                       <Badge variant="default" className="text-xs">
                         {p.tipo_operacion}
@@ -315,10 +310,10 @@ export default function DetalleClientePage() {
               <ul className="space-y-2">
                 {demandas.map((d) => (
                   <li key={d.id}>
-                    <Link href={`/demandas/${d.id}`} className="text-sm font-medium hover:underline">
+                    <FichaLink tipo="demanda" id={d.id} className="text-sm text-foreground">
                       {d.tipo_operacion}
                       {d.zonas?.length ? ` · ${d.zonas.join(", ")}` : ""} · {d.estado}
-                    </Link>
+                    </FichaLink>
                   </li>
                 ))}
               </ul>
