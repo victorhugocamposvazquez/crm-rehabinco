@@ -1,0 +1,18 @@
+---
+description: Subir a GitHub y Vercel al terminar trabajo del CRM
+alwaysApply: true
+---
+
+# Deploy del CRM Rehabinco
+
+Este repo es `victorhugocamposvazquez/crm-rehabinco`. El proyecto Vercel es **crm-rehabinco**, no `crm-dev` (ese es otro CRM, Vite).
+
+Al terminar un cambio que el usuario vaya a usar en la app:
+
+1. Commit en `main` (si hay cambios).
+2. `git push origin main`.
+3. Comprueba que Vercel ha creado un deployment de ese commit. Si no aparece, el GitHub App de Vercel no tiene acceso a este repo.
+
+No dejes trabajo solo en local. Un push a `main` tiene que verse en Vercel.
+
+El cron de Catastro en `vercel.json` está en `0 8 * * *` porque esta cuenta Vercel es Hobby (no admite `*/5`). Si el proyecto pasa a Pro, se puede volver a cada 5 minutos.
