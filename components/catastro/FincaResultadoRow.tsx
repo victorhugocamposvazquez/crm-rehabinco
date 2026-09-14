@@ -119,7 +119,7 @@ export function FincaResultadoRow({
         <Dato label="Uso" value={metricas.uso} ancho="w-[118px]" />
       </div>
 
-      <div className="hidden w-[132px] flex-none items-center gap-1.5 min-[780px]:flex">
+      <div className="hidden w-[168px] flex-none items-center gap-1.5 min-[780px]:flex">
         <span className={cn("h-1.5 w-1.5 flex-none rounded-full", clasePuntoDivision(status))} />
         <span className={cn("whitespace-nowrap text-[12.5px] font-medium", claseTextoDivision(status))}>
           {etiquetaEstadoDivisionLista(status)}

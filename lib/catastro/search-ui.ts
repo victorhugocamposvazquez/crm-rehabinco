@@ -7,8 +7,8 @@ import { etiquetaMotivoUnknownUi } from "./unknown-reason";
 export const FILTRO_DIVISION_POR_DEFECTO = "NO" as const;
 
 export const FILTROS_DIVISION = [
-  { value: "NO", label: "Candidatas (sin DH)" },
-  { value: "YES", label: "Con pisos (con DH)" },
+  { value: "NO", label: "Candidatas (Sin DH)" },
+  { value: "YES", label: "Con pisos (Con DH)" },
   { value: "UNKNOWN", label: "Sin clasificar" },
   { value: "NOT_APPLICABLE", label: "No aplica" },
   { value: "ALL", label: "Todas las fincas" },
@@ -17,7 +17,7 @@ export const FILTROS_DIVISION = [
 export const FILTROS_DIVISION_FORM = [
   {
     value: "NO",
-    label: "Candidatas (sin DH)",
+    label: "Candidatas (Sin DH)",
     ayuda: "Solo parcelas o edificios que Catastro no tiene partidos en pisos. Es lo habitual para reforma.",
   },
   {
@@ -42,15 +42,15 @@ export const AYUDA_FILTRO_DIVISION =
 export const LEYENDA_ESTADOS_DIVISION = [
   {
     status: "NO",
-    etiqueta: "Candidata",
-    filtro: "Candidata (sin DH)",
+    etiqueta: "Candidata (Sin DH)",
+    filtro: "Candidata (Sin DH)",
     texto:
       "Catastro dice que el edificio está construido y no está partido en pisos. Es la finca típica para reforma integral, por eso sale por defecto.",
   },
   {
     status: "YES",
-    etiqueta: "Con pisos",
-    filtro: "Con pisos (con DH)",
+    etiqueta: "Con pisos (Con DH)",
+    filtro: "Con pisos (Con DH)",
     texto:
       "Catastro dice que ya hay división horizontal (pisos o locales). No es candidata de reforma de finca entera.",
   },
@@ -265,8 +265,8 @@ export function etiquetaEstadoDivision(status: string | undefined): string {
 
 /** Etiqueta corta para listados. El CSV sigue usando `etiquetaEstadoDivision`. */
 export function etiquetaEstadoDivisionLista(status: string | undefined): string {
-  if (status === "NO") return "Candidata";
-  if (status === "YES") return "Con pisos";
+  if (status === "NO") return "Candidata (Sin DH)";
+  if (status === "YES") return "Con pisos (Con DH)";
   if (status === "NOT_APPLICABLE") return "No aplica";
   return "Sin clasificar";
 }

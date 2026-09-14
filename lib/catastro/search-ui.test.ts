@@ -215,8 +215,8 @@ describe("search-ui", () => {
     assert.match(vacioNo.mensaje, /candidatas/);
     assert.equal(vacioNo.accion?.filtro, "ALL");
     assert.equal(textoVacioResultados("ALL").accion, undefined);
-    assert.equal(etiquetaEstadoDivisionLista("NO"), "Candidata");
-    assert.equal(etiquetaEstadoDivisionLista("YES"), "Con pisos");
+    assert.equal(etiquetaEstadoDivisionLista("NO"), "Candidata (Sin DH)");
+    assert.equal(etiquetaEstadoDivisionLista("YES"), "Con pisos (Con DH)");
     assert.equal(etiquetaEstadoDivisionLista("UNKNOWN"), "Sin clasificar");
     assert.match(
       resumenComercialFinca({

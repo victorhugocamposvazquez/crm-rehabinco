@@ -41,8 +41,8 @@ const CHIP_INACTIVA = "border-[#E6E3DD] bg-white text-[#5D6B67]";
 const TAM_PAGINA_LISTA = 80;
 const FILTROS_LISTA = [
   { value: "ALL", label: "Todas" },
-  { value: "NO", label: "Candidata" },
-  { value: "YES", label: "Con pisos" },
+  { value: "NO", label: "Candidata (Sin DH)" },
+  { value: "YES", label: "Con pisos (Con DH)" },
   { value: "NOT_APPLICABLE", label: "No aplica" },
   { value: "UNKNOWN", label: "Sin clasificar" },
 ] as const;
@@ -571,7 +571,7 @@ function CabeceraOrdenLista() {
         </span>
       ))}
       <span className="w-[118px]">Uso</span>
-      <span className="w-[132px]">Estado</span>
+      <span className="w-[168px]">Estado</span>
       <span className="w-[168px]">Comercial</span>
       <span className="w-[92px]" />
     </div>
