@@ -19,6 +19,26 @@ export function callesProcesadasSesionZona(session: Pick<ZoneSession, "calles">)
   return session.calles.filter((calle) => calle.status === "done" || calle.status === "error").length;
 }
 
+function conteoCallesSesion(session: Pick<ZoneSession, "calles">): { errores: number; pendientes: number } {
+  let errores = 0;
+  let pendientes = 0;
+  for (const calle of session.calles) {
+    if (calle.status === "error") errores += 1;
+    if (calle.status === "pending" || calle.status === "running") pendientes += 1;
+  }
+  return { errores, pendientes };
+}
+
+/** Reanudar errores: menos calles en error y más pendientes. No es un isolate atrasado. */
+export function esReintentoErroresSesion(
+  siguiente: Pick<ZoneSession, "calles">,
+  anterior: Pick<ZoneSession, "calles">
+): boolean {
+  const a = conteoCallesSesion(siguiente);
+  const b = conteoCallesSesion(anterior);
+  return a.errores < b.errores && a.pendientes > b.pendientes;
+}
+
 /**
  * Un isolate lento no debe pisar otro con más calles hechas.
  * Sí puede escribir un resume/cancel posterior (menos hechas, `updatedAt` más nuevo, mismos o más pasos).
@@ -28,6 +48,9 @@ export function permiteEscribirSesionZona(
   existing: ZoneSession | null | undefined
 ): boolean {
   if (!existing) return true;
+  if (esReintentoErroresSesion(incoming, existing) && incoming.updatedAt >= existing.updatedAt) {
+    return true;
+  }
   const hechasEntrante = callesProcesadasSesionZona(incoming);
   const hechasActual = callesProcesadasSesionZona(existing);
   if (hechasEntrante > hechasActual) return true;
@@ -49,6 +72,12 @@ export function elegirSesionZona(
 ): ZoneSession | null {
   if (!memoria) return archivada ?? null;
   if (!archivada) return memoria;
+  if (esReintentoErroresSesion(memoria, archivada) && memoria.updatedAt >= archivada.updatedAt) {
+    return memoria;
+  }
+  if (esReintentoErroresSesion(archivada, memoria) && archivada.updatedAt >= memoria.updatedAt) {
+    return archivada;
+  }
   return permiteEscribirSesionZona(archivada, memoria) ? archivada : memoria;
 }
 

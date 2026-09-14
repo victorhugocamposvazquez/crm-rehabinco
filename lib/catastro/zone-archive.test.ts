@@ -200,4 +200,22 @@ describe("Archivo de sesión de zona: no retroceder", () => {
     assert.equal(permiteEscribirSesionZona(siguiente, previa), true);
     assert.equal(elegirSesionZona(previa, siguiente), siguiente);
   });
+
+  it("reintentar calles con error sí sustituye un bloque ya terminado", () => {
+    const hecha = sesionPrueba("zona-hecha");
+    hecha.calles[0].status = "done";
+    hecha.calles[1].status = "error";
+    hecha.calles[1].error = "La sesión de discovery ha expirado.";
+    hecha.status = "done";
+    hecha.steps = 5;
+    hecha.updatedAt = 1_000;
+    const reintento = sesionPrueba("zona-hecha");
+    reintento.calles[0].status = "done";
+    reintento.calles[1].status = "pending";
+    reintento.status = "prepared";
+    reintento.steps = 6;
+    reintento.updatedAt = 2_000;
+    assert.equal(permiteEscribirSesionZona(reintento, hecha), true);
+    assert.equal(elegirSesionZona(reintento, hecha), reintento);
+  });
 });

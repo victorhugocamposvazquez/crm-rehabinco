@@ -758,6 +758,8 @@ describe("Zona: control de ejecución", () => {
     const reanudada = reanudarZona(session, { reintentarErrores: true }, deps);
     assert.equal(reanudada.progress.streetsWithErrors, 0);
     assert.equal(reanudada.progress.streetsPending, 12);
+    assert.equal(reanudada.status, "prepared");
+    assert.ok(reanudada.progress.steps > snapshot.progress.steps);
   });
 
   it("los HTTP 4xx de calles concretas no activan la pausa de protección", async () => {

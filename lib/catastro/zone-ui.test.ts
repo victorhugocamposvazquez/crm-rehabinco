@@ -222,6 +222,28 @@ describe("Zona UI: progreso y resultados", () => {
     assert.equal(atrasado.fase, "ejecutando");
   });
 
+  it("reintentar calles con error no se trata como un GET atrasado", () => {
+    const terminada = aplicarSnapshotZona(
+      ESTADO_ZONA_INICIAL,
+      snapshot({
+        status: "done",
+        progress: { streetsFound: 127, streetsProcessed: 127, streetsPending: 0, streetsWithErrors: 3, steps: 40 },
+      })
+    );
+    const reintento = aplicarSnapshotZona(
+      terminada,
+      snapshot({
+        status: "prepared",
+        progress: { streetsFound: 127, streetsProcessed: 124, streetsPending: 3, streetsWithErrors: 0, steps: 41 },
+      }),
+      { ejecutando: true }
+    );
+    assert.equal(reintento.snapshot?.progress.streetsPending, 3);
+    assert.equal(reintento.snapshot?.progress.streetsWithErrors, 0);
+    assert.equal(reintento.snapshot?.progress.streetsProcessed, 124);
+    assert.equal(reintento.fase, "ejecutando");
+  });
+
   it("5. muestra el progreso con calles, fincas, candidatas y errores", () => {
     const textos = textosProgreso(enCurso);
     assert.equal(textos.calles, "Calles revisadas: 17 / 427");

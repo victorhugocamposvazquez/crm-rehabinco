@@ -348,10 +348,23 @@ export function aplicarSnapshotZona(
 ): EstadoZonaUi {
   const previa = estado.snapshot;
   let siguiente = snapshot;
+  const reintentoErrores = Boolean(
+    previa &&
+      ((snapshot.progress.streetsWithErrors ?? 0) < (previa.progress.streetsWithErrors ?? 0) &&
+        (snapshot.progress.streetsPending ?? 0) > (previa.progress.streetsPending ?? 0))
+  );
+  const reanudadaTrasHecho = Boolean(
+    previa &&
+      previa.status === "done" &&
+      (snapshot.status === "prepared" || snapshot.status === "paused" || snapshot.status === "running") &&
+      (snapshot.progress.streetsPending ?? 0) > 0
+  );
   if (
     previa &&
     previa.zoneSearchId === snapshot.zoneSearchId &&
-    snapshot.progress.streetsProcessed < previa.progress.streetsProcessed
+    snapshot.progress.streetsProcessed < previa.progress.streetsProcessed &&
+    !reintentoErrores &&
+    !reanudadaTrasHecho
   ) {
     siguiente = {
       ...snapshot,

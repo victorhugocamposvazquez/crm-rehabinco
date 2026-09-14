@@ -672,12 +672,15 @@ export function reanudarZona(
   }
   session.cancelRequested = false;
   session.consecutiveFailures = 0;
+  let reintentadas = 0;
   for (const calle of session.calles) {
     if (calle.status !== "error") continue;
     if (opciones.reintentarErrores || esErrorTransitorioCalle(calle.error)) {
       reintentarCalle(calle);
+      reintentadas += 1;
     }
   }
+  if (reintentadas > 0) session.steps += 1;
   const pendientes = session.calles.some((calle) => calle.status === "pending");
   session.status = pendientes ? "prepared" : "done";
   (deps.zoneStore ?? getZoneStore()).touch(session);
