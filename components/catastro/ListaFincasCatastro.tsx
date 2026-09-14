@@ -4,14 +4,26 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import {
+  CAMPOS_ORDEN_LISTA,
   TEXTO_ATAJOS_LISTA,
   filtrarListaFincas,
+  ordenarListaFincas,
   recuentoEstadosDivision,
+  type CampoOrdenLista,
+  type DireccionOrdenLista,
   type FincaBusquedaUi,
 } from "@/lib/catastro/search-ui";
 import { accionTecladoLista } from "@/lib/catastro/vista-movil";
 import { cn } from "@/lib/utils";
-import type { AsignacionFinca } from "@/lib/catastro-host/finca-assignment";
+import {
+  FILTRO_ASIGNACION_MIAS,
+  FILTRO_ASIGNACION_SIN,
+  FILTRO_ASIGNACION_TODAS,
+  filtrarPorAsignacion,
+  recuentoFiltrosAsignacion,
+  type AsignacionFinca,
+  type ComercialAsignable,
+} from "@/lib/catastro-host/finca-assignment";
 import { FincaDetallePanel } from "./FincaDetallePanel";
 import { FincaResultadoRow } from "./FincaResultadoRow";
 import { LeyendaEstadosDivision } from "./LeyendaEstadosDivision";
@@ -48,15 +60,45 @@ export function ListaFincasCatastro({
   const [filtro, setFiltro] = useState("ALL");
   const [sel, setSel] = useState<string | null>(null);
   const [hoja, setHoja] = useState(false);
-  const [soloMias, setSoloMias] = useState(false);
+  const [filtroAsignacion, setFiltroAsignacion] = useState(FILTRO_ASIGNACION_TODAS);
   const [yo, setYo] = useState<string | null>(null);
+  const [comerciales, setComerciales] = useState<ComercialAsignable[]>([]);
   const [asignaciones, setAsignaciones] = useState<Record<string, AsignacionFinca>>({});
+  const [ordenCampo, setOrdenCampo] = useState<CampoOrdenLista | null>(null);
+  const [ordenDir, setOrdenDir] = useState<DireccionOrdenLista>("desc");
   const recuento = recuentoEstadosDivision(fincas);
   const filtradas = useMemo(() => filtrarListaFincas(fincas, { q, status: filtro }), [fincas, q, filtro]);
-  const visibles = useMemo(() => {
-    if (!soloMias || !yo) return filtradas;
-    return filtradas.filter((finca) => asignaciones[finca.fincaReference]?.comercialId === yo);
-  }, [filtradas, soloMias, yo, asignaciones]);
+  const visibles = useMemo(
+    () =>
+      ordenarListaFincas(
+        filtrarPorAsignacion(filtradas, asignaciones, filtroAsignacion, yo),
+        ordenCampo,
+        ordenDir
+      ),
+    [filtradas, asignaciones, filtroAsignacion, yo, ordenCampo, ordenDir]
+  );
+  const recuentoAsignacion = useMemo(
+    () => recuentoFiltrosAsignacion(filtradas, asignaciones, yo, comerciales),
+    [filtradas, asignaciones, yo, comerciales]
+  );
+
+  const aplicarAsignacion = useCallback((ref: string, asignacion: AsignacionFinca | null) => {
+    setAsignaciones((prev) => {
+      const siguiente = { ...prev };
+      if (asignacion) siguiente[ref] = asignacion;
+      else delete siguiente[ref];
+      return siguiente;
+    });
+  }, []);
+
+  const aplicarOrden = (campo: CampoOrdenLista) => {
+    if (ordenCampo === campo) {
+      setOrdenDir((prev) => (prev === "desc" ? "asc" : "desc"));
+      return;
+    }
+    setOrdenCampo(campo);
+    setOrdenDir("desc");
+  };
 
   useEffect(() => {
     if (sel && visibles.some((finca) => finca.fincaReference === sel)) return;
@@ -70,20 +112,21 @@ export function ListaFincasCatastro({
   );
 
   useEffect(() => {
-    if (!refsAsignacion) {
-      setAsignaciones({});
-      return;
-    }
     let vivo = true;
-    void fetch(`/api/catastro/assignments?refs=${encodeURIComponent(refsAsignacion)}`)
+    const url = refsAsignacion
+      ? `/api/catastro/assignments?refs=${encodeURIComponent(refsAsignacion)}`
+      : "/api/catastro/assignments";
+    void fetch(url)
       .then(async (respuesta) => {
         const json = (await respuesta.json()) as {
           ok?: boolean;
           me?: string;
+          comerciales?: ComercialAsignable[];
           assignments?: AsignacionFinca[];
         };
         if (!vivo || !respuesta.ok || !json.ok) return;
         setYo(json.me ?? null);
+        setComerciales(json.comerciales ?? []);
         const mapa: Record<string, AsignacionFinca> = {};
         for (const item of json.assignments ?? []) mapa[item.fincaReference] = item;
         setAsignaciones(mapa);
@@ -92,7 +135,7 @@ export function ListaFincasCatastro({
     return () => {
       vivo = false;
     };
-  }, [refsAsignacion, hoja]);
+  }, [refsAsignacion]);
 
   const cerrarFicha = useCallback(() => {
     setHoja(false);
@@ -187,28 +230,76 @@ export function ListaFincasCatastro({
             <span className="ml-1 tabular-nums text-[#6B7A76]">{recuento[item.value] ?? 0}</span>
           </button>
         ))}
-        <button
-          type="button"
-          onClick={() => setSoloMias((prev) => !prev)}
-          className={cn(
-            "shrink-0 rounded-full border px-3 text-[12.5px] font-semibold min-h-[38px]",
-            soloMias
-              ? "border-[#0B7461] bg-[#E8F3EF] text-[#08594B]"
-              : "border-[#E6E3DD] bg-white text-[#5D6B67]"
-          )}
-        >
-          Mías
-          <span className="ml-1 tabular-nums text-[#6B7A76]">
-            {yo
-              ? Object.values(asignaciones).filter((item) => item.comercialId === yo).length
-              : 0}
-          </span>
-        </button>
+      </div>
+
+      <div>
+        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#6B7A76]">Comercial</p>
+        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 min-[780px]:flex-wrap min-[780px]:overflow-visible" role="tablist" aria-label="Filtrar por comercial">
+          {[
+            { value: FILTRO_ASIGNACION_TODAS, label: "Todas", n: recuentoAsignacion.todas },
+            { value: FILTRO_ASIGNACION_SIN, label: "Sin asignar", n: recuentoAsignacion.sinAsignar },
+            { value: FILTRO_ASIGNACION_MIAS, label: "Mías", n: recuentoAsignacion.mias },
+            ...comerciales.map((item) => ({
+              value: item.id,
+              label: item.nombre,
+              n: recuentoAsignacion.porComercial[item.id] ?? 0,
+            })),
+          ].map((item) => (
+            <button
+              key={item.value}
+              type="button"
+              role="tab"
+              aria-selected={filtroAsignacion === item.value}
+              onClick={() => setFiltroAsignacion(item.value)}
+              className={cn(
+                "inline-flex shrink-0 items-center rounded-full border px-3 text-[12.5px] font-semibold min-h-[38px]",
+                filtroAsignacion === item.value
+                  ? "border-[#0B7461] bg-[#E8F3EF] text-[#08594B]"
+                  : "border-[#E6E3DD] bg-white text-[#5D6B67]"
+              )}
+            >
+              <span className="max-w-[11rem] truncate">{item.label}</span>
+              <span className="ml-1 tabular-nums text-[#6B7A76]">{item.n}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <p className="text-xs text-[#5D6B67]">
         {LEYENDA_FILTRO_HINT} · {TEXTO_ATAJOS_LISTA}
       </p>
+
+      <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Ordenar listado">
+        <p className="mr-1 text-[11px] font-semibold uppercase tracking-wide text-[#6B7A76]">Ordenar</p>
+        {CAMPOS_ORDEN_LISTA.map((item) => {
+          const activa = ordenCampo === item.value;
+          const etiquetaDir = ordenDir === "desc" ? "más a menos" : "menos a más";
+          return (
+            <button
+              key={item.value}
+              type="button"
+              aria-pressed={activa}
+              aria-label={
+                activa
+                  ? `Ordenado por ${item.label}, ${etiquetaDir}. Pulsar para invertir`
+                  : `Ordenar por ${item.label}, más a menos`
+              }
+              onClick={() => aplicarOrden(item.value)}
+              className={cn(
+                "inline-flex min-h-[38px] shrink-0 items-center gap-1.5 rounded-full border px-3 text-[12.5px] font-semibold",
+                activa
+                  ? "border-[#0B7461] bg-[#E8F3EF] text-[#08594B]"
+                  : "border-[#E6E3DD] bg-white text-[#5D6B67]"
+              )}
+            >
+              {item.label}
+              <span className="tabular-nums text-[#6B7A76]" aria-hidden>
+                {activa ? (ordenDir === "desc" ? "↓" : "↑") : "↕"}
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
       <div
         className={cn(
@@ -231,7 +322,9 @@ export function ListaFincasCatastro({
                   onSelect={() => abrir(finca)}
                   onToggle={onToggleSeleccion ? () => onToggleSeleccion(finca) : undefined}
                   onProperty={onProperty || hrefDe?.(finca) ? () => irPropiedad(finca) : undefined}
-                  asignado={asignaciones[finca.fincaReference]?.nombre ?? null}
+                  asignacion={asignaciones[finca.fincaReference] ?? null}
+                  comerciales={comerciales}
+                  onAsignacion={(asignacion) => aplicarAsignacion(finca.fincaReference, asignacion)}
                 />
               </li>
             ))}
@@ -247,6 +340,9 @@ export function ListaFincasCatastro({
           vinculada={Boolean(vinculada?.(ficha.fincaReference))}
           onProperty={onProperty || hrefDe?.(ficha) ? () => irPropiedad(ficha) : undefined}
           onCerrar={cerrarFicha}
+          comerciales={comerciales}
+          asignacion={asignaciones[ficha.fincaReference] ?? null}
+          onAsignacion={(asignacion) => aplicarAsignacion(ficha.fincaReference, asignacion)}
         />
       ) : null}
     </div>

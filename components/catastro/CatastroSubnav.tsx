@@ -10,6 +10,7 @@ import {
   RUTA_HISTORICO,
   destinoResultadosCatastro,
   leerRutaResultados,
+  recordarResultadosPorId,
   recordarRutaResultados,
 } from "@/lib/catastro/explorer/history-ui";
 
@@ -19,7 +20,22 @@ export function CatastroSubnav() {
 
   useEffect(() => {
     recordarRutaResultados(pathname);
-    setUltima(leerRutaResultados());
+    const local = leerRutaResultados();
+    setUltima(local);
+    if (local) return;
+    let vivo = true;
+    void fetch("/api/catastro/searches/recent?limit=1")
+      .then(async (respuesta) => {
+        const json = (await respuesta.json()) as { ok?: boolean; searches?: Array<{ id?: string }> };
+        const id = json.searches?.[0]?.id?.trim() ?? "";
+        if (!vivo || !respuesta.ok || !json.ok || !id) return;
+        recordarResultadosPorId(id);
+        setUltima(leerRutaResultados());
+      })
+      .catch(() => undefined);
+    return () => {
+      vivo = false;
+    };
   }, [pathname]);
 
   const resultados = destinoResultadosCatastro(pathname, ultima);
@@ -29,21 +45,18 @@ export function CatastroSubnav() {
       label: "Buscar",
       icon: Search,
       activa: pathname === RUTA_EXPLORER || pathname.startsWith(`${RUTA_EXPLORER}/finca/`),
-      scrollLocal: false,
     },
     {
       href: resultados.href,
       label: "Resultados",
       icon: List,
       activa: resultados.activa,
-      scrollLocal: resultados.scrollLocal,
     },
     {
       href: RUTA_HISTORICO,
       label: "Historial",
       icon: Clock3,
       activa: pathname === RUTA_HISTORICO,
-      scrollLocal: false,
     },
   ] as const;
 
@@ -55,35 +68,18 @@ export function CatastroSubnav() {
       <div className="flex min-[780px]:gap-6">
         {items.map((item) => {
           const Icono = item.icon;
-          const clase = cn(
-            "relative flex min-h-11 flex-1 items-center justify-center gap-1.5 py-3 text-[13.5px] font-medium min-[780px]:flex-none min-[780px]:justify-start min-[780px]:text-base",
-            item.activa ? "text-[#0B7461]" : "text-[#5D6B67] hover:text-[#0B7461]"
-          );
-          const contenido = (
-            <>
+          return (
+            <Link
+              key={item.label}
+              href={item.href}
+              className={cn(
+                "relative flex min-h-11 flex-1 items-center justify-center gap-1.5 py-3 text-[13.5px] font-medium min-[780px]:flex-none min-[780px]:justify-start min-[780px]:text-base",
+                item.activa ? "text-[#0B7461]" : "text-[#5D6B67] hover:text-[#0B7461]"
+              )}
+            >
               <Icono className="h-4 w-4" strokeWidth={1.9} aria-hidden />
               {item.label}
               {item.activa ? <span className="absolute inset-x-0 -bottom-px h-[3px] bg-[#0B7461]" /> : null}
-            </>
-          );
-          if (item.scrollLocal) {
-            return (
-              <a
-                key={item.label}
-                href="#resultados"
-                className={clase}
-                onClick={(evento) => {
-                  evento.preventDefault();
-                  document.getElementById("resultados")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-              >
-                {contenido}
-              </a>
-            );
-          }
-          return (
-            <Link key={item.label} href={item.href} className={clase}>
-              {contenido}
             </Link>
           );
         })}

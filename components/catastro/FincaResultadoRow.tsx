@@ -13,6 +13,8 @@ import {
 } from "@/lib/catastro/search-ui";
 import { copiarAlPortapapeles } from "@/lib/catastro/selection-export";
 import { cn } from "@/lib/utils";
+import type { AsignacionFinca, ComercialAsignable } from "@/lib/catastro-host/finca-assignment";
+import { AsignacionFincaSelect } from "./AsignacionFincaSelect";
 
 type Props = {
   finca: FincaBusquedaUi;
@@ -22,7 +24,9 @@ type Props = {
   onSelect?: () => void;
   onToggle?: () => void;
   onProperty?: () => void;
-  asignado?: string | null;
+  asignacion?: AsignacionFinca | null;
+  comerciales?: ComercialAsignable[];
+  onAsignacion?: (asignacion: AsignacionFinca | null) => void;
 };
 
 export function FincaResultadoRow({
@@ -33,7 +37,9 @@ export function FincaResultadoRow({
   onSelect,
   onToggle,
   onProperty,
-  asignado = null,
+  asignacion = null,
+  comerciales = [],
+  onAsignacion,
 }: Props) {
   const metricas = metricasFincaLista(finca);
   const status = finca.horizontalDivision?.status;
@@ -99,8 +105,18 @@ export function FincaResultadoRow({
               {titulo}
             </p>
             <p className="mt-1 font-mono text-[11.5px] text-[#5D6B67]">{finca.fincaReference}</p>
-            {asignado ? (
-              <p className="mt-1 truncate text-[12px] font-medium text-[#0B7461]">{asignado}</p>
+            <p className={cn("mt-1 truncate text-[12px] font-medium min-[780px]:hidden", asignacion ? "text-[#0B7461]" : "text-[#6B7A76]")}>
+              {asignacion ? asignacion.nombre : "Sin asignar"}
+            </p>
+            {comerciales.length > 0 ? (
+              <div className="min-[780px]:hidden">
+                <AsignacionFincaSelect
+                  fincaReference={finca.fincaReference}
+                  comerciales={comerciales}
+                  asignacion={asignacion}
+                  onCambio={onAsignacion}
+                />
+              </div>
             ) : null}
           </div>
           <span className={cn("mt-0.5 flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs font-medium min-[780px]:hidden", claseTextoDivision(status))}>
@@ -123,6 +139,22 @@ export function FincaResultadoRow({
         <span className={cn("whitespace-nowrap text-[12.5px] font-medium", claseTextoDivision(status))}>
           {etiquetaEstadoDivisionLista(status)}
         </span>
+      </div>
+
+      <div className="hidden w-[168px] flex-none min-[780px]:block">
+        {comerciales.length > 0 ? (
+          <AsignacionFincaSelect
+            fincaReference={finca.fincaReference}
+            comerciales={comerciales}
+            asignacion={asignacion}
+            compacto
+            onCambio={onAsignacion}
+          />
+        ) : (
+          <p className={cn("truncate text-[12px] font-medium", asignacion ? "text-[#0B7461]" : "text-[#6B7A76]")}>
+            {asignacion ? asignacion.nombre : "Sin asignar"}
+          </p>
+        )}
       </div>
 
       <div className="hidden flex-none gap-1 min-[780px]:flex">

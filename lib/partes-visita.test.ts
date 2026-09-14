@@ -28,8 +28,14 @@ describe("Property → Visit", () => {
     assert.equal(vinculoUi.includes("Nueva visita"), false);
     assert.equal(vinculoUi.includes("partes-visita"), false);
     const asignar = readFileSync(join(raiz, "../components/catastro/AsignarComercial.tsx"), "utf8");
+    const selectAsignacion = readFileSync(
+      join(raiz, "../components/catastro/AsignacionFincaSelect.tsx"),
+      "utf8"
+    );
     assert.equal(asignar.includes("partes-visita"), false);
     assert.equal(asignar.includes("Nueva visita"), false);
+    assert.equal(selectAsignacion.includes("partes-visita"), false);
+    assert.equal(selectAsignacion.includes("Nueva visita"), false);
     assert.match(vinculoUi, /Crear propiedad|Ver propiedad/);
   });
 

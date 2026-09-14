@@ -418,6 +418,46 @@ export function recuentoEstadosDivision(fincas: FincaBusquedaUi[]): Record<strin
   return recuento;
 }
 
+export const CAMPOS_ORDEN_LISTA = [
+  { value: "parcela", label: "m²" },
+  { value: "inmuebles", label: "Inmuebles" },
+  { value: "anio", label: "Año" },
+] as const;
+
+export type CampoOrdenLista = (typeof CAMPOS_ORDEN_LISTA)[number]["value"];
+export type DireccionOrdenLista = "desc" | "asc";
+
+export function valorOrdenLista(finca: FincaBusquedaUi, campo: CampoOrdenLista): number | null {
+  if (campo === "parcela") return finca.superficieSolar ?? null;
+  if (campo === "inmuebles") return finca.properties?.length ?? 0;
+  const anios = (finca.properties ?? [])
+    .map((item) => item.anio)
+    .filter((item): item is number => item != null);
+  if (anios.length === 0) return null;
+  return Math.max(...anios);
+}
+
+export function ordenarListaFincas(
+  fincas: FincaBusquedaUi[],
+  campo: CampoOrdenLista | null,
+  direccion: DireccionOrdenLista = "desc"
+): FincaBusquedaUi[] {
+  if (!campo) return fincas;
+  const signo = direccion === "asc" ? 1 : -1;
+  return fincas
+    .map((finca, indice) => ({ finca, indice }))
+    .sort((a, b) => {
+      const va = valorOrdenLista(a.finca, campo);
+      const vb = valorOrdenLista(b.finca, campo);
+      if (va == null && vb == null) return a.indice - b.indice;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (va === vb) return a.indice - b.indice;
+      return (va - vb) * signo;
+    })
+    .map((item) => item.finca);
+}
+
 export function filtrarListaFincas(
   fincas: FincaBusquedaUi[],
   input: { q?: string; status?: string }

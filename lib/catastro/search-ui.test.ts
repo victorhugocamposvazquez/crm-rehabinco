@@ -18,6 +18,7 @@ import {
   type FincaBusquedaUi,
   etiquetaEstadoDivisionLista,
   filtrarListaFincas,
+  ordenarListaFincas,
   etiquetaUsoLista,
   metricasFincaLista,
   recuentoEstadosDivision,
@@ -249,6 +250,21 @@ describe("search-ui", () => {
     });
     assert.equal(filtrarListaFincas([candidata, conPisos], { status: "NO" }).length, 1);
     assert.equal(filtrarListaFincas([candidata, conPisos], { q: "mayor" })[0]?.fincaReference, "11111111111111");
+    const chica: FincaBusquedaUi = { ...conPisos, superficieSolar: 80, properties: [{ reference: "x", anio: 2001 }] };
+    const sinDato: FincaBusquedaUi = { ...conPisos, fincaReference: "33333333333333", superficieSolar: undefined, properties: [] };
+    assert.deepEqual(
+      ordenarListaFincas([candidata, chica, sinDato], "parcela", "desc").map((item) => item.fincaReference),
+      ["11111111111111", "22222222222222", "33333333333333"]
+    );
+    assert.deepEqual(
+      ordenarListaFincas([candidata, chica, sinDato], "parcela", "asc").map((item) => item.fincaReference),
+      ["22222222222222", "11111111111111", "33333333333333"]
+    );
+    assert.equal(ordenarListaFincas([chica, candidata], "anio", "desc")[0]?.fincaReference, "22222222222222");
+    assert.equal(
+      ordenarListaFincas([candidata, sinDato], "inmuebles", "asc")[0]?.fincaReference,
+      "33333333333333"
+    );
     assert.equal(metricasFincaLista(candidata).parcela, "420 m²");
     assert.equal(metricasFincaLista(candidata).anio, "1964");
     assert.equal(etiquetaUsoLista("Obras de urbanización y jardineria, suelos sin edificar"), "Urbanización");

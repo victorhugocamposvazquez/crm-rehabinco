@@ -57,6 +57,15 @@ export function recordarRutaResultados(
   destino?.setItem(CLAVE_ULTIMA_RESULTADOS, pathname);
 }
 
+export function recordarResultadosPorId(
+  searchId: string,
+  storage?: Pick<Storage, "setItem"> | null
+): void {
+  const id = searchId.trim();
+  if (!id) return;
+  recordarRutaResultados(rutaBusquedaHistorica(id), storage);
+}
+
 export function leerRutaResultados(storage?: Pick<Storage, "getItem"> | null): string | null {
   const origen = storage ?? (typeof sessionStorage === "undefined" ? null : sessionStorage);
   const valor = origen?.getItem(CLAVE_ULTIMA_RESULTADOS)?.trim() ?? "";
@@ -64,8 +73,8 @@ export function leerRutaResultados(storage?: Pick<Storage, "getItem"> | null): s
 }
 
 /**
- * Resultados no puede ir a `/catastro#resultados`: recarga el formulario y relanza la búsqueda.
- * En la página de buscar solo hace scroll. Fuera, abre el último rastreo visto.
+ * Resultados es el último rastreo persistido (`/catastro/searches/:id`).
+ * Nunca vuelve a `/catastro`: eso es Buscar y recarga el formulario.
  */
 export function destinoResultadosCatastro(
   pathname: string,
@@ -73,9 +82,6 @@ export function destinoResultadosCatastro(
 ): { href: string; scrollLocal: boolean; activa: boolean } {
   if (esRutaResultadosHistorica(pathname)) {
     return { href: pathname, scrollLocal: false, activa: true };
-  }
-  if (pathname === RUTA_EXPLORER) {
-    return { href: "#resultados", scrollLocal: true, activa: false };
   }
   if (ultima && esRutaResultadosHistorica(ultima)) {
     return { href: ultima, scrollLocal: false, activa: false };

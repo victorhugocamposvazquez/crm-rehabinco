@@ -3,19 +3,37 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { AsignacionFinca, ComercialAsignable } from "@/lib/catastro-host/finca-assignment";
+import { AsignacionFincaSelect } from "./AsignacionFincaSelect";
 
 type Props = {
   fincaReference: string;
   vinculada?: boolean;
+  comerciales?: ComercialAsignable[];
+  asignacion?: AsignacionFinca | null;
+  onCambio?: (asignacion: AsignacionFinca | null) => void;
 };
 
-export function AsignarComercial({ fincaReference, vinculada = false }: Props) {
-  const [comerciales, setComerciales] = useState<ComercialAsignable[]>([]);
-  const [asignacion, setAsignacion] = useState<AsignacionFinca | null>(null);
-  const [valor, setValor] = useState("");
-  const [estado, setEstado] = useState<"cargando" | "idle" | "guardando">("cargando");
+export function AsignarComercial({
+  fincaReference,
+  vinculada = false,
+  comerciales: comercialesProp,
+  asignacion: asignacionProp,
+  onCambio,
+}: Props) {
+  const controlado = comercialesProp !== undefined;
+  const [comerciales, setComerciales] = useState<ComercialAsignable[]>(comercialesProp ?? []);
+  const [asignacion, setAsignacion] = useState<AsignacionFinca | null>(asignacionProp ?? null);
+  const [estado, setEstado] = useState<"cargando" | "idle">(controlado ? "idle" : "cargando");
 
   useEffect(() => {
+    if (controlado) {
+      setComerciales(comercialesProp ?? []);
+      setAsignacion(asignacionProp ?? null);
+    }
+  }, [controlado, comercialesProp, asignacionProp]);
+
+  useEffect(() => {
+    if (controlado) return;
     let vivo = true;
     setEstado("cargando");
     void fetch(`/api/catastro/assignments?refs=${encodeURIComponent(fincaReference)}`)
@@ -32,10 +50,10 @@ export function AsignarComercial({ fincaReference, vinculada = false }: Props) {
           setEstado("idle");
           return;
         }
-        const actual = json.assignments?.find((item) => item.fincaReference === fincaReference) ?? null;
+        const actual =
+          json.assignments?.find((item) => item.fincaReference === fincaReference) ?? null;
         setComerciales(json.comerciales ?? []);
         setAsignacion(actual);
-        setValor(actual?.comercialId ?? "");
         setEstado("idle");
       })
       .catch(() => {
@@ -46,34 +64,7 @@ export function AsignarComercial({ fincaReference, vinculada = false }: Props) {
     return () => {
       vivo = false;
     };
-  }, [fincaReference]);
-
-  const guardar = async (comercialId: string) => {
-    setValor(comercialId);
-    setEstado("guardando");
-    try {
-      const respuesta = await fetch("/api/catastro/assignments", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fincaReference, comercialId: comercialId || null }),
-      });
-      const json = (await respuesta.json()) as {
-        ok?: boolean;
-        assignment?: AsignacionFinca | null;
-        error?: string;
-      };
-      if (!respuesta.ok || !json.ok) {
-        toast.error(json.error ?? "No se ha podido asignar.");
-        return;
-      }
-      setAsignacion(json.assignment ?? null);
-      toast.success(json.assignment ? `Asignada a ${json.assignment.nombre}.` : "Sin comercial asignado.");
-    } catch {
-      toast.error("No se ha podido asignar.");
-    } finally {
-      setEstado("idle");
-    }
-  };
+  }, [controlado, fincaReference]);
 
   return (
     <section className="mt-5">
@@ -88,20 +79,16 @@ export function AsignarComercial({ fincaReference, vinculada = false }: Props) {
           ? "Hará las visitas desde la propiedad. Aquí no se crea la visita."
           : "Así queda en su lista. La visita se crea cuando exista la propiedad."}
       </p>
-      <select
-        value={valor}
+      <AsignacionFincaSelect
+        fincaReference={fincaReference}
+        comerciales={comerciales}
+        asignacion={asignacion}
         disabled={estado !== "idle"}
-        onChange={(evento) => void guardar(evento.target.value)}
-        aria-label="Asignar comercial"
-        className="mt-2 h-11 w-full rounded-[10px] border border-[#DAD6CE] bg-white px-3 text-[13.5px] text-[#131C1A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B7461] disabled:opacity-60"
-      >
-        <option value="">Sin asignar</option>
-        {comerciales.map((item) => (
-          <option key={item.id} value={item.id}>
-            {item.nombre}
-          </option>
-        ))}
-      </select>
+        onCambio={(siguiente) => {
+          setAsignacion(siguiente);
+          onCambio?.(siguiente);
+        }}
+      />
     </section>
   );
 }

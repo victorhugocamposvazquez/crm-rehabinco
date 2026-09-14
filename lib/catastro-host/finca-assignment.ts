@@ -50,3 +50,58 @@ export function asignacionDesdeFila(
     nombre: comercial?.nombre ?? "Comercial",
   };
 }
+
+export const FILTRO_ASIGNACION_TODAS = "ALL";
+export const FILTRO_ASIGNACION_SIN = "UNASSIGNED";
+export const FILTRO_ASIGNACION_MIAS = "MINE";
+
+export type RecuentoAsignacionLista = {
+  todas: number;
+  sinAsignar: number;
+  mias: number;
+  porComercial: Record<string, number>;
+};
+
+export function coincideFiltroAsignacion(
+  asignacion: AsignacionFinca | undefined,
+  filtro: string,
+  yo: string | null
+): boolean {
+  if (!filtro || filtro === FILTRO_ASIGNACION_TODAS) return true;
+  if (filtro === FILTRO_ASIGNACION_SIN) return !asignacion;
+  if (filtro === FILTRO_ASIGNACION_MIAS) return Boolean(yo && asignacion?.comercialId === yo);
+  return asignacion?.comercialId === filtro;
+}
+
+export function filtrarPorAsignacion<T extends { fincaReference: string }>(
+  fincas: T[],
+  asignaciones: Record<string, AsignacionFinca>,
+  filtro: string,
+  yo: string | null
+): T[] {
+  return fincas.filter((finca) =>
+    coincideFiltroAsignacion(asignaciones[finca.fincaReference], filtro, yo)
+  );
+}
+
+export function recuentoFiltrosAsignacion(
+  fincas: Array<{ fincaReference: string }>,
+  asignaciones: Record<string, AsignacionFinca>,
+  yo: string | null,
+  comerciales: ComercialAsignable[]
+): RecuentoAsignacionLista {
+  const porComercial: Record<string, number> = {};
+  for (const comercial of comerciales) porComercial[comercial.id] = 0;
+  let sinAsignar = 0;
+  let mias = 0;
+  for (const finca of fincas) {
+    const asignacion = asignaciones[finca.fincaReference];
+    if (!asignacion) {
+      sinAsignar += 1;
+      continue;
+    }
+    porComercial[asignacion.comercialId] = (porComercial[asignacion.comercialId] ?? 0) + 1;
+    if (yo && asignacion.comercialId === yo) mias += 1;
+  }
+  return { todas: fincas.length, sinAsignar, mias, porComercial };
+}

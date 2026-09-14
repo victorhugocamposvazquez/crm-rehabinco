@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { recordarResultadosPorId } from "@/lib/catastro/explorer/history-ui";
 import { ErrorBusquedaUi } from "@/lib/catastro/search-ui";
 import {
   ESTADO_ZONA_INICIAL,
@@ -21,6 +22,10 @@ import {
   type CriteriosZonaUi,
   type EstadoZonaUi,
 } from "@/lib/catastro/zone-ui";
+
+function recordarZona(id: string | null | undefined) {
+  if (id) recordarResultadosPorId(id);
+}
 
 function esAbortError(error: unknown): boolean {
   return error instanceof DOMException
@@ -82,6 +87,7 @@ export function useBusquedaZona() {
         onSnapshot: (snapshot) => {
           if (opRef.current !== op || controller.signal.aborted) return;
           zoneIdRef.current = snapshot.zoneSearchId;
+          recordarZona(snapshot.zoneSearchId);
           setEstado((prev) =>
             aplicarSnapshotZona(prev, snapshot, { ejecutando: debeContinuarPasos(snapshot) })
           );
@@ -137,6 +143,7 @@ export function useBusquedaZona() {
       const snapshot = await fetchZonaPreparar(criterios, controller.signal);
       if (opRef.current !== op || controller.signal.aborted) return;
       zoneIdRef.current = snapshot.zoneSearchId;
+      recordarZona(snapshot.zoneSearchId);
       setEstado((prev) => aplicarSnapshotZona(prev, snapshot));
     } catch (error) {
       if (opRef.current !== op || esAbortError(error) || controller.signal.aborted) return;
@@ -156,6 +163,7 @@ export function useBusquedaZona() {
     const id = idZonaActiva(estadoRef.current, zoneIdRef.current);
     if (!id) return;
     zoneIdRef.current = id;
+    recordarZona(id);
     void bucle(id, ++opRef.current);
   };
 
@@ -174,6 +182,7 @@ export function useBusquedaZona() {
       }
       if (opRef.current !== op) return;
       zoneIdRef.current = snapshot.zoneSearchId;
+      recordarZona(snapshot.zoneSearchId);
       setEstado((prev) => aplicarSnapshotZona(prev, snapshot));
     } catch (error) {
       if (opRef.current !== op) return;
@@ -195,12 +204,14 @@ export function useBusquedaZona() {
     }
     const op = ++opRef.current;
     zoneIdRef.current = zoneSearchId;
+    recordarZona(zoneSearchId);
     abortRef.current?.abort();
     setCancelando(false);
     try {
       const snapshot = await fetchZonaReanudar(zoneSearchId, reintentarErrores);
       if (opRef.current !== op) return;
       zoneIdRef.current = snapshot.zoneSearchId;
+      recordarZona(snapshot.zoneSearchId);
       setEstado((prev) => aplicarSnapshotZona(prev, snapshot, { ejecutando: true }));
     } catch (error) {
       if (opRef.current !== op) return;
@@ -227,11 +238,13 @@ export function useBusquedaZona() {
     const controller = new AbortController();
     abortRef.current = controller;
     zoneIdRef.current = zoneSearchId;
+    recordarZona(zoneSearchId);
     setCancelando(false);
     try {
       const snapshot = await fetchZonaEstado(zoneSearchId, controller.signal);
       if (opRef.current !== op || controller.signal.aborted) return;
       zoneIdRef.current = snapshot.zoneSearchId;
+      recordarZona(snapshot.zoneSearchId);
       criteriosRef.current = {
         provincia: snapshot.criteria.provincia,
         municipio: snapshot.criteria.municipio,
@@ -245,6 +258,7 @@ export function useBusquedaZona() {
           const reanudada = await fetchZonaReanudar(snapshot.zoneSearchId, false);
           if (opRef.current !== op) return;
           zoneIdRef.current = reanudada.zoneSearchId;
+          recordarZona(reanudada.zoneSearchId);
           setEstado((prev) => aplicarSnapshotZona(prev, reanudada, { ejecutando: true }));
         }
         await bucle(zoneIdRef.current ?? snapshot.zoneSearchId, op);

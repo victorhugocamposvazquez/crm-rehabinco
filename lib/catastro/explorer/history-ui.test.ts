@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { afterEach, describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
 import { etiquetaEstadoDivision } from "../search-ui";
 import { copiarAlPortapapeles, direccionOficial, SELECCION_VACIA } from "../selection-export";
 import { ordenarBusquedasRecientes, crearBusqueda, actualizarBusqueda } from "./model";
@@ -33,6 +36,7 @@ import {
   destinoResultadosCatastro,
   esRutaResultadosHistorica,
   leerRutaResultados,
+  recordarResultadosPorId,
   recordarRutaResultados,
   rutaBusquedaHistorica,
   rutaFincaPersistida,
@@ -107,8 +111,13 @@ describe("Catastro Explorer — experiencia persistente", () => {
     assert.equal(esRutaResultadosHistorica("/catastro/searches/abc"), true);
     assert.equal(esRutaResultadosHistorica("/catastro/searches"), false);
     assert.deepEqual(destinoResultadosCatastro("/catastro", null), {
-      href: "#resultados",
-      scrollLocal: true,
+      href: "/catastro/searches",
+      scrollLocal: false,
+      activa: false,
+    });
+    assert.deepEqual(destinoResultadosCatastro("/catastro", "/catastro/searches/abc"), {
+      href: "/catastro/searches/abc",
+      scrollLocal: false,
       activa: false,
     });
     assert.deepEqual(destinoResultadosCatastro("/catastro/searches/abc", null), {
@@ -129,6 +138,9 @@ describe("Catastro Explorer — experiencia persistente", () => {
     recordarRutaResultados("/catastro/searches/abc", {
       setItem: (clave, valor) => memoria.set(clave, valor),
     });
+    const porId = new Map<string, string>();
+    recordarResultadosPorId("abc", { setItem: (clave, valor) => porId.set(clave, valor) });
+    assert.equal(porId.get("catastro:ultima-resultados"), "/catastro/searches/abc");
     assert.equal(
       leerRutaResultados({ getItem: (clave) => memoria.get(clave) ?? null }),
       "/catastro/searches/abc"
@@ -155,6 +167,13 @@ describe("Catastro Explorer — experiencia persistente", () => {
       }),
       true
     );
+    const subnav = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../../../components/catastro/CatastroSubnav.tsx"),
+      "utf8"
+    );
+    assert.equal(subnav.includes("#resultados"), false);
+    assert.equal(subnav.includes("scrollLocal"), false);
+    assert.match(subnav, /destinoResultadosCatastro/);
     assert.equal(puedeReanudarHistorica({ mode: "STREET", status: "PAUSED" }), false);
     assert.equal(
       puedeReanudarHistorica({

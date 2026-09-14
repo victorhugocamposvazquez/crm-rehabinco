@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { MapaCatastral } from "./MapaCatastral";
 import { AsignarComercial } from "./AsignarComercial";
 import { NotasFinca } from "./NotasFinca";
+import type { AsignacionFinca, ComercialAsignable } from "@/lib/catastro-host/finca-assignment";
 
 type Props = {
   finca: FincaBusquedaUi;
@@ -28,6 +29,9 @@ type Props = {
   vinculada?: boolean;
   onProperty?: () => void;
   onCerrar?: () => void;
+  comerciales?: ComercialAsignable[];
+  asignacion?: AsignacionFinca | null;
+  onAsignacion?: (asignacion: AsignacionFinca | null) => void;
 };
 
 export function FincaDetallePanel({
@@ -36,6 +40,9 @@ export function FincaDetallePanel({
   vinculada,
   onProperty,
   onCerrar,
+  comerciales,
+  asignacion,
+  onAsignacion,
 }: Props) {
   const status = finca.horizontalDivision?.status;
   const leyenda = LEYENDA_ESTADOS_DIVISION.find((item) => item.status === status);
@@ -131,7 +138,13 @@ export function FincaDetallePanel({
         ) : null}
       </div>
 
-      <AsignarComercial fincaReference={finca.fincaReference} vinculada={Boolean(vinculada)} />
+      <AsignarComercial
+        fincaReference={finca.fincaReference}
+        vinculada={Boolean(vinculada)}
+        comerciales={comerciales}
+        asignacion={asignacion}
+        onCambio={onAsignacion}
+      />
 
       <NotasFinca fincaReference={finca.fincaReference} />
 
