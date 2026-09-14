@@ -1,0 +1,268 @@
+"use client";
+
+import { useRef, useState } from "react";
+import Link from "next/link";
+import { GripVertical } from "lucide-react";
+import { CitaAcciones } from "@/components/citas/CitaAcciones";
+import {
+  CAL_HORA_FIN,
+  CAL_HORA_INICIO,
+  CAL_PX_HORA,
+  ESTADO_CITA_LABEL,
+  horaCita,
+  minutosDesdeOffsetY,
+  posicionEventoCalendario,
+  TIPO_CITA_LABEL,
+  type EstadoCita,
+  type TipoCita,
+} from "@/lib/citas/citas";
+
+export type CitaMovil = {
+  id: string;
+  tipo: string;
+  titulo: string;
+  empieza: string;
+  termina: string;
+  propiedad_id: string | null;
+  estado: string;
+  profiles?: { nombre_completo?: string | null; color?: string | null } | null;
+  propiedades?: { titulo?: string | null; direccion?: string | null; referencia?: string | null } | null;
+};
+
+export function CalendarioMovil({
+  semana,
+  dia,
+  hoy,
+  citas,
+  porDia,
+  admin,
+  onPickDia,
+  onMover,
+  onEstado,
+  onCambiarHora,
+}: {
+  semana: string[];
+  dia: string;
+  hoy: string;
+  citas: CitaMovil[];
+  porDia: Map<string, unknown[]>;
+  admin: boolean;
+  onPickDia: (dia: string) => void;
+  onMover: (id: string, dia: string) => void;
+  onEstado: (id: string, estado: "hecha" | "cancelada") => void;
+  onCambiarHora: (id: string, hora: string) => void;
+}) {
+  const gridRef = useRef<HTMLDivElement>(null);
+  const dragIdRef = useRef<string | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [overDia, setOverDia] = useState<string | null>(null);
+
+  const diaBajoPunto = (x: number, y: number) => {
+    const nodo = document.elementFromPoint(x, y);
+    return nodo?.closest("[data-cal-dia]")?.getAttribute("data-cal-dia") ?? null;
+  };
+
+  const empezar = (id: string, e: React.PointerEvent<HTMLElement>) => {
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragIdRef.current = id;
+    setDraggingId(id);
+  };
+
+  const seguir = (e: React.PointerEvent) => {
+    if (!dragIdRef.current) return;
+    setOverDia(diaBajoPunto(e.clientX, e.clientY));
+  };
+
+  const soltarEnRejilla = (e: React.PointerEvent) => {
+    const id = dragIdRef.current;
+    if (!id) return;
+    const destino = diaBajoPunto(e.clientX, e.clientY);
+    const grid = gridRef.current;
+    if (destino && destino !== dia) {
+      onMover(id, destino);
+    } else if (grid) {
+      const y = e.clientY - grid.getBoundingClientRect().top;
+      if (y >= 0 && y <= grid.getBoundingClientRect().height) {
+        onCambiarHora(id, horaDesdeOffset(y));
+      }
+    }
+    limpiar();
+  };
+
+  const soltarEnLista = (e: React.PointerEvent) => {
+    const id = dragIdRef.current;
+    if (!id) return;
+    const destino = diaBajoPunto(e.clientX, e.clientY);
+    if (destino) onMover(id, destino);
+    limpiar();
+  };
+
+  const limpiar = () => {
+    dragIdRef.current = null;
+    setDraggingId(null);
+    setOverDia(null);
+  };
+
+  return (
+    <div className="min-[820px]:hidden">
+      <div className="flex gap-1.5">
+        {semana.map((d) => {
+          const activo = d === dia;
+          const esHoy = d === hoy;
+          const hay = (porDia.get(d)?.length ?? 0) > 0;
+          const over = overDia === d;
+          return (
+            <button
+              key={d}
+              type="button"
+              data-cal-dia={d}
+              onClick={() => onPickDia(d)}
+              className="flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 rounded-[11px] border"
+              style={{
+                borderColor: over || activo ? "#0B7461" : "#E6E3DD",
+                background: over ? "#E8F3EF" : activo ? "#E8F3EF" : "#fff",
+                color: esHoy && !activo ? "#0B7461" : undefined,
+              }}
+            >
+              <span className="text-[10.5px] uppercase tracking-[.05em] text-[var(--label)]">
+                {new Date(`${d}T12:00:00`).toLocaleDateString("es-ES", { weekday: "short" }).replace(".", "")}
+              </span>
+              <span className="text-[16px] font-semibold">{new Date(`${d}T12:00:00`).getDate()}</span>
+              <span className="h-[5px] w-[5px] rounded-full" style={{ background: hay ? "#0B7461" : "transparent" }} />
+            </button>
+          );
+        })}
+      </div>
+
+      <p className="mt-3 text-[12.5px] text-[var(--text-2)]">
+        {draggingId
+          ? overDia && overDia !== dia
+            ? "Suelta para cambiar de día."
+            : "Suelta en la rejilla para cambiar la hora."
+          : "Arrastra al día o mueve en la rejilla. También puedes cambiar la hora abajo."}
+      </p>
+
+      <div
+        ref={gridRef}
+        className="relative mt-3 overflow-hidden rounded-[14px] border border-border bg-white"
+        style={{ height: (CAL_HORA_FIN - CAL_HORA_INICIO + 1) * CAL_PX_HORA }}
+      >
+        {Array.from({ length: CAL_HORA_FIN - CAL_HORA_INICIO + 1 }, (_, i) => CAL_HORA_INICIO + i).map((h, i) => (
+          <div key={h} className="absolute inset-x-0 border-t border-[var(--border-row)]" style={{ top: i * CAL_PX_HORA }}>
+            <span className="absolute left-2 -translate-y-1/2 font-mono text-[11px] text-[var(--text-3)]">{h}:00</span>
+          </div>
+        ))}
+        {citas.map((cita) => {
+          const { top, height } = posicionEventoCalendario(cita.empieza, cita.termina);
+          const color = cita.profiles?.color || "#3A6A82";
+          const prevista = cita.estado === "prevista";
+          return (
+            <div
+              key={cita.id}
+              onPointerDown={(e) => {
+                if (!prevista) return;
+                empezar(cita.id, e);
+              }}
+              onPointerMove={seguir}
+              onPointerUp={soltarEnRejilla}
+              onPointerCancel={limpiar}
+              className="absolute right-2 left-12 overflow-hidden rounded-[7px] px-2 py-1 touch-none select-none"
+              style={{
+                top,
+                height,
+                background: `${color}1A`,
+                borderLeft: `3px solid ${color}`,
+                opacity: draggingId === cita.id ? 0.55 : 1,
+              }}
+            >
+              <p className="text-[11px] font-semibold" style={{ color }}>
+                {horaCita(cita.empieza)} · {TIPO_CITA_LABEL[(cita.tipo as TipoCita) ?? "otro"] ?? cita.tipo}
+              </p>
+              <p className="truncate text-[12px] font-medium">{cita.titulo}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-4 overflow-hidden rounded-[14px] border border-border bg-white">
+        <div className="border-b border-[var(--border-soft)] px-3.5 py-3 text-[14px] font-semibold capitalize">
+          {new Date(`${dia}T12:00:00`).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}
+        </div>
+        {citas.length === 0 ? (
+          <p className="px-3.5 py-6 text-center text-[13px] text-[var(--text-2)]">Sin citas este día.</p>
+        ) : (
+          citas.map((cita) => {
+            const prevista = cita.estado === "prevista";
+            return (
+              <div
+                key={cita.id}
+                className={`flex items-start gap-2 border-b border-[var(--border-row)] px-3 py-3 last:border-0 ${
+                  prevista ? "" : "opacity-60"
+                }`}
+              >
+                {prevista ? (
+                  <button
+                    type="button"
+                    aria-label="Arrastrar a otro día"
+                    onPointerDown={(e) => empezar(cita.id, e)}
+                    onPointerMove={seguir}
+                    onPointerUp={soltarEnLista}
+                    onPointerCancel={limpiar}
+                    className="mt-1 grid h-11 w-8 shrink-0 touch-none select-none place-items-center rounded-lg text-[var(--text-3)]"
+                  >
+                    <GripVertical size={16} />
+                  </button>
+                ) : (
+                  <span className="w-8 shrink-0" />
+                )}
+                <span className="mt-2 h-9 w-[3px] shrink-0 rounded-sm" style={{ background: cita.profiles?.color || "#3A6A82" }} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14.5px] font-semibold">{cita.titulo}</p>
+                  <p className="mt-0.5 text-[12px] text-[var(--text-2)]">
+                    {admin && cita.profiles?.nombre_completo ? `${cita.profiles.nombre_completo} · ` : ""}
+                    {TIPO_CITA_LABEL[(cita.tipo as TipoCita) ?? "otro"] ?? cita.tipo}
+                    {" · "}
+                    {ESTADO_CITA_LABEL[(cita.estado as EstadoCita) ?? "prevista"] ?? cita.estado}
+                  </p>
+                  {cita.propiedad_id ? (
+                    <Link href={`/propiedades/${cita.propiedad_id}`} className="mt-1 inline-block text-[12px] text-accent">
+                      {[cita.propiedades?.referencia, cita.propiedades?.titulo || cita.propiedades?.direccion]
+                        .filter(Boolean)
+                        .join(" · ") || "Ver inmueble"}
+                    </Link>
+                  ) : null}
+                  {prevista ? (
+                    <label className="mt-2 flex items-center gap-2 text-[12.5px] text-[var(--text-2)]">
+                      Hora
+                      <input
+                        type="time"
+                        value={horaCita(cita.empieza)}
+                        onChange={(e) => {
+                          if (e.target.value) onCambiarHora(cita.id, e.target.value);
+                        }}
+                        className="h-10 rounded-[9px] border border-[var(--input)] bg-white px-2 text-[14px]"
+                      />
+                    </label>
+                  ) : (
+                    <p className="mt-1 font-mono text-[13px] text-[var(--text-2)]">{horaCita(cita.empieza)}</p>
+                  )}
+                  <div className="mt-2">
+                    <CitaAcciones cita={cita} onEstado={onEstado} compact />
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+function horaDesdeOffset(offsetY: number): string {
+  const minutos = minutosDesdeOffsetY(offsetY);
+  const h = Math.max(0, Math.min(23, Math.floor(minutos / 60)));
+  const m = minutos % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}

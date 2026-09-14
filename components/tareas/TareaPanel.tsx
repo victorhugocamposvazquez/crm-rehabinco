@@ -1,0 +1,494 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { CalendarDays } from "lucide-react";
+import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Sheet } from "@/components/ui/sheet";
+import { AvatarComercial } from "@/components/ui/avatar-comercial";
+import { relacionUno } from "@/lib/citas/citas";
+import { rutaFincaPersistida } from "@/lib/catastro/explorer/history-ui";
+import {
+  COLUMNAS_TAREA,
+  columnaDeTarea,
+  cuandoActividad,
+  textoVinculoTarea,
+  venceLargo,
+  type ColumnaTarea,
+} from "@/lib/tareas/tareas";
+
+export type TareaDetalle = {
+  id: string;
+  comercial_id: string;
+  titulo: string;
+  vence: string | null;
+  hora?: string | null;
+  estado: string;
+  finca_reference: string | null;
+  propiedad_id: string | null;
+  cliente_id: string | null;
+  demanda_id?: string | null;
+  cita_id?: string | null;
+  parte_visita_id?: string | null;
+  created_at?: string | null;
+  propiedades?: { titulo?: string | null; direccion?: string | null; referencia?: string | null } | null;
+  clientes?: { nombre?: string | null } | null;
+  demandas?: { tipo_operacion?: string | null } | null;
+  partes_visita?: { inmueble_direccion?: string | null; fecha_visita?: string | null } | null;
+  profiles?: { nombre_completo?: string | null; color?: string | null } | null;
+};
+
+type Actividad = { id: string; cuando: string; texto: string };
+
+export function TareaPanel({
+  tarea,
+  hoy,
+  admin,
+  comerciales,
+  onClose,
+  onPatch,
+  onToggle,
+  onMover,
+}: {
+  tarea: TareaDetalle | null;
+  hoy: string;
+  admin: boolean;
+  comerciales: Array<{ id: string; nombre: string; color: string | null }>;
+  onClose: () => void;
+  onPatch: (id: string, patch: Record<string, unknown>, actividad?: string) => Promise<void>;
+  onToggle: (id: string) => void;
+  onMover: (id: string, col: ColumnaTarea) => void;
+}) {
+  const [titulo, setTitulo] = useState("");
+  const [nota, setNota] = useState("");
+  const [finca, setFinca] = useState("");
+  const [actividad, setActividad] = useState<Actividad[]>([]);
+  const [propsOpts, setPropsOpts] = useState<Array<{ id: string; label: string }>>([]);
+  const [cliOpts, setCliOpts] = useState<Array<{ id: string; label: string }>>([]);
+  const [demOpts, setDemOpts] = useState<Array<{ id: string; label: string }>>([]);
+  const [parteOpts, setParteOpts] = useState<Array<{ id: string; label: string; propiedadId: string | null }>>([]);
+
+  useEffect(() => {
+    setTitulo(tarea?.titulo ?? "");
+    setNota("");
+    setFinca(tarea?.finca_reference ?? "");
+  }, [tarea?.id, tarea?.titulo]);
+
+  useEffect(() => {
+    if (!tarea) {
+      setActividad([]);
+      return;
+    }
+    const supabase = createClient();
+    let cancelled = false;
+    void supabase
+      .from("tareas_actividad")
+      .select("id, texto, created_at, profiles:actor_id(nombre_completo)")
+      .eq("tarea_id", tarea.id)
+      .order("created_at")
+      .then(({ data }) => {
+        if (cancelled) return;
+        const filas = ((data ?? []) as Array<{
+          id: string;
+          texto: string;
+          created_at: string;
+          profiles?: { nombre_completo?: string | null } | { nombre_completo?: string | null }[] | null;
+        }>).map((row) => ({
+          id: row.id,
+          cuando: cuandoActividad(row.created_at, hoy),
+          texto: row.texto,
+        }));
+        if (filas.length === 0 && tarea.created_at) {
+          setActividad([
+            {
+              id: "creada",
+              cuando: cuandoActividad(tarea.created_at, hoy),
+              texto: `Creada por ${tarea.profiles?.nombre_completo?.split(" ")[0] ?? "el comercial"}`,
+            },
+          ]);
+          return;
+        }
+        setActividad(filas);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tarea, hoy]);
+
+  useEffect(() => {
+    if (!tarea) return;
+    const supabase = createClient();
+    void supabase
+      .from("propiedades")
+      .select("id, titulo, direccion, referencia")
+      .order("updated_at", { ascending: false })
+      .limit(200)
+      .then(({ data }) =>
+        setPropsOpts(
+          (data ?? []).map((p) => ({
+            id: p.id,
+            label: [p.referencia, p.titulo || p.direccion].filter(Boolean).join(" · ") || "Inmueble",
+          }))
+        )
+      );
+    void supabase
+      .from("clientes")
+      .select("id, nombre")
+      .eq("activo", true)
+      .order("nombre")
+      .limit(200)
+      .then(({ data }) => setCliOpts((data ?? []).map((c) => ({ id: c.id, label: c.nombre }))));
+    void supabase
+      .from("demandas")
+      .select("id, tipo_operacion, clientes:cliente_id(nombre)")
+      .in("estado", ["activa", "pausada"])
+      .order("updated_at", { ascending: false })
+      .limit(200)
+      .then(({ data }) =>
+        setDemOpts(
+          ((data ?? []) as Array<{
+            id: string;
+            tipo_operacion: string;
+            clientes?: { nombre?: string | null } | { nombre?: string | null }[] | null;
+          }>).map((d) => ({
+            id: d.id,
+            label: `${relacionUno(d.clientes)?.nombre ?? "Cliente"} · ${d.tipo_operacion}`,
+          }))
+        )
+      );
+    void supabase
+      .from("partes_visita")
+      .select("id, inmueble_direccion, fecha_visita, propiedad_id")
+      .order("created_at", { ascending: false })
+      .limit(100)
+      .then(({ data }) =>
+        setParteOpts(
+          (data ?? []).map((p) => ({
+            id: p.id,
+            propiedadId: p.propiedad_id,
+            label: [p.inmueble_direccion, p.fecha_visita].filter(Boolean).join(" · ") || "Parte",
+          }))
+        )
+      );
+  }, [tarea?.id]);
+
+  if (!tarea) return null;
+
+  const col = columnaDeTarea(tarea.vence, hoy, tarea.estado);
+  const colMeta = COLUMNAS_TAREA.find((c) => c.id === col);
+  const hecha = tarea.estado === "hecha";
+  const vinculo = textoVinculoTarea({
+    propiedad: [tarea.propiedades?.referencia, tarea.propiedades?.titulo || tarea.propiedades?.direccion]
+      .filter(Boolean)
+      .join(" · "),
+    cliente: tarea.clientes?.nombre,
+    finca: tarea.finca_reference,
+    demanda: tarea.demandas?.tipo_operacion ? `Demanda ${tarea.demandas.tipo_operacion}` : null,
+    parte: tarea.partes_visita?.inmueble_direccion,
+  });
+  const hrefVinculo = tarea.propiedad_id
+    ? `/propiedades/${tarea.propiedad_id}`
+    : tarea.cliente_id
+      ? `/clientes/${tarea.cliente_id}`
+      : tarea.finca_reference
+        ? rutaFincaPersistida(tarea.finca_reference)
+        : tarea.demanda_id
+          ? `/demandas/${tarea.demanda_id}`
+          : tarea.parte_visita_id
+            ? `/partes-visita/${tarea.parte_visita_id}`
+            : null;
+
+  const guardarTitulo = () => {
+    const limpio = titulo.trim();
+    if (!limpio || limpio === tarea.titulo) {
+      setTitulo(tarea.titulo);
+      return;
+    }
+    void onPatch(tarea.id, { titulo: limpio });
+  };
+
+  const guardarNota = async () => {
+    const texto = nota.trim();
+    if (!texto) return;
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("tareas_actividad")
+      .insert({ tarea_id: tarea.id, actor_id: tarea.comercial_id, tipo: "nota", texto })
+      .select("id, created_at")
+      .single();
+    if (error || !data) {
+      toast.error("No se ha podido guardar la nota.");
+      return;
+    }
+    setActividad((prev) => [...prev, { id: data.id, cuando: "Hoy", texto }]);
+    setNota("");
+  };
+
+  return (
+    <Sheet open onOpenChange={(open) => !open && onClose()} variant="side" side="right">
+      <div className="flex h-full flex-col">
+        <div className="flex items-center gap-2.5 border-b border-[var(--border-soft)] px-4 py-3.5">
+          <span className="flex-1 text-[11px] uppercase tracking-[.08em] text-[var(--label)]">Tarea</span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid h-[34px] w-[34px] place-items-center rounded-lg text-[var(--text-2)] hover:bg-[var(--surface-soft)]"
+            aria-label="Cerrar"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+              <path d="M6 6l12 12" />
+              <path d="M18 6 6 18" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+          <div className="flex items-start gap-2.5">
+            <button
+              type="button"
+              aria-label="Hecha"
+              onClick={() => onToggle(tarea.id)}
+              className="mt-1 h-5 w-5 shrink-0 rounded-[6px] border-[1.5px]"
+              style={{
+                borderColor: hecha ? "#0B7461" : "#CFCBC2",
+                background: hecha ? "#0B7461" : "#fff",
+              }}
+            />
+            <textarea
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+              onBlur={guardarTitulo}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  (e.target as HTMLTextAreaElement).blur();
+                }
+              }}
+              rows={2}
+              className="min-h-[52px] w-full resize-none bg-transparent text-[19px] font-semibold leading-snug tracking-[-.01em] outline-none"
+            />
+          </div>
+
+          <div className="mt-[18px] grid grid-cols-2 gap-3">
+            <div>
+              <div className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">Columna</div>
+              <div className="mt-1 flex items-center gap-1.5 text-[13.5px]">
+                <span className="h-2 w-2 rounded-full" style={{ background: colMeta?.dot }} />
+                {colMeta?.label}
+              </div>
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">Vence</div>
+              <input
+                type="date"
+                value={tarea.vence ?? ""}
+                onChange={(e) =>
+                  void onPatch(tarea.id, {
+                    vence: e.target.value || null,
+                    estado: hecha ? "hecha" : tarea.estado === "esperando" ? "esperando" : "pendiente",
+                  })
+                }
+                className="mt-1 w-full bg-transparent text-[13.5px] capitalize outline-none"
+              />
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">Comercial</div>
+              {admin ? (
+                <select
+                  value={tarea.comercial_id}
+                  onChange={(e) => void onPatch(tarea.id, { comercial_id: e.target.value })}
+                  className="mt-1 w-full bg-transparent text-[13.5px] outline-none"
+                >
+                  {comerciales.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="mt-1 flex items-center gap-1.5 text-[13.5px]">
+                  <AvatarComercial nombre={tarea.profiles?.nombre_completo} color={tarea.profiles?.color} size={18} />
+                  {tarea.profiles?.nombre_completo ?? "Comercial"}
+                </div>
+              )}
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">Vinculado a</div>
+              {hrefVinculo && vinculo !== "Sin vincular" ? (
+                <Link href={hrefVinculo} className="mt-1 block truncate text-[13.5px] text-accent">
+                  {vinculo}
+                </Link>
+              ) : (
+                <p className="mt-1 text-[13.5px] text-[var(--text-2)]">Sin vincular</p>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-[18px] rounded-[11px] border border-border bg-[#FBFBF9] px-3.5 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2 text-[13.5px] font-semibold">
+                <CalendarDays size={15} className="text-accent" />
+                Calendario
+              </div>
+              {tarea.hora ? (
+                <label className="flex items-center gap-2 text-[12.5px] text-[var(--text-2)]">
+                  Programada · {venceLargo(tarea.vence)}
+                  <input
+                    type="time"
+                    value={tarea.hora.slice(0, 5)}
+                    onChange={(e) => void onPatch(tarea.id, { hora: e.target.value || null }, e.target.value ? `Añadida al calendario a las ${e.target.value}` : undefined)}
+                    className="h-8 rounded-lg border border-[var(--input)] bg-white px-2 text-[13px]"
+                  />
+                </label>
+              ) : (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => void onPatch(tarea.id, { hora: "12:00", vence: tarea.vence ?? hoy }, "Añadida al calendario a las 12:00")}
+                >
+                  Poner hora y añadir
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-[18px] grid gap-2">
+            <label className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">
+              Inmueble
+              <select
+                value={tarea.propiedad_id ?? ""}
+                onChange={(e) =>
+                  void onPatch(tarea.id, { propiedad_id: e.target.value || null }, e.target.value ? "Vinculada a un inmueble" : undefined)
+                }
+                className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 text-[13.5px] normal-case tracking-normal text-foreground"
+              >
+                <option value="">Sin inmueble</option>
+                {propsOpts.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">
+              Cliente
+              <select
+                value={tarea.cliente_id ?? ""}
+                onChange={(e) =>
+                  void onPatch(tarea.id, { cliente_id: e.target.value || null }, e.target.value ? "Vinculada a un cliente" : undefined)
+                }
+                className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 text-[13.5px] normal-case tracking-normal text-foreground"
+              >
+                <option value="">Sin cliente</option>
+                {cliOpts.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">
+              Demanda
+              <select
+                value={tarea.demanda_id ?? ""}
+                onChange={(e) =>
+                  void onPatch(tarea.id, { demanda_id: e.target.value || null }, e.target.value ? "Vinculada a una demanda" : undefined)
+                }
+                className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 text-[13.5px] normal-case tracking-normal text-foreground"
+              >
+                <option value="">Sin demanda</option>
+                {demOpts.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">
+              Parte de visita
+              <select
+                value={tarea.parte_visita_id ?? ""}
+                onChange={(e) => {
+                  const parte = parteOpts.find((p) => p.id === e.target.value);
+                  void onPatch(
+                    tarea.id,
+                    {
+                      parte_visita_id: e.target.value || null,
+                      ...(parte?.propiedadId && !tarea.propiedad_id ? { propiedad_id: parte.propiedadId } : {}),
+                    },
+                    e.target.value ? "Vinculada a un parte de visita" : undefined
+                  );
+                }}
+                className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 text-[13.5px] normal-case tracking-normal text-foreground"
+              >
+                <option value="">Sin parte</option>
+                {parteOpts.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">
+              Finca (Catastro)
+              <input
+                value={finca}
+                onChange={(e) => setFinca(e.target.value)}
+                onBlur={() => {
+                  const valor = finca.trim() || null;
+                  if (valor === (tarea.finca_reference ?? null)) return;
+                  void onPatch(tarea.id, { finca_reference: valor }, valor ? `Vinculada a la finca ${valor}` : undefined);
+                }}
+                placeholder="Referencia catastral"
+                className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 font-mono text-[12.5px] normal-case tracking-normal text-foreground"
+              />
+            </label>
+          </div>
+
+          <div className="mt-[18px]">
+            <div className="mb-2 text-[11px] uppercase tracking-[.07em] text-[var(--label)]">Actividad</div>
+            {actividad.map((a) => (
+              <div key={a.id} className="flex gap-2.5 py-1.5 text-[13px]">
+                <span className="w-[52px] shrink-0 tabular-nums text-[var(--text-3)]">{a.cuando}</span>
+                <span>{a.texto}</span>
+              </div>
+            ))}
+            <div className="mt-2 flex gap-2">
+              <input
+                value={nota}
+                onChange={(e) => setNota(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void guardarNota();
+                  }
+                }}
+                placeholder="Añadir nota…"
+                className="h-[38px] min-w-0 flex-1 rounded-[9px] border border-[var(--input)] px-3 text-[13.5px] outline-none focus:border-accent"
+              />
+              <Button type="button" variant="secondary" className="h-[38px]" onClick={() => void guardarNota()}>
+                Guardar
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2 border-t border-[var(--border-soft)] px-4 py-3">
+          {COLUMNAS_TAREA.filter((c) => c.id !== col).map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onMover(tarea.id, item.id)}
+              className="inline-flex h-[34px] items-center gap-1.5 rounded-lg border border-[var(--input)] bg-white px-3 text-[12.5px] font-medium hover:border-accent hover:text-accent"
+            >
+              <span className="h-[7px] w-[7px] rounded-full" style={{ background: item.dot }} />
+              Mover a {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </Sheet>
+  );
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export type KanbanColumna<C extends string> = {
@@ -14,15 +14,20 @@ export function Kanban<C extends string, T extends { id: string }>({
   items,
   colOf,
   onMove,
+  onSelect,
+  selectedId,
   renderCard,
 }: {
   columns: KanbanColumna<C>[];
   items: T[];
   colOf: (item: T) => C;
   onMove: (id: string, col: C) => void;
+  onSelect?: (item: T) => void;
+  selectedId?: string | null;
   renderCard: (item: T) => ReactNode;
 }) {
   const [over, setOver] = useState<C | null>(null);
+  const draggingRef = useRef(false);
 
   return (
     <div className="flex items-start gap-3 overflow-x-auto pb-2.5">
@@ -54,16 +59,34 @@ export function Kanban<C extends string, T extends { id: string }>({
               <strong className="font-semibold">{col.label}</strong>
               <span className="text-[12px] text-[var(--text-3)]">{filas.length}</span>
             </div>
-            {filas.map((item) => (
-              <div
-                key={item.id}
-                draggable
-                onDragStart={(e) => e.dataTransfer.setData("text/plain", item.id)}
-                className="mb-2 cursor-grab"
-              >
-                {renderCard(item)}
-              </div>
-            ))}
+            {filas.map((item) => {
+              const selected = selectedId === item.id;
+              return (
+                <div
+                  key={item.id}
+                  draggable
+                  onDragStart={(e) => {
+                    draggingRef.current = true;
+                    e.dataTransfer.setData("text/plain", item.id);
+                  }}
+                  onDragEnd={() => {
+                    window.setTimeout(() => {
+                      draggingRef.current = false;
+                    }, 0);
+                  }}
+                  onClick={() => {
+                    if (draggingRef.current) {
+                      draggingRef.current = false;
+                      return;
+                    }
+                    onSelect?.(item);
+                  }}
+                  className={cn("mb-2 cursor-grab", selected && "[&>*]:border-accent")}
+                >
+                  {renderCard(item)}
+                </div>
+              );
+            })}
             {filas.length === 0 ? (
               <div className="rounded-[10px] border border-dashed border-[var(--input)] px-2.5 py-4 text-center text-[12.5px] text-[var(--text-3)]">
                 Suelta aquí

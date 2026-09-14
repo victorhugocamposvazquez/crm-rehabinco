@@ -118,3 +118,39 @@ export function parseTareaRapida(txt: string, hoy = new Date()) {
     hora,
   };
 }
+
+export function etiquetaVence(vence: string | null | undefined, hoy: string): { label: string; vencida: boolean } {
+  if (!vence) return { label: "Sin fecha", vencida: false };
+  if (vence < hoy) return { label: "Ayer", vencida: true };
+  if (vence === hoy) return { label: "Hoy", vencida: false };
+  const d = new Date(`${vence}T12:00:00`);
+  return { label: d.toLocaleDateString("es-ES", { weekday: "short", day: "numeric" }), vencida: false };
+}
+
+export function venceLargo(vence: string | null | undefined): string {
+  if (!vence) return "Sin fecha";
+  return new Date(`${vence}T12:00:00`).toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+}
+
+export function cuandoActividad(iso: string, hoy: string): string {
+  const dia = iso.slice(0, 10);
+  if (dia === hoy) return "Hoy";
+  const ayer = new Date(`${hoy}T12:00:00`);
+  ayer.setDate(ayer.getDate() - 1);
+  if (dia === ayer.toISOString().slice(0, 10)) return "Ayer";
+  return new Date(`${dia}T12:00:00`).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+}
+
+export function textoVinculoTarea(input: {
+  propiedad?: string | null;
+  cliente?: string | null;
+  finca?: string | null;
+  demanda?: string | null;
+  parte?: string | null;
+}): string {
+  return input.propiedad || input.cliente || input.finca || input.demanda || input.parte || "Sin vincular";
+}

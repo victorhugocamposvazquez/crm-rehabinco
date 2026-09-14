@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { CalendarDays } from "lucide-react";
+import { useRef, useState } from "react";
+import { CalendarDays, Plus } from "lucide-react";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { COLUMNAS_TAREA, type ColumnaTarea } from "@/lib/tareas/tareas";
 import { cn } from "@/lib/utils";
@@ -23,13 +23,30 @@ export function TareasBoard({
   onMover,
   onToggle,
   onAbrir,
+  onCrearEnColumna,
 }: {
   tareas: TareaTarjeta[];
   onMover: (id: string, col: ColumnaTarea) => void;
   onToggle: (id: string) => void;
   onAbrir: (id: string) => void;
+  onCrearEnColumna: (col: ColumnaTarea, titulo: string) => void;
 }) {
   const [over, setOver] = useState<ColumnaTarea | null>(null);
+  const [nuevaCol, setNuevaCol] = useState<ColumnaTarea | null>(null);
+  const [textoCol, setTextoCol] = useState("");
+  const draggingRef = useRef(false);
+
+  const enviarColumna = (col: ColumnaTarea) => {
+    const titulo = textoCol.trim();
+    if (!titulo) {
+      setNuevaCol(null);
+      return;
+    }
+    onCrearEnColumna(col, titulo);
+    setTextoCol("");
+    setNuevaCol(null);
+  };
+
   return (
     <div className="flex items-start gap-3 overflow-x-auto pb-2.5">
       {COLUMNAS_TAREA.map((col) => {
@@ -61,13 +78,38 @@ export function TareasBoard({
               <span className="text-[12px] text-[var(--text-3)]">{items.length}</span>
               <span className="flex-1" />
               {col.hint ? <span className="text-[11.5px] text-[var(--text-3)]">{col.hint}</span> : null}
+              <button
+                type="button"
+                aria-label={`Nueva tarea en ${col.label}`}
+                onClick={() => {
+                  setNuevaCol(col.id);
+                  setTextoCol("");
+                }}
+                className="grid h-7 w-7 place-items-center rounded-[7px] text-accent hover:bg-white"
+              >
+                <Plus size={14} strokeWidth={2.6} />
+              </button>
             </div>
             {items.map((t) => (
               <div
                 key={t.id}
                 draggable
-                onDragStart={(e) => e.dataTransfer.setData("text/plain", t.id)}
-                onClick={() => onAbrir(t.id)}
+                onDragStart={(e) => {
+                  draggingRef.current = true;
+                  e.dataTransfer.setData("text/plain", t.id);
+                }}
+                onDragEnd={() => {
+                  window.setTimeout(() => {
+                    draggingRef.current = false;
+                  }, 0);
+                }}
+                onClick={() => {
+                  if (draggingRef.current) {
+                    draggingRef.current = false;
+                    return;
+                  }
+                  onAbrir(t.id);
+                }}
                 className={cn("mb-2 cursor-grab rounded-[11px] border border-border bg-white px-3 py-2.5", t.hecha && "opacity-55")}
               >
                 <div className="flex items-start gap-2">
@@ -87,7 +129,9 @@ export function TareasBoard({
                   <div className={cn("flex-1 text-[13.5px] font-medium leading-snug", t.hecha && "line-through")}>{t.titulo}</div>
                 </div>
                 {t.link ? (
-                  <div className="ml-[25px] mt-2 w-fit rounded-md bg-accent-soft px-1.5 py-0.5 text-[11.5px] text-accent">{t.link}</div>
+                  <div className="ml-[25px] mt-2 w-fit max-w-full truncate rounded-md bg-accent-soft px-1.5 py-0.5 text-[11.5px] text-accent">
+                    {t.link}
+                  </div>
                 ) : null}
                 <div className="ml-[25px] mt-2 flex items-center gap-2">
                   <span
@@ -110,11 +154,38 @@ export function TareasBoard({
                 </div>
               </div>
             ))}
-            {items.length === 0 && (
-              <div className="rounded-[10px] border border-dashed border-[var(--input)] px-2.5 py-4 text-center text-[12.5px] text-[var(--text-3)]">
-                Suelta aquí
-              </div>
-            )}
+            {nuevaCol === col.id ? (
+              <form
+                className="mb-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  enviarColumna(col.id);
+                }}
+              >
+                <input
+                  autoFocus
+                  value={textoCol}
+                  onChange={(e) => setTextoCol(e.target.value)}
+                  onBlur={() => {
+                    if (!textoCol.trim()) setNuevaCol(null);
+                  }}
+                  placeholder="Nueva tarea…"
+                  className="h-10 w-full rounded-[11px] border border-accent bg-white px-3 text-[13.5px] outline-none"
+                />
+              </form>
+            ) : null}
+            {items.length === 0 && nuevaCol !== col.id ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setNuevaCol(col.id);
+                  setTextoCol("");
+                }}
+                className="w-full rounded-[10px] border border-dashed border-[var(--input)] px-2.5 py-4 text-center text-[12.5px] text-[var(--text-3)] hover:border-accent hover:text-accent"
+              >
+                + Añadir tarea
+              </button>
+            ) : null}
           </div>
         );
       })}

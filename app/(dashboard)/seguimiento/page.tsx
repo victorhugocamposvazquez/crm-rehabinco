@@ -8,8 +8,10 @@ import { isAdmin } from "@/lib/auth/roles";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Chip } from "@/components/ui/chip";
 import { Kanban, KanbanCard } from "@/components/ui/kanban";
+import { PanelInmueble } from "@/components/inmuebles/PanelInmueble";
 import { FiltroComercial, type ComercialFiltro } from "@/components/captacion/FiltroComercial";
 import { useFiltroComercial } from "@/lib/ui/filtro-comercial";
+import { cargarInmueblePanel, type InmueblePanel } from "@/lib/inmuebles/panel";
 import type { FincaCaptacionApi } from "@/lib/catastro-host/captacion-filas";
 import { tituloDireccionFinca } from "@/lib/catastro/search-ui";
 import { rutaFincaPersistida } from "@/lib/catastro/explorer/history-ui";
@@ -60,7 +62,43 @@ export default function SeguimientoPage() {
   const [inmuebles, setInmuebles] = useState<InmuebleBoard[]>([]);
   const [comerciales, setComerciales] = useState<ComercialFiltro[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [panelId, setPanelId] = useState<string | null>(null);
+  const [panel, setPanel] = useState<InmueblePanel | null>(null);
+  const [panelLoading, setPanelLoading] = useState(false);
+  const [narrow, setNarrow] = useState(false);
   const hoy = new Date().toISOString().slice(0, 10);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 819px)");
+    const sync = () => setNarrow(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    if (!panelId) {
+      setPanel(null);
+      setPanelLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setPanelLoading(true);
+    void cargarInmueblePanel(panelId).then((row) => {
+      if (cancelled) return;
+      setPanel(row);
+      setPanelLoading(false);
+      if (!row) setError("No se ha podido abrir el inmueble.");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [panelId]);
+
+  const abrirInmueble = (id: string | null | undefined) => {
+    if (!id) return;
+    setPanelId(id);
+  };
 
   const cargarFincas = () => {
     void fetch("/api/catastro/mine")
@@ -220,7 +258,14 @@ export default function SeguimientoPage() {
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         {(["fincas", "demandas", "inmuebles"] as const).map((item) => (
-          <Chip key={item} active={tab === item} onClick={() => setTab(item)}>
+          <Chip
+            key={item}
+            active={tab === item}
+            onClick={() => {
+              setTab(item);
+              setPanelId(null);
+            }}
+          >
             {item === "fincas" ? "Fincas" : item === "demandas" ? "Demandas" : "Inmuebles"}
           </Chip>
         ))}
@@ -239,20 +284,30 @@ export default function SeguimientoPage() {
 
       {error ? <p className="mt-4 text-sm text-red-700">{error}</p> : null}
 
-      <div className="mt-5">
+      <div className="mt-5 flex items-start gap-4">
+        <div className="min-w-0 flex-1">
         {tab === "fincas" ? (
           <Kanban
             columns={colsFinca}
             items={fincasVis.map((f) => ({ ...f, id: f.fincaReference }))}
             colOf={(item) => parseEstadoCaptacion(item.estado)}
             onMove={(id, col) => void moverFinca(id, col)}
+            selectedId={fincasVis.find((f) => f.propertyId === panelId)?.fincaReference ?? null}
+            onSelect={(item) => {
+              if (item.propertyId) abrirInmueble(item.propertyId);
+            }}
             renderCard={(item) => (
               <KanbanCard
-                href={rutaFincaPersistida(item.fincaReference)}
+                href={item.propertyId ? undefined : rutaFincaPersistida(item.fincaReference)}
                 title={tituloDireccionFinca(item.finca)}
                 meta={item.fincaReference}
                 tag={
-                  [item.proximaAccion, item.proximaAccionEn, textoAging(diasDesdeAsignacion(item.assignedAt, hoy))]
+                  [
+                    item.propertyId ? "Inmueble vinculado" : null,
+                    item.proximaAccion,
+                    item.proximaAccionEn,
+                    textoAging(diasDesdeAsignacion(item.assignedAt, hoy)),
+                  ]
                     .filter(Boolean)
                     .join(" · ") || undefined
                 }
@@ -288,14 +343,27 @@ export default function SeguimientoPage() {
             items={inmueblesVis}
             colOf={(item) => parseEstadoInmueble(item.estado)}
             onMove={(id, col) => void moverInmueble(id, col)}
+            selectedId={panelId}
+            onSelect={(item) => abrirInmueble(item.id)}
             renderCard={(item) => (
               <KanbanCard
-                href={`/propiedades/${item.id}`}
                 title={item.titulo}
                 meta={item.referencia ?? undefined}
                 tag={formatPrecioInmueble(item.precio)}
               />
             )}
+          />
+        ) : null}
+        </div>
+        {panelId ? (
+          <PanelInmueble
+            inmueble={panel}
+            loading={panelLoading}
+            overlay={narrow}
+            onClose={() => {
+              setPanelId(null);
+              setPanel(null);
+            }}
           />
         ) : null}
       </div>

@@ -20,6 +20,7 @@ import {
   citasDelDia,
   ESTADO_CITA_LABEL,
   horaCita,
+  minutosDesdeHora,
   minutosDesdeOffsetY,
   minutosLocalesDeCita,
   moverCitaADiaHora,
@@ -35,6 +36,7 @@ import {
 import { FiltroComercial, type ComercialFiltro } from "@/components/captacion/FiltroComercial";
 import { useFiltroComercial } from "@/lib/ui/filtro-comercial";
 import { CitaAcciones } from "@/components/citas/CitaAcciones";
+import { CalendarioMovil } from "@/components/citas/CalendarioMovil";
 
 type CitaRow = {
   id: string;
@@ -177,14 +179,21 @@ export default function CalendarioPage() {
     cargar();
   };
 
-  const moverCita = async (id: string, dia: string, offsetY: number | null) => {
+  const moverCita = async (id: string, diaDestino: string, opts?: { minutos?: number; offsetY?: number | null }) => {
     const cita = citas.find((item) => item.id === id);
     if (!cita || cita.estado === "hecha" || cita.estado === "cancelada") return;
-    const minutos = offsetY == null || offsetY < 8 ? minutosLocalesDeCita(cita.empieza) : minutosDesdeOffsetY(offsetY);
+    const minutos =
+      opts?.minutos != null
+        ? opts.minutos
+        : opts?.offsetY == null || opts.offsetY < 8
+          ? minutosLocalesDeCita(cita.empieza)
+          : minutosDesdeOffsetY(opts.offsetY);
+    const diaCita = cita.empieza.slice(0, 10);
+    if (diaDestino === diaCita && minutos === minutosLocalesDeCita(cita.empieza)) return;
     const patch = moverCitaADiaHora({
       empieza: cita.empieza,
       termina: cita.termina,
-      dia,
+      dia: diaDestino,
       minutos,
     });
     const supabase = createClient();
@@ -202,7 +211,7 @@ export default function CalendarioPage() {
     setCitas((prev) =>
       prev.map((item) => (item.id === id ? { ...item, empieza: patch.empieza, termina: patch.termina } : item))
     );
-    setDia(dia);
+    setDia(diaDestino);
     toast.success(`Cita pasada a ${patch.hora}.`);
   };
 
@@ -226,7 +235,7 @@ export default function CalendarioPage() {
       <PageHeader
         breadcrumb={[{ label: "Calendario" }]}
         title="Calendario"
-        description="Arrastra las citas a otro día o hora. El parte de visita se hace desde la cita."
+        description="Arrastra las citas a otro día o hora. En el teléfono también puedes cambiar la hora abajo. El parte de visita se hace desde la cita."
         actions={
           <Button asChild size="sm" variant="secondary">
             <Link href="/partes-visita">Visitas</Link>
@@ -254,20 +263,19 @@ export default function CalendarioPage() {
         </Button>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2 min-[820px]:hidden">
-        {semana.map((d) => (
-          <button
-            key={d}
-            type="button"
-            onClick={() => setDia(d)}
-            className={`rounded-xl border px-3 py-2 text-sm ${
-              d === dia ? "border-accent bg-accent-soft font-semibold" : "border-border bg-white"
-            }`}
-          >
-            {new Date(`${d}T12:00:00`).toLocaleDateString("es-ES", { weekday: "short", day: "numeric" })}
-            {(porDia.get(d)?.length ?? 0) > 0 ? <span className="ml-1 h-1.5 w-1.5 rounded-full bg-accent" /> : null}
-          </button>
-        ))}
+      <div className="mt-4">
+        <CalendarioMovil
+          semana={semana}
+          dia={dia}
+          hoy={hoy}
+          citas={delDia}
+          porDia={porDia}
+          admin={admin}
+          onPickDia={setDia}
+          onMover={(id, destino) => void moverCita(id, destino)}
+          onEstado={cambiarEstado}
+          onCambiarHora={(id, horaNueva) => void moverCita(id, dia, { minutos: minutosDesdeHora(horaNueva) })}
+        />
       </div>
 
       <div className="mt-4 hidden overflow-hidden rounded-[14px] border border-border bg-white min-[820px]:block">
@@ -284,7 +292,7 @@ export default function CalendarioPage() {
                 onDrop={(e) => {
                   e.preventDefault();
                   const id = e.dataTransfer.getData("text/cita");
-                  if (id) void moverCita(id, d, null);
+                  if (id) void moverCita(id, d);
                 }}
                 className="h-[52px] border-l border-[var(--border-soft)] text-center"
               >
@@ -318,7 +326,7 @@ export default function CalendarioPage() {
                   const id = e.dataTransfer.getData("text/cita");
                   if (!id) return;
                   const y = e.clientY - e.currentTarget.getBoundingClientRect().top;
-                  void moverCita(id, d, y);
+                  void moverCita(id, d, { offsetY: y });
                 }}
                 className="relative border-l border-[var(--border-soft)]"
                 style={{ height: (CAL_HORA_FIN - CAL_HORA_INICIO + 1) * CAL_PX_HORA, background: esHoy ? "#FBFBF9" : "#fff" }}
@@ -429,10 +437,10 @@ export default function CalendarioPage() {
         </form>
       </details>
 
-      <h2 className="mt-8 text-[15px] font-semibold capitalize">
+      <h2 className="mt-8 hidden text-[15px] font-semibold capitalize min-[820px]:block">
         {new Date(`${dia}T12:00:00`).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}
       </h2>
-      <ul className="mt-3 space-y-2">
+      <ul className="mt-3 hidden space-y-2 min-[820px]:block">
         {delDia.map((cita) => (
           <li
             key={cita.id}

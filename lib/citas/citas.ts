@@ -164,6 +164,11 @@ export function minutosLocalesDeCita(empieza: string): number {
   return d.getHours() * 60 + d.getMinutes();
 }
 
+export function minutosDesdeHora(hora: string): number {
+  const [h, m] = hora.split(":").map(Number);
+  return snapMinutos((Number.isFinite(h) ? h : CAL_HORA_INICIO) * 60 + (Number.isFinite(m) ? m : 0));
+}
+
 export function prefillParteDesdeCita(cita: {
   titulo: string;
   empieza: string;

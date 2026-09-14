@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { citasAgrupadasPorDia, citasDelDia, horaCita, minutosDesdeOffsetY, moverCitaADiaHora, moverSemana, puedeHacerParte, prefillParteDesdeCita, relacionUno, rutaNuevaCita, rutaNuevaVisitaDesdeCita, semanaDesde, snapMinutos } from "./citas";
+import { citasAgrupadasPorDia, citasDelDia, horaCita, minutosDesdeHora, minutosDesdeOffsetY, moverCitaADiaHora, moverSemana, puedeHacerParte, prefillParteDesdeCita, relacionUno, rutaNuevaCita, rutaNuevaVisitaDesdeCita, semanaDesde, snapMinutos } from "./citas";
 
 describe("citas", () => {
   it("el parte se abre prellenado desde la cita, no al revés", () => {
@@ -76,5 +76,6 @@ describe("citas", () => {
     const end = new Date(movida.termina);
     assert.equal(start.getHours(), 11);
     assert.equal(end.getHours(), 12);
+    assert.equal(minutosDesdeHora("18:30"), 18 * 60 + 30);
   });
 });

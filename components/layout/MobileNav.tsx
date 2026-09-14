@@ -6,8 +6,9 @@ import { usePathname } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth/auth-context";
-import { navHrefsForRole } from "@/lib/auth/roles";
+import { navHrefsForRole, roleLabel } from "@/lib/auth/roles";
 import { Sheet } from "@/components/ui/sheet";
+import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { itemsDesdeHrefs, NAV_MOBILE_LABEL, navItemActivo } from "./nav-items";
 
 export function MobileNav() {
@@ -67,7 +68,20 @@ export function MobileNav() {
       </nav>
       <Sheet open={mas} onOpenChange={setMas} variant="side" side="left" showCloseButton>
         <nav className="px-4 pb-8 pt-[max(3.5rem,calc(env(safe-area-inset-top)+2.75rem))]" aria-label="Más destinos">
-          <h2 className="mb-5 px-2 text-xl font-semibold">Más</h2>
+          {user ? (
+            <Link
+              href="/settings"
+              onClick={() => setMas(false)}
+              className="mb-5 flex items-center gap-3 rounded-[12px] bg-[var(--surface-soft)] px-3 py-3"
+            >
+              <AvatarComercial nombre={user.nombre} email={user.email} color={user.color} size={40} />
+              <span className="min-w-0 leading-tight">
+                <span className="block truncate text-[15px] font-semibold">{user.nombre || user.email}</span>
+                <span className="block text-[12.5px] text-[var(--text-2)]">{roleLabel(user.role)}</span>
+              </span>
+            </Link>
+          ) : null}
+          <h2 className="mb-3 px-2 text-xl font-semibold">Más</h2>
           <ul className="space-y-1">
             {resto.map(({ href, label, icon: Icon }) => (
               <li key={href}>

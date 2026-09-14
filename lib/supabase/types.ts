@@ -779,28 +779,55 @@ export interface Database {
           cliente_id: string | null;
           demanda_id: string | null;
           cita_id: string | null;
+          hora?: string | null;
+          parte_visita_id?: string | null;
           created_at: string;
         };
         Insert: {
           comercial_id: string;
           titulo: string;
           vence?: string | null;
+          hora?: string | null;
           estado?: string;
           finca_reference?: string | null;
           propiedad_id?: string | null;
           cliente_id?: string | null;
           demanda_id?: string | null;
           cita_id?: string | null;
+          parte_visita_id?: string | null;
         };
         Update: {
           titulo?: string;
           vence?: string | null;
+          hora?: string | null;
           estado?: string;
           finca_reference?: string | null;
           propiedad_id?: string | null;
           cliente_id?: string | null;
           demanda_id?: string | null;
           cita_id?: string | null;
+          comercial_id?: string;
+          parte_visita_id?: string | null;
+        };
+      };
+      tareas_actividad: {
+        Row: {
+          id: string;
+          tarea_id: string;
+          actor_id: string | null;
+          tipo: string;
+          texto: string;
+          created_at: string;
+        };
+        Insert: {
+          tarea_id: string;
+          actor_id?: string | null;
+          tipo?: string;
+          texto: string;
+        };
+        Update: {
+          texto?: string;
+          tipo?: string;
         };
       };
     };

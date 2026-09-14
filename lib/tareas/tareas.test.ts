@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { agruparTareas, bandejaDeTarea, columnaDeTarea, parseTareaRapida, recuentoTareas } from "./tareas";
+import { agruparTareas, bandejaDeTarea, columnaDeTarea, parseTareaRapida, recuentoTareas, textoVinculoTarea, cuandoActividad } from "./tareas";
 
 describe("organizador de tareas", () => {
   it("separa vencidas, hoy y próximas", () => {
@@ -33,5 +33,13 @@ describe("organizador de tareas", () => {
     assert.equal(grupos.VENCIDAS.length, 1);
     assert.equal(grupos.HOY.length, 1);
     assert.equal(recuentoTareas(grupos.VENCIDAS.concat(grupos.HOY), "2026-09-14").HOY, 1);
+  });
+
+  it("elige el vínculo principal y etiqueta la actividad", () => {
+    assert.equal(textoVinculoTarea({ propiedad: "RHB-0138", cliente: "María" }), "RHB-0138");
+    assert.equal(textoVinculoTarea({ finca: "87016006NJ4080S" }), "87016006NJ4080S");
+    assert.equal(textoVinculoTarea({}), "Sin vincular");
+    assert.equal(cuandoActividad("2026-09-14T09:30:00.000Z", "2026-09-14"), "Hoy");
+    assert.equal(cuandoActividad("2026-09-13T09:30:00.000Z", "2026-09-14"), "Ayer");
   });
 });

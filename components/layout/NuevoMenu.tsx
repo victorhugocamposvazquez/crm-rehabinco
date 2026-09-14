@@ -2,9 +2,21 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import {
+  Building2,
+  CalendarDays,
+  ClipboardList,
+  FileText,
+  ListTodo,
+  Plus,
+  User,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { isAdmin, isEditor } from "@/lib/auth/roles";
+
+type ItemNuevo = { href: string; label: string; icon: LucideIcon };
 
 export function NuevoMenu() {
   const { user } = useAuth();
@@ -21,18 +33,18 @@ export function NuevoMenu() {
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
 
-  const items = editor
-    ? [{ href: "/presupuestos/nuevo", label: "Presupuesto" }]
+  const items: ItemNuevo[] = editor
+    ? [{ href: "/presupuestos/nuevo", label: "Presupuesto", icon: ClipboardList }]
     : [
-        { href: "/tareas", label: "Tarea" },
-        { href: "/calendario", label: "Cita" },
-        { href: "/propiedades/nueva", label: "Inmueble" },
-        { href: "/clientes/nuevo", label: "Cliente" },
-        { href: "/demandas/nueva", label: "Demanda" },
+        { href: "/tareas", label: "Tarea", icon: ListTodo },
+        { href: "/calendario", label: "Cita", icon: CalendarDays },
+        { href: "/propiedades/nueva", label: "Inmueble", icon: Building2 },
+        { href: "/clientes/nuevo", label: "Cliente", icon: User },
+        { href: "/demandas/nueva", label: "Demanda", icon: Users },
         ...(admin
           ? [
-              { href: "/presupuestos/nuevo", label: "Presupuesto" },
-              { href: "/facturas/nueva", label: "Factura" },
+              { href: "/presupuestos/nuevo", label: "Presupuesto", icon: ClipboardList },
+              { href: "/facturas/nueva", label: "Factura", icon: FileText },
             ]
           : []),
       ];
@@ -48,17 +60,23 @@ export function NuevoMenu() {
         Nuevo
       </button>
       {open && (
-        <div className="absolute right-0 z-50 mt-1.5 min-w-[180px] overflow-hidden rounded-[12px] border border-border bg-white py-1 shadow-none">
-          {items.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setOpen(false)}
-              className="block px-3 py-2 text-[13.5px] font-medium text-foreground hover:bg-accent-soft hover:text-accent"
-            >
-              {item.label}
-            </Link>
-          ))}
+        <div className="absolute right-0 z-50 mt-1.5 w-[250px] rounded-[12px] border border-border bg-white p-1.5 shadow-[0_14px_34px_rgba(19,28,26,.14)]">
+          {items.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setOpen(false)}
+                className="flex min-h-10 items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] font-medium text-foreground hover:bg-[var(--surface-soft)]"
+              >
+                <span className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-[7px] bg-[var(--surface-soft)] text-accent">
+                  <Icon size={14} strokeWidth={1.9} />
+                </span>
+                {item.label}
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>
