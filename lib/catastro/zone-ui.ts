@@ -432,7 +432,8 @@ function plural(n: number, singular: string, pluralTexto: string): string {
 export function textoPreparacion(
   streetsFound: number,
   postalCode?: string,
-  streetsTotal?: number
+  streetsTotal?: number,
+  streetOffset = 0
 ): string {
   if (streetsFound === 0 && !(streetsTotal && streetsTotal > 0)) {
     return "Catastro no devuelve calles oficiales para este municipio. No hay nada que recorrer.";
@@ -440,10 +441,17 @@ export function textoPreparacion(
   const total = streetsTotal && streetsTotal > 0 ? streetsTotal : streetsFound;
   if (streetsTotal != null && streetsTotal > ZONE_MAX_STREETS_RUN) {
     const bloques = Math.max(1, Math.ceil(total / ZONE_MAX_STREETS_RUN));
+    const indice = Math.min(bloques, Math.floor(Math.max(0, streetOffset) / ZONE_MAX_STREETS_RUN) + 1);
+    const desde = streetsFound === 0 ? 0 : streetOffset + 1;
+    const hasta = streetOffset + streetsFound;
     const alcance = postalCode?.trim()
       ? `Si el código postal es ${postalCode.trim()}, esas fincas serán todos los resultados.`
       : "Se recorrerá el municipio por bloques.";
-    return `Hay ${total.toLocaleString("es-ES")} calles oficiales. ${alcance} Este primer bloque tiene ${streetsFound} calles (${bloques} bloques en total).`;
+    const cual =
+      indice === 1
+        ? `Este primer bloque tiene ${streetsFound} calles`
+        : `Este bloque ${indice} de ${bloques} tiene ${streetsFound} calles (${desde.toLocaleString("es-ES")}–${hasta.toLocaleString("es-ES")})`;
+    return `Hay ${total.toLocaleString("es-ES")} calles oficiales. ${alcance} ${cual} (${bloques} bloques en total).`;
   }
   const alcance = postalCode?.trim()
     ? "La búsqueda recorrerá esas calles y filtrará después por código postal."

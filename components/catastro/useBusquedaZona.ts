@@ -167,7 +167,7 @@ export function useBusquedaZona() {
 
   const preparar = async (
     criterios: CriteriosZonaUi,
-    opciones: { conservarAcumulado?: boolean; noCancelar?: boolean } = {}
+    opciones: { conservarAcumulado?: boolean; noCancelar?: boolean; empezar?: boolean } = {}
   ) => {
     const op = ++opRef.current;
     if (!opciones.noCancelar) soltarZonaActual();
@@ -191,7 +191,8 @@ export function useBusquedaZona() {
         if (opRef.current !== op || controller.signal.aborted) return;
         zoneIdRef.current = snapshot.zoneSearchId;
         recordarZona(snapshot.zoneSearchId);
-        setEstado((prev) => aplicarSnapshotZona(prev, snapshot));
+        setEstado((prev) => aplicarSnapshotZona(prev, snapshot, { ejecutando: Boolean(opciones.empezar) }));
+        if (opciones.empezar) await bucle(snapshot.zoneSearchId, op);
         return;
       } catch (error) {
         ultimoError = error;
@@ -221,7 +222,7 @@ export function useBusquedaZona() {
     const siguientes = criteriosSiguienteBloque(criterios, actual);
     if (!siguientes) return;
     setEstado((prev) => plegarBloque(prev));
-    await preparar(siguientes, { conservarAcumulado: true, noCancelar: true });
+    await preparar(siguientes, { conservarAcumulado: true, noCancelar: true, empezar: true });
   };
 
   const comenzar = () => {

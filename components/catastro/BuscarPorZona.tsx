@@ -108,12 +108,18 @@ export function BuscarPorZona({
 
   if (estado.fase === "preparada") {
     const totalCalles = snapshot.coverage.streetsTotal ?? snapshot.progress.streetsFound;
-    const porBloques = zonaDemasiadoGrande(totalCalles);
+    const offset = snapshot.coverage.streetOffset ?? snapshot.criteria.streetOffset ?? 0;
+    const porBloques = zonaDemasiadoGrande(totalCalles) && offset === 0;
     return (
       <div className="space-y-4 rounded-2xl border border-border bg-white p-5 sm:p-6" role="status">
         <div>
           <p className="text-base font-semibold text-foreground">
-            {textoPreparacion(snapshot.progress.streetsFound, snapshot.criteria.postalCode, totalCalles)}
+            {textoPreparacion(
+              snapshot.progress.streetsFound,
+              snapshot.criteria.postalCode,
+              totalCalles,
+              offset
+            )}
           </p>
           {porBloques ? (
             <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">

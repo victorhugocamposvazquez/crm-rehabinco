@@ -188,6 +188,10 @@ describe("Zona UI: preparación y confirmación", () => {
       textoPreparacion(250, "15009", 14991),
       /14[.\u00a0\s]?991 calles oficiales[\s\S]*15009[\s\S]*primer bloque tiene 250/
     );
+    assert.match(
+      textoPreparacion(16, "28100", 266, 250),
+      /bloque 2 de 2 tiene 16 calles \(251–266\)/
+    );
   });
 
   it("4. la búsqueda solo arranca con confirmación explícita (Comenzar)", () => {
