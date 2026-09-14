@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { LayoutGrid, List, Plus } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
 import { isAdmin } from "@/lib/auth/roles";
@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { FiltroComercial, type ComercialFiltro } from "@/components/captacion/FiltroComercial";
 import { useFiltroComercial } from "@/lib/ui/filtro-comercial";
 import { relacionUno } from "@/lib/citas/citas";
+import { nombreYApellido } from "@/lib/ui/tokens";
 import {
   COLUMNAS_TAREA,
   columnaDeTarea,
@@ -19,7 +20,7 @@ import {
   textoVinculoTarea,
   type ColumnaTarea,
 } from "@/lib/tareas/tareas";
-import { TareasBoard, type TareaTarjeta } from "@/components/tareas/TareasBoard";
+import { TareasBoard, AvataresTarea, type TareaTarjeta } from "@/components/tareas/TareasBoard";
 import { TareaPanel, type TareaDetalle } from "@/components/tareas/TareaPanel";
 
 function normalizar(row: TareaDetalle & Record<string, unknown>): TareaDetalle {
@@ -30,11 +31,34 @@ function normalizar(row: TareaDetalle & Record<string, unknown>): TareaDetalle {
     demandas: relacionUno(row.demandas as TareaDetalle["demandas"] | TareaDetalle["demandas"][] | null),
     partes_visita: relacionUno(row.partes_visita as TareaDetalle["partes_visita"] | TareaDetalle["partes_visita"][] | null),
     profiles: relacionUno(row.profiles as TareaDetalle["profiles"] | TareaDetalle["profiles"][] | null),
+    creador: relacionUno(row.creador as TareaDetalle["creador"] | TareaDetalle["creador"][] | null),
   };
 }
 
 const SELECT_TAREA =
-  "id, comercial_id, titulo, vence, hora, estado, finca_reference, propiedad_id, cliente_id, demanda_id, cita_id, parte_visita_id, created_at, propiedades:propiedad_id(titulo, direccion, referencia), clientes:cliente_id(nombre), demandas:demanda_id(tipo_operacion), partes_visita:parte_visita_id(inmueble_direccion, fecha_visita), profiles:comercial_id(nombre_completo, color)";
+  "id, comercial_id, creado_por, mencionados, titulo, vence, hora, estado, finca_reference, propiedad_id, cliente_id, demanda_id, cita_id, parte_visita_id, created_at, propiedades:propiedad_id(titulo, direccion, referencia), clientes:cliente_id(nombre), demandas:demanda_id(tipo_operacion), partes_visita:parte_visita_id(inmueble_direccion, fecha_visita), profiles:comercial_id(nombre_completo, color, email), creador:creado_por(nombre_completo, color, email)";
+
+function personaDe(
+  id: string,
+  perfil: { nombre_completo?: string | null; color?: string | null; email?: string | null } | null | undefined,
+  equipo: ComercialFiltro[],
+  yo: { id: string; nombre?: string | null; email?: string; color?: string | null } | null
+) {
+  const delEquipo = equipo.find((c) => c.id === id);
+  const nombreBruto =
+    perfil?.nombre_completo ||
+    delEquipo?.nombre ||
+    (yo?.id === id ? yo.nombre : null) ||
+    perfil?.email ||
+    (yo?.id === id ? yo.email : null) ||
+    "";
+  return {
+    id,
+    nombre: nombreYApellido(nombreBruto, perfil?.email ?? (yo?.id === id ? yo.email : null)) || nombreBruto || "—",
+    color: perfil?.color ?? delEquipo?.color ?? (yo?.id === id ? yo.color ?? null : null),
+    email: perfil?.email ?? (yo?.id === id ? yo.email : null) ?? null,
+  };
+}
 
 export default function TareasPage() {
   const { user } = useAuth();
@@ -51,9 +75,7 @@ export default function TareasPage() {
   const cargar = () => {
     if (!user) return;
     const supabase = createClient();
-    let q = supabase.from("tareas").select(SELECT_TAREA).order("vence");
-    if (!admin) q = q.eq("comercial_id", user.id);
-    void q.then(({ data, error }) => {
+    void supabase.from("tareas").select(SELECT_TAREA).order("vence").then(({ data, error }) => {
       if (error) {
         toast.error("No se han podido cargar las tareas.");
         setLoading(false);
@@ -65,23 +87,23 @@ export default function TareasPage() {
   };
 
   useEffect(() => {
-    if (!admin) return;
+    if (!user) return;
     const supabase = createClient();
     void supabase
       .from("profiles")
       .select("id, nombre_completo, email, color")
-      .in("role", ["comercial", "admin"])
+      .in("role", ["comercial", "admin", "agente"])
       .eq("activo", true)
       .then(({ data }) =>
         setComerciales(
           (data ?? []).map((item) => ({
             id: item.id,
-            nombre: item.nombre_completo || item.email || "Comercial",
+            nombre: item.nombre_completo || item.email || "",
             color: item.color,
           }))
         )
       );
-  }, [admin]);
+  }, [user]);
 
   useEffect(() => {
     cargar();
@@ -116,13 +138,11 @@ export default function TareasPage() {
             });
             return texto === "Sin vincular" ? null : texto;
           })(),
-          comercial: {
-            nombre: t.profiles?.nombre_completo || "Comercial",
-            color: t.profiles?.color ?? null,
-          },
+          creador: personaDe(t.creado_por ?? t.comercial_id, t.creador, comerciales, user),
+          asignado: personaDe(t.comercial_id, t.profiles, comerciales, user),
         };
       });
-  }, [visibles, hoy]);
+  }, [visibles, hoy, comerciales, user]);
 
   const registrar = async (tareaId: string, texto: string, tipo = "nota") => {
     if (!user) return;
@@ -186,6 +206,7 @@ export default function TareasPage() {
       .from("tareas")
       .insert({
         comercial_id: user.id,
+        creado_por: user.id,
         titulo: parsed.titulo,
         vence: extra.vence ?? parsed.vence,
         hora: parsed.hora,
@@ -198,7 +219,13 @@ export default function TareasPage() {
       return;
     }
     const creada = normalizar(data as TareaDetalle & Record<string, unknown>);
-    await registrar(creada.id, `Creada por ${user.nombre?.split(" ")[0] ?? "ti"}`, "creada");
+    if (!creada.creador?.nombre_completo && user.nombre) {
+      creada.creador = { nombre_completo: user.nombre, color: user.color ?? null, email: user.email };
+    }
+    if (!creada.profiles?.nombre_completo && user.nombre) {
+      creada.profiles = { nombre_completo: user.nombre, color: user.color ?? null, email: user.email };
+    }
+    await registrar(creada.id, `Creada por ${nombreYApellido(user.nombre, user.email) || "ti"}`, "creada");
     if (parsed.hora) {
       await syncCita(creada, { hora: parsed.hora, vence: creada.vence, titulo: creada.titulo });
       await registrar(creada.id, `Añadida al calendario a las ${parsed.hora}`, "calendario");
@@ -206,7 +233,7 @@ export default function TareasPage() {
     setTitulo("");
     toast.success(parsed.hora ? "Tarea y cita creadas." : "Tarea creada.");
     setTareas((prev) => [creada, ...prev]);
-    setSel(creada.id);
+    if (!col) setSel(creada.id);
     cargar();
   };
 
@@ -247,6 +274,13 @@ export default function TareasPage() {
       return;
     }
     const siguiente = { ...actual, ...patch } as TareaDetalle;
+    if (typeof patch.comercial_id === "string") {
+      const dest = comerciales.find((c) => c.id === patch.comercial_id);
+      if (dest) siguiente.profiles = { nombre_completo: dest.nombre, color: dest.color };
+      if (actual.cita_id) {
+        await supabase.from("citas").update({ comercial_id: patch.comercial_id }).eq("id", actual.cita_id);
+      }
+    }
     if (patch.hora !== undefined || patch.vence !== undefined || patch.titulo !== undefined) {
       const citaId = await syncCita(actual, {
         hora: (patch.hora as string | null | undefined) ?? actual.hora,
@@ -255,7 +289,13 @@ export default function TareasPage() {
       });
       if (citaId) siguiente.cita_id = citaId;
     }
-    if (actividad) await registrar(id, actividad, patch.hora ? "calendario" : "vinculo");
+    if (actividad) {
+      await registrar(
+        id,
+        actividad,
+        patch.comercial_id ? "delegada" : patch.hora ? "calendario" : "vinculo"
+      );
+    }
     setTareas((prev) => prev.map((item) => (item.id === id ? siguiente : item)));
     if (patch.propiedad_id || patch.cliente_id || patch.demanda_id || patch.parte_visita_id) {
       cargar();
@@ -305,6 +345,7 @@ export default function TareasPage() {
       >
         <Plus className="shrink-0 text-accent" size={15} strokeWidth={2.6} />
         <input
+          enterKeyHint="done"
           value={titulo}
           onChange={(e) => setTitulo(e.target.value)}
           placeholder="Nueva tarea… «Llamar propietario Agra Montes 45 mañana 10:00»"
@@ -313,6 +354,13 @@ export default function TareasPage() {
         <span className="hidden whitespace-nowrap pr-1.5 text-[12px] text-[var(--text-3)] min-[820px]:inline">
           ↵ crea · «mañana 10:00» la pone en el calendario
         </span>
+        <button
+          type="submit"
+          aria-label="Crear tarea"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-[9px] bg-accent text-white"
+        >
+          <Check size={16} strokeWidth={2.8} />
+        </button>
       </form>
 
       <div className="mt-5">
@@ -327,6 +375,7 @@ export default function TareasPage() {
             onToggle={(id) => void marcar(id)}
             onAbrir={setSel}
             onCrearEnColumna={(col, texto) => void crearCon(texto, col)}
+            onRenombrar={(id, tituloNuevo) => void guardarPatch(id, { titulo: tituloNuevo })}
           />
         ) : (
           <ul className="overflow-hidden rounded-[14px] border border-border bg-white">
@@ -340,6 +389,7 @@ export default function TareasPage() {
                   <span className="h-2 w-2 rounded-full" style={{ background: COLUMNAS_TAREA.find((c) => c.id === t.col)?.dot }} />
                   <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium">{t.titulo}</span>
                   <span className="text-[12px] text-[var(--text-2)]">{t.venceLabel}</span>
+                  <AvataresTarea creador={t.creador} asignado={t.asignado} size={20} />
                 </button>
               </li>
             ))}
@@ -350,7 +400,7 @@ export default function TareasPage() {
       <TareaPanel
         tarea={seleccionada}
         hoy={hoy}
-        admin={admin}
+        userId={user?.id ?? ""}
         comerciales={comerciales}
         onClose={() => setSel(null)}
         onPatch={guardarPatch}

@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils";
 import { FiltroComercialProvider } from "@/lib/ui/filtro-comercial";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isAdmin } from "@/lib/auth/roles";
 import { bandejaDeTarea } from "@/lib/tareas/tareas";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -23,10 +22,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (!user) return;
     const supabase = createClient();
     const hoy = new Date().toISOString().slice(0, 10);
-    let tareasQ = supabase.from("tareas").select("vence, estado");
-    if (!isAdmin(user.role)) tareasQ = tareasQ.eq("comercial_id", user.id);
     void Promise.all([
-      tareasQ,
+      supabase.from("tareas").select("vence, estado"),
       supabase.from("partes_visita").select("id", { count: "exact", head: true }).eq("estado", "pendiente_firma"),
     ]).then(([tareas, partes]) => {
       const pendientes = (tareas.data ?? []).filter((row) => {

@@ -8,7 +8,9 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/sheet";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
+import { CampoComentario, TextoConMenciones } from "@/components/tareas/CampoComentario";
 import { relacionUno } from "@/lib/citas/citas";
+import { nombreYApellido } from "@/lib/ui/tokens";
 import { rutaFincaPersistida } from "@/lib/catastro/explorer/history-ui";
 import {
   COLUMNAS_TAREA,
@@ -22,6 +24,8 @@ import {
 export type TareaDetalle = {
   id: string;
   comercial_id: string;
+  creado_por?: string | null;
+  mencionados?: string[] | null;
   titulo: string;
   vence: string | null;
   hora?: string | null;
@@ -37,15 +41,21 @@ export type TareaDetalle = {
   clientes?: { nombre?: string | null } | null;
   demandas?: { tipo_operacion?: string | null } | null;
   partes_visita?: { inmueble_direccion?: string | null; fecha_visita?: string | null } | null;
-  profiles?: { nombre_completo?: string | null; color?: string | null } | null;
+  profiles?: { nombre_completo?: string | null; color?: string | null; email?: string | null } | null;
+  creador?: { nombre_completo?: string | null; color?: string | null; email?: string | null } | null;
 };
 
-type Actividad = { id: string; cuando: string; texto: string };
+type Actividad = {
+  id: string;
+  cuando: string;
+  texto: string;
+  actor?: { nombre?: string | null; color?: string | null } | null;
+};
 
 export function TareaPanel({
   tarea,
   hoy,
-  admin,
+  userId,
   comerciales,
   onClose,
   onPatch,
@@ -54,7 +64,7 @@ export function TareaPanel({
 }: {
   tarea: TareaDetalle | null;
   hoy: string;
-  admin: boolean;
+  userId: string;
   comerciales: Array<{ id: string; nombre: string; color: string | null }>;
   onClose: () => void;
   onPatch: (id: string, patch: Record<string, unknown>, actividad?: string) => Promise<void>;
@@ -62,7 +72,6 @@ export function TareaPanel({
   onMover: (id: string, col: ColumnaTarea) => void;
 }) {
   const [titulo, setTitulo] = useState("");
-  const [nota, setNota] = useState("");
   const [finca, setFinca] = useState("");
   const [actividad, setActividad] = useState<Actividad[]>([]);
   const [propsOpts, setPropsOpts] = useState<Array<{ id: string; label: string }>>([]);
@@ -72,7 +81,6 @@ export function TareaPanel({
 
   useEffect(() => {
     setTitulo(tarea?.titulo ?? "");
-    setNota("");
     setFinca(tarea?.finca_reference ?? "");
   }, [tarea?.id, tarea?.titulo]);
 
@@ -85,7 +93,7 @@ export function TareaPanel({
     let cancelled = false;
     void supabase
       .from("tareas_actividad")
-      .select("id, texto, created_at, profiles:actor_id(nombre_completo)")
+      .select("id, texto, created_at, profiles:actor_id(nombre_completo, color)")
       .eq("tarea_id", tarea.id)
       .order("created_at")
       .then(({ data }) => {
@@ -94,18 +102,26 @@ export function TareaPanel({
           id: string;
           texto: string;
           created_at: string;
-          profiles?: { nombre_completo?: string | null } | { nombre_completo?: string | null }[] | null;
-        }>).map((row) => ({
-          id: row.id,
-          cuando: cuandoActividad(row.created_at, hoy),
-          texto: row.texto,
-        }));
+          profiles?: { nombre_completo?: string | null; color?: string | null } | { nombre_completo?: string | null; color?: string | null }[] | null;
+        }>).map((row) => {
+          const actor = relacionUno(row.profiles);
+          return {
+            id: row.id,
+            cuando: cuandoActividad(row.created_at, hoy),
+            texto: row.texto,
+            actor: actor ? { nombre: actor.nombre_completo, color: actor.color } : null,
+          };
+        });
         if (filas.length === 0 && tarea.created_at) {
           setActividad([
             {
               id: "creada",
               cuando: cuandoActividad(tarea.created_at, hoy),
-              texto: `Creada por ${tarea.profiles?.nombre_completo?.split(" ")[0] ?? "el comercial"}`,
+              texto: `Creada por ${nombreYApellido(tarea.creador?.nombre_completo ?? tarea.profiles?.nombre_completo) || "ti"}`,
+              actor: {
+                nombre: tarea.creador?.nombre_completo ?? tarea.profiles?.nombre_completo,
+                color: tarea.creador?.color ?? tarea.profiles?.color,
+              },
             },
           ]);
           return;
@@ -115,7 +131,7 @@ export function TareaPanel({
     return () => {
       cancelled = true;
     };
-  }, [tarea, hoy]);
+  }, [tarea?.id, tarea?.created_at, tarea?.comercial_id, hoy]);
 
   useEffect(() => {
     if (!tarea) return;
@@ -179,6 +195,16 @@ export function TareaPanel({
   const col = columnaDeTarea(tarea.vence, hoy, tarea.estado);
   const colMeta = COLUMNAS_TAREA.find((c) => c.id === col);
   const hecha = tarea.estado === "hecha";
+  const nombreCreador =
+    nombreYApellido(
+      tarea.creador?.nombre_completo ?? comerciales.find((c) => c.id === tarea.creado_por)?.nombre,
+      tarea.creador?.email
+    ) || "—";
+  const nombreAsignado =
+    nombreYApellido(
+      tarea.profiles?.nombre_completo ?? comerciales.find((c) => c.id === tarea.comercial_id)?.nombre,
+      tarea.profiles?.email
+    ) || "—";
   const vinculo = textoVinculoTarea({
     propiedad: [tarea.propiedades?.referencia, tarea.propiedades?.titulo || tarea.propiedades?.direccion]
       .filter(Boolean)
@@ -209,21 +235,26 @@ export function TareaPanel({
     void onPatch(tarea.id, { titulo: limpio });
   };
 
-  const guardarNota = async () => {
-    const texto = nota.trim();
-    if (!texto) return;
+  const guardarNota = async (texto: string, mencionados: string[]) => {
+    if (mencionados.length > 0) {
+      const unidos = [...new Set([...(tarea.mencionados ?? []), ...mencionados])];
+      await onPatch(tarea.id, { mencionados: unidos });
+    }
     const supabase = createClient();
     const { data, error } = await supabase
       .from("tareas_actividad")
-      .insert({ tarea_id: tarea.id, actor_id: tarea.comercial_id, tipo: "nota", texto })
+      .insert({ tarea_id: tarea.id, actor_id: userId, tipo: "nota", texto, mencionados })
       .select("id, created_at")
       .single();
     if (error || !data) {
-      toast.error("No se ha podido guardar la nota.");
+      toast.error("No se ha podido guardar el comentario.");
       return;
     }
-    setActividad((prev) => [...prev, { id: data.id, cuando: "Hoy", texto }]);
-    setNota("");
+    const yo = comerciales.find((c) => c.id === userId);
+    setActividad((prev) => [
+      ...prev,
+      { id: data.id, cuando: "Hoy", texto, actor: yo ? { nombre: yo.nombre, color: yo.color } : null },
+    ]);
   };
 
   return (
@@ -294,27 +325,59 @@ export function TareaPanel({
               />
             </div>
             <div>
-              <div className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">Comercial</div>
-              {admin ? (
-                <select
-                  value={tarea.comercial_id}
-                  onChange={(e) => void onPatch(tarea.id, { comercial_id: e.target.value })}
-                  className="mt-1 w-full bg-transparent text-[13.5px] outline-none"
-                >
-                  {comerciales.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.nombre}
-                    </option>
-                  ))}
-                </select>
+              <div className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">Creada por</div>
+              <div className="mt-1 flex items-center gap-1.5 text-[13.5px]">
+                <AvatarComercial
+                  nombre={tarea.creador?.nombre_completo ?? nombreCreador}
+                  email={tarea.creador?.email}
+                  color={tarea.creador?.color ?? tarea.profiles?.color}
+                  size={18}
+                />
+                {nombreCreador}
+              </div>
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">Asignada a</div>
+              {comerciales.length > 0 ? (
+                <div className="mt-1 flex items-center gap-1.5">
+                  <AvatarComercial
+                    nombre={tarea.profiles?.nombre_completo ?? nombreAsignado}
+                    email={tarea.profiles?.email}
+                    color={tarea.profiles?.color}
+                    size={18}
+                  />
+                  <select
+                    value={tarea.comercial_id}
+                    onChange={(e) => {
+                      const dest = comerciales.find((c) => c.id === e.target.value);
+                      const nombre = dest ? nombreYApellido(dest.nombre) : "otro";
+                      void onPatch(tarea.id, { comercial_id: e.target.value }, `Delegada a ${nombre}`);
+                    }}
+                    className="min-w-0 flex-1 bg-transparent text-[13.5px] outline-none"
+                  >
+                    {comerciales.some((c) => c.id === tarea.comercial_id) ? null : (
+                      <option value={tarea.comercial_id}>{nombreAsignado}</option>
+                    )}
+                    {comerciales.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {nombreYApellido(c.nombre) || c.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               ) : (
                 <div className="mt-1 flex items-center gap-1.5 text-[13.5px]">
-                  <AvatarComercial nombre={tarea.profiles?.nombre_completo} color={tarea.profiles?.color} size={18} />
-                  {tarea.profiles?.nombre_completo ?? "Comercial"}
+                  <AvatarComercial
+                    nombre={tarea.profiles?.nombre_completo ?? nombreAsignado}
+                    email={tarea.profiles?.email}
+                    color={tarea.profiles?.color}
+                    size={18}
+                  />
+                  {nombreAsignado}
                 </div>
               )}
             </div>
-            <div>
+            <div className="col-span-2">
               <div className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">Vinculado a</div>
               {hrefVinculo && vinculo !== "Sin vincular" ? (
                 <Link href={hrefVinculo} className="mt-1 block truncate text-[13.5px] text-accent">
@@ -448,30 +511,19 @@ export function TareaPanel({
           </div>
 
           <div className="mt-[18px]">
-            <div className="mb-2 text-[11px] uppercase tracking-[.07em] text-[var(--label)]">Actividad</div>
+            <div className="mb-2 text-[11px] uppercase tracking-[.07em] text-[var(--label)]">Comentarios</div>
             {actividad.map((a) => (
               <div key={a.id} className="flex gap-2.5 py-1.5 text-[13px]">
                 <span className="w-[52px] shrink-0 tabular-nums text-[var(--text-3)]">{a.cuando}</span>
-                <span>{a.texto}</span>
+                {a.actor?.nombre ? (
+                  <AvatarComercial nombre={a.actor.nombre} color={a.actor.color} size={18} title={a.actor.nombre} />
+                ) : null}
+                <span className="min-w-0 flex-1 leading-snug">
+                  <TextoConMenciones texto={a.texto} equipo={comerciales} />
+                </span>
               </div>
             ))}
-            <div className="mt-2 flex gap-2">
-              <input
-                value={nota}
-                onChange={(e) => setNota(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    void guardarNota();
-                  }
-                }}
-                placeholder="Añadir nota…"
-                className="h-[38px] min-w-0 flex-1 rounded-[9px] border border-[var(--input)] px-3 text-[13.5px] outline-none focus:border-accent"
-              />
-              <Button type="button" variant="secondary" className="h-[38px]" onClick={() => void guardarNota()}>
-                Guardar
-              </Button>
-            </div>
+            <CampoComentario equipo={comerciales} onEnviar={(texto, mencionados) => void guardarNota(texto, mencionados)} />
           </div>
         </div>
 

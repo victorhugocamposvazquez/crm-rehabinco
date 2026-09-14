@@ -52,12 +52,11 @@ export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFactu
       })
       .catch(() => undefined);
 
-    let tareasQ = supabase
+    const tareasQ = supabase
       .from("tareas")
       .select("id, titulo, vence, finca_reference, estado, comercial_id")
       .neq("estado", "hecha")
       .order("vence");
-    if (!admin) tareasQ = tareasQ.eq("comercial_id", user.id);
 
     let citasQ = supabase
       .from("citas")

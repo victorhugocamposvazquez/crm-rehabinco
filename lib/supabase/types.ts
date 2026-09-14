@@ -771,6 +771,8 @@ export interface Database {
         Row: {
           id: string;
           comercial_id: string;
+          creado_por: string;
+          mencionados: string[];
           titulo: string;
           vence: string | null;
           estado: string;
@@ -785,6 +787,8 @@ export interface Database {
         };
         Insert: {
           comercial_id: string;
+          creado_por?: string;
+          mencionados?: string[];
           titulo: string;
           vence?: string | null;
           hora?: string | null;
@@ -807,6 +811,7 @@ export interface Database {
           demanda_id?: string | null;
           cita_id?: string | null;
           comercial_id?: string;
+          mencionados?: string[];
           parte_visita_id?: string | null;
         };
       };
@@ -817,6 +822,7 @@ export interface Database {
           actor_id: string | null;
           tipo: string;
           texto: string;
+          mencionados: string[];
           created_at: string;
         };
         Insert: {
@@ -824,6 +830,7 @@ export interface Database {
           actor_id?: string | null;
           tipo?: string;
           texto: string;
+          mencionados?: string[];
         };
         Update: {
           texto?: string;
