@@ -7,6 +7,7 @@ import {
   ESTADO_ZONA_INICIAL,
   aplicarErrorZona,
   aplicarSnapshotZona,
+  criteriosSiguienteBloque,
   debeContinuarPasos,
   esFalloTransitorioZona,
   ejecutarBucleZona,
@@ -177,28 +178,50 @@ export function useBusquedaZona() {
     if (!opciones.conservarAcumulado) reintento410.current = false;
     setCancelando(false);
     setEstado((prev) => ({
-      ...ESTADO_ZONA_INICIAL,
+      ...(opciones.conservarAcumulado ? prev : ESTADO_ZONA_INICIAL),
       fase: "preparando",
+      error: null,
       acumulado: opciones.conservarAcumulado ? prev.acumulado : null,
     }));
-    try {
-      const snapshot = await fetchZonaPreparar(criterios, controller.signal);
-      if (opRef.current !== op || controller.signal.aborted) return;
-      zoneIdRef.current = snapshot.zoneSearchId;
-      recordarZona(snapshot.zoneSearchId);
-      setEstado((prev) => aplicarSnapshotZona(prev, snapshot));
-    } catch (error) {
-      if (opRef.current !== op || esAbortError(error) || controller.signal.aborted) return;
-      setEstado((prev) => aplicarErrorZona({ ...prev, fase: "formulario" }, errorDe(error)));
+    const intentos = opciones.conservarAcumulado ? 3 : 1;
+    let ultimoError: unknown;
+    for (let intento = 0; intento < intentos; intento += 1) {
+      try {
+        const snapshot = await fetchZonaPreparar(criterios, controller.signal);
+        if (opRef.current !== op || controller.signal.aborted) return;
+        zoneIdRef.current = snapshot.zoneSearchId;
+        recordarZona(snapshot.zoneSearchId);
+        setEstado((prev) => aplicarSnapshotZona(prev, snapshot));
+        return;
+      } catch (error) {
+        ultimoError = error;
+        if (opRef.current !== op || esAbortError(error) || controller.signal.aborted) return;
+        if (intento < intentos - 1) await esperar(700 * (intento + 1));
+      }
     }
+    if (opRef.current !== op || esAbortError(ultimoError)) return;
+    setEstado((prev) => {
+      if (opciones.conservarAcumulado && prev.snapshot) {
+        return {
+          ...aplicarErrorZona(prev, {
+            ...errorDe(ultimoError),
+            message:
+              "No se ha podido preparar el siguiente bloque. Vuelve a pulsar el botón; lo ya encontrado se conserva.",
+          }),
+          fase: prev.snapshot.status === "done" ? "completada" : "error",
+        };
+      }
+      return aplicarErrorZona({ ...prev, fase: "formulario" }, errorDe(ultimoError));
+    });
   };
 
   const siguienteBloque = async (criterios: CriteriosZonaUi) => {
     const actual = estado.snapshot;
     if (!actual) return;
-    const offset = (actual.coverage.streetOffset ?? 0) + actual.progress.streetsFound;
+    const siguientes = criteriosSiguienteBloque(criterios, actual);
+    if (!siguientes) return;
     setEstado((prev) => plegarBloque(prev));
-    await preparar({ ...criterios, streetOffset: offset }, { conservarAcumulado: true });
+    await preparar(siguientes, { conservarAcumulado: true, noCancelar: true });
   };
 
   const comenzar = () => {

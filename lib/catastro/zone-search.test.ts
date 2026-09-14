@@ -330,11 +330,16 @@ describe("Zona: preparación", () => {
     assert.equal(primero.calles.length, 250);
     assert.equal(primero.streetsTotal, 300);
     assert.equal(primero.streetOffset, 0);
+    assert.equal(primero.callesCola?.length, 50);
     const snap1 = snapshotZona(primero);
     assert.equal(snap1.coverage.hasNextBlock, true);
     assert.equal(snap1.coverage.streetsFound, 250);
 
-    const segundo = await prepararOk(deps, { ...CRITERIOS, streetOffset: "250" });
+    const cacheVacia = createCatalogCache();
+    const segundo = await prepararOk(
+      { ...deps, catalogCache: cacheVacia, client: { obtenerCallejero: async () => { throw new Error("catastro caído"); } } as CatastroClient },
+      { ...CRITERIOS, streetOffset: "250" }
+    );
     assert.equal(segundo.calles.length, 50);
     assert.equal(segundo.streetOffset, 250);
     assert.equal(segundo.id === primero.id, false);

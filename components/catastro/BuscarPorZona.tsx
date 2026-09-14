@@ -222,7 +222,8 @@ export function BuscarPorZona({
         <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4" aria-live="polite">
           <Contador texto={textos.calles} />
           <Contador texto={textos.fincas} />
-          <Contador texto={textos.candidatas} destacado />
+          <Contador texto={textos.sinDh} destacado />
+          {textos.candidatas ? <Contador texto={textos.candidatas} /> : null}
           {textos.errores ? <Contador texto={textos.errores} alerta /> : null}
         </dl>
 

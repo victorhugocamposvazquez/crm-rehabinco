@@ -226,12 +226,20 @@ describe("Zona UI: progreso y resultados", () => {
     const textos = textosProgreso(enCurso);
     assert.equal(textos.calles, "Calles revisadas: 17 / 427");
     assert.equal(textos.fincas, "Fincas encontradas: 8");
-    assert.equal(textos.candidatas, "Candidatas sin división horizontal: 5");
+    assert.equal(textos.sinDh, "Candidatas (Sin DH): 1");
+    assert.equal(textos.candidatas, null);
     assert.equal(textos.errores, "Calles con errores: 1");
     assert.equal(textos.porcentaje, 3);
     assert.equal(textosProgreso(snapshot()).errores, null);
     const conYes = snapshot({ criteria: { ...enCurso.criteria, horizontalDivision: "YES" } });
-    assert.match(textosProgreso(conYes).candidatas, /^Fincas con división horizontal: /);
+    assert.match(textosProgreso(conYes).candidatas ?? "", /^Fincas con división horizontal: /);
+    const todas = snapshot({
+      criteria: { ...enCurso.criteria, horizontalDivision: "ALL" },
+      results: [finca("NO1", "1", "MAYOR", "NO"), finca("YES1", "2", "MAYOR", "YES")],
+      progress: { fincasFound: 2, candidates: 2 },
+    });
+    assert.equal(textosProgreso(todas).sinDh, "Candidatas (Sin DH): 1");
+    assert.match(textosProgreso(todas).candidatas ?? "", /^Fincas con el código postal: /);
     assert.equal(etiquetaCandidatas("NOT_APPLICABLE"), "Fincas no aplicables");
     assert.notEqual(etiquetaCandidatas("NOT_APPLICABLE"), "Candidatas sin división horizontal");
     // Ritmo: solo hechos medidos y tras varias calles; nunca un tiempo estimado.
@@ -460,6 +468,11 @@ describe("Zona UI: cancelación y reanudación", () => {
       })
     );
     assert.equal(accionesDisponibles(bloqueHecho).siguienteBloque, true);
+    const falloSiguiente = aplicarErrorZona(bloqueHecho, {
+      status: 502,
+      message: "Catastro no está disponible en este momento. Inténtalo de nuevo.",
+    });
+    assert.equal(accionesDisponibles(falloSiguiente).siguienteBloque, true);
     assert.match(textoSiguienteBloque(bloqueHecho.snapshot!), /251/);
     const criterios = { provincia: "A CORUÑA", municipio: "A CORUÑA", postalCode: "15009", horizontalDivision: "NO" };
     assert.deepEqual(criteriosSiguienteBloque(criterios, bloqueHecho.snapshot!), {
@@ -491,8 +504,8 @@ describe("Zona UI: cancelación y reanudación", () => {
       textosProgreso(
         snapshot({ results: [finca("YES3", "4", "NUEVA", "YES")], progress: { fincasFound: 1, candidates: 0 } }),
         plegadoMixto.acumulado
-      ).candidatas,
-      "Candidatas sin división horizontal: 1"
+      ).sinDh,
+      "Candidatas (Sin DH): 1"
     );
     const otro = aplicarErrorZona(terminada, { status: 502, message: "Catastro no está disponible." });
     assert.equal(otro.fase, "error");

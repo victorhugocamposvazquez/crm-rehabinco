@@ -41,11 +41,13 @@ describe("Archivo de sesión de zona", () => {
       postalCodes: ["15009"],
       horizontalDivision: { status: "NO", confidence: 1, reason: "test" },
     });
+    creada.session.callesCola = [{ code: "22", sigla: "CL", name: "MAYOR" }];
     const hidratada = hidratarSesionZona(serializarSesionZona(creada.session));
     assert.ok(hidratada);
     assert.equal(hidratada?.id, "zona-persistida");
     assert.equal(hidratada?.streetsTotal, 131);
     assert.equal(hidratada?.calles[0]?.calle.code, "11");
+    assert.equal(hidratada?.callesCola?.[0]?.code, "22");
     assert.equal(hidratada?.fincas.get("8801701NJ4080S")?.portals[0], "10");
   });
 

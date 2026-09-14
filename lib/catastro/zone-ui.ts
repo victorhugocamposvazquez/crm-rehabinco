@@ -494,7 +494,8 @@ export function textosProgreso(
 ): {
   calles: string;
   fincas: string;
-  candidatas: string;
+  candidatas: string | null;
+  sinDh: string;
   errores: string | null;
   porcentaje: number;
 } {
@@ -502,12 +503,12 @@ export function textosProgreso(
   const bloque = resumenBloque(snapshot.coverage, progress.streetsFound);
   const procesadas = (acumulado?.streetsProcessed ?? 0) + progress.streetsProcessed;
   const fincas = (acumulado?.fincasFound ?? 0) + progress.fincasFound;
+  const visibles = fusionarResultadosZona(acumulado?.results ?? [], snapshot.results);
+  const filtro = snapshot.criteria.horizontalDivision.trim().toUpperCase();
   const candidatas = acumulado
-    ? contarCandidatasZona(
-        fusionarResultadosZona(acumulado.results, snapshot.results),
-        snapshot.criteria.horizontalDivision
-      )
+    ? contarCandidatasZona(visibles, snapshot.criteria.horizontalDivision)
     : progress.candidates;
+  const sinDh = visibles.length > 0 ? contarCandidatasZona(visibles, "NO") : filtro === "NO" ? progress.candidates : 0;
   const erroresN = (acumulado?.streetsWithErrors ?? 0) + progress.streetsWithErrors;
   const porBloques =
     bloque.hasNext || bloque.offset > 0 || bloque.total > progress.streetsFound;
@@ -519,7 +520,11 @@ export function textosProgreso(
   return {
     calles,
     fincas: `Fincas encontradas: ${fincas}`,
-    candidatas: `${etiquetaCandidatas(snapshot.criteria.horizontalDivision)}: ${candidatas || progress.candidates}`,
+    candidatas:
+      filtro && filtro !== "NO"
+        ? `${etiquetaCandidatas(snapshot.criteria.horizontalDivision)}: ${candidatas || progress.candidates}`
+        : null,
+    sinDh: `Candidatas (Sin DH): ${sinDh}`,
     errores: erroresN > 0 ? `Calles con errores: ${erroresN}` : null,
     porcentaje: Math.min(100, Math.max(0, porcentaje)),
   };
@@ -668,6 +673,7 @@ export function accionesDisponibles(estado: EstadoZonaUi): AccionesZona {
         preparar: true,
         reanudar: estado.fase === "error" && Boolean(snapshot) && pendientes,
         nuevaBusqueda: Boolean(snapshot),
+        siguienteBloque: estado.fase === "error" && haySiguiente && snapshot?.status === "done",
       };
     case "preparando":
       return ACCIONES_CERRADAS;

@@ -211,6 +211,67 @@ function offsetZona(valor: number | string | undefined): number {
   return Math.max(0, Math.floor(n));
 }
 
+/** Tope de calles guardadas para el siguiente bloque (evita inflar la sesión). */
+const ZONE_MAX_CALLES_COLA = 3_000;
+
+function claveCallesZona(criterios: CriteriosZonaNormalizados): string {
+  return `zone-streets:${criterios.provincia}|${criterios.municipio}|${criterios.postalCode}`;
+}
+
+type CallesZonaCache = {
+  calles: CalleCatalogo[];
+  provinciaOficial: string;
+  municipioOficial: string;
+};
+
+function esperarMs(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function sesionBloqueAnterior(
+  userId: string,
+  criterios: CriteriosZonaNormalizados,
+  zoneStore: ZoneSessionStore,
+  archive?: ZoneSessionArchive
+): Promise<ZoneSession | null> {
+  if (criterios.streetOffset <= 0) return null;
+  const offsetAnterior = criterios.streetOffset - ZONE_MAX_STREETS_RUN;
+  if (offsetAnterior < 0) return null;
+  const claveAnterior = claveZona({ ...criterios, streetOffset: offsetAnterior });
+  const enMemoria = zoneStore.findByKey(userId, claveAnterior);
+  if (enMemoria) return enMemoria;
+  return (await archive?.findByKey(userId, claveAnterior)) ?? null;
+}
+
+function callesDesdeSesionAnterior(
+  previa: ZoneSession,
+  streetOffset: number
+): CallesZonaCache | null {
+  const cola = previa.callesCola;
+  if (!cola?.length) return null;
+  if (previa.streetOffset + previa.calles.length !== streetOffset) return null;
+  return {
+    calles: cola,
+    provinciaOficial: previa.provinciaOficial,
+    municipioOficial: previa.municipioOficial,
+  };
+}
+
+async function callejeroConReintento(
+  provincia: string,
+  municipio: string,
+  deps: { client: CatastroClient; cache: CatalogCache }
+): Promise<Awaited<ReturnType<typeof obtenerCallejeroOficial>>> {
+  let ultimo = await obtenerCallejeroOficial(provincia, municipio, deps);
+  if (ultimo.ok || ultimo.code === "invalid") return ultimo;
+  for (let intento = 0; intento < 2; intento += 1) {
+    await esperarMs(400 * (intento + 1));
+    ultimo = await obtenerCallejeroOficial(provincia, municipio, deps);
+    if (ultimo.ok || ultimo.code === "invalid") return ultimo;
+  }
+  return ultimo;
+}
+
 export type ResultadoPreparacionZona =
   | { ok: true; session: ZoneSession; reused: boolean }
   | { ok: false; code: "invalid" | "upstream" | "limit"; error: string };
@@ -256,35 +317,75 @@ export async function prepararZona(
     };
   }
 
-  const client = deps.client ?? getCatastroClient();
-  const callejero = await obtenerCallejeroOficial(criterios.provincia, criterios.municipio, {
-    client,
-    cache: deps.catalogCache ?? getCatalogCache(),
-  });
-  if (!callejero.ok) return { ok: false, code: callejero.code, error: callejero.error };
+  const cache = deps.catalogCache ?? getCatalogCache();
+  const cacheKey = claveCallesZona(criterios);
+  const previa = await sesionBloqueAnterior(user.id, criterios, zoneStore, deps.archive);
+  const desdeAnterior = previa ? callesDesdeSesionAnterior(previa, criterios.streetOffset) : null;
+  const cacheadas = cache.get<CallesZonaCache>(cacheKey);
 
-  let todas = callejero.callejero.calles;
-  if (criterios.postalCode) {
-    const delCp = await callesDelCodigoPostal(client, todas, criterios.postalCode);
-    if (!delCp.ok) return delCp;
-    todas = delCp.calles;
-  }
-  if (criterios.streetOffset > 0 && criterios.streetOffset >= todas.length) {
-    return { ok: false, code: "invalid", error: "No hay más calles en este municipio." };
-  }
-  const calles = todas.slice(criterios.streetOffset, criterios.streetOffset + ZONE_MAX_STREETS_RUN);
+  let todas: CalleCatalogo[];
+  let provinciaOficial: string;
+  let municipioOficial: string;
+  let streetsTotal: number;
 
+  if (desdeAnterior) {
+    todas = desdeAnterior.calles;
+    provinciaOficial = desdeAnterior.provinciaOficial;
+    municipioOficial = desdeAnterior.municipioOficial;
+    streetsTotal = previa?.streetsTotal ?? desdeAnterior.calles.length + criterios.streetOffset;
+  } else if (cacheadas?.calles.length) {
+    todas = cacheadas.calles;
+    provinciaOficial = cacheadas.provinciaOficial;
+    municipioOficial = cacheadas.municipioOficial;
+    streetsTotal = cacheadas.calles.length;
+    if (criterios.streetOffset > 0 && criterios.streetOffset >= todas.length) {
+      return { ok: false, code: "invalid", error: "No hay más calles en este municipio." };
+    }
+    todas = todas.slice(criterios.streetOffset);
+  } else {
+    const client = deps.client ?? getCatastroClient();
+    const callejero = await callejeroConReintento(criterios.provincia, criterios.municipio, {
+      client,
+      cache,
+    });
+    if (!callejero.ok) return { ok: false, code: callejero.code, error: callejero.error };
+
+    todas = callejero.callejero.calles;
+    if (criterios.postalCode) {
+      let delCp = await callesDelCodigoPostal(client, todas, criterios.postalCode);
+      if (!delCp.ok) {
+        await esperarMs(600);
+        delCp = await callesDelCodigoPostal(client, todas, criterios.postalCode);
+      }
+      if (!delCp.ok) return delCp;
+      todas = delCp.calles;
+    }
+    provinciaOficial = callejero.callejero.provincia.name;
+    municipioOficial = callejero.callejero.municipio.name;
+    streetsTotal = todas.length;
+    cache.set(cacheKey, { calles: todas, provinciaOficial, municipioOficial });
+    if (criterios.streetOffset > 0 && criterios.streetOffset >= todas.length) {
+      return { ok: false, code: "invalid", error: "No hay más calles en este municipio." };
+    }
+    todas = todas.slice(criterios.streetOffset);
+  }
+
+  const calles = todas.slice(0, ZONE_MAX_STREETS_RUN);
+  const cola = todas.slice(ZONE_MAX_STREETS_RUN);
   const creada = zoneStore.create({
     userId: user.id,
     claveZona: clave,
     criterios,
-    provinciaOficial: callejero.callejero.provincia.name,
-    municipioOficial: callejero.callejero.municipio.name,
+    provinciaOficial,
+    municipioOficial,
     calles,
-    streetsTotal: todas.length,
+    streetsTotal,
     streetOffset: criterios.streetOffset,
   });
   if (!creada.ok) return { ok: false, code: "limit", error: creada.error };
+  if (cola.length > 0 && cola.length <= ZONE_MAX_CALLES_COLA) {
+    creada.session.callesCola = cola;
+  }
   return { ok: true, session: creada.session, reused: false };
 }
 

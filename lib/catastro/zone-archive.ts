@@ -104,6 +104,18 @@ export function hidratarSesionZona(raw: unknown): ZoneSession | null {
     }
   }
   const calles = payload.calles.map(calleArchivada);
+  const callesCola = Array.isArray(payload.callesCola)
+    ? payload.callesCola.filter(
+        (calle): calle is NonNullable<ZoneSession["callesCola"]>[number] =>
+          Boolean(
+            calle &&
+              typeof calle === "object" &&
+              typeof calle.code === "string" &&
+              typeof calle.sigla === "string" &&
+              typeof calle.name === "string"
+          )
+      )
+    : undefined;
   return {
     id: payload.id,
     userId: payload.userId,
@@ -112,6 +124,7 @@ export function hidratarSesionZona(raw: unknown): ZoneSession | null {
     provinciaOficial: payload.provinciaOficial ?? "",
     municipioOficial: payload.municipioOficial ?? "",
     calles,
+    ...(callesCola && callesCola.length > 0 ? { callesCola } : {}),
     streetsTotal: Number(payload.streetsTotal) || payload.calles.length,
     streetOffset: Number(payload.streetOffset) || 0,
     fincas,

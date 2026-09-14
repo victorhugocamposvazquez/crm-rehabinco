@@ -57,6 +57,11 @@ export type ZoneSession = {
   provinciaOficial: string;
   municipioOficial: string;
   calles: EstadoCalleZona[];
+  /**
+   * Calles que quedan después de este bloque. El siguiente prepare las usa
+   * sin volver a preguntar a Catastro (que suele estar saturado tras el 1.º bloque).
+   */
+  callesCola?: CalleCatalogo[];
   /** Calles oficiales del municipio (todas, no solo este bloque). */
   streetsTotal: number;
   streetOffset: number;
