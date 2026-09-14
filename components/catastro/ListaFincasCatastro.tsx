@@ -89,7 +89,11 @@ export function ListaFincasCatastro({
   const [yo, setYo] = useState<string | null>(null);
   const [comerciales, setComerciales] = useState<ComercialAsignable[]>([]);
   const [asignaciones, setAsignaciones] = useState<Record<string, AsignacionFinca>>({});
-  const [orden, setOrden] = useState<CriterioOrdenLista[]>([{ campo: "inmuebles", direccion: "desc" }]);
+  const [orden, setOrden] = useState<CriterioOrdenLista[]>([
+    { campo: "anio", direccion: "desc" },
+    { campo: "inmuebles", direccion: "desc" },
+    { campo: "parcela", direccion: "desc" },
+  ]);
   const [minParcela, setMinParcela] = useState("");
   const [minInmuebles, setMinInmuebles] = useState("");
   const [maxAnio, setMaxAnio] = useState("");

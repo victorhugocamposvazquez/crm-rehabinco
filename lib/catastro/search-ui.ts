@@ -374,10 +374,17 @@ function aniosDeFinca(finca: FincaBusquedaUi): number[] {
   ].sort((a, b) => a - b);
 }
 
-/** Año más nuevo de la finca. «Hasta año» y el orden usan este valor, el mismo que se ve. */
+/** Año más nuevo de la finca. «Hasta año» usa este valor. */
 export function anioFincaLista(finca: FincaBusquedaUi): number | null {
   const anios = aniosDeFinca(finca);
   return anios.length > 0 ? anios[anios.length - 1]! : null;
+}
+
+/** ↓ = año más nuevo; ↑ = año más antiguo. En rangos usa el extremo que toca. */
+export function valorAnioOrdenLista(finca: FincaBusquedaUi, direccion: DireccionOrdenLista): number | null {
+  const anios = aniosDeFinca(finca);
+  if (anios.length === 0) return null;
+  return direccion === "asc" ? anios[0]! : anios[anios.length - 1]!;
 }
 
 export function etiquetaAnioFincaLista(finca: FincaBusquedaUi): string {
@@ -466,6 +473,11 @@ export function valorOrdenLista(finca: FincaBusquedaUi, campo: CampoOrdenLista):
   return anioFincaLista(finca);
 }
 
+function valorCriterioLista(finca: FincaBusquedaUi, criterio: CriterioOrdenLista): number | null {
+  if (criterio.campo === "anio") return valorAnioOrdenLista(finca, criterio.direccion);
+  return valorOrdenLista(finca, criterio.campo);
+}
+
 /**
  * Enciende, invierte o apaga un criterio. Varios a la vez pesan igual.
  */
@@ -498,7 +510,7 @@ function rangosCriterioLista(
   const n = fincas.length;
   const filas = fincas.map((finca, indice) => ({
     indice,
-    valor: valorOrdenLista(finca, criterio.campo),
+    valor: valorCriterioLista(finca, criterio),
   }));
   filas.sort((a, b) => {
     if (a.valor == null && b.valor == null) return a.indice - b.indice;
@@ -530,14 +542,26 @@ export function ordenarListaFincas(
   criterios: readonly CriterioOrdenLista[] = []
 ): FincaBusquedaUi[] {
   if (criterios.length === 0) return fincas;
-  const rangos = criterios.map((criterio) => rangosCriterioLista(fincas, criterio));
+  const anioCriterio = criterios.find((item) => item.campo === "anio") ?? null;
+  const tamano = criterios.filter((item) => item.campo !== "anio");
+  const rangosTamano = tamano.map((criterio) => rangosCriterioLista(fincas, criterio));
   return fincas
     .map((finca, indice) => ({
       finca,
       indice,
-      puntuacion: rangos.reduce((suma, columna) => suma + (columna[indice] ?? fincas.length), 0),
+      anio: anioCriterio ? valorAnioOrdenLista(finca, anioCriterio.direccion) : null,
+      puntuacion: rangosTamano.reduce((suma, columna) => suma + (columna[indice] ?? fincas.length), 0),
     }))
-    .sort((a, b) => a.puntuacion - b.puntuacion || a.indice - b.indice)
+    .sort((a, b) => {
+      if (anioCriterio) {
+        if (a.anio == null && b.anio != null) return 1;
+        if (b.anio == null && a.anio != null) return -1;
+        if (a.anio != null && b.anio != null && a.anio !== b.anio) {
+          return anioCriterio.direccion === "asc" ? a.anio - b.anio : b.anio - a.anio;
+        }
+      }
+      return a.puntuacion - b.puntuacion || a.indice - b.indice;
+    })
     .map((item) => item.finca);
 }
 

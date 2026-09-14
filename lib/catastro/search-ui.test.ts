@@ -342,7 +342,7 @@ describe("search-ui", () => {
           { campo: "anio", direccion: "desc" },
         ]
       ).map((item) => item.fincaReference),
-      ["11111111111111", "44444444444444", "22222222222222"]
+      ["22222222222222", "11111111111111", "44444444444444"]
     );
     assert.deepEqual(aplicarCriterioOrdenLista([], "parcela"), [{ campo: "parcela", direccion: "desc" }]);
     assert.deepEqual(aplicarCriterioOrdenLista([{ campo: "parcela", direccion: "desc" }], "parcela"), [
@@ -390,6 +390,36 @@ describe("search-ui", () => {
         ]
       ).map((item) => item.fincaReference),
       ["cccccccccccccc", "bbbbbbbbbbbbbb", "aaaaaaaaaaaaaa"]
+    );
+    const de1967Grande: FincaBusquedaUi = {
+      ...parcelaEnorme,
+      fincaReference: "1967grande00000",
+      properties: [
+        { reference: "1", anio: 1967 },
+        { reference: "2", anio: 1967 },
+      ],
+    };
+    const de2003: FincaBusquedaUi = {
+      ...parcelaGrandePocos,
+      fincaReference: "2003unica000000",
+      properties: [{ reference: "1", anio: 2003 }],
+    };
+    const de1967Chica: FincaBusquedaUi = {
+      ...parcelaGrandePocos,
+      fincaReference: "1967chica000000",
+      superficieSolar: 14000,
+      properties: [{ reference: "1", anio: 1967 }],
+    };
+    assert.deepEqual(
+      ordenarListaFincas(
+        [de1967Chica, de2003, de1967Grande],
+        [
+          { campo: "anio", direccion: "desc" },
+          { campo: "parcela", direccion: "desc" },
+          { campo: "inmuebles", direccion: "desc" },
+        ]
+      ).map((item) => item.fincaReference),
+      ["2003unica000000", "1967grande00000", "1967chica000000"]
     );
     assert.equal(metricasFincaLista(candidata).parcela, "420 m²");
     assert.equal(metricasFincaLista(candidata).anio, "1964");
