@@ -425,8 +425,8 @@ export function recuentoEstadosDivision(fincas: FincaBusquedaUi[]): Record<strin
 }
 
 export const CAMPOS_ORDEN_LISTA = [
-  { value: "parcela", label: "m²" },
-  { value: "inmuebles", label: "Parcelas" },
+  { value: "parcela", label: "m² parcela" },
+  { value: "inmuebles", label: "N.º inmuebles" },
   { value: "anio", label: "Año" },
 ] as const;
 

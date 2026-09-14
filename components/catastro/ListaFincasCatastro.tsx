@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import {
   CAMPOS_ORDEN_LISTA,
-  TEXTO_ATAJOS_LISTA,
   aplicarCriterioOrdenLista,
   filtrarListaFincas,
   ordenarListaFincas,
@@ -275,48 +274,6 @@ export function ListaFincasCatastro({
         <span className="tabular-nums">{(recuento.ALL ?? 0).toLocaleString("es-ES")} fincas</span>
       </p>
       {paginacion}
-      <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Ordenar listado">
-        <p className="mr-1 text-[11px] font-semibold uppercase tracking-wide text-[#6B7A76]">Ordenar</p>
-        {CAMPOS_ORDEN_LISTA.filter((item) => item.value !== "anio").map((item) => {
-          const indice = orden.findIndex((criterio) => criterio.campo === item.value);
-          const criterio = indice >= 0 ? orden[indice] : null;
-          const etiquetaDir = criterio?.direccion === "asc" ? "menos a más" : "más a menos";
-          return (
-            <button
-              key={item.value}
-              type="button"
-              aria-pressed={criterio != null}
-              aria-label={
-                criterio
-                  ? criterio.direccion === "asc"
-                    ? `Ordenado por ${item.label}, ${etiquetaDir}. Pulsar para quitar`
-                    : `Ordenado por ${item.label}, ${etiquetaDir}. Pulsar para invertir`
-                  : `Añadir orden por ${item.label}, más a menos`
-              }
-              onClick={() => aplicarOrden(item.value)}
-              className={cn(CHIP, "gap-1", criterio ? CHIP_ACTIVA : CHIP_INACTIVA)}
-            >
-              {item.label}
-              {criterio ? (
-                <span className="tabular-nums text-[#6B7A76]" aria-hidden>
-                  {orden.length > 1 ? `${indice + 1} ` : ""}
-                  {criterio.direccion === "desc" ? "↓" : "↑"}
-                </span>
-              ) : null}
-            </button>
-          );
-        })}
-      </div>
-
-      <label className="relative block">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#5D6B67]" aria-hidden />
-        <input
-          value={q}
-          onChange={(evento) => setQ(evento.target.value)}
-          placeholder="Filtrar por calle o referencia"
-          className="h-11 w-full rounded-[10px] border border-[#DAD6CE] bg-white py-2 pl-10 pr-3 text-[14px] text-[#131C1A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B7461] min-[780px]:text-[13.5px]"
-        />
-      </label>
 
       <LeyendaEstadosDivision compacta />
 
@@ -370,9 +327,15 @@ export function ListaFincasCatastro({
         </div>
       </div>
 
-      <p className="text-xs text-[#5D6B67]">
-        {LEYENDA_FILTRO_HINT} · {TEXTO_ATAJOS_LISTA}
-      </p>
+      <label className="relative block">
+        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#5D6B67]" aria-hidden />
+        <input
+          value={q}
+          onChange={(evento) => setQ(evento.target.value)}
+          placeholder="Filtrar por calle o referencia"
+          className="h-8 w-full rounded-lg border border-[#DAD6CE] bg-white py-1 pl-8 pr-3 text-[13px] text-[#131C1A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B7461]"
+        />
+      </label>
 
       <div
         className={cn(
@@ -382,7 +345,10 @@ export function ListaFincasCatastro({
         )}
       >
         {pagina.length === 0 ? (
-          <p className="px-4 py-10 text-center text-sm text-[#5D6B67]">No hay fincas con ese filtro.</p>
+          <>
+            <CabeceraOrdenLista orden={orden} onOrden={aplicarOrden} />
+            <p className="px-4 py-10 text-center text-sm text-[#5D6B67]">No hay fincas con ese filtro.</p>
+          </>
         ) : (
           <>
             {onToggleSeleccion ? (
@@ -395,16 +361,7 @@ export function ListaFincasCatastro({
                 onAsignacionLote={aplicarAsignacionLote}
               />
             ) : null}
-            <div className="hidden border-b border-[#F2F0EB] bg-[#FBFBF9] px-3.5 py-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-[#6B7A76] min-[780px]:flex min-[780px]:items-center min-[780px]:gap-3.5">
-              <span className="min-w-0 flex-[1_1_250px]">Dirección</span>
-              <span className="w-[74px]">m² parcela</span>
-              <span className="w-[90px]">N.º inmuebles</span>
-              <span className="w-[52px]">Año</span>
-              <span className="w-[118px]">Uso</span>
-              <span className="w-[132px]">Estado</span>
-              <span className="w-[168px]">Comercial</span>
-              <span className="w-[92px]" />
-            </div>
+            <CabeceraOrdenLista orden={orden} onOrden={aplicarOrden} />
             <ul aria-label="Fincas encontradas" className="max-[779px]:space-y-2.5">
               {pagina.map((finca) => (
                 <li key={finca.fincaReference}>
@@ -516,4 +473,68 @@ function BarraSeleccionLista({
   );
 }
 
-const LEYENDA_FILTRO_HINT = "La clasificación la da Catastro, no se marca a mano";
+function CabeceraOrdenLista({
+  orden,
+  onOrden,
+}: {
+  orden: CriterioOrdenLista[];
+  onOrden: (campo: CampoOrdenLista) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-[#F2F0EB] bg-[#FBFBF9] px-3.5 py-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-[#6B7A76] max-[779px]:rounded-[13px] max-[779px]:border max-[779px]:border-[#E6E3DD] min-[780px]:flex-nowrap min-[780px]:gap-3.5">
+      <span className="hidden min-w-0 flex-[1_1_250px] min-[780px]:block">Dirección</span>
+      <TituloOrden campo="parcela" ancho="w-[74px]" orden={orden} onOrden={onOrden} />
+      <TituloOrden campo="inmuebles" ancho="w-[90px]" orden={orden} onOrden={onOrden} />
+      <TituloOrden campo="anio" ancho="w-[52px]" orden={orden} onOrden={onOrden} />
+      <span className="hidden w-[118px] min-[780px]:block">Uso</span>
+      <span className="hidden w-[132px] min-[780px]:block">Estado</span>
+      <span className="hidden w-[168px] min-[780px]:block">Comercial</span>
+      <span className="hidden w-[92px] min-[780px]:block" />
+    </div>
+  );
+}
+
+function TituloOrden({
+  campo,
+  ancho,
+  orden,
+  onOrden,
+}: {
+  campo: CampoOrdenLista;
+  ancho: string;
+  orden: CriterioOrdenLista[];
+  onOrden: (campo: CampoOrdenLista) => void;
+}) {
+  const item = CAMPOS_ORDEN_LISTA.find((criterio) => criterio.value === campo);
+  const indice = orden.findIndex((criterio) => criterio.campo === campo);
+  const criterio = indice >= 0 ? orden[indice] : null;
+  const etiquetaDir = criterio?.direccion === "asc" ? "menos a más" : "más a menos";
+  return (
+    <button
+      type="button"
+      className={cn(
+        ancho,
+        "inline-flex shrink-0 items-center gap-0.5 text-left leading-tight hover:text-[#08594B]",
+        criterio && "text-[#08594B]"
+      )}
+      aria-pressed={criterio != null}
+      aria-label={
+        criterio
+          ? criterio.direccion === "asc"
+            ? `Ordenado por ${item?.label}, ${etiquetaDir}. Pulsar para quitar`
+            : `Ordenado por ${item?.label}, ${etiquetaDir}. Pulsar para invertir`
+          : `Ordenar por ${item?.label}, más a menos`
+      }
+      onClick={() => onOrden(campo)}
+    >
+      {item?.label}
+      {criterio ? (
+        <span className="tabular-nums normal-case tracking-normal" aria-hidden>
+          {orden.length > 1 ? `${indice + 1}` : ""}
+          {criterio.direccion === "desc" ? "↓" : "↑"}
+        </span>
+      ) : null}
+    </button>
+  );
+}
+
