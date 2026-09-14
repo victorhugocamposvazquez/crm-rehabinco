@@ -4,11 +4,5 @@
     "app/api/presupuestos/copiloto/route.ts": {
       "maxDuration": 60
     }
-  },
-  "crons": [
-    {
-      "path": "/api/cron/catastro-zone",
-      "schedule": "* * * * *"
-    }
-  ]
+  }
 }
