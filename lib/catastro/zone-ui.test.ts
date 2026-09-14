@@ -25,6 +25,7 @@ import {
   criteriosSiguienteBloque,
   criteriosZonaListos,
   plegarBloque,
+  contarCandidatasZona,
   textoSesionCaducada,
   textoSiguienteBloque,
   textoZonaDemasiadoGrande,
@@ -50,14 +51,19 @@ import {
   type ZoneSnapshotUi,
 } from "./zone-ui";
 
-function finca(ref: string, numero: string, via = "GUAYANA-MOJONERA"): FincaBusquedaUi {
+function finca(
+  ref: string,
+  numero: string,
+  via = "GUAYANA-MOJONERA",
+  status: "NO" | "YES" | "UNKNOWN" | "NOT_APPLICABLE" = "NO"
+): FincaBusquedaUi {
   return {
     fincaReference: ref,
     portals: [numero],
     address: { provincia: "VALENCIA", municipio: "GODELLETA", sigla: "CL", via, numero },
     postalCode: "46388",
     postalCodes: ["46388"],
-    horizontalDivision: { status: "NO" },
+    horizontalDivision: { status },
     properties: [{ reference: `${ref}0001AA`, postalCode: "46388" }],
   };
 }
@@ -409,6 +415,29 @@ describe("Zona UI: cancelación y reanudación", () => {
     );
     assert.equal(plegado.acumulado?.streetsProcessed, 250);
     assert.equal(plegado.acumulado?.results.length, 1);
+    const mixtas = [
+      finca("NO1", "1", "MAYOR", "NO"),
+      finca("YES1", "2", "MAYOR", "YES"),
+      finca("YES2", "3", "MAYOR", "YES"),
+    ];
+    assert.equal(contarCandidatasZona(mixtas, "NO"), 1);
+    assert.equal(contarCandidatasZona(mixtas, "YES"), 2);
+    assert.equal(contarCandidatasZona(mixtas, "ALL"), 3);
+    const plegadoMixto = plegarBloque(
+      aplicarSnapshotZona(
+        ESTADO_ZONA_INICIAL,
+        snapshot({ results: mixtas, progress: { streetsProcessed: 10, fincasFound: 3, candidates: 1 } })
+      )
+    );
+    assert.equal(plegadoMixto.acumulado?.results.length, 3);
+    assert.equal(plegadoMixto.acumulado?.candidates, 1);
+    assert.equal(
+      textosProgreso(
+        snapshot({ results: [finca("YES3", "4", "NUEVA", "YES")], progress: { fincasFound: 1, candidates: 0 } }),
+        plegadoMixto.acumulado
+      ).candidatas,
+      "Candidatas sin división horizontal: 1"
+    );
     const otro = aplicarErrorZona(terminada, { status: 502, message: "Catastro no está disponible." });
     assert.equal(otro.fase, "error");
     assert.equal(otro.error, "Catastro no está disponible.");

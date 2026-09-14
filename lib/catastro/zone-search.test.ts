@@ -410,7 +410,7 @@ describe("Zona: resultados", () => {
     for (const llamada of mundo.llamadas) assert.equal(llamada.postalCode, "28004");
   });
 
-  it("una coincidencia: solo la finca cuyo postalCodes incluye el CP y sin división", async () => {
+  it("una coincidencia de CP: el listado trae todas las fincas y candidates solo las sin división", async () => {
     const calles: CalleFalsa[] = [
       {
         calle: calle("1", "UNICA"),
@@ -427,7 +427,7 @@ describe("Zona: resultados", () => {
     const snapshot = await ejecutarHastaTerminar(session, deps);
     assert.deepEqual(
       snapshot.results.map((finca) => finca.fincaReference),
-      ["AAAAAAA0000001"]
+      ["AAAAAAA0000001", "AAAAAAA0000003"]
     );
     assert.equal(snapshot.progress.fincasFound, 2);
     assert.equal(snapshot.progress.candidates, 1);
@@ -441,13 +441,13 @@ describe("Zona: resultados", () => {
     assert.equal(snapshot.status, "done");
     assert.deepEqual(
       snapshot.results.map((finca) => `${finca.address.via} ${finca.address.numero}`),
-      ["GUAYANA-MOJONERA 3", "MAYOR 10"]
+      ["GUAYANA-MOJONERA 3", "GUAYANA-MOJONERA 5", "MAYOR 10"]
     );
     assert.equal(snapshot.progress.fincasFound, 3);
     assert.equal(snapshot.progress.candidates, 2);
   });
 
-  it("el filtro de división se aplica a la salida (YES / ALL / UNKNOWN)", async () => {
+  it("el filtro de división cambia candidates, no oculta fincas del listado", async () => {
     const calles: CalleFalsa[] = [
       {
         calle: calle("1", "MIXTA"),
@@ -462,16 +462,25 @@ describe("Zona: resultados", () => {
     const deps = depsFalsas(mundo, calles.map((item) => item.calle));
     const session = await prepararOk(deps, { ...CRITERIOS, horizontalDivision: "YES" });
     let snapshot = await ejecutarHastaTerminar(session, deps);
-    assert.deepEqual(snapshot.results.map((f) => f.fincaReference), ["BBBBBBB0000002"]);
+    assert.deepEqual(snapshot.results.map((f) => f.fincaReference), [
+      "BBBBBBB0000001",
+      "BBBBBBB0000002",
+      "BBBBBBB0000003",
+    ]);
+    assert.equal(snapshot.progress.fincasFound, 3);
+    assert.equal(snapshot.progress.candidates, 1);
     session.criterios.horizontalDivision = "ALL";
     snapshot = snapshotZona(session);
     assert.equal(snapshot.results.length, 3);
+    assert.equal(snapshot.progress.candidates, 3);
     session.criterios.horizontalDivision = "UNKNOWN";
     snapshot = snapshotZona(session);
-    assert.deepEqual(snapshot.results.map((f) => f.fincaReference), ["BBBBBBB0000003"]);
+    assert.equal(snapshot.results.length, 3);
+    assert.equal(snapshot.progress.candidates, 1);
     session.criterios.horizontalDivision = "NO";
     snapshot = snapshotZona(session);
-    assert.deepEqual(snapshot.results.map((f) => f.fincaReference), ["BBBBBBB0000001"]);
+    assert.equal(snapshot.results.length, 3);
+    assert.equal(snapshot.progress.candidates, 1);
     assert.equal(snapshot.coverage.completeCandidates, false, "UNKNOWN impide exhaustividad");
   });
 
@@ -584,7 +593,8 @@ describe("Zona: cobertura", () => {
     const snapshot = await ejecutarHastaTerminar(session, deps);
     assert.equal(snapshot.coverage.complete, true);
     assert.equal(snapshot.coverage.completeCandidates, false);
-    assert.deepEqual(snapshot.results.map((f) => f.fincaReference), ["GGGGGGG0000001"]);
+    assert.deepEqual(snapshot.results.map((f) => f.fincaReference), ["GGGGGGG0000001", "GGGGGGG0000002"]);
+    assert.equal(snapshot.progress.candidates, 1);
   });
 
   it("possibleCut de una calle marca la zona como posiblemente incompleta", async () => {
@@ -792,8 +802,11 @@ describe("Zona contra Catastro (acotada)", { skip: process.env.CATASTRO_SKIP_LIV
     assert.equal(paso.status, "paused");
     for (const finca of paso.results) {
       assert.ok(finca.postalCodes.includes("46388"), `${finca.fincaReference} debe llevar el CP 46388`);
-      assert.equal(finca.horizontalDivision.status, "NO");
     }
+    assert.equal(
+      paso.progress.candidates,
+      paso.results.filter((finca) => finca.horizontalDivision.status === "NO").length
+    );
     const cancelada = cancelarZona(preparada.session, deps);
     assert.equal(cancelada.status, "cancelled");
   });

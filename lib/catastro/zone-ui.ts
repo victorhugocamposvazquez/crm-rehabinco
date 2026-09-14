@@ -221,6 +221,16 @@ export const ESTADO_ZONA_INICIAL: EstadoZonaUi = {
   acumulado: null,
 };
 
+/** Recuento del filtro de división sobre un listado ya fusionado (no usa `results.length`). */
+export function contarCandidatasZona(
+  fincas: FincaBusquedaUi[],
+  horizontalDivision: string
+): number {
+  const filtro = horizontalDivision.trim().toUpperCase();
+  if (!filtro || filtro === "ALL") return fincas.length;
+  return fincas.filter((finca) => (finca.horizontalDivision?.status ?? "UNKNOWN") === filtro).length;
+}
+
 export function fusionarResultadosZona(
   previas: FincaBusquedaUi[],
   nuevas: FincaBusquedaUi[]
@@ -255,15 +265,16 @@ export function plegarBloque(estado: EstadoZonaUi): EstadoZonaUi {
   const snapshot = estado.snapshot;
   if (!snapshot) return estado;
   const previa = estado.acumulado;
+  const results = fusionarResultadosZona(previa?.results ?? [], snapshot.results);
   return {
     ...estado,
     acumulado: {
-      results: fusionarResultadosZona(previa?.results ?? [], snapshot.results),
+      results,
       errors: [...(previa?.errors ?? []), ...snapshot.errors],
       streetsProcessed: (previa?.streetsProcessed ?? 0) + snapshot.progress.streetsProcessed,
       streetsWithErrors: (previa?.streetsWithErrors ?? 0) + snapshot.progress.streetsWithErrors,
       fincasFound: (previa?.fincasFound ?? 0) + snapshot.progress.fincasFound,
-      candidates: fusionarResultadosZona(previa?.results ?? [], snapshot.results).length,
+      candidates: contarCandidatasZona(results, snapshot.criteria.horizontalDivision),
       portalsProcessed: (previa?.portalsProcessed ?? 0) + snapshot.progress.portalsProcessed,
     },
   };
@@ -463,7 +474,10 @@ export function textosProgreso(
   const procesadas = (acumulado?.streetsProcessed ?? 0) + progress.streetsProcessed;
   const fincas = (acumulado?.fincasFound ?? 0) + progress.fincasFound;
   const candidatas = acumulado
-    ? fusionarResultadosZona(acumulado.results, snapshot.results).length
+    ? contarCandidatasZona(
+        fusionarResultadosZona(acumulado.results, snapshot.results),
+        snapshot.criteria.horizontalDivision
+      )
     : progress.candidates;
   const erroresN = (acumulado?.streetsWithErrors ?? 0) + progress.streetsWithErrors;
   const porBloques =

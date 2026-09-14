@@ -674,7 +674,8 @@ export function snapshotZona(session: ZoneSession): ZoneSnapshot {
       workMs: session.workMs,
     },
     coverage: cobertura,
-    results: ordenarFincasZona(filtradas),
+    // El listado lleva todas las fincas del CP; el filtro de división solo alimenta `candidates`.
+    results: ordenarFincasZona(todas),
     errors: errores,
     nextAction: siguienteAccion(session),
     stats: { ...session.prefilter },
