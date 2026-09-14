@@ -6,6 +6,7 @@ import {
   isComercial,
   isComercialBlockedPath,
   isEditorBlockedPath,
+  navHrefsForRole,
   parseRole,
   puedeAsignarFincas,
   puedeCrearPropiedad,
@@ -41,7 +42,29 @@ describe("roles", () => {
     assert.equal(isComercialBlockedPath("/catastro/cobertura"), true);
     assert.equal(isComercialBlockedPath("/catastro"), false);
     assert.equal(isComercialBlockedPath("/catastro/finca/12345678901234"), false);
+    assert.equal(isComercialBlockedPath("/facturas"), true);
+    assert.equal(isComercialBlockedPath("/informes"), true);
+    assert.equal(isComercialBlockedPath("/presupuestos"), true);
     assert.equal(comercialHomePath(), "/");
+  });
+
+  it("el menú del comercial es el día a día, no el de dirección", () => {
+    const comercial = navHrefsForRole("comercial", "desktop");
+    const admin = navHrefsForRole("admin", "desktop");
+    assert.equal(comercial.includes("/tareas"), true);
+    assert.equal(comercial.includes("/calendario"), true);
+    assert.equal(comercial.includes("/partes-visita"), true);
+    assert.equal(comercial.includes("/facturas"), false);
+    assert.equal(comercial.includes("/informes"), false);
+    assert.equal(comercial.includes("/presupuestos"), false);
+    assert.equal(admin.includes("/facturas"), true);
+    assert.deepEqual([...navHrefsForRole("comercial", "mobile")], [
+      "/",
+      "/tareas",
+      "/calendario",
+      "/propiedades",
+      "/partes-visita",
+    ]);
   });
 
   it("el editor no entra a captación, agenda ni tareas", () => {

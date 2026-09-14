@@ -24,7 +24,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth/auth-context";
-import { editorHomePath, isEditor, roleLabel } from "@/lib/auth/roles";
+import { editorHomePath, isEditor, navHrefsForRole, roleLabel } from "@/lib/auth/roles";
 import { Sheet } from "@/components/ui/sheet";
 
 const navItems = [
@@ -76,9 +76,9 @@ export function TopBar() {
     setConfirmPassword("");
   };
 
-  const visibleNavItems = isEditor(user?.role)
-    ? navItems.filter((item) => item.href === "/presupuestos" || item.href === "/settings")
-    : navItems;
+  const visibleNavItems = navHrefsForRole(user?.role, "desktop")
+    .map((href) => navItems.find((item) => item.href === href))
+    .filter((item): item is (typeof navItems)[number] => Boolean(item));
 
   const initials = useMemo(() => {
     const source = user?.email?.split("@")[0] ?? "U";
@@ -153,7 +153,7 @@ export function TopBar() {
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
                 {initials}
               </span>
-              <span className="hidden pr-1 text-xs font-semibold uppercase tracking-wide text-neutral-600 sm:inline">
+              <span className="pr-1 text-xs font-semibold uppercase tracking-wide text-neutral-600">
                 {roleLabel(user.role)}
               </span>
             </button>

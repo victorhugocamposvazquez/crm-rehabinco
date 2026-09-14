@@ -8,25 +8,31 @@ import {
   Search,
   ClipboardPenLine,
   ListTodo,
+  CalendarDays,
+  FileText,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isEditor } from "@/lib/auth/roles";
+import { navHrefsForRole } from "@/lib/auth/roles";
 
 const navItems = [
   { href: "/", label: "Hoy", icon: Home },
   { href: "/catastro", label: "Catastro", icon: Search },
   { href: "/tareas", label: "Tareas", icon: ListTodo },
+  { href: "/calendario", label: "Agenda", icon: CalendarDays },
   { href: "/propiedades", label: "Inmuebles", icon: Building2 },
   { href: "/partes-visita", label: "Visitas", icon: ClipboardPenLine },
+  { href: "/facturas", label: "Facturas", icon: FileText },
+  { href: "/presupuestos", label: "Presupuestos", icon: ClipboardList },
 ];
 
 export function MobileNav() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const items = isEditor(user?.role)
-    ? [{ href: "/presupuestos", label: "Presupuestos", icon: ClipboardPenLine }]
-    : navItems;
+  const items = navHrefsForRole(user?.role, "mobile")
+    .map((href) => navItems.find((item) => item.href === href))
+    .filter((item): item is (typeof navItems)[number] => Boolean(item));
 
   return (
     <nav

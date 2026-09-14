@@ -78,15 +78,64 @@ const COMERCIAL_BLOCKED_PREFIXES = [
   "/catastro/searches",
   "/catastro/equipo",
   "/catastro/cobertura",
+  "/facturas",
+  "/informes",
+  "/presupuestos",
+  "/settings/empresa",
+  "/settings/emisores-presupuesto",
 ];
 
 export function comercialHomePath(): string {
   return "/";
 }
 
-/** El comercial no rastrea ni abre el histórico de búsquedas del equipo. */
+/** El comercial no rastrea, no factura ni abre el histórico de búsquedas del equipo. */
 export function isComercialBlockedPath(pathname: string): boolean {
   return COMERCIAL_BLOCKED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   );
+}
+
+/** Menú de escritorio: el comercial vive en el día, no en facturación. */
+export const NAV_DESKTOP_BY_ROLE: Record<Role, readonly string[]> = {
+  admin: [
+    "/",
+    "/catastro",
+    "/propiedades",
+    "/demandas",
+    "/calendario",
+    "/tareas",
+    "/informes",
+    "/partes-visita",
+    "/clientes",
+    "/presupuestos",
+    "/facturas",
+    "/settings",
+  ],
+  comercial: [
+    "/",
+    "/tareas",
+    "/calendario",
+    "/partes-visita",
+    "/propiedades",
+    "/demandas",
+    "/catastro",
+    "/clientes",
+    "/settings",
+  ],
+  editor: ["/presupuestos", "/settings"],
+};
+
+export const NAV_MOBILE_BY_ROLE: Record<Role, readonly string[]> = {
+  admin: ["/", "/catastro", "/propiedades", "/partes-visita", "/facturas"],
+  comercial: ["/", "/tareas", "/calendario", "/propiedades", "/partes-visita"],
+  editor: ["/presupuestos"],
+};
+
+export function navHrefsForRole(
+  role: Role | null | undefined,
+  variant: "desktop" | "mobile"
+): readonly string[] {
+  const resolved: Role = role ?? "comercial";
+  return variant === "mobile" ? NAV_MOBILE_BY_ROLE[resolved] : NAV_DESKTOP_BY_ROLE[resolved];
 }
