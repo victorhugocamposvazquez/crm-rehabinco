@@ -28,7 +28,6 @@ import {
   ZONE_DEFAULT_CONCURRENCY,
   ZONE_MAX_ACTIVE_PER_USER,
   ZONE_MAX_CONCURRENCY,
-  ZONE_MAX_CONSECUTIVE_FAILURES,
   ZONE_MAX_ERRORS_REPORTED,
   ZONE_MAX_STREETS_RUN,
   ZONE_STEP_DEFAULT_BUDGET_MS,
@@ -475,10 +474,6 @@ function recalcularEstado(session: ZoneSession): void {
     session.status = "cancelled";
     return;
   }
-  if (session.consecutiveFailures >= ZONE_MAX_CONSECUTIVE_FAILURES) {
-    session.status = "upstream_paused";
-    return;
-  }
   session.status = "paused";
 }
 
@@ -499,7 +494,11 @@ export async function ejecutarPasoZona(
   const now = deps.now ?? Date.now;
   const zoneStore = deps.zoneStore ?? getZoneStore();
 
-  if (session.status === "done" || session.status === "cancelled" || session.status === "upstream_paused") {
+  if (session.status === "upstream_paused") {
+    session.consecutiveFailures = 0;
+    session.status = "paused";
+  }
+  if (session.status === "done" || session.status === "cancelled") {
     return snapshotZona(session);
   }
 
@@ -513,10 +512,7 @@ export async function ejecutarPasoZona(
   };
   const inicio = now();
   const deadline = inicio + budgetMs;
-  const debeParar = () =>
-    Boolean(opciones.signal?.aborted) ||
-    session.cancelRequested ||
-    session.consecutiveFailures >= ZONE_MAX_CONSECUTIVE_FAILURES;
+  const debeParar = () => Boolean(opciones.signal?.aborted) || session.cancelRequested;
 
   pasosEnCurso.add(session);
   session.status = "running";

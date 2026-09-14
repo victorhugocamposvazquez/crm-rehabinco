@@ -280,7 +280,15 @@ describe("Zona UI: progreso y resultados", () => {
     assert.equal(debeContinuarPasos(pasos[0]!), true);
     assert.equal(debeContinuarPasos(pasos[2]!), false);
     assert.equal(debeContinuarPasos(snapshot({ status: "cancelled" })), false);
-    assert.equal(debeContinuarPasos(snapshot({ status: "upstream_paused" })), false);
+    assert.equal(
+      debeContinuarPasos(snapshot({ status: "upstream_paused", progress: { streetsPending: 0 } })),
+      false
+    );
+    assert.equal(
+      debeContinuarPasos(snapshot({ status: "upstream_paused", progress: { streetsPending: 24 } })),
+      true,
+      "si quedan calles, un error no debe frenar el bucle"
+    );
     assert.equal(
       puedeSeguirTrasFalloZona(snapshot({ status: "upstream_paused", progress: { streetsPending: 24 } })),
       true
@@ -416,10 +424,20 @@ describe("Zona UI: cancelación y reanudación", () => {
     assert.equal(terminada.fase, "completada");
     assert.match(textoEstadoFinal(terminada) ?? "", /1 calle con error/);
     assert.equal(accionesDisponibles(terminada).reintentarErrores, true);
-    const caida = aplicarSnapshotZona(ESTADO_ZONA_INICIAL, snapshot({ status: "upstream_paused", progress: { streetsProcessed: 4, streetsWithErrors: 4, streetsPending: 423 } }));
-    assert.equal(caida.fase, "pausada_por_catastro");
-    assert.match(textoEstadoFinal(caida) ?? "", /Catastro no responde/);
-    assert.equal(accionesDisponibles(caida).reanudar, true);
+    const caida = aplicarSnapshotZona(
+      ESTADO_ZONA_INICIAL,
+      snapshot({ status: "upstream_paused", progress: { streetsProcessed: 4, streetsWithErrors: 4, streetsPending: 423 } }),
+      { ejecutando: true }
+    );
+    assert.equal(caida.fase, "ejecutando", "quedan calles: se sigue sin pedir Reanudar");
+    assert.equal(accionesDisponibles(caida).reanudar, false);
+    assert.equal(accionesDisponibles(caida).cancelar, true);
+    const caidaSinPendientes = aplicarSnapshotZona(
+      ESTADO_ZONA_INICIAL,
+      snapshot({ status: "upstream_paused", progress: { streetsProcessed: 4, streetsWithErrors: 4, streetsPending: 0 } })
+    );
+    assert.equal(caidaSinPendientes.fase, "pausada_por_catastro");
+    assert.match(textoEstadoFinal(caidaSinPendientes) ?? "", /Catastro no responde/);
     const caducada = aplicarErrorZona(terminada, { status: 410, message: "caducada" });
     assert.equal(caducada.fase, "caducada");
     assert.equal(caducada.snapshot, terminada.snapshot, "los resultados siguen disponibles");

@@ -98,6 +98,13 @@ import { VacioResultados } from "./VacioResultados";
 import { useBusquedaZona } from "./useBusquedaZona";
 import { useSeleccionFincas } from "./useSeleccionFincas";
 import { persistirRevisionUi, RUTA_EXPLORER, rutaFincaPersistida } from "@/lib/catastro/explorer/history-ui";
+import {
+  avisoCodigoPostalAjeno,
+  fetchCodigosPostalesMunicipio,
+  nombreMunicipioVisible,
+  textoAyudaCodigosMunicipio,
+  type MunicipioPostalUi,
+} from "@/lib/catastro/explorer/postal-codes-ui";
 
 const SELECT_CLASS =
   "flex min-h-[46px] w-full rounded-[10px] border border-[#DAD6CE] bg-white px-3 py-2 text-[15px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B7461] disabled:cursor-not-allowed disabled:opacity-50";
@@ -122,6 +129,8 @@ export function BuscarInmuebles() {
   const [ubicacion, setUbicacion] = useState<EstadoUbicacion>(ESTADO_UBICACION_VACIO);
   const [numero, setNumero] = useState(iniciales.numero);
   const [postalCode, setPostalCode] = useState(iniciales.postalCode);
+  const [municipioPostal, setMunicipioPostal] = useState<MunicipioPostalUi | null>(null);
+  const [dueñosPostal, setDueñosPostal] = useState<MunicipioPostalUi[]>([]);
   const [horizontalDivision, setHorizontalDivision] = useState(iniciales.horizontalDivision);
   const [paginas, setPaginas] = useState<PaginaCache[]>([]);
   const [loading, setLoading] = useState(false);
@@ -167,6 +176,16 @@ export function BuscarInmuebles() {
   });
   const buscarTodoElMunicipio = modo === "calle" && !ubicacion.calle && Boolean(criteriosMunicipio);
   const avisoCpZona = modo === "zona" && postalCode.trim() ? validarCodigoPostalZona(postalCode) : null;
+  const avisoCpAjeno =
+    !avisoCpZona && municipioPostal
+      ? avisoCodigoPostalAjeno({
+          postalCode,
+          municipality: municipioPostal.name,
+          codes: municipioPostal.codes,
+          owners: dueñosPostal,
+        })
+      : null;
+  const cpAjenoAlMunicipio = Boolean(avisoCpAjeno);
   const zonaOcupada = zona.estado.fase === "preparando" || zona.estado.fase === "ejecutando";
   const mostrarRecientes =
     zona.estado.fase === "formulario" &&
@@ -269,7 +288,7 @@ export function BuscarInmuebles() {
   };
 
   const onPrepararZona = (origen = criteriosZona) => {
-    if (!origen || zonaOcupada) return;
+    if (!origen || zonaOcupada || cpAjenoAlMunicipio) return;
     seleccionFincas.conservarPara(claveZonaUi(origen));
     irAResultados();
     void zona.preparar(origen).finally(() => setRecientesKey((n) => n + 1));
@@ -467,6 +486,32 @@ export function BuscarInmuebles() {
     }
     void ejecutarBusqueda(criterios, ultima.pagination.nextCursor, paginas.length);
   };
+
+  useEffect(() => {
+    const provinceCode = ubicacion.provincia?.code;
+    const municipality = ubicacion.municipio?.name;
+    if (!provinceCode || !municipality) {
+      setMunicipioPostal(null);
+      setDueñosPostal([]);
+      return;
+    }
+    const controller = new AbortController();
+    const cp = postalCode.replace(/\s+/g, "");
+    void fetchCodigosPostalesMunicipio(
+      { provinceCode, municipality, postalCode: /^\d{5}$/.test(cp) ? cp : undefined },
+      controller.signal
+    )
+      .then((data) => {
+        setMunicipioPostal(data.municipality);
+        setDueñosPostal(data.owners);
+      })
+      .catch((err) => {
+        if (esAbortError(err)) return;
+        setMunicipioPostal(null);
+        setDueñosPostal([]);
+      });
+    return () => controller.abort();
+  }, [ubicacion.provincia?.code, ubicacion.municipio?.name, postalCode]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -670,18 +715,61 @@ export function BuscarInmuebles() {
               maxLength={5}
               value={postalCode}
               required={modo === "zona"}
-              aria-invalid={avisoCpZona ? true : undefined}
+              aria-invalid={avisoCpZona || avisoCpAjeno ? true : undefined}
               aria-describedby="postalCode-ayuda"
               onChange={(event) => {
                 resetResultados();
                 setPostalCode(event.target.value);
               }}
-              placeholder={modo === "zona" ? "46388" : "28004"}
+              placeholder={municipioPostal?.codes[0] ?? (modo === "zona" ? "46388" : "28004")}
               autoComplete="postal-code"
               className="min-h-[46px] font-mono"
             />
-            <p id="postalCode-ayuda" className={cn("text-xs", avisoCpZona ? "text-red-700" : "text-neutral-500")}>
+            {municipioPostal && municipioPostal.codes.length > 0 ? (
+              <div className="space-y-1.5">
+                <p className="text-xs text-neutral-500">
+                  {textoAyudaCodigosMunicipio(municipioPostal.name, municipioPostal.codes)}
+                </p>
+                <div
+                  className={cn(
+                    "flex flex-wrap gap-1.5",
+                    municipioPostal.codes.length > 12 && "max-h-28 overflow-y-auto pr-1"
+                  )}
+                  role="listbox"
+                  aria-label={`Códigos postales de ${nombreMunicipioVisible(municipioPostal.name)}`}
+                >
+                  {municipioPostal.codes.map((codigo) => {
+                    const activo = postalCode.replace(/\s+/g, "") === codigo;
+                    return (
+                      <button
+                        key={codigo}
+                        type="button"
+                        role="option"
+                        aria-selected={activo}
+                        onClick={() => {
+                          resetResultados();
+                          setPostalCode(codigo);
+                        }}
+                        className={cn(
+                          "min-h-9 rounded-full border px-2.5 font-mono text-[13px] font-semibold",
+                          activo
+                            ? "border-[#0B7461] bg-[#E8F3EF] text-[#08594B]"
+                            : "border-[#E6E3DD] bg-white text-[#5D6B67]"
+                        )}
+                      >
+                        {codigo}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+            <p
+              id="postalCode-ayuda"
+              className={cn("text-xs", avisoCpZona || avisoCpAjeno ? "text-red-700" : "text-neutral-500")}
+            >
               {avisoCpZona ??
+                avisoCpAjeno ??
                 (modo === "zona"
                   ? "Obligatorio. Solo se quedan las fincas de ese CP."
                   : "Si lo pones, oculta las fincas de otro código postal.")}
@@ -727,7 +815,11 @@ export function BuscarInmuebles() {
           {modo === "zona" || buscarTodoElMunicipio ? (
             <Button
               type="submit"
-              disabled={(modo === "zona" ? !criteriosZona : !criteriosMunicipio) || zonaOcupada}
+              disabled={
+                (modo === "zona" ? !criteriosZona : !criteriosMunicipio) ||
+                zonaOcupada ||
+                cpAjenoAlMunicipio
+              }
               className="h-[50px] w-full bg-[#0B7461] text-[15px] hover:bg-[#08594B] min-[780px]:h-auto min-[780px]:w-auto min-[780px]:text-sm"
             >
               <Search className="h-4 w-4" strokeWidth={1.5} aria-hidden />
@@ -736,7 +828,7 @@ export function BuscarInmuebles() {
           ) : (
             <Button
               type="submit"
-              disabled={loading || !criterios}
+              disabled={loading || !criterios || cpAjenoAlMunicipio}
               className="h-[50px] w-full bg-[#0B7461] text-[15px] hover:bg-[#08594B] min-[780px]:h-auto min-[780px]:w-auto min-[780px]:text-sm"
             >
               <Search className="h-4 w-4" strokeWidth={1.5} aria-hidden />

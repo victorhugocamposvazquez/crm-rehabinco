@@ -69,8 +69,8 @@ export const ZONE_MAX_ACTIVE_PER_USER = 2;
  */
 export const ZONE_MAX_STREETS_RUN = 250;
 /**
- * Protección: con estos fallos de servicio seguidos (sin ningún éxito entre medias) la zona
- * se pausa en vez de martillear Catastro. Los HTTP 4xx de una calle concreta no cuentan.
+ * Histórico: ya no frena la zona. Una calle con error se anota y se sigue con la siguiente.
+ * Queda exportado por si un host quiere umbrales propios.
  */
 export const ZONE_MAX_CONSECUTIVE_FAILURES = 6;
 export const ZONE_MAX_ERRORS_REPORTED = 50;

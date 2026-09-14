@@ -3,7 +3,6 @@ import { describe, it } from "node:test";
 import { createCatalogCache, normalizarNombreCatalogo, type CalleCatalogo } from "./catalog";
 import { createCatastroClient, type CatastroClient } from "./client";
 import { buscarFincasComerciales, type CriteriosBusquedaComercial, type Finca } from "./commercial-search";
-import { ZONE_MAX_CONSECUTIVE_FAILURES } from "./constants";
 import { createDiscoveryStore } from "./discovery-session";
 import {
   leerParametrosZona,
@@ -720,8 +719,26 @@ describe("Zona: control de ejecución", () => {
     assert.ok(excesivo.maxSimultaneas <= 5, `máximo: ${excesivo.maxSimultaneas}`);
   });
 
-  it("si Catastro está caído se pausa tras pocos fallos seguidos, sin martillear", async () => {
-    const calles: CalleFalsa[] = Array.from({ length: 30 }, (_, i) => ({
+  it("una calle con error se anota y se sigue con las demás, sin pedir Reanudar", async () => {
+    const calles: CalleFalsa[] = Array.from({ length: 8 }, (_, i) => ({
+      calle: calle(String(i), `CALLE ${i}`),
+      error: i % 2 === 0 ? "upstream" : undefined,
+      fincas: i % 2 === 0 ? [] : [{ ref: `EEEEEEE000000${i}`, via: `CALLE ${i}`, numero: "1", cp: "46388" }],
+    }));
+    const mundo = mundoFalso(calles);
+    const deps = depsFalsas(mundo, calles.map((item) => item.calle));
+    const session = await prepararOk(deps);
+    const snapshot = await ejecutarHastaTerminar(session, deps);
+    assert.equal(snapshot.status, "done");
+    assert.equal(snapshot.progress.streetsWithErrors, 4);
+    assert.equal(snapshot.progress.streetsPending, 0);
+    assert.equal(snapshot.results.length, 4);
+    assert.equal(mundo.llamadas.length, 8);
+    assert.equal(snapshot.nextAction, "none");
+  });
+
+  it("si Catastro falla en todas las calles termina el bloque; Reintentar recupera las rotas", async () => {
+    const calles: CalleFalsa[] = Array.from({ length: 12 }, (_, i) => ({
       calle: calle(String(i), `CALLE ${i}`),
       error: "upstream",
     }));
@@ -729,17 +746,13 @@ describe("Zona: control de ejecución", () => {
     const deps = depsFalsas(mundo, calles.map((item) => item.calle));
     const session = await prepararOk(deps);
     const snapshot = await ejecutarHastaTerminar(session, deps);
-    assert.equal(snapshot.status, "upstream_paused");
-    assert.ok(
-      mundo.llamadas.length <= ZONE_MAX_CONSECUTIVE_FAILURES + 2,
-      `llamadas: ${mundo.llamadas.length}`
-    );
-    assert.ok(snapshot.progress.streetsPending >= 20);
-    assert.equal(snapshot.nextAction, "resume");
-    // Reanudar reintentando errores devuelve las calles rotas a pendientes.
+    assert.equal(snapshot.status, "done");
+    assert.equal(snapshot.progress.streetsWithErrors, 12);
+    assert.equal(snapshot.progress.streetsPending, 0);
+    assert.equal(mundo.llamadas.length, 12);
     const reanudada = reanudarZona(session, { reintentarErrores: true }, deps);
     assert.equal(reanudada.progress.streetsWithErrors, 0);
-    assert.equal(reanudada.progress.streetsPending, 30);
+    assert.equal(reanudada.progress.streetsPending, 12);
   });
 
   it("los HTTP 4xx de calles concretas no activan la pausa de protección", async () => {

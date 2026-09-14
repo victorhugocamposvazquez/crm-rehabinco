@@ -331,7 +331,10 @@ export function estadoAlCambiarModo(): EstadoZonaUi {
 export function faseDesdeSnapshot(snapshot: ZoneSnapshotUi, ejecutando: boolean): FaseZona {
   if (snapshot.status === "done") return "completada";
   if (snapshot.status === "cancelled") return "cancelada";
-  if (snapshot.status === "upstream_paused") return "pausada_por_catastro";
+  if (snapshot.status === "upstream_paused") {
+    if (ejecutando || (snapshot.progress.streetsPending ?? 0) > 0) return "ejecutando";
+    return "pausada_por_catastro";
+  }
   if (snapshot.status === "running") return "ejecutando";
   // prepared / paused
   if (ejecutando) return "ejecutando";
@@ -698,7 +701,10 @@ export function accionesDisponibles(estado: EstadoZonaUi): AccionesZona {
 
 /** Mientras el servidor diga `prepared`/`paused`/`running`, el cliente sigue pidiendo pasos. */
 export function debeContinuarPasos(snapshot: ZoneSnapshotUi): boolean {
-  return snapshot.status === "prepared" || snapshot.status === "paused" || snapshot.status === "running";
+  if (snapshot.status === "prepared" || snapshot.status === "paused" || snapshot.status === "running") {
+    return true;
+  }
+  return snapshot.status === "upstream_paused" && (snapshot.progress.streetsPending ?? 0) > 0;
 }
 
 /** Tras un 502/504 no tiramos la búsqueda si aún quedan calles: se reintenta o se ofrece Reanudar. */
