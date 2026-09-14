@@ -255,6 +255,25 @@ describe("search-ui", () => {
     assert.equal(filtrarListaFincas([candidata, conPisos], { q: "mayor" })[0]?.fincaReference, "11111111111111");
     assert.equal(filtrarListaFincas([candidata, conPisos], { minParcela: 400 }).length, 1);
     assert.equal(filtrarListaFincas([candidata, conPisos], { minInmuebles: 2 }).length, 0);
+    const conVarios: FincaBusquedaUi = {
+      ...candidata,
+      fincaReference: "55555555555555",
+      superficieSolar: 500,
+      properties: [
+        { reference: "a", anio: 1970 },
+        { reference: "b", anio: 1968 },
+      ],
+    };
+    assert.equal(
+      filtrarListaFincas([candidata, conPisos, conVarios], {
+        minParcela: 400,
+        minInmuebles: 2,
+        maxAnio: 1980,
+      }).map((item) => item.fincaReference).join(),
+      "55555555555555"
+    );
+    assert.equal(filtrarListaFincas([candidata], { maxAnio: 1960 }).length, 0);
+    assert.equal(filtrarListaFincas([candidata], { maxAnio: 1964 }).length, 1);
     const chica: FincaBusquedaUi = { ...conPisos, superficieSolar: 80, properties: [{ reference: "x", anio: 2001 }] };
     const sinDato: FincaBusquedaUi = { ...conPisos, fincaReference: "33333333333333", superficieSolar: undefined, properties: [] };
     assert.deepEqual(
@@ -299,9 +318,22 @@ describe("search-ui", () => {
     ]);
     assert.deepEqual(aplicarCriterioOrdenLista([{ campo: "parcela", direccion: "asc" }], "parcela"), []);
     assert.deepEqual(aplicarCriterioOrdenLista([{ campo: "parcela", direccion: "desc" }], "anio"), [
-      { campo: "parcela", direccion: "desc" },
       { campo: "anio", direccion: "desc" },
+      { campo: "parcela", direccion: "desc" },
     ]);
+    assert.deepEqual(
+      aplicarCriterioOrdenLista(
+        [
+          { campo: "parcela", direccion: "desc" },
+          { campo: "anio", direccion: "asc" },
+        ],
+        "anio"
+      ),
+      [
+        { campo: "anio", direccion: "asc" },
+        { campo: "parcela", direccion: "desc" },
+      ]
+    );
     assert.equal(metricasFincaLista(candidata).parcela, "420 m²");
     assert.equal(metricasFincaLista(candidata).anio, "1964");
     assert.equal(etiquetaUsoLista("Obras de urbanización y jardineria, suelos sin edificar"), "Urbanización");

@@ -447,19 +447,33 @@ export function valorOrdenLista(finca: FincaBusquedaUi, campo: CampoOrdenLista):
   return Math.max(...anios);
 }
 
-/** Primer toque añade el criterio (más→menos); el segundo lo invierte; el tercero lo quita. */
+/**
+ * El último campo pulsado manda. Los demás quedan como desempate.
+ * En el primero: más→menos; otra pulsación lo invierte; la tercera lo quita.
+ */
 export function aplicarCriterioOrdenLista(
   criterios: readonly CriterioOrdenLista[],
   campo: CampoOrdenLista
 ): CriterioOrdenLista[] {
   const indice = criterios.findIndex((item) => item.campo === campo);
-  if (indice < 0) return [...criterios, { campo, direccion: "desc" }];
+  if (indice < 0) return [{ campo, direccion: "desc" }, ...criterios];
   const actual = criterios[indice];
   if (!actual) return [...criterios];
-  if (actual.direccion === "desc") {
-    return criterios.map((item, i) => (i === indice ? { campo, direccion: "asc" as const } : item));
+  if (indice > 0) {
+    return [actual, ...criterios.filter((_, i) => i !== indice)];
   }
-  return criterios.filter((_, i) => i !== indice);
+  if (actual.direccion === "desc") {
+    return [{ campo, direccion: "asc" }, ...criterios.slice(1)];
+  }
+  return criterios.slice(1);
+}
+
+export function numeroFiltroLista(valor: string): number | null {
+  const limpio = valor.trim().replace(",", ".");
+  if (!limpio) return null;
+  const n = Number(limpio);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return n;
 }
 
 export function ordenarListaFincas(
@@ -486,17 +500,28 @@ export function ordenarListaFincas(
 
 export function filtrarListaFincas(
   fincas: FincaBusquedaUi[],
-  input: { q?: string; status?: string; minParcela?: number | null; minInmuebles?: number | null }
+  input: {
+    q?: string;
+    status?: string;
+    minParcela?: number | null;
+    minInmuebles?: number | null;
+    maxAnio?: number | null;
+  }
 ): FincaBusquedaUi[] {
   const q = input.q?.trim().toLowerCase() ?? "";
   const status = input.status?.trim().toUpperCase() || "ALL";
   const minParcela = input.minParcela != null && Number.isFinite(input.minParcela) ? input.minParcela : null;
   const minInmuebles =
     input.minInmuebles != null && Number.isFinite(input.minInmuebles) ? input.minInmuebles : null;
+  const maxAnio = input.maxAnio != null && Number.isFinite(input.maxAnio) ? input.maxAnio : null;
   return fincas.filter((finca) => {
     if (status !== "ALL" && (finca.horizontalDivision?.status ?? "UNKNOWN") !== status) return false;
     if (minParcela != null && (finca.superficieSolar ?? -1) < minParcela) return false;
     if (minInmuebles != null && (finca.properties?.length ?? 0) < minInmuebles) return false;
+    if (maxAnio != null) {
+      const anio = valorOrdenLista(finca, "anio");
+      if (anio == null || anio > maxAnio) return false;
+    }
     if (!q) return true;
     const haystack = [
       tituloDireccionFinca(finca),

@@ -7,6 +7,7 @@ import {
   CAMPOS_ORDEN_LISTA,
   aplicarCriterioOrdenLista,
   filtrarListaFincas,
+  numeroFiltroLista,
   ordenarListaFincas,
   recuentoEstadosDivision,
   type CampoOrdenLista,
@@ -89,11 +90,25 @@ export function ListaFincasCatastro({
   const [comerciales, setComerciales] = useState<ComercialAsignable[]>([]);
   const [asignaciones, setAsignaciones] = useState<Record<string, AsignacionFinca>>({});
   const [orden, setOrden] = useState<CriterioOrdenLista[]>([{ campo: "inmuebles", direccion: "desc" }]);
+  const [minParcela, setMinParcela] = useState("");
+  const [minInmuebles, setMinInmuebles] = useState("");
+  const [maxAnio, setMaxAnio] = useState("");
   const [tope, setTope] = useState(TAM_PAGINA_LISTA);
   const recuento = recuentoEstados ?? recuentoEstadosDivision(fincas);
+  const minParcelaN = numeroFiltroLista(minParcela);
+  const minInmueblesN = numeroFiltroLista(minInmuebles);
+  const maxAnioN = numeroFiltroLista(maxAnio);
+  const hayFiltroMetrica = minParcelaN != null || minInmueblesN != null || maxAnioN != null;
   const filtradas = useMemo(
-    () => filtrarListaFincas(fincas, { q, status: onFiltroEstado ? "ALL" : filtro }),
-    [fincas, q, filtro, onFiltroEstado]
+    () =>
+      filtrarListaFincas(fincas, {
+        q,
+        status: onFiltroEstado ? "ALL" : filtro,
+        minParcela: minParcelaN,
+        minInmuebles: minInmueblesN,
+        maxAnio: maxAnioN,
+      }),
+    [fincas, q, filtro, onFiltroEstado, minParcelaN, minInmueblesN, maxAnioN]
   );
   const visibles = useMemo(
     () => ordenarListaFincas(filtrarPorAsignacion(filtradas, asignaciones, filtroAsignacion, yo), orden),
@@ -140,7 +155,7 @@ export function ListaFincasCatastro({
 
   useEffect(() => {
     setTope(TAM_PAGINA_LISTA);
-  }, [q, filtro, filtroAsignacion, orden, fincas.length]);
+  }, [q, filtro, filtroAsignacion, orden, fincas.length, minParcelaN, minInmueblesN, maxAnioN]);
 
   useEffect(() => {
     if (sel && pagina.some((finca) => finca.fincaReference === sel)) return;
@@ -342,6 +357,39 @@ export function ListaFincasCatastro({
 
       <ChipsOrdenLista orden={orden} onOrden={aplicarOrden} />
 
+      <div>
+        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#6B7A76]">
+          Filtrar · se aplican a la vez
+        </p>
+        <div className="grid grid-cols-1 gap-2 min-[480px]:grid-cols-3">
+          <FiltroNumero
+            etiqueta="Desde m² parcela"
+            value={minParcela}
+            placeholder="p. ej. 200"
+            onChange={setMinParcela}
+          />
+          <FiltroNumero
+            etiqueta="Desde n.º inmuebles"
+            value={minInmuebles}
+            placeholder="p. ej. 4"
+            onChange={setMinInmuebles}
+          />
+          <FiltroNumero
+            etiqueta="Hasta año"
+            value={maxAnio}
+            placeholder="p. ej. 1980"
+            onChange={setMaxAnio}
+          />
+        </div>
+        {hayFiltroMetrica ? (
+          <p className="mt-1.5 text-[12px] tabular-nums text-[#5D6B67]">
+            {visibles.length.toLocaleString("es-ES")}{" "}
+            {visibles.length === 1 ? "finca cumple" : "fincas cumplen"} m², inmuebles y año
+            {topeExterno ? " de las ya cargadas" : null}
+          </p>
+        ) : null}
+      </div>
+
       <div
         className={cn(
           "min-w-0",
@@ -352,7 +400,11 @@ export function ListaFincasCatastro({
         {pagina.length === 0 ? (
           <>
             <CabeceraOrdenLista />
-            <p className="px-4 py-10 text-center text-sm text-[#5D6B67]">No hay fincas con ese filtro.</p>
+            <p className="px-4 py-10 text-center text-sm text-[#5D6B67]">
+              {hayFiltroMetrica
+                ? "No hay fincas que cumplan m², inmuebles y año a la vez."
+                : "No hay fincas con ese filtro."}
+            </p>
           </>
         ) : (
           <>
@@ -478,6 +530,33 @@ function BarraSeleccionLista({
         />
       ) : null}
     </div>
+  );
+}
+
+function FiltroNumero({
+  etiqueta,
+  value,
+  placeholder,
+  onChange,
+}: {
+  etiqueta: string;
+  value: string;
+  placeholder: string;
+  onChange: (valor: string) => void;
+}) {
+  return (
+    <label className="min-w-0">
+      <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[#6B7A76]">{etiqueta}</span>
+      <input
+        type="number"
+        min={0}
+        inputMode="numeric"
+        value={value}
+        placeholder={placeholder}
+        onChange={(evento) => onChange(evento.target.value)}
+        className="h-8 w-full rounded-lg border border-[#DAD6CE] bg-white px-2.5 text-[13px] tabular-nums text-[#131C1A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B7461]"
+      />
+    </label>
   );
 }
 
