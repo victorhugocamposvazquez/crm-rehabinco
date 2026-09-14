@@ -25,7 +25,7 @@ type CitaAgenda = {
   clientes?: { nombre?: string | null } | null;
 };
 
-export function AgendaVisitas() {
+export function AgendaVisitas({ compact = false }: { compact?: boolean }) {
   const { user } = useAuth();
   const admin = isAdmin(user?.role);
   const hoy = new Date().toISOString().slice(0, 10);
@@ -94,8 +94,15 @@ export function AgendaVisitas() {
     () => visibles.filter((item) => item.estado === "prevista"),
     [visibles]
   );
+  const semana = new Date();
+  semana.setDate(semana.getDate() + 7);
+  const hasta = semana.toISOString().slice(0, 10);
   const atrasadas = previstas.filter((item) => item.empieza.slice(0, 10) < hoy);
-  const proximas = previstas.filter((item) => item.empieza.slice(0, 10) >= hoy);
+  const proximas = previstas.filter((item) => {
+    const dia = item.empieza.slice(0, 10);
+    if (compact) return dia >= hoy && dia <= hasta;
+    return dia >= hoy;
+  });
 
   const cambiarEstado = async (id: string, estado: "hecha" | "cancelada") => {
     const supabase = createClient();
@@ -110,19 +117,26 @@ export function AgendaVisitas() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[30vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-foreground" />
+      <div className={compact ? "px-4 py-8 text-center text-[12.5px] text-[var(--text-2)]" : "flex min-h-[30vh] items-center justify-center"}>
+        {compact ? "Cargando visitas…" : <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-foreground" />}
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {admin ? <FiltroComercial comerciales={comerciales} valor={filtroComercial} onChange={setFiltroComercial} /> : null}
-      {atrasadas.length > 0 ? (
+    <div className={compact ? "" : "space-y-6"}>
+      {admin && !compact ? <FiltroComercial comerciales={comerciales} valor={filtroComercial} onChange={setFiltroComercial} /> : null}
+      {!compact && atrasadas.length > 0 ? (
         <ListaGrupo titulo="Atrasadas" citas={atrasadas} admin={admin} onEstado={cambiarEstado} />
       ) : null}
-      <ListaGrupo titulo="Próximas" citas={proximas} admin={admin} onEstado={cambiarEstado} vacio="No hay visitas previstas." />
+      <ListaGrupo
+        titulo={compact ? undefined : "Próximas"}
+        citas={proximas}
+        admin={admin}
+        onEstado={cambiarEstado}
+        vacio="No hay visitas previstas."
+        compact={compact}
+      />
     </div>
   );
 }
@@ -133,16 +147,50 @@ function ListaGrupo({
   admin,
   onEstado,
   vacio,
+  compact,
 }: {
-  titulo: string;
+  titulo?: string;
   citas: CitaAgenda[];
   admin: boolean;
   onEstado: (id: string, estado: "hecha" | "cancelada") => void;
   vacio?: string;
+  compact?: boolean;
 }) {
+  if (compact) {
+    if (citas.length === 0) {
+      return <p className="px-4 py-9 text-center text-[13.5px] text-[var(--text-2)]">{vacio}</p>;
+    }
+    return (
+      <ul>
+        {citas.map((cita) => {
+          const d = new Date(`${cita.empieza.slice(0, 10)}T12:00:00`);
+          return (
+            <li key={cita.id} className="flex items-center gap-3 border-b border-[var(--border-row)] px-4 py-2.5">
+              <div className="w-[46px] shrink-0 rounded-lg border border-border py-1 text-center leading-tight">
+                <div className="text-[10px] uppercase tracking-[.06em] text-[var(--label)]">
+                  {d.toLocaleDateString("es-ES", { weekday: "short" }).replace(".", "")}
+                </div>
+                <div className="text-[16px] font-semibold">{d.getDate()}</div>
+              </div>
+              <span className="h-9 w-[3px] rounded-sm" style={{ background: cita.profiles?.color || "#3A6A82" }} />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[14px] font-semibold">{cita.titulo}</div>
+                <div className="mt-0.5 text-[12px] text-[var(--text-2)]">
+                  {horaCita(cita.empieza)}
+                  {cita.clientes?.nombre ? ` · ${cita.clientes.nombre}` : ""}
+                </div>
+              </div>
+              <CitaAcciones cita={cita} onEstado={onEstado} compact />
+            </li>
+          );
+        })}
+      </ul>
+    );
+  }
+
   return (
     <section>
-      <h2 className="mb-3 text-base font-semibold">{titulo}</h2>
+      {titulo ? <h2 className="mb-3 text-base font-semibold">{titulo}</h2> : null}
       {citas.length === 0 && vacio ? (
         <Card className="px-6 py-10 text-center text-sm text-neutral-500">{vacio}</Card>
       ) : (

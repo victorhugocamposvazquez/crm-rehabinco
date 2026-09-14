@@ -53,6 +53,7 @@ const EDITOR_BLOCKED_PREFIXES = [
   "/partes-visita",
   "/visitas",
   "/demandas",
+  "/seguimiento",
   "/calendario",
   "/tareas",
   "/informes",
@@ -105,6 +106,7 @@ export const NAV_DESKTOP_BY_ROLE: Record<Role, readonly string[]> = {
     "/demandas",
     "/calendario",
     "/tareas",
+    "/seguimiento",
     "/informes",
     "/partes-visita",
     "/clientes",
@@ -119,6 +121,7 @@ export const NAV_DESKTOP_BY_ROLE: Record<Role, readonly string[]> = {
     "/partes-visita",
     "/propiedades",
     "/demandas",
+    "/seguimiento",
     "/catastro",
     "/clientes",
     "/settings",
@@ -134,9 +137,9 @@ export const NAV_TOP_BY_ROLE: Record<Role, readonly string[]> = {
 };
 
 export const NAV_MOBILE_BY_ROLE: Record<Role, readonly string[]> = {
-  admin: ["/", "/catastro", "/propiedades", "/partes-visita", "/facturas"],
+  admin: ["/", "/calendario", "/tareas", "/propiedades", "/settings"],
   comercial: ["/", "/tareas", "/calendario", "/propiedades", "/partes-visita"],
-  editor: ["/presupuestos"],
+  editor: ["/presupuestos", "/settings"],
 };
 
 export function navHrefsForRole(

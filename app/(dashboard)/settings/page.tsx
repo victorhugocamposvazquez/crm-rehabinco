@@ -59,11 +59,29 @@ export default function SettingsPage() {
     <div>
       <PageHeader
         breadcrumb={[{ label: "Ajustes", href: "/settings" }]}
-        title="Ajustes de cuenta"
-        description="Gestiona tu sesión, tu rol y la seguridad de acceso."
+        title="Ajustes"
+        description="Perfil, equipo y datos de la empresa."
       />
+      <nav className="mt-4 flex flex-wrap gap-1 min-[820px]:w-52 min-[820px]:flex-col min-[820px]:float-left min-[820px]:mr-6">
+        <a href="#perfil" className="rounded-[9px] border border-accent bg-accent-soft px-3 py-2 text-[13.5px] font-medium text-accent-dark">
+          Perfil y seguridad
+        </a>
+        {user?.role === "admin" ? (
+          <>
+            <a href="#equipo" className="rounded-[9px] px-3 py-2 text-[13.5px] font-medium text-[var(--text-2)] hover:bg-[var(--surface-soft)]">
+              Equipo
+            </a>
+            <Link href="/settings/empresa" className="rounded-[9px] px-3 py-2 text-[13.5px] font-medium text-[var(--text-2)] hover:bg-[var(--surface-soft)]">
+              Datos de empresa
+            </Link>
+            <Link href="/settings/emisores-presupuesto" className="rounded-[9px] px-3 py-2 text-[13.5px] font-medium text-[var(--text-2)] hover:bg-[var(--surface-soft)]">
+              Emisores de presupuesto
+            </Link>
+          </>
+        ) : null}
+      </nav>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2">
+      <div id="perfil" className="mt-8 grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Sesión</CardTitle>
@@ -80,7 +98,11 @@ export default function SettingsPage() {
         </Card>
 
         {user?.id && user.role !== "editor" && <PerfilComercialCard userId={user.id} />}
-        {user?.role === "admin" && <EquipoComercialesCard />}
+        {user?.role === "admin" && (
+          <div id="equipo" className="contents">
+            <EquipoComercialesCard />
+          </div>
+        )}
 
         <Card>
           <CardHeader>

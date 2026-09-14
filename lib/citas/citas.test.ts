@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { citasAgrupadasPorDia, citasDelDia, horaCita, moverSemana, puedeHacerParte, prefillParteDesdeCita, relacionUno, rutaNuevaCita, rutaNuevaVisitaDesdeCita, semanaDesde } from "./citas";
+import { citasAgrupadasPorDia, citasDelDia, horaCita, minutosDesdeOffsetY, moverCitaADiaHora, moverSemana, puedeHacerParte, prefillParteDesdeCita, relacionUno, rutaNuevaCita, rutaNuevaVisitaDesdeCita, semanaDesde, snapMinutos } from "./citas";
 
 describe("citas", () => {
   it("el parte se abre prellenado desde la cita, no al revés", () => {
@@ -58,5 +58,23 @@ describe("citas", () => {
     assert.equal(puedeHacerParte({ tipo: "visita", estado: "prevista" }), true);
     assert.equal(puedeHacerParte({ tipo: "llamada", estado: "prevista" }), false);
     assert.equal(puedeHacerParte({ tipo: "visita", estado: "hecha" }), false);
+  });
+
+  it("arrastra una cita a otro día y hora en saltos de 15 minutos", () => {
+    assert.equal(snapMinutos(10 * 60 + 7), 10 * 60);
+    assert.equal(snapMinutos(10 * 60 + 8), 10 * 60 + 15);
+    assert.equal(minutosDesdeOffsetY(48, 48, 9), 10 * 60);
+    const movida = moverCitaADiaHora({
+      empieza: "2026-09-16T09:00:00",
+      termina: "2026-09-16T10:00:00",
+      dia: "2026-09-18",
+      minutos: 11 * 60 + 7,
+    });
+    assert.equal(movida.vence, "2026-09-18");
+    assert.equal(movida.hora, "11:00");
+    const start = new Date(movida.empieza);
+    const end = new Date(movida.termina);
+    assert.equal(start.getHours(), 11);
+    assert.equal(end.getHours(), 12);
   });
 });

@@ -105,6 +105,65 @@ export function semanaDesde(dia: string): string[] {
   });
 }
 
+export const CAL_HORA_INICIO = 9;
+export const CAL_HORA_FIN = 19;
+export const CAL_PX_HORA = 48;
+export const CAL_SNAP_MIN = 15;
+
+export function snapMinutos(minutos: number, paso = CAL_SNAP_MIN): number {
+  return Math.round(minutos / paso) * paso;
+}
+
+export function minutosDesdeOffsetY(
+  offsetY: number,
+  pxPorHora = CAL_PX_HORA,
+  horaInicio = CAL_HORA_INICIO
+): number {
+  return snapMinutos(horaInicio * 60 + (offsetY / pxPorHora) * 60);
+}
+
+export function posicionEventoCalendario(
+  empieza: string,
+  termina: string,
+  horaInicio = CAL_HORA_INICIO,
+  pxPorHora = CAL_PX_HORA
+): { top: number; height: number } {
+  const start = new Date(empieza);
+  const end = new Date(termina);
+  const top = Math.max(0, (start.getHours() + start.getMinutes() / 60 - horaInicio) * pxPorHora);
+  const dur = Math.max(0.5, (end.getTime() - start.getTime()) / 3_600_000);
+  return { top, height: Math.max(30, dur * pxPorHora - 4) };
+}
+
+export function moverCitaADiaHora(input: {
+  empieza: string;
+  termina: string;
+  dia: string;
+  minutos: number;
+}): { empieza: string; termina: string; vence: string; hora: string } {
+  const durMs = Math.max(
+    CAL_SNAP_MIN * 60 * 1000,
+    new Date(input.termina).getTime() - new Date(input.empieza).getTime()
+  );
+  const minutos = Math.max(0, Math.min(23 * 60 + 45, snapMinutos(input.minutos)));
+  const start = new Date(`${input.dia.slice(0, 10)}T00:00:00`);
+  start.setHours(Math.floor(minutos / 60), minutos % 60, 0, 0);
+  const end = new Date(start.getTime() + durMs);
+  const hora = `${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`;
+  return {
+    empieza: start.toISOString(),
+    termina: end.toISOString(),
+    vence: input.dia.slice(0, 10),
+    hora,
+  };
+}
+
+export function minutosLocalesDeCita(empieza: string): number {
+  const d = new Date(empieza);
+  if (Number.isNaN(d.getTime())) return CAL_HORA_INICIO * 60;
+  return d.getHours() * 60 + d.getMinutes();
+}
+
 export function prefillParteDesdeCita(cita: {
   titulo: string;
   empieza: string;

@@ -22,6 +22,28 @@ export const ESTADO_CAPTACION_LABEL: Record<EstadoCaptacion, string> = {
   no_localizable: "No localizable",
 };
 
+export const ESTADO_CAPTACION_DOT: Record<EstadoCaptacion, string> = {
+  nueva: "#8A938F",
+  contactar: "#B98A16",
+  propietario_localizado: "#2B4A8A",
+  visita: "#8579C4",
+  mandato: "#0B7461",
+  en_stock: "#0B7461",
+  descartada: "#B3ADA3",
+  no_localizable: "#B3ADA3",
+};
+
+export const COLUMNAS_FOLLOWUP_FINCA_ABIERTAS: EstadoCaptacion[] = [
+  "nueva",
+  "contactar",
+  "propietario_localizado",
+  "visita",
+  "mandato",
+  "en_stock",
+];
+
+export const COLUMNAS_FOLLOWUP_FINCA_CERRADAS: EstadoCaptacion[] = ["descartada", "no_localizable"];
+
 export const FILTROS_BANDEJA_CAPTACION = [
   { value: "TODAS", label: "Todas" },
   { value: "SIN_TRABAJAR", label: "Sin trabajar" },

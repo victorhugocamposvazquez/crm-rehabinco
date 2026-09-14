@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { COMERCIAL_COLORS } from "@/lib/ui/tokens";
 
 export function PerfilComercialCard({ userId }: { userId: string }) {
   const [nombre, setNombre] = useState("");
@@ -77,14 +78,21 @@ export function PerfilComercialCard({ userId }: { userId: string }) {
         </div>
         <div className="space-y-2">
           <Label>Color</Label>
-          <div className="flex items-center gap-3">
-            <input
-              type="color"
-              value={color}
-              onChange={(e) => setColor(e.target.value)}
-              className="h-10 w-14 cursor-pointer rounded border border-border bg-white p-1"
-            />
-            <span className="text-sm tabular-nums text-neutral-500">{color}</span>
+          <div className="flex flex-wrap gap-2">
+            {COMERCIAL_COLORS.map((hex) => (
+              <button
+                key={hex}
+                type="button"
+                onClick={() => setColor(hex)}
+                className="h-[30px] w-[30px] rounded-full"
+                style={{
+                  background: hex,
+                  outline: color.toLowerCase() === hex.toLowerCase() ? "2px solid #131C1A" : "2px solid transparent",
+                  outlineOffset: 2,
+                }}
+                aria-label={hex}
+              />
+            ))}
           </div>
         </div>
         <Button type="button" onClick={() => void save()} disabled={saving}>

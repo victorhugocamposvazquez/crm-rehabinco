@@ -27,11 +27,11 @@ export function PageHeader({
       )}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-[2.2rem]">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground min-[820px]:text-[28px]">
             {title}
           </h1>
           {description && (
-            <p className={cn("mt-2 max-w-2xl text-base text-neutral-600", descriptionClassName)}>
+            <p className={cn("mt-1.5 max-w-2xl text-[13px] text-[var(--text-2)]", descriptionClassName)}>
               {description}
             </p>
           )}

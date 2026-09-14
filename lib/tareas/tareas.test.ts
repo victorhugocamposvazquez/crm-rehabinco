@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { agruparTareas, bandejaDeTarea, recuentoTareas } from "./tareas";
+import { agruparTareas, bandejaDeTarea, columnaDeTarea, parseTareaRapida, recuentoTareas } from "./tareas";
 
 describe("organizador de tareas", () => {
   it("separa vencidas, hoy y próximas", () => {
@@ -9,6 +9,16 @@ describe("organizador de tareas", () => {
     assert.equal(bandejaDeTarea("2026-09-20", "2026-09-14", "pendiente"), "PROXIMAS");
     assert.equal(bandejaDeTarea(null, "2026-09-14", "pendiente"), "SIN_FECHA");
     assert.equal(bandejaDeTarea("2026-09-10", "2026-09-14", "hecha"), "HECHAS");
+    assert.equal(bandejaDeTarea("2026-09-20", "2026-09-14", "esperando"), "ESPERANDO");
+  });
+
+  it("coloca vencidas+hoy en la columna Hoy del tablero", () => {
+    assert.equal(columnaDeTarea("2026-09-10", "2026-09-14", "pendiente"), "hoy");
+    assert.equal(columnaDeTarea("2026-09-16", "2026-09-14", "pendiente"), "curso");
+    const parsed = parseTareaRapida("Llamar propietario mañana 10:00", new Date("2026-09-14T12:00:00"));
+    assert.equal(parsed.hora, "10:00");
+    assert.equal(parsed.vence, "2026-09-15");
+    assert.match(parsed.titulo, /Llamar propietario/);
   });
 
   it("recuenta la bandeja del comercial", () => {

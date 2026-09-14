@@ -1,5 +1,8 @@
 "use client";
 
+import { AvatarComercial } from "@/components/ui/avatar-comercial";
+import { cn } from "@/lib/utils";
+
 export type ComercialFiltro = { id: string; nombre: string; color: string | null };
 
 export function FiltroComercial({
@@ -13,29 +16,25 @@ export function FiltroComercial({
 }) {
   if (comerciales.length === 0) return null;
   return (
-    <div className="flex flex-wrap gap-1.5">
-      <button
-        type="button"
-        onClick={() => onChange("")}
-        className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-          valor === "" ? "border-[#0B7461] bg-[#E8F3EF]" : "border-[#E6E3DD] bg-white"
-        }`}
-      >
-        Equipo
-      </button>
-      {comerciales.map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          onClick={() => onChange(item.id)}
-          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
-            valor === item.id ? "border-[#0B7461] bg-[#E8F3EF]" : "border-[#E6E3DD] bg-white"
-          }`}
-        >
-          <span className="h-2.5 w-2.5 rounded-full" style={{ background: item.color || "#3A6A82" }} />
-          {item.nombre}
-        </button>
-      ))}
+    <div className="flex flex-wrap items-center gap-1.5">
+      {comerciales.map((item) => {
+        const on = valor === item.id;
+        return (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => onChange(on ? "" : item.id)}
+            className={cn(
+              "inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 text-[12.5px] font-medium",
+              on ? "border-accent bg-accent-soft text-accent-dark" : "border-border bg-white text-[var(--text-2)]"
+            )}
+            style={{ opacity: valor && !on ? 0.45 : 1 }}
+          >
+            <AvatarComercial nombre={item.nombre} color={item.color} size={18} />
+            {item.nombre.split(" ")[0]}
+          </button>
+        );
+      })}
     </div>
   );
 }

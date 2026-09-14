@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Card, CardContent } from "@/components/ui/card";
 import { demandasSinMatching, stockPorComercial, visitasEnSemana } from "@/lib/inmuebles/informes";
 import { semanaDesde } from "@/lib/citas/citas";
 
@@ -66,33 +65,24 @@ export default function InformesPage() {
         title="Informes"
         description="Visitas de la semana, stock por comercial y demandas sin cruce."
       />
-      <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-2xl font-semibold">{visitas}</p>
-            <p className="mt-1 text-sm text-neutral-500">Visitas esta semana</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-2xl font-semibold">{demandasActivas}</p>
-            <p className="mt-1 text-sm text-neutral-500">Demandas activas</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-2xl font-semibold">{sinCruce}</p>
-            <p className="mt-1 text-sm text-neutral-500">Sin matching</p>
-          </CardContent>
-        </Card>
+      <div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-2.5">
+        {[
+          { valor: String(visitas), label: "Visitas esta semana" },
+          { valor: String(demandasActivas), label: "Demandas activas" },
+          { valor: String(sinCruce), label: "Sin matching" },
+        ].map((k) => (
+          <div key={k.label} className="rounded-xl border border-border bg-white px-[15px] py-3">
+            <div className="text-[22px] font-semibold tabular-nums tracking-tight">{k.valor}</div>
+            <div className="mt-0.5 text-[12.5px] text-[var(--text-2)]">{k.label}</div>
+          </div>
+        ))}
       </div>
-      <ul className="mt-8 space-y-2">
+      <ul className="mt-4 overflow-hidden rounded-[14px] border border-border bg-white">
         {stock.map((item) => (
-          <li key={item.nombre} className="rounded-xl border border-[#E6E3DD] bg-white px-4 py-3 text-sm">
+          <li key={item.nombre} className="flex items-center justify-between gap-3 border-b border-[var(--border-row)] px-4 py-2.5 last:border-0 text-[14px]">
             <span className="font-semibold">{item.nombre}</span>
-            <span className="text-[#5D6B67]">
-              {" "}
-              · {item.total} inmuebles · {item.disponibles} disponibles
+            <span className="tabular-nums text-[var(--text-2)]">
+              {item.total} inmuebles · {item.disponibles} disponibles
             </span>
           </li>
         ))}

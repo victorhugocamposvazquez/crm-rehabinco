@@ -4,6 +4,13 @@ export type TipoOperacionDemanda = (typeof TIPOS_OPERACION_DEMANDA)[number];
 export const ESTADOS_DEMANDA = ["activa", "pausada", "cubierta", "cerrada"] as const;
 export type EstadoDemanda = (typeof ESTADOS_DEMANDA)[number];
 
+export const ESTADO_DEMANDA_DOT: Record<EstadoDemanda, string> = {
+  activa: "#0B7461",
+  pausada: "#B98A16",
+  cubierta: "#2B4A8A",
+  cerrada: "#B3ADA3",
+};
+
 export const ESTADOS_MATCHING = ["propuesto", "presentado", "descartado", "visitado", "oferta"] as const;
 export type EstadoMatching = (typeof ESTADOS_MATCHING)[number];
 

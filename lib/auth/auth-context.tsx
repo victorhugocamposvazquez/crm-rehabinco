@@ -11,6 +11,8 @@ export interface AuthUser {
   id: string;
   email: string;
   role: Role;
+  nombre?: string | null;
+  color?: string | null;
 }
 
 interface AuthContextValue {
@@ -40,14 +42,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const getProfile = async (authUser: User): Promise<AuthUser | null> => {
-      let profile: { role?: string } | null = null;
+      let profile: { role?: string; nombre_completo?: string | null; color?: string | null } | null = null;
       try {
         const { data } = await supabase
           .from("profiles")
-          .select("role")
+          .select("role, nombre_completo, color")
           .eq("id", authUser.id)
           .single();
-        profile = data as { role?: string } | null;
+        profile = data as { role?: string; nombre_completo?: string | null; color?: string | null } | null;
       } catch (error) {
         if (isAbortError(error)) {
           return null;
@@ -59,6 +61,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           id: authUser.id,
           email: authUser.email ?? "",
           role: parseRole(profile.role),
+          nombre: profile.nombre_completo,
+          color: profile.color,
         };
       }
 

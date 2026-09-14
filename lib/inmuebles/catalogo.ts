@@ -48,6 +48,12 @@ export const ESTADO_INMUEBLE_LABEL: Record<EstadoInmueble, string> = {
   baja: "Baja",
 };
 
+export function parseEstadoInmueble(valor: string | null | undefined): EstadoInmueble {
+  return (ESTADOS_INMUEBLE as readonly string[]).includes(valor ?? "")
+    ? (valor as EstadoInmueble)
+    : "disponible";
+}
+
 export function labelTipoInmueble(v: string | null | undefined) {
   if (!v) return "—";
   return TIPO_INMUEBLE_LABEL[v as TipoInmueble] ?? v;

@@ -1,13 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { IBM_Plex_Mono, Schibsted_Grotesk } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { ServiceWorkerRegistration } from "@/components/pwa/ServiceWorkerRegistration";
 import { Toaster } from "sonner";
 
-const plusJakarta = Plus_Jakarta_Sans({
+const schibsted = Schibsted_Grotesk({
   subsets: ["latin"],
   variable: "--font-sans",
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-mono",
 });
 
 export const metadata: Metadata = {
@@ -23,7 +29,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   viewportFit: "cover",
-  themeColor: "#0d9488",
+  themeColor: "#0B7461",
 };
 
 export default function RootLayout({
@@ -32,7 +38,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className={plusJakarta.variable}>
+    <html lang="es" className={`${schibsted.variable} ${plexMono.variable}`}>
       <body className="min-h-screen bg-background font-sans antialiased">
         <AuthProvider>
           {children}

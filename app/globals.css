@@ -3,14 +3,34 @@
 @tailwind utilities;
 
 :root {
-  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
-  --background: #fafaf9;
-  --foreground: #1c1917;
-  --accent: #0d9488;
-  --muted: #6b7280;
-  --border: #e7e5e4;
-  --ring: #0d9488;
-  --radius: 0.75rem;
+  --background: #f7f6f2;
+  --surface: #ffffff;
+  --surface-soft: #fbfbf9;
+  --foreground: #131c1a;
+  --text-2: #5d6b67;
+  --label: #6b7a76;
+  --text-3: #8a938f;
+  --border: #e6e3dd;
+  --border-soft: #efede7;
+  --border-row: #f2f0eb;
+  --input: #dad6ce;
+  --accent: #0b7461;
+  --accent-dark: #08594b;
+  --accent-soft: #e8f3ef;
+  --row-active: #f4f8f6;
+  --amber: #b98a16;
+  --amber-bg: #fbf0d8;
+  --amber-ink: #7a5a10;
+  --blue: #2b4a8a;
+  --blue-bg: #e9eef8;
+  --violet: #8579c4;
+  --violet-bg: #f1eff8;
+  --violet-ink: #4b3f8a;
+  --red: #a33b2a;
+  --red-bg: #fbeae5;
+  --muted: #5d6b67;
+  --ring: #0b7461;
+  --radius: 12px;
 }
 
 * {
@@ -25,30 +45,52 @@ body {
   min-height: 100dvh;
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans);
+  font-family: var(--font-sans), system-ui, sans-serif;
   letter-spacing: -0.01em;
   text-rendering: geometricPrecision;
 }
 
-/* Evita zoom automático en iOS al enfocar inputs (font-size < 16px dispara el zoom) */
-input:not([type="checkbox"]):not([type="radio"]),
-select,
-textarea {
-  font-size: 16px !important;
+.font-mono,
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Evita zoom automático en iOS al enfocar inputs */
+@media (max-width: 819px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
 }
 
 @layer base {
   h1 {
-    @apply text-3xl font-semibold tracking-tight text-foreground sm:text-[2.05rem];
+    @apply text-2xl font-semibold tracking-tight text-foreground min-[820px]:text-[28px];
   }
 
   h2 {
-    @apply text-2xl font-semibold tracking-tight text-foreground;
+    @apply text-[15px] font-semibold tracking-tight text-foreground min-[820px]:text-base;
   }
 
   p {
-    @apply text-[15px] leading-6;
+    @apply text-sm leading-6;
   }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-rise {
+  animation: rise 0.2s ease;
 }
 
 @keyframes sheetUp {

@@ -79,6 +79,7 @@ describe("roles", () => {
 
   it("el editor no entra a captación, agenda ni tareas", () => {
     assert.equal(isEditorBlockedPath("/tareas"), true);
+    assert.equal(isEditorBlockedPath("/seguimiento"), true);
     assert.equal(isEditorBlockedPath("/calendario"), true);
     assert.equal(isEditorBlockedPath("/partes-visita"), true);
     assert.equal(isEditorBlockedPath("/presupuestos"), false);

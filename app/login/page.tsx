@@ -7,8 +7,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginFormValues } from "@/lib/validations/auth";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { FloatingLabelInput } from "@/components/ui/floating-label-input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,7 +16,6 @@ export default function LoginPage() {
 
   const {
     register,
-    watch,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
@@ -27,13 +26,13 @@ export default function LoginPage() {
   async function onSubmit(data: LoginFormValues) {
     setError(null);
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error: authError } = await supabase.auth.signInWithPassword({
       email: data.email,
       password: data.password,
     });
 
-    if (error) {
-      setError(error.message === "Invalid login credentials" ? "Email o contraseña incorrectos" : error.message);
+    if (authError) {
+      setError(authError.message === "Invalid login credentials" ? "Email o contraseña incorrectos" : authError.message);
       return;
     }
 
@@ -42,59 +41,38 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-[#f4f6f9] px-4 py-12 md:min-h-screen md:py-16">
-      <Card className="w-full max-w-[420px] animate-[scaleIn_0.25s_ease-out] border-0 bg-white px-8 py-10 shadow-[0_4px_24px_rgba(0,0,0,0.06)] md:px-12 md:py-14 md:shadow-[0_8px_40px_rgba(0,0,0,0.08)]" animate={false}>
-        <CardHeader className="space-y-4 pb-8 text-center">
-          <div className="flex justify-center">
-            <img
-              src="/images/logo-login.png"
-              alt="REHABINCO - Gestión Inmobiliaria y Reformas"
-              className="h-24 w-auto object-contain"
-            />
+    <div className="flex min-h-dvh items-center justify-center bg-[var(--background)] px-4 py-12">
+      <div className="w-full max-w-[400px] rounded-[14px] border border-border bg-white p-8">
+        <div className="mb-6 flex justify-center">
+          <img
+            src="/images/logo-login.png"
+            alt="REHABINCO"
+            className="h-16 w-auto object-contain"
+          />
+        </div>
+        <h1 className="mb-6 text-center text-[22px] font-semibold tracking-tight">Entrar</h1>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {error && (
+            <p className="rounded-[9px] bg-[var(--red-bg)] px-3 py-2 text-[13px] text-[var(--red)]">{error}</p>
+          )}
+          <div className="space-y-1.5">
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" type="email" autoComplete="email" {...register("email")} />
+            {errors.email && <p className="text-[12px] text-[var(--red)]">{errors.email.message}</p>}
           </div>
-          <CardTitle className="text-[2rem] font-semibold tracking-tight text-neutral-900 md:text-[2.25rem]">
-            CRM interno
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="px-0 pt-0">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {error && (
-              <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
-                {error}
-              </p>
-            )}
-            <div className="space-y-2.5">
-              <FloatingLabelInput
-                id="email"
-                type="email"
-                label="Email"
-                autoComplete="email"
-                value={watch("email")}
-                error={errors.email?.message}
-                {...register("email")}
-              />
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">Contraseña</Label>
+              <span className="text-[12px] text-[var(--text-3)]">¿La has olvidado?</span>
             </div>
-            <div className="space-y-2.5">
-              <FloatingLabelInput
-                id="password"
-                type="password"
-                label="Contraseña"
-                autoComplete="current-password"
-                value={watch("password")}
-                error={errors.password?.message}
-                {...register("password")}
-              />
-            </div>
-            <Button
-              type="submit"
-              className="mt-2 h-12 w-full rounded-xl bg-[#29A4AE] text-base font-semibold text-white hover:bg-[#23908a] focus-visible:ring-[#29A4AE]/40"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Entrando…" : "Entrar"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+            <Input id="password" type="password" autoComplete="current-password" {...register("password")} />
+            {errors.password && <p className="text-[12px] text-[var(--red)]">{errors.password.message}</p>}
+          </div>
+          <Button type="submit" className="mt-2 h-12 w-full text-[15px]" disabled={isSubmitting}>
+            {isSubmitting ? "Entrando…" : "Entrar"}
+          </Button>
+        </form>
+      </div>
     </div>
   );
 }

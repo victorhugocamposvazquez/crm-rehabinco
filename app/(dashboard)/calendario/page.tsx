@@ -13,11 +13,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  CAL_HORA_FIN,
+  CAL_HORA_INICIO,
+  CAL_PX_HORA,
   citasAgrupadasPorDia,
   citasDelDia,
   ESTADO_CITA_LABEL,
   horaCita,
+  minutosDesdeOffsetY,
+  minutosLocalesDeCita,
+  moverCitaADiaHora,
   moverSemana,
+  posicionEventoCalendario,
   relacionUno,
   semanaDesde,
   TIPOS_CITA,
@@ -26,6 +33,7 @@ import {
   type TipoCita,
 } from "@/lib/citas/citas";
 import { FiltroComercial, type ComercialFiltro } from "@/components/captacion/FiltroComercial";
+import { useFiltroComercial } from "@/lib/ui/filtro-comercial";
 import { CitaAcciones } from "@/components/citas/CitaAcciones";
 
 type CitaRow = {
@@ -38,6 +46,7 @@ type CitaRow = {
   propiedad_id: string | null;
   cliente_id: string | null;
   estado: string;
+  tarea_id?: string | null;
   profiles?: { nombre_completo?: string | null; color?: string | null } | null;
   propiedades?: { titulo?: string | null; direccion?: string | null; referencia?: string | null } | null;
 };
@@ -57,7 +66,7 @@ export default function CalendarioPage() {
   const [propiedades, setPropiedades] = useState<Array<{ id: string; titulo: string | null; direccion: string | null; referencia: string | null }>>([]);
   const [clientes, setClientes] = useState<Array<{ id: string; nombre: string }>>([]);
   const [comerciales, setComerciales] = useState<ComercialFiltro[]>([]);
-  const [filtroComercial, setFiltroComercial] = useState("");
+  const { comercialId: filtroComercial, setComercialId: setFiltroComercial } = useFiltroComercial();
   const semana = useMemo(() => semanaDesde(dia), [dia]);
   const etiquetaSemana = `${new Date(`${semana[0]}T12:00:00`).toLocaleDateString("es-ES", {
     day: "numeric",
@@ -72,7 +81,7 @@ export default function CalendarioPage() {
     let q = supabase
       .from("citas")
       .select(
-        "id, comercial_id, tipo, titulo, empieza, termina, propiedad_id, cliente_id, estado, profiles:comercial_id(nombre_completo, color), propiedades:propiedad_id(titulo, direccion, referencia)"
+        "id, comercial_id, tipo, titulo, empieza, termina, propiedad_id, cliente_id, estado, tarea_id, profiles:comercial_id(nombre_completo, color), propiedades:propiedad_id(titulo, direccion, referencia)"
       )
       .gte("empieza", inicio)
       .lte("empieza", fin)
@@ -168,6 +177,35 @@ export default function CalendarioPage() {
     cargar();
   };
 
+  const moverCita = async (id: string, dia: string, offsetY: number | null) => {
+    const cita = citas.find((item) => item.id === id);
+    if (!cita || cita.estado === "hecha" || cita.estado === "cancelada") return;
+    const minutos = offsetY == null || offsetY < 8 ? minutosLocalesDeCita(cita.empieza) : minutosDesdeOffsetY(offsetY);
+    const patch = moverCitaADiaHora({
+      empieza: cita.empieza,
+      termina: cita.termina,
+      dia,
+      minutos,
+    });
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("citas")
+      .update({ empieza: patch.empieza, termina: patch.termina })
+      .eq("id", id);
+    if (error) {
+      toast.error("No se ha podido mover la cita.");
+      return;
+    }
+    if (cita.tarea_id) {
+      await supabase.from("tareas").update({ vence: patch.vence, hora: patch.hora }).eq("id", cita.tarea_id);
+    }
+    setCitas((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, empieza: patch.empieza, termina: patch.termina } : item))
+    );
+    setDia(dia);
+    toast.success(`Cita pasada a ${patch.hora}.`);
+  };
+
   const cambiarEstado = async (id: string, estado: "hecha" | "cancelada") => {
     const supabase = createClient();
     const { error } = await supabase.from("citas").update({ estado }).eq("id", id);
@@ -188,7 +226,7 @@ export default function CalendarioPage() {
       <PageHeader
         breadcrumb={[{ label: "Calendario" }]}
         title="Calendario"
-        description="Semana del comercial. El parte de visita se hace desde la cita, no al revés."
+        description="Arrastra las citas a otro día o hora. El parte de visita se hace desde la cita."
         actions={
           <Button asChild size="sm" variant="secondary">
             <Link href="/partes-visita">Visitas</Link>
@@ -216,75 +254,121 @@ export default function CalendarioPage() {
         </Button>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2 md:hidden">
+      <div className="mt-4 flex flex-wrap gap-2 min-[820px]:hidden">
         {semana.map((d) => (
           <button
             key={d}
             type="button"
             onClick={() => setDia(d)}
             className={`rounded-xl border px-3 py-2 text-sm ${
-              d === dia ? "border-[#0B7461] bg-[#E8F3EF] font-semibold" : "border-[#E6E3DD] bg-white"
+              d === dia ? "border-accent bg-accent-soft font-semibold" : "border-border bg-white"
             }`}
           >
             {new Date(`${d}T12:00:00`).toLocaleDateString("es-ES", { weekday: "short", day: "numeric" })}
-            {(porDia.get(d)?.length ?? 0) > 0 ? (
-              <span className="ml-1 text-xs text-[#5D6B67]">{porDia.get(d)?.length}</span>
-            ) : null}
+            {(porDia.get(d)?.length ?? 0) > 0 ? <span className="ml-1 h-1.5 w-1.5 rounded-full bg-accent" /> : null}
           </button>
         ))}
       </div>
 
-      <div className="mt-4 hidden gap-2 md:grid md:grid-cols-7">
-        {semana.map((d) => {
-          const esHoy = d === hoy;
-          const seleccionado = d === dia;
-          const lista = porDia.get(d) ?? [];
-          return (
-            <div
-              key={d}
-              className={`min-h-[14rem] rounded-2xl border p-2 ${
-                seleccionado ? "border-[#0B7461] bg-[#E8F3EF]/40" : "border-[#E6E3DD] bg-white"
-              }`}
-            >
-              <button type="button" onClick={() => setDia(d)} className="w-full text-left">
-                <p className={`text-xs font-semibold uppercase tracking-wide ${esHoy ? "text-[#0B7461]" : "text-[#6B7A76]"}`}>
+      <div className="mt-4 hidden overflow-hidden rounded-[14px] border border-border bg-white min-[820px]:block">
+        <div className="grid grid-cols-[52px_repeat(7,minmax(0,1fr))] border-b border-[var(--border-soft)]">
+          <div />
+          {semana.map((d) => {
+            const esHoy = d === hoy;
+            return (
+              <button
+                key={d}
+                type="button"
+                onClick={() => setDia(d)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const id = e.dataTransfer.getData("text/cita");
+                  if (id) void moverCita(id, d, null);
+                }}
+                className="h-[52px] border-l border-[var(--border-soft)] text-center"
+              >
+                <p className="text-[11px] uppercase text-[var(--label)]">
                   {new Date(`${d}T12:00:00`).toLocaleDateString("es-ES", { weekday: "short" })}
                 </p>
-                <p className={`text-lg ${esHoy ? "font-semibold text-[#0B7461]" : "font-medium"}`}>
+                <span className={`inline-grid h-7 w-7 place-items-center rounded-full text-[13px] font-semibold ${esHoy ? "bg-accent text-white" : ""}`}>
                   {new Date(`${d}T12:00:00`).getDate()}
-                </p>
+                </span>
               </button>
-              <ul className="mt-2 space-y-1.5">
-                {lista.map((cita) => (
-                  <li key={cita.id}>
-                    <button
-                      type="button"
-                      onClick={() => setDia(d)}
-                      className={`w-full rounded-lg border border-[#E6E3DD] bg-white px-2 py-1.5 text-left ${
-                        cita.estado !== "prevista" ? "opacity-50" : ""
-                      }`}
-                    >
-                      <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[#5D6B67]">
-                        <span className="h-2 w-2 rounded-full" style={{ background: cita.profiles?.color || "#3A6A82" }} />
-                        {horaCita(cita.empieza)}
-                      </p>
-                      <p className="mt-0.5 line-clamp-2 text-xs font-medium">{cita.titulo}</p>
-                    </button>
-                  </li>
+            );
+          })}
+        </div>
+        <div className="grid grid-cols-[52px_repeat(7,minmax(0,1fr))]">
+          <div className="relative" style={{ height: (CAL_HORA_FIN - CAL_HORA_INICIO + 1) * CAL_PX_HORA }}>
+            {Array.from({ length: CAL_HORA_FIN - CAL_HORA_INICIO + 1 }, (_, i) => CAL_HORA_INICIO + i).map((h, i) => (
+              <div key={h} className="absolute right-1 font-mono text-[11px] text-[var(--text-3)]" style={{ top: i * CAL_PX_HORA }}>
+                {h}:00
+              </div>
+            ))}
+          </div>
+          {semana.map((d) => {
+            const lista = porDia.get(d) ?? [];
+            const esHoy = d === hoy;
+            return (
+              <div
+                key={d}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const id = e.dataTransfer.getData("text/cita");
+                  if (!id) return;
+                  const y = e.clientY - e.currentTarget.getBoundingClientRect().top;
+                  void moverCita(id, d, y);
+                }}
+                className="relative border-l border-[var(--border-soft)]"
+                style={{ height: (CAL_HORA_FIN - CAL_HORA_INICIO + 1) * CAL_PX_HORA, background: esHoy ? "#FBFBF9" : "#fff" }}
+              >
+                {Array.from({ length: CAL_HORA_FIN - CAL_HORA_INICIO + 1 }).map((_, i) => (
+                  <div key={i} className="absolute inset-x-0 border-t border-[var(--border-row)]" style={{ top: i * CAL_PX_HORA }} />
                 ))}
-              </ul>
-            </div>
-          );
-        })}
+                {lista.map((cita) => {
+                  const { top, height } = posicionEventoCalendario(cita.empieza, cita.termina);
+                  const color = cita.profiles?.color || "#3A6A82";
+                  return (
+                    <button
+                      key={cita.id}
+                      type="button"
+                      draggable={cita.estado === "prevista"}
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("text/cita", cita.id);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      onClick={() => setDia(d)}
+                      className="absolute inset-x-1 cursor-grab overflow-hidden rounded-[6px] px-1.5 py-0.5 text-left active:cursor-grabbing"
+                      style={{
+                        top,
+                        height,
+                        background: `${color}1A`,
+                        borderLeft: `3px solid ${color}`,
+                      }}
+                    >
+                      <p className="text-[11px] font-semibold" style={{ color }}>
+                        {horaCita(cita.empieza)} · {TIPO_CITA_LABEL[(cita.tipo as TipoCita) ?? "otro"] ?? cita.tipo}
+                      </p>
+                      <p className="truncate text-[12px] font-medium">{cita.titulo}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      <form
-        className="mt-6 grid gap-3 rounded-2xl border border-[#E6E3DD] bg-white p-4 sm:grid-cols-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void crear();
-        }}
-      >
+      <details className="mt-6 rounded-[14px] border border-border bg-white" open={Boolean(propiedadId || clienteId)}>
+        <summary className="cursor-pointer px-4 py-3 text-[13.5px] font-semibold">Nueva cita</summary>
+        <form
+          className="grid gap-3 border-t border-[var(--border-soft)] p-4 sm:grid-cols-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void crear();
+          }}
+        >
         <div className="sm:col-span-2">
           <Label>Nueva cita · {new Date(`${dia}T12:00:00`).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}</Label>
           <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Visita en… (opcional si eliges inmueble)" />
@@ -342,9 +426,10 @@ export default function CalendarioPage() {
             Añadir
           </Button>
         </div>
-      </form>
+        </form>
+      </details>
 
-      <h2 className="mt-8 text-base font-semibold">
+      <h2 className="mt-8 text-[15px] font-semibold capitalize">
         {new Date(`${dia}T12:00:00`).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}
       </h2>
       <ul className="mt-3 space-y-2">
