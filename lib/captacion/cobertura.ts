@@ -10,6 +10,35 @@ export type BusquedaCobertura = {
   updatedAt?: string | null;
 };
 
+export type FilaBusquedaCatastro = {
+  mode?: string | null;
+  postal_code?: string | null;
+  municipio?: string | null;
+  provincia?: string | null;
+  coverage?: {
+    streetsFound?: number;
+    streetsProcessed?: number;
+    complete?: boolean;
+  } | null;
+  status?: string | null;
+  updated_at?: string | null;
+};
+
+export function busquedaCoberturaDesdeFila(row: FilaBusquedaCatastro): BusquedaCobertura {
+  const coverage = row.coverage ?? {};
+  return {
+    mode: row.mode ?? "",
+    postalCode: row.postal_code,
+    municipio: row.municipio,
+    provincia: row.provincia,
+    streetsFound: coverage.streetsFound,
+    streetsProcessed: coverage.streetsProcessed,
+    complete: coverage.complete,
+    status: row.status,
+    updatedAt: row.updated_at,
+  };
+}
+
 export type CoberturaCp = {
   postalCode: string;
   municipio: string;

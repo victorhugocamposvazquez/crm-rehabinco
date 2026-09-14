@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
-import { agregarCoberturaTerritorio } from "./cobertura";
+import { fileURLToPath } from "node:url";
+import { agregarCoberturaTerritorio, busquedaCoberturaDesdeFila } from "./cobertura";
 
 describe("cobertura territorial", () => {
   it("agrupa búsquedas por CP y se queda con el máximo de calles", () => {
@@ -37,5 +40,23 @@ describe("cobertura territorial", () => {
     assert.equal(filas[0]?.postalCode, "15009");
     assert.equal(filas[0]?.streetsProcessed, 127);
     assert.equal(filas[0]?.complete, true);
+  });
+
+  it("lee las columnas persistidas, no un JSON criteria", () => {
+    const mapeada = busquedaCoberturaDesdeFila({
+      mode: "POSTAL_CODE",
+      postal_code: "15009",
+      municipio: "A CORUÑA",
+      provincia: "A CORUÑA",
+      coverage: { streetsFound: 127, streetsProcessed: 40, complete: false },
+      status: "COMPLETED",
+      updated_at: "2026-09-14T10:00:00.000Z",
+    });
+    assert.equal(mapeada.postalCode, "15009");
+    assert.equal(mapeada.streetsProcessed, 40);
+    const ruta = join(dirname(fileURLToPath(import.meta.url)), "../../app/api/catastro/cobertura/route.ts");
+    const fuente = readFileSync(ruta, "utf8");
+    assert.equal(fuente.includes("criteria"), false);
+    assert.match(fuente, /postal_code, municipio, provincia/);
   });
 });

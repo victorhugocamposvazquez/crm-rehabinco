@@ -7,6 +7,7 @@ import type { CoberturaCp } from "@/lib/captacion/cobertura";
 export default function CoberturaCatastroPage() {
   const [filas, setFilas] = useState<CoberturaCp[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
     void fetch("/api/catastro/cobertura")
@@ -18,7 +19,8 @@ export default function CoberturaCatastroPage() {
         }
         setFilas(json.cobertura ?? []);
       })
-      .catch(() => setError("No se ha podido leer la cobertura."));
+      .catch(() => setError("No se ha podido leer la cobertura."))
+      .finally(() => setCargando(false));
   }, []);
 
   return (
@@ -53,10 +55,10 @@ export default function CoberturaCatastroPage() {
                 <td className="px-4 py-2">{fila.complete ? "Completo" : "En curso"}</td>
               </tr>
             ))}
-            {filas.length === 0 ? (
+            {filas.length === 0 && !error ? (
               <tr>
                 <td colSpan={4} className="px-4 py-8 text-center text-[#5D6B67]">
-                  Aún no hay búsquedas por código postal.
+                  {cargando ? "Cargando cobertura…" : "Aún no hay búsquedas por código postal."}
                 </td>
               </tr>
             ) : null}
