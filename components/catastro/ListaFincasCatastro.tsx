@@ -365,19 +365,19 @@ export function ListaFincasCatastro({
           <FiltroNumero
             etiqueta="Desde m² parcela"
             value={minParcela}
-            placeholder="p. ej. 200"
+            ayuda="Vacío = cualquiera"
             onChange={setMinParcela}
           />
           <FiltroNumero
             etiqueta="Desde n.º inmuebles"
             value={minInmuebles}
-            placeholder="p. ej. 4"
+            ayuda="Vacío = cualquiera"
             onChange={setMinInmuebles}
           />
           <FiltroNumero
             etiqueta="Hasta año"
             value={maxAnio}
-            placeholder="p. ej. 1980"
+            ayuda="Año más nuevo de la finca. Vacío = todos"
             onChange={setMaxAnio}
           />
         </div>
@@ -536,14 +536,15 @@ function BarraSeleccionLista({
 function FiltroNumero({
   etiqueta,
   value,
-  placeholder,
+  ayuda,
   onChange,
 }: {
   etiqueta: string;
   value: string;
-  placeholder: string;
+  ayuda: string;
   onChange: (valor: string) => void;
 }) {
+  const activo = numeroFiltroLista(value) != null;
   return (
     <label className="min-w-0">
       <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[#6B7A76]">{etiqueta}</span>
@@ -552,10 +553,13 @@ function FiltroNumero({
         min={0}
         inputMode="numeric"
         value={value}
-        placeholder={placeholder}
         onChange={(evento) => onChange(evento.target.value)}
-        className="h-8 w-full rounded-lg border border-[#DAD6CE] bg-white px-2.5 text-[13px] tabular-nums text-[#131C1A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B7461]"
+        className={cn(
+          "h-8 w-full rounded-lg border bg-white px-2.5 text-[13px] tabular-nums text-[#131C1A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B7461]",
+          activo ? "border-[#0B7461]" : "border-[#DAD6CE]"
+        )}
       />
+      <span className="mt-1 block text-[11px] text-[#8A9692]">{activo ? `Filtro: ${value}` : ayuda}</span>
     </label>
   );
 }
@@ -612,7 +616,7 @@ function CabeceraOrdenLista() {
       {CAMPOS_ORDEN_LISTA.map((item) => (
         <span
           key={item.value}
-          className={item.value === "parcela" ? "w-[74px]" : item.value === "inmuebles" ? "w-[90px]" : "w-[52px]"}
+          className={item.value === "parcela" ? "w-[74px]" : item.value === "inmuebles" ? "w-[90px]" : "w-[84px]"}
         >
           {item.label}
         </span>

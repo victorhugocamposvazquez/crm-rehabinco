@@ -115,7 +115,7 @@ export function FincaResultadoRow({
       <div className="flex flex-none flex-wrap items-start gap-2 px-3.5 pb-2 min-[780px]:flex-nowrap min-[780px]:gap-1 min-[780px]:px-0 min-[780px]:pb-0">
         <Dato label="m² parcela" value={metricas.parcela} ancho="w-[74px]" />
         <Dato label="N.º inmuebles" value={metricas.inmuebles} ancho="w-[90px]" />
-        <Dato label="Año" value={metricas.anio} ancho="w-[52px]" />
+        <Dato label="Año" value={metricas.anio} ancho="w-[84px]" />
         <Dato label="Uso" value={metricas.uso} ancho="w-[118px]" />
       </div>
 

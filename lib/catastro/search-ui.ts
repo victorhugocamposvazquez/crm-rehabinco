@@ -364,6 +364,30 @@ function metrosEs(valor: number): string {
   return Math.round(valor).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
+function aniosDeFinca(finca: FincaBusquedaUi): number[] {
+  return [
+    ...new Set(
+      (finca.properties ?? [])
+        .map((item) => item.anio)
+        .filter((item): item is number => item != null && Number.isFinite(item))
+    ),
+  ].sort((a, b) => a - b);
+}
+
+/** Año más nuevo de la finca. «Hasta año» y el orden usan este valor, el mismo que se ve. */
+export function anioFincaLista(finca: FincaBusquedaUi): number | null {
+  const anios = aniosDeFinca(finca);
+  return anios.length > 0 ? anios[anios.length - 1]! : null;
+}
+
+export function etiquetaAnioFincaLista(finca: FincaBusquedaUi): string {
+  const anios = aniosDeFinca(finca);
+  if (anios.length === 0) return "—";
+  const primero = anios[0]!;
+  const ultimo = anios[anios.length - 1]!;
+  return primero === ultimo ? String(primero) : `${primero}–${ultimo}`;
+}
+
 /**
  * Catastro manda literales larguísimos («Obras de urbanización y jardinería…»).
  * En la lista solo cabe una línea; el modal sigue mostrando el texto oficial.
@@ -385,12 +409,11 @@ export function metricasFincaLista(finca: FincaBusquedaUi): {
   uso: string;
 } {
   const usos = [...new Set((finca.properties ?? []).map((item) => item.uso?.trim()).filter(Boolean))];
-  const anios = [...new Set((finca.properties ?? []).map((item) => item.anio).filter((item): item is number => item != null))];
   const sinUso = usos.length === 0;
   return {
     parcela: finca.superficieSolar != null ? `${metrosEs(finca.superficieSolar)} m²` : "—",
     inmuebles: String(finca.properties?.length ?? 0),
-    anio: anios.length === 1 ? String(anios[0]) : anios.length > 1 ? "Varios" : "—",
+    anio: etiquetaAnioFincaLista(finca),
     uso:
       usos.length === 1
         ? etiquetaUsoLista(usos[0] ?? "—")
@@ -440,11 +463,7 @@ export type CriterioOrdenLista = {
 export function valorOrdenLista(finca: FincaBusquedaUi, campo: CampoOrdenLista): number | null {
   if (campo === "parcela") return finca.superficieSolar ?? null;
   if (campo === "inmuebles") return finca.properties?.length ?? 0;
-  const anios = (finca.properties ?? [])
-    .map((item) => item.anio)
-    .filter((item): item is number => item != null);
-  if (anios.length === 0) return null;
-  return Math.max(...anios);
+  return anioFincaLista(finca);
 }
 
 /**
@@ -519,7 +538,7 @@ export function filtrarListaFincas(
     if (minParcela != null && (finca.superficieSolar ?? -1) < minParcela) return false;
     if (minInmuebles != null && (finca.properties?.length ?? 0) < minInmuebles) return false;
     if (maxAnio != null) {
-      const anio = valorOrdenLista(finca, "anio");
+      const anio = anioFincaLista(finca);
       if (anio == null || anio > maxAnio) return false;
     }
     if (!q) return true;

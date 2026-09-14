@@ -274,6 +274,38 @@ describe("search-ui", () => {
     );
     assert.equal(filtrarListaFincas([candidata], { maxAnio: 1960 }).length, 0);
     assert.equal(filtrarListaFincas([candidata], { maxAnio: 1964 }).length, 1);
+    const reciente: FincaBusquedaUi = {
+      ...candidata,
+      fincaReference: "66666666666666",
+      properties: [{ reference: "z", anio: 2009 }],
+    };
+    assert.equal(filtrarListaFincas([reciente], { maxAnio: 1980 }).length, 0);
+    assert.equal(
+      filtrarListaFincas(
+        [
+          {
+            ...candidata,
+            fincaReference: "77777777777777",
+            properties: [
+              { reference: "a", anio: 1960 },
+              { reference: "b", anio: 2009 },
+            ],
+          },
+        ],
+        { maxAnio: 1980 }
+      ).length,
+      0
+    );
+    assert.equal(
+      metricasFincaLista({
+        ...candidata,
+        properties: [
+          { reference: "a", anio: 1968 },
+          { reference: "b", anio: 1970 },
+        ],
+      }).anio,
+      "1968–1970"
+    );
     const chica: FincaBusquedaUi = { ...conPisos, superficieSolar: 80, properties: [{ reference: "x", anio: 2001 }] };
     const sinDato: FincaBusquedaUi = { ...conPisos, fincaReference: "33333333333333", superficieSolar: undefined, properties: [] };
     assert.deepEqual(
