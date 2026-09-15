@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth/auth-context";
-import { editorHomePath, isEditor, navHrefsForRole, roleLabel } from "@/lib/auth/roles";
+import { editorHomePath, isAdmin, isEditor, puedeVerApisPortales, navHrefsForRole, roleLabel } from "@/lib/auth/roles";
 import { Sheet } from "@/components/ui/sheet";
 import { MenuLateral } from "./MenuLateral";
 import { itemsDesdeHrefs, navItemActivo } from "./nav-items";
@@ -230,7 +230,7 @@ export function TopBar() {
             <span>Ajustes de cuenta</span>
           </Link>
 
-          {user?.role === "admin" && (
+          {isAdmin(user?.role) && (
             <Link
               href="/settings/empresa"
               onClick={() => setSheetOpen(false)}
@@ -241,7 +241,7 @@ export function TopBar() {
             </Link>
           )}
 
-          {user?.role === "admin" && (
+          {isAdmin(user?.role) && (
             <Link
               href="/settings/emisores-presupuesto"
               onClick={() => setSheetOpen(false)}
@@ -252,7 +252,7 @@ export function TopBar() {
             </Link>
           )}
 
-          {user?.role === "admin" && (
+          {puedeVerApisPortales(user?.role) && (
             <Link
               href="/settings/portales"
               onClick={() => setSheetOpen(false)}

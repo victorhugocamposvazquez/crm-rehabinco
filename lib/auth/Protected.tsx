@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import {
   comercialHomePath,
   editorHomePath,
+  isAdminBlockedPath,
   isComercial,
   isComercialBlockedPath,
   isEditor,
@@ -20,6 +21,7 @@ export function Protected({ children }: { children: React.ReactNode }) {
   const editorBlocked = !!user && isEditor(user.role) && isEditorBlockedPath(pathname ?? "/");
   const comercialBlocked =
     !!user && isComercial(user.role) && isComercialBlockedPath(pathname ?? "/");
+  const adminBlocked = !!user && user.role === "admin" && isAdminBlockedPath(pathname ?? "/");
 
   useEffect(() => {
     if (isLoading) return;
@@ -36,10 +38,16 @@ export function Protected({ children }: { children: React.ReactNode }) {
     if (isComercial(user.role) && isComercialBlockedPath(pathname ?? "/")) {
       setRedirecting(true);
       router.replace(comercialHomePath());
+      return;
+    }
+    if (user.role === "admin" && isAdminBlockedPath(pathname ?? "/")) {
+      setRedirecting(true);
+      router.replace("/settings");
     }
   }, [user, isLoading, router, pathname]);
 
-  const showLoader = isLoading || (redirecting && !user) || editorBlocked || comercialBlocked;
+  const showLoader =
+    isLoading || (redirecting && !user) || editorBlocked || comercialBlocked || adminBlocked;
 
   if (showLoader || !user) {
     return (

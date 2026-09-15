@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth/auth-context";
-import { navHrefsForRole, roleLabel } from "@/lib/auth/roles";
+import { isAdmin, navHrefsForRole, roleLabel } from "@/lib/auth/roles";
 import { Sheet } from "@/components/ui/sheet";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { itemsDesdeHrefs, NAV_MOBILE_LABEL, navItemActivo } from "./nav-items";
@@ -29,7 +29,7 @@ export function MobileNav() {
       >
         <div className="flex h-[4.25rem] items-center justify-evenly px-2">
           {items.map(({ href, label, icon: Icon }) => {
-            const esMas = href === "/settings" && user?.role === "admin";
+            const esMas = href === "/settings" && isAdmin(user?.role);
             const isActive = esMas
               ? mas || (!navHrefsForRole(user?.role, "mobile").some((item) => item !== "/settings" && navItemActivo(pathname, item)) && navItemActivo(pathname, href))
               : navItemActivo(pathname, href);

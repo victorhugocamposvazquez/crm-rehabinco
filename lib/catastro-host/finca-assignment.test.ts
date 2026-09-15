@@ -25,8 +25,11 @@ describe("finca-assignment", () => {
     assert.equal(nombreComercial({ nombre_completo: "  ", email: "hugo@x.com" }), "hugo");
     assert.equal(esRolAsignable("comercial"), true);
     assert.equal(esRolAsignable("editor"), false);
+    assert.equal(esRolAsignable("admin"), true);
+    assert.equal(esRolAsignable("superadmin"), true);
     assert.equal(filtroAsignacionPorDefecto("comercial"), FILTRO_ASIGNACION_MIAS);
     assert.equal(filtroAsignacionPorDefecto("admin"), FILTRO_ASIGNACION_TODAS);
+    assert.equal(filtroAsignacionPorDefecto("superadmin"), FILTRO_ASIGNACION_TODAS);
     assert.equal(uuidComercial("no-es-uuid"), null);
   });
 

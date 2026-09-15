@@ -129,7 +129,7 @@ export default function CalendarioPage() {
     void supabase
       .from("profiles")
       .select("id, nombre_completo, email, color")
-      .in("role", ["comercial", "admin"])
+      .in("role", ["comercial", "admin", "superadmin"])
       .eq("activo", true)
       .then(({ data }) =>
         setComerciales(

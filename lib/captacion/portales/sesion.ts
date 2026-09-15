@@ -1,4 +1,4 @@
-import { isAdmin, isEditor, parseRole, type Role } from "@/lib/auth/roles";
+import { isAdmin, isEditor, isSuperAdmin, parseRole, type Role } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 
 export async function sesionCaptacion(): Promise<
@@ -20,5 +20,12 @@ export async function sesionAdminCaptacion() {
   const sesion = await sesionCaptacion();
   if (!sesion.ok) return sesion;
   if (!isAdmin(sesion.role)) return { ok: false as const, status: 403 as const, error: "Solo dirección." };
+  return sesion;
+}
+
+export async function sesionSuperadminCaptacion() {
+  const sesion = await sesionCaptacion();
+  if (!sesion.ok) return sesion;
+  if (!isSuperAdmin(sesion.role)) return { ok: false as const, status: 403 as const, error: "Solo superadministrador." };
   return sesion;
 }

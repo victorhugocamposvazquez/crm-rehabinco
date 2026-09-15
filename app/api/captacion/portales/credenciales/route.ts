@@ -6,7 +6,7 @@ import {
   type PortalApi,
 } from "@/lib/captacion/portales/credenciales";
 import { probarIdealista } from "@/lib/captacion/portales/idealista";
-import { sesionAdminCaptacion } from "@/lib/captacion/portales/sesion";
+import { sesionSuperadminCaptacion } from "@/lib/captacion/portales/sesion";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ function esPortal(value: unknown): value is PortalApi {
 }
 
 export async function GET() {
-  const sesion = await sesionAdminCaptacion();
+  const sesion = await sesionSuperadminCaptacion();
   if (!sesion.ok) return Response.json({ ok: false, error: sesion.error }, { status: sesion.status });
   const portales = Object.fromEntries(
     await Promise.all(PORTALES_API.map(async (portal) => [portal, await estadoCredencialesPortal(portal)]))
@@ -25,7 +25,7 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  const sesion = await sesionAdminCaptacion();
+  const sesion = await sesionSuperadminCaptacion();
   if (!sesion.ok) return Response.json({ ok: false, error: sesion.error }, { status: sesion.status });
 
   let cuerpo: {
@@ -53,7 +53,7 @@ export async function PUT(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const sesion = await sesionAdminCaptacion();
+  const sesion = await sesionSuperadminCaptacion();
   if (!sesion.ok) return Response.json({ ok: false, error: sesion.error }, { status: sesion.status });
 
   let cuerpo: { portal?: unknown; api_key?: unknown; api_secret?: unknown } = {};

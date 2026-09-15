@@ -14,7 +14,7 @@ import {
   Columns3,
   Radar,
 } from "lucide-react";
-import type { Role } from "@/lib/auth/roles";
+import { isAdmin, type Role } from "@/lib/auth/roles";
 
 export type NavItem = {
   href: string;
@@ -86,7 +86,7 @@ export function gruposNavParaRol(role: Role | null | undefined, permitidos: read
 }[] {
   const set = new Set(permitidos);
   const grupos = NAV_GROUPS.filter((grupo) => {
-    if (grupo.adminOnly && role !== "admin") return false;
+    if (grupo.adminOnly && !isAdmin(role)) return false;
     return grupo.hrefs.some((href) => set.has(href));
   }).map((grupo) => ({
     label: grupo.label,

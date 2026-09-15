@@ -10,7 +10,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
 import { createUser } from "@/lib/actions/usuarios";
-import { ROLE_LABELS, roleLabel, type Role } from "@/lib/auth/roles";
+import {
+  ROLE_LABELS,
+  ROLES_CREABLES,
+  isAdmin,
+  puedeGestionarUsuarios,
+  puedeVerApisPortales,
+  roleLabel,
+  type Role,
+} from "@/lib/auth/roles";
 import { UserPlus, Building2, KeyRound } from "lucide-react";
 import { PerfilComercialCard } from "@/components/settings/PerfilComercialCard";
 import { EquipoComercialesCard } from "@/components/settings/EquipoComercialesCard";
@@ -32,6 +40,9 @@ export default function SettingsPage() {
   const [createUserMessage, setCreateUserMessage] = useState<string | null>(null);
   const [createUserError, setCreateUserError] = useState<string | null>(null);
   const [createUserSaving, setCreateUserSaving] = useState(false);
+  const [equipoTick, setEquipoTick] = useState(0);
+  const direccion = isAdmin(user?.role);
+  const superadmin = puedeGestionarUsuarios(user?.role);
 
   const onUpdatePassword = async () => {
     setError(null);
@@ -62,9 +73,9 @@ export default function SettingsPage() {
       <PageHeader
         breadcrumb={[{ label: "Ajustes", href: "/settings" }]}
         title="Ajustes"
-        description="Perfil, equipo, empresa y APIs de portales."
+        description="Perfil, equipo y empresa. El superadministrador también crea usuarios y ve las APIs de portales."
       />
-      {user?.role === "admin" ? <SettingsAdminNav /> : null}
+      {direccion ? <SettingsAdminNav role={user?.role} /> : null}
 
       <div id="perfil" className="mt-8 grid gap-4 md:grid-cols-2">
         <Card>
@@ -84,9 +95,9 @@ export default function SettingsPage() {
 
         {user?.id && user.role !== "editor" && <PerfilComercialCard userId={user.id} />}
         {user?.id && user.role !== "editor" && <AvisosPwaCard />}
-        {user?.role === "admin" && (
+        {direccion && (
           <div id="equipo" className="contents">
-            <EquipoComercialesCard />
+            <EquipoComercialesCard role={user?.role} tick={equipoTick} />
           </div>
         )}
 
@@ -121,7 +132,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {user?.role === "admin" && (
+        {direccion && (
           <Card className="md:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -140,7 +151,7 @@ export default function SettingsPage() {
           </Card>
         )}
 
-        {user?.role === "admin" && (
+        {direccion && (
           <Card className="md:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -160,7 +171,7 @@ export default function SettingsPage() {
           </Card>
         )}
 
-        {user?.role === "admin" && (
+        {puedeVerApisPortales(user?.role) && (
           <Card className="md:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -170,7 +181,7 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-neutral-600">
-                Claves de Idealista y Fotocasa para Captación. Solo las ve dirección.
+                Claves de Idealista y Fotocasa para Captación. Solo las ve el superadministrador.
               </p>
               <Button className="mt-4" variant="secondary" asChild>
                 <Link href="/settings/portales">Configurar APIs de portales</Link>
@@ -179,7 +190,7 @@ export default function SettingsPage() {
           </Card>
         )}
 
-        {user?.role === "admin" && (
+        {superadmin && (
           <Card className="md:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -209,6 +220,7 @@ export default function SettingsPage() {
                     setNewUserEmail("");
                     setNewUserPassword("");
                     setNewUserConfirmPassword("");
+                    setEquipoTick((n) => n + 1);
                   } else {
                     setCreateUserError(result.error);
                   }
@@ -256,9 +268,11 @@ export default function SettingsPage() {
                     onChange={(e) => setNewUserRole(e.target.value as Role)}
                     className="flex h-10 w-full rounded-lg border border-border bg-white px-4 py-2 text-base"
                   >
-                    <option value="comercial">{ROLE_LABELS.comercial}</option>
-                    <option value="editor">{ROLE_LABELS.editor}</option>
-                    <option value="admin">{ROLE_LABELS.admin}</option>
+                    {ROLES_CREABLES.map((rol) => (
+                      <option key={rol} value={rol}>
+                        {ROLE_LABELS[rol]}
+                      </option>
+                    ))}
                   </select>
                   {newUserRole === "editor" && (
                     <p className="text-xs text-neutral-500">

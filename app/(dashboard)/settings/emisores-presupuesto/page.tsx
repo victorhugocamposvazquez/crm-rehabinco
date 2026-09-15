@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { resolveInvoiceLogoUrl } from "@/lib/empresa-facturacion";
 import type { EmisorPresupuesto } from "@/lib/emisores-presupuesto";
 import { useAuth } from "@/lib/auth/auth-context";
+import { isAdmin } from "@/lib/auth/roles";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -197,7 +198,7 @@ export default function EmisoresPresupuestoPage() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (user?.role !== "admin") {
+    if (!isAdmin(user?.role)) {
       router.replace("/settings");
       return;
     }
@@ -248,7 +249,7 @@ export default function EmisoresPresupuestoPage() {
     );
   }
 
-  if (user?.role !== "admin") {
+  if (!isAdmin(user?.role)) {
     return null;
   }
 

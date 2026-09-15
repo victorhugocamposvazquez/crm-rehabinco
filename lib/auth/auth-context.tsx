@@ -13,6 +13,7 @@ export interface AuthUser {
   role: Role;
   nombre?: string | null;
   color?: string | null;
+  activo: boolean;
 }
 
 interface AuthContextValue {
@@ -42,18 +43,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const getProfile = async (authUser: User): Promise<AuthUser | null> => {
-      let profile: { role?: string; nombre_completo?: string | null; color?: string | null } | null = null;
+      let profile: { role?: string; nombre_completo?: string | null; color?: string | null; activo?: boolean } | null = null;
       try {
         const { data } = await supabase
           .from("profiles")
-          .select("role, nombre_completo, color")
+          .select("role, nombre_completo, color, activo")
           .eq("id", authUser.id)
           .single();
-        profile = data as { role?: string; nombre_completo?: string | null; color?: string | null } | null;
+        profile = data as { role?: string; nombre_completo?: string | null; color?: string | null; activo?: boolean } | null;
       } catch (error) {
         if (isAbortError(error)) {
           return null;
         }
+      }
+
+      if (profile && profile.activo === false) {
+        await supabase.auth.signOut();
+        return null;
       }
 
       if (profile?.role) {
@@ -63,6 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role: parseRole(profile.role),
           nombre: profile.nombre_completo,
           color: profile.color,
+          activo: profile.activo !== false,
         };
       }
 
@@ -86,6 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           id: authUser.id,
           email: authUser.email ?? "",
           role: "comercial",
+          activo: true,
         };
       }
 
@@ -93,6 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: authUser.id,
         email: authUser.email ?? "",
         role: "comercial",
+        activo: true,
       };
     };
 

@@ -93,7 +93,7 @@ export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFactu
       void supabase
         .from("profiles")
         .select("id, nombre_completo, email, color")
-        .in("role", ["comercial", "admin"])
+        .in("role", ["comercial", "admin", "superadmin"])
         .eq("activo", true)
         .then(({ data }) =>
           setComerciales(

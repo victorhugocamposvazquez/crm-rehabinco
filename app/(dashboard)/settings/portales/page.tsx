@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/auth-context";
+import { isSuperAdmin } from "@/lib/auth/roles";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -70,7 +71,7 @@ export default function SettingsPortalesPage() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (user?.role !== "admin") {
+    if (!isSuperAdmin(user?.role)) {
       router.replace("/settings");
       return;
     }
@@ -138,9 +139,9 @@ export default function SettingsPortalesPage() {
       <PageHeader
         breadcrumb={[{ label: "Ajustes", href: "/settings" }, { label: "APIs de portales" }]}
         title="APIs de portales"
-        description="Solo dirección. Las claves no se muestran enteras después de guardar y no van al navegador de los comerciales."
+        description="Solo el superadministrador. Las claves no se muestran enteras después de guardar y no van al navegador del resto del equipo."
       />
-      <SettingsAdminNav />
+      <SettingsAdminNav role={user?.role} />
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         {PORTALES.map((portal) => {
           const st = estado[portal.id];

@@ -3,18 +3,23 @@ import { describe, it } from "node:test";
 import {
   comercialHomePath,
   isAdmin,
+  isAdminBlockedPath,
   isComercial,
   isComercialBlockedPath,
   isEditorBlockedPath,
+  isSuperAdmin,
   navHrefsForRole,
   parseRole,
   puedeAsignarFincas,
   puedeCrearPropiedad,
+  puedeGestionarUsuarios,
   puedeRastrearCatastro,
+  puedeVerApisPortales,
 } from "./roles";
 
 describe("roles", () => {
   it("normaliza agente a comercial y no inventa admin", () => {
+    assert.equal(parseRole("superadmin"), "superadmin");
     assert.equal(parseRole("admin"), "admin");
     assert.equal(parseRole("editor"), "editor");
     assert.equal(parseRole("comercial"), "comercial");
@@ -23,14 +28,29 @@ describe("roles", () => {
     assert.equal(parseRole(undefined), "comercial");
   });
 
+  it("el superadmin tiene todo; el admin no gestiona usuarios ni ve APIs", () => {
+    assert.equal(isSuperAdmin("superadmin"), true);
+    assert.equal(isSuperAdmin("admin"), false);
+    assert.equal(isAdmin("superadmin"), true);
+    assert.equal(isAdmin("admin"), true);
+    assert.equal(puedeVerApisPortales("superadmin"), true);
+    assert.equal(puedeVerApisPortales("admin"), false);
+    assert.equal(puedeGestionarUsuarios("superadmin"), true);
+    assert.equal(puedeGestionarUsuarios("admin"), false);
+    assert.equal(isAdminBlockedPath("/settings/portales"), true);
+    assert.equal(isAdminBlockedPath("/settings"), false);
+  });
+
   it("el comercial trabaja fincas asignadas; no rastrea ni asigna", () => {
     assert.equal(isAdmin("admin"), true);
     assert.equal(isComercial("comercial"), true);
     assert.equal(puedeCrearPropiedad("comercial"), true);
     assert.equal(puedeCrearPropiedad("editor"), false);
     assert.equal(puedeRastrearCatastro("admin"), true);
+    assert.equal(puedeRastrearCatastro("superadmin"), true);
     assert.equal(puedeRastrearCatastro("comercial"), false);
     assert.equal(puedeAsignarFincas("admin"), true);
+    assert.equal(puedeAsignarFincas("superadmin"), true);
     assert.equal(puedeAsignarFincas("comercial"), false);
   });
 
@@ -69,7 +89,7 @@ describe("roles", () => {
     ]);
     assert.equal(navHrefsForRole("admin", "top").includes("/clientes"), false);
     assert.equal(navHrefsForRole("admin", "desktop").includes("/clientes"), true);
-    assert.equal(navHrefsForRole("admin", "desktop").includes("/facturas"), true);
+    assert.deepEqual([...navHrefsForRole("superadmin", "desktop")], [...navHrefsForRole("admin", "desktop")]);
     assert.deepEqual([...navHrefsForRole("comercial", "mobile")], [
       "/",
       "/propiedades",

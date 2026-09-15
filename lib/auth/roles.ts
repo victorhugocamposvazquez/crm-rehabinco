@@ -1,13 +1,18 @@
-export type Role = "admin" | "comercial" | "editor";
+export type Role = "superadmin" | "admin" | "comercial" | "editor";
 
 export const ROLE_LABELS: Record<Role, string> = {
+  superadmin: "Superadministrador",
   admin: "Administrador",
   comercial: "Comercial",
   editor: "Editor Garal",
 };
 
+export const ROLES_CREABLES: readonly Role[] = ["comercial", "editor", "admin"];
+
+export const ROLES_EQUIPO = ["superadmin", "admin", "comercial", "agente"] as const;
+
 export function parseRole(value: unknown): Role {
-  if (value === "admin" || value === "editor") return value;
+  if (value === "superadmin" || value === "admin" || value === "editor") return value;
   if (value === "comercial" || value === "agente") return "comercial";
   return "comercial";
 }
@@ -17,8 +22,13 @@ export function roleLabel(role: Role | null | undefined): string {
   return ROLE_LABELS[role] ?? role;
 }
 
+/** Dirección: admin operativo y superadmin. */
 export function isAdmin(role: Role | null | undefined): boolean {
-  return role === "admin";
+  return role === "admin" || role === "superadmin";
+}
+
+export function isSuperAdmin(role: Role | null | undefined): boolean {
+  return role === "superadmin";
 }
 
 export function isEditor(role: Role | null | undefined): boolean {
@@ -30,16 +40,24 @@ export function isComercial(role: Role | null | undefined): boolean {
 }
 
 export function puedeCrearPropiedad(role: Role | null | undefined): boolean {
-  return role === "admin" || role === "comercial";
+  return isAdmin(role) || role === "comercial";
 }
 
 /** Solo dirección rastrea Catastro y reparte fincas. */
 export function puedeRastrearCatastro(role: Role | null | undefined): boolean {
-  return role === "admin";
+  return isAdmin(role);
 }
 
 export function puedeAsignarFincas(role: Role | null | undefined): boolean {
-  return role === "admin";
+  return isAdmin(role);
+}
+
+export function puedeVerApisPortales(role: Role | null | undefined): boolean {
+  return isSuperAdmin(role);
+}
+
+export function puedeGestionarUsuarios(role: Role | null | undefined): boolean {
+  return isSuperAdmin(role);
 }
 
 const EDITOR_HOME = "/presupuestos";
@@ -100,24 +118,32 @@ export function isComercialBlockedPath(pathname: string): boolean {
   );
 }
 
+/** El admin operativo no ve claves de portales. El superadmin sí. */
+export function isAdminBlockedPath(pathname: string): boolean {
+  return pathname === "/settings/portales" || pathname.startsWith("/settings/portales/");
+}
+
 /** Menú completo por rol. El hamburguesa muestra esta lista entera. */
+const NAV_DIRECCION = [
+  "/",
+  "/captacion",
+  "/catastro",
+  "/propiedades",
+  "/demandas",
+  "/calendario",
+  "/tareas",
+  "/seguimiento",
+  "/informes",
+  "/partes-visita",
+  "/clientes",
+  "/presupuestos",
+  "/facturas",
+  "/settings",
+] as const;
+
 export const NAV_DESKTOP_BY_ROLE: Record<Role, readonly string[]> = {
-  admin: [
-    "/",
-    "/captacion",
-    "/catastro",
-    "/propiedades",
-    "/demandas",
-    "/calendario",
-    "/tareas",
-    "/seguimiento",
-    "/informes",
-    "/partes-visita",
-    "/clientes",
-    "/presupuestos",
-    "/facturas",
-    "/settings",
-  ],
+  superadmin: NAV_DIRECCION,
+  admin: NAV_DIRECCION,
   comercial: [
     "/",
     "/tareas",
@@ -135,13 +161,17 @@ export const NAV_DESKTOP_BY_ROLE: Record<Role, readonly string[]> = {
 };
 
 /** Atajos de la barra: lo del día a día. El resto vive en el menú lateral. */
+const NAV_TOP_DIRECCION = ["/", "/captacion", "/catastro", "/propiedades", "/demandas"] as const;
+
 export const NAV_TOP_BY_ROLE: Record<Role, readonly string[]> = {
-  admin: ["/", "/captacion", "/catastro", "/propiedades", "/demandas"],
+  superadmin: NAV_TOP_DIRECCION,
+  admin: NAV_TOP_DIRECCION,
   comercial: ["/", "/tareas", "/calendario", "/captacion", "/propiedades"],
   editor: ["/presupuestos"],
 };
 
 export const NAV_MOBILE_BY_ROLE: Record<Role, readonly string[]> = {
+  superadmin: ["/", "/propiedades", "/calendario", "/tareas", "/settings"],
   admin: ["/", "/propiedades", "/calendario", "/tareas", "/settings"],
   comercial: ["/", "/propiedades", "/calendario", "/tareas", "/settings"],
   editor: ["/presupuestos", "/settings"],

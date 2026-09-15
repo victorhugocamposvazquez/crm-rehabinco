@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Sheet } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isEditor } from "@/lib/auth/roles";
+import { isAdmin, isEditor } from "@/lib/auth/roles";
 
 type Hit = { href: string; titulo: string; meta: string };
 
@@ -53,7 +53,7 @@ export function BusquedaGlobal() {
             .select("id, tipo_operacion, zonas, clientes:cliente_id(nombre)")
             .eq("estado", "activa")
             .limit(20),
-      user?.role === "admin"
+      isAdmin(user?.role)
         ? supabase.from("facturas").select("id, numero").ilike("numero", like).limit(5)
         : Promise.resolve({ data: [] }),
     ]).then(([clientes, inmuebles, demandas, facturas]) => {

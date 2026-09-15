@@ -36,6 +36,18 @@ export default function LoginPage() {
       return;
     }
 
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      const { data: perfil } = await supabase.from("profiles").select("activo").eq("id", user.id).maybeSingle();
+      if (perfil && perfil.activo === false) {
+        await supabase.auth.signOut();
+        setError("Este acceso está desactivado. Habla con dirección.");
+        return;
+      }
+    }
+
     router.push("/");
     router.refresh();
   }

@@ -92,7 +92,7 @@ export default function TareasPage() {
     void supabase
       .from("profiles")
       .select("id, nombre_completo, email, color")
-      .in("role", ["comercial", "admin", "agente"])
+      .in("role", ["comercial", "admin", "agente", "superadmin"])
       .eq("activo", true)
       .then(({ data }) =>
         setComerciales(
