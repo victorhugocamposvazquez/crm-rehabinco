@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -508,22 +507,6 @@ export function CaptacionPortales() {
           >
             {syncing ? "Actualizando…" : "Actualizar"}
           </button>
-          {admin ? (
-            <Link
-              href="/settings/portales"
-              className="grid h-8 place-items-center rounded-lg border border-[var(--input)] bg-white px-2.5 text-[12.5px] font-semibold no-underline hover:border-accent hover:text-accent"
-            >
-              APIs
-            </Link>
-          ) : null}
-          {admin ? (
-            <Link
-              href="/settings/portales"
-              className="flex h-8 items-center rounded-lg border border-[var(--input)] bg-white px-2.5 text-[12.5px] font-semibold no-underline hover:border-accent hover:text-accent"
-            >
-              APIs
-            </Link>
-          ) : null}
           <button
             type="button"
             onClick={() => setAlertaOpen(true)}

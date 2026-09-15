@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { SettingsAdminNav } from "@/components/settings/SettingsAdminNav";
 import type { PortalApi } from "@/lib/captacion/portales/credenciales";
 
 type EstadoPortal = { enApp: boolean; enServidor: boolean; keyHint: string | null };
@@ -139,6 +140,7 @@ export default function SettingsPortalesPage() {
         title="APIs de portales"
         description="Solo dirección. Las claves no se muestran enteras después de guardar y no van al navegador de los comerciales."
       />
+      <SettingsAdminNav />
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         {PORTALES.map((portal) => {
           const st = estado[portal.id];
