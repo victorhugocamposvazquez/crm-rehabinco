@@ -11,6 +11,13 @@ import { FiltroComercial, type ComercialFiltro } from "@/components/captacion/Fi
 import { nombreYApellido, inicialesNombre } from "@/lib/ui/tokens";
 import { CIUDADES_FILTRO } from "@/lib/captacion/portales/zonas";
 import {
+  indiciosEncubierta,
+  recuentoPorClave,
+  relacionadosDe,
+  textoAvisoEncubierta,
+  type IndiciosEncubierta,
+} from "@/lib/captacion/portales/relacionados";
+import {
   FASE_KANBAN_META,
   FUENTES_PORTAL,
   PAGE_NOVEDADES,
@@ -244,14 +251,7 @@ export function CaptacionPortales() {
       });
   }, [sel]);
 
-  const recuentoClave = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const a of anuncios) {
-      if (!a.contacto_clave) continue;
-      map.set(a.contacto_clave, (map.get(a.contacto_clave) ?? 0) + 1);
-    }
-    return map;
-  }, [anuncios]);
+  const recuentoClave = useMemo(() => recuentoPorClave(anuncios), [anuncios]);
 
   const nov = anuncios.filter((a) => a.fase === "novedad");
   const seg = anuncios.filter(
@@ -672,6 +672,7 @@ export function CaptacionPortales() {
                       <div className="flex min-w-0 items-center gap-1.5">
                         <span className="truncate text-[14px] font-semibold">{a.titulo}</span>
                         {tagsConEstilo(a.tags).map((t) => <span key={t.label} className="whitespace-nowrap rounded px-1.5 py-px text-[10.5px] font-semibold" style={{ background: t.bg, color: t.fg }}>{t.label}</span>)}
+                        {!wide && nRep > 1 ? <span className="shrink-0 rounded border border-[#CDE9E1] px-1 text-[10.5px] font-semibold text-accent" title="Este contacto tiene más anuncios">×{nRep}</span> : null}
                       </div>
                       <div className="mt-0.5 flex gap-2 overflow-hidden text-[12px] text-[var(--text-2)]">
                         <span className="flex shrink-0 items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ background: PORTAL_COLOR[a.fuente] }} />{PORTAL_LABEL[a.fuente]}</span>
@@ -838,15 +839,23 @@ export function CaptacionPortales() {
       {panel && seleccionado ? (
         <Sheet open onOpenChange={(open) => !open && setPanel(false)} variant="side" side="right">
           <PeekAnuncio
+            key={seleccionado.id}
             anuncio={seleccionado}
             alertaNombre={alertas.find((x) => x.id === seleccionado.alerta_id)?.nombre}
             nRepite={seleccionado.contacto_clave ? recuentoClave.get(seleccionado.contacto_clave) ?? 1 : 1}
+            relacionados={relacionadosDe(seleccionado, anuncios)}
+            indicios={indiciosEncubierta(
+              seleccionado.contacto_clave
+                ? anuncios.filter((a) => a.contacto_clave === seleccionado.contacto_clave)
+                : [seleccionado]
+            )}
             historial={actividad}
             comerciales={comerciales}
             onCerrar={() => setPanel(false)}
             onSeguir={() => seguir([seleccionado.id])}
             onCaptar={() => void captar(seleccionado)}
             onNota={(nota) => void anotar(seleccionado.id, nota)}
+            onAbrir={(id) => setSel(id)}
             onAsignar={(id) => void patchAnuncio([seleccionado.id], { comercial_id: id }, `Asignado a ${comercialDe(id)?.nombre.split(" ")[0] ?? ""}`, "asignacion")}
           />
         </Sheet>
@@ -918,28 +927,36 @@ function PeekAnuncio({
   anuncio,
   alertaNombre,
   nRepite,
+  relacionados,
+  indicios,
   historial,
   comerciales,
   onCerrar,
   onSeguir,
   onCaptar,
   onNota,
+  onAbrir,
   onAsignar,
 }: {
   anuncio: AnuncioCaptacion;
   alertaNombre?: string;
   nRepite: number;
+  relacionados: AnuncioCaptacion[];
+  indicios: IndiciosEncubierta;
   historial: Actividad[];
   comerciales: ComercialFiltro[];
   onCerrar: () => void;
   onSeguir: () => void;
   onCaptar: () => void;
   onNota: (nota: string) => void;
+  onAbrir: (id: string) => void;
   onAsignar: (id: string) => void;
 }) {
   const [nota, setNota] = useState("");
   const a = anuncio;
   const alquiler = a.operacion === "alquiler";
+  const aviso = textoAvisoEncubierta(indicios) ?? (nRepite >= 3 ? `Este teléfono aparece en ${nRepite} anuncios. Puede ser un profesional encubierto.` : null);
+  const avisoFuerte = indicios.aviso === "probable";
   return (
     <div className="flex h-full flex-col overflow-y-auto">
       <div className="relative aspect-video bg-[#E8E4DC]">
@@ -1008,7 +1025,38 @@ function PeekAnuncio({
             <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-accent" />{h.texto}</span>
           </div>
         ))}
-        {nRepite >= 3 ? <div className="mt-2 rounded-[9px] bg-[#FBF0D8] px-2.5 py-2 text-[12.5px] text-[#7A5A10]">Este teléfono aparece en {nRepite} anuncios. Puede ser un profesional encubierto.</div> : null}
+        {aviso ? (
+          <div
+            className="mt-2 rounded-[9px] px-2.5 py-2 text-[12.5px]"
+            style={{ background: avisoFuerte ? "#F8E4D8" : "#FBF0D8", color: avisoFuerte ? "#7A3B10" : "#7A5A10" }}
+          >
+            {aviso}
+          </div>
+        ) : null}
+        {relacionados.length > 0 ? (
+          <div className="mt-3">
+            <div className="mb-1.5 text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Otros anuncios de este contacto</div>
+            <div className="flex flex-col gap-1.5">
+              {relacionados.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => onAbrir(r.id)}
+                  className="flex items-center gap-2 rounded-[9px] border border-[var(--border)] bg-white px-2 py-1.5 text-left hover:border-accent"
+                >
+                  <span className="h-9 w-11 shrink-0 overflow-hidden rounded-md bg-[#E8E4DC]">
+                    {r.thumb ? <img src={r.thumb} alt="" className="h-full w-full object-cover" /> : null}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13px] font-semibold">{r.titulo}</span>
+                    <span className="block truncate text-[11.5px] text-[var(--text-2)]">{r.zona || r.municipio || "—"}</span>
+                  </span>
+                  <span className="shrink-0 text-[12.5px] font-semibold tabular-nums">{euros(r.precio, r.operacion === "alquiler")}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
         <form
           className="mt-3 flex gap-2"
           onSubmit={(e) => {
