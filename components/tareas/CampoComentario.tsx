@@ -110,7 +110,7 @@ export function CampoComentario({
               elegir(menu.items[0]);
             }
           }}
-          placeholder="Añadir comentario… Usa @ para mencionar"
+          placeholder="Escribe un comentario… Usa @ para mencionar"
           className="h-[38px] min-w-0 flex-1 rounded-[9px] border border-[var(--input)] px-3 text-[13.5px] outline-none focus:border-accent"
         />
         <button
@@ -118,7 +118,7 @@ export function CampoComentario({
           onClick={enviar}
           className="h-[38px] rounded-[9px] border border-[var(--input)] bg-white px-3 text-[13px] font-semibold hover:border-accent hover:text-accent"
         >
-          Guardar
+          Enviar
         </button>
       </div>
     </div>

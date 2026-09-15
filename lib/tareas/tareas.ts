@@ -145,6 +145,19 @@ export function cuandoActividad(iso: string, hoy: string): string {
   return new Date(`${dia}T12:00:00`).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
 }
 
+export function cuandoComentario(iso: string, hoy: string): string {
+  const fecha = new Date(iso);
+  if (Number.isNaN(fecha.getTime())) return "";
+  const hora = fecha.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+  const diaLocal = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}-${String(fecha.getDate()).padStart(2, "0")}`;
+  if (diaLocal === hoy) return hora;
+  const ayer = new Date(`${hoy}T12:00:00`);
+  ayer.setDate(ayer.getDate() - 1);
+  const ayerLocal = `${ayer.getFullYear()}-${String(ayer.getMonth() + 1).padStart(2, "0")}-${String(ayer.getDate()).padStart(2, "0")}`;
+  if (diaLocal === ayerLocal) return `Ayer · ${hora}`;
+  return `${fecha.toLocaleDateString("es-ES", { day: "numeric", month: "short" })} · ${hora}`;
+}
+
 export function textoVinculoTarea(input: {
   propiedad?: string | null;
   cliente?: string | null;

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { agruparTareas, bandejaDeTarea, columnaDeTarea, parseTareaRapida, recuentoTareas, textoVinculoTarea, cuandoActividad } from "./tareas";
+import { agruparTareas, bandejaDeTarea, columnaDeTarea, parseTareaRapida, recuentoTareas, textoVinculoTarea, cuandoActividad, cuandoComentario } from "./tareas";
 
 describe("organizador de tareas", () => {
   it("separa vencidas, hoy y próximas", () => {
@@ -41,5 +41,7 @@ describe("organizador de tareas", () => {
     assert.equal(textoVinculoTarea({}), "Sin vincular");
     assert.equal(cuandoActividad("2026-09-14T09:30:00.000Z", "2026-09-14"), "Hoy");
     assert.equal(cuandoActividad("2026-09-13T09:30:00.000Z", "2026-09-14"), "Ayer");
+    assert.equal(cuandoComentario(new Date(2026, 8, 14, 10, 32).toISOString(), "2026-09-14"), "10:32");
+    assert.equal(cuandoComentario(new Date(2026, 8, 13, 9, 5).toISOString(), "2026-09-14"), "Ayer · 09:05");
   });
 });

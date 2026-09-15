@@ -14,7 +14,7 @@ import { nombreYApellido } from "@/lib/ui/tokens";
 import {
   COLUMNAS_TAREA,
   columnaDeTarea,
-  cuandoActividad,
+  cuandoComentario,
   textoVinculoTarea,
   venceLargo,
   type ColumnaTarea,
@@ -66,7 +66,7 @@ export function TareaPanel({
   userId: string;
   comerciales: Array<{ id: string; nombre: string; color: string | null }>;
   onClose: () => void;
-  onPatch: (id: string, patch: Record<string, unknown>, actividad?: string) => Promise<void>;
+  onPatch: (id: string, patch: Record<string, unknown>) => Promise<void>;
   onToggle: (id: string) => void;
   onMover: (id: string, col: ColumnaTarea) => void;
 }) {
@@ -95,43 +95,31 @@ export function TareaPanel({
       .from("tareas_actividad")
       .select("id, texto, created_at, profiles:actor_id(nombre_completo, color)")
       .eq("tarea_id", tarea.id)
+      .eq("tipo", "nota")
       .order("created_at")
       .then(({ data }) => {
         if (cancelled) return;
-        const filas = ((data ?? []) as Array<{
-          id: string;
-          texto: string;
-          created_at: string;
-          profiles?: { nombre_completo?: string | null; color?: string | null } | { nombre_completo?: string | null; color?: string | null }[] | null;
-        }>).map((row) => {
-          const actor = relacionUno(row.profiles);
-          return {
-            id: row.id,
-            cuando: cuandoActividad(row.created_at, hoy),
-            texto: row.texto,
-            actor: actor ? { nombre: actor.nombre_completo, color: actor.color } : null,
-          };
-        });
-        if (filas.length === 0 && tarea.created_at) {
-          setActividad([
-            {
-              id: "creada",
-              cuando: cuandoActividad(tarea.created_at, hoy),
-              texto: `Creada por ${nombreYApellido(tarea.creador?.nombre_completo ?? tarea.profiles?.nombre_completo) || "ti"}`,
-              actor: {
-                nombre: tarea.creador?.nombre_completo ?? tarea.profiles?.nombre_completo,
-                color: tarea.creador?.color ?? tarea.profiles?.color,
-              },
-            },
-          ]);
-          return;
-        }
-        setActividad(filas);
+        setActividad(
+          ((data ?? []) as Array<{
+            id: string;
+            texto: string;
+            created_at: string;
+            profiles?: { nombre_completo?: string | null; color?: string | null } | { nombre_completo?: string | null; color?: string | null }[] | null;
+          }>).map((row) => {
+            const actor = relacionUno(row.profiles);
+            return {
+              id: row.id,
+              cuando: cuandoComentario(row.created_at, hoy),
+              texto: row.texto,
+              actor: actor ? { nombre: actor.nombre_completo, color: actor.color } : null,
+            };
+          })
+        );
       });
     return () => {
       cancelled = true;
     };
-  }, [tarea?.id, tarea?.created_at, tarea?.comercial_id, hoy]);
+  }, [tarea?.id, hoy]);
 
   useEffect(() => {
     if (!tarea) return;
@@ -253,7 +241,7 @@ export function TareaPanel({
     const yo = comerciales.find((c) => c.id === userId);
     setActividad((prev) => [
       ...prev,
-      { id: data.id, cuando: "Hoy", texto, actor: yo ? { nombre: yo.nombre, color: yo.color } : null },
+      { id: data.id, cuando: cuandoComentario(data.created_at, hoy), texto, actor: yo ? { nombre: yo.nombre, color: yo.color } : null },
     ]);
   };
 
@@ -348,11 +336,7 @@ export function TareaPanel({
                   />
                   <select
                     value={tarea.comercial_id}
-                    onChange={(e) => {
-                      const dest = comerciales.find((c) => c.id === e.target.value);
-                      const nombre = dest ? nombreYApellido(dest.nombre) : "otro";
-                      void onPatch(tarea.id, { comercial_id: e.target.value }, `Delegada a ${nombre}`);
-                    }}
+                    onChange={(e) => void onPatch(tarea.id, { comercial_id: e.target.value })}
                     className="min-w-0 flex-1 bg-transparent text-[13.5px] outline-none"
                   >
                     {comerciales.some((c) => c.id === tarea.comercial_id) ? null : (
@@ -409,7 +393,7 @@ export function TareaPanel({
                   <input
                     type="time"
                     value={tarea.hora.slice(0, 5)}
-                    onChange={(e) => void onPatch(tarea.id, { hora: e.target.value || null }, e.target.value ? `Añadida al calendario a las ${e.target.value}` : undefined)}
+                    onChange={(e) => void onPatch(tarea.id, { hora: e.target.value || null })}
                     className="h-8 rounded-lg border border-[var(--input)] bg-white px-2 text-[13px]"
                   />
                 </label>
@@ -417,7 +401,7 @@ export function TareaPanel({
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => void onPatch(tarea.id, { hora: "12:00", vence: tarea.vence ?? hoy }, "Añadida al calendario a las 12:00")}
+                  onClick={() => void onPatch(tarea.id, { hora: "12:00", vence: tarea.vence ?? hoy })}
                 >
                   Poner hora y añadir
                 </Button>
@@ -434,7 +418,7 @@ export function TareaPanel({
               <select
                 value={tarea.propiedad_id ?? ""}
                 onChange={(e) =>
-                  void onPatch(tarea.id, { propiedad_id: e.target.value || null }, e.target.value ? "Vinculada a un inmueble" : undefined)
+                  void onPatch(tarea.id, { propiedad_id: e.target.value || null })
                 }
                 className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 text-[13.5px] text-foreground"
               >
@@ -454,7 +438,7 @@ export function TareaPanel({
               <select
                 value={tarea.cliente_id ?? ""}
                 onChange={(e) =>
-                  void onPatch(tarea.id, { cliente_id: e.target.value || null }, e.target.value ? "Vinculada a un cliente" : undefined)
+                  void onPatch(tarea.id, { cliente_id: e.target.value || null })
                 }
                 className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 text-[13.5px] text-foreground"
               >
@@ -474,7 +458,7 @@ export function TareaPanel({
               <select
                 value={tarea.demanda_id ?? ""}
                 onChange={(e) =>
-                  void onPatch(tarea.id, { demanda_id: e.target.value || null }, e.target.value ? "Vinculada a una demanda" : undefined)
+                  void onPatch(tarea.id, { demanda_id: e.target.value || null })
                 }
                 className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 text-[13.5px] text-foreground"
               >
@@ -495,14 +479,10 @@ export function TareaPanel({
                 value={tarea.parte_visita_id ?? ""}
                 onChange={(e) => {
                   const parte = parteOpts.find((p) => p.id === e.target.value);
-                  void onPatch(
-                    tarea.id,
-                    {
-                      parte_visita_id: e.target.value || null,
-                      ...(parte?.propiedadId && !tarea.propiedad_id ? { propiedad_id: parte.propiedadId } : {}),
-                    },
-                    e.target.value ? "Vinculada a un parte de visita" : undefined
-                  );
+                  void onPatch(tarea.id, {
+                    parte_visita_id: e.target.value || null,
+                    ...(parte?.propiedadId && !tarea.propiedad_id ? { propiedad_id: parte.propiedadId } : {}),
+                  });
                 }}
                 className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 text-[13.5px] text-foreground"
               >
@@ -525,7 +505,7 @@ export function TareaPanel({
                 onBlur={() => {
                   const valor = finca.trim() || null;
                   if (valor === (tarea.finca_reference ?? null)) return;
-                  void onPatch(tarea.id, { finca_reference: valor }, valor ? `Vinculada a la finca ${valor}` : undefined);
+                  void onPatch(tarea.id, { finca_reference: valor });
                 }}
                 placeholder="Referencia catastral"
                 className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 font-mono text-[12.5px] text-foreground"
@@ -535,17 +515,28 @@ export function TareaPanel({
 
           <div className="mt-[18px]">
             <div className="mb-2 text-[11px] uppercase tracking-[.07em] text-[var(--label)]">Comentarios</div>
-            {actividad.map((a) => (
-              <div key={a.id} className="flex gap-2.5 py-1.5 text-[13px]">
-                <span className="w-[52px] shrink-0 tabular-nums text-[var(--text-3)]">{a.cuando}</span>
-                {a.actor?.nombre ? (
-                  <AvatarComercial nombre={a.actor.nombre} color={a.actor.color} size={18} title={a.actor.nombre} />
-                ) : null}
-                <span className="min-w-0 flex-1 leading-snug">
-                  <TextoConMenciones texto={a.texto} equipo={comerciales} />
-                </span>
+            {actividad.length === 0 ? (
+              <p className="mb-3 text-[12.5px] text-[var(--text-3)]">Todavía no hay comentarios. Escribe el primero.</p>
+            ) : (
+              <div className="mb-3 space-y-2.5">
+                {actividad.map((a) => (
+                  <div key={a.id} className="flex gap-2">
+                    <AvatarComercial nombre={a.actor?.nombre} color={a.actor?.color} size={22} title={a.actor?.nombre ?? undefined} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline gap-2">
+                        <span className="truncate text-[12.5px] font-semibold">
+                          {nombreYApellido(a.actor?.nombre) || "Comercial"}
+                        </span>
+                        <span className="shrink-0 text-[11px] text-[var(--text-3)]">{a.cuando}</span>
+                      </div>
+                      <p className="mt-0.5 rounded-[10px] bg-[var(--surface-soft)] px-2.5 py-1.5 text-[13px] leading-snug">
+                        <TextoConMenciones texto={a.texto} equipo={comerciales} />
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
             <CampoComentario equipo={comerciales} onEnviar={(texto, mencionados) => void guardarNota(texto, mencionados)} />
           </div>
         </div>

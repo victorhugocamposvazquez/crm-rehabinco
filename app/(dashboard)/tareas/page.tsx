@@ -144,17 +144,6 @@ export default function TareasPage() {
       });
   }, [visibles, hoy, comerciales, user]);
 
-  const registrar = async (tareaId: string, texto: string, tipo = "nota") => {
-    if (!user) return;
-    const supabase = createClient();
-    await supabase.from("tareas_actividad").insert({
-      tarea_id: tareaId,
-      actor_id: user.id,
-      tipo,
-      texto,
-    });
-  };
-
   const syncCita = async (tarea: TareaDetalle, patch: { hora?: string | null; vence?: string | null; titulo?: string }) => {
     const hora = (patch.hora !== undefined ? patch.hora : tarea.hora)?.slice(0, 5) ?? null;
     const vence = (patch.vence !== undefined ? patch.vence : tarea.vence) ?? hoy;
@@ -225,10 +214,8 @@ export default function TareasPage() {
     if (!creada.profiles?.nombre_completo && user.nombre) {
       creada.profiles = { nombre_completo: user.nombre, color: user.color ?? null, email: user.email };
     }
-    await registrar(creada.id, `Creada por ${nombreYApellido(user.nombre, user.email) || "ti"}`, "creada");
     if (parsed.hora) {
       await syncCita(creada, { hora: parsed.hora, vence: creada.vence, titulo: creada.titulo });
-      await registrar(creada.id, `Añadida al calendario a las ${parsed.hora}`, "calendario");
     }
     setTitulo("");
     toast.success(parsed.hora ? "Tarea y cita creadas." : "Tarea creada.");
@@ -246,9 +233,6 @@ export default function TareasPage() {
       toast.error("No se ha podido actualizar la tarea.");
       return;
     }
-    if (actual) {
-      await registrar(id, siguiente === "hecha" ? "Marcada como hecha" : "Reabierta", "estado");
-    }
     setTareas((prev) => prev.map((item) => (item.id === id ? { ...item, estado: siguiente } : item)));
   };
 
@@ -260,11 +244,10 @@ export default function TareasPage() {
       toast.error("No se ha podido mover la tarea.");
       return;
     }
-    await registrar(id, `Movida a ${COLUMNAS_TAREA.find((c) => c.id === col)?.label ?? col}`, "estado");
     setTareas((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)));
   };
 
-  const guardarPatch = async (id: string, patch: Record<string, unknown>, actividad?: string) => {
+  const guardarPatch = async (id: string, patch: Record<string, unknown>) => {
     const actual = tareas.find((t) => t.id === id);
     if (!actual) return;
     const supabase = createClient();
@@ -288,13 +271,6 @@ export default function TareasPage() {
         titulo: (patch.titulo as string | undefined) ?? actual.titulo,
       });
       if (citaId) siguiente.cita_id = citaId;
-    }
-    if (actividad) {
-      await registrar(
-        id,
-        actividad,
-        patch.comercial_id ? "delegada" : patch.hora ? "calendario" : "vinculo"
-      );
     }
     setTareas((prev) => prev.map((item) => (item.id === id ? siguiente : item)));
     if (patch.propiedad_id || patch.cliente_id || patch.demanda_id || patch.parte_visita_id) {
