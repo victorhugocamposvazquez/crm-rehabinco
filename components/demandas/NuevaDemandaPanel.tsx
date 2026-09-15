@@ -196,16 +196,16 @@ export function NuevaDemandaPanel({
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange} variant="side" side="right" className="min-[780px]:w-[min(32rem,92vw)]">
+    <Sheet open={open} onOpenChange={onOpenChange} variant="side" side="right" className="min-[780px]:w-[min(52rem,90vw)]">
       <div className="flex h-full flex-col">
-        <div className="flex items-center gap-2.5 border-b border-[var(--border-soft)] px-4 py-3.5">
+        <div className="flex items-center gap-2.5 border-b border-[var(--border-soft)] px-5 py-3.5">
           <span className="flex-1 text-[11px] uppercase tracking-[0.08em] text-[var(--label)]">Nueva demanda</span>
           <button type="button" onClick={() => onOpenChange(false)} className="grid h-[34px] w-[34px] place-items-center rounded-lg text-[var(--text-2)]">
             ×
           </button>
         </div>
-        <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
-          <section>
+        <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-5 min-[780px]:grid min-[780px]:grid-cols-2 min-[780px]:items-start min-[780px]:gap-x-7 min-[780px]:gap-y-4">
+          <section className="min-[780px]:col-span-2">
             <div className="mb-1.5 text-[12px] font-semibold text-[var(--text-2)]">Cliente</div>
             {clienteFijo ? (
               <div className="rounded-[9px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5 text-[14px] font-semibold">
@@ -233,12 +233,12 @@ export function NuevaDemandaPanel({
                   </button>
                 </div>
                 {nuevoCliente ? (
-                  <div className="mt-2 grid grid-cols-2 gap-2.5">
-                    <label className="col-span-2 block text-[12px] font-semibold text-[var(--text-2)]">
+                  <div className="mt-2 grid grid-cols-1 gap-2.5 min-[780px]:grid-cols-2">
+                    <label className="block text-[12px] font-semibold text-[var(--text-2)]">
                       Nombre
                       <input value={nombreNuevo} onChange={(e) => setNombreNuevo(e.target.value)} placeholder="María López" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px]" />
                     </label>
-                    <label className="col-span-2 block text-[12px] font-semibold text-[var(--text-2)]">
+                    <label className="block text-[12px] font-semibold text-[var(--text-2)]">
                       Teléfono
                       <input value={telefonoNuevo} onChange={(e) => setTelefonoNuevo(e.target.value)} placeholder="600 000 000" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px]" />
                     </label>
@@ -263,7 +263,7 @@ export function NuevaDemandaPanel({
                           placeholder="Buscar por nombre o teléfono"
                           className="h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px]"
                         />
-                        <div className="mt-1.5 max-h-44 overflow-y-auto rounded-[9px] border border-[var(--border)]">
+                        <div className="mt-1.5 max-h-36 overflow-y-auto rounded-[9px] border border-[var(--border)] min-[780px]:max-h-28">
                           {sugeridos.map((c) => (
                             <button
                               key={c.id}
@@ -302,151 +302,155 @@ export function NuevaDemandaPanel({
             )}
           </section>
 
-          <section>
-            <div className="mb-1.5 text-[12px] font-semibold text-[var(--text-2)]">Operación</div>
-            <div className="flex flex-wrap gap-1.5">
-              {TIPOS_OPERACION_DEMANDA.map((op) => (
-                <Chip key={op} on={draft.tipoOperacion === op} onClick={() => set("tipoOperacion", op)}>
-                  {TIPO_OPERACION_DEMANDA_LABEL[op]}
-                </Chip>
-              ))}
-            </div>
-          </section>
-
-          <section>
-            <div className="mb-1.5 text-[12px] font-semibold text-[var(--text-2)]">Tipo de inmueble</div>
-            <div className="flex flex-wrap gap-1.5">
-              {TIPOS_INMUEBLE.map((tipo) => (
-                <Chip key={tipo} on={draft.tiposInmueble.includes(tipo)} onClick={() => toggleLista("tiposInmueble", tipo)}>
-                  {TIPO_INMUEBLE_LABEL[tipo]}
-                </Chip>
-              ))}
-            </div>
-          </section>
-
-          <section>
-            <div className="mb-1.5 text-[12px] font-semibold text-[var(--text-2)]">Zonas</div>
-            <div className="flex flex-wrap gap-1.5">
-              {ZONAS_DEMANDA.map((zona) => (
-                <Chip key={zona} on={draft.zonas.includes(zona)} onClick={() => toggleLista("zonas", zona)}>
-                  {zona}
-                </Chip>
-              ))}
-              {draft.zonas.filter((z) => !(ZONAS_DEMANDA as readonly string[]).includes(z)).map((zona) => (
-                <Chip key={zona} on onClick={() => toggleLista("zonas", zona)}>
-                  {zona}
-                </Chip>
-              ))}
-            </div>
-            <div className="mt-2 flex gap-2">
-              <input
-                value={zonaExtra}
-                onChange={(e) => setZonaExtra(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addZonaExtra();
-                  }
-                }}
-                placeholder="Otra zona o CP"
-                className="h-10 flex-1 rounded-[9px] border border-[var(--input)] px-3 text-[14px]"
-              />
-              <button type="button" onClick={addZonaExtra} className="h-10 rounded-[9px] border border-[var(--input)] px-3 text-[13px] font-semibold">
-                Añadir
-              </button>
-            </div>
-          </section>
-
-          <section>
-            <div className="mb-1.5 text-[12px] font-semibold text-[var(--text-2)]">
-              Presupuesto {draft.tipoOperacion === "alquiler" ? "€/mes" : "€"}
-            </div>
-            <div className="grid grid-cols-2 gap-2.5">
-              <label className="block text-[12px] text-[var(--text-2)]">
-                Mínimo
-                <input value={draft.presupuestoMin} onChange={(e) => set("presupuestoMin", e.target.value)} inputMode="numeric" placeholder="—" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px] tabular-nums" />
-              </label>
-              <label className="block text-[12px] text-[var(--text-2)]">
-                Máximo
-                <input value={draft.presupuestoMax} onChange={(e) => set("presupuestoMax", e.target.value)} inputMode="numeric" placeholder="Hasta" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px] tabular-nums" />
-              </label>
-            </div>
-          </section>
-
-          <section>
-            <div className="mb-1.5 text-[12px] font-semibold text-[var(--text-2)]">Tamaño</div>
-            <div className="grid grid-cols-2 gap-2.5">
-              <label className="block text-[12px] text-[var(--text-2)]">
-                m² mín.
-                <input value={draft.superficieMin} onChange={(e) => set("superficieMin", e.target.value)} inputMode="numeric" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px] tabular-nums" />
-              </label>
-              <label className="block text-[12px] text-[var(--text-2)]">
-                m² máx.
-                <input value={draft.superficieMax} onChange={(e) => set("superficieMax", e.target.value)} inputMode="numeric" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px] tabular-nums" />
-              </label>
-              <label className="block text-[12px] text-[var(--text-2)]">
-                Hab. mín.
-                <input value={draft.habitacionesMin} onChange={(e) => set("habitacionesMin", e.target.value)} inputMode="numeric" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px] tabular-nums" />
-              </label>
-              <label className="block text-[12px] text-[var(--text-2)]">
-                Baños mín.
-                <input value={draft.banosMin} onChange={(e) => set("banosMin", e.target.value)} inputMode="numeric" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px] tabular-nums" />
-              </label>
-            </div>
-          </section>
-
-          <section>
-            <div className="mb-1.5 text-[12px] font-semibold text-[var(--text-2)]">Imprescindible</div>
-            <div className="flex flex-wrap gap-1.5">
-              {REQUISITOS_RAPIDOS.map((item) => (
-                <Chip key={item} on={draft.requisitosRapidos.includes(item)} onClick={() => toggleLista("requisitosRapidos", item)}>
-                  {item}
-                </Chip>
-              ))}
-            </div>
-            <textarea
-              value={draft.requisitos}
-              onChange={(e) => set("requisitos", e.target.value)}
-              placeholder="Orientación, reforma, colegios, planta baja…"
-              rows={3}
-              className="mt-2 w-full resize-none rounded-[9px] border border-[var(--input)] px-3 py-2 text-[14px]"
-            />
-          </section>
-
-          <section>
-            <div className="mb-1.5 text-[12px] font-semibold text-[var(--text-2)]">Origen</div>
-            <div className="flex flex-wrap gap-1.5">
-              {ORIGENES_DEMANDA.map((item) => (
-                <Chip key={item.id} on={draft.origen === item.id} onClick={() => set("origen", item.id)}>
-                  {item.label}
-                </Chip>
-              ))}
-            </div>
-          </section>
-
-          {admin ? (
+          <div className="flex flex-col gap-4">
             <section>
-              <div className="mb-1.5 text-[12px] font-semibold text-[var(--text-2)]">Comercial</div>
+              <div className="mb-1.5 text-[12px] font-semibold text-[var(--text-2)]">Operación</div>
               <div className="flex flex-wrap gap-1.5">
-                {comerciales.map((c) => {
-                  const on = draft.comercialId === c.id;
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => set("comercialId", c.id)}
-                      className={cn("flex h-8 items-center gap-1.5 rounded-full border pr-2.5 pl-1 text-[12.5px] font-medium", on ? "border-accent bg-accent-soft" : "border-[var(--border)] bg-white text-[var(--text-2)]")}
-                    >
-                      <AvatarComercial nombre={c.nombre} color={c.color} size={24} />
-                      {c.nombre.split(" ")[0]}
-                    </button>
-                  );
-                })}
+                {TIPOS_OPERACION_DEMANDA.map((op) => (
+                  <Chip key={op} on={draft.tipoOperacion === op} onClick={() => set("tipoOperacion", op)}>
+                    {TIPO_OPERACION_DEMANDA_LABEL[op]}
+                  </Chip>
+                ))}
               </div>
             </section>
-          ) : null}
+
+            <section>
+              <div className="mb-1.5 text-[12px] font-semibold text-[var(--text-2)]">Tipo de inmueble</div>
+              <div className="flex flex-wrap gap-1.5">
+                {TIPOS_INMUEBLE.map((tipo) => (
+                  <Chip key={tipo} on={draft.tiposInmueble.includes(tipo)} onClick={() => toggleLista("tiposInmueble", tipo)}>
+                    {TIPO_INMUEBLE_LABEL[tipo]}
+                  </Chip>
+                ))}
+              </div>
+            </section>
+
+            <section>
+              <div className="mb-1.5 text-[12px] font-semibold text-[var(--text-2)]">Zonas</div>
+              <div className="flex flex-wrap gap-1.5">
+                {ZONAS_DEMANDA.map((zona) => (
+                  <Chip key={zona} on={draft.zonas.includes(zona)} onClick={() => toggleLista("zonas", zona)}>
+                    {zona}
+                  </Chip>
+                ))}
+                {draft.zonas.filter((z) => !(ZONAS_DEMANDA as readonly string[]).includes(z)).map((zona) => (
+                  <Chip key={zona} on onClick={() => toggleLista("zonas", zona)}>
+                    {zona}
+                  </Chip>
+                ))}
+              </div>
+              <div className="mt-2 flex gap-2">
+                <input
+                  value={zonaExtra}
+                  onChange={(e) => setZonaExtra(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addZonaExtra();
+                    }
+                  }}
+                  placeholder="Otra zona o CP"
+                  className="h-10 flex-1 rounded-[9px] border border-[var(--input)] px-3 text-[14px]"
+                />
+                <button type="button" onClick={addZonaExtra} className="h-10 rounded-[9px] border border-[var(--input)] px-3 text-[13px] font-semibold">
+                  Añadir
+                </button>
+              </div>
+            </section>
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <section>
+              <div className="mb-1.5 text-[12px] font-semibold text-[var(--text-2)]">
+                Presupuesto {draft.tipoOperacion === "alquiler" ? "€/mes" : "€"}
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                <label className="block text-[12px] text-[var(--text-2)]">
+                  Mínimo
+                  <input value={draft.presupuestoMin} onChange={(e) => set("presupuestoMin", e.target.value)} inputMode="numeric" placeholder="—" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px] tabular-nums" />
+                </label>
+                <label className="block text-[12px] text-[var(--text-2)]">
+                  Máximo
+                  <input value={draft.presupuestoMax} onChange={(e) => set("presupuestoMax", e.target.value)} inputMode="numeric" placeholder="Hasta" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px] tabular-nums" />
+                </label>
+              </div>
+            </section>
+
+            <section>
+              <div className="mb-1.5 text-[12px] font-semibold text-[var(--text-2)]">Tamaño</div>
+              <div className="grid grid-cols-2 gap-2.5">
+                <label className="block text-[12px] text-[var(--text-2)]">
+                  m² mín.
+                  <input value={draft.superficieMin} onChange={(e) => set("superficieMin", e.target.value)} inputMode="numeric" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px] tabular-nums" />
+                </label>
+                <label className="block text-[12px] text-[var(--text-2)]">
+                  m² máx.
+                  <input value={draft.superficieMax} onChange={(e) => set("superficieMax", e.target.value)} inputMode="numeric" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px] tabular-nums" />
+                </label>
+                <label className="block text-[12px] text-[var(--text-2)]">
+                  Hab. mín.
+                  <input value={draft.habitacionesMin} onChange={(e) => set("habitacionesMin", e.target.value)} inputMode="numeric" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px] tabular-nums" />
+                </label>
+                <label className="block text-[12px] text-[var(--text-2)]">
+                  Baños mín.
+                  <input value={draft.banosMin} onChange={(e) => set("banosMin", e.target.value)} inputMode="numeric" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px] tabular-nums" />
+                </label>
+              </div>
+            </section>
+
+            <section>
+              <div className="mb-1.5 text-[12px] font-semibold text-[var(--text-2)]">Imprescindible</div>
+              <div className="flex flex-wrap gap-1.5">
+                {REQUISITOS_RAPIDOS.map((item) => (
+                  <Chip key={item} on={draft.requisitosRapidos.includes(item)} onClick={() => toggleLista("requisitosRapidos", item)}>
+                    {item}
+                  </Chip>
+                ))}
+              </div>
+              <textarea
+                value={draft.requisitos}
+                onChange={(e) => set("requisitos", e.target.value)}
+                placeholder="Orientación, reforma, colegios, planta baja…"
+                rows={2}
+                className="mt-2 w-full resize-none rounded-[9px] border border-[var(--input)] px-3 py-2 text-[14px]"
+              />
+            </section>
+
+            <section>
+              <div className="mb-1.5 text-[12px] font-semibold text-[var(--text-2)]">Origen</div>
+              <div className="flex flex-wrap gap-1.5">
+                {ORIGENES_DEMANDA.map((item) => (
+                  <Chip key={item.id} on={draft.origen === item.id} onClick={() => set("origen", item.id)}>
+                    {item.label}
+                  </Chip>
+                ))}
+              </div>
+            </section>
+
+            {admin ? (
+              <section>
+                <div className="mb-1.5 text-[12px] font-semibold text-[var(--text-2)]">Comercial</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {comerciales.map((c) => {
+                    const on = draft.comercialId === c.id;
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => set("comercialId", c.id)}
+                        className={cn("flex h-8 items-center gap-1.5 rounded-full border pr-2.5 pl-1 text-[12.5px] font-medium", on ? "border-accent bg-accent-soft" : "border-[var(--border)] bg-white text-[var(--text-2)]")}
+                      >
+                        <AvatarComercial nombre={c.nombre} color={c.color} size={24} />
+                        {c.nombre.split(" ")[0]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
+          </div>
         </div>
-        <div className="flex gap-2 border-t border-[var(--border-soft)] px-4 py-3">
+        <div className="flex gap-2 border-t border-[var(--border-soft)] px-5 py-3">
           <button type="button" disabled={saving} onClick={() => void crear()} className="h-10 flex-1 rounded-[9px] bg-accent text-[13.5px] font-semibold text-white disabled:opacity-60">
             {saving ? "Guardando…" : "Crear demanda"}
           </button>
