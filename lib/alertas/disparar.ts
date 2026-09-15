@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { claveDigest, resumenAvisosDia, type ItemAviso } from "@/lib/alertas/digest";
+import { claveDigest, resumenAvisosDia, tareaEnDigest, type ItemAviso } from "@/lib/alertas/digest";
 import { enviarPush } from "@/lib/alertas/web-push";
 
 function horaLocal(iso: string): string {
@@ -23,7 +23,7 @@ export async function dispararDigestAlertas(dia = new Date().toISOString().slice
     admin
       .from("tareas")
       .select("id, comercial_id, titulo, vence, hora, estado")
-      .eq("vence", dia)
+      .lte("vence", dia)
       .eq("estado", "pendiente"),
   ]);
 
@@ -34,8 +34,14 @@ export async function dispararDigestAlertas(dia = new Date().toISOString().slice
     porUsuario.set(cita.comercial_id, lista);
   }
   for (const tarea of tareas ?? []) {
+    if (!tareaEnDigest(tarea.vence, dia)) continue;
+    const vencida = (tarea.vence ?? "").slice(0, 10) < dia;
     const lista = porUsuario.get(tarea.comercial_id) ?? [];
-    lista.push({ titulo: tarea.titulo, hora: tarea.hora?.slice(0, 5) ?? null, tipo: "tarea" });
+    lista.push({
+      titulo: vencida ? `Vencida · ${tarea.titulo}` : tarea.titulo,
+      hora: tarea.hora?.slice(0, 5) ?? null,
+      tipo: vencida ? "tarea-vencida" : "tarea",
+    });
     porUsuario.set(tarea.comercial_id, lista);
   }
 

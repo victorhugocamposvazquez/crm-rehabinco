@@ -99,7 +99,7 @@ export default function PartesVisitaPage() {
                 setCitaInicial(undefined);
                 setNuevaOpen(true);
               }}
-              className="gap-2"
+              className="hidden gap-2 min-[820px]:inline-flex"
             >
               <Plus className="h-4 w-4" strokeWidth={1.5} />
               {hayBorrador ? "Continuar borrador" : "Nuevo parte"}

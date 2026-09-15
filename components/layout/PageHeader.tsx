@@ -10,6 +10,7 @@ interface PageHeaderProps {
   descriptionClassName?: string;
   actions?: React.ReactNode;
   className?: string;
+  hideActionsOnMobile?: boolean;
 }
 
 export function PageHeader({
@@ -19,6 +20,7 @@ export function PageHeader({
   descriptionClassName,
   actions,
   className,
+  hideActionsOnMobile = false,
 }: PageHeaderProps) {
   return (
     <div className={cn("animate-[fadeIn_0.3s_ease-out]", className)}>
@@ -36,7 +38,16 @@ export function PageHeader({
             </p>
           )}
         </div>
-        {actions && <div className="flex w-full min-w-0 flex-wrap min-[820px]:w-auto">{actions}</div>}
+        {actions && (
+          <div
+            className={cn(
+              "flex w-full min-w-0 flex-wrap min-[820px]:w-auto",
+              hideActionsOnMobile && "hidden min-[820px]:flex"
+            )}
+          >
+            {actions}
+          </div>
+        )}
       </div>
     </div>
   );

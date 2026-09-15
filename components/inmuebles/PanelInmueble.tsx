@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { completitudFicha } from "@/lib/inmuebles/completitud";
 import { formatPrecioInmueble, labelEstadoInmueble, labelTipoInmueble } from "@/lib/inmuebles/catalogo";
 import { precioDeInmueble, type InmueblePanel } from "@/lib/inmuebles/panel";
-import { rutaNuevaVisitaDesdeProperty } from "@/lib/partes-visita";
+import { rutaNuevaCita } from "@/lib/citas/citas";
 import { matchingInmuebleDemandas, type CriteriosDemanda } from "@/lib/demandas/matching";
 import { relacionUno } from "@/lib/citas/citas";
 import { colorEstado } from "@/lib/ui/estados-vista";
@@ -102,6 +102,10 @@ export function PanelInmueble({
         if (!cancelled) setMatches(existentes);
         return;
       }
+      if (!inmueble.publicado) {
+        if (!cancelled) setMatches([]);
+        return;
+      }
       const { data: demandas } = await supabase
         .from("demandas")
         .select(
@@ -137,6 +141,7 @@ export function PanelInmueble({
           habitaciones: inmueble.habitaciones,
           banos: inmueble.banos,
           estado: inmueble.estado,
+          publicado: inmueble.publicado,
         },
         criterios
       );
@@ -227,12 +232,12 @@ export function PanelInmueble({
   return (
     <aside
       className={cn(
-        "overflow-hidden bg-white",
+        "bg-white",
         overlay
-          ? "fixed inset-0 z-50 rounded-none"
+          ? "fixed inset-0 z-50 overflow-hidden rounded-none"
           : embedded
-            ? ""
-            : "sticky top-[72px] w-full max-w-[42rem] shrink-0 rounded-[14px] border border-border"
+            ? "flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain"
+            : "sticky top-[72px] w-full max-w-[42rem] shrink-0 overflow-hidden rounded-[14px] border border-border"
       )}
     >
       <div className={cn(!embedded && "max-h-[100dvh] overflow-y-auto")}>
@@ -278,7 +283,7 @@ export function PanelInmueble({
         </div>
         <div className="flex flex-wrap gap-2 border-b border-[var(--border-soft)] px-4 py-3">
           <Button asChild className="h-[38px] flex-[1_1_120px]">
-            <Link href={rutaNuevaVisitaDesdeProperty(inmueble.id)}>Concertar visita</Link>
+            <Link href={rutaNuevaCita({ propiedadId: inmueble.id, clienteId: inmueble.ofertante_id })}>Concertar visita</Link>
           </Button>
           <Button type="button" variant="secondary" className="h-[38px] flex-[1_1_120px]" onClick={() => void compartir()}>
             Compartir ficha

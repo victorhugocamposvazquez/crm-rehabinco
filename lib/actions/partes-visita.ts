@@ -85,7 +85,7 @@ export async function firmarParteVisitaPublic(
 
     const { data: existing, error: fetchError } = await admin
       .from("partes_visita")
-      .select("id, estado, propiedad_id, cliente_id, cita_id")
+      .select("id, estado, propiedad_id, cliente_id, cita_id, comercial_id, user_id, inmueble_direccion")
       .eq("token", values.token)
       .maybeSingle();
 
@@ -140,6 +140,23 @@ export async function firmarParteVisitaPublic(
           .in("demanda_id", ids)
           .in("estado", ["propuesto", "presentado"]);
       }
+    }
+
+    const comercialId = existing.comercial_id ?? existing.user_id;
+    if (comercialId) {
+      const manana = new Date();
+      manana.setDate(manana.getDate() + 1);
+      const donde = existing.inmueble_direccion?.trim();
+      await admin.from("tareas").insert({
+        comercial_id: comercialId,
+        creado_por: comercialId,
+        titulo: donde ? `Seguimiento visita · ${donde}` : "Seguimiento visita",
+        vence: manana.toISOString().slice(0, 10),
+        estado: "pendiente",
+        propiedad_id: existing.propiedad_id,
+        cliente_id: existing.cliente_id,
+        parte_visita_id: existing.id,
+      });
     }
 
     return { success: true };

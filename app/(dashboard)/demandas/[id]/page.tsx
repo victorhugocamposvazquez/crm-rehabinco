@@ -6,7 +6,8 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { matchingDemandas, ESTADOS_MATCHING, ESTADO_MATCHING_LABEL, type CriteriosDemanda } from "@/lib/demandas/matching";
+import { ESTADOS_MATCHING, ESTADO_MATCHING_LABEL } from "@/lib/demandas/matching";
+import { criteriosDeDemanda, proponerStockParaDemanda } from "@/lib/demandas/proponer-stock";
 import { FichaLink } from "@/components/crm/FichaPeek";
 import { relacionUno } from "@/lib/citas/citas";
 import { NuevaDemandaPanel } from "@/components/demandas/NuevaDemandaPanel";
@@ -84,59 +85,8 @@ export default function DemandaDetallePage() {
 
   const buscar = async () => {
     if (!demanda) return;
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("propiedades")
-      .select(
-        "id, tipo_operacion, tipo_inmueble, localidad, codigo_postal, precio_venta, precio_alquiler, superficie_m2, superficie_util, habitaciones, banos, estado"
-      )
-      .eq("estado", "disponible");
-    const criterios: CriteriosDemanda = {
-      tipoOperacion: demanda.tipo_operacion,
-      tiposInmueble: demanda.tipos_inmueble ?? [],
-      zonas: demanda.zonas ?? [],
-      presupuestoMin: demanda.presupuesto_min,
-      presupuestoMax: demanda.presupuesto_max,
-      superficieMin: demanda.superficie_min,
-      superficieMax: demanda.superficie_max,
-      habitacionesMin: demanda.habitaciones_min,
-      banosMin: demanda.banos_min,
-    };
-    const resultados = matchingDemandas(
-      criterios,
-      (data ?? []).map((p) => ({
-        id: p.id,
-        tipoOperacion: p.tipo_operacion,
-        tipoInmueble: p.tipo_inmueble,
-        localidad: p.localidad,
-        codigoPostal: p.codigo_postal,
-        precioVenta: p.precio_venta,
-        precioAlquiler: p.precio_alquiler,
-        superficie: p.superficie_util ?? p.superficie_m2,
-        habitaciones: p.habitaciones,
-        banos: p.banos,
-        estado: p.estado,
-      }))
-    );
-    const ya = new Set(matches.map((item) => item.propiedad_id));
-    for (const item of resultados) {
-      if (ya.has(item.propiedadId)) {
-        await supabase
-          .from("demanda_inmuebles")
-          .update({ puntuacion: item.puntuacion })
-          .eq("demanda_id", id)
-          .eq("propiedad_id", item.propiedadId);
-        continue;
-      }
-      await supabase.from("demanda_inmuebles").insert({
-        demanda_id: id,
-        propiedad_id: item.propiedadId,
-        origen: "automatico",
-        puntuacion: item.puntuacion,
-        estado: "propuesto",
-      });
-    }
-    toast.success(`${resultados.length} inmuebles encajan.`);
+    const n = await proponerStockParaDemanda(createClient(), id, criteriosDeDemanda(demanda));
+    toast.success(`${n} inmuebles encajan.`);
     cargar();
   };
 

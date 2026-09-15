@@ -46,11 +46,19 @@ export function BusquedaGlobal() {
       editor
         ? Promise.resolve({ data: [] })
         : supabase.from("propiedades").select("id, titulo, referencia, direccion").or(`titulo.ilike.${like},referencia.ilike.${like},direccion.ilike.${like}`).limit(5),
+      editor
+        ? Promise.resolve({ data: [] })
+        : supabase
+            .from("demandas")
+            .select("id, tipo_operacion, zonas, clientes:cliente_id(nombre)")
+            .eq("estado", "activa")
+            .limit(20),
       user?.role === "admin"
         ? supabase.from("facturas").select("id, numero").ilike("numero", like).limit(5)
         : Promise.resolve({ data: [] }),
-    ]).then(([clientes, inmuebles, facturas]) => {
+    ]).then(([clientes, inmuebles, demandas, facturas]) => {
       const next: Hit[] = [];
+      const qn = texto.toLowerCase();
       for (const row of clientes.data ?? []) {
         next.push({ href: `/clientes/${row.id}`, titulo: row.nombre, meta: row.email ?? "Cliente" });
       }
@@ -61,10 +69,23 @@ export function BusquedaGlobal() {
           meta: row.direccion ?? "Inmueble",
         });
       }
+      for (const row of demandas.data ?? []) {
+        const cliente = Array.isArray(row.clientes) ? row.clientes[0] : row.clientes;
+        const nombre = cliente?.nombre ?? "";
+        const zonas = (row.zonas ?? []).join(" ");
+        if (!nombre.toLowerCase().includes(qn) && !zonas.toLowerCase().includes(qn) && !row.tipo_operacion.toLowerCase().includes(qn)) {
+          continue;
+        }
+        next.push({
+          href: `/demandas/${row.id}`,
+          titulo: nombre || "Demanda",
+          meta: [row.tipo_operacion, ...(row.zonas ?? []).slice(0, 2)].filter(Boolean).join(" · ") || "Demanda",
+        });
+      }
       for (const row of facturas.data ?? []) {
         next.push({ href: `/facturas/${row.id}`, titulo: row.numero, meta: "Factura" });
       }
-      setHits(next);
+      setHits(next.slice(0, 12));
     });
   }, [open, q, user?.role]);
 
@@ -88,11 +109,11 @@ export function BusquedaGlobal() {
         <Search size={16} strokeWidth={2.2} />
       </button>
       <Sheet open={open} onOpenChange={setOpen} variant="side" side="right" showCloseButton>
-        <div className="px-5 pb-8 pt-[max(3.5rem,calc(env(safe-area-inset-top)+2.75rem))]">
+        <div className="h-full overflow-y-auto overscroll-contain px-5 pb-8 pt-[max(3.5rem,calc(env(safe-area-inset-top)+2.75rem))]">
           <h2 className="mb-4 text-lg font-semibold">Buscar</h2>
           <Input
             autoFocus
-            placeholder="Cliente, inmueble, factura, referencia…"
+            placeholder="Cliente, inmueble, demanda, factura, referencia…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />

@@ -111,7 +111,7 @@ export function Sheet({
           role="dialog"
           aria-modal="true"
           className={cn(
-            "absolute inset-y-0 z-10 flex w-full flex-col bg-white pb-[env(safe-area-inset-bottom)] min-[780px]:w-[min(28rem,92vw)]",
+            "absolute inset-y-0 z-10 flex h-full w-full min-h-0 flex-col overflow-hidden bg-white pb-[env(safe-area-inset-bottom)] min-[820px]:w-[min(28rem,92vw)]",
             side === "left"
               ? "left-0 shadow-[16px_0_40px_rgba(19,28,26,.16)] animate-[slideInFromLeft_0.28s_ease-out]"
               : "right-0 shadow-[-16px_0_40px_rgba(19,28,26,.16)] animate-[slideInFromRight_0.28s_ease-out]",
@@ -135,7 +135,7 @@ export function Sheet({
           }}
         >
           {showCloseButton ? cerrar : null}
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y">{children}</div>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
         </div>
       ) : (
       <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center">

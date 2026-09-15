@@ -67,7 +67,7 @@ export function MobileNav() {
         </div>
       </nav>
       <Sheet open={mas} onOpenChange={setMas} variant="side" side="left" showCloseButton>
-        <nav className="px-4 pb-8 pt-[max(3.5rem,calc(env(safe-area-inset-top)+2.75rem))]" aria-label="Más destinos">
+        <nav className="h-full overflow-y-auto overscroll-contain px-4 pb-8 pt-[max(3.5rem,calc(env(safe-area-inset-top)+2.75rem))]" aria-label="Más destinos">
           {user ? (
             <Link
               href="/settings"

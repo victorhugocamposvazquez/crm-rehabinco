@@ -12,6 +12,7 @@ import { nombreYApellido } from "@/lib/ui/tokens";
 import { cn } from "@/lib/utils";
 import { TIPOS_INMUEBLE, TIPO_INMUEBLE_LABEL } from "@/lib/inmuebles/catalogo";
 import { TIPOS_OPERACION_DEMANDA, TIPO_OPERACION_DEMANDA_LABEL } from "@/lib/demandas/matching";
+import { criteriosDeDemanda, proponerStockParaDemanda } from "@/lib/demandas/proponer-stock";
 import {
   ORIGENES_DEMANDA,
   REQUISITOS_RAPIDOS,
@@ -253,24 +254,28 @@ export function NuevaDemandaPanel({
       const { estado: _estado, ...resto } = payloadNuevaDemanda(paraCrear);
       void _estado;
       const { error } = await supabase.from("demandas").update(resto).eq("id", editarId);
-      setSaving(false);
       if (error) {
+        setSaving(false);
         toast.error("No se ha podido guardar la demanda.");
         return;
       }
-      toast.success("Demanda actualizada.");
+      const n = await proponerStockParaDemanda(supabase, editarId, criteriosDeDemanda(payloadNuevaDemanda(paraCrear)));
+      setSaving(false);
+      toast.success(n > 0 ? `Demanda actualizada. ${n} inmuebles encajan.` : "Demanda actualizada.");
       altaBorrador.consumir();
       onOpenChange(false);
       onCreada(editarId);
       return;
     }
     const { data, error } = await supabase.from("demandas").insert(payloadNuevaDemanda(paraCrear)).select("id").single();
-    setSaving(false);
     if (error || !data) {
+      setSaving(false);
       toast.error("No se ha podido crear la demanda.");
       return;
     }
-    toast.success("Demanda creada.");
+    const n = await proponerStockParaDemanda(supabase, data.id, criteriosDeDemanda(payloadNuevaDemanda(paraCrear)));
+    setSaving(false);
+    toast.success(n > 0 ? `Demanda creada. ${n} inmuebles encajan.` : "Demanda creada.");
     altaBorrador.consumir();
     onOpenChange(false);
     onCreada(data.id);
@@ -283,7 +288,7 @@ export function NuevaDemandaPanel({
       open={open}
       onOpenChange={onOpenChange}
       title={editarId ? "Editar demanda" : "Nueva demanda"}
-      hint={editarId ? "Cambia criterios sin recrear la demanda." : "Lo que busca esta persona. El matching se confirma a mano, no se publica solo."}
+      hint={editarId ? "Cambia criterios sin recrear la demanda." : "Lo que busca esta persona. Al crear, proponemos inmuebles publicados que encajan; tú confirmas."}
       primaryLabel={editarId ? "Guardar demanda" : "Crear demanda"}
       saving={saving}
       disablePrimary={faltaCliente}

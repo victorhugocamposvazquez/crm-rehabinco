@@ -162,6 +162,7 @@ export function CaptacionPortales() {
   const [alertaOpen, setAlertaOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [wide, setWide] = useState(true);
+  const [compact, setCompact] = useState(false);
   const [filtros, setFiltros] = useState({
     precioMin: "",
     precioMax: "",
@@ -221,10 +222,18 @@ export function CaptacionPortales() {
     if (!user) return;
     cargar();
     const mq = window.matchMedia("(min-width: 1000px)");
-    const sync = () => setWide(mq.matches);
+    const mqPhone = window.matchMedia("(max-width: 819px)");
+    const sync = () => {
+      setWide(mq.matches);
+      setCompact(mqPhone.matches);
+    };
     sync();
     mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
+    mqPhone.addEventListener("change", sync);
+    return () => {
+      mq.removeEventListener("change", sync);
+      mqPhone.removeEventListener("change", sync);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
@@ -470,7 +479,9 @@ export function CaptacionPortales() {
   const comercialDe = (id: string | null) => comerciales.find((c) => c.id === id);
   const cols = wide
     ? "16px minmax(0,2.6fr) 104px 60px 72px 130px 140px 132px"
-    : "16px minmax(0,1fr) 100px 72px 104px";
+    : compact
+      ? undefined
+      : "16px minmax(0,1fr) 100px 72px 104px";
 
   const pins = (() => {
     const conGeo = listado.filter((a) => a.lat != null && a.lng != null);
@@ -648,7 +659,7 @@ export function CaptacionPortales() {
                 <button type="button" onClick={() => void patchAnuncio(checks, { fase: "descartado" }, "Descartado")} className="h-[30px] rounded-lg border border-[var(--input)] bg-white px-2.5 text-[12.5px] font-semibold">Descartar</button>
               </div>
             ) : null}
-            <div className="hidden grid-cols-[16px_minmax(0,1fr)_100px_72px_104px] gap-3 border-b border-[var(--border-soft)] bg-[var(--surface-soft)] px-3.5 py-2 text-[11px] uppercase tracking-[0.06em] text-[var(--label)] min-[820px]:grid" style={{ gridTemplateColumns: cols }}>
+            <div className="hidden grid-cols-[16px_minmax(0,1fr)_100px_72px_104px] gap-3 border-b border-[var(--border-soft)] bg-[var(--surface-soft)] px-3.5 py-2 text-[11px] uppercase tracking-[0.06em] text-[var(--label)] min-[820px]:grid" style={cols ? { gridTemplateColumns: cols } : undefined}>
               <button type="button" onClick={() => setChecks(page.length && page.every((a) => checks.includes(a.id)) ? [] : page.map((a) => a.id))} className="h-4 w-4 rounded border" style={{ borderColor: page.length && page.every((a) => checks.includes(a.id)) ? "#0B7461" : "#CFCBC2", background: page.length && page.every((a) => checks.includes(a.id)) ? "#0B7461" : "#fff" }} />
               <div>Anuncio</div><div className="text-right">Precio</div>{wide ? <div className="text-right">m²</div> : null}<div className="text-right">€/m²</div>{wide ? <div>Contacto</div> : null}{wide ? <div>Zona</div> : null}<div />
             </div>
@@ -660,6 +671,58 @@ export function CaptacionPortales() {
               const bajada = pctBajada(a.precio_anterior, a.precio);
               const pm2 = eurosM2(a.precio, a.superficie, a.operacion === "alquiler");
               const barato = a.operacion !== "alquiler" && a.precio && a.superficie && a.precio / a.superficie < 1800;
+              if (compact) {
+                return (
+                  <div
+                    key={a.id}
+                    onClick={() => {
+                      setSel(a.id);
+                      setPanel(true);
+                    }}
+                    className="flex cursor-pointer gap-3 border-b border-[var(--border-row)] px-3.5 py-3"
+                    style={{ background: on ? "#F4F8F6" : "#fff", boxShadow: on ? "inset 3px 0 0 #0B7461" : undefined }}
+                  >
+                    <button
+                      type="button"
+                      aria-label={ck ? "Quitar selección" : "Seleccionar"}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setChecks((prev) => (ck ? prev.filter((x) => x !== a.id) : [...prev, a.id]));
+                      }}
+                      className="mt-1 grid h-11 w-11 shrink-0 place-items-center"
+                    >
+                      <span className="grid h-4 w-4 place-items-center rounded border" style={{ borderColor: ck ? "#0B7461" : "#CFCBC2", background: ck ? "#0B7461" : "#fff" }} />
+                    </button>
+                    <div className="relative h-[72px] w-[88px] shrink-0 overflow-hidden rounded-[8px] bg-[#E8E4DC]">
+                      {a.thumb ? <img src={a.thumb} alt="" className="h-full w-full object-cover" /> : null}
+                      {diasEnPortal(a.publicado_en) === 0 ? <span className="absolute left-0 top-0 rounded-br bg-accent px-1 py-px text-[9px] font-bold tracking-wide text-white">NUEVO</span> : null}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="line-clamp-2 text-[14px] font-semibold leading-snug">{a.titulo}</p>
+                        <p className="shrink-0 text-right text-[14px] font-semibold tabular-nums">
+                          {euros(a.precio, a.operacion === "alquiler")}
+                          {bajada ? <span className="block text-[11px] font-medium text-accent">{bajada}</span> : null}
+                        </p>
+                      </div>
+                      <p className="mt-1 truncate text-[12px] text-[var(--text-2)]">
+                        {PORTAL_LABEL[a.fuente]}
+                        {a.habitaciones ? ` · ${a.habitaciones} hab` : ""}
+                        {a.superficie ? ` · ${a.superficie} m²` : ""}
+                        {a.municipio ? ` · ${a.municipio}` : ""}
+                      </p>
+                      <div className="mt-2 flex items-center gap-1.5">
+                        {com ? <AvatarComercial nombre={com.nombre} color={com.color} size={22} title={com.nombre} /> : null}
+                        {a.url ? (
+                          <a href={a.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="grid h-11 w-11 place-items-center rounded-lg border border-[var(--border)] text-[var(--text-2)]" title="Ver anuncio">↗</a>
+                        ) : null}
+                        <button type="button" title="Pasar a seguimiento" onClick={(e) => { e.stopPropagation(); seguir([a.id]); }} className="grid h-11 w-11 place-items-center rounded-lg border border-[var(--border)] text-accent">☆</button>
+                        <button type="button" title="Descartar" onClick={(e) => { e.stopPropagation(); void patchAnuncio([a.id], { fase: "descartado" }, "Descartado"); }} className="grid h-11 w-11 place-items-center rounded-lg border border-[var(--border)] text-[var(--text-2)]">×</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
               return (
                 <div key={a.id} onClick={() => { setSel(a.id); setPanel(true); }} className="grid cursor-pointer items-center gap-3 border-b border-[var(--border-row)] px-3.5 py-2.5 hover:bg-[var(--surface-soft)]" style={{ gridTemplateColumns: cols, background: on ? "#F4F8F6" : "#fff", boxShadow: on ? "inset 3px 0 0 #0B7461" : undefined }}>
                   <button type="button" onClick={(e) => { e.stopPropagation(); setChecks((prev) => (ck ? prev.filter((x) => x !== a.id) : [...prev, a.id])); }} className="grid h-4 w-4 place-items-center rounded border" style={{ borderColor: ck ? "#0B7461" : "#CFCBC2", background: ck ? "#0B7461" : "#fff" }} />
@@ -863,7 +926,7 @@ export function CaptacionPortales() {
 
       {alertaOpen ? (
         <Sheet open onOpenChange={(open) => !open && setAlertaOpen(false)} variant="side" side="right">
-          <div className="flex h-full flex-col">
+          <div className="flex h-full min-h-0 flex-col">
             <div className="flex items-center gap-2.5 border-b border-[var(--border-soft)] px-4 py-3.5">
               <span className="flex-1 text-[11px] uppercase tracking-[0.08em] text-[var(--label)]">Nueva alerta</span>
               <button type="button" onClick={() => setAlertaOpen(false)} className="grid h-[34px] w-[34px] place-items-center rounded-lg text-[var(--text-2)]">×</button>
@@ -912,7 +975,7 @@ export function CaptacionPortales() {
                 </div>
               ) : null}
             </div>
-            <div className="flex gap-2 border-t border-[var(--border-soft)] px-4 py-3">
+            <div className="flex shrink-0 gap-2 border-t border-[var(--border-soft)] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
               <button type="button" onClick={() => void crearAlerta()} className="h-10 flex-1 rounded-[9px] bg-accent text-[13.5px] font-semibold text-white">Crear alerta</button>
               <button type="button" onClick={() => setAlertaOpen(false)} className="h-10 rounded-[9px] border border-[var(--input)] px-3.5 text-[13.5px] font-semibold">Cancelar</button>
             </div>
@@ -958,7 +1021,7 @@ function PeekAnuncio({
   const aviso = textoAvisoEncubierta(indicios) ?? (nRepite >= 3 ? `Este teléfono aparece en ${nRepite} anuncios. Puede ser un profesional encubierto.` : null);
   const avisoFuerte = indicios.aviso === "probable";
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain">
       <div className="relative aspect-video bg-[#E8E4DC]">
         {a.thumb ? <img src={a.thumb} alt="" className="h-full w-full object-cover" /> : null}
         <div className="absolute bottom-2.5 left-3 flex flex-wrap gap-1.5">

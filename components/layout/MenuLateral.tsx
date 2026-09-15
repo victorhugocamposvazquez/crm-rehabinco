@@ -22,7 +22,7 @@ export function MenuLateral({
   return (
     <Sheet open={abierta} onOpenChange={(open) => !open && onCerrar()} variant="side" side="left" showCloseButton>
       <nav
-        className="px-4 pb-8 pt-[max(3.5rem,calc(env(safe-area-inset-top)+2.75rem))]"
+        className="h-full overflow-y-auto overscroll-contain px-4 pb-8 pt-[max(3.5rem,calc(env(safe-area-inset-top)+2.75rem))]"
         aria-label="Menú de la aplicación"
       >
         <h2 className="mb-5 px-2 text-xl font-semibold">Menú</h2>

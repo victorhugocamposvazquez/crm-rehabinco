@@ -127,7 +127,7 @@ export function TopBar() {
             <div className="flex shrink-0 items-center gap-1">
             <Link
               href="/settings"
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-white text-neutral-600 transition-colors hover:bg-neutral-50 hover:text-accent md:hidden"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-white text-neutral-600 transition-colors hover:bg-neutral-50 hover:text-accent min-[820px]:hidden"
               aria-label="Ajustes"
             >
               <Settings className="h-5 w-5" strokeWidth={1.5} />

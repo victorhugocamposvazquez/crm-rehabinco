@@ -52,6 +52,7 @@ export type InmuebleParaMatching = {
   habitaciones: number | null;
   banos: number | null;
   estado?: string | null;
+  publicado?: boolean | null;
 };
 
 export type ResultadoMatching = {
@@ -104,6 +105,9 @@ export function encajaDemandaInmueble(
 
   if (inmueble.estado && inmueble.estado !== "disponible") {
     return { ok: false, puntuacion: 0, motivos: ["El inmueble no está disponible."] };
+  }
+  if (inmueble.publicado === false) {
+    return { ok: false, puntuacion: 0, motivos: ["El inmueble no está listo para matching."] };
   }
 
   if (!operacionCompatible(demanda.tipoOperacion, inmueble.tipoOperacion)) {

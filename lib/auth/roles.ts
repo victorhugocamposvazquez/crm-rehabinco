@@ -142,8 +142,8 @@ export const NAV_TOP_BY_ROLE: Record<Role, readonly string[]> = {
 };
 
 export const NAV_MOBILE_BY_ROLE: Record<Role, readonly string[]> = {
-  admin: ["/", "/calendario", "/tareas", "/captacion", "/settings"],
-  comercial: ["/", "/tareas", "/calendario", "/captacion", "/settings"],
+  admin: ["/", "/propiedades", "/calendario", "/tareas", "/settings"],
+  comercial: ["/", "/propiedades", "/calendario", "/tareas", "/settings"],
   editor: ["/presupuestos", "/settings"],
 };
 

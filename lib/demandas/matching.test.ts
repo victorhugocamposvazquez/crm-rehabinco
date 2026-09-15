@@ -64,6 +64,11 @@ describe("matching demanda ↔ inmueble", () => {
     assert.equal(lista[0]?.demandaId, "d1");
   });
 
+  it("rechaza un inmueble que no está publicado", () => {
+    const r = encajaDemandaInmueble(DEMANDA, { ...PISO, publicado: false });
+    assert.equal(r.ok, false);
+  });
+
   it("al firmar la visita, propuesto y presentado pasan a visitado", () => {
     assert.equal(matchingPasaAVisitado("propuesto"), true);
     assert.equal(matchingPasaAVisitado("presentado"), true);

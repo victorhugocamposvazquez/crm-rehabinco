@@ -45,15 +45,15 @@ export function AltaShell({
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange} variant="side" side="right" className="min-[780px]:w-[min(56rem,92vw)]">
+    <Sheet open={open} onOpenChange={onOpenChange} variant="side" side="right" className="min-[820px]:w-[min(56rem,92vw)]">
       <form
-        className="flex h-full flex-col"
+        className="flex h-full min-h-0 flex-col"
         onSubmit={enviar}
         onKeyDown={(evento) => {
           if ((evento.metaKey || evento.ctrlKey) && evento.key === "Enter") enviar();
         }}
       >
-        <header className="border-b border-[var(--border-soft)] px-6 py-5 min-[780px]:px-8">
+        <header className="shrink-0 border-b border-[var(--border-soft)] px-6 py-5 min-[820px]:px-8">
           <div className="flex items-start gap-3">
             <div className="min-w-0 flex-1">
               <h2 className="text-[17px] font-semibold tracking-tight text-foreground">{title}</h2>
@@ -70,7 +70,7 @@ export function AltaShell({
           </div>
         </header>
         {borrador?.activo ? (
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 bg-[var(--amber-bg)] px-6 py-2.5 min-[780px]:px-8">
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-amber-200 bg-[var(--amber-bg)] px-6 py-2.5 min-[820px]:px-8">
             <p className="text-[12.5px] text-[var(--amber-ink)]">
               Borrador en este dispositivo{horaAltaBorrador(borrador.guardadoEn) ? ` · ${horaAltaBorrador(borrador.guardadoEn)}` : ""}. Cerrar no lo borra.
             </p>
@@ -86,12 +86,12 @@ export function AltaShell({
             </button>
           </div>
         ) : null}
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 min-[780px]:px-8 min-[780px]:py-7">
-          <div className="flex flex-col gap-8 min-[780px]:grid min-[780px]:grid-cols-2 min-[780px]:items-start min-[780px]:gap-x-10 min-[780px]:gap-y-8">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-6 min-[820px]:px-8 min-[820px]:py-7">
+          <div className="flex flex-col gap-8 min-[820px]:grid min-[820px]:grid-cols-2 min-[820px]:items-start min-[820px]:gap-x-10 min-[820px]:gap-y-8">
             {children}
           </div>
         </div>
-        <footer className="border-t border-[var(--border-soft)] px-6 py-4 min-[780px]:px-8">
+        <footer className="shrink-0 border-t border-[var(--border-soft)] px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] min-[820px]:px-8">
           <div className="flex gap-2.5">
             <button
               type="submit"
@@ -127,7 +127,7 @@ export function AltaSection({
   wide?: boolean;
 }) {
   return (
-    <section className={cn("min-w-0", wide && "min-[780px]:col-span-2")}>
+    <section className={cn("min-w-0", wide && "min-[820px]:col-span-2")}>
       <div className="mb-3.5">
         <h3 className="text-[14px] font-semibold text-foreground">{title}</h3>
         {hint ? <p className="mt-1 text-[12.5px] leading-5 text-[var(--text-2)]">{hint}</p> : null}
@@ -238,7 +238,7 @@ export function AltaPersona({
       </div>
 
       {modoNuevo ? (
-        <div className="mt-4 grid grid-cols-1 gap-4 min-[780px]:grid-cols-2">
+        <div className="mt-4 grid grid-cols-1 gap-4 min-[820px]:grid-cols-2">
           <AltaField label="Nombre">
             <input autoFocus={autoFocus} value={nombreNuevo} onChange={(e) => setNombreNuevo(e.target.value)} placeholder="María López" className={altaControl} />
           </AltaField>

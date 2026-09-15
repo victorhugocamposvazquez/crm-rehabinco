@@ -247,7 +247,7 @@ export function TareaPanel({
 
   return (
     <Sheet open onOpenChange={(open) => !open && onClose()} variant="side" side="right">
-      <div className="flex h-full flex-col">
+      <div className="flex h-full min-h-0 flex-col">
         <div className="flex items-center gap-2.5 border-b border-[var(--border-soft)] px-4 py-3.5">
           <span className="flex-1 text-[11px] uppercase tracking-[.08em] text-[var(--label)]">Tarea</span>
           <button
@@ -541,13 +541,13 @@ export function TareaPanel({
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 border-t border-[var(--border-soft)] px-4 py-3">
+        <div className="flex shrink-0 flex-wrap gap-2 border-t border-[var(--border-soft)] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           {COLUMNAS_TAREA.filter((c) => c.id !== col).map((item) => (
             <button
               key={item.id}
               type="button"
               onClick={() => onMover(tarea.id, item.id)}
-              className="inline-flex h-[34px] items-center gap-1.5 rounded-lg border border-[var(--input)] bg-white px-3 text-[12.5px] font-medium hover:border-accent hover:text-accent"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-[var(--input)] bg-white px-3 text-[12.5px] font-medium hover:border-accent hover:text-accent"
             >
               <span className="h-[7px] w-[7px] rounded-full" style={{ background: item.dot }} />
               Mover a {item.label}

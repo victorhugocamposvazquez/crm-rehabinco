@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { Fab } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
 import { ESTADOS_DEMANDA, TIPO_OPERACION_DEMANDA_LABEL, type TipoOperacionDemanda } from "@/lib/demandas/matching";
 import { relacionUno } from "@/lib/citas/citas";
@@ -109,7 +110,8 @@ export default function DemandasPage() {
       <PageHeader
         breadcrumb={[{ label: "Demandas" }]}
         title="Demandas"
-        description="Lo que busca cada cliente. El matching se confirma a mano."
+        description="Lo que busca cada cliente. Al crear, proponemos stock publicado; tú confirmas."
+        hideActionsOnMobile
         actions={
           <Button type="button" size="sm" onClick={() => { setClienteInicial(undefined); setNuevaOpen(true); }}>
             {hayBorrador ? "Continuar borrador" : "Nueva demanda"}
@@ -182,6 +184,13 @@ export default function DemandasPage() {
           </li>
         ) : null}
       </ul>
+      <Fab
+        onClick={() => {
+          setClienteInicial(undefined);
+          setNuevaOpen(true);
+        }}
+        label={hayBorrador ? "Continuar borrador" : "Nueva demanda"}
+      />
       <NuevaDemandaPanel
         open={nuevaOpen}
         onOpenChange={(open) => {

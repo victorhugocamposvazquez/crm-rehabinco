@@ -157,7 +157,7 @@ export default function PropiedadesPage() {
                 Buscar en Catastro
               </Link>
             </Button>
-            <Button type="button" size="sm" onClick={() => { setOfertanteInicial(undefined); setNuevaOpen(true); }} className="gap-2">
+            <Button type="button" size="sm" onClick={() => { setOfertanteInicial(undefined); setNuevaOpen(true); }} className="hidden gap-2 min-[820px]:inline-flex">
               <Plus className="h-4 w-4" strokeWidth={1.5} />
               {hayBorrador ? "Continuar borrador" : "Nuevo inmueble"}
             </Button>
@@ -351,7 +351,7 @@ export default function PropiedadesPage() {
         }}
         variant="side"
         side="right"
-        className="min-[780px]:w-[min(56rem,92vw)]"
+        className="min-[820px]:w-[min(56rem,92vw)]"
       >
         <PanelInmueble
           inmueble={selected}

@@ -27,7 +27,7 @@ type CitaHoy = {
   estado: string;
   profiles?: { color?: string | null; nombre_completo?: string | null } | null;
 };
-type ParteHoy = { id: string; visitante_nombre: string | null; estado: string; fecha_visita: string | null };
+type ParteHoy = { id: string; visitante_nombre: string | null; estado: string; fecha_visita: string | null; inmueble_direccion?: string | null };
 type MesFacturado = { mes: string; total: number };
 
 export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFacturado[] }) {
@@ -66,10 +66,17 @@ export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFactu
       .lt("empieza", `${hoy}T23:59:59`);
     if (!admin) citasQ = citasQ.eq("comercial_id", user.id);
 
+    let partesQ = supabase
+      .from("partes_visita")
+      .select("id, visitante_nombre, estado, fecha_visita, inmueble_direccion")
+      .eq("estado", "pendiente_firma")
+      .limit(10);
+    if (!admin) partesQ = partesQ.eq("comercial_id", user.id);
+
     void Promise.all([
       tareasQ,
       citasQ,
-      supabase.from("partes_visita").select("id, visitante_nombre, estado, fecha_visita").eq("estado", "pendiente_firma").limit(10),
+      partesQ,
       supabase.from("demandas").select("id", { count: "exact", head: true }).eq("estado", "activa"),
     ]).then(([t, c, p, d]) => {
       setTareas((t.data ?? []) as TareaHoy[]);
@@ -201,8 +208,10 @@ export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFactu
                       type="button"
                       aria-label="Hecha"
                       onClick={() => void marcarTarea(tarea.id)}
-                      className="mt-0.5 h-[17px] w-[17px] shrink-0 rounded-[5px] border-[1.5px] border-[#CFCBC2] bg-white"
-                    />
+                      className="grid h-11 w-11 shrink-0 place-items-center rounded-[8px]"
+                    >
+                      <span className="h-[17px] w-[17px] rounded-[5px] border-[1.5px] border-[#CFCBC2] bg-white" />
+                    </button>
                     <div className="min-w-0 flex-1">
                       <p className="text-[13.5px] font-medium leading-snug">{tarea.titulo}</p>
                       <span
@@ -221,6 +230,49 @@ export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFactu
               {tareasUrgentes.length === 0 ? (
                 <li className="m-3 rounded-[10px] border border-dashed border-[var(--input)] px-3 py-5 text-center text-[12.5px] text-[var(--text-2)]">
                   Nada vencido ni para hoy.
+                </li>
+              ) : null}
+            </ul>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-0">
+            <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-4 py-3">
+              <h2 className="text-[15px] font-semibold">Partes sin firmar</h2>
+              <Link href="/partes-visita" className="text-[12.5px] font-medium text-accent">
+                Visitas
+              </Link>
+            </div>
+            <ul>
+              {partes.map((parte) => (
+                <li key={parte.id}>
+                  <Link
+                    href={`/partes-visita/${parte.id}`}
+                    className="flex items-center justify-between gap-3 border-b border-[var(--border-row)] px-4 py-2.5 last:border-0 hover:bg-[var(--surface-soft)]"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-[13.5px] font-medium">
+                        {parte.visitante_nombre || "Visitante"}
+                      </span>
+                      <span className="block truncate text-[12px] text-[var(--text-2)]">
+                        {parte.inmueble_direccion || "Parte pendiente de firma"}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-[12px] text-[var(--text-2)]">
+                      {parte.fecha_visita
+                        ? new Date(`${parte.fecha_visita}T12:00:00`).toLocaleDateString("es-ES", {
+                            day: "numeric",
+                            month: "short",
+                          })
+                        : "Sin fecha"}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+              {partes.length === 0 ? (
+                <li className="m-3 rounded-[10px] border border-dashed border-[var(--input)] px-3 py-5 text-center text-[12.5px] text-[var(--text-2)]">
+                  No hay partes pendientes de firma.
                 </li>
               ) : null}
             </ul>

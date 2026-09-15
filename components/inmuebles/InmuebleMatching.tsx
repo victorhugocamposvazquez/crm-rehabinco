@@ -53,6 +53,10 @@ export function InmuebleMatching({ inmueble }: { inmueble: Inmueble }) {
   }, [inmueble.id]);
 
   const buscar = async () => {
+    if (!inmueble.publicado) {
+      toast.error("Marca el inmueble como publicado para el matching.");
+      return;
+    }
     setBuscando(true);
     const supabase = createClient();
     const { data } = await supabase
@@ -86,6 +90,7 @@ export function InmuebleMatching({ inmueble }: { inmueble: Inmueble }) {
         habitaciones: inmueble.habitaciones,
         banos: inmueble.banos,
         estado: inmueble.estado,
+        publicado: inmueble.publicado,
       },
       criterios
     );
@@ -121,8 +126,10 @@ export function InmuebleMatching({ inmueble }: { inmueble: Inmueble }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm text-neutral-500">Quién busca un inmueble como este.</p>
-        <Button type="button" size="sm" variant="secondary" disabled={buscando} onClick={() => void buscar()}>
+        <p className="text-sm text-neutral-500">
+          {inmueble.publicado ? "Quién busca un inmueble como este." : "Marca «listo para matching» para proponer demandas."}
+        </p>
+        <Button type="button" size="sm" variant="secondary" disabled={buscando || !inmueble.publicado} onClick={() => void buscar()}>
           {buscando ? "Buscando…" : "Buscar demandas"}
         </Button>
       </div>
