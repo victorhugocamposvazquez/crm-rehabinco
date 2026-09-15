@@ -66,7 +66,7 @@ export default function CalendarioPage() {
   const [propiedadId, setPropiedadId] = useState(searchParams.get("propiedad") ?? "");
   const [clienteId, setClienteId] = useState(searchParams.get("cliente") ?? "");
   const [propiedades, setPropiedades] = useState<Array<{ id: string; titulo: string | null; direccion: string | null; referencia: string | null }>>([]);
-  const [clientes, setClientes] = useState<Array<{ id: string; nombre: string }>>([]);
+  const [clientes, setClientes] = useState<Array<{ id: string; nombre: string; telefono: string | null }>>([]);
   const [comerciales, setComerciales] = useState<ComercialFiltro[]>([]);
   const { comercialId: filtroComercial, setComercialId: setFiltroComercial } = useFiltroComercial();
   const semana = useMemo(() => semanaDesde(dia), [dia]);
@@ -117,7 +117,7 @@ export default function CalendarioPage() {
       .then(({ data }) => setPropiedades(data ?? []));
     void supabase
       .from("clientes")
-      .select("id, nombre")
+      .select("id, nombre, telefono")
       .eq("activo", true)
       .order("nombre")
       .then(({ data }) => setClientes(data ?? []));
@@ -431,6 +431,7 @@ export default function CalendarioPage() {
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         dia={dia}
+        onDia={setDia}
         hora={hora}
         onHora={setHora}
         propiedades={propiedades}
