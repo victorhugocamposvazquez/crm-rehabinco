@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { ToggleChip } from "@/components/ui/toggle-chip";
-import { AltaExtra, AltaField, AltaSection, AltaShell, altaControl } from "@/components/ui/alta-form";
+import { AltaField, AltaSection, AltaShell, altaControl } from "@/components/ui/alta-form";
 import { BuscadorLocalidad } from "@/components/geo/BuscadorLocalidad";
 import { altaCamposVacios, leerAltaBorrador } from "@/lib/ui/alta-borrador";
 import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
@@ -250,11 +250,11 @@ export function NuevoClientePanel({
         </div>
       </AltaSection>
 
-      <AltaExtra label="Notas internas">
+      <AltaSection title="Notas internas" hint="Quedan en el CRM. No salen al portal ni al parte." wide>
         <AltaField label="Notas" optional>
           <textarea value={notas} onChange={(e) => setNotas(e.target.value)} rows={3} className={`${altaControl} h-auto min-h-[5.5rem] resize-none py-2.5`} />
         </AltaField>
-      </AltaExtra>
+      </AltaSection>
     </AltaShell>
   );
 }

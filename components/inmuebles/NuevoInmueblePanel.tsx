@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { ToggleChip } from "@/components/ui/toggle-chip";
-import { AltaExtra, AltaField, AltaPersona, AltaSection, AltaShell, altaControl, type PersonaOpcion } from "@/components/ui/alta-form";
+import { AltaField, AltaPersona, AltaSection, AltaShell, altaControl, type PersonaOpcion } from "@/components/ui/alta-form";
 import {
   ESTADOS_INMUEBLE,
   ESTADO_INMUEBLE_LABEL,
@@ -404,11 +404,11 @@ export function NuevoInmueblePanel({
         </div>
       </AltaSection>
 
-      <AltaExtra label="Notas internas">
+      <AltaSection title="Notas internas" hint="Quedan en el CRM. No salen al portal ni a la ficha pública." wide>
         <AltaField label="Notas" optional>
           <textarea value={values.notas} onChange={(e) => set({ notas: e.target.value })} rows={3} className={`${altaControl} h-auto min-h-[5.5rem] resize-none py-2.5`} />
         </AltaField>
-      </AltaExtra>
+      </AltaSection>
     </AltaShell>
   );
 }

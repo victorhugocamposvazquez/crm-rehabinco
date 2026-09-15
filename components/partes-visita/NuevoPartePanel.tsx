@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
 import { ToggleChip } from "@/components/ui/toggle-chip";
-import { AltaExtra, AltaField, AltaSection, AltaShell, altaControl } from "@/components/ui/alta-form";
+import { AltaField, AltaSection, AltaShell, altaControl } from "@/components/ui/alta-form";
 import { VisitContextoCatastro } from "@/components/partes-visita/VisitContextoCatastro";
 import {
   contextoCatastralDesdeProperty,
@@ -394,11 +394,11 @@ export function NuevoPartePanel({
         </div>
       </AltaSection>
 
-      <AltaExtra label="Observaciones" open={Boolean(observaciones)}>
+      <AltaSection title="Observaciones" hint="Lo que pasó en la visita, para el comercial y el parte." wide>
         <AltaField label="Notas de la visita" optional>
           <textarea value={observaciones} onChange={(e) => setObservaciones(e.target.value)} rows={3} className={`${altaControl} h-auto min-h-[5.5rem] resize-none py-2.5`} />
         </AltaField>
-      </AltaExtra>
+      </AltaSection>
     </AltaShell>
   );
 }

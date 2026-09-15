@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { type FormEvent, type ReactNode } from "react";
 import { Sheet } from "@/components/ui/sheet";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { horaAltaBorrador } from "@/lib/ui/alta-borrador";
@@ -154,30 +154,6 @@ export function AltaField({
       </span>
       {children}
     </label>
-  );
-}
-
-export function AltaExtra({
-  label = "Más datos",
-  open: forzar,
-  children,
-}: {
-  label?: string;
-  open?: boolean;
-  children: ReactNode;
-}) {
-  const [visible, setVisible] = useState(Boolean(forzar));
-  useEffect(() => {
-    setVisible(Boolean(forzar));
-  }, [forzar]);
-
-  return (
-    <div className="min-[780px]:col-span-2">
-      <button type="button" onClick={() => setVisible((v) => !v)} className="text-[13px] font-semibold text-accent">
-        {visible ? "Ocultar datos extra" : label}
-      </button>
-      {visible ? <div className="mt-4 flex flex-col gap-4">{children}</div> : null}
-    </div>
   );
 }
 

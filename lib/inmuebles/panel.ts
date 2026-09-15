@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/client";
 import { relacionUno } from "@/lib/citas/citas";
 
 export const SELECT_INMUEBLE_PANEL =
-  "id, titulo, direccion, localidad, tipo_operacion, precio_venta, precio_alquiler, estado, referencia, tipo_inmueble, origen, superficie_m2, anio_construccion, referencia_catastral, descripcion, publicado, ofertante_id, comercial_id, habitaciones, banos, planta, video_url, tour_url, clientes:ofertante_id(nombre), profiles:comercial_id(nombre_completo, color), inmueble_media(url, portada, tipo), catastro_property_links(finca_reference)";
+  "id, titulo, direccion, localidad, tipo_operacion, precio_venta, precio_alquiler, estado, referencia, tipo_inmueble, origen, superficie_m2, anio_construccion, referencia_catastral, descripcion, notas, publicado, ofertante_id, comercial_id, habitaciones, banos, planta, video_url, tour_url, clientes:ofertante_id(nombre), profiles:comercial_id(nombre_completo, color), inmueble_media(url, portada, tipo), catastro_property_links(finca_reference)";
 
 export type InmueblePanel = {
   id: string;
@@ -27,6 +27,7 @@ export type InmueblePanel = {
   anio_construccion: number | null;
   referencia_catastral: string | null;
   descripcion: string | null;
+  notas: string | null;
   publicado: boolean;
   ofertante_id: string | null;
   comercialNombre: string | null;
@@ -53,6 +54,7 @@ export type InmueblePanelRow = {
   anio_construccion: number | null;
   referencia_catastral: string | null;
   descripcion: string | null;
+  notas?: string | null;
   publicado: boolean;
   ofertante_id: string | null;
   habitaciones?: number | null;
@@ -101,6 +103,7 @@ export function mapInmueblePanel(r: InmueblePanelRow, dhPorFinca?: Map<string, s
     anio_construccion: r.anio_construccion,
     referencia_catastral: r.referencia_catastral,
     descripcion: r.descripcion,
+    notas: r.notas ?? null,
     publicado: r.publicado,
     ofertante_id: r.ofertante_id,
     comercialNombre: com?.nombre_completo ?? null,

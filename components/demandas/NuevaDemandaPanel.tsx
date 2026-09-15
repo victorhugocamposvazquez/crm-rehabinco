@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { isAdmin } from "@/lib/auth/roles";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { ToggleChip } from "@/components/ui/toggle-chip";
-import { AltaExtra, AltaField, AltaPersona, AltaSection, AltaShell, altaControl, type PersonaOpcion } from "@/components/ui/alta-form";
+import { AltaField, AltaPersona, AltaSection, AltaShell, altaControl, type PersonaOpcion } from "@/components/ui/alta-form";
 import { nombreYApellido } from "@/lib/ui/tokens";
 import { cn } from "@/lib/utils";
 import { TIPOS_INMUEBLE, TIPO_INMUEBLE_LABEL } from "@/lib/inmuebles/catalogo";
@@ -384,24 +384,23 @@ export function NuevaDemandaPanel({
         </div>
       </AltaSection>
 
-      <AltaExtra label="Imprescindible, origen y comercial">
-        <AltaSection title="Imprescindible">
-          <div className="flex flex-wrap gap-2">
-            {REQUISITOS_RAPIDOS.map((item) => (
-              <ToggleChip key={item} on={draft.requisitosRapidos.includes(item)} onClick={() => toggleLista("requisitosRapidos", item)}>
-                {item}
-              </ToggleChip>
-            ))}
-          </div>
-          <textarea
-            value={draft.requisitos}
-            onChange={(e) => set("requisitos", e.target.value)}
-            placeholder="Orientación, reforma, colegios, planta baja…"
-            rows={3}
-            className={`${altaControl} mt-4 h-auto min-h-[5.5rem] resize-none py-2.5`}
-          />
-        </AltaSection>
-        <AltaSection title="Origen">
+      <AltaSection title="Imprescindible" hint="Ascensor, reforma, planta… lo que no puede faltar.">
+        <div className="flex flex-wrap gap-2">
+          {REQUISITOS_RAPIDOS.map((item) => (
+            <ToggleChip key={item} on={draft.requisitosRapidos.includes(item)} onClick={() => toggleLista("requisitosRapidos", item)}>
+              {item}
+            </ToggleChip>
+          ))}
+        </div>
+        <textarea
+          value={draft.requisitos}
+          onChange={(e) => set("requisitos", e.target.value)}
+          placeholder="Orientación, reforma, colegios, planta baja…"
+          rows={3}
+          className={`${altaControl} mt-4 h-auto min-h-[5.5rem] resize-none py-2.5`}
+        />
+      </AltaSection>
+      <AltaSection title="Origen">
           <div className="flex flex-wrap gap-2">
             {ORIGENES_DEMANDA.map((item) => (
               <ToggleChip key={item.id} on={draft.origen === item.id} onClick={() => set("origen", item.id)}>
@@ -430,7 +429,6 @@ export function NuevaDemandaPanel({
             </div>
           </AltaSection>
         ) : null}
-      </AltaExtra>
     </AltaShell>
   );
 }

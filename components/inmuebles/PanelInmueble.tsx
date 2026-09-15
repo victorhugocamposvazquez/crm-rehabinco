@@ -316,6 +316,10 @@ export function PanelInmueble({
         {inmueble.descripcion ? (
           <p className="border-b border-[var(--border-soft)] px-4 py-3 text-[13px] leading-relaxed text-[var(--text-2)]">{inmueble.descripcion}</p>
         ) : null}
+        <div className="border-b border-[var(--border-soft)] px-4 py-3.5">
+          <h3 className="text-[13.5px] font-semibold">Notas internas</h3>
+          <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--text-2)]">{inmueble.notas?.trim() || "Sin notas internas."}</p>
+        </div>
         {user?.id ? (
           <div className="border-b border-[var(--border-soft)] px-4 py-3.5">
             <h3 className="mb-3 text-[13.5px] font-semibold">Fotos, planos y visita virtual</h3>
