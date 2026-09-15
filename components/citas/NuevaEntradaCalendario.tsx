@@ -5,8 +5,14 @@ import { ToggleChip } from "@/components/ui/toggle-chip";
 import { AltaField, AltaPersona, AltaSection, AltaShell, altaControl, type PersonaOpcion } from "@/components/ui/alta-form";
 import { NuevoClientePanel } from "@/components/clientes/NuevoClientePanel";
 import { EnlaceMaps, InmueblePreviewCita } from "@/components/citas/InmueblePreviewCita";
+import { createClient } from "@/lib/supabase/client";
 import {
+  coincideInmueble,
   direccionDeInmueble,
+  etiquetaInmueble,
+  mapInmuebleCalendario,
+  orFiltroInmueble,
+  SELECT_INMUEBLE_CALENDARIO,
   TIPOS_ALTA_CALENDARIO,
   TIPO_CITA_LABEL,
   type InmuebleCalendario,
@@ -62,10 +68,13 @@ export function NuevaEntradaCalendario({
   const [agenda, setAgenda] = useState<PersonaOpcion[]>(clientes);
   const [altaClienteOpen, setAltaClienteOpen] = useState(false);
   const [altaClienteNombre, setAltaClienteNombre] = useState("");
+  const [qInmueble, setQInmueble] = useState("");
+  const [catalogo, setCatalogo] = useState<InmuebleCalendario[]>(propiedades);
 
   useEffect(() => {
     if (!open) return;
     setQCliente("");
+    setQInmueble("");
     if (edicion) {
       setTitulo(edicion.titulo);
       setTipo(TIPOS_ALTA_CALENDARIO.includes(edicion.tipo as TipoAltaCalendario) ? (edicion.tipo as TipoAltaCalendario) : "evento");
@@ -85,13 +94,64 @@ export function NuevaEntradaCalendario({
     });
   }, [clientes]);
 
+  useEffect(() => {
+    setCatalogo((prev) => {
+      const byId = new Map(propiedades.map((p) => [p.id, p] as const));
+      for (const p of prev) {
+        if (!byId.has(p.id)) byId.set(p.id, p);
+      }
+      return [...byId.values()];
+    });
+  }, [propiedades]);
+
+  useEffect(() => {
+    const filtro = orFiltroInmueble(qInmueble);
+    if (!open || !filtro) return;
+    const t = window.setTimeout(() => {
+      const supabase = createClient();
+      void supabase
+        .from("propiedades")
+        .select(SELECT_INMUEBLE_CALENDARIO)
+        .or(filtro)
+        .order("updated_at", { ascending: false })
+        .limit(25)
+        .then(({ data }) => {
+          if (!data?.length) return;
+          setCatalogo((prev) => {
+            const byId = new Map(prev.map((p) => [p.id, p] as const));
+            for (const row of data) byId.set(row.id, mapInmuebleCalendario(row));
+            return [...byId.values()];
+          });
+        });
+    }, 200);
+    return () => window.clearTimeout(t);
+  }, [open, qInmueble]);
+
+  useEffect(() => {
+    if (!open || !propiedadId) return;
+    const supabase = createClient();
+    void supabase
+      .from("propiedades")
+      .select(`${SELECT_INMUEBLE_CALENDARIO}, inmueble_media(url, portada, tipo)`)
+      .eq("id", propiedadId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return;
+        const mapped = mapInmuebleCalendario(data);
+        setCatalogo((prev) => {
+          const rest = prev.filter((p) => p.id !== mapped.id);
+          return [mapped, ...rest];
+        });
+      });
+  }, [open, propiedadId]);
+
   const etiquetaDia = new Date(`${dia}T12:00:00`).toLocaleDateString("es-ES", {
     weekday: "long",
     day: "numeric",
     month: "long",
   });
   const clienteSel = agenda.find((c) => c.id === clienteId);
-  const inmuebleSel = propiedades.find((p) => p.id === propiedadId);
+  const inmuebleSel = catalogo.find((p) => p.id === propiedadId);
   const tipos = edicion?.tipo === "tarea" ? (["tarea"] as const) : TIPOS_ALTA_CALENDARIO.filter((item) => item !== "tarea" || !edicion);
   const mapsConsulta = lugar.trim() || (inmuebleSel ? direccionDeInmueble(inmuebleSel) : "");
   const sugeridos = useMemo(() => {
@@ -99,6 +159,20 @@ export function NuevaEntradaCalendario({
     if (!q) return [];
     return agenda.filter((c) => `${c.nombre} ${c.telefono ?? ""}`.toLowerCase().includes(q)).slice(0, 6);
   }, [agenda, qCliente]);
+  const sugeridosInmueble = useMemo(() => {
+    const q = qInmueble.trim();
+    const lista = q ? catalogo.filter((p) => coincideInmueble(p, q)) : catalogo;
+    return lista.slice(0, 8);
+  }, [catalogo, qInmueble]);
+
+  const elegirInmueble = (id: string) => {
+    const prev = inmuebleSel ? direccionDeInmueble(inmuebleSel) : "";
+    const next = catalogo.find((p) => p.id === id);
+    onPropiedad(id);
+    const siguiente = next ? direccionDeInmueble(next) : "";
+    if (!lugar.trim() || lugar.trim() === prev) onLugar(siguiente);
+    setQInmueble("");
+  };
 
   return (
     <>
@@ -168,29 +242,61 @@ export function NuevaEntradaCalendario({
           />
         </AltaSection>
 
-        <AltaSection wide title="Inmueble y visita" hint="Si el inmueble ya está en el CRM, verás una ficha corta y el enlace a Maps.">
-          <AltaField label="Inmueble" optional>
-            <select
-              value={propiedadId}
-              onChange={(e) => {
-                const id = e.target.value;
-                const prev = inmuebleSel ? direccionDeInmueble(inmuebleSel) : "";
-                const next = propiedades.find((p) => p.id === id);
-                onPropiedad(id);
-                const siguiente = next ? direccionDeInmueble(next) : "";
-                if (!lugar.trim() || lugar.trim() === prev) onLugar(siguiente);
-              }}
-              className={altaControl}
-            >
-              <option value="">Sin inmueble</option>
-              {propiedades.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {[p.referencia, p.titulo || p.direccion].filter(Boolean).join(" · ")}
-                </option>
-              ))}
-            </select>
-          </AltaField>
-          {inmuebleSel ? <InmueblePreviewCita inmueble={inmuebleSel} /> : null}
+        <AltaSection wide title="Inmueble y visita" hint="Busca un inmueble ya creado por referencia, calle o localidad. Al elegirlo verás la ficha y el enlace a Maps.">
+          {inmuebleSel ? (
+            <div>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[12.5px] font-semibold text-[var(--text-2)]">Inmueble asociado</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    elegirInmueble("");
+                    onLugar("");
+                  }}
+                  className="text-[13px] font-semibold text-accent"
+                >
+                  Cambiar
+                </button>
+              </div>
+              <InmueblePreviewCita inmueble={inmuebleSel} />
+            </div>
+          ) : (
+            <div>
+              <AltaField label="Inmueble" optional>
+                <input
+                  value={qInmueble}
+                  onChange={(e) => setQInmueble(e.target.value)}
+                  placeholder="Referencia, calle o localidad"
+                  className={altaControl}
+                />
+              </AltaField>
+              <div className="mt-2 overflow-hidden rounded-[12px] border border-[var(--border)]">
+                {sugeridosInmueble.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => elegirInmueble(p.id)}
+                    className="flex w-full items-start justify-between gap-3 border-b border-[var(--border-soft)] px-4 py-3 text-left last:border-0 hover:bg-[var(--surface-soft)]"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-[14px] font-medium">{etiquetaInmueble(p)}</span>
+                      {direccionDeInmueble(p) ? (
+                        <span className="mt-0.5 block truncate text-[12px] text-[var(--text-2)]">{direccionDeInmueble(p)}</span>
+                      ) : null}
+                    </span>
+                    <span className="shrink-0 text-[12px] text-[var(--text-3)]">{p.referencia || ""}</span>
+                  </button>
+                ))}
+                {sugeridosInmueble.length === 0 ? (
+                  <div className="px-4 py-3 text-[13px] text-[var(--text-2)]">
+                    {qInmueble.trim().length >= 2
+                      ? "No hay inmuebles con esa búsqueda."
+                      : "Escribe para buscar en el stock ya creado."}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          )}
           <div className="mt-4">
             <AltaField label="Dirección de la visita" optional>
               <input

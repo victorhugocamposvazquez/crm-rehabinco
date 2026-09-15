@@ -17,13 +17,14 @@ import {
   ESTADO_CITA_LABEL,
   horaCita,
   horaDesdeMinutos,
+  mapInmuebleCalendario,
   minutosDesdeHora,
   minutosDesdeOffsetY,
   minutosLocalesDeCita,
   moverCitaADiaHora,
   moverSemana,
-  portadaDeMedia,
   relacionUno,
+  SELECT_INMUEBLE_CALENDARIO,
   semanaDesde,
   TIPO_CITA_LABEL,
   type EstadoCita,
@@ -40,9 +41,6 @@ import { FichaLink } from "@/components/crm/FichaPeek";
 import { CalendarioMovil } from "@/components/citas/CalendarioMovil";
 import { NuevaEntradaCalendario } from "@/components/citas/NuevaEntradaCalendario";
 
-const SELECT_INMUEBLE =
-  "id, titulo, direccion, localidad, referencia, tipo_operacion, precio_venta, precio_alquiler, habitaciones, superficie_m2, lat, lng, inmueble_media(url, portada, tipo)";
-
 type CitaRow = {
   id: string;
   comercial_id: string;
@@ -58,24 +56,6 @@ type CitaRow = {
   profiles?: { nombre_completo?: string | null; color?: string | null } | null;
   propiedades?: { titulo?: string | null; direccion?: string | null; localidad?: string | null; referencia?: string | null } | null;
 };
-
-function mapInmueble(row: InmuebleCalendario & { inmueble_media?: Array<{ url: string; portada?: boolean | null; tipo?: string | null }> | null }): InmuebleCalendario {
-  return {
-    id: row.id,
-    titulo: row.titulo,
-    direccion: row.direccion,
-    localidad: row.localidad ?? null,
-    referencia: row.referencia,
-    tipo_operacion: row.tipo_operacion,
-    precio_venta: row.precio_venta,
-    precio_alquiler: row.precio_alquiler,
-    habitaciones: row.habitaciones,
-    superficie_m2: row.superficie_m2,
-    lat: row.lat,
-    lng: row.lng,
-    portadaUrl: portadaDeMedia(row.inmueble_media),
-  };
-}
 
 export default function CalendarioPage() {
   const { user } = useAuth();
@@ -136,10 +116,16 @@ export default function CalendarioPage() {
     const supabase = createClient();
     void supabase
       .from("propiedades")
-      .select(SELECT_INMUEBLE)
+      .select(SELECT_INMUEBLE_CALENDARIO)
       .order("created_at", { ascending: false })
-      .limit(80)
-      .then(({ data }) => setPropiedades((data ?? []).map((row) => mapInmueble(row as Parameters<typeof mapInmueble>[0]))));
+      .limit(200)
+      .then(({ data, error }) => {
+        if (error) {
+          toast.error("No se han podido cargar los inmuebles.");
+          return;
+        }
+        setPropiedades((data ?? []).map((row) => mapInmuebleCalendario(row)));
+      });
     void supabase
       .from("clientes")
       .select("id, nombre, telefono")
@@ -172,12 +158,12 @@ export default function CalendarioPage() {
     const supabase = createClient();
     void supabase
       .from("propiedades")
-      .select(SELECT_INMUEBLE)
+      .select(SELECT_INMUEBLE_CALENDARIO)
       .eq("id", id)
       .maybeSingle()
       .then(({ data }) => {
         if (!data) return;
-        setPropiedades((prev) => (prev.some((p) => p.id === data.id) ? prev : [mapInmueble(data as Parameters<typeof mapInmueble>[0]), ...prev]));
+        setPropiedades((prev) => (prev.some((p) => p.id === data.id) ? prev : [mapInmuebleCalendario(data), ...prev]));
       });
   };
 

@@ -225,6 +225,53 @@ export function portadaDeMedia(
   return fotos.find((item) => item.portada)?.url ?? fotos[0]?.url ?? null;
 }
 
+export const SELECT_INMUEBLE_CALENDARIO =
+  "id, titulo, direccion, localidad, referencia, tipo_operacion, precio_venta, precio_alquiler, habitaciones, superficie_m2, lat, lng";
+
+export function etiquetaInmueble(p: {
+  referencia?: string | null;
+  titulo?: string | null;
+  direccion?: string | null;
+}): string {
+  return [p.referencia, p.titulo || p.direccion].filter(Boolean).join(" · ") || "Inmueble";
+}
+
+export function coincideInmueble(
+  p: { referencia?: string | null; titulo?: string | null; direccion?: string | null; localidad?: string | null },
+  q: string
+): boolean {
+  const n = q.trim().toLowerCase();
+  if (!n) return true;
+  return [p.referencia, p.titulo, p.direccion, p.localidad].some((v) => (v ?? "").toLowerCase().includes(n));
+}
+
+export function orFiltroInmueble(q: string): string | null {
+  const limpio = q.replace(/[%_,()]/g, " ").trim();
+  if (limpio.length < 2) return null;
+  const like = `%${limpio}%`;
+  return `titulo.ilike.${like},referencia.ilike.${like},direccion.ilike.${like},localidad.ilike.${like}`;
+}
+
+export function mapInmuebleCalendario(
+  row: InmuebleCalendario & { inmueble_media?: Array<{ url: string; portada?: boolean | null; tipo?: string | null }> | null }
+): InmuebleCalendario {
+  return {
+    id: row.id,
+    titulo: row.titulo,
+    direccion: row.direccion,
+    localidad: row.localidad ?? null,
+    referencia: row.referencia,
+    tipo_operacion: row.tipo_operacion,
+    precio_venta: row.precio_venta,
+    precio_alquiler: row.precio_alquiler,
+    habitaciones: row.habitaciones,
+    superficie_m2: row.superficie_m2,
+    lat: row.lat,
+    lng: row.lng,
+    portadaUrl: portadaDeMedia(row.inmueble_media) ?? row.portadaUrl ?? null,
+  };
+}
+
 export function prefillParteDesdeCita(cita: {
   titulo: string;
   empieza: string;

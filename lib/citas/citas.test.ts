@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { citasAgrupadasPorDia, citasDelDia, direccionDeInmueble, enlaceGoogleMaps, horaCita, horaDesdeMinutos, minutosDesdeHora, minutosDesdeOffsetY, moverCitaADiaHora, moverSemana, puedeHacerParte, portadaDeMedia, prefillParteDesdeCita, relacionUno, rutaNuevaCita, rutaNuevaVisitaDesdeCita, semanaDesde, snapMinutos } from "./citas";
+import { citasAgrupadasPorDia, citasDelDia, coincideInmueble, direccionDeInmueble, enlaceGoogleMaps, etiquetaInmueble, horaCita, horaDesdeMinutos, minutosDesdeHora, minutosDesdeOffsetY, moverCitaADiaHora, moverSemana, orFiltroInmueble, puedeHacerParte, portadaDeMedia, prefillParteDesdeCita, relacionUno, rutaNuevaCita, rutaNuevaVisitaDesdeCita, semanaDesde, snapMinutos } from "./citas";
 
 describe("citas", () => {
   it("el parte se abre prellenado desde la cita, no al revés", () => {
@@ -95,5 +95,10 @@ describe("citas", () => {
       ]),
       "a.jpg"
     );
+    assert.equal(etiquetaInmueble({ referencia: "RHB-1", titulo: "Ático", direccion: "Rúa Nova" }), "RHB-1 · Ático");
+    assert.equal(coincideInmueble({ referencia: "RHB-1", titulo: "Ático", direccion: "Rúa Nova", localidad: "Oleiros" }, "oleiros"), true);
+    assert.equal(coincideInmueble({ referencia: "RHB-1", titulo: "Ático", direccion: "Rúa Nova", localidad: "Oleiros" }, "lugo"), false);
+    assert.ok(orFiltroInmueble("Rúa Nova")?.includes("direccion.ilike.%Rúa Nova%"));
+    assert.equal(orFiltroInmueble("a"), null);
   });
 });
