@@ -78,7 +78,7 @@ export function NuevoInmueblePanel({
     () => ({ values, nuevoPropietario, nombreNuevo, telefonoNuevo, fijo: ofertanteFijo }),
     [values, nuevoPropietario, nombreNuevo, telefonoNuevo, ofertanteFijo]
   );
-  const borrador = useAltaBorrador({ tipo: "inmueble", ambito, open, snapshot, estaVacio: inmuebleAltaVacia });
+  const altaBorrador = useAltaBorrador({ tipo: "inmueble", ambito, open, snapshot, estaVacio: inmuebleAltaVacia });
 
   const vaciar = () => {
     setValues({ ...INMUEBLE_FORM_VACIO, ofertante_id: ofertanteIdInicial ?? "" });
@@ -175,7 +175,7 @@ export function NuevoInmueblePanel({
       return;
     }
     toast.success("Inmueble creado.");
-    borrador.consumir();
+    altaBorrador.consumir();
     onOpenChange(false);
     onCreado(data.id);
   };
@@ -191,10 +191,10 @@ export function NuevoInmueblePanel({
       disablePrimary={!values.titulo.trim() && !values.direccion.trim()}
       onSubmit={crear}
       borrador={{
-        activo: borrador.hayBorrador,
-        guardadoEn: borrador.guardadoEn,
+        activo: altaBorrador.hayBorrador,
+        guardadoEn: altaBorrador.guardadoEn,
         onEliminar: () => {
-          borrador.descartar();
+          altaBorrador.descartar();
           vaciar();
           toast.success("Borrador eliminado.");
         },

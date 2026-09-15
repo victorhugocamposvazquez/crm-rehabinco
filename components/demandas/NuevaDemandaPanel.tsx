@@ -109,7 +109,7 @@ export function NuevaDemandaPanel({
     () => ({ draft, nuevoCliente, nombreNuevo, telefonoNuevo, zonaExtra, fijo: clienteFijo }),
     [draft, nuevoCliente, nombreNuevo, telefonoNuevo, zonaExtra, clienteFijo]
   );
-  const borrador = useAltaBorrador({ tipo: "demanda", ambito, open, snapshot, estaVacio: demandaAltaVacia });
+  const altaBorrador = useAltaBorrador({ tipo: "demanda", ambito, open, snapshot, estaVacio: demandaAltaVacia });
 
   const vaciar = () => {
     setDraft({
@@ -213,21 +213,21 @@ export function NuevaDemandaPanel({
       }
       clienteId = data.id;
     }
-    const borrador = { ...draft, clienteId, comercialId: draft.comercialId || user.id };
-    const fallo = validarNuevaDemanda(borrador);
+    const paraCrear = { ...draft, clienteId, comercialId: draft.comercialId || user.id };
+    const fallo = validarNuevaDemanda(paraCrear);
     if (fallo) {
       toast.error(fallo);
       return;
     }
     setSaving(true);
-    const { data, error } = await supabase.from("demandas").insert(payloadNuevaDemanda(borrador)).select("id").single();
+    const { data, error } = await supabase.from("demandas").insert(payloadNuevaDemanda(paraCrear)).select("id").single();
     setSaving(false);
     if (error || !data) {
       toast.error("No se ha podido crear la demanda.");
       return;
     }
     toast.success("Demanda creada.");
-    borrador.consumir();
+    altaBorrador.consumir();
     onOpenChange(false);
     onCreada(data.id);
   };
@@ -245,10 +245,10 @@ export function NuevaDemandaPanel({
       disablePrimary={faltaCliente}
       onSubmit={crear}
       borrador={{
-        activo: borrador.hayBorrador,
-        guardadoEn: borrador.guardadoEn,
+        activo: altaBorrador.hayBorrador,
+        guardadoEn: altaBorrador.guardadoEn,
         onEliminar: () => {
-          borrador.descartar();
+          altaBorrador.descartar();
           vaciar();
           toast.success("Borrador eliminado.");
         },

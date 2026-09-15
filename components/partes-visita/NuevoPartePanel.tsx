@@ -113,7 +113,7 @@ export function NuevoPartePanel({
       desdeProperty,
     ]
   );
-  const borrador = useAltaBorrador({ tipo: "parte", ambito, open, snapshot, estaVacio: parteAltaVacia });
+  const altaBorrador = useAltaBorrador({ tipo: "parte", ambito, open, snapshot, estaVacio: parteAltaVacia });
 
   const vaciar = () => {
     setPropiedadId(propiedadIdInicial ?? "");
@@ -287,7 +287,7 @@ export function NuevoPartePanel({
       return;
     }
     toast.success("Parte de visita creado.");
-    borrador.consumir();
+    altaBorrador.consumir();
     onOpenChange(false);
     onCreado(data.id);
   };
@@ -303,11 +303,11 @@ export function NuevoPartePanel({
       disablePrimary={!inmuebleDireccion.trim() || !agenteNombre.trim()}
       onSubmit={crear}
       borrador={{
-        activo: borrador.hayBorrador,
-        guardadoEn: borrador.guardadoEn,
+        activo: altaBorrador.hayBorrador,
+        guardadoEn: altaBorrador.guardadoEn,
         onEliminar: () => {
           saltarPrefill.current = false;
-          borrador.descartar();
+          altaBorrador.descartar();
           vaciar();
           toast.success("Borrador eliminado.");
         },

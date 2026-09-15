@@ -57,7 +57,7 @@ export function NuevoClientePanel({
     () => ({ tipoCliente, tipoDocumento, nombre, documentoFiscal, email, telefono, direccion, codigoPostal, localidad, notas }),
     [tipoCliente, tipoDocumento, nombre, documentoFiscal, email, telefono, direccion, codigoPostal, localidad, notas]
   );
-  const borrador = useAltaBorrador({ tipo: "cliente", ambito, open, snapshot, estaVacio: clienteAltaVacia });
+  const altaBorrador = useAltaBorrador({ tipo: "cliente", ambito, open, snapshot, estaVacio: clienteAltaVacia });
 
   const vaciar = () => {
     setTipoCliente(padreId ? "empresa" : "particular");
@@ -134,7 +134,7 @@ export function NuevoClientePanel({
       return;
     }
     toast.success(empresaAsociada ? "Empresa asociada creada." : "Cliente creado.");
-    borrador.consumir();
+    altaBorrador.consumir();
     onOpenChange(false);
     onCreado(data.id);
   };
@@ -154,10 +154,10 @@ export function NuevoClientePanel({
       disablePrimary={!nombre.trim()}
       onSubmit={crear}
       borrador={{
-        activo: borrador.hayBorrador,
-        guardadoEn: borrador.guardadoEn,
+        activo: altaBorrador.hayBorrador,
+        guardadoEn: altaBorrador.guardadoEn,
         onEliminar: () => {
-          borrador.descartar();
+          altaBorrador.descartar();
           vaciar();
           toast.success("Borrador eliminado.");
         },
