@@ -180,13 +180,8 @@ export default function PropiedadesPage() {
           </Button>
         </div>
       ) : (
-        <div
-          className={cn(
-            "mt-5",
-            selected && !narrow && "flex items-start gap-4"
-          )}
-        >
-          <section className="min-w-0 w-full flex-1 overflow-hidden rounded-[14px] border border-border bg-white">
+        <div className="mt-5">
+          <section className="min-w-0 w-full overflow-hidden rounded-[14px] border border-border bg-white">
             <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border-soft)] px-3.5 py-3">
               <div className="relative min-w-0 flex-[1_1_180px]">
                 <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-2)]" strokeWidth={2.2} />
@@ -346,40 +341,27 @@ export default function PropiedadesPage() {
               </div>
             )}
           </section>
-          {selected && !narrow ? (
-            <div className="w-[min(42rem,46vw)] shrink-0">
-              <PanelInmueble
-                inmueble={selected}
-                onClose={() => setSelectedId(null)}
-                onCambio={(patch) => {
-                  setPropiedades((prev) => prev.map((p) => (p.id === selected.id ? { ...p, ...patch } : p)));
-                }}
-              />
-            </div>
-          ) : null}
         </div>
       )}
 
       <Sheet
-        open={Boolean(selected) && narrow}
+        open={Boolean(selected)}
         onOpenChange={(open) => {
           if (!open) setSelectedId(null);
         }}
         variant="side"
         side="right"
-        className="min-[780px]:w-[min(42rem,92vw)]"
+        className="min-[780px]:w-[min(56rem,92vw)]"
       >
-        {narrow ? (
-          <PanelInmueble
-            inmueble={selected}
-            embedded
-            onClose={() => setSelectedId(null)}
-            onCambio={(patch) => {
-              if (!selected) return;
-              setPropiedades((prev) => prev.map((p) => (p.id === selected.id ? { ...p, ...patch } : p)));
-            }}
-          />
-        ) : null}
+        <PanelInmueble
+          inmueble={selected}
+          embedded
+          onClose={() => setSelectedId(null)}
+          onCambio={(patch) => {
+            if (!selected) return;
+            setPropiedades((prev) => prev.map((p) => (p.id === selected.id ? { ...p, ...patch } : p)));
+          }}
+        />
       </Sheet>
 
       <Fab onClick={() => { setOfertanteInicial(undefined); setNuevaOpen(true); }} label={hayBorrador ? "Continuar borrador" : "Nuevo inmueble"} />
