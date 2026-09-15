@@ -8,6 +8,7 @@ import { isAdmin } from "@/lib/auth/roles";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { AltaField, AltaPersona, AltaSection, AltaShell, altaControl, type PersonaOpcion } from "@/components/ui/alta-form";
+import { NuevoClientePanel } from "@/components/clientes/NuevoClientePanel";
 import { nombreYApellido } from "@/lib/ui/tokens";
 import { cn } from "@/lib/utils";
 import { TIPOS_INMUEBLE, TIPO_INMUEBLE_LABEL } from "@/lib/inmuebles/catalogo";
@@ -43,9 +44,6 @@ const BORRADOR_VACIO: Omit<BorradorNuevaDemanda, "comercialId"> = {
 
 type DemandaAltaSnap = {
   draft: BorradorNuevaDemanda;
-  nuevoCliente: boolean;
-  nombreNuevo: string;
-  telefonoNuevo: string;
   zonaExtra: string;
   fijo: boolean;
 };
@@ -56,9 +54,6 @@ function demandaAltaVacia(s: DemandaAltaSnap) {
   return (
     altaCamposVacios(
       s.fijo ? "" : d.clienteId,
-      s.nombreNuevo,
-      s.telefonoNuevo,
-      s.nuevoCliente,
       d.zonas,
       d.presupuestoMin,
       d.presupuestoMax,
@@ -98,9 +93,8 @@ export function NuevaDemandaPanel({
   const [clientes, setClientes] = useState<PersonaOpcion[]>([]);
   const [comerciales, setComerciales] = useState<ComercialFiltro[]>([]);
   const [qCliente, setQCliente] = useState("");
-  const [nuevoCliente, setNuevoCliente] = useState(false);
-  const [nombreNuevo, setNombreNuevo] = useState("");
-  const [telefonoNuevo, setTelefonoNuevo] = useState("");
+  const [altaClienteOpen, setAltaClienteOpen] = useState(false);
+  const [altaClienteNombre, setAltaClienteNombre] = useState("");
   const [zonaExtra, setZonaExtra] = useState("");
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState<BorradorNuevaDemanda>({
@@ -109,8 +103,8 @@ export function NuevaDemandaPanel({
   });
 
   const snapshot = useMemo<DemandaAltaSnap>(
-    () => ({ draft, nuevoCliente, nombreNuevo, telefonoNuevo, zonaExtra, fijo: clienteFijo }),
-    [draft, nuevoCliente, nombreNuevo, telefonoNuevo, zonaExtra, clienteFijo]
+    () => ({ draft, zonaExtra, fijo: clienteFijo }),
+    [draft, zonaExtra, clienteFijo]
   );
   const altaBorrador = useAltaBorrador({ tipo: "demanda", ambito, open, snapshot, estaVacio: demandaAltaVacia });
 
@@ -121,9 +115,8 @@ export function NuevaDemandaPanel({
       comercialId: user?.id ?? "",
     });
     setQCliente("");
-    setNuevoCliente(false);
-    setNombreNuevo("");
-    setTelefonoNuevo("");
+    setAltaClienteOpen(false);
+    setAltaClienteNombre("");
     setZonaExtra("");
   };
 
@@ -171,9 +164,8 @@ export function NuevaDemandaPanel({
             requisitosRapidos: [],
             origen: data.origen || "llamada",
           });
-          setNuevoCliente(false);
-          setNombreNuevo("");
-          setTelefonoNuevo("");
+          setAltaClienteOpen(false);
+          setAltaClienteNombre("");
           setZonaExtra("");
           setQCliente("");
         });
@@ -187,9 +179,6 @@ export function NuevaDemandaPanel({
         clienteId: clienteFijo ? clienteIdInicial ?? "" : guardado.data.draft.clienteId,
         comercialId: guardado.data.draft.comercialId || user?.id || "",
       });
-      setNuevoCliente(guardado.data.nuevoCliente);
-      setNombreNuevo(guardado.data.nombreNuevo);
-      setTelefonoNuevo(guardado.data.telefonoNuevo);
       setZonaExtra(guardado.data.zonaExtra);
       setQCliente("");
     } else {
@@ -218,31 +207,12 @@ export function NuevaDemandaPanel({
 
   const crear = async () => {
     if (!user) return;
-    let clienteId = draft.clienteId;
-    const supabase = createClient();
+    const clienteId = draft.clienteId;
     if (!clienteId) {
-      const nombre = nombreNuevo.trim();
-      if (!nombre) {
-        toast.error("Elige o crea un cliente.");
-        return;
-      }
-      const { data, error } = await supabase
-        .from("clientes")
-        .insert({
-          user_id: user.id,
-          nombre,
-          telefono: telefonoNuevo.trim() || null,
-          tipo_cliente: "particular",
-          localidad: draft.zonas[0] ?? null,
-        })
-        .select("id")
-        .single();
-      if (error || !data) {
-        toast.error("No se ha podido crear el cliente.");
-        return;
-      }
-      clienteId = data.id;
+      toast.error("Elige o crea un cliente.");
+      return;
     }
+    const supabase = createClient();
     const paraCrear = { ...draft, clienteId, comercialId: draft.comercialId || user.id };
     const fallo = validarNuevaDemanda(paraCrear);
     if (fallo) {
@@ -281,9 +251,10 @@ export function NuevaDemandaPanel({
     onCreada(data.id);
   };
 
-  const faltaCliente = !draft.clienteId && !(nuevoCliente && nombreNuevo.trim());
+  const faltaCliente = !draft.clienteId;
 
   return (
+    <>
     <AltaShell
       open={open}
       onOpenChange={onOpenChange}
@@ -303,22 +274,20 @@ export function NuevaDemandaPanel({
         },
       }}
     >
-      <AltaSection wide title="Cliente" hint="Primero quién busca. Si no está en la agenda, créalo aquí.">
+      <AltaSection wide title="Cliente" hint="Primero quién busca. Si no está en la agenda, abre la misma ficha completa de Clientes.">
         <AltaPersona
           fijo={clienteFijo}
           fijoNombre={clienteNombre}
-          modoNuevo={nuevoCliente}
-          setModoNuevo={setNuevoCliente}
           seleccionado={clienteSel}
           onSeleccionar={(persona) => set("clienteId", persona.id)}
           onLimpiar={() => set("clienteId", "")}
           q={qCliente}
           setQ={setQCliente}
           sugeridos={sugeridos}
-          nombreNuevo={nombreNuevo}
-          setNombreNuevo={setNombreNuevo}
-          telefonoNuevo={telefonoNuevo}
-          setTelefonoNuevo={setTelefonoNuevo}
+          onAltaNueva={(nombreSugerido) => {
+            setAltaClienteNombre(nombreSugerido ?? "");
+            setAltaClienteOpen(true);
+          }}
           autoFocus={!clienteFijo}
         />
       </AltaSection>
@@ -435,5 +404,23 @@ export function NuevaDemandaPanel({
           </AltaSection>
         ) : null}
     </AltaShell>
+    <NuevoClientePanel
+      open={altaClienteOpen}
+      onOpenChange={setAltaClienteOpen}
+      elevated
+      nombreInicial={altaClienteNombre}
+      ambito="desde-demanda"
+      onCreado={(id, extra) => {
+        setClientes((prev) => {
+          if (prev.some((c) => c.id === id)) return prev;
+          return [...prev, { id, nombre: extra?.nombre ?? "Cliente", telefono: extra?.telefono ?? null }].sort((a, b) =>
+            a.nombre.localeCompare(b.nombre)
+          );
+        });
+        set("clienteId", id);
+        setQCliente("");
+      }}
+    />
+    </>
   );
 }

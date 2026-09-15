@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { AltaField, AltaPersona, AltaSection, AltaShell, altaControl, type PersonaOpcion } from "@/components/ui/alta-form";
+import { NuevoClientePanel } from "@/components/clientes/NuevoClientePanel";
 import {
   ESTADOS_INMUEBLE,
   ESTADO_INMUEBLE_LABEL,
@@ -24,9 +25,6 @@ import { subirArchivosMedia } from "@/lib/inmuebles/subir-media";
 
 type InmuebleAltaSnap = {
   values: InmuebleFormValues;
-  nuevoPropietario: boolean;
-  nombreNuevo: string;
-  telefonoNuevo: string;
   fijo: boolean;
 };
 
@@ -45,9 +43,6 @@ function inmuebleAltaVacia(s: InmuebleAltaSnap) {
     v.notas,
     v.video_url,
     v.tour_url,
-    s.nombreNuevo,
-    s.telefonoNuevo,
-    s.nuevoPropietario,
     s.fijo ? "" : v.ofertante_id
   );
 }
@@ -69,9 +64,8 @@ export function NuevoInmueblePanel({
   const ambito = ofertanteIdInicial ?? "libre";
   const [clientes, setClientes] = useState<PersonaOpcion[]>([]);
   const [qCliente, setQCliente] = useState("");
-  const [nuevoPropietario, setNuevoPropietario] = useState(false);
-  const [nombreNuevo, setNombreNuevo] = useState("");
-  const [telefonoNuevo, setTelefonoNuevo] = useState("");
+  const [altaClienteOpen, setAltaClienteOpen] = useState(false);
+  const [altaClienteNombre, setAltaClienteNombre] = useState("");
   const [saving, setSaving] = useState(false);
   const [pendientesFoto, setPendientesFoto] = useState<File[]>([]);
   const [pendientesPlano, setPendientesPlano] = useState<File[]>([]);
@@ -81,17 +75,16 @@ export function NuevoInmueblePanel({
   });
 
   const snapshot = useMemo<InmuebleAltaSnap>(
-    () => ({ values, nuevoPropietario, nombreNuevo, telefonoNuevo, fijo: ofertanteFijo }),
-    [values, nuevoPropietario, nombreNuevo, telefonoNuevo, ofertanteFijo]
+    () => ({ values, fijo: ofertanteFijo }),
+    [values, ofertanteFijo]
   );
   const altaBorrador = useAltaBorrador({ tipo: "inmueble", ambito, open, snapshot, estaVacio: inmuebleAltaVacia });
 
   const vaciar = () => {
     setValues({ ...INMUEBLE_FORM_VACIO, ofertante_id: ofertanteIdInicial ?? "" });
     setQCliente("");
-    setNuevoPropietario(false);
-    setNombreNuevo("");
-    setTelefonoNuevo("");
+    setAltaClienteOpen(false);
+    setAltaClienteNombre("");
     setPendientesFoto([]);
     setPendientesPlano([]);
   };
@@ -112,9 +105,6 @@ export function NuevoInmueblePanel({
         ...guardado.data.values,
         ofertante_id: ofertanteFijo ? ofertanteIdInicial ?? "" : guardado.data.values.ofertante_id,
       });
-      setNuevoPropietario(guardado.data.nuevoPropietario);
-      setNombreNuevo(guardado.data.nombreNuevo);
-      setTelefonoNuevo(guardado.data.telefonoNuevo);
       setQCliente("");
     } else {
       vaciar();
@@ -144,29 +134,6 @@ export function NuevoInmueblePanel({
       return;
     }
     let ofertanteId = values.ofertante_id;
-    if (!ofertanteId && nuevoPropietario) {
-      const nombre = nombreNuevo.trim();
-      if (!nombre) {
-        toast.error("El propietario necesita un nombre.");
-        return;
-      }
-      const { data, error } = await supabase
-        .from("clientes")
-        .insert({
-          user_id: user.id,
-          nombre,
-          telefono: telefonoNuevo.trim() || null,
-          tipo_cliente: "particular",
-          localidad: values.localidad.trim() || null,
-        })
-        .select("id")
-        .single();
-      if (error || !data) {
-        toast.error("No se ha podido crear el propietario.");
-        return;
-      }
-      ofertanteId = data.id;
-    }
     setSaving(true);
     const { data, error } = await supabase
       .from("propiedades")
@@ -214,6 +181,7 @@ export function NuevoInmueblePanel({
   };
 
   return (
+    <>
     <AltaShell
       open={open}
       onOpenChange={onOpenChange}
@@ -233,12 +201,10 @@ export function NuevoInmueblePanel({
         },
       }}
     >
-      <AltaSection wide title="Propietario" hint="Puedes dejarlo sin asignar y ligarlo después.">
+      <AltaSection wide title="Propietario" hint="Puedes dejarlo sin asignar y ligarlo después. Si es nuevo, abre la misma ficha completa de Clientes.">
         <AltaPersona
           fijo={ofertanteFijo}
           fijoNombre={ofertanteNombre}
-          modoNuevo={nuevoPropietario}
-          setModoNuevo={setNuevoPropietario}
           permitirNinguno
           seleccionado={clienteSel}
           onSeleccionar={(persona) => set({ ofertante_id: persona.id })}
@@ -246,10 +212,10 @@ export function NuevoInmueblePanel({
           q={qCliente}
           setQ={setQCliente}
           sugeridos={sugeridos}
-          nombreNuevo={nombreNuevo}
-          setNombreNuevo={setNombreNuevo}
-          telefonoNuevo={telefonoNuevo}
-          setTelefonoNuevo={setTelefonoNuevo}
+          onAltaNueva={(nombreSugerido) => {
+            setAltaClienteNombre(nombreSugerido ?? "");
+            setAltaClienteOpen(true);
+          }}
           autoFocus={!ofertanteFijo}
         />
       </AltaSection>
@@ -410,5 +376,23 @@ export function NuevoInmueblePanel({
         </AltaField>
       </AltaSection>
     </AltaShell>
+    <NuevoClientePanel
+      open={altaClienteOpen}
+      onOpenChange={setAltaClienteOpen}
+      elevated
+      nombreInicial={altaClienteNombre}
+      ambito="desde-inmueble"
+      onCreado={(id, extra) => {
+        setClientes((prev) => {
+          if (prev.some((c) => c.id === id)) return prev;
+          return [...prev, { id, nombre: extra?.nombre ?? "Cliente", telefono: extra?.telefono ?? null }].sort((a, b) =>
+            a.nombre.localeCompare(b.nombre)
+          );
+        });
+        set({ ofertante_id: id });
+        setQCliente("");
+      }}
+    />
+    </>
   );
 }

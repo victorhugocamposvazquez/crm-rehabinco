@@ -32,15 +32,21 @@ export function NuevoClientePanel({
   padreId,
   padreNombre,
   onCreado,
+  elevated = false,
+  nombreInicial,
+  ambito: ambitoProp,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   padreId?: string;
   padreNombre?: string;
-  onCreado: (id: string) => void;
+  onCreado: (id: string, extra?: { nombre: string; telefono: string | null }) => void;
+  elevated?: boolean;
+  nombreInicial?: string;
+  ambito?: string;
 }) {
   const empresaAsociada = Boolean(padreId);
-  const ambito = padreId ?? "libre";
+  const ambito = ambitoProp ?? padreId ?? "libre";
   const [tipoCliente, setTipoCliente] = useState<"particular" | "empresa">(empresaAsociada ? "empresa" : "particular");
   const [tipoDocumento, setTipoDocumento] = useState<"dni" | "nie" | "cif" | "vat">(empresaAsociada ? "cif" : "dni");
   const [nombre, setNombre] = useState("");
@@ -89,9 +95,10 @@ export function NuevoClientePanel({
       setNotas(d.notas);
     } else {
       vaciar();
+      if (nombreInicial?.trim()) setNombre(nombreInicial.trim());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, padreId]);
+  }, [open, padreId, nombreInicial]);
 
   const crear = async () => {
     if (!nombre.trim()) {
@@ -136,18 +143,19 @@ export function NuevoClientePanel({
     toast.success(empresaAsociada ? "Empresa asociada creada." : "Cliente creado.");
     altaBorrador.consumir();
     onOpenChange(false);
-    onCreado(data.id);
+    onCreado(data.id, { nombre: nombre.trim(), telefono: telefono.trim() || null });
   };
 
   return (
     <AltaShell
       open={open}
       onOpenChange={onOpenChange}
+      elevated={elevated}
       title={empresaAsociada ? "Nueva empresa" : "Nuevo cliente"}
       hint={
         empresaAsociada
           ? `Se asocia a ${padreNombre ?? "este particular"} para facturar a su nombre.`
-          : "Nombre y un teléfono llegan. El resto se completa cuando haga falta."
+          : "La misma ficha que en Clientes: particular o empresa, contacto, documento y zona."
       }
       primaryLabel={empresaAsociada ? "Crear empresa" : "Crear cliente"}
       saving={saving}

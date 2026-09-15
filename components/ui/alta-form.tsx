@@ -21,6 +21,7 @@ export function AltaShell({
   onSubmit,
   footerHint = "Cerrar guarda un borrador en este navegador. Crear lo pasa al listado.",
   borrador,
+  elevated = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -32,6 +33,7 @@ export function AltaShell({
   disablePrimary?: boolean;
   onSubmit: () => void | Promise<void>;
   footerHint?: string;
+  elevated?: boolean;
   borrador?: {
     activo: boolean;
     guardadoEn?: string | null;
@@ -45,7 +47,14 @@ export function AltaShell({
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange} variant="side" side="right" className="min-[820px]:w-[min(56rem,92vw)]">
+    <Sheet
+      open={open}
+      onOpenChange={onOpenChange}
+      variant="side"
+      side="right"
+      elevated={elevated}
+      className="min-[820px]:w-[min(56rem,92vw)]"
+    >
       <form
         className="flex h-full min-h-0 flex-col"
         onSubmit={enviar}
@@ -162,8 +171,6 @@ export type PersonaOpcion = { id: string; nombre: string; telefono: string | nul
 export function AltaPersona({
   fijo,
   fijoNombre,
-  modoNuevo,
-  setModoNuevo,
   permitirNinguno,
   seleccionado,
   onSeleccionar,
@@ -171,16 +178,11 @@ export function AltaPersona({
   q,
   setQ,
   sugeridos,
-  nombreNuevo,
-  setNombreNuevo,
-  telefonoNuevo,
-  setTelefonoNuevo,
+  onAltaNueva,
   autoFocus,
 }: {
   fijo?: boolean;
   fijoNombre?: string;
-  modoNuevo: boolean;
-  setModoNuevo: (nuevo: boolean) => void;
   permitirNinguno?: boolean;
   seleccionado?: PersonaOpcion;
   onSeleccionar: (persona: PersonaOpcion) => void;
@@ -188,10 +190,7 @@ export function AltaPersona({
   q: string;
   setQ: (valor: string) => void;
   sugeridos: PersonaOpcion[];
-  nombreNuevo: string;
-  setNombreNuevo: (valor: string) => void;
-  telefonoNuevo: string;
-  setTelefonoNuevo: (valor: string) => void;
+  onAltaNueva: (nombreSugerido?: string) => void;
   autoFocus?: boolean;
 }) {
   if (fijo) {
@@ -206,19 +205,17 @@ export function AltaPersona({
     <div>
       <div className="flex flex-wrap gap-2">
         <ToggleChip
-          on={!modoNuevo}
+          on={!seleccionado}
           onClick={() => {
-            setModoNuevo(false);
+            onLimpiar();
+            setQ("");
           }}
         >
           De la agenda
         </ToggleChip>
         <ToggleChip
-          on={modoNuevo}
-          onClick={() => {
-            setModoNuevo(true);
-            onLimpiar();
-          }}
+          on={false}
+          onClick={() => onAltaNueva()}
         >
           Nuevo
         </ToggleChip>
@@ -226,7 +223,6 @@ export function AltaPersona({
           <button
             type="button"
             onClick={() => {
-              setModoNuevo(false);
               onLimpiar();
               setQ("");
             }}
@@ -237,16 +233,7 @@ export function AltaPersona({
         ) : null}
       </div>
 
-      {modoNuevo ? (
-        <div className="mt-4 grid grid-cols-1 gap-4 min-[820px]:grid-cols-2">
-          <AltaField label="Nombre">
-            <input autoFocus={autoFocus} value={nombreNuevo} onChange={(e) => setNombreNuevo(e.target.value)} placeholder="María López" className={altaControl} />
-          </AltaField>
-          <AltaField label="Teléfono" optional>
-            <input value={telefonoNuevo} onChange={(e) => setTelefonoNuevo(e.target.value)} placeholder="600 000 000" className={altaControl} />
-          </AltaField>
-        </div>
-      ) : seleccionado ? (
+      {seleccionado ? (
         <div className="mt-4 flex items-center justify-between gap-3 rounded-[12px] border border-accent bg-accent-soft px-4 py-3">
           <div className="min-w-0">
             <div className="truncate text-[15px] font-semibold">{seleccionado.nombre}</div>
@@ -295,10 +282,7 @@ export function AltaPersona({
                   <button
                     type="button"
                     className="font-semibold text-accent"
-                    onClick={() => {
-                      setModoNuevo(true);
-                      setNombreNuevo(q);
-                    }}
+                    onClick={() => onAltaNueva(q.trim())}
                   >
                     Crear «{q.trim()}»
                   </button>
@@ -306,7 +290,7 @@ export function AltaPersona({
               ) : null}
             </div>
           ) : (
-            <p className="mt-2.5 text-[12.5px] leading-5 text-[var(--text-3)]">La agenda no se lista entera: busca y elige.</p>
+            <p className="mt-2.5 text-[12.5px] leading-5 text-[var(--text-3)]">La agenda no se lista entera: busca y elige, o pulsa Nuevo para la ficha completa.</p>
           )}
         </div>
       )}
