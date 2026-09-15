@@ -16,6 +16,7 @@ describe("digest de avisos", () => {
     assert.equal(resumen?.cuerpo.includes("Oleiros"), true);
     assert.equal(resumen?.url, "/calendario");
     assert.equal(claveDigest("u1", "2026-09-15T08:00:00Z"), "digest:u1:2026-09-15");
+    assert.equal(claveDigest("u1", "2026-09-15", "visitas"), "digest:u1:2026-09-15:visitas");
   });
 
   it("incluye tareas vencidas y de hoy", () => {
@@ -26,5 +27,14 @@ describe("digest de avisos", () => {
     const resumen = resumenAvisosDia([{ titulo: "Vencida · Llamar", tipo: "tarea-vencida" }]);
     assert.equal(resumen?.titulo, "Tarea vencida");
     assert.equal(resumen?.url, "/tareas");
+  });
+
+  it("un canal solo usa su título y su destino", () => {
+    const visitas = resumenAvisosDia([{ titulo: "Visita Oleiros", hora: "10:00", tipo: "visita" }]);
+    assert.equal(visitas?.titulo, "Visita hoy");
+    assert.equal(visitas?.url, "/calendario");
+    const partes = resumenAvisosDia([{ titulo: "Ana · Oleiros", tipo: "parte" }]);
+    assert.equal(partes?.titulo, "Parte sin firmar");
+    assert.equal(partes?.url, "/partes-visita");
   });
 });

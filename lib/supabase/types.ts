@@ -1094,6 +1094,40 @@ export interface Database {
           updated_by?: string | null;
         };
       };
+      crm_aviso_prefs: {
+        Row: {
+          user_id: string;
+          visitas: boolean;
+          recordatorios: boolean;
+          agenda: boolean;
+          tareas_hoy: boolean;
+          tareas_vencidas: boolean;
+          menciones: boolean;
+          partes: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          visitas?: boolean;
+          recordatorios?: boolean;
+          agenda?: boolean;
+          tareas_hoy?: boolean;
+          tareas_vencidas?: boolean;
+          menciones?: boolean;
+          partes?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          visitas?: boolean;
+          recordatorios?: boolean;
+          agenda?: boolean;
+          tareas_hoy?: boolean;
+          tareas_vencidas?: boolean;
+          menciones?: boolean;
+          partes?: boolean;
+          updated_at?: string;
+        };
+      };
       crm_push_subs: {
         Row: {
           id: string;
