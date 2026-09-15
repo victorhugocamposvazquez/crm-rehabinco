@@ -7,12 +7,12 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-function urlBase64ToUint8Array(base64: string): Uint8Array {
+function urlBase64ToUint8Array(base64: string): BufferSource {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
   const raw = atob((base64 + padding).replace(/-/g, "+").replace(/_/g, "/"));
   const output = new Uint8Array(raw.length);
   for (let i = 0; i < raw.length; i += 1) output[i] = raw.charCodeAt(i);
-  return output;
+  return output.buffer.slice(output.byteOffset, output.byteOffset + output.byteLength);
 }
 
 async function registroSw(): Promise<ServiceWorkerRegistration | null> {
@@ -47,7 +47,7 @@ export async function activarAvisosPwa(): Promise<string> {
 }
 
 export function AvisosPwaCard() {
-  const [estado, setEstado] = useState<"off" | "on" | "parcial">("off");
+  const [estado, setEstado] = useState<"off" | "on">("off");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
