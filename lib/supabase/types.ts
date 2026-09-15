@@ -1058,6 +1058,31 @@ export interface Database {
           updated_at?: string;
         };
       };
+      captacion_portales_credenciales: {
+        Row: {
+          portal: string;
+          api_key: string | null;
+          api_secret: string | null;
+          extra: Json;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          portal: string;
+          api_key?: string | null;
+          api_secret?: string | null;
+          extra?: Json;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          api_key?: string | null;
+          api_secret?: string | null;
+          extra?: Json;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+      };
     };
   };
 }

@@ -1,4 +1,4 @@
-import { isEditor, parseRole, type Role } from "@/lib/auth/roles";
+import { isAdmin, isEditor, parseRole, type Role } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 
 export async function sesionCaptacion(): Promise<
@@ -14,4 +14,11 @@ export async function sesionCaptacion(): Promise<
   const role = parseRole(perfil?.role);
   if (isEditor(role)) return { ok: false, status: 403, error: "Sin acceso." };
   return { ok: true, supabase, user: { id: user.id }, role };
+}
+
+export async function sesionAdminCaptacion() {
+  const sesion = await sesionCaptacion();
+  if (!sesion.ok) return sesion;
+  if (!isAdmin(sesion.role)) return { ok: false as const, status: 403 as const, error: "Solo dirección." };
+  return sesion;
 }

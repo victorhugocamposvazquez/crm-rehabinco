@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import { anuncianteIdealista, mapearIdealista, paramsIdealistaDesdeAlerta, tipoIdealista } from "./idealista";
 import { claveContacto, diasEnPortal, pctBajada } from "./modelo";
 import { desaparecidosTrasSync, filtrarParticular, fusionarAnuncio } from "./sync";
+import { enmascararClave } from "./credenciales";
 import { siguienteReferencia, payloadClienteDesdeAnuncio, payloadPropiedadDesdeAnuncio, tipoInmuebleDesdeAnuncio } from "./captar";
 import { centroDeZonas } from "./zonas";
 
@@ -189,5 +190,11 @@ describe("captación portales", () => {
     assert.equal(inmueble.ofertante_id, "cli-1");
     assert.equal(inmueble.precio_venta, 150000);
     assert.equal(tipoInmuebleDesdeAnuncio("casa"), "chalet");
+  });
+
+  it("enmascara la API key y no la deja entera", () => {
+    assert.equal(enmascararClave(null), null);
+    assert.equal(enmascararClave("abcd"), "••••");
+    assert.equal(enmascararClave("idealista-secret-key"), "••••••••-key");
   });
 });

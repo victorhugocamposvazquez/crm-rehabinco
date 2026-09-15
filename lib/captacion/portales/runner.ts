@@ -46,7 +46,7 @@ export async function ejecutarSyncPortales(): Promise<{
   retirados: number;
   omitidas: string[];
 }> {
-  if (!idealistaConfigurado()) {
+  if (!(await idealistaConfigurado())) {
     return { ok: false, error: "Faltan las claves de Idealista.", alertas: 0, nuevos: 0, bajadas: 0, retirados: 0, omitidas: [] };
   }
   const admin = createAdminClient();

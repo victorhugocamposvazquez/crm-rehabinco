@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
 import { createUser } from "@/lib/actions/usuarios";
 import { ROLE_LABELS, roleLabel, type Role } from "@/lib/auth/roles";
-import { UserPlus, Building2 } from "lucide-react";
+import { UserPlus, Building2, KeyRound } from "lucide-react";
 import { PerfilComercialCard } from "@/components/settings/PerfilComercialCard";
 import { EquipoComercialesCard } from "@/components/settings/EquipoComercialesCard";
 
@@ -76,6 +76,9 @@ export default function SettingsPage() {
             </Link>
             <Link href="/settings/emisores-presupuesto" className="rounded-[9px] px-3 py-2 text-[13.5px] font-medium text-[var(--text-2)] hover:bg-[var(--surface-soft)]">
               Emisores de presupuesto
+            </Link>
+            <Link href="/settings/portales" className="rounded-[9px] px-3 py-2 text-[13.5px] font-medium text-[var(--text-2)] hover:bg-[var(--surface-soft)]">
+              APIs de portales
             </Link>
           </>
         ) : null}
@@ -169,6 +172,25 @@ export default function SettingsPage() {
               </p>
               <Button className="mt-4" variant="secondary" asChild>
                 <Link href="/settings/emisores-presupuesto">Editar emisores de presupuesto</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {user?.role === "admin" && (
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <KeyRound className="h-5 w-5" strokeWidth={1.5} />
+                APIs de portales
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-neutral-600">
+                Claves de Idealista y Fotocasa para Captación. Solo las ve dirección.
+              </p>
+              <Button className="mt-4" variant="secondary" asChild>
+                <Link href="/settings/portales">Configurar APIs de portales</Link>
               </Button>
             </CardContent>
           </Card>

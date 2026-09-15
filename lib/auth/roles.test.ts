@@ -45,6 +45,7 @@ describe("roles", () => {
     assert.equal(isComercialBlockedPath("/facturas"), true);
     assert.equal(isComercialBlockedPath("/informes"), true);
     assert.equal(isComercialBlockedPath("/presupuestos"), true);
+    assert.equal(isComercialBlockedPath("/settings/portales"), true);
     assert.equal(comercialHomePath(), "/");
   });
 
@@ -83,6 +84,7 @@ describe("roles", () => {
     assert.equal(isEditorBlockedPath("/seguimiento"), true);
     assert.equal(isEditorBlockedPath("/calendario"), true);
     assert.equal(isEditorBlockedPath("/partes-visita"), true);
+    assert.equal(isEditorBlockedPath("/settings/portales"), true);
     assert.equal(isEditorBlockedPath("/presupuestos"), false);
   });
 });

@@ -61,6 +61,7 @@ const EDITOR_BLOCKED_PREFIXES = [
   "/facturas",
   "/settings/empresa",
   "/settings/emisores-presupuesto",
+  "/settings/portales",
 ];
 
 export function editorHomePath(): string {
@@ -85,6 +86,7 @@ const COMERCIAL_BLOCKED_PREFIXES = [
   "/presupuestos",
   "/settings/empresa",
   "/settings/emisores-presupuesto",
+  "/settings/portales",
 ];
 
 export function comercialHomePath(): string {

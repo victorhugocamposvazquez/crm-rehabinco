@@ -4,6 +4,7 @@ import {
   type AnuncioEntrante,
   type TipoAnuncioPortal,
 } from "./modelo";
+import { leerCredencialesPortal } from "./credenciales";
 
 export type IdealistaContact = {
   commercialName?: string | null;
@@ -164,18 +165,14 @@ export function bodyIdealista(params: IdealistaSearchParams): string {
   return data.toString();
 }
 
-let tokenCache: { value: string; expira: number } | null = null;
+let tokenCache: { value: string; expira: number; firma: string } | null = null;
 
-export function idealistaConfigurado(): boolean {
-  return Boolean(process.env.IDEALISTA_API_KEY?.trim() && process.env.IDEALISTA_API_SECRET?.trim());
+export async function idealistaConfigurado(): Promise<boolean> {
+  return Boolean(await leerCredencialesPortal("idealista"));
 }
 
-async function tokenIdealista(): Promise<string> {
-  if (tokenCache && tokenCache.expira > Date.now() + 30_000) return tokenCache.value;
-  const key = process.env.IDEALISTA_API_KEY?.trim();
-  const secret = process.env.IDEALISTA_API_SECRET?.trim();
-  if (!key || !secret) throw new Error("Faltan IDEALISTA_API_KEY o IDEALISTA_API_SECRET.");
-  const basic = Buffer.from(`${key}:${secret}`).toString("base64");
+export async function oauthIdealista(apiKey: string, apiSecret: string): Promise<string> {
+  const basic = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64");
   const res = await fetch("https://api.idealista.com/oauth/token", {
     method: "POST",
     headers: {
@@ -189,11 +186,35 @@ async function tokenIdealista(): Promise<string> {
   }
   const json = (await res.json()) as { access_token?: string; expires_in?: number };
   if (!json.access_token) throw new Error("Idealista no devolvió token.");
-  tokenCache = {
-    value: json.access_token,
-    expira: Date.now() + Math.max(60, json.expires_in ?? 3600) * 1000,
-  };
   return json.access_token;
+}
+
+export async function probarIdealista(
+  apiKey: string,
+  apiSecret: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await oauthIdealista(apiKey.trim(), apiSecret.trim());
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "No se ha podido conectar." };
+  }
+}
+
+async function tokenIdealista(): Promise<string> {
+  const creds = await leerCredencialesPortal("idealista");
+  if (!creds) throw new Error("Faltan las claves de Idealista.");
+  const firma = `${creds.apiKey}:${creds.apiSecret.slice(-4)}`;
+  if (tokenCache && tokenCache.firma === firma && tokenCache.expira > Date.now() + 30_000) {
+    return tokenCache.value;
+  }
+  const token = await oauthIdealista(creds.apiKey, creds.apiSecret);
+  tokenCache = {
+    value: token,
+    firma,
+    expira: Date.now() + 3600 * 1000,
+  };
+  return token;
 }
 
 export async function buscarIdealista(params: IdealistaSearchParams): Promise<{
