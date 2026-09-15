@@ -98,6 +98,7 @@ export function mapearIdealista(element: IdealistaElement): AnuncioEntrante | nu
     lng: typeof element.longitude === "number" ? element.longitude : null,
     thumb: element.thumbnailRetina || element.thumbnail || null,
     n_fotos: typeof element.numPhotos === "number" ? element.numPhotos : null,
+    fotos: [element.thumbnailRetina, element.thumbnail].filter((u): u is string => Boolean(u)),
     contacto_nombre: nombre,
     contacto_telefono: tel,
     publicado_en: null,

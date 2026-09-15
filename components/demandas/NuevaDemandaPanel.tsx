@@ -80,18 +80,20 @@ export function NuevaDemandaPanel({
   onOpenChange,
   clienteIdInicial,
   clienteNombre,
+  editarId,
   onCreada,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   clienteIdInicial?: string;
   clienteNombre?: string;
+  editarId?: string;
   onCreada: (id: string) => void;
 }) {
   const { user } = useAuth();
   const admin = isAdmin(user?.role);
-  const clienteFijo = Boolean(clienteIdInicial);
-  const ambito = clienteIdInicial ?? "libre";
+  const clienteFijo = Boolean(clienteIdInicial) || Boolean(editarId);
+  const ambito = editarId ? `editar:${editarId}` : clienteIdInicial ?? "libre";
   const [clientes, setClientes] = useState<PersonaOpcion[]>([]);
   const [comerciales, setComerciales] = useState<ComercialFiltro[]>([]);
   const [qCliente, setQCliente] = useState("");
@@ -142,6 +144,40 @@ export function NuevaDemandaPanel({
           }))
       );
     });
+    if (editarId) {
+      void supabase
+        .from("demandas")
+        .select(
+          "cliente_id, comercial_id, tipo_operacion, tipos_inmueble, zonas, presupuesto_min, presupuesto_max, superficie_min, superficie_max, habitaciones_min, banos_min, requisitos, origen"
+        )
+        .eq("id", editarId)
+        .single()
+        .then(({ data }) => {
+          if (!data) return;
+          setDraft({
+            clienteId: String(data.cliente_id),
+            comercialId: String(data.comercial_id || user?.id || ""),
+            tipoOperacion: (data.tipo_operacion as BorradorNuevaDemanda["tipoOperacion"]) || "compra",
+            tiposInmueble: (data.tipos_inmueble as string[]) ?? ["piso"],
+            zonas: (data.zonas as string[]) ?? [],
+            presupuestoMin: data.presupuesto_min != null ? String(data.presupuesto_min) : "",
+            presupuestoMax: data.presupuesto_max != null ? String(data.presupuesto_max) : "",
+            superficieMin: data.superficie_min != null ? String(data.superficie_min) : "",
+            superficieMax: data.superficie_max != null ? String(data.superficie_max) : "",
+            habitacionesMin: data.habitaciones_min != null ? String(data.habitaciones_min) : "",
+            banosMin: data.banos_min != null ? String(data.banos_min) : "",
+            requisitos: data.requisitos ?? "",
+            requisitosRapidos: [],
+            origen: data.origen || "llamada",
+          });
+          setNuevoCliente(false);
+          setNombreNuevo("");
+          setTelefonoNuevo("");
+          setZonaExtra("");
+          setQCliente("");
+        });
+      return;
+    }
     const guardado = leerAltaBorrador<DemandaAltaSnap>("demanda", ambito);
     if (guardado && !demandaAltaVacia(guardado.data)) {
       setDraft({
@@ -220,6 +256,21 @@ export function NuevaDemandaPanel({
       return;
     }
     setSaving(true);
+    if (editarId) {
+      const { estado: _estado, ...resto } = payloadNuevaDemanda(paraCrear);
+      void _estado;
+      const { error } = await supabase.from("demandas").update(resto).eq("id", editarId);
+      setSaving(false);
+      if (error) {
+        toast.error("No se ha podido guardar la demanda.");
+        return;
+      }
+      toast.success("Demanda actualizada.");
+      altaBorrador.consumir();
+      onOpenChange(false);
+      onCreada(editarId);
+      return;
+    }
     const { data, error } = await supabase.from("demandas").insert(payloadNuevaDemanda(paraCrear)).select("id").single();
     setSaving(false);
     if (error || !data) {
@@ -238,9 +289,9 @@ export function NuevaDemandaPanel({
     <AltaShell
       open={open}
       onOpenChange={onOpenChange}
-      title="Nueva demanda"
-      hint="Lo que busca esta persona. El matching se confirma a mano, no se publica solo."
-      primaryLabel="Crear demanda"
+      title={editarId ? "Editar demanda" : "Nueva demanda"}
+      hint={editarId ? "Cambia criterios sin recrear la demanda." : "Lo que busca esta persona. El matching se confirma a mano, no se publica solo."}
+      primaryLabel={editarId ? "Guardar demanda" : "Crear demanda"}
       saving={saving}
       disablePrimary={faltaCliente}
       onSubmit={crear}

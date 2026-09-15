@@ -16,6 +16,8 @@ import { NuevoClientePanel } from "@/components/clientes/NuevoClientePanel";
 import { NuevoInmueblePanel } from "@/components/inmuebles/NuevoInmueblePanel";
 import { Pencil, Trash2, FileText, Building2, Plus, Home } from "lucide-react";
 import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
+import { useAuth } from "@/lib/auth/auth-context";
+import { isAdmin } from "@/lib/auth/roles";
 
 interface Cliente {
   id: string;
@@ -41,6 +43,8 @@ export default function DetalleClientePage() {
   const hayBorradorEmpresa = useHayAltaBorrador("cliente", id);
   const hayBorradorInmueble = useHayAltaBorrador("inmueble", id);
   const hayBorradorDemanda = useHayAltaBorrador("demanda", id);
+  const { user } = useAuth();
+  const admin = isAdmin(user?.role);
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [facturas, setFacturas] = useState<Array<{ id: string; numero: string; estado: string; total?: number }>>([]);
   const [empresasAsociadas, setEmpresasAsociadas] = useState<Array<{ id: string; nombre: string }>>([]);
@@ -164,12 +168,14 @@ export default function DetalleClientePage() {
         description={undefined}
         actions={
           <div className="flex shrink-0 items-center gap-1">
+            {admin ? (
             <Button variant="secondary" size="icon" className="md:h-9 md:w-auto md:gap-2 md:px-3" asChild>
               <Link href={`/facturas/nueva?cliente=${id}&from=cliente`} aria-label="Nueva factura">
                 <FileText className="h-4 w-4" strokeWidth={1.5} />
                 <span className="hidden md:inline">Nueva factura</span>
               </Link>
             </Button>
+            ) : null}
             <Button variant="secondary" size="icon" className="md:h-9 md:w-auto md:gap-2 md:px-3" asChild>
               <Link href={`/clientes/${id}/editar`} aria-label="Editar">
                 <Pencil className="h-4 w-4" strokeWidth={1.5} />

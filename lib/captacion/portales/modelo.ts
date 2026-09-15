@@ -108,6 +108,7 @@ export type AnuncioCaptacion = {
   lng: number | null;
   thumb: string | null;
   n_fotos: number | null;
+  fotos?: unknown;
   contacto_nombre: string | null;
   contacto_telefono: string | null;
   contacto_clave: string | null;
@@ -145,6 +146,7 @@ export type AnuncioEntrante = {
   lng: number | null;
   thumb: string | null;
   n_fotos: number | null;
+  fotos?: string[];
   contacto_nombre: string | null;
   contacto_telefono: string | null;
   publicado_en: string | null;

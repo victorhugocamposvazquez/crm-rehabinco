@@ -26,8 +26,14 @@ import {
   type FiltroOrigenCatastral,
 } from "@/lib/catastro/explorer";
 import { formatPrecioInmueble, labelEstadoInmueble } from "@/lib/inmuebles/catalogo";
-import { precioDeInmueble, type InmueblePanel } from "@/lib/inmuebles/panel";
-import { relacionUno } from "@/lib/citas/citas";
+import {
+  SELECT_INMUEBLE_PANEL,
+  cargarDhPorFincas,
+  mapInmueblePanel,
+  precioDeInmueble,
+  type InmueblePanel,
+  type InmueblePanelRow,
+} from "@/lib/inmuebles/panel";
 import { colorEstado } from "@/lib/ui/estados-vista";
 import { cn } from "@/lib/utils";
 import { extraAlta } from "@/lib/ui/alta-panel";
@@ -76,9 +82,7 @@ export default function PropiedadesPage() {
     const supabase = createClient();
     supabase
       .from("propiedades")
-      .select(
-        "id, titulo, direccion, localidad, tipo_operacion, precio_venta, precio_alquiler, estado, referencia, tipo_inmueble, origen, superficie_m2, anio_construccion, referencia_catastral, descripcion, publicado, ofertante_id, comercial_id, habitaciones, clientes:ofertante_id(nombre), profiles:comercial_id(nombre_completo, color), inmueble_media(url, portada), catastro_property_links(finca_reference)"
-      )
+      .select(SELECT_INMUEBLE_PANEL)
       .order("created_at", { ascending: false })
       .then(async ({ data, error: err }) => {
         if (err) {
@@ -87,90 +91,21 @@ export default function PropiedadesPage() {
           setLoading(false);
           return;
         }
-        const rows = (data ?? []) as Array<{
-          id: string;
-          titulo: string | null;
-          direccion: string | null;
-          localidad: string | null;
-          tipo_operacion: string;
-          precio_venta: number | null;
-          precio_alquiler: number | null;
-          estado: string;
-          referencia: string | null;
-          tipo_inmueble: string | null;
-          origen: string | null;
-          superficie_m2: number | null;
-          anio_construccion: number | null;
-          referencia_catastral: string | null;
-          descripcion: string | null;
-          publicado: boolean;
-          ofertante_id: string | null;
-          clientes: { nombre: string } | { nombre: string }[] | null;
-          profiles:
-            | { nombre_completo: string | null; color: string | null }
-            | { nombre_completo: string | null; color: string | null }[]
-            | null;
-          inmueble_media: Array<{ url: string; portada: boolean }> | null;
-          catastro_property_links:
-            | { finca_reference: string }
-            | { finca_reference: string }[]
-            | null;
-        }>;
+        const rows = (data ?? []) as InmueblePanelRow[];
         const refs = [
           ...new Set(
             rows
-              .map((r) => relacionUno(r.catastro_property_links)?.finca_reference)
+              .map((r) => {
+                const link = Array.isArray(r.catastro_property_links)
+                  ? r.catastro_property_links[0]
+                  : r.catastro_property_links;
+                return link?.finca_reference;
+              })
               .filter((ref): ref is string => Boolean(ref))
           ),
         ];
-        const dhPorFinca = new Map<string, string>();
-        if (refs.length > 0) {
-          const { data: fincas } = await supabase
-            .from("catastro_fincas")
-            .select("finca_reference, dh_status")
-            .in("finca_reference", refs);
-          for (const finca of fincas ?? []) {
-            dhPorFinca.set(finca.finca_reference, finca.dh_status);
-          }
-        }
-        setPropiedades(
-          rows.map((r) => {
-            const c = relacionUno(r.clientes);
-            const com = relacionUno(r.profiles);
-            const fotos = r.inmueble_media ?? [];
-            const portada = fotos.find((f) => f.portada) ?? fotos[0];
-            const link = relacionUno(r.catastro_property_links);
-            return {
-              id: r.id,
-              titulo: r.titulo,
-              direccion: r.direccion,
-              localidad: r.localidad,
-              tipo_operacion: r.tipo_operacion,
-              precio_venta: r.precio_venta,
-              precio_alquiler: r.precio_alquiler,
-              estado: r.estado,
-              ofertanteNombre: c?.nombre ?? "—",
-              referencia: r.referencia,
-              tipo_inmueble: r.tipo_inmueble,
-              portadaUrl: portada?.url ?? null,
-              nFotos: fotos.length,
-              origen: r.origen ?? null,
-              dhStatus: link?.finca_reference ? dhPorFinca.get(link.finca_reference) ?? null : null,
-              superficie_m2: r.superficie_m2,
-              anio_construccion: r.anio_construccion,
-              referencia_catastral: r.referencia_catastral,
-              descripcion: r.descripcion,
-              publicado: r.publicado,
-              ofertante_id: r.ofertante_id,
-              comercialNombre: com?.nombre_completo ?? null,
-              comercialColor: com?.color ?? null,
-              fincaReference: link?.finca_reference ?? null,
-              habitaciones: (r as { habitaciones?: number | null }).habitaciones ?? null,
-              banos: null,
-              planta: null,
-            };
-          })
-        );
+        const dhPorFinca = await cargarDhPorFincas(refs);
+        setPropiedades(rows.map((r) => mapInmueblePanel(r, dhPorFinca)));
         setLoading(false);
       });
   }, [cargaKey]);

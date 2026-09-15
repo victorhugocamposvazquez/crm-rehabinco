@@ -20,6 +20,14 @@ export const ESTADO_DEMANDA_DOT: Record<EstadoDemanda, string> = {
 export const ESTADOS_MATCHING = ["propuesto", "presentado", "descartado", "visitado", "oferta"] as const;
 export type EstadoMatching = (typeof ESTADOS_MATCHING)[number];
 
+export const ESTADO_MATCHING_LABEL: Record<EstadoMatching, string> = {
+  propuesto: "Propuesto",
+  presentado: "Presentado",
+  descartado: "Descartado",
+  visitado: "Visitado",
+  oferta: "Oferta",
+};
+
 export type CriteriosDemanda = {
   tipoOperacion: TipoOperacionDemanda | string;
   tiposInmueble: string[];

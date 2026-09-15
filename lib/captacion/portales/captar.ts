@@ -1,4 +1,5 @@
 import type { AnunciantePortal, AnuncioCaptacion } from "./modelo";
+import { payloadMediaExterna, urlsDeFotosPortal } from "@/lib/inmuebles/media";
 
 export function siguienteReferencia(refs: Array<string | null | undefined>, year: number): string {
   const re = new RegExp(`^RHB-${year}-(\\d+)$`);
@@ -58,8 +59,19 @@ export function payloadClienteDesdeAnuncio(
 export function payloadPropiedadDesdeAnuncio(
   anuncio: Pick<
     AnuncioCaptacion,
-    "titulo" | "direccion" | "municipio" | "operacion" | "precio" | "superficie" | "habitaciones" | "tipo" | "fuente" | "url" | "comercial_id"
-  >,
+    | "titulo"
+    | "direccion"
+    | "municipio"
+    | "operacion"
+    | "precio"
+    | "superficie"
+    | "habitaciones"
+    | "tipo"
+    | "fuente"
+    | "url"
+    | "comercial_id"
+  > &
+    Partial<Pick<AnuncioCaptacion, "descripcion" | "banos" | "codigo_postal" | "lat" | "lng">>,
   input: { userId: string; referencia: string; ofertanteId: string | null }
 ) {
   return {
@@ -69,12 +81,17 @@ export function payloadPropiedadDesdeAnuncio(
     titulo: anuncio.titulo,
     direccion: anuncio.direccion,
     localidad: anuncio.municipio,
+    codigo_postal: anuncio.codigo_postal,
     tipo_operacion: anuncio.operacion === "alquiler" ? "alquiler" : "venta",
     precio_venta: anuncio.operacion === "venta" ? anuncio.precio : null,
     precio_alquiler: anuncio.operacion === "alquiler" ? anuncio.precio : null,
     superficie_m2: anuncio.superficie,
     habitaciones: anuncio.habitaciones,
+    banos: anuncio.banos,
     tipo_inmueble: tipoInmuebleDesdeAnuncio(anuncio.tipo),
+    descripcion: anuncio.descripcion,
+    lat: anuncio.lat,
+    lng: anuncio.lng,
     estado: "disponible",
     origen: "PORTAL" as const,
     publicado: false,
@@ -138,9 +155,26 @@ export async function convertirAnuncioACrm(
   if (error || !data?.id) {
     return { ok: false, error: error?.message ?? "No se ha podido crear el inmueble." };
   }
+  const propiedadId = String(data.id);
+  const fotos = urlsDeFotosPortal({ thumb: anuncio.thumb, fotos: anuncio.fotos });
+  for (const [i, url] of fotos.entries()) {
+    await db
+      .from("inmueble_media")
+      .insert(
+        payloadMediaExterna({
+          propiedadId,
+          userId,
+          url,
+          orden: i,
+          portada: i === 0,
+        })
+      )
+      .select("id")
+      .single();
+  }
   return {
     ok: true,
-    propiedadId: String(data.id),
+    propiedadId,
     clienteId,
     referencia: typeof data.referencia === "string" ? data.referencia : referencia,
   };

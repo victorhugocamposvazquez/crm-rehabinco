@@ -141,6 +141,7 @@ function rutaFichaCompleta(destino: DestinoFicha) {
   if (destino.tipo === "cliente") return `/clientes/${destino.id}`;
   if (destino.tipo === "demanda") return `/demandas/${destino.id}`;
   if (destino.tipo === "parte") return `/partes-visita/${destino.id}`;
+  if (destino.tipo === "finca") return `/catastro/finca/${encodeURIComponent(destino.id)}`;
   return null;
 }
 

@@ -1,4 +1,5 @@
 import { claveContacto, type AnuncioEntrante, type FaseAnuncio } from "./modelo";
+import { urlsDeFotosPortal } from "@/lib/inmuebles/media";
 
 export type AnuncioGuardado = {
   id: string;
@@ -75,6 +76,7 @@ export function fusionarAnuncio(
       lng: entrante.lng,
       thumb: entrante.thumb,
       n_fotos: entrante.n_fotos,
+      fotos: urlsDeFotosPortal({ thumb: entrante.thumb, fotos: entrante.fotos, raw: entrante.raw }),
       contacto_nombre: entrante.contacto_nombre,
       contacto_telefono: entrante.contacto_telefono,
       contacto_clave: clave,

@@ -204,8 +204,11 @@ export function PanelInmueble({
       descripcion: inmueble.descripcion,
       ofertante_id: inmueble.ofertante_id,
       publicado: inmueble.publicado,
+      video_url: inmueble.video_url,
+      tour_url: inmueble.tour_url,
     },
     fotos: inmueble.nFotos,
+    planos: inmueble.nPlanos,
   });
 
   return (
@@ -229,7 +232,8 @@ export function PanelInmueble({
               {labelEstadoInmueble(inmueble.estado)}
             </span>
             <span className="rounded-md bg-white/94 px-2 py-0.5 text-[11px] font-semibold text-[var(--text-2)]">
-              {inmueble.nFotos} fotos
+              {inmueble.nFotos} fotos{inmueble.nPlanos ? ` · ${inmueble.nPlanos} planos` : ""}
+              {inmueble.video_url || inmueble.tour_url ? " · visita virtual" : ""}
             </span>
           </div>
           {overlay && onClose ? (

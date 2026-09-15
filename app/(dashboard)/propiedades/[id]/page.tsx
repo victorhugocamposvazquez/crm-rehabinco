@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog } from "@/components/ui/alert-dialog";
-import { InmuebleGaleria } from "@/components/inmuebles/InmuebleGaleria";
+import { InmuebleMultimedia } from "@/components/inmuebles/InmuebleMultimedia";
 import { InmuebleDocumentos, type DocInmueble } from "@/components/inmuebles/InmuebleDocumentos";
 import { InmuebleMatching } from "@/components/inmuebles/InmuebleMatching";
 import { FichaCompletitudBarra } from "@/components/inmuebles/FichaCompletitudBarra";
@@ -154,6 +154,7 @@ export default function DetallePropiedadPage() {
   const ficha = completitudFicha({
     inmueble: propiedad,
     fotos: media.filter((item) => item.tipo === "foto").length,
+    planos: media.filter((item) => item.tipo === "plano").length,
   });
 
   return (
@@ -209,7 +210,7 @@ export default function DetallePropiedadPage() {
       />
       {alta ? (
         <p className="mb-4 rounded-xl border border-[#0B7461]/30 bg-[#E8F3EF] px-4 py-3 text-sm text-[#08594B]">
-          Inmueble creado. Sube fotos, rellena lo que falte y marca «publicado» para que entre en matching.
+          Inmueble creado. Sube fotos, planos o un tour 3D y marca «publicado» para matching.
         </p>
       ) : null}
       <div className="mb-6 print:hidden">
@@ -232,7 +233,7 @@ export default function DetallePropiedadPage() {
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
         title="¿Eliminar este inmueble?"
-        description="Se quitarán también las fotos. Los partes de visita quedan sin inmueble."
+        description="Se quitarán también las fotos, planos y documentos. Los partes de visita quedan sin inmueble."
         confirmLabel={deleting ? "Eliminando…" : "Eliminar"}
         onConfirm={handleDelete}
         loading={deleting}
@@ -310,13 +311,21 @@ export default function DetallePropiedadPage() {
                 : ""}
             </p>
             <p>
-              <span className="text-neutral-500">Hab. / baños:</span>{" "}
-              {propiedad.habitaciones ?? "—"} / {propiedad.banos ?? "—"}
+              <span className="text-neutral-500">Hab. / baños / aseos:</span>{" "}
+              {propiedad.habitaciones ?? "—"} / {propiedad.banos ?? "—"} / {propiedad.aseos ?? "—"}
             </p>
             <p>
               <span className="text-neutral-500">Planta / ascensor:</span> {propiedad.planta || "—"} /{" "}
               {propiedad.ascensor ? "sí" : "no"}
             </p>
+            <p>
+              <span className="text-neutral-500">Año:</span> {propiedad.anio_construccion ?? "—"}
+            </p>
+            {propiedad.superficie_parcela ? (
+              <p>
+                <span className="text-neutral-500">Parcela:</span> {propiedad.superficie_parcela} m²
+              </p>
+            ) : null}
             {propiedad.tipologia ? (
               <p>
                 <span className="text-neutral-500">Tipología:</span> {propiedad.tipologia}
@@ -334,25 +343,31 @@ export default function DetallePropiedadPage() {
             </CardContent>
           </Card>
         ) : null}
-        {propiedad.video_url ? (
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Vídeo</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <a href={propiedad.video_url} target="_blank" rel="noreferrer" className="text-sm font-medium hover:underline">
-                {propiedad.video_url}
-              </a>
-            </CardContent>
-          </Card>
-        ) : null}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Galería</CardTitle>
+            <CardTitle>Fotos, planos y visita virtual</CardTitle>
           </CardHeader>
           <CardContent>
             {user?.id ? (
-              <InmuebleGaleria propiedadId={id} userId={user.id} media={media} onChange={setMedia} />
+              <InmuebleMultimedia
+                propiedadId={id}
+                userId={user.id}
+                media={media}
+                onChange={setMedia}
+                videoUrl={propiedad.video_url ?? ""}
+                tourUrl={propiedad.tour_url ?? ""}
+                onUrlsChange={(patch) =>
+                  setPropiedad((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          video_url: patch.video_url !== undefined ? patch.video_url || null : prev.video_url,
+                          tour_url: patch.tour_url !== undefined ? patch.tour_url || null : prev.tour_url,
+                        }
+                      : prev
+                  )
+                }
+              />
             ) : null}
           </CardContent>
         </Card>

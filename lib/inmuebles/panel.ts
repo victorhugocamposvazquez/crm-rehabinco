@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/client";
 import { relacionUno } from "@/lib/citas/citas";
 
 export const SELECT_INMUEBLE_PANEL =
-  "id, titulo, direccion, localidad, tipo_operacion, precio_venta, precio_alquiler, estado, referencia, tipo_inmueble, origen, superficie_m2, anio_construccion, referencia_catastral, descripcion, publicado, ofertante_id, comercial_id, habitaciones, banos, planta, clientes:ofertante_id(nombre), profiles:comercial_id(nombre_completo, color), inmueble_media(url, portada), catastro_property_links(finca_reference)";
+  "id, titulo, direccion, localidad, tipo_operacion, precio_venta, precio_alquiler, estado, referencia, tipo_inmueble, origen, superficie_m2, anio_construccion, referencia_catastral, descripcion, publicado, ofertante_id, comercial_id, habitaciones, banos, planta, video_url, tour_url, clientes:ofertante_id(nombre), profiles:comercial_id(nombre_completo, color), inmueble_media(url, portada, tipo), catastro_property_links(finca_reference)";
 
 export type InmueblePanel = {
   id: string;
@@ -18,6 +18,9 @@ export type InmueblePanel = {
   tipo_inmueble: string | null;
   portadaUrl: string | null;
   nFotos: number;
+  nPlanos: number;
+  video_url: string | null;
+  tour_url: string | null;
   origen: string | null;
   dhStatus: string | null;
   superficie_m2: number | null;
@@ -55,19 +58,23 @@ export type InmueblePanelRow = {
   habitaciones?: number | null;
   banos?: number | null;
   planta?: string | null;
+  video_url?: string | null;
+  tour_url?: string | null;
   clientes: { nombre: string } | { nombre: string }[] | null;
   profiles:
     | { nombre_completo: string | null; color: string | null }
     | { nombre_completo: string | null; color: string | null }[]
     | null;
-  inmueble_media: Array<{ url: string; portada: boolean }> | null;
+  inmueble_media: Array<{ url: string; portada: boolean; tipo?: string | null }> | null;
   catastro_property_links: { finca_reference: string } | { finca_reference: string }[] | null;
 };
 
 export function mapInmueblePanel(r: InmueblePanelRow, dhPorFinca?: Map<string, string>): InmueblePanel {
   const c = relacionUno(r.clientes);
   const com = relacionUno(r.profiles);
-  const fotos = r.inmueble_media ?? [];
+  const media = r.inmueble_media ?? [];
+  const fotos = media.filter((f) => !f.tipo || f.tipo === "foto");
+  const planos = media.filter((f) => f.tipo === "plano");
   const portada = fotos.find((f) => f.portada) ?? fotos[0];
   const link = relacionUno(r.catastro_property_links);
   const fincaReference = link?.finca_reference ?? null;
@@ -85,6 +92,9 @@ export function mapInmueblePanel(r: InmueblePanelRow, dhPorFinca?: Map<string, s
     tipo_inmueble: r.tipo_inmueble,
     portadaUrl: portada?.url ?? null,
     nFotos: fotos.length,
+    nPlanos: planos.length,
+    video_url: r.video_url ?? null,
+    tour_url: r.tour_url ?? null,
     origen: r.origen ?? null,
     dhStatus: fincaReference ? dhPorFinca?.get(fincaReference) ?? null : null,
     superficie_m2: r.superficie_m2,

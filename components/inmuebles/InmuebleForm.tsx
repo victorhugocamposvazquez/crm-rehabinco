@@ -272,14 +272,6 @@ export function InmuebleForm({
           />
         </div>
         <div className="space-y-2">
-          <Label>Vídeo (URL YouTube / Vimeo)</Label>
-          <Input
-            placeholder="https://"
-            value={values.video_url}
-            onChange={(e) => set({ video_url: e.target.value })}
-          />
-        </div>
-        <div className="space-y-2">
           <Label>Notas internas</Label>
           <textarea
             className="flex min-h-[72px] w-full rounded-lg border border-border bg-white px-4 py-2 text-base"

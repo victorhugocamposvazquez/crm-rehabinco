@@ -105,6 +105,7 @@ export type Inmueble = {
   referencia_catastral: string | null;
   descripcion: string | null;
   video_url: string | null;
+  tour_url: string | null;
   comercial_id: string | null;
   publicado: boolean;
   created_at?: string | null;
@@ -146,6 +147,7 @@ export type InmuebleFormValues = {
   referencia_catastral: string;
   descripcion: string;
   video_url: string;
+  tour_url: string;
   publicado: boolean;
 };
 
@@ -175,6 +177,7 @@ export const INMUEBLE_FORM_VACIO: InmuebleFormValues = {
   referencia_catastral: "",
   descripcion: "",
   video_url: "",
+  tour_url: "",
   publicado: false,
 };
 
@@ -210,6 +213,7 @@ export function inmuebleDesdeForm(values: InmuebleFormValues) {
     referencia_catastral: values.referencia_catastral.trim() || null,
     descripcion: values.descripcion.trim() || null,
     video_url: values.video_url.trim() || null,
+    tour_url: values.tour_url.trim() || null,
     publicado: values.publicado,
   };
 }
@@ -242,6 +246,7 @@ export function formDesdeInmueble(p: Partial<Inmueble>, fallbackOfertante = ""):
     referencia_catastral: p.referencia_catastral ?? "",
     descripcion: p.descripcion ?? "",
     video_url: p.video_url ?? "",
+    tour_url: p.tour_url ?? "",
     publicado: Boolean(p.publicado),
   };
 }

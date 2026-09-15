@@ -19,6 +19,8 @@ import {
 import { ZONAS_DEMANDA } from "@/lib/demandas/nueva";
 import { altaCamposVacios, leerAltaBorrador } from "@/lib/ui/alta-borrador";
 import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
+import { acceptMedia, validarArchivoMedia } from "@/lib/inmuebles/media";
+import { subirArchivosMedia } from "@/lib/inmuebles/subir-media";
 
 type InmuebleAltaSnap = {
   values: InmuebleFormValues;
@@ -41,6 +43,8 @@ function inmuebleAltaVacia(s: InmuebleAltaSnap) {
     v.habitaciones,
     v.banos,
     v.notas,
+    v.video_url,
+    v.tour_url,
     s.nombreNuevo,
     s.telefonoNuevo,
     s.nuevoPropietario,
@@ -69,6 +73,8 @@ export function NuevoInmueblePanel({
   const [nombreNuevo, setNombreNuevo] = useState("");
   const [telefonoNuevo, setTelefonoNuevo] = useState("");
   const [saving, setSaving] = useState(false);
+  const [pendientesFoto, setPendientesFoto] = useState<File[]>([]);
+  const [pendientesPlano, setPendientesPlano] = useState<File[]>([]);
   const [values, setValues] = useState<InmuebleFormValues>({
     ...INMUEBLE_FORM_VACIO,
     ofertante_id: ofertanteIdInicial ?? "",
@@ -86,6 +92,8 @@ export function NuevoInmueblePanel({
     setNuevoPropietario(false);
     setNombreNuevo("");
     setTelefonoNuevo("");
+    setPendientesFoto([]);
+    setPendientesPlano([]);
   };
 
   useEffect(() => {
@@ -169,11 +177,36 @@ export function NuevoInmueblePanel({
       })
       .select("id")
       .single();
-    setSaving(false);
     if (error || !data) {
+      setSaving(false);
       toast.error("No se ha podido crear el inmueble.");
       return;
     }
+    if (pendientesFoto.length || pendientesPlano.length) {
+      let media: Awaited<ReturnType<typeof subirArchivosMedia>>["media"] = [];
+      if (pendientesFoto.length) {
+        const subida = await subirArchivosMedia({
+          propiedadId: data.id,
+          userId: user.id,
+          files: pendientesFoto,
+          tipo: "foto",
+          media,
+        });
+        media = subida.media;
+        for (const err of subida.errores) toast.error(err);
+      }
+      if (pendientesPlano.length) {
+        const subida = await subirArchivosMedia({
+          propiedadId: data.id,
+          userId: user.id,
+          files: pendientesPlano,
+          tipo: "plano",
+          media,
+        });
+        for (const err of subida.errores) toast.error(err);
+      }
+    }
+    setSaving(false);
     toast.success("Inmueble creado.");
     altaBorrador.consumir();
     onOpenChange(false);
@@ -185,7 +218,7 @@ export function NuevoInmueblePanel({
       open={open}
       onOpenChange={onOpenChange}
       title="Nuevo inmueble"
-      hint="Con título o dirección basta. Fotos, catastro y el resto se completan en la ficha."
+      hint="Con título o dirección basta. Fotos, planos y tour 3D pueden ir ya o en la ficha."
       primaryLabel="Crear inmueble"
       saving={saving}
       disablePrimary={!values.titulo.trim() && !values.direccion.trim()}
@@ -318,6 +351,59 @@ export function NuevoInmueblePanel({
             </span>
             <input type="checkbox" checked={values.publicado} onChange={(e) => set({ publicado: e.target.checked })} className="h-4 w-4 accent-[var(--accent)]" />
           </label>
+        </div>
+      </AltaSection>
+
+      <AltaSection wide title="Fotos y visita virtual" hint="Puedes dejarlo vacío y completarlo en la ficha. Los archivos de esta sesión no entran en el borrador del navegador.">
+        <div className="flex flex-col gap-4">
+          <AltaField label="Fotos" optional>
+            <input
+              type="file"
+              accept={acceptMedia("foto")}
+              multiple
+              className={`${altaControl} mt-2 cursor-pointer py-2.5 file:mr-3 file:rounded-md file:border-0 file:bg-[var(--surface-soft)] file:px-3 file:py-1.5 file:text-[12.5px] file:font-semibold`}
+              onChange={(e) => {
+                const files = Array.from(e.target.files ?? []);
+                const ok: File[] = [];
+                for (const file of files) {
+                  const fallo = validarArchivoMedia("foto", file);
+                  if (fallo) toast.error(fallo);
+                  else ok.push(file);
+                }
+                setPendientesFoto(ok);
+              }}
+            />
+            {pendientesFoto.length ? (
+              <p className="mt-1.5 text-[12.5px] text-[var(--text-2)]">{pendientesFoto.length} foto{pendientesFoto.length === 1 ? "" : "s"} listas para subir</p>
+            ) : null}
+          </AltaField>
+          <AltaField label="Planos" optional>
+            <input
+              type="file"
+              accept={acceptMedia("plano")}
+              multiple
+              className={`${altaControl} mt-2 cursor-pointer py-2.5 file:mr-3 file:rounded-md file:border-0 file:bg-[var(--surface-soft)] file:px-3 file:py-1.5 file:text-[12.5px] file:font-semibold`}
+              onChange={(e) => {
+                const files = Array.from(e.target.files ?? []);
+                const ok: File[] = [];
+                for (const file of files) {
+                  const fallo = validarArchivoMedia("plano", file);
+                  if (fallo) toast.error(fallo);
+                  else ok.push(file);
+                }
+                setPendientesPlano(ok);
+              }}
+            />
+            {pendientesPlano.length ? (
+              <p className="mt-1.5 text-[12.5px] text-[var(--text-2)]">{pendientesPlano.length} plano{pendientesPlano.length === 1 ? "" : "s"} listos</p>
+            ) : null}
+          </AltaField>
+          <AltaField label="Vídeo (YouTube / Vimeo)" optional>
+            <input value={values.video_url} onChange={(e) => set({ video_url: e.target.value })} placeholder="https://" className={altaControl} />
+          </AltaField>
+          <AltaField label="Tour 3D (Matterport / Kuula)" optional>
+            <input value={values.tour_url} onChange={(e) => set({ tour_url: e.target.value })} placeholder="https://my.matterport.com/show/?m=…" className={altaControl} />
+          </AltaField>
         </div>
       </AltaSection>
 

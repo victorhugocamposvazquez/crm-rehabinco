@@ -253,6 +253,7 @@ export interface Database {
           lng: number | null;
           descripcion: string | null;
           video_url: string | null;
+          tour_url: string | null;
           comercial_id: string | null;
           publicado: boolean;
           origen: string;
@@ -287,6 +288,7 @@ export interface Database {
           referencia_catastral?: string | null;
           descripcion?: string | null;
           video_url?: string | null;
+          tour_url?: string | null;
           comercial_id?: string | null;
           publicado?: boolean;
           origen?: string;
@@ -318,6 +320,7 @@ export interface Database {
           referencia_catastral?: string | null;
           descripcion?: string | null;
           video_url?: string | null;
+          tour_url?: string | null;
           comercial_id?: string | null;
           publicado?: boolean;
           origen?: string;
@@ -690,6 +693,8 @@ export interface Database {
           origen?: string | null;
         };
         Update: {
+          cliente_id?: string;
+          comercial_id?: string;
           tipo_operacion?: string;
           tipos_inmueble?: string[];
           zonas?: string[];

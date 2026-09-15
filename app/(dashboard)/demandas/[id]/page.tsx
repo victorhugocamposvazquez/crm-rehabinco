@@ -6,9 +6,11 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { matchingDemandas, ESTADOS_MATCHING, type CriteriosDemanda } from "@/lib/demandas/matching";
+import { matchingDemandas, ESTADOS_MATCHING, ESTADO_MATCHING_LABEL, type CriteriosDemanda } from "@/lib/demandas/matching";
 import { FichaLink } from "@/components/crm/FichaPeek";
 import { relacionUno } from "@/lib/citas/citas";
+import { NuevaDemandaPanel } from "@/components/demandas/NuevaDemandaPanel";
+import { Pencil } from "lucide-react";
 
 type Demanda = {
   id: string;
@@ -40,6 +42,7 @@ export default function DemandaDetallePage() {
   const id = params.id as string;
   const [demanda, setDemanda] = useState<Demanda | null>(null);
   const [matches, setMatches] = useState<MatchRow[]>([]);
+  const [editar, setEditar] = useState(false);
 
   const cargar = () => {
     const supabase = createClient();
@@ -162,9 +165,15 @@ export default function DemandaDetallePage() {
         }
         description={`${demanda.tipo_operacion}${demanda.zonas?.length ? ` · ${demanda.zonas.join(", ")}` : ""}`}
         actions={
-          <Button type="button" size="sm" onClick={() => void buscar()}>
-            Buscar en stock
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" size="sm" variant="secondary" onClick={() => setEditar(true)} className="gap-2">
+              <Pencil className="h-4 w-4" strokeWidth={1.5} />
+              Editar
+            </Button>
+            <Button type="button" size="sm" onClick={() => void buscar()}>
+              Buscar en stock
+            </Button>
+          </div>
         }
       />
       {demanda.requisitos ? <p className="mt-4 text-sm text-[#5D6B67]">{demanda.requisitos}</p> : null}
@@ -177,7 +186,8 @@ export default function DemandaDetallePage() {
                   {item.propiedades?.titulo || item.propiedades?.direccion || "Inmueble"}
                 </FichaLink>
                 <p className="text-sm text-[#5D6B67]">
-                  {item.propiedades?.localidad} · {Math.round(Number(item.puntuacion))} pts · {item.estado}
+                  {item.propiedades?.localidad} · {Math.round(Number(item.puntuacion))} pts ·{" "}
+                  {ESTADO_MATCHING_LABEL[item.estado as keyof typeof ESTADO_MATCHING_LABEL] ?? item.estado}
                 </p>
               </div>
               <select
@@ -187,7 +197,7 @@ export default function DemandaDetallePage() {
               >
                 {ESTADOS_MATCHING.map((estado) => (
                   <option key={estado} value={estado}>
-                    {estado}
+                    {ESTADO_MATCHING_LABEL[estado]}
                   </option>
                 ))}
               </select>
@@ -198,6 +208,17 @@ export default function DemandaDetallePage() {
           <li className="text-sm text-[#5D6B67]">Aún no hay inmuebles propuestos. Pulsa «Buscar en stock».</li>
         ) : null}
       </ul>
+      <NuevaDemandaPanel
+        open={editar}
+        onOpenChange={setEditar}
+        editarId={id}
+        clienteIdInicial={demanda.cliente_id}
+        clienteNombre={demanda.clientes?.nombre ?? undefined}
+        onCreada={() => {
+          setEditar(false);
+          cargar();
+        }}
+      />
     </div>
   );
 }

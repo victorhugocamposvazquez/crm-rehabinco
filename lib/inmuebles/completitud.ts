@@ -37,8 +37,11 @@ export function completitudFicha(input: {
     | "descripcion"
     | "ofertante_id"
     | "publicado"
+    | "video_url"
+    | "tour_url"
   >;
   fotos: number;
+  planos?: number;
 }): CompletitudFicha {
   const op = input.inmueble.tipo_operacion;
   const precioOk =
@@ -61,6 +64,12 @@ export function completitudFicha(input: {
     { clave: "habitaciones", label: "Habitaciones", ok: hayNumero(input.inmueble.habitaciones) },
     { clave: "descripcion", label: "Descripción", ok: hayTexto(input.inmueble.descripcion) },
     { clave: "fotos", label: "Fotos", ok: input.fotos > 0 },
+    { clave: "planos", label: "Planos", ok: (input.planos ?? 0) > 0 },
+    {
+      clave: "video",
+      label: "Vídeo o tour 3D",
+      ok: hayTexto(input.inmueble.video_url) || hayTexto(input.inmueble.tour_url),
+    },
     { clave: "propietario", label: "Propietario", ok: Boolean(input.inmueble.ofertante_id) },
     { clave: "publicado", label: "Listo para matching", ok: Boolean(input.inmueble.publicado) },
   ];

@@ -15,22 +15,27 @@ const BASE = {
   descripcion: "Piso luminoso",
   ofertante_id: "c1",
   publicado: true,
+  video_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  tour_url: null,
 };
 
 describe("completitud de ficha", () => {
-  it("una ficha llena con fotos está al 100 %", () => {
-    const r = completitudFicha({ inmueble: BASE, fotos: 4 });
+  it("una ficha llena con fotos, planos y vídeo está al 100 %", () => {
+    const r = completitudFicha({ inmueble: BASE, fotos: 4, planos: 1 });
     assert.equal(r.porcentaje, 100);
     assert.equal(r.faltan.length, 0);
   });
 
   it("sin fotos ni descripción no está lista", () => {
     const r = completitudFicha({
-      inmueble: { ...BASE, descripcion: null, publicado: false },
+      inmueble: { ...BASE, descripcion: null, publicado: false, video_url: null },
       fotos: 0,
+      planos: 0,
     });
     assert.ok(r.porcentaje < 80);
     assert.ok(r.faltan.includes("Fotos"));
+    assert.ok(r.faltan.includes("Planos"));
+    assert.ok(r.faltan.includes("Vídeo o tour 3D"));
     assert.ok(r.faltan.includes("Descripción"));
   });
 });

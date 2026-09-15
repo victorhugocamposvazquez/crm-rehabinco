@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { FichaLink } from "@/components/crm/FichaPeek";
 import {
   ESTADOS_MATCHING,
+  ESTADO_MATCHING_LABEL,
   matchingInmuebleDemandas,
   type CriteriosDemanda,
 } from "@/lib/demandas/matching";
@@ -138,7 +139,7 @@ export function InmuebleMatching({ inmueble }: { inmueble: Inmueble }) {
             >
               {ESTADOS_MATCHING.map((estado) => (
                 <option key={estado} value={estado}>
-                  {estado}
+                  {ESTADO_MATCHING_LABEL[estado]}
                 </option>
               ))}
             </select>

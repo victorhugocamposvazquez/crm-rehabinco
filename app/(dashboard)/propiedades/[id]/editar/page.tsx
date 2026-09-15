@@ -9,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
 import { InmuebleForm } from "@/components/inmuebles/InmuebleForm";
-import { InmuebleGaleria } from "@/components/inmuebles/InmuebleGaleria";
+import { InmuebleMultimedia } from "@/components/inmuebles/InmuebleMultimedia";
+import { InmuebleDocumentos, type DocInmueble } from "@/components/inmuebles/InmuebleDocumentos";
 import {
   formDesdeInmueble,
   inmuebleDesdeForm,
@@ -28,6 +29,7 @@ export default function EditarPropiedadPage() {
   const [clientes, setClientes] = useState<Array<{ id: string; nombre: string }>>([]);
   const [values, setValues] = useState<InmuebleFormValues>(INMUEBLE_FORM_VACIO);
   const [media, setMedia] = useState<InmuebleMedia[]>([]);
+  const [documentos, setDocumentos] = useState<DocInmueble[]>([]);
   const [referencia, setReferencia] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -49,7 +51,8 @@ export default function EditarPropiedadPage() {
     Promise.all([
       supabase.from("propiedades").select("*").eq("id", id).single(),
       supabase.from("inmueble_media").select("id, propiedad_id, tipo, path, url, orden, portada").eq("propiedad_id", id),
-    ]).then(([prop, med]) => {
+      supabase.from("inmueble_documentos").select("id, tipo, nombre, path, created_at").eq("propiedad_id", id),
+    ]).then(([prop, med, docs]) => {
       if (prop.error || !prop.data) {
         setLoading(false);
         return;
@@ -58,6 +61,7 @@ export default function EditarPropiedadPage() {
       setReferencia(p.referencia);
       setValues(formDesdeInmueble(p));
       setMedia((med.data ?? []) as InmuebleMedia[]);
+      setDocumentos((docs.data ?? []) as DocInmueble[]);
       setLoading(false);
     });
   }, [id]);
@@ -111,7 +115,7 @@ export default function EditarPropiedadPage() {
         </Link>
       </div>
 
-      <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
         <Card>
           <CardHeader>
             <CardTitle>Datos</CardTitle>
@@ -132,16 +136,41 @@ export default function EditarPropiedadPage() {
             />
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Fotos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {user?.id ? (
-              <InmuebleGaleria propiedadId={id} userId={user.id} media={media} onChange={setMedia} />
-            ) : null}
-          </CardContent>
-        </Card>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Fotos, planos y visita virtual</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {user?.id ? (
+                <InmuebleMultimedia
+                  propiedadId={id}
+                  userId={user.id}
+                  media={media}
+                  onChange={setMedia}
+                  videoUrl={values.video_url}
+                  tourUrl={values.tour_url}
+                  onUrlsChange={(patch) => setValues((v) => ({ ...v, ...patch }))}
+                />
+              ) : null}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Documentos privados</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {user?.id ? (
+                <InmuebleDocumentos
+                  propiedadId={id}
+                  userId={user.id}
+                  documentos={documentos}
+                  onChange={setDocumentos}
+                />
+              ) : null}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
