@@ -14,6 +14,9 @@ import { matchingInmuebleDemandas, type CriteriosDemanda } from "@/lib/demandas/
 import { relacionUno } from "@/lib/citas/citas";
 import { colorEstado } from "@/lib/ui/estados-vista";
 import { FichaLink } from "@/components/crm/FichaPeek";
+import { InmuebleMultimedia } from "@/components/inmuebles/InmuebleMultimedia";
+import { useAuth } from "@/lib/auth/auth-context";
+import type { InmuebleMedia } from "@/lib/inmuebles/catalogo";
 import { cn } from "@/lib/utils";
 
 type MatchVista = {
@@ -31,21 +34,31 @@ export function PanelInmueble({
   embedded = false,
   loading = false,
   onClose,
+  onCambio,
 }: {
   inmueble: InmueblePanel | null;
   overlay?: boolean;
   embedded?: boolean;
   loading?: boolean;
   onClose?: () => void;
+  onCambio?: (patch: Partial<InmueblePanel>) => void;
 }) {
+  const { user } = useAuth();
   const [matches, setMatches] = useState<MatchVista[]>([]);
+  const [media, setMedia] = useState<InmuebleMedia[]>([]);
 
   useEffect(() => {
     if (!inmueble) {
       setMatches([]);
+      setMedia([]);
       return;
     }
     const supabase = createClient();
+    void supabase
+      .from("inmueble_media")
+      .select("id, propiedad_id, tipo, path, url, orden, portada")
+      .eq("propiedad_id", inmueble.id)
+      .then(({ data }) => setMedia((data ?? []) as InmuebleMedia[]));
     let cancelled = false;
     void (async () => {
       const { data: guardados } = await supabase
@@ -179,7 +192,7 @@ export function PanelInmueble({
       <aside
         className={cn(
           "overflow-hidden bg-white",
-          overlay ? "fixed inset-0 z-50 rounded-none" : embedded ? "" : "sticky top-[72px] min-w-[300px] flex-[1_1_330px] rounded-[14px] border border-border"
+          overlay ? "fixed inset-0 z-50 rounded-none" : embedded ? "" : "sticky top-[72px] w-full max-w-[42rem] shrink-0 rounded-[14px] border border-border"
         )}
       >
         <div className="aspect-video bg-[var(--surface-soft)]" />
@@ -207,8 +220,8 @@ export function PanelInmueble({
       video_url: inmueble.video_url,
       tour_url: inmueble.tour_url,
     },
-    fotos: inmueble.nFotos,
-    planos: inmueble.nPlanos,
+    fotos: media.filter((item) => item.tipo === "foto").length || inmueble.nFotos,
+    planos: media.filter((item) => item.tipo === "plano").length || inmueble.nPlanos,
   });
 
   return (
@@ -219,7 +232,7 @@ export function PanelInmueble({
           ? "fixed inset-0 z-50 rounded-none"
           : embedded
             ? ""
-            : "sticky top-[72px] min-w-[300px] flex-[1_1_330px] rounded-[14px] border border-border"
+            : "sticky top-[72px] w-full max-w-[42rem] shrink-0 rounded-[14px] border border-border"
       )}
     >
       <div className={cn(!embedded && "max-h-[100dvh] overflow-y-auto")}>
@@ -236,17 +249,7 @@ export function PanelInmueble({
               {inmueble.video_url || inmueble.tour_url ? " · visita virtual" : ""}
             </span>
           </div>
-          {overlay && onClose ? (
-            <button
-              type="button"
-              onClick={onClose}
-              className="absolute right-2.5 top-2.5 grid h-[34px] w-[34px] place-items-center rounded-[9px] bg-white/95"
-              aria-label="Cerrar"
-            >
-              <X className="h-4 w-4" strokeWidth={2.4} />
-            </button>
-          ) : null}
-          {!overlay && onClose ? (
+          {onClose ? (
             <button
               type="button"
               onClick={onClose}
@@ -312,6 +315,33 @@ export function PanelInmueble({
         </div>
         {inmueble.descripcion ? (
           <p className="border-b border-[var(--border-soft)] px-4 py-3 text-[13px] leading-relaxed text-[var(--text-2)]">{inmueble.descripcion}</p>
+        ) : null}
+        {user?.id ? (
+          <div className="border-b border-[var(--border-soft)] px-4 py-3.5">
+            <h3 className="mb-3 text-[13.5px] font-semibold">Fotos, planos y visita virtual</h3>
+            <InmuebleMultimedia
+              propiedadId={inmueble.id}
+              userId={user.id}
+              media={media}
+              onChange={(next) => {
+                setMedia(next);
+                const fotos = next.filter((m) => m.tipo === "foto").sort((a, b) => a.orden - b.orden);
+                onCambio?.({
+                  nFotos: fotos.length,
+                  nPlanos: next.filter((m) => m.tipo === "plano").length,
+                  portadaUrl: fotos.find((f) => f.portada)?.url ?? fotos[0]?.url ?? null,
+                });
+              }}
+              videoUrl={inmueble.video_url ?? ""}
+              tourUrl={inmueble.tour_url ?? ""}
+              onUrlsChange={(patch) =>
+                onCambio?.({
+                  video_url: patch.video_url !== undefined ? patch.video_url || null : inmueble.video_url,
+                  tour_url: patch.tour_url !== undefined ? patch.tour_url || null : inmueble.tour_url,
+                })
+              }
+            />
+          </div>
         ) : null}
         <div className="px-4 pb-3.5 pt-3">
           <div className="mb-2 flex items-baseline justify-between">

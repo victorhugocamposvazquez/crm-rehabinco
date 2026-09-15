@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 import { extraAlta } from "@/lib/ui/alta-panel";
 import { NuevoInmueblePanel } from "@/components/inmuebles/NuevoInmueblePanel";
 import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
+import { Sheet } from "@/components/ui/sheet";
 
 type PropiedadLista = InmueblePanel;
 
@@ -131,24 +132,14 @@ export default function PropiedadesPage() {
   }, [propiedades, search, filterEstado, filterTipo, filterOrigen, filterDh]);
 
   useEffect(() => {
-    if (narrow) return;
-    if (pendingSelectedId) {
-      if (filteredPropiedades.some((p) => p.id === pendingSelectedId)) {
-        setSelectedId(pendingSelectedId);
-        setPendingSelectedId(null);
-      }
-      return;
+    if (!pendingSelectedId) return;
+    if (propiedades.some((p) => p.id === pendingSelectedId)) {
+      setSelectedId(pendingSelectedId);
+      setPendingSelectedId(null);
     }
-    if (filteredPropiedades.length === 0) {
-      setSelectedId(null);
-      return;
-    }
-    if (!selectedId || !filteredPropiedades.some((p) => p.id === selectedId)) {
-      setSelectedId(filteredPropiedades[0].id);
-    }
-  }, [filteredPropiedades, selectedId, narrow, pendingSelectedId]);
+  }, [propiedades, pendingSelectedId]);
 
-  const selected = filteredPropiedades.find((p) => p.id === selectedId) ?? null;
+  const selected = propiedades.find((p) => p.id === selectedId) ?? null;
   const modo = narrow ? "grid" : vista;
   const nDisponibles = propiedades.filter((p) => p.estado === "disponible").length;
 
@@ -189,8 +180,13 @@ export default function PropiedadesPage() {
           </Button>
         </div>
       ) : (
-        <div className="mt-5 flex items-start gap-4">
-          <section className="min-w-0 flex-[1_1_540px] overflow-hidden rounded-[14px] border border-border bg-white">
+        <div
+          className={cn(
+            "mt-5",
+            selected && !narrow && "flex items-start gap-4"
+          )}
+        >
+          <section className="min-w-0 w-full flex-1 overflow-hidden rounded-[14px] border border-border bg-white">
             <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border-soft)] px-3.5 py-3">
               <div className="relative min-w-0 flex-[1_1_180px]">
                 <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-2)]" strokeWidth={2.2} />
@@ -262,7 +258,7 @@ export default function PropiedadesPage() {
               <p className="px-4 py-9 text-center text-[13.5px] text-[var(--text-2)]">Ningún inmueble con ese filtro.</p>
             ) : modo === "lista" ? (
               <>
-                <div className="grid grid-cols-[minmax(0,2.4fr)_70px_100px_110px_120px] gap-3 border-b border-[var(--border-soft)] bg-[var(--surface-soft)] px-3.5 py-2 text-[11px] uppercase tracking-[.06em] text-[var(--label)]">
+                <div className="grid grid-cols-[minmax(0,1fr)_70px_110px_120px_130px] gap-3 border-b border-[var(--border-soft)] bg-[var(--surface-soft)] px-3.5 py-2 text-[11px] uppercase tracking-[.06em] text-[var(--label)]">
                   <div>Inmueble</div>
                   <div className="text-right">m²</div>
                   <div className="text-right">Precio</div>
@@ -277,7 +273,7 @@ export default function PropiedadesPage() {
                       type="button"
                       onClick={() => setSelectedId(p.id)}
                       className={cn(
-                        "grid w-full grid-cols-[minmax(0,2.4fr)_70px_100px_110px_120px] items-center gap-3 border-b border-[var(--border-row)] px-3.5 py-2.5 text-left hover:bg-[var(--surface-soft)]",
+                        "grid w-full grid-cols-[minmax(0,1fr)_70px_110px_120px_130px] items-center gap-3 border-b border-[var(--border-row)] px-3.5 py-2.5 text-left hover:bg-[var(--surface-soft)]",
                         active && "bg-[var(--row-active)] shadow-[inset_3px_0_0_var(--accent)]"
                       )}
                     >
@@ -350,16 +346,41 @@ export default function PropiedadesPage() {
               </div>
             )}
           </section>
-
-          {selected ? (
-            <PanelInmueble
-              inmueble={selected}
-              overlay={narrow}
-              onClose={narrow ? () => setSelectedId(null) : undefined}
-            />
+          {selected && !narrow ? (
+            <div className="w-[min(42rem,46vw)] shrink-0">
+              <PanelInmueble
+                inmueble={selected}
+                onClose={() => setSelectedId(null)}
+                onCambio={(patch) => {
+                  setPropiedades((prev) => prev.map((p) => (p.id === selected.id ? { ...p, ...patch } : p)));
+                }}
+              />
+            </div>
           ) : null}
         </div>
       )}
+
+      <Sheet
+        open={Boolean(selected) && narrow}
+        onOpenChange={(open) => {
+          if (!open) setSelectedId(null);
+        }}
+        variant="side"
+        side="right"
+        className="min-[780px]:w-[min(42rem,92vw)]"
+      >
+        {narrow ? (
+          <PanelInmueble
+            inmueble={selected}
+            embedded
+            onClose={() => setSelectedId(null)}
+            onCambio={(patch) => {
+              if (!selected) return;
+              setPropiedades((prev) => prev.map((p) => (p.id === selected.id ? { ...p, ...patch } : p)));
+            }}
+          />
+        ) : null}
+      </Sheet>
 
       <Fab onClick={() => { setOfertanteInicial(undefined); setNuevaOpen(true); }} label={hayBorrador ? "Continuar borrador" : "Nuevo inmueble"} />
       <NuevoInmueblePanel
