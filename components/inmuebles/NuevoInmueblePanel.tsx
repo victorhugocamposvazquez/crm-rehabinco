@@ -133,7 +133,7 @@ export function NuevoInmueblePanel({
       toast.error("Sesión expirada.");
       return;
     }
-    let ofertanteId = values.ofertante_id;
+    const ofertanteId = values.ofertante_id;
     setSaving(true);
     const { data, error } = await supabase
       .from("propiedades")
