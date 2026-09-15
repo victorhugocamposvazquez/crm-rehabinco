@@ -748,6 +748,8 @@ export interface Database {
           cliente_id: string | null;
           demanda_id: string | null;
           finca_reference: string | null;
+          lugar: string | null;
+          tarea_id: string | null;
           estado: string;
           created_at: string;
         };
@@ -761,6 +763,8 @@ export interface Database {
           cliente_id?: string | null;
           demanda_id?: string | null;
           finca_reference?: string | null;
+          lugar?: string | null;
+          tarea_id?: string | null;
           estado?: string;
         };
         Update: {
@@ -772,6 +776,8 @@ export interface Database {
           cliente_id?: string | null;
           demanda_id?: string | null;
           finca_reference?: string | null;
+          lugar?: string | null;
+          tarea_id?: string | null;
           estado?: string;
         };
       };

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { citasAgrupadasPorDia, citasDelDia, horaCita, horaDesdeMinutos, minutosDesdeHora, minutosDesdeOffsetY, moverCitaADiaHora, moverSemana, puedeHacerParte, prefillParteDesdeCita, relacionUno, rutaNuevaCita, rutaNuevaVisitaDesdeCita, semanaDesde, snapMinutos } from "./citas";
+import { citasAgrupadasPorDia, citasDelDia, direccionDeInmueble, enlaceGoogleMaps, horaCita, horaDesdeMinutos, minutosDesdeHora, minutosDesdeOffsetY, moverCitaADiaHora, moverSemana, puedeHacerParte, portadaDeMedia, prefillParteDesdeCita, relacionUno, rutaNuevaCita, rutaNuevaVisitaDesdeCita, semanaDesde, snapMinutos } from "./citas";
 
 describe("citas", () => {
   it("el parte se abre prellenado desde la cita, no al revés", () => {
@@ -78,5 +78,22 @@ describe("citas", () => {
     assert.equal(end.getHours(), 12);
     assert.equal(minutosDesdeHora("18:30"), 18 * 60 + 30);
     assert.equal(horaDesdeMinutos(11 * 60 + 7), "11:00");
+  });
+
+  it("arma el enlace de Google Maps y la dirección del inmueble", () => {
+    assert.equal(direccionDeInmueble({ direccion: "Rúa Nova 12", localidad: "Oleiros" }), "Rúa Nova 12, Oleiros");
+    assert.equal(
+      enlaceGoogleMaps({ consulta: "Rúa Nova 12, Oleiros" }),
+      "https://www.google.com/maps/search/?api=1&query=R%C3%BAa%20Nova%2012%2C%20Oleiros"
+    );
+    assert.equal(enlaceGoogleMaps({ lat: 43.33, lng: -8.31 }), "https://www.google.com/maps/search/?api=1&query=43.33,-8.31");
+    assert.equal(enlaceGoogleMaps({}), null);
+    assert.equal(
+      portadaDeMedia([
+        { url: "b.jpg", portada: false, tipo: "foto" },
+        { url: "a.jpg", portada: true, tipo: "foto" },
+      ]),
+      "a.jpg"
+    );
   });
 });

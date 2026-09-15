@@ -35,6 +35,16 @@ export const COMERCIAL_COLORS = [
   "#2B4A8A",
 ] as const;
 
+/** Color de ficha del comercial: el guardado, o uno estable según el id. */
+export function colorComercial(id?: string | null, color?: string | null): string {
+  const guardado = color?.trim() ?? "";
+  if (/^#[0-9A-Fa-f]{6}$/.test(guardado)) return guardado;
+  if (!id) return COMERCIAL_COLORS[0];
+  let h = 0;
+  for (let i = 0; i < id.length; i += 1) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return COMERCIAL_COLORS[h % COMERCIAL_COLORS.length];
+}
+
 function nombreUtil(nombre?: string | null): string {
   const limpio = nombre?.trim() ?? "";
   if (!limpio || /^comercial$/i.test(limpio)) return "";

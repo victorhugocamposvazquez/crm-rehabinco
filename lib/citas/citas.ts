@@ -182,6 +182,49 @@ export function horaDesdeMinutos(minutos: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+export type InmuebleCalendario = {
+  id: string;
+  titulo: string | null;
+  direccion: string | null;
+  localidad: string | null;
+  referencia: string | null;
+  tipo_operacion?: string | null;
+  precio_venta?: number | null;
+  precio_alquiler?: number | null;
+  habitaciones?: number | null;
+  superficie_m2?: number | null;
+  lat?: number | null;
+  lng?: number | null;
+  portadaUrl?: string | null;
+};
+
+export function direccionDeInmueble(inmueble: {
+  direccion?: string | null;
+  localidad?: string | null;
+}): string {
+  return [inmueble.direccion?.trim(), inmueble.localidad?.trim()].filter(Boolean).join(", ");
+}
+
+export function enlaceGoogleMaps(input: {
+  consulta?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+}): string | null {
+  if (input.lat != null && input.lng != null && Number.isFinite(input.lat) && Number.isFinite(input.lng)) {
+    return `https://www.google.com/maps/search/?api=1&query=${input.lat},${input.lng}`;
+  }
+  const consulta = input.consulta?.trim();
+  if (!consulta) return null;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(consulta)}`;
+}
+
+export function portadaDeMedia(
+  media: Array<{ url: string; portada?: boolean | null; tipo?: string | null }> | null | undefined
+): string | null {
+  const fotos = (media ?? []).filter((item) => !item.tipo || item.tipo === "foto");
+  return fotos.find((item) => item.portada)?.url ?? fotos[0]?.url ?? null;
+}
+
 export function prefillParteDesdeCita(cita: {
   titulo: string;
   empieza: string;

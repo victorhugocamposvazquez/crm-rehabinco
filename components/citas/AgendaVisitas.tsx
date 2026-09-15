@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { FiltroComercial, type ComercialFiltro } from "@/components/captacion/FiltroComercial";
 import { CitaAcciones } from "@/components/citas/CitaAcciones";
 import { FichaLink } from "@/components/crm/FichaPeek";
+import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { ESTADO_CITA_LABEL, horaCita, relacionUno, type EstadoCita } from "@/lib/citas/citas";
 
 type CitaAgenda = {
@@ -172,7 +173,12 @@ function ListaGrupo({
                 </div>
                 <div className="text-[16px] font-semibold">{d.getDate()}</div>
               </div>
-              <span className="h-9 w-[3px] rounded-sm" style={{ background: cita.profiles?.color || "#3A6A82" }} />
+              <AvatarComercial
+                id={cita.comercial_id}
+                nombre={cita.profiles?.nombre_completo}
+                color={cita.profiles?.color}
+                size={28}
+              />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-[14px] font-semibold">{cita.titulo}</div>
                 <div className="mt-0.5 text-[12px] text-[var(--text-2)]">
@@ -201,7 +207,13 @@ function ListaGrupo({
               className="flex flex-col gap-3 rounded-2xl border border-[#E6E3DD] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="flex items-start gap-3">
-                <span className="mt-1 h-3 w-3 shrink-0 rounded-full" style={{ background: cita.profiles?.color || "#3A6A82" }} />
+                <AvatarComercial
+                  id={cita.comercial_id}
+                  nombre={cita.profiles?.nombre_completo}
+                  color={cita.profiles?.color}
+                  size={28}
+                  className="mt-0.5"
+                />
                 <div>
                   <p className="font-medium">{cita.titulo}</p>
                   <p className="text-xs text-[#5D6B67]">

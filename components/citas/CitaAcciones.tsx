@@ -14,10 +14,12 @@ export type CitaAccionable = {
 export function CitaAcciones({
   cita,
   onEstado,
+  onEditar,
   compact = false,
 }: {
   cita: CitaAccionable;
   onEstado: (id: string, estado: "hecha" | "cancelada") => void;
+  onEditar?: (id: string) => void;
   compact?: boolean;
 }) {
   if (cita.estado !== "prevista") return null;
@@ -36,6 +38,11 @@ export function CitaAcciones({
       <Button type="button" size="sm" variant="ghost" onClick={() => onEstado(cita.id, "cancelada")}>
         Cancelar
       </Button>
+      {onEditar ? (
+        <Button type="button" size="sm" variant="ghost" onClick={() => onEditar(cita.id)}>
+          Editar
+        </Button>
+      ) : null}
     </div>
   );
 }

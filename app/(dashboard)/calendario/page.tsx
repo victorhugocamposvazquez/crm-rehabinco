@@ -9,12 +9,11 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { isAdmin } from "@/lib/auth/roles";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
+import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import {
-  CAL_HORA_FIN,
-  CAL_HORA_INICIO,
-  CAL_PX_HORA,
   citasAgrupadasPorDia,
   citasDelDia,
+  direccionDeInmueble,
   ESTADO_CITA_LABEL,
   horaCita,
   horaDesdeMinutos,
@@ -23,20 +22,26 @@ import {
   minutosLocalesDeCita,
   moverCitaADiaHora,
   moverSemana,
-  posicionEventoCalendario,
+  portadaDeMedia,
   relacionUno,
   semanaDesde,
   TIPO_CITA_LABEL,
   type EstadoCita,
+  type InmuebleCalendario,
   type TipoAltaCalendario,
   type TipoCita,
 } from "@/lib/citas/citas";
 import { FiltroComercial, type ComercialFiltro } from "@/components/captacion/FiltroComercial";
 import { useFiltroComercial } from "@/lib/ui/filtro-comercial";
 import { CitaAcciones } from "@/components/citas/CitaAcciones";
+import { CalendarioSemana } from "@/components/citas/CalendarioSemana";
+import { EnlaceMaps } from "@/components/citas/InmueblePreviewCita";
 import { FichaLink } from "@/components/crm/FichaPeek";
 import { CalendarioMovil } from "@/components/citas/CalendarioMovil";
 import { NuevaEntradaCalendario } from "@/components/citas/NuevaEntradaCalendario";
+
+const SELECT_INMUEBLE =
+  "id, titulo, direccion, localidad, referencia, tipo_operacion, precio_venta, precio_alquiler, habitaciones, superficie_m2, lat, lng, inmueble_media(url, portada, tipo)";
 
 type CitaRow = {
   id: string;
@@ -48,10 +53,29 @@ type CitaRow = {
   propiedad_id: string | null;
   cliente_id: string | null;
   estado: string;
+  lugar?: string | null;
   tarea_id?: string | null;
   profiles?: { nombre_completo?: string | null; color?: string | null } | null;
-  propiedades?: { titulo?: string | null; direccion?: string | null; referencia?: string | null } | null;
+  propiedades?: { titulo?: string | null; direccion?: string | null; localidad?: string | null; referencia?: string | null } | null;
 };
+
+function mapInmueble(row: InmuebleCalendario & { inmueble_media?: Array<{ url: string; portada?: boolean | null; tipo?: string | null }> | null }): InmuebleCalendario {
+  return {
+    id: row.id,
+    titulo: row.titulo,
+    direccion: row.direccion,
+    localidad: row.localidad ?? null,
+    referencia: row.referencia,
+    tipo_operacion: row.tipo_operacion,
+    precio_venta: row.precio_venta,
+    precio_alquiler: row.precio_alquiler,
+    habitaciones: row.habitaciones,
+    superficie_m2: row.superficie_m2,
+    lat: row.lat,
+    lng: row.lng,
+    portadaUrl: portadaDeMedia(row.inmueble_media),
+  };
+}
 
 export default function CalendarioPage() {
   const { user } = useAuth();
@@ -65,7 +89,9 @@ export default function CalendarioPage() {
   const [saving, setSaving] = useState(false);
   const [propiedadId, setPropiedadId] = useState(searchParams.get("propiedad") ?? "");
   const [clienteId, setClienteId] = useState(searchParams.get("cliente") ?? "");
-  const [propiedades, setPropiedades] = useState<Array<{ id: string; titulo: string | null; direccion: string | null; referencia: string | null }>>([]);
+  const [lugar, setLugar] = useState("");
+  const [editando, setEditando] = useState<CitaRow | null>(null);
+  const [propiedades, setPropiedades] = useState<InmuebleCalendario[]>([]);
   const [clientes, setClientes] = useState<Array<{ id: string; nombre: string; telefono: string | null }>>([]);
   const [comerciales, setComerciales] = useState<ComercialFiltro[]>([]);
   const { comercialId: filtroComercial, setComercialId: setFiltroComercial } = useFiltroComercial();
@@ -83,7 +109,7 @@ export default function CalendarioPage() {
     let q = supabase
       .from("citas")
       .select(
-        "id, comercial_id, tipo, titulo, empieza, termina, propiedad_id, cliente_id, estado, tarea_id, profiles:comercial_id(nombre_completo, color), propiedades:propiedad_id(titulo, direccion, referencia)"
+        "id, comercial_id, tipo, titulo, empieza, termina, propiedad_id, cliente_id, estado, tarea_id, lugar, profiles:comercial_id(nombre_completo, color), propiedades:propiedad_id(titulo, direccion, localidad, referencia)"
       )
       .gte("empieza", inicio)
       .lte("empieza", fin)
@@ -110,11 +136,10 @@ export default function CalendarioPage() {
     const supabase = createClient();
     void supabase
       .from("propiedades")
-      .select("id, titulo, direccion, referencia")
-      .eq("estado", "disponible")
+      .select(SELECT_INMUEBLE)
       .order("created_at", { ascending: false })
       .limit(80)
-      .then(({ data }) => setPropiedades(data ?? []));
+      .then(({ data }) => setPropiedades((data ?? []).map((row) => mapInmueble(row as Parameters<typeof mapInmueble>[0]))));
     void supabase
       .from("clientes")
       .select("id, nombre, telefono")
@@ -142,22 +167,111 @@ export default function CalendarioPage() {
       );
   }, [admin]);
 
+  const mezclarInmueble = (id: string) => {
+    if (!id || propiedades.some((p) => p.id === id)) return;
+    const supabase = createClient();
+    void supabase
+      .from("propiedades")
+      .select(SELECT_INMUEBLE)
+      .eq("id", id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return;
+        setPropiedades((prev) => (prev.some((p) => p.id === data.id) ? prev : [mapInmueble(data as Parameters<typeof mapInmueble>[0]), ...prev]));
+      });
+  };
+
   useEffect(() => {
     cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, admin, dia]);
 
-  const crear = async (tipo: TipoAltaCalendario, titulo: string) => {
+  useEffect(() => {
+    if (propiedadId) mezclarInmueble(propiedadId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propiedadId]);
+
+  useEffect(() => {
+    if (!propiedadId || lugar.trim()) return;
+    const p = propiedades.find((item) => item.id === propiedadId);
+    const dir = p ? direccionDeInmueble(p) : "";
+    if (dir) setLugar(dir);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propiedadId, propiedades]);
+
+  const abrirHueco = (diaDestino: string, minutos: number) => {
+    setEditando(null);
+    setPropiedadId("");
+    setClienteId("");
+    setLugar("");
+    setDia(diaDestino);
+    setHora(horaDesdeMinutos(minutos));
+    setSheetOpen(true);
+  };
+
+  const abrirEdicion = (id: string) => {
+    const cita = citas.find((item) => item.id === id);
+    if (!cita || cita.estado === "cancelada") return;
+    setEditando(cita);
+    setDia(cita.empieza.slice(0, 10));
+    setHora(horaCita(cita.empieza));
+    setPropiedadId(cita.propiedad_id ?? "");
+    setClienteId(cita.cliente_id ?? "");
+    setLugar(cita.lugar?.trim() || direccionDeInmueble(cita.propiedades ?? {}));
+    if (cita.propiedad_id) mezclarInmueble(cita.propiedad_id);
+    setSheetOpen(true);
+  };
+
+  const guardar = async (tipo: TipoAltaCalendario, titulo: string) => {
     if (!user) return;
+    const inmueble = propiedades.find((p) => p.id === propiedadId);
     const tituloFinal =
       titulo.trim() ||
-      (propiedadId
-        ? `${TIPO_CITA_LABEL[tipo]} ${propiedades.find((p) => p.id === propiedadId)?.referencia || propiedades.find((p) => p.id === propiedadId)?.direccion || ""}`.trim()
+      (inmueble
+        ? `${TIPO_CITA_LABEL[tipo]} ${inmueble.referencia || inmueble.direccion || ""}`.trim()
         : TIPO_CITA_LABEL[tipo]);
-    const empieza = new Date(`${dia}T${hora}:00`);
-    const termina = new Date(empieza.getTime() + 60 * 60 * 1000);
+    const lugarFinal = lugar.trim() || (inmueble ? direccionDeInmueble(inmueble) : "") || null;
     setSaving(true);
     const supabase = createClient();
+
+    if (editando) {
+      const patch = moverCitaADiaHora({
+        empieza: editando.empieza,
+        termina: editando.termina,
+        dia,
+        minutos: minutosDesdeHora(hora),
+      });
+      const tipoFinal = editando.tipo === "tarea" ? "tarea" : tipo;
+      const { error } = await supabase
+        .from("citas")
+        .update({
+          tipo: tipoFinal,
+          titulo: tituloFinal,
+          empieza: patch.empieza,
+          termina: patch.termina,
+          propiedad_id: propiedadId || null,
+          cliente_id: clienteId || null,
+          lugar: lugarFinal,
+        })
+        .eq("id", editando.id);
+      if (error) {
+        setSaving(false);
+        toast.error("No se ha podido guardar la entrada.");
+        return;
+      }
+      if (editando.tarea_id) {
+        await supabase.from("tareas").update({ titulo: tituloFinal, vence: patch.vence, hora: patch.hora, propiedad_id: propiedadId || null, cliente_id: clienteId || null }).eq("id", editando.tarea_id);
+      }
+      setSaving(false);
+      setSheetOpen(false);
+      setEditando(null);
+      toast.success("Entrada actualizada.");
+      cargar();
+      return;
+    }
+
+    const empieza = new Date(`${dia}T${hora}:00`);
+    const termina = new Date(empieza.getTime() + 60 * 60 * 1000);
     if (tipo === "tarea") {
       const { data: tarea, error: errorTarea } = await supabase
         .from("tareas")
@@ -189,6 +303,7 @@ export default function CalendarioPage() {
           propiedad_id: propiedadId || null,
           cliente_id: clienteId || null,
           tarea_id: tarea.id,
+          lugar: lugarFinal,
         })
         .select("id")
         .single();
@@ -209,6 +324,7 @@ export default function CalendarioPage() {
         termina: termina.toISOString(),
         propiedad_id: propiedadId || null,
         cliente_id: clienteId || null,
+        lugar: lugarFinal,
       });
       if (error) {
         setSaving(false);
@@ -220,12 +336,6 @@ export default function CalendarioPage() {
     setSheetOpen(false);
     toast.success(`${TIPO_CITA_LABEL[tipo]} creado.`);
     cargar();
-  };
-
-  const abrirHueco = (diaDestino: string, minutos: number) => {
-    setDia(diaDestino);
-    setHora(horaDesdeMinutos(minutos));
-    setSheetOpen(true);
   };
 
   const moverCita = async (id: string, diaDestino: string, opts?: { minutos?: number; offsetY?: number | null }) => {
@@ -284,7 +394,7 @@ export default function CalendarioPage() {
       <PageHeader
         breadcrumb={[{ label: "Calendario" }]}
         title="Calendario"
-        description="Pulsa un hueco de día y hora para crear un evento, un recordatorio o una tarea. Arrastra para mover."
+        description="Pulsa un hueco para crear. Pulsa un evento para editarlo. Arrastra para mover."
       />
       {admin ? (
         <div className="mt-4">
@@ -325,111 +435,26 @@ export default function CalendarioPage() {
           onEstado={cambiarEstado}
           onCambiarHora={(id, horaNueva) => void moverCita(id, dia, { minutos: minutosDesdeHora(horaNueva) })}
           onCrearHueco={(minutos) => abrirHueco(dia, minutos)}
+          onEditar={abrirEdicion}
         />
       </div>
 
-      <div className="mt-4 hidden overflow-hidden rounded-[14px] border border-border bg-white min-[820px]:block">
-        <div className="grid grid-cols-[52px_repeat(7,minmax(0,1fr))] border-b border-[var(--border-soft)]">
-          <div />
-          {semana.map((d) => {
-            const esHoy = d === hoy;
-            return (
-              <button
-                key={d}
-                type="button"
-                onClick={() => setDia(d)}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const id = e.dataTransfer.getData("text/cita");
-                  if (id) void moverCita(id, d);
-                }}
-                className="h-[52px] border-l border-[var(--border-soft)] text-center"
-              >
-                <p className="text-[11px] uppercase text-[var(--label)]">
-                  {new Date(`${d}T12:00:00`).toLocaleDateString("es-ES", { weekday: "short" })}
-                </p>
-                <span className={`inline-grid h-7 w-7 place-items-center rounded-full text-[13px] font-semibold ${esHoy ? "bg-accent text-white" : ""}`}>
-                  {new Date(`${d}T12:00:00`).getDate()}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        <div className="grid grid-cols-[52px_repeat(7,minmax(0,1fr))]">
-          <div className="relative" style={{ height: (CAL_HORA_FIN - CAL_HORA_INICIO + 1) * CAL_PX_HORA }}>
-            {Array.from({ length: CAL_HORA_FIN - CAL_HORA_INICIO + 1 }, (_, i) => CAL_HORA_INICIO + i).map((h, i) => (
-              <div key={h} className="absolute right-1 font-mono text-[11px] text-[var(--text-3)]" style={{ top: i * CAL_PX_HORA }}>
-                {h}:00
-              </div>
-            ))}
-          </div>
-          {semana.map((d) => {
-            const lista = porDia.get(d) ?? [];
-            const esHoy = d === hoy;
-            return (
-              <div
-                key={d}
-                onClick={(e) => {
-                  if ((e.target as HTMLElement).closest("[data-cal-evento]")) return;
-                  const y = e.clientY - e.currentTarget.getBoundingClientRect().top;
-                  abrirHueco(d, minutosDesdeOffsetY(y));
-                }}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const id = e.dataTransfer.getData("text/cita");
-                  if (!id) return;
-                  const y = e.clientY - e.currentTarget.getBoundingClientRect().top;
-                  void moverCita(id, d, { offsetY: y });
-                }}
-                className="relative cursor-pointer border-l border-[var(--border-soft)]"
-                style={{ height: (CAL_HORA_FIN - CAL_HORA_INICIO + 1) * CAL_PX_HORA, background: esHoy ? "#FBFBF9" : "#fff" }}
-              >
-                {Array.from({ length: CAL_HORA_FIN - CAL_HORA_INICIO + 1 }).map((_, i) => (
-                  <div key={i} className="absolute inset-x-0 border-t border-[var(--border-row)]" style={{ top: i * CAL_PX_HORA }} />
-                ))}
-                {lista.map((cita) => {
-                  const { top, height } = posicionEventoCalendario(cita.empieza, cita.termina);
-                  const color = cita.profiles?.color || "#3A6A82";
-                  return (
-                    <button
-                      key={cita.id}
-                      type="button"
-                      data-cal-evento
-                      draggable={cita.estado === "prevista"}
-                      onDragStart={(e) => {
-                        e.dataTransfer.setData("text/cita", cita.id);
-                        e.dataTransfer.effectAllowed = "move";
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDia(d);
-                      }}
-                      className="absolute inset-x-1 cursor-grab overflow-hidden rounded-[6px] px-1.5 py-0.5 text-left active:cursor-grabbing"
-                      style={{
-                        top,
-                        height,
-                        background: `${color}1A`,
-                        borderLeft: `3px solid ${color}`,
-                      }}
-                    >
-                      <p className="text-[11px] font-semibold" style={{ color }}>
-                        {horaCita(cita.empieza)} · {TIPO_CITA_LABEL[(cita.tipo as TipoCita) ?? "otro"] ?? cita.tipo}
-                      </p>
-                      <p className="truncate text-[12px] font-medium">{cita.titulo}</p>
-                    </button>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <CalendarioSemana
+        semana={semana}
+        hoy={hoy}
+        porDia={porDia}
+        onPickDia={setDia}
+        onMover={(id, destino, opts) => void moverCita(id, destino, opts)}
+        onEditar={abrirEdicion}
+        onCrearHueco={abrirHueco}
+      />
 
       <NuevaEntradaCalendario
         open={sheetOpen}
-        onOpenChange={setSheetOpen}
+        onOpenChange={(open) => {
+          setSheetOpen(open);
+          if (!open) setEditando(null);
+        }}
         dia={dia}
         onDia={setDia}
         hora={hora}
@@ -438,45 +463,62 @@ export default function CalendarioPage() {
         clientes={clientes}
         propiedadId={propiedadId}
         clienteId={clienteId}
+        lugar={lugar}
         onPropiedad={setPropiedadId}
         onCliente={setClienteId}
+        onLugar={setLugar}
         saving={saving}
-        onCrear={(tipo, titulo) => void crear(tipo, titulo)}
+        edicion={editando ? { id: editando.id, tipo: editando.tipo, titulo: editando.titulo } : null}
+        onGuardar={(tipo, titulo) => void guardar(tipo, titulo)}
       />
 
       <h2 className="mt-8 hidden text-[15px] font-semibold capitalize min-[820px]:block">
         {new Date(`${dia}T12:00:00`).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}
       </h2>
       <ul className="mt-3 hidden space-y-2 min-[820px]:block">
-        {delDia.map((cita) => (
-          <li
-            key={cita.id}
-            className={`flex flex-col gap-3 rounded-2xl border border-[#E6E3DD] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
-              cita.estado !== "prevista" ? "opacity-60" : ""
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <span className="mt-1 h-3 w-3 shrink-0 rounded-full" style={{ background: cita.profiles?.color || "#3A6A82" }} />
-              <div>
-                <p className="font-medium">{cita.titulo}</p>
-                <p className="text-xs text-[#5D6B67]">
-                  {horaCita(cita.empieza)}
-                  {admin && cita.profiles?.nombre_completo ? ` · ${cita.profiles.nombre_completo}` : ""} ·{" "}
-                  {TIPO_CITA_LABEL[(cita.tipo as TipoCita) ?? "otro"] ?? cita.tipo} ·{" "}
-                  {ESTADO_CITA_LABEL[(cita.estado as EstadoCita) ?? "prevista"] ?? cita.estado}
-                </p>
-                {cita.propiedad_id ? (
-                  <FichaLink tipo="propiedad" id={cita.propiedad_id} className="mt-1 inline-block text-xs">
-                    {[cita.propiedades?.referencia, cita.propiedades?.titulo || cita.propiedades?.direccion]
-                      .filter(Boolean)
-                      .join(" · ") || "Ver inmueble"}
-                  </FichaLink>
-                ) : null}
+        {delDia.map((cita) => {
+          const mapsConsulta = cita.lugar?.trim() || direccionDeInmueble(cita.propiedades ?? {});
+          return (
+            <li
+              key={cita.id}
+              className={`flex flex-col gap-3 rounded-2xl border border-[#E6E3DD] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
+                cita.estado !== "prevista" ? "opacity-60" : ""
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <AvatarComercial
+                  id={cita.comercial_id}
+                  nombre={cita.profiles?.nombre_completo}
+                  color={cita.profiles?.color}
+                  size={28}
+                  className="mt-0.5"
+                />
+                <div>
+                  <p className="font-medium">{cita.titulo}</p>
+                  <p className="text-xs text-[#5D6B67]">
+                    {horaCita(cita.empieza)}
+                    {admin && cita.profiles?.nombre_completo ? ` · ${cita.profiles.nombre_completo}` : ""} ·{" "}
+                    {TIPO_CITA_LABEL[(cita.tipo as TipoCita) ?? "otro"] ?? cita.tipo} ·{" "}
+                    {ESTADO_CITA_LABEL[(cita.estado as EstadoCita) ?? "prevista"] ?? cita.estado}
+                  </p>
+                  {cita.propiedad_id ? (
+                    <FichaLink tipo="propiedad" id={cita.propiedad_id} className="mt-1 inline-block text-xs">
+                      {[cita.propiedades?.referencia, cita.propiedades?.titulo || cita.propiedades?.direccion]
+                        .filter(Boolean)
+                        .join(" · ") || "Ver inmueble"}
+                    </FichaLink>
+                  ) : null}
+                  {mapsConsulta ? (
+                    <p className="mt-1 text-xs">
+                      <EnlaceMaps consulta={mapsConsulta} />
+                    </p>
+                  ) : null}
+                </div>
               </div>
-            </div>
-            <CitaAcciones cita={cita} onEstado={cambiarEstado} />
-          </li>
-        ))}
+              <CitaAcciones cita={cita} onEstado={cambiarEstado} onEditar={abrirEdicion} />
+            </li>
+          );
+        })}
         {delDia.length === 0 ? <li className="text-sm text-[#5D6B67]">No hay citas este día.</li> : null}
       </ul>
     </div>

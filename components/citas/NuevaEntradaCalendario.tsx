@@ -4,11 +4,20 @@ import { useEffect, useMemo, useState } from "react";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { AltaField, AltaPersona, AltaSection, AltaShell, altaControl, type PersonaOpcion } from "@/components/ui/alta-form";
 import { NuevoClientePanel } from "@/components/clientes/NuevoClientePanel";
+import { EnlaceMaps, InmueblePreviewCita } from "@/components/citas/InmueblePreviewCita";
 import {
+  direccionDeInmueble,
   TIPOS_ALTA_CALENDARIO,
   TIPO_CITA_LABEL,
+  type InmuebleCalendario,
   type TipoAltaCalendario,
 } from "@/lib/citas/citas";
+
+export type EdicionCalendario = {
+  id: string;
+  tipo: string;
+  titulo: string;
+};
 
 export function NuevaEntradaCalendario({
   open,
@@ -21,10 +30,13 @@ export function NuevaEntradaCalendario({
   clientes,
   propiedadId,
   clienteId,
+  lugar,
   onPropiedad,
   onCliente,
+  onLugar,
   saving,
-  onCrear,
+  edicion,
+  onGuardar,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -32,14 +44,17 @@ export function NuevaEntradaCalendario({
   onDia: (dia: string) => void;
   hora: string;
   onHora: (hora: string) => void;
-  propiedades: Array<{ id: string; titulo: string | null; direccion: string | null; referencia: string | null }>;
+  propiedades: InmuebleCalendario[];
   clientes: PersonaOpcion[];
   propiedadId: string;
   clienteId: string;
+  lugar: string;
   onPropiedad: (id: string) => void;
   onCliente: (id: string) => void;
+  onLugar: (lugar: string) => void;
   saving: boolean;
-  onCrear: (tipo: TipoAltaCalendario, titulo: string) => void;
+  edicion?: EdicionCalendario | null;
+  onGuardar: (tipo: TipoAltaCalendario, titulo: string) => void;
 }) {
   const [tipo, setTipo] = useState<TipoAltaCalendario>("evento");
   const [titulo, setTitulo] = useState("");
@@ -50,10 +65,15 @@ export function NuevaEntradaCalendario({
 
   useEffect(() => {
     if (!open) return;
+    setQCliente("");
+    if (edicion) {
+      setTitulo(edicion.titulo);
+      setTipo(TIPOS_ALTA_CALENDARIO.includes(edicion.tipo as TipoAltaCalendario) ? (edicion.tipo as TipoAltaCalendario) : "evento");
+      return;
+    }
     setTitulo("");
     setTipo("evento");
-    setQCliente("");
-  }, [open]);
+  }, [open, edicion]);
 
   useEffect(() => {
     setAgenda((prev) => {
@@ -71,6 +91,9 @@ export function NuevaEntradaCalendario({
     month: "long",
   });
   const clienteSel = agenda.find((c) => c.id === clienteId);
+  const inmuebleSel = propiedades.find((p) => p.id === propiedadId);
+  const tipos = edicion?.tipo === "tarea" ? (["tarea"] as const) : TIPOS_ALTA_CALENDARIO.filter((item) => item !== "tarea" || !edicion);
+  const mapsConsulta = lugar.trim() || (inmuebleSel ? direccionDeInmueble(inmuebleSel) : "");
   const sugeridos = useMemo(() => {
     const q = qCliente.trim().toLowerCase();
     if (!q) return [];
@@ -82,17 +105,25 @@ export function NuevaEntradaCalendario({
       <AltaShell
         open={open}
         onOpenChange={onOpenChange}
-        title="Nueva entrada"
-        hint={`Hueco del ${etiquetaDia} a las ${hora}. Elige tipo, ajusta la hora y crea.`}
-        primaryLabel={`Crear ${TIPO_CITA_LABEL[tipo].toLowerCase()}`}
+        title={edicion ? "Editar entrada" : "Nueva entrada"}
+        hint={
+          edicion
+            ? `Cambia hora, inmueble o dirección. Se guarda sobre el ${etiquetaDia} a las ${hora}.`
+            : `Hueco del ${etiquetaDia} a las ${hora}. Elige tipo, ajusta la hora y crea.`
+        }
+        primaryLabel={edicion ? "Guardar cambios" : `Crear ${TIPO_CITA_LABEL[tipo].toLowerCase()}`}
         saving={saving}
-        footerHint="Cerrar no crea nada. La hora sale del hueco que has pulsado y se puede cambiar aquí."
-        onSubmit={() => onCrear(tipo, titulo)}
+        footerHint={
+          edicion
+            ? "Cerrar descarta los cambios no guardados. Arrastrar en la rejilla también mueve la hora."
+            : "Cerrar no crea nada. La hora sale del hueco que has pulsado y se puede cambiar aquí."
+        }
+        onSubmit={() => onGuardar(tipo, titulo)}
       >
         <AltaSection title="Qué" hint="Evento, recordatorio, tarea o visita. El título es lo que verás en la rejilla.">
           <div className="flex flex-col gap-5">
             <div className="flex flex-wrap gap-2">
-              {TIPOS_ALTA_CALENDARIO.map((item) => (
+              {tipos.map((item) => (
                 <ToggleChip key={item} on={tipo === item} onClick={() => setTipo(item)}>
                   {TIPO_CITA_LABEL[item]}
                 </ToggleChip>
@@ -137,9 +168,20 @@ export function NuevaEntradaCalendario({
           />
         </AltaSection>
 
-        <AltaSection title="Inmueble" hint="Opcional. Sirve para ir al parte o a la ficha desde la cita.">
+        <AltaSection wide title="Inmueble y visita" hint="Si el inmueble ya está en el CRM, verás una ficha corta y el enlace a Maps.">
           <AltaField label="Inmueble" optional>
-            <select value={propiedadId} onChange={(e) => onPropiedad(e.target.value)} className={altaControl}>
+            <select
+              value={propiedadId}
+              onChange={(e) => {
+                const id = e.target.value;
+                const prev = inmuebleSel ? direccionDeInmueble(inmuebleSel) : "";
+                const next = propiedades.find((p) => p.id === id);
+                onPropiedad(id);
+                const siguiente = next ? direccionDeInmueble(next) : "";
+                if (!lugar.trim() || lugar.trim() === prev) onLugar(siguiente);
+              }}
+              className={altaControl}
+            >
               <option value="">Sin inmueble</option>
               {propiedades.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -148,6 +190,24 @@ export function NuevaEntradaCalendario({
               ))}
             </select>
           </AltaField>
+          {inmuebleSel ? <InmueblePreviewCita inmueble={inmuebleSel} /> : null}
+          <div className="mt-4">
+            <AltaField label="Dirección de la visita" optional>
+              <input
+                value={lugar}
+                onChange={(e) => onLugar(e.target.value)}
+                placeholder={inmuebleSel ? direccionDeInmueble(inmuebleSel) || "Calle, número, localidad" : "Calle, número, localidad"}
+                className={altaControl}
+              />
+            </AltaField>
+            {mapsConsulta ? (
+              <p className="mt-2 text-[12.5px]">
+                <EnlaceMaps consulta={mapsConsulta} lat={inmuebleSel?.lat} lng={inmuebleSel?.lng} />
+              </p>
+            ) : (
+              <p className="mt-2 text-[12.5px] text-[var(--text-3)]">Escribe una dirección o elige un inmueble para abrir Maps.</p>
+            )}
+          </div>
         </AltaSection>
       </AltaShell>
       <NuevoClientePanel

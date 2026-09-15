@@ -130,3 +130,57 @@ body {
     transform: translateX(400%);
   }
 }
+
+.cal-evento {
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    opacity 0.16s ease,
+    filter 0.16s ease;
+}
+
+.cal-evento:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(19, 28, 26, 0.1);
+}
+
+.cal-evento--dragging {
+  opacity: 0.32;
+  filter: saturate(0.55);
+  transform: scale(0.97);
+  box-shadow: none;
+}
+
+.cal-ghost {
+  pointer-events: none;
+  transform: scale(1.05) rotate(1.6deg);
+  box-shadow: 0 14px 32px rgba(19, 28, 26, 0.2);
+}
+
+.cal-col--over {
+  background: #f4f8f6 !important;
+}
+
+.cal-snap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  height: 2px;
+  pointer-events: none;
+  background: #0b7461;
+  box-shadow: 0 0 0 3px rgba(11, 116, 97, 0.16);
+}
+
+.cal-snap::after {
+  position: absolute;
+  top: -9px;
+  left: 4px;
+  border-radius: 4px;
+  background: #fff;
+  padding: 0 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #0b7461;
+  content: attr(data-hora);
+}

@@ -1,7 +1,8 @@
 import { cn } from "@/lib/utils";
-import { inicialesNombre } from "@/lib/ui/tokens";
+import { colorComercial, inicialesNombre } from "@/lib/ui/tokens";
 
 export function AvatarComercial({
+  id,
   nombre,
   email,
   color,
@@ -9,6 +10,7 @@ export function AvatarComercial({
   className,
   title,
 }: {
+  id?: string | null;
   nombre?: string | null;
   email?: string | null;
   color?: string | null;
@@ -25,7 +27,7 @@ export function AvatarComercial({
       style={{
         width: size,
         height: size,
-        background: color || "#3A6A82",
+        background: colorComercial(id, color),
         fontSize: font,
       }}
     >
