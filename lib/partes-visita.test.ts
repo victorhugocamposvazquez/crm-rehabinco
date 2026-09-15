@@ -14,7 +14,7 @@ describe("Property → Visit", () => {
   it("la visita se crea desde Property, no desde Catastro", () => {
     assert.equal(
       rutaNuevaVisitaDesdeProperty("11111111-2222-3333-4444-555555555555"),
-      "/partes-visita/nuevo?propiedad=11111111-2222-3333-4444-555555555555"
+      "/partes-visita?nueva=1&propiedad=11111111-2222-3333-4444-555555555555"
     );
     assert.equal(rutaNuevaVisitaDesdeProperty("abc").includes("/catastro"), false);
     const raiz = dirname(fileURLToPath(import.meta.url));

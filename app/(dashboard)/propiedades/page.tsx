@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -29,10 +30,14 @@ import { precioDeInmueble, type InmueblePanel } from "@/lib/inmuebles/panel";
 import { relacionUno } from "@/lib/citas/citas";
 import { colorEstado } from "@/lib/ui/estados-vista";
 import { cn } from "@/lib/utils";
+import { extraAlta } from "@/lib/ui/alta-panel";
+import { NuevoInmueblePanel } from "@/components/inmuebles/NuevoInmueblePanel";
 
 type PropiedadLista = InmueblePanel;
 
 export default function PropiedadesPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterEstado, setFilterEstado] = useState("todos");
@@ -44,6 +49,10 @@ export default function PropiedadesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [propiedades, setPropiedades] = useState<PropiedadLista[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [nuevaOpen, setNuevaOpen] = useState(false);
+  const [ofertanteInicial, setOfertanteInicial] = useState<string | undefined>();
+  const [cargaKey, setCargaKey] = useState(0);
+  const [pendingSelectedId, setPendingSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 819px)");
@@ -52,6 +61,14 @@ export default function PropiedadesPage() {
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
   }, []);
+
+  useEffect(() => {
+    const extra = extraAlta(searchParams);
+    if (!extra) return;
+    setOfertanteInicial(extra.get("ofertante") ?? undefined);
+    setNuevaOpen(true);
+    router.replace("/propiedades", { scroll: false });
+  }, [searchParams, router]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -154,7 +171,7 @@ export default function PropiedadesPage() {
         );
         setLoading(false);
       });
-  }, []);
+  }, [cargaKey]);
 
   const filteredPropiedades = useMemo(() => {
     return propiedades.filter((p) => {
@@ -178,6 +195,13 @@ export default function PropiedadesPage() {
 
   useEffect(() => {
     if (narrow) return;
+    if (pendingSelectedId) {
+      if (filteredPropiedades.some((p) => p.id === pendingSelectedId)) {
+        setSelectedId(pendingSelectedId);
+        setPendingSelectedId(null);
+      }
+      return;
+    }
     if (filteredPropiedades.length === 0) {
       setSelectedId(null);
       return;
@@ -185,7 +209,7 @@ export default function PropiedadesPage() {
     if (!selectedId || !filteredPropiedades.some((p) => p.id === selectedId)) {
       setSelectedId(filteredPropiedades[0].id);
     }
-  }, [filteredPropiedades, selectedId, narrow]);
+  }, [filteredPropiedades, selectedId, narrow, pendingSelectedId]);
 
   const selected = filteredPropiedades.find((p) => p.id === selectedId) ?? null;
   const modo = narrow ? "grid" : vista;
@@ -205,11 +229,9 @@ export default function PropiedadesPage() {
                 Buscar en Catastro
               </Link>
             </Button>
-            <Button asChild size="sm">
-              <Link href="/propiedades/nueva" className="gap-2">
-                <Plus className="h-4 w-4" strokeWidth={1.5} />
-                Nuevo inmueble
-              </Link>
+            <Button type="button" size="sm" onClick={() => { setOfertanteInicial(undefined); setNuevaOpen(true); }} className="gap-2">
+              <Plus className="h-4 w-4" strokeWidth={1.5} />
+              Nuevo inmueble
             </Button>
           </div>
         }
@@ -224,11 +246,9 @@ export default function PropiedadesPage() {
       ) : propiedades.length === 0 ? (
         <div className="mt-6 rounded-[14px] border border-dashed border-[var(--input)] bg-white p-8 text-center">
           <p className="text-[var(--text-2)]">Aún no hay inmuebles.</p>
-          <Button asChild className="mt-4">
-            <Link href="/propiedades/nueva" className="gap-2">
-              <Building2 className="h-4 w-4" strokeWidth={1.5} />
-              Añadir primer inmueble
-            </Link>
+          <Button type="button" className="mt-4 gap-2" onClick={() => { setOfertanteInicial(undefined); setNuevaOpen(true); }}>
+            <Building2 className="h-4 w-4" strokeWidth={1.5} />
+            Añadir primer inmueble
           </Button>
         </div>
       ) : (
@@ -404,7 +424,19 @@ export default function PropiedadesPage() {
         </div>
       )}
 
-      <Fab href="/propiedades/nueva" label="Nuevo inmueble" />
+      <Fab onClick={() => { setOfertanteInicial(undefined); setNuevaOpen(true); }} label="Nuevo inmueble" />
+      <NuevoInmueblePanel
+        open={nuevaOpen}
+        onOpenChange={(open) => {
+          setNuevaOpen(open);
+          if (!open) setOfertanteInicial(undefined);
+        }}
+        ofertanteIdInicial={ofertanteInicial}
+        onCreado={(id) => {
+          setPendingSelectedId(id);
+          setCargaKey((n) => n + 1);
+        }}
+      />
     </div>
   );
 }

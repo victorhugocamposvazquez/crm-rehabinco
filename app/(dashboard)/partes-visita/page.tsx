@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
@@ -12,6 +13,8 @@ import { Plus } from "lucide-react";
 import { AgendaVisitas } from "@/components/citas/AgendaVisitas";
 import { ESTADO_PARTE_LABELS, buildPublicFirmaUrl } from "@/lib/partes-visita";
 import { colorEstado } from "@/lib/ui/estados-vista";
+import { extraAlta } from "@/lib/ui/alta-panel";
+import { NuevoPartePanel } from "@/components/partes-visita/NuevoPartePanel";
 
 type ParteRow = {
   id: string;
@@ -25,10 +28,25 @@ type ParteRow = {
 };
 
 export default function PartesVisitaPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [filterEstado, setFilterEstado] = useState<"todos" | ParteRow["estado"]>("todos");
   const [partes, setPartes] = useState<ParteRow[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [nuevaOpen, setNuevaOpen] = useState(false);
+  const [propiedadInicial, setPropiedadInicial] = useState<string | undefined>();
+  const [citaInicial, setCitaInicial] = useState<string | undefined>();
+  const [cargaKey, setCargaKey] = useState(0);
+
+  useEffect(() => {
+    const extra = extraAlta(searchParams);
+    if (!extra) return;
+    setPropiedadInicial(extra.get("propiedad") ?? undefined);
+    setCitaInicial(extra.get("cita") ?? undefined);
+    setNuevaOpen(true);
+    router.replace("/partes-visita", { scroll: false });
+  }, [searchParams, router]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -45,7 +63,7 @@ export default function PartesVisitaPage() {
         }
         setLoading(false);
       });
-  }, []);
+  }, [cargaKey]);
 
   const filtered = useMemo(() => {
     return partes.filter((p) => filterEstado === "todos" || p.estado === filterEstado);
@@ -71,11 +89,18 @@ export default function PartesVisitaPage() {
             <Button asChild size="sm" variant="secondary">
               <Link href="/calendario">Concertar visita</Link>
             </Button>
-            <Button asChild size="sm">
-              <Link href="/partes-visita/nuevo" className="gap-2">
-                <Plus className="h-4 w-4" strokeWidth={1.5} />
-                Nuevo parte
-              </Link>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                setPropiedadInicial(undefined);
+                setCitaInicial(undefined);
+                setNuevaOpen(true);
+              }}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" strokeWidth={1.5} />
+              Nuevo parte
             </Button>
           </div>
         }
@@ -105,9 +130,28 @@ export default function PartesVisitaPage() {
           {loading ? (
             <p className="px-4 py-8 text-center text-[12.5px] text-[var(--text-2)]">Cargando partes…</p>
           ) : filtered.length === 0 ? (
-            <p className="px-4 py-9 text-center text-[13.5px] text-[var(--text-2)]">
-              {partes.length === 0 ? "Aún no hay partes de visita." : "No hay resultados con ese filtro."}
-            </p>
+            <div>
+              <p className="px-4 py-9 text-center text-[13.5px] text-[var(--text-2)]">
+                {partes.length === 0 ? "Aún no hay partes de visita." : "No hay resultados con ese filtro."}
+              </p>
+              {partes.length === 0 ? (
+                <div className="flex justify-center pb-6">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      setPropiedadInicial(undefined);
+                      setCitaInicial(undefined);
+                      setNuevaOpen(true);
+                    }}
+                    className="gap-2"
+                  >
+                    <Plus className="h-4 w-4" strokeWidth={1.5} />
+                    Nuevo parte
+                  </Button>
+                </div>
+              ) : null}
+            </div>
           ) : (
             filtered.map((p) => (
               <div key={p.id} className="flex items-center gap-3 border-b border-[var(--border-row)] px-4 py-2.5 hover:bg-[var(--surface-soft)]">
@@ -135,7 +179,27 @@ export default function PartesVisitaPage() {
           )}
         </section>
       </div>
-      <Fab href="/partes-visita/nuevo" label="Nuevo parte" />
+      <Fab
+        onClick={() => {
+          setPropiedadInicial(undefined);
+          setCitaInicial(undefined);
+          setNuevaOpen(true);
+        }}
+        label="Nuevo parte"
+      />
+      <NuevoPartePanel
+        open={nuevaOpen}
+        onOpenChange={(open) => {
+          setNuevaOpen(open);
+          if (!open) {
+            setPropiedadInicial(undefined);
+            setCitaInicial(undefined);
+          }
+        }}
+        propiedadIdInicial={propiedadInicial}
+        citaIdInicial={citaInicial}
+        onCreado={() => setCargaKey((n) => n + 1)}
+      />
     </div>
   );
 }

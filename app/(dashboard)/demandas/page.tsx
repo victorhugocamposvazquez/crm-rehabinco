@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -12,6 +13,7 @@ import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { colorEstado, formatEuro } from "@/lib/ui/estados-vista";
 import { NuevaDemandaPanel } from "@/components/demandas/NuevaDemandaPanel";
 import { TIPO_INMUEBLE_LABEL, type TipoInmueble } from "@/lib/inmuebles/catalogo";
+import { extraAlta } from "@/lib/ui/alta-panel";
 
 type DemandaRow = {
   id: string;
@@ -32,6 +34,8 @@ function labelTipos(tipos: string[] | null | undefined): string {
 }
 
 export default function DemandasPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [filas, setFilas] = useState<DemandaRow[]>([]);
   const [totales, setTotales] = useState<Record<string, number>>({});
   const [estado, setEstado] = useState("activa");
@@ -91,12 +95,12 @@ export default function DemandasPage() {
   }, [estado]);
 
   useEffect(() => {
-    const q = new URLSearchParams(window.location.search);
-    if (q.get("nueva") !== "1") return;
-    setClienteInicial(q.get("cliente") ?? undefined);
+    const extra = extraAlta(searchParams);
+    if (!extra) return;
+    setClienteInicial(extra.get("cliente") ?? undefined);
     setNuevaOpen(true);
-    window.history.replaceState({}, "", "/demandas");
-  }, []);
+    router.replace("/demandas", { scroll: false });
+  }, [searchParams, router]);
 
   return (
     <div>
@@ -178,7 +182,10 @@ export default function DemandasPage() {
       </ul>
       <NuevaDemandaPanel
         open={nuevaOpen}
-        onOpenChange={setNuevaOpen}
+        onOpenChange={(open) => {
+          setNuevaOpen(open);
+          if (!open) setClienteInicial(undefined);
+        }}
         clienteIdInicial={clienteInicial}
         onCreada={() => {
           setEstado("activa");

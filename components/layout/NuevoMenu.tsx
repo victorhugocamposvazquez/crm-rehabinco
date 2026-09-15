@@ -6,6 +6,7 @@ import {
   Building2,
   CalendarDays,
   ClipboardList,
+  ClipboardPen,
   FileText,
   ListTodo,
   Plus,
@@ -38,9 +39,10 @@ export function NuevoMenu() {
     : [
         { href: "/tareas", label: "Tarea", icon: ListTodo },
         { href: "/calendario", label: "Cita", icon: CalendarDays },
-        { href: "/propiedades/nueva", label: "Inmueble", icon: Building2 },
-        { href: "/clientes/nuevo", label: "Cliente", icon: User },
+        { href: "/propiedades?nueva=1", label: "Inmueble", icon: Building2 },
+        { href: "/clientes?nueva=1", label: "Cliente", icon: User },
         { href: "/demandas?nueva=1", label: "Demanda", icon: Users },
+        { href: "/partes-visita?nueva=1", label: "Parte de visita", icon: ClipboardPen },
         ...(admin
           ? [
               { href: "/presupuestos/nuevo", label: "Presupuesto", icon: ClipboardList },

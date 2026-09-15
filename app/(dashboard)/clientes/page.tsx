@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -12,6 +13,8 @@ import { inicialesNombre } from "@/lib/ui/tokens";
 import { telWhatsApp } from "@/lib/ui/estados-vista";
 import { cn } from "@/lib/utils";
 import { FichaLink } from "@/components/crm/FichaPeek";
+import { extraAlta } from "@/lib/ui/alta-panel";
+import { NuevoClientePanel } from "@/components/clientes/NuevoClientePanel";
 
 type ClienteLista = {
   id: string;
@@ -45,6 +48,8 @@ function estadoCliente(c: ClienteLista) {
 }
 
 export default function ClientesPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filtro, setFiltro] = useState<FiltroCli>("todos");
@@ -52,6 +57,10 @@ export default function ClientesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [narrow, setNarrow] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nuevaOpen, setNuevaOpen] = useState(false);
+  const [padreInicial, setPadreInicial] = useState<string | undefined>();
+  const [cargaKey, setCargaKey] = useState(0);
+  const [pendingSelectedId, setPendingSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 819px)");
@@ -60,6 +69,14 @@ export default function ClientesPage() {
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
   }, []);
+
+  useEffect(() => {
+    const extra = extraAlta(searchParams);
+    if (!extra) return;
+    setPadreInicial(extra.get("padre") ?? undefined);
+    setNuevaOpen(true);
+    router.replace("/clientes", { scroll: false });
+  }, [searchParams, router]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -178,7 +195,7 @@ export default function ClientesPage() {
       );
       setLoading(false);
     })();
-  }, []);
+  }, [cargaKey]);
 
   const filtered = useMemo(() => {
     return clientes.filter((c) => {
@@ -200,6 +217,13 @@ export default function ClientesPage() {
 
   useEffect(() => {
     if (narrow) return;
+    if (pendingSelectedId) {
+      if (filtered.some((c) => c.id === pendingSelectedId)) {
+        setSelectedId(pendingSelectedId);
+        setPendingSelectedId(null);
+      }
+      return;
+    }
     if (filtered.length === 0) {
       setSelectedId(null);
       return;
@@ -207,7 +231,7 @@ export default function ClientesPage() {
     if (!selectedId || !filtered.some((c) => c.id === selectedId)) {
       setSelectedId(filtered[0].id);
     }
-  }, [filtered, selectedId, narrow]);
+  }, [filtered, selectedId, narrow, pendingSelectedId]);
 
   const selected = filtered.find((c) => c.id === selectedId) ?? null;
   const wa = selected ? telWhatsApp(selected.telefono) : null;
@@ -227,11 +251,9 @@ export default function ClientesPage() {
         title="Clientes"
         description="Ofertantes y demandantes. Cada ficha reúne inmuebles, demandas, visitas y facturas."
         actions={
-          <Button asChild size="sm">
-            <Link href="/clientes/nuevo" className="gap-2">
-              <UserPlus className="h-4 w-4" strokeWidth={1.5} />
-              Nuevo cliente
-            </Link>
+          <Button type="button" size="sm" onClick={() => { setPadreInicial(undefined); setNuevaOpen(true); }} className="gap-2">
+            <UserPlus className="h-4 w-4" strokeWidth={1.5} />
+            Nuevo cliente
           </Button>
         }
       />
@@ -245,11 +267,9 @@ export default function ClientesPage() {
       ) : clientes.length === 0 ? (
         <div className="mt-6 rounded-[14px] border border-dashed border-[var(--input)] bg-white p-8 text-center">
           <p className="text-[var(--text-2)]">Aún no hay clientes.</p>
-          <Button asChild className="mt-4">
-            <Link href="/clientes/nuevo" className="gap-2">
-              <UserPlus className="h-4 w-4" strokeWidth={1.5} />
-              Añadir primer cliente
-            </Link>
+          <Button type="button" className="mt-4 gap-2" onClick={() => { setPadreInicial(undefined); setNuevaOpen(true); }}>
+            <UserPlus className="h-4 w-4" strokeWidth={1.5} />
+            Añadir primer cliente
           </Button>
         </div>
       ) : (
@@ -464,7 +484,19 @@ export default function ClientesPage() {
         </div>
       )}
 
-      <Fab href="/clientes/nuevo" label="Añadir cliente" />
+      <Fab onClick={() => { setPadreInicial(undefined); setNuevaOpen(true); }} label="Añadir cliente" />
+      <NuevoClientePanel
+        open={nuevaOpen}
+        onOpenChange={(open) => {
+          setNuevaOpen(open);
+          if (!open) setPadreInicial(undefined);
+        }}
+        padreId={padreInicial}
+        onCreado={(id) => {
+          setPendingSelectedId(id);
+          setCargaKey((n) => n + 1);
+        }}
+      />
     </div>
   );
 }

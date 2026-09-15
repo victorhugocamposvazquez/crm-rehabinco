@@ -10,7 +10,7 @@ describe("citas", () => {
       empieza: "2026-09-17T18:00:00.000Z",
       propiedadId: "p1",
     };
-    assert.equal(rutaNuevaVisitaDesdeCita(cita), "/partes-visita/nuevo?cita=c1&propiedad=p1");
+    assert.equal(rutaNuevaVisitaDesdeCita(cita), "/partes-visita?nueva=1&cita=c1&propiedad=p1");
     const prefill = prefillParteDesdeCita(cita);
     assert.equal(prefill.propiedadId, "p1");
     assert.equal(prefill.fechaVisita, "2026-09-17");

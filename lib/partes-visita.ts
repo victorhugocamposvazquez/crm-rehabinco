@@ -32,7 +32,7 @@ export function formatHoraVisita(hora: string | null | undefined): string {
 }
 
 export function rutaNuevaVisitaDesdeProperty(propertyId: string): string {
-  return `/partes-visita/nuevo?propiedad=${encodeURIComponent(propertyId)}`;
+  return `/partes-visita?nueva=1&propiedad=${encodeURIComponent(propertyId)}`;
 }
 
 export function visitaDesdePropertyExigePropiedad(

@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { FichaLink } from "@/components/crm/FichaPeek";
 import { NuevaDemandaPanel } from "@/components/demandas/NuevaDemandaPanel";
+import { NuevoClientePanel } from "@/components/clientes/NuevoClientePanel";
+import { NuevoInmueblePanel } from "@/components/inmuebles/NuevoInmueblePanel";
 import { Pencil, Trash2, FileText, Building2, Plus, Home } from "lucide-react";
 
 interface Cliente {
@@ -45,7 +47,11 @@ export default function DetalleClientePage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [nuevaOpen, setNuevaOpen] = useState(false);
+  const [nuevaEmpresaOpen, setNuevaEmpresaOpen] = useState(false);
+  const [nuevoInmuebleOpen, setNuevoInmuebleOpen] = useState(false);
   const [demandasTick, setDemandasTick] = useState(0);
+  const [empresasTick, setEmpresasTick] = useState(0);
+  const [propiedadesTick, setPropiedadesTick] = useState(0);
 
   useEffect(() => {
     const supabase = createClient();
@@ -89,7 +95,7 @@ export default function DetalleClientePage() {
       .then(({ data }) => {
         setEmpresasAsociadas(data ?? []);
       });
-  }, [id]);
+  }, [id, empresasTick]);
 
   useEffect(() => {
     if (!id) return;
@@ -102,7 +108,7 @@ export default function DetalleClientePage() {
       .then(({ data }) => {
         setPropiedades(data ?? []);
       });
-  }, [id]);
+  }, [id, propiedadesTick]);
 
   useEffect(() => {
     if (!id) return;
@@ -226,12 +232,10 @@ export default function DetalleClientePage() {
         <Card className="md:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Empresas asociadas</CardTitle>
-            <Button variant="secondary" size="sm" asChild>
-              <Link href={`/clientes/nuevo?padre=${id}`} className="gap-1.5">
+            <Button variant="secondary" size="sm" type="button" onClick={() => setNuevaEmpresaOpen(true)} className="gap-1.5">
                 <Plus className="h-4 w-4" strokeWidth={1.5} />
                 Añadir empresa
-              </Link>
-            </Button>
+              </Button>
           </CardHeader>
           <CardContent>
             {empresasAsociadas.length === 0 ? (
@@ -264,12 +268,10 @@ export default function DetalleClientePage() {
         <Card className="md:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Inmuebles que ofrece</CardTitle>
-            <Button variant="secondary" size="sm" asChild>
-              <Link href={`/propiedades/nueva?ofertante=${id}`} className="gap-1.5">
+            <Button variant="secondary" size="sm" type="button" onClick={() => setNuevoInmuebleOpen(true)} className="gap-1.5">
                 <Plus className="h-4 w-4" strokeWidth={1.5} />
                 Añadir inmueble
-              </Link>
-            </Button>
+              </Button>
           </CardHeader>
           <CardContent>
             {propiedades.length === 0 ? (
@@ -354,6 +356,20 @@ export default function DetalleClientePage() {
         clienteIdInicial={id}
         clienteNombre={cliente.nombre}
         onCreada={() => setDemandasTick((n) => n + 1)}
+      />
+      <NuevoClientePanel
+        open={nuevaEmpresaOpen}
+        onOpenChange={setNuevaEmpresaOpen}
+        padreId={id}
+        padreNombre={cliente.nombre}
+        onCreado={() => setEmpresasTick((n) => n + 1)}
+      />
+      <NuevoInmueblePanel
+        open={nuevoInmuebleOpen}
+        onOpenChange={setNuevoInmuebleOpen}
+        ofertanteIdInicial={id}
+        ofertanteNombre={cliente.nombre}
+        onCreado={() => setPropiedadesTick((n) => n + 1)}
       />
     </div>
   );

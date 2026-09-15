@@ -81,9 +81,9 @@ export function rutaNuevaVisitaDesdeCita(cita: {
   id: string;
   propiedadId?: string | null;
 }): string {
-  const params = new URLSearchParams({ cita: cita.id });
+  const params = new URLSearchParams({ nueva: "1", cita: cita.id });
   if (cita.propiedadId) params.set("propiedad", cita.propiedadId);
-  return `/partes-visita/nuevo?${params.toString()}`;
+  return `/partes-visita?${params.toString()}`;
 }
 
 export function citasDelDia<T extends { empieza: string }>(citas: T[], dia: string): T[] {
