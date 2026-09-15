@@ -53,6 +53,7 @@ const EDITOR_BLOCKED_PREFIXES = [
   "/partes-visita",
   "/visitas",
   "/demandas",
+  "/captacion",
   "/seguimiento",
   "/calendario",
   "/tareas",
@@ -101,6 +102,7 @@ export function isComercialBlockedPath(pathname: string): boolean {
 export const NAV_DESKTOP_BY_ROLE: Record<Role, readonly string[]> = {
   admin: [
     "/",
+    "/captacion",
     "/catastro",
     "/propiedades",
     "/demandas",
@@ -118,6 +120,7 @@ export const NAV_DESKTOP_BY_ROLE: Record<Role, readonly string[]> = {
     "/",
     "/tareas",
     "/calendario",
+    "/captacion",
     "/partes-visita",
     "/propiedades",
     "/demandas",
@@ -131,14 +134,14 @@ export const NAV_DESKTOP_BY_ROLE: Record<Role, readonly string[]> = {
 
 /** Atajos de la barra: lo del día a día. El resto vive en el menú lateral. */
 export const NAV_TOP_BY_ROLE: Record<Role, readonly string[]> = {
-  admin: ["/", "/catastro", "/propiedades", "/demandas", "/calendario"],
-  comercial: ["/", "/tareas", "/calendario", "/propiedades", "/demandas"],
+  admin: ["/", "/captacion", "/catastro", "/propiedades", "/demandas"],
+  comercial: ["/", "/tareas", "/calendario", "/captacion", "/propiedades"],
   editor: ["/presupuestos"],
 };
 
 export const NAV_MOBILE_BY_ROLE: Record<Role, readonly string[]> = {
-  admin: ["/", "/calendario", "/tareas", "/propiedades", "/settings"],
-  comercial: ["/", "/tareas", "/calendario", "/propiedades", "/partes-visita"],
+  admin: ["/", "/calendario", "/tareas", "/captacion", "/settings"],
+  comercial: ["/", "/tareas", "/calendario", "/captacion", "/settings"],
   editor: ["/presupuestos", "/settings"],
 };
 

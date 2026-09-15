@@ -26,14 +26,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     void Promise.all([
       supabase.from("tareas").select("vence, estado"),
       supabase.from("partes_visita").select("id", { count: "exact", head: true }).eq("estado", "pendiente_firma"),
-    ]).then(([tareas, partes]) => {
+      supabase.from("captacion_anuncios").select("publicado_en, fase").eq("fase", "novedad"),
+    ]).then(([tareas, partes, anuncios]) => {
       const pendientes = (tareas.data ?? []).filter((row) => {
         const bandeja = bandejaDeTarea(row.vence, hoy, row.estado);
         return bandeja === "VENCIDAS" || bandeja === "HOY";
       }).length;
+      const nuevosHoy = ((anuncios.data ?? []) as Array<{ publicado_en: string | null }>).filter((row) => {
+        const dia = row.publicado_en?.slice(0, 10);
+        return dia === hoy;
+      }).length;
       setBadges({
         "/tareas": pendientes,
         "/partes-visita": partes.count ?? 0,
+        "/captacion": nuevosHoy,
       });
     });
   }, [user]);

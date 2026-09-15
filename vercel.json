@@ -9,12 +9,22 @@
     },
     "app/api/catastro/zone/step/route.ts": {
       "maxDuration": 120
+    },
+    "app/api/cron/captacion-portales/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/captacion/sync/route.ts": {
+      "maxDuration": 300
     }
   },
   "crons": [
     {
       "path": "/api/cron/catastro-zone",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/captacion-portales",
+      "schedule": "15 8 * * *"
     }
   ]
 }

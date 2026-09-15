@@ -51,6 +51,7 @@ describe("roles", () => {
   it("el menú del comercial es el día a día, no el de dirección", () => {
     const comercial = navHrefsForRole("comercial", "desktop");
     const admin = navHrefsForRole("admin", "desktop");
+    assert.equal(comercial.includes("/captacion"), true);
     assert.equal(comercial.includes("/tareas"), true);
     assert.equal(comercial.includes("/calendario"), true);
     assert.equal(comercial.includes("/partes-visita"), true);
@@ -60,10 +61,10 @@ describe("roles", () => {
     assert.equal(admin.includes("/facturas"), true);
     assert.deepEqual([...navHrefsForRole("admin", "top")], [
       "/",
+      "/captacion",
       "/catastro",
       "/propiedades",
       "/demandas",
-      "/calendario",
     ]);
     assert.equal(navHrefsForRole("admin", "top").includes("/clientes"), false);
     assert.equal(navHrefsForRole("admin", "desktop").includes("/clientes"), true);
@@ -72,13 +73,13 @@ describe("roles", () => {
       "/",
       "/tareas",
       "/calendario",
-      "/propiedades",
-      "/partes-visita",
+      "/captacion",
+      "/settings",
     ]);
   });
 
   it("el editor no entra a captación, agenda ni tareas", () => {
-    assert.equal(isEditorBlockedPath("/tareas"), true);
+    assert.equal(isEditorBlockedPath("/captacion"), true);
     assert.equal(isEditorBlockedPath("/seguimiento"), true);
     assert.equal(isEditorBlockedPath("/calendario"), true);
     assert.equal(isEditorBlockedPath("/partes-visita"), true);

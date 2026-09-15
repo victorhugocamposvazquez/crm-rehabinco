@@ -12,6 +12,7 @@ import {
   BarChart3,
   ListTodo,
   Columns3,
+  Radar,
 } from "lucide-react";
 import type { Role } from "@/lib/auth/roles";
 
@@ -26,6 +27,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/calendario", label: "Calendario", icon: CalendarDays },
   { href: "/tareas", label: "Tareas", icon: ListTodo },
   { href: "/seguimiento", label: "Seguimiento", icon: Columns3 },
+  { href: "/captacion", label: "Captación", icon: Radar },
   { href: "/catastro", label: "Catastro", icon: Search },
   { href: "/propiedades", label: "Inmuebles", icon: Building2 },
   { href: "/demandas", label: "Demandas", icon: Users },
@@ -39,7 +41,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
 
 export const NAV_GROUPS: { label: string; adminOnly?: boolean; hrefs: readonly string[] }[] = [
   { label: "Día a día", hrefs: ["/", "/calendario", "/tareas"] },
-  { label: "Captación", hrefs: ["/catastro", "/seguimiento", "/propiedades", "/demandas", "/clientes", "/partes-visita"] },
+  { label: "Captación", hrefs: ["/captacion", "/catastro", "/seguimiento", "/propiedades", "/demandas", "/clientes", "/partes-visita"] },
   { label: "Obra y facturación", adminOnly: true, hrefs: ["/presupuestos", "/facturas", "/informes"] },
 ];
 

@@ -255,6 +255,7 @@ export interface Database {
           video_url: string | null;
           comercial_id: string | null;
           publicado: boolean;
+          origen: string;
           created_at: string;
           updated_at: string;
         };
@@ -288,6 +289,7 @@ export interface Database {
           video_url?: string | null;
           comercial_id?: string | null;
           publicado?: boolean;
+          origen?: string;
         };
         Update: {
           ofertante_id?: string | null;
@@ -835,6 +837,224 @@ export interface Database {
         Update: {
           texto?: string;
           tipo?: string;
+        };
+      };
+      captacion_alertas: {
+        Row: {
+          id: string;
+          nombre: string;
+          portales: string[];
+          zonas: string[];
+          center_lat: number | null;
+          center_lng: number | null;
+          radio_m: number;
+          operacion: string;
+          tipo: string | null;
+          precio_max: number | null;
+          m2_min: number | null;
+          solo_particulares: boolean;
+          frecuencia: string;
+          activa: boolean;
+          comercial_id: string | null;
+          created_by: string;
+          last_sync_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          nombre: string;
+          portales?: string[];
+          zonas?: string[];
+          center_lat?: number | null;
+          center_lng?: number | null;
+          radio_m?: number;
+          operacion?: string;
+          tipo?: string | null;
+          precio_max?: number | null;
+          m2_min?: number | null;
+          solo_particulares?: boolean;
+          frecuencia?: string;
+          activa?: boolean;
+          comercial_id?: string | null;
+          created_by: string;
+        };
+        Update: {
+          nombre?: string;
+          portales?: string[];
+          zonas?: string[];
+          activa?: boolean;
+          comercial_id?: string | null;
+          last_sync_at?: string | null;
+          updated_at?: string;
+        };
+      };
+      captacion_anuncios: {
+        Row: {
+          id: string;
+          fuente: string;
+          externo_id: string;
+          url: string | null;
+          titulo: string;
+          descripcion: string | null;
+          operacion: string;
+          tipo: string | null;
+          anunciante: string;
+          precio: number | null;
+          precio_anterior: number | null;
+          superficie: number | null;
+          habitaciones: number | null;
+          banos: number | null;
+          direccion: string | null;
+          zona: string | null;
+          municipio: string | null;
+          codigo_postal: string | null;
+          lat: number | null;
+          lng: number | null;
+          thumb: string | null;
+          n_fotos: number | null;
+          fotos: Json;
+          contacto_nombre: string | null;
+          contacto_telefono: string | null;
+          contacto_clave: string | null;
+          tags: string[];
+          alerta_id: string | null;
+          fase: string;
+          comercial_id: string | null;
+          proxima_accion: string | null;
+          propiedad_id: string | null;
+          cliente_id: string | null;
+          publicado_en: string | null;
+          visto_en: string;
+          desaparecido_en: string | null;
+          raw: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          fuente: string;
+          externo_id: string;
+          url?: string | null;
+          titulo: string;
+          descripcion?: string | null;
+          operacion?: string;
+          tipo?: string | null;
+          anunciante?: string;
+          precio?: number | null;
+          precio_anterior?: number | null;
+          superficie?: number | null;
+          habitaciones?: number | null;
+          banos?: number | null;
+          direccion?: string | null;
+          zona?: string | null;
+          municipio?: string | null;
+          codigo_postal?: string | null;
+          lat?: number | null;
+          lng?: number | null;
+          thumb?: string | null;
+          n_fotos?: number | null;
+          fotos?: Json;
+          contacto_nombre?: string | null;
+          contacto_telefono?: string | null;
+          contacto_clave?: string | null;
+          tags?: string[];
+          alerta_id?: string | null;
+          fase?: string;
+          comercial_id?: string | null;
+          proxima_accion?: string | null;
+          propiedad_id?: string | null;
+          cliente_id?: string | null;
+          publicado_en?: string | null;
+          visto_en?: string;
+          desaparecido_en?: string | null;
+          raw?: Json;
+        };
+        Update: {
+          url?: string | null;
+          titulo?: string;
+          precio?: number | null;
+          precio_anterior?: number | null;
+          tags?: string[];
+          fase?: string;
+          comercial_id?: string | null;
+          proxima_accion?: string | null;
+          propiedad_id?: string | null;
+          cliente_id?: string | null;
+          visto_en?: string;
+          desaparecido_en?: string | null;
+          updated_at?: string;
+          raw?: Json;
+        };
+      };
+      captacion_anuncios_actividad: {
+        Row: {
+          id: string;
+          anuncio_id: string;
+          actor_id: string | null;
+          tipo: string;
+          detalle: string | null;
+          payload: Json;
+          created_at: string;
+        };
+        Insert: {
+          anuncio_id: string;
+          actor_id?: string | null;
+          tipo: string;
+          detalle?: string | null;
+          payload?: Json;
+        };
+        Update: {
+          detalle?: string | null;
+        };
+      };
+      captacion_notificaciones: {
+        Row: {
+          id: string;
+          user_id: string;
+          tipo: string;
+          titulo: string;
+          detalle: string | null;
+          anuncio_id: string | null;
+          leida: boolean;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          tipo: string;
+          titulo: string;
+          detalle?: string | null;
+          anuncio_id?: string | null;
+          leida?: boolean;
+        };
+        Update: {
+          leida?: boolean;
+        };
+      };
+      captacion_notif_prefs: {
+        Row: {
+          user_id: string;
+          nuevos: boolean;
+          bajada: boolean;
+          retirado: boolean;
+          telefono_repite: boolean;
+          sin_mover: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          nuevos?: boolean;
+          bajada?: boolean;
+          retirado?: boolean;
+          telefono_repite?: boolean;
+          sin_mover?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          nuevos?: boolean;
+          bajada?: boolean;
+          retirado?: boolean;
+          telefono_repite?: boolean;
+          sin_mover?: boolean;
+          updated_at?: string;
         };
       };
     };
