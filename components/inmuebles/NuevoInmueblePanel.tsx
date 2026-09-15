@@ -17,6 +17,36 @@ import {
   type InmuebleFormValues,
 } from "@/lib/inmuebles/catalogo";
 import { ZONAS_DEMANDA } from "@/lib/demandas/nueva";
+import { altaCamposVacios, leerAltaBorrador } from "@/lib/ui/alta-borrador";
+import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
+
+type InmuebleAltaSnap = {
+  values: InmuebleFormValues;
+  nuevoPropietario: boolean;
+  nombreNuevo: string;
+  telefonoNuevo: string;
+  fijo: boolean;
+};
+
+function inmuebleAltaVacia(s: InmuebleAltaSnap) {
+  const v = s.values;
+  return altaCamposVacios(
+    v.titulo,
+    v.direccion,
+    v.localidad,
+    v.codigo_postal,
+    v.precio_venta,
+    v.precio_alquiler,
+    v.superficie_m2,
+    v.habitaciones,
+    v.banos,
+    v.notas,
+    s.nombreNuevo,
+    s.telefonoNuevo,
+    s.nuevoPropietario,
+    s.fijo ? "" : v.ofertante_id
+  );
+}
 
 export function NuevoInmueblePanel({
   open,
@@ -32,6 +62,7 @@ export function NuevoInmueblePanel({
   onCreado: (id: string) => void;
 }) {
   const ofertanteFijo = Boolean(ofertanteIdInicial);
+  const ambito = ofertanteIdInicial ?? "libre";
   const [clientes, setClientes] = useState<PersonaOpcion[]>([]);
   const [qCliente, setQCliente] = useState("");
   const [nuevoPropietario, setNuevoPropietario] = useState(false);
@@ -43,6 +74,20 @@ export function NuevoInmueblePanel({
     ofertante_id: ofertanteIdInicial ?? "",
   });
 
+  const snapshot = useMemo<InmuebleAltaSnap>(
+    () => ({ values, nuevoPropietario, nombreNuevo, telefonoNuevo, fijo: ofertanteFijo }),
+    [values, nuevoPropietario, nombreNuevo, telefonoNuevo, ofertanteFijo]
+  );
+  const borrador = useAltaBorrador({ tipo: "inmueble", ambito, open, snapshot, estaVacio: inmuebleAltaVacia });
+
+  const vaciar = () => {
+    setValues({ ...INMUEBLE_FORM_VACIO, ofertante_id: ofertanteIdInicial ?? "" });
+    setQCliente("");
+    setNuevoPropietario(false);
+    setNombreNuevo("");
+    setTelefonoNuevo("");
+  };
+
   useEffect(() => {
     if (!open) return;
     const supabase = createClient();
@@ -52,11 +97,20 @@ export function NuevoInmueblePanel({
       .eq("activo", true)
       .order("nombre")
       .then(({ data }) => setClientes((data ?? []) as PersonaOpcion[]));
-    setValues({ ...INMUEBLE_FORM_VACIO, ofertante_id: ofertanteIdInicial ?? "" });
-    setQCliente("");
-    setNuevoPropietario(false);
-    setNombreNuevo("");
-    setTelefonoNuevo("");
+    const guardado = leerAltaBorrador<InmuebleAltaSnap>("inmueble", ambito);
+    if (guardado && !inmuebleAltaVacia(guardado.data)) {
+      setValues({
+        ...INMUEBLE_FORM_VACIO,
+        ...guardado.data.values,
+        ofertante_id: ofertanteFijo ? ofertanteIdInicial ?? "" : guardado.data.values.ofertante_id,
+      });
+      setNuevoPropietario(guardado.data.nuevoPropietario);
+      setNombreNuevo(guardado.data.nombreNuevo);
+      setTelefonoNuevo(guardado.data.telefonoNuevo);
+      setQCliente("");
+    } else {
+      vaciar();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -121,6 +175,7 @@ export function NuevoInmueblePanel({
       return;
     }
     toast.success("Inmueble creado.");
+    borrador.consumir();
     onOpenChange(false);
     onCreado(data.id);
   };
@@ -135,6 +190,15 @@ export function NuevoInmueblePanel({
       saving={saving}
       disablePrimary={!values.titulo.trim() && !values.direccion.trim()}
       onSubmit={crear}
+      borrador={{
+        activo: borrador.hayBorrador,
+        guardadoEn: borrador.guardadoEn,
+        onEliminar: () => {
+          borrador.descartar();
+          vaciar();
+          toast.success("Borrador eliminado.");
+        },
+      }}
     >
       <AltaSection wide title="Propietario" hint="Puedes dejarlo sin asignar y ligarlo después.">
         <AltaPersona

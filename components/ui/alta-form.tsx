@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Sheet } from "@/components/ui/sheet";
 import { ToggleChip } from "@/components/ui/toggle-chip";
+import { horaAltaBorrador } from "@/lib/ui/alta-borrador";
 import { cn } from "@/lib/utils";
 
 export const altaControl =
@@ -18,7 +19,8 @@ export function AltaShell({
   saving,
   disablePrimary,
   onSubmit,
-  footerHint = "Se queda en el listado.",
+  footerHint = "Cerrar guarda un borrador en este navegador. Crear lo pasa al listado.",
+  borrador,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -30,6 +32,11 @@ export function AltaShell({
   disablePrimary?: boolean;
   onSubmit: () => void | Promise<void>;
   footerHint?: string;
+  borrador?: {
+    activo: boolean;
+    guardadoEn?: string | null;
+    onEliminar: () => void;
+  };
 }) {
   const enviar = (evento?: FormEvent) => {
     evento?.preventDefault();
@@ -62,6 +69,23 @@ export function AltaShell({
             </button>
           </div>
         </header>
+        {borrador?.activo ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 bg-[var(--amber-bg)] px-6 py-2.5 min-[780px]:px-8">
+            <p className="text-[12.5px] text-[var(--amber-ink)]">
+              Borrador en este dispositivo{horaAltaBorrador(borrador.guardadoEn) ? ` · ${horaAltaBorrador(borrador.guardadoEn)}` : ""}. Cerrar no lo borra.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                if (!window.confirm("¿Eliminar este borrador? No se puede deshacer.")) return;
+                borrador?.onEliminar();
+              }}
+              className="text-[12.5px] font-semibold text-[var(--amber-ink)] underline-offset-2 hover:underline"
+            >
+              Eliminar borrador
+            </button>
+          </div>
+        ) : null}
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 min-[780px]:px-8 min-[780px]:py-7">
           <div className="flex flex-col gap-8 min-[780px]:grid min-[780px]:grid-cols-2 min-[780px]:items-start min-[780px]:gap-x-10 min-[780px]:gap-y-8">
             {children}
@@ -81,7 +105,7 @@ export function AltaShell({
               onClick={() => onOpenChange(false)}
               className="h-11 rounded-[10px] border border-[var(--input)] px-4 text-[14px] font-semibold"
             >
-              Cancelar
+              Cerrar
             </button>
           </div>
           <p className="mt-2.5 text-[12px] text-[var(--text-3)]">{footerHint}</p>

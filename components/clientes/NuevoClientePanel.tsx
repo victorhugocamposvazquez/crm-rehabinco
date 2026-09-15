@@ -1,11 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { AltaExtra, AltaField, AltaSection, AltaShell, altaControl } from "@/components/ui/alta-form";
 import { ZONAS_DEMANDA } from "@/lib/demandas/nueva";
+import { altaCamposVacios, leerAltaBorrador } from "@/lib/ui/alta-borrador";
+import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
+
+type ClienteAltaSnap = {
+  tipoCliente: "particular" | "empresa";
+  tipoDocumento: "dni" | "nie" | "cif" | "vat";
+  nombre: string;
+  documentoFiscal: string;
+  email: string;
+  telefono: string;
+  direccion: string;
+  codigoPostal: string;
+  localidad: string;
+  notas: string;
+};
+
+function clienteAltaVacia(s: ClienteAltaSnap) {
+  return altaCamposVacios(s.nombre, s.documentoFiscal, s.email, s.telefono, s.direccion, s.codigoPostal, s.localidad, s.notas);
+}
 
 export function NuevoClientePanel({
   open,
@@ -21,6 +40,7 @@ export function NuevoClientePanel({
   onCreado: (id: string) => void;
 }) {
   const empresaAsociada = Boolean(padreId);
+  const ambito = padreId ?? "libre";
   const [tipoCliente, setTipoCliente] = useState<"particular" | "empresa">(empresaAsociada ? "empresa" : "particular");
   const [tipoDocumento, setTipoDocumento] = useState<"dni" | "nie" | "cif" | "vat">(empresaAsociada ? "cif" : "dni");
   const [nombre, setNombre] = useState("");
@@ -33,8 +53,13 @@ export function NuevoClientePanel({
   const [notas, setNotas] = useState("");
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (!open) return;
+  const snapshot = useMemo<ClienteAltaSnap>(
+    () => ({ tipoCliente, tipoDocumento, nombre, documentoFiscal, email, telefono, direccion, codigoPostal, localidad, notas }),
+    [tipoCliente, tipoDocumento, nombre, documentoFiscal, email, telefono, direccion, codigoPostal, localidad, notas]
+  );
+  const borrador = useAltaBorrador({ tipo: "cliente", ambito, open, snapshot, estaVacio: clienteAltaVacia });
+
+  const vaciar = () => {
     setTipoCliente(padreId ? "empresa" : "particular");
     setTipoDocumento(padreId ? "cif" : "dni");
     setNombre("");
@@ -45,6 +70,27 @@ export function NuevoClientePanel({
     setCodigoPostal("");
     setLocalidad("");
     setNotas("");
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const guardado = leerAltaBorrador<ClienteAltaSnap>("cliente", ambito);
+    if (guardado && !clienteAltaVacia(guardado.data)) {
+      const d = guardado.data;
+      setTipoCliente(padreId ? "empresa" : d.tipoCliente);
+      setTipoDocumento(d.tipoDocumento);
+      setNombre(d.nombre);
+      setDocumentoFiscal(d.documentoFiscal);
+      setEmail(d.email);
+      setTelefono(d.telefono);
+      setDireccion(d.direccion);
+      setCodigoPostal(d.codigoPostal);
+      setLocalidad(d.localidad);
+      setNotas(d.notas);
+    } else {
+      vaciar();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, padreId]);
 
   const crear = async () => {
@@ -88,6 +134,7 @@ export function NuevoClientePanel({
       return;
     }
     toast.success(empresaAsociada ? "Empresa asociada creada." : "Cliente creado.");
+    borrador.consumir();
     onOpenChange(false);
     onCreado(data.id);
   };
@@ -106,6 +153,15 @@ export function NuevoClientePanel({
       saving={saving}
       disablePrimary={!nombre.trim()}
       onSubmit={crear}
+      borrador={{
+        activo: borrador.hayBorrador,
+        guardadoEn: borrador.guardadoEn,
+        onEliminar: () => {
+          borrador.descartar();
+          vaciar();
+          toast.success("Borrador eliminado.");
+        },
+      }}
     >
       <AltaSection title="Quién" hint={empresaAsociada ? "Razón social de la empresa asociada." : "Particular o empresa. El nombre es lo único imprescindible."}>
         <div className="flex flex-col gap-5">

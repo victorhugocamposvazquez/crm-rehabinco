@@ -32,6 +32,7 @@ import { colorEstado } from "@/lib/ui/estados-vista";
 import { cn } from "@/lib/utils";
 import { extraAlta } from "@/lib/ui/alta-panel";
 import { NuevoInmueblePanel } from "@/components/inmuebles/NuevoInmueblePanel";
+import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
 
 type PropiedadLista = InmueblePanel;
 
@@ -53,6 +54,7 @@ export default function PropiedadesPage() {
   const [ofertanteInicial, setOfertanteInicial] = useState<string | undefined>();
   const [cargaKey, setCargaKey] = useState(0);
   const [pendingSelectedId, setPendingSelectedId] = useState<string | null>(null);
+  const hayBorrador = useHayAltaBorrador("inmueble");
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 819px)");
@@ -231,7 +233,7 @@ export default function PropiedadesPage() {
             </Button>
             <Button type="button" size="sm" onClick={() => { setOfertanteInicial(undefined); setNuevaOpen(true); }} className="gap-2">
               <Plus className="h-4 w-4" strokeWidth={1.5} />
-              Nuevo inmueble
+              {hayBorrador ? "Continuar borrador" : "Nuevo inmueble"}
             </Button>
           </div>
         }
@@ -248,7 +250,7 @@ export default function PropiedadesPage() {
           <p className="text-[var(--text-2)]">Aún no hay inmuebles.</p>
           <Button type="button" className="mt-4 gap-2" onClick={() => { setOfertanteInicial(undefined); setNuevaOpen(true); }}>
             <Building2 className="h-4 w-4" strokeWidth={1.5} />
-            Añadir primer inmueble
+            {hayBorrador ? "Continuar borrador" : "Añadir primer inmueble"}
           </Button>
         </div>
       ) : (
@@ -424,7 +426,7 @@ export default function PropiedadesPage() {
         </div>
       )}
 
-      <Fab onClick={() => { setOfertanteInicial(undefined); setNuevaOpen(true); }} label="Nuevo inmueble" />
+      <Fab onClick={() => { setOfertanteInicial(undefined); setNuevaOpen(true); }} label={hayBorrador ? "Continuar borrador" : "Nuevo inmueble"} />
       <NuevoInmueblePanel
         open={nuevaOpen}
         onOpenChange={(open) => {

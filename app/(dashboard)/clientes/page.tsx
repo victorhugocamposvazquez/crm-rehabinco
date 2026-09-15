@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { FichaLink } from "@/components/crm/FichaPeek";
 import { extraAlta } from "@/lib/ui/alta-panel";
 import { NuevoClientePanel } from "@/components/clientes/NuevoClientePanel";
+import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
 
 type ClienteLista = {
   id: string;
@@ -61,6 +62,7 @@ export default function ClientesPage() {
   const [padreInicial, setPadreInicial] = useState<string | undefined>();
   const [cargaKey, setCargaKey] = useState(0);
   const [pendingSelectedId, setPendingSelectedId] = useState<string | null>(null);
+  const hayBorrador = useHayAltaBorrador("cliente");
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 819px)");
@@ -253,7 +255,7 @@ export default function ClientesPage() {
         actions={
           <Button type="button" size="sm" onClick={() => { setPadreInicial(undefined); setNuevaOpen(true); }} className="gap-2">
             <UserPlus className="h-4 w-4" strokeWidth={1.5} />
-            Nuevo cliente
+            {hayBorrador ? "Continuar borrador" : "Nuevo cliente"}
           </Button>
         }
       />
@@ -269,7 +271,7 @@ export default function ClientesPage() {
           <p className="text-[var(--text-2)]">Aún no hay clientes.</p>
           <Button type="button" className="mt-4 gap-2" onClick={() => { setPadreInicial(undefined); setNuevaOpen(true); }}>
             <UserPlus className="h-4 w-4" strokeWidth={1.5} />
-            Añadir primer cliente
+            {hayBorrador ? "Continuar borrador" : "Añadir primer cliente"}
           </Button>
         </div>
       ) : (
@@ -484,7 +486,7 @@ export default function ClientesPage() {
         </div>
       )}
 
-      <Fab onClick={() => { setPadreInicial(undefined); setNuevaOpen(true); }} label="Añadir cliente" />
+      <Fab onClick={() => { setPadreInicial(undefined); setNuevaOpen(true); }} label={hayBorrador ? "Continuar borrador" : "Añadir cliente"} />
       <NuevoClientePanel
         open={nuevaOpen}
         onOpenChange={(open) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -13,6 +13,36 @@ import {
   type ContextoCatastralVisita,
 } from "@/lib/partes-visita";
 import { prefillParteDesdeCita } from "@/lib/citas/citas";
+import { altaCamposVacios, leerAltaBorrador } from "@/lib/ui/alta-borrador";
+import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
+
+type ParteAltaSnap = {
+  propiedadId: string;
+  visitanteNombre: string;
+  visitanteDocumento: string;
+  visitanteTelefono: string;
+  visitanteEmail: string;
+  inmuebleDireccion: string;
+  inmuebleReferencia: string;
+  fechaVisita: string;
+  horaVisita: string;
+  observaciones: string;
+  estado: "borrador" | "pendiente_firma";
+  desdeProperty: boolean;
+};
+
+function parteAltaVacia(s: ParteAltaSnap) {
+  const visitante = altaCamposVacios(
+    s.visitanteNombre,
+    s.visitanteDocumento,
+    s.visitanteTelefono,
+    s.visitanteEmail,
+    s.observaciones
+  );
+  if (!visitante) return false;
+  if (s.desdeProperty) return true;
+  return altaCamposVacios(s.propiedadId, s.inmuebleDireccion, s.inmuebleReferencia);
+}
 
 export function NuevoPartePanel({
   open,
@@ -29,6 +59,8 @@ export function NuevoPartePanel({
 }) {
   const { user } = useAuth();
   const desdeProperty = Boolean(propiedadIdInicial);
+  const ambito = citaIdInicial ? `cita:${citaIdInicial}` : propiedadIdInicial ? `prop:${propiedadIdInicial}` : "libre";
+  const saltarPrefill = useRef(false);
   const [propiedades, setPropiedades] = useState<
     Array<{ id: string; referencia: string | null; titulo: string | null; direccion: string | null }>
   >([]);
@@ -51,14 +83,39 @@ export function NuevoPartePanel({
   const [contextoCatastro, setContextoCatastro] = useState<ContextoCatastralVisita>(null);
   const [clienteId, setClienteId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    const supabase = createClient();
-    void supabase
-      .from("propiedades")
-      .select("id, referencia, titulo, direccion")
-      .order("created_at", { ascending: false })
-      .then(({ data }) => setPropiedades(data ?? []));
+  const snapshot = useMemo<ParteAltaSnap>(
+    () => ({
+      propiedadId,
+      visitanteNombre,
+      visitanteDocumento,
+      visitanteTelefono,
+      visitanteEmail,
+      inmuebleDireccion,
+      inmuebleReferencia,
+      fechaVisita,
+      horaVisita,
+      observaciones,
+      estado,
+      desdeProperty,
+    }),
+    [
+      propiedadId,
+      visitanteNombre,
+      visitanteDocumento,
+      visitanteTelefono,
+      visitanteEmail,
+      inmuebleDireccion,
+      inmuebleReferencia,
+      fechaVisita,
+      horaVisita,
+      observaciones,
+      estado,
+      desdeProperty,
+    ]
+  );
+  const borrador = useAltaBorrador({ tipo: "parte", ambito, open, snapshot, estaVacio: parteAltaVacia });
+
+  const vaciar = () => {
     setPropiedadId(propiedadIdInicial ?? "");
     setVisitanteNombre("");
     setVisitanteDocumento("");
@@ -73,11 +130,40 @@ export function NuevoPartePanel({
     setEstado("pendiente_firma");
     setContextoCatastro(null);
     setClienteId(null);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const supabase = createClient();
+    void supabase
+      .from("propiedades")
+      .select("id, referencia, titulo, direccion")
+      .order("created_at", { ascending: false })
+      .then(({ data }) => setPropiedades(data ?? []));
+    const guardado = leerAltaBorrador<ParteAltaSnap>("parte", ambito);
+    if (guardado && !parteAltaVacia(guardado.data)) {
+      const d = guardado.data;
+      saltarPrefill.current = true;
+      setPropiedadId(desdeProperty ? propiedadIdInicial ?? "" : d.propiedadId);
+      setVisitanteNombre(d.visitanteNombre);
+      setVisitanteDocumento(d.visitanteDocumento);
+      setVisitanteTelefono(d.visitanteTelefono);
+      setVisitanteEmail(d.visitanteEmail);
+      setInmuebleDireccion(d.inmuebleDireccion);
+      setInmuebleReferencia(d.inmuebleReferencia);
+      setFechaVisita(d.fechaVisita);
+      setHoraVisita(d.horaVisita);
+      setObservaciones(d.observaciones);
+      setEstado(d.estado);
+    } else {
+      saltarPrefill.current = false;
+      vaciar();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   useEffect(() => {
-    if (!open || !citaIdInicial) return;
+    if (!open || !citaIdInicial || saltarPrefill.current) return;
     const supabase = createClient();
     void supabase
       .from("citas")
@@ -119,7 +205,7 @@ export function NuevoPartePanel({
       return;
     }
     const p = propiedades.find((x) => x.id === propiedadId);
-    if (p) {
+    if (p && !saltarPrefill.current) {
       if (p.direccion) setInmuebleDireccion(p.direccion);
       if (p.referencia) setInmuebleReferencia(p.referencia);
     }
@@ -131,8 +217,10 @@ export function NuevoPartePanel({
       .maybeSingle()
       .then(({ data }) => {
         if (!data) return;
-        if (data.direccion) setInmuebleDireccion(data.direccion);
-        if (data.referencia) setInmuebleReferencia(data.referencia);
+        if (!saltarPrefill.current) {
+          if (data.direccion) setInmuebleDireccion(data.direccion);
+          if (data.referencia) setInmuebleReferencia(data.referencia);
+        }
         const link = Array.isArray(data.catastro_property_links)
           ? data.catastro_property_links[0]
           : data.catastro_property_links;
@@ -199,6 +287,7 @@ export function NuevoPartePanel({
       return;
     }
     toast.success("Parte de visita creado.");
+    borrador.consumir();
     onOpenChange(false);
     onCreado(data.id);
   };
@@ -213,6 +302,16 @@ export function NuevoPartePanel({
       saving={saving}
       disablePrimary={!inmuebleDireccion.trim() || !agenteNombre.trim()}
       onSubmit={crear}
+      borrador={{
+        activo: borrador.hayBorrador,
+        guardadoEn: borrador.guardadoEn,
+        onEliminar: () => {
+          saltarPrefill.current = false;
+          borrador.descartar();
+          vaciar();
+          toast.success("Borrador eliminado.");
+        },
+      }}
     >
       <AltaSection title="Visitante" hint="Nombre y teléfono. El DNI puede ir en la firma.">
         <div className="flex flex-col gap-5">

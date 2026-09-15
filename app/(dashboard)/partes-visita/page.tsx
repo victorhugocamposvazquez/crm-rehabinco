@@ -15,6 +15,7 @@ import { ESTADO_PARTE_LABELS, buildPublicFirmaUrl } from "@/lib/partes-visita";
 import { colorEstado } from "@/lib/ui/estados-vista";
 import { extraAlta } from "@/lib/ui/alta-panel";
 import { NuevoPartePanel } from "@/components/partes-visita/NuevoPartePanel";
+import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
 
 type ParteRow = {
   id: string;
@@ -38,6 +39,7 @@ export default function PartesVisitaPage() {
   const [propiedadInicial, setPropiedadInicial] = useState<string | undefined>();
   const [citaInicial, setCitaInicial] = useState<string | undefined>();
   const [cargaKey, setCargaKey] = useState(0);
+  const hayBorrador = useHayAltaBorrador("parte");
 
   useEffect(() => {
     const extra = extraAlta(searchParams);
@@ -100,7 +102,7 @@ export default function PartesVisitaPage() {
               className="gap-2"
             >
               <Plus className="h-4 w-4" strokeWidth={1.5} />
-              Nuevo parte
+              {hayBorrador ? "Continuar borrador" : "Nuevo parte"}
             </Button>
           </div>
         }
@@ -147,7 +149,7 @@ export default function PartesVisitaPage() {
                     className="gap-2"
                   >
                     <Plus className="h-4 w-4" strokeWidth={1.5} />
-                    Nuevo parte
+                    {hayBorrador ? "Continuar borrador" : "Nuevo parte"}
                   </Button>
                 </div>
               ) : null}
@@ -185,7 +187,7 @@ export default function PartesVisitaPage() {
           setCitaInicial(undefined);
           setNuevaOpen(true);
         }}
-        label="Nuevo parte"
+        label={hayBorrador ? "Continuar borrador" : "Nuevo parte"}
       />
       <NuevoPartePanel
         open={nuevaOpen}

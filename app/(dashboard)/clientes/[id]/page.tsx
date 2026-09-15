@@ -15,6 +15,7 @@ import { NuevaDemandaPanel } from "@/components/demandas/NuevaDemandaPanel";
 import { NuevoClientePanel } from "@/components/clientes/NuevoClientePanel";
 import { NuevoInmueblePanel } from "@/components/inmuebles/NuevoInmueblePanel";
 import { Pencil, Trash2, FileText, Building2, Plus, Home } from "lucide-react";
+import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
 
 interface Cliente {
   id: string;
@@ -37,6 +38,9 @@ export default function DetalleClientePage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
+  const hayBorradorEmpresa = useHayAltaBorrador("cliente", id);
+  const hayBorradorInmueble = useHayAltaBorrador("inmueble", id);
+  const hayBorradorDemanda = useHayAltaBorrador("demanda", id);
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [facturas, setFacturas] = useState<Array<{ id: string; numero: string; estado: string; total?: number }>>([]);
   const [empresasAsociadas, setEmpresasAsociadas] = useState<Array<{ id: string; nombre: string }>>([]);
@@ -234,7 +238,7 @@ export default function DetalleClientePage() {
             <CardTitle>Empresas asociadas</CardTitle>
             <Button variant="secondary" size="sm" type="button" onClick={() => setNuevaEmpresaOpen(true)} className="gap-1.5">
                 <Plus className="h-4 w-4" strokeWidth={1.5} />
-                Añadir empresa
+                {hayBorradorEmpresa ? "Continuar borrador" : "Añadir empresa"}
               </Button>
           </CardHeader>
           <CardContent>
@@ -270,7 +274,7 @@ export default function DetalleClientePage() {
             <CardTitle>Inmuebles que ofrece</CardTitle>
             <Button variant="secondary" size="sm" type="button" onClick={() => setNuevoInmuebleOpen(true)} className="gap-1.5">
                 <Plus className="h-4 w-4" strokeWidth={1.5} />
-                Añadir inmueble
+                {hayBorradorInmueble ? "Continuar borrador" : "Añadir inmueble"}
               </Button>
           </CardHeader>
           <CardContent>
@@ -303,7 +307,7 @@ export default function DetalleClientePage() {
             <CardTitle>Lo que busca</CardTitle>
             <Button variant="secondary" size="sm" type="button" onClick={() => setNuevaOpen(true)} className="gap-1.5">
                 <Plus className="h-4 w-4" strokeWidth={1.5} />
-                Nueva demanda
+                {hayBorradorDemanda ? "Continuar borrador" : "Nueva demanda"}
               </Button>
           </CardHeader>
           <CardContent>

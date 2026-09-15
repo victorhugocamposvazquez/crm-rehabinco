@@ -14,6 +14,7 @@ import { colorEstado, formatEuro } from "@/lib/ui/estados-vista";
 import { NuevaDemandaPanel } from "@/components/demandas/NuevaDemandaPanel";
 import { TIPO_INMUEBLE_LABEL, type TipoInmueble } from "@/lib/inmuebles/catalogo";
 import { extraAlta } from "@/lib/ui/alta-panel";
+import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
 
 type DemandaRow = {
   id: string;
@@ -41,6 +42,7 @@ export default function DemandasPage() {
   const [estado, setEstado] = useState("activa");
   const [nuevaOpen, setNuevaOpen] = useState(false);
   const [clienteInicial, setClienteInicial] = useState<string | undefined>();
+  const hayBorrador = useHayAltaBorrador("demanda");
 
   const cargarTotales = () => {
     const supabase = createClient();
@@ -110,7 +112,7 @@ export default function DemandasPage() {
         description="Lo que busca cada cliente. El matching se confirma a mano."
         actions={
           <Button type="button" size="sm" onClick={() => { setClienteInicial(undefined); setNuevaOpen(true); }}>
-            Nueva demanda
+            {hayBorrador ? "Continuar borrador" : "Nueva demanda"}
           </Button>
         }
       />

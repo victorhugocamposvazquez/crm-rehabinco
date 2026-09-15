@@ -21,6 +21,8 @@ import {
   type BorradorNuevaDemanda,
 } from "@/lib/demandas/nueva";
 import type { ComercialFiltro } from "@/components/captacion/FiltroComercial";
+import { altaCamposVacios, leerAltaBorrador } from "@/lib/ui/alta-borrador";
+import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
 
 const BORRADOR_VACIO: Omit<BorradorNuevaDemanda, "comercialId"> = {
   clienteId: "",
@@ -38,6 +40,41 @@ const BORRADOR_VACIO: Omit<BorradorNuevaDemanda, "comercialId"> = {
   origen: "llamada",
 };
 
+type DemandaAltaSnap = {
+  draft: BorradorNuevaDemanda;
+  nuevoCliente: boolean;
+  nombreNuevo: string;
+  telefonoNuevo: string;
+  zonaExtra: string;
+  fijo: boolean;
+};
+
+function demandaAltaVacia(s: DemandaAltaSnap) {
+  const d = s.draft;
+  const tiposDefault = d.tiposInmueble.length === 1 && d.tiposInmueble[0] === "piso";
+  return (
+    altaCamposVacios(
+      s.fijo ? "" : d.clienteId,
+      s.nombreNuevo,
+      s.telefonoNuevo,
+      s.nuevoCliente,
+      d.zonas,
+      d.presupuestoMin,
+      d.presupuestoMax,
+      d.superficieMin,
+      d.superficieMax,
+      d.habitacionesMin,
+      d.banosMin,
+      d.requisitos,
+      d.requisitosRapidos,
+      s.zonaExtra
+    ) &&
+    tiposDefault &&
+    d.tipoOperacion === "compra" &&
+    d.origen === "llamada"
+  );
+}
+
 export function NuevaDemandaPanel({
   open,
   onOpenChange,
@@ -54,6 +91,7 @@ export function NuevaDemandaPanel({
   const { user } = useAuth();
   const admin = isAdmin(user?.role);
   const clienteFijo = Boolean(clienteIdInicial);
+  const ambito = clienteIdInicial ?? "libre";
   const [clientes, setClientes] = useState<PersonaOpcion[]>([]);
   const [comerciales, setComerciales] = useState<ComercialFiltro[]>([]);
   const [qCliente, setQCliente] = useState("");
@@ -66,6 +104,25 @@ export function NuevaDemandaPanel({
     ...BORRADOR_VACIO,
     comercialId: user?.id ?? "",
   });
+
+  const snapshot = useMemo<DemandaAltaSnap>(
+    () => ({ draft, nuevoCliente, nombreNuevo, telefonoNuevo, zonaExtra, fijo: clienteFijo }),
+    [draft, nuevoCliente, nombreNuevo, telefonoNuevo, zonaExtra, clienteFijo]
+  );
+  const borrador = useAltaBorrador({ tipo: "demanda", ambito, open, snapshot, estaVacio: demandaAltaVacia });
+
+  const vaciar = () => {
+    setDraft({
+      ...BORRADOR_VACIO,
+      clienteId: clienteIdInicial ?? "",
+      comercialId: user?.id ?? "",
+    });
+    setQCliente("");
+    setNuevoCliente(false);
+    setNombreNuevo("");
+    setTelefonoNuevo("");
+    setZonaExtra("");
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -85,16 +142,22 @@ export function NuevaDemandaPanel({
           }))
       );
     });
-    setDraft({
-      ...BORRADOR_VACIO,
-      clienteId: clienteIdInicial ?? "",
-      comercialId: user?.id ?? "",
-    });
-    setQCliente("");
-    setNuevoCliente(false);
-    setNombreNuevo("");
-    setTelefonoNuevo("");
-    setZonaExtra("");
+    const guardado = leerAltaBorrador<DemandaAltaSnap>("demanda", ambito);
+    if (guardado && !demandaAltaVacia(guardado.data)) {
+      setDraft({
+        ...BORRADOR_VACIO,
+        ...guardado.data.draft,
+        clienteId: clienteFijo ? clienteIdInicial ?? "" : guardado.data.draft.clienteId,
+        comercialId: guardado.data.draft.comercialId || user?.id || "",
+      });
+      setNuevoCliente(guardado.data.nuevoCliente);
+      setNombreNuevo(guardado.data.nombreNuevo);
+      setTelefonoNuevo(guardado.data.telefonoNuevo);
+      setZonaExtra(guardado.data.zonaExtra);
+      setQCliente("");
+    } else {
+      vaciar();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -164,6 +227,7 @@ export function NuevaDemandaPanel({
       return;
     }
     toast.success("Demanda creada.");
+    borrador.consumir();
     onOpenChange(false);
     onCreada(data.id);
   };
@@ -180,6 +244,15 @@ export function NuevaDemandaPanel({
       saving={saving}
       disablePrimary={faltaCliente}
       onSubmit={crear}
+      borrador={{
+        activo: borrador.hayBorrador,
+        guardadoEn: borrador.guardadoEn,
+        onEliminar: () => {
+          borrador.descartar();
+          vaciar();
+          toast.success("Borrador eliminado.");
+        },
+      }}
     >
       <AltaSection wide title="Cliente" hint="Primero quién busca. Si no está en la agenda, créalo aquí.">
         <AltaPersona
