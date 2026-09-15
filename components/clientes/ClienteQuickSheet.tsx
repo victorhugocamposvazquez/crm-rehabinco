@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { BuscadorLocalidad } from "@/components/geo/BuscadorLocalidad";
 
 export interface ClienteQuickData {
   id: string;
@@ -233,11 +234,11 @@ export function ClienteQuickSheet({
             </div>
             <div className="space-y-2">
               <Label htmlFor="quick-localidad">Localidad</Label>
-              <Input
-                id="quick-localidad"
-                placeholder="Madrid"
+              <BuscadorLocalidad
                 value={localidad}
-                onChange={(e) => setLocalidad(e.target.value)}
+                onChange={(valor) => setLocalidad(Array.isArray(valor) ? valor[0] ?? "" : valor)}
+                placeholder="Toda España · 3 letras"
+                inputClassName="h-10 rounded-lg text-sm"
               />
             </div>
           </div>

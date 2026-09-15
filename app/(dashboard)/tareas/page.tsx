@@ -166,7 +166,7 @@ export default function TareasPage() {
       .from("citas")
       .insert({
         comercial_id: tarea.comercial_id,
-        tipo: "otro",
+        tipo: "tarea",
         titulo: tituloCita,
         empieza: empieza.toISOString(),
         termina: termina.toISOString(),

@@ -16,7 +16,7 @@ import {
   inmuebleDesdeForm,
   type InmuebleFormValues,
 } from "@/lib/inmuebles/catalogo";
-import { ZONAS_DEMANDA } from "@/lib/demandas/nueva";
+import { BuscadorLocalidad } from "@/components/geo/BuscadorLocalidad";
 import { altaCamposVacios, leerAltaBorrador } from "@/lib/ui/alta-borrador";
 import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
 import { acceptMedia, validarArchivoMedia } from "@/lib/inmuebles/media";
@@ -295,15 +295,12 @@ export function NuevoInmueblePanel({
           </AltaField>
           <div>
             <div className="mb-2.5 text-[12.5px] font-semibold text-[var(--text-2)]">Localidad</div>
-            <div className="flex flex-wrap gap-2">
-              {ZONAS_DEMANDA.map((zona) => (
-                <ToggleChip key={zona} on={values.localidad === zona} onClick={() => set({ localidad: values.localidad === zona ? "" : zona })}>
-                  {zona}
-                </ToggleChip>
-              ))}
-            </div>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <input value={values.localidad} onChange={(e) => set({ localidad: e.target.value })} placeholder="Otra localidad" className={`${altaControl} mt-0`} />
+            <div className="grid grid-cols-2 gap-3">
+              <BuscadorLocalidad
+                value={values.localidad}
+                onChange={(valor) => set({ localidad: Array.isArray(valor) ? valor[0] ?? "" : valor })}
+                placeholder="Toda España · 3 letras"
+              />
               <input value={values.codigo_postal} onChange={(e) => set({ codigo_postal: e.target.value })} placeholder="CP" className={`${altaControl} mt-0`} />
             </div>
           </div>

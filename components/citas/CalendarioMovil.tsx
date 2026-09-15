@@ -40,6 +40,7 @@ export function CalendarioMovil({
   onMover,
   onEstado,
   onCambiarHora,
+  onCrearHueco,
 }: {
   semana: string[];
   dia: string;
@@ -51,6 +52,7 @@ export function CalendarioMovil({
   onMover: (id: string, dia: string) => void;
   onEstado: (id: string, estado: "hecha" | "cancelada") => void;
   onCambiarHora: (id: string, hora: string) => void;
+  onCrearHueco?: (minutos: number) => void;
 }) {
   const gridRef = useRef<HTMLDivElement>(null);
   const dragIdRef = useRef<string | null>(null);
@@ -140,13 +142,18 @@ export function CalendarioMovil({
           ? overDia && overDia !== dia
             ? "Suelta para cambiar de día."
             : "Suelta en la rejilla para cambiar la hora."
-          : "Arrastra al día o mueve en la rejilla. También puedes cambiar la hora abajo."}
+          : "Pulsa un hueco para crear. Arrastra al día o mueve en la rejilla."}
       </p>
 
       <div
         ref={gridRef}
         className="relative mt-3 overflow-hidden rounded-[14px] border border-border bg-white"
         style={{ height: (CAL_HORA_FIN - CAL_HORA_INICIO + 1) * CAL_PX_HORA }}
+        onClick={(e) => {
+          if (draggingId || (e.target as HTMLElement).closest("[data-cal-evento]")) return;
+          const y = e.clientY - e.currentTarget.getBoundingClientRect().top;
+          onCrearHueco?.(minutosDesdeOffsetY(y));
+        }}
       >
         {Array.from({ length: CAL_HORA_FIN - CAL_HORA_INICIO + 1 }, (_, i) => CAL_HORA_INICIO + i).map((h, i) => (
           <div key={h} className="absolute inset-x-0 border-t border-[var(--border-row)]" style={{ top: i * CAL_PX_HORA }}>
@@ -160,6 +167,7 @@ export function CalendarioMovil({
           return (
             <div
               key={cita.id}
+              data-cal-evento
               onPointerDown={(e) => {
                 if (!prevista) return;
                 empezar(cita.id, e);

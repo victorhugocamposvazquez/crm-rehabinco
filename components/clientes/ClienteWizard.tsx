@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { wizardActionBarClassName } from "@/components/layout/wizard-chrome";
+import { BuscadorLocalidad } from "@/components/geo/BuscadorLocalidad";
 
 const STEPS = [
   { id: 1, title: "Datos básicos" },
@@ -384,10 +385,15 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="localidad">Localidad</Label>
-                    <Input
-                      id="localidad"
-                      placeholder="Madrid"
-                      {...formStep2.register("localidad")}
+                    <BuscadorLocalidad
+                      value={formStep2.watch("localidad") ?? ""}
+                      onChange={(valor) =>
+                        formStep2.setValue("localidad", Array.isArray(valor) ? valor[0] ?? "" : valor, {
+                          shouldDirty: true,
+                        })
+                      }
+                      placeholder="Toda España · 3 letras"
+                      inputClassName="h-10 rounded-lg text-sm"
                     />
                   </div>
                 </div>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
@@ -10,8 +9,6 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { isAdmin } from "@/lib/auth/roles";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   CAL_HORA_FIN,
   CAL_HORA_INICIO,
@@ -20,6 +17,7 @@ import {
   citasDelDia,
   ESTADO_CITA_LABEL,
   horaCita,
+  horaDesdeMinutos,
   minutosDesdeHora,
   minutosDesdeOffsetY,
   minutosLocalesDeCita,
@@ -28,9 +26,9 @@ import {
   posicionEventoCalendario,
   relacionUno,
   semanaDesde,
-  TIPOS_CITA,
   TIPO_CITA_LABEL,
   type EstadoCita,
+  type TipoAltaCalendario,
   type TipoCita,
 } from "@/lib/citas/citas";
 import { FiltroComercial, type ComercialFiltro } from "@/components/captacion/FiltroComercial";
@@ -38,6 +36,7 @@ import { useFiltroComercial } from "@/lib/ui/filtro-comercial";
 import { CitaAcciones } from "@/components/citas/CitaAcciones";
 import { FichaLink } from "@/components/crm/FichaPeek";
 import { CalendarioMovil } from "@/components/citas/CalendarioMovil";
+import { NuevaEntradaCalendario } from "@/components/citas/NuevaEntradaCalendario";
 
 type CitaRow = {
   id: string;
@@ -61,9 +60,9 @@ export default function CalendarioPage() {
   const hoy = new Date().toISOString().slice(0, 10);
   const [dia, setDia] = useState(() => hoy);
   const [citas, setCitas] = useState<CitaRow[]>([]);
-  const [titulo, setTitulo] = useState("");
-  const [tipo, setTipo] = useState<TipoCita>("visita");
-  const [hora, setHora] = useState("18:00");
+  const [hora, setHora] = useState("10:00");
+  const [sheetOpen, setSheetOpen] = useState(() => Boolean(searchParams.get("propiedad") || searchParams.get("cliente")));
+  const [saving, setSaving] = useState(false);
   const [propiedadId, setPropiedadId] = useState(searchParams.get("propiedad") ?? "");
   const [clienteId, setClienteId] = useState(searchParams.get("cliente") ?? "");
   const [propiedades, setPropiedades] = useState<Array<{ id: string; titulo: string | null; direccion: string | null; referencia: string | null }>>([]);
@@ -148,36 +147,85 @@ export default function CalendarioPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, admin, dia]);
 
-  const crear = async () => {
+  const crear = async (tipo: TipoAltaCalendario, titulo: string) => {
     if (!user) return;
     const tituloFinal =
       titulo.trim() ||
       (propiedadId
-        ? `Visita ${propiedades.find((p) => p.id === propiedadId)?.referencia || propiedades.find((p) => p.id === propiedadId)?.direccion || ""}`.trim()
-        : "");
-    if (!tituloFinal) {
-      toast.error("Pon un título o elige un inmueble.");
-      return;
-    }
+        ? `${TIPO_CITA_LABEL[tipo]} ${propiedades.find((p) => p.id === propiedadId)?.referencia || propiedades.find((p) => p.id === propiedadId)?.direccion || ""}`.trim()
+        : TIPO_CITA_LABEL[tipo]);
     const empieza = new Date(`${dia}T${hora}:00`);
     const termina = new Date(empieza.getTime() + 60 * 60 * 1000);
+    setSaving(true);
     const supabase = createClient();
-    const { error } = await supabase.from("citas").insert({
-      comercial_id: user.id,
-      tipo,
-      titulo: tituloFinal,
-      empieza: empieza.toISOString(),
-      termina: termina.toISOString(),
-      propiedad_id: propiedadId || null,
-      cliente_id: clienteId || null,
-    });
-    if (error) {
-      toast.error("No se ha podido crear la cita.");
-      return;
+    if (tipo === "tarea") {
+      const { data: tarea, error: errorTarea } = await supabase
+        .from("tareas")
+        .insert({
+          comercial_id: user.id,
+          creado_por: user.id,
+          titulo: tituloFinal,
+          vence: dia,
+          hora,
+          estado: "pendiente",
+          propiedad_id: propiedadId || null,
+          cliente_id: clienteId || null,
+        })
+        .select("id")
+        .single();
+      if (errorTarea || !tarea) {
+        setSaving(false);
+        toast.error("No se ha podido crear la tarea.");
+        return;
+      }
+      const { data: cita, error } = await supabase
+        .from("citas")
+        .insert({
+          comercial_id: user.id,
+          tipo: "tarea",
+          titulo: tituloFinal,
+          empieza: empieza.toISOString(),
+          termina: termina.toISOString(),
+          propiedad_id: propiedadId || null,
+          cliente_id: clienteId || null,
+          tarea_id: tarea.id,
+        })
+        .select("id")
+        .single();
+      if (error) {
+        setSaving(false);
+        toast.error("La tarea está creada, pero no ha pasado al calendario.");
+        return;
+      }
+      if (cita?.id) {
+        await supabase.from("tareas").update({ cita_id: cita.id }).eq("id", tarea.id);
+      }
+    } else {
+      const { error } = await supabase.from("citas").insert({
+        comercial_id: user.id,
+        tipo,
+        titulo: tituloFinal,
+        empieza: empieza.toISOString(),
+        termina: termina.toISOString(),
+        propiedad_id: propiedadId || null,
+        cliente_id: clienteId || null,
+      });
+      if (error) {
+        setSaving(false);
+        toast.error("No se ha podido crear la entrada.");
+        return;
+      }
     }
-    setTitulo("");
-    toast.success("Cita creada.");
+    setSaving(false);
+    setSheetOpen(false);
+    toast.success(`${TIPO_CITA_LABEL[tipo]} creado.`);
     cargar();
+  };
+
+  const abrirHueco = (diaDestino: string, minutos: number) => {
+    setDia(diaDestino);
+    setHora(horaDesdeMinutos(minutos));
+    setSheetOpen(true);
   };
 
   const moverCita = async (id: string, diaDestino: string, opts?: { minutos?: number; offsetY?: number | null }) => {
@@ -236,12 +284,7 @@ export default function CalendarioPage() {
       <PageHeader
         breadcrumb={[{ label: "Calendario" }]}
         title="Calendario"
-        description="Arrastra las citas a otro día o hora. En el teléfono también puedes cambiar la hora abajo. El parte de visita se hace desde la cita."
-        actions={
-          <Button asChild size="sm" variant="secondary">
-            <Link href="/partes-visita">Visitas</Link>
-          </Button>
-        }
+        description="Pulsa un hueco de día y hora para crear un evento, un recordatorio o una tarea. Arrastra para mover."
       />
       {admin ? (
         <div className="mt-4">
@@ -259,9 +302,14 @@ export default function CalendarioPage() {
             <ChevronRight className="h-4 w-4" strokeWidth={1.5} />
           </Button>
         </div>
-        <Button type="button" size="sm" variant="ghost" onClick={() => setDia(hoy)}>
-          Hoy
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button type="button" size="sm" variant="ghost" onClick={() => setDia(hoy)}>
+            Hoy
+          </Button>
+          <Button type="button" size="sm" onClick={() => abrirHueco(dia, minutosDesdeHora(hora))}>
+            Nueva
+          </Button>
+        </div>
       </div>
 
       <div className="mt-4">
@@ -276,6 +324,7 @@ export default function CalendarioPage() {
           onMover={(id, destino) => void moverCita(id, destino)}
           onEstado={cambiarEstado}
           onCambiarHora={(id, horaNueva) => void moverCita(id, dia, { minutos: minutosDesdeHora(horaNueva) })}
+          onCrearHueco={(minutos) => abrirHueco(dia, minutos)}
         />
       </div>
 
@@ -321,6 +370,11 @@ export default function CalendarioPage() {
             return (
               <div
                 key={d}
+                onClick={(e) => {
+                  if ((e.target as HTMLElement).closest("[data-cal-evento]")) return;
+                  const y = e.clientY - e.currentTarget.getBoundingClientRect().top;
+                  abrirHueco(d, minutosDesdeOffsetY(y));
+                }}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
                   e.preventDefault();
@@ -329,7 +383,7 @@ export default function CalendarioPage() {
                   const y = e.clientY - e.currentTarget.getBoundingClientRect().top;
                   void moverCita(id, d, { offsetY: y });
                 }}
-                className="relative border-l border-[var(--border-soft)]"
+                className="relative cursor-pointer border-l border-[var(--border-soft)]"
                 style={{ height: (CAL_HORA_FIN - CAL_HORA_INICIO + 1) * CAL_PX_HORA, background: esHoy ? "#FBFBF9" : "#fff" }}
               >
                 {Array.from({ length: CAL_HORA_FIN - CAL_HORA_INICIO + 1 }).map((_, i) => (
@@ -342,12 +396,16 @@ export default function CalendarioPage() {
                     <button
                       key={cita.id}
                       type="button"
+                      data-cal-evento
                       draggable={cita.estado === "prevista"}
                       onDragStart={(e) => {
                         e.dataTransfer.setData("text/cita", cita.id);
                         e.dataTransfer.effectAllowed = "move";
                       }}
-                      onClick={() => setDia(d)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDia(d);
+                      }}
                       className="absolute inset-x-1 cursor-grab overflow-hidden rounded-[6px] px-1.5 py-0.5 text-left active:cursor-grabbing"
                       style={{
                         top,
@@ -369,74 +427,21 @@ export default function CalendarioPage() {
         </div>
       </div>
 
-      <details className="mt-6 rounded-[14px] border border-border bg-white" open={Boolean(propiedadId || clienteId)}>
-        <summary className="cursor-pointer px-4 py-3 text-[13.5px] font-semibold">Nueva cita</summary>
-        <form
-          className="grid gap-3 border-t border-[var(--border-soft)] p-4 sm:grid-cols-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void crear();
-          }}
-        >
-        <div className="sm:col-span-2">
-          <Label>Nueva cita · {new Date(`${dia}T12:00:00`).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}</Label>
-          <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Visita en… (opcional si eliges inmueble)" />
-        </div>
-        <div>
-          <Label>Inmueble</Label>
-          <select
-            value={propiedadId}
-            onChange={(e) => setPropiedadId(e.target.value)}
-            className="mt-1 flex h-10 w-full rounded-lg border border-border px-3 text-sm"
-          >
-            <option value="">Sin inmueble</option>
-            {propiedades.map((p) => (
-              <option key={p.id} value={p.id}>
-                {[p.referencia, p.titulo || p.direccion].filter(Boolean).join(" · ")}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <Label>Cliente (demandante)</Label>
-          <select
-            value={clienteId}
-            onChange={(e) => setClienteId(e.target.value)}
-            className="mt-1 flex h-10 w-full rounded-lg border border-border px-3 text-sm"
-          >
-            <option value="">Sin cliente</option>
-            {clientes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nombre}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <Label>Tipo</Label>
-          <select
-            value={tipo}
-            onChange={(e) => setTipo(e.target.value as TipoCita)}
-            className="mt-1 flex h-10 w-full rounded-lg border border-border px-3 text-sm"
-          >
-            {TIPOS_CITA.map((item) => (
-              <option key={item} value={item}>
-                {TIPO_CITA_LABEL[item]}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <Label>Hora</Label>
-          <Input type="time" value={hora} onChange={(e) => setHora(e.target.value)} />
-        </div>
-        <div className="sm:col-span-2">
-          <Button type="submit" size="sm">
-            Añadir
-          </Button>
-        </div>
-        </form>
-      </details>
+      <NuevaEntradaCalendario
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        dia={dia}
+        hora={hora}
+        onHora={setHora}
+        propiedades={propiedades}
+        clientes={clientes}
+        propiedadId={propiedadId}
+        clienteId={clienteId}
+        onPropiedad={setPropiedadId}
+        onCliente={setClienteId}
+        saving={saving}
+        onCrear={(tipo, titulo) => void crear(tipo, titulo)}
+      />
 
       <h2 className="mt-8 hidden text-[15px] font-semibold capitalize min-[820px]:block">
         {new Date(`${dia}T12:00:00`).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}

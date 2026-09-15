@@ -15,11 +15,11 @@ import { TIPOS_OPERACION_DEMANDA, TIPO_OPERACION_DEMANDA_LABEL } from "@/lib/dem
 import {
   ORIGENES_DEMANDA,
   REQUISITOS_RAPIDOS,
-  ZONAS_DEMANDA,
   payloadNuevaDemanda,
   validarNuevaDemanda,
   type BorradorNuevaDemanda,
 } from "@/lib/demandas/nueva";
+import { BuscadorLocalidad } from "@/components/geo/BuscadorLocalidad";
 import type { ComercialFiltro } from "@/components/captacion/FiltroComercial";
 import { altaCamposVacios, leerAltaBorrador } from "@/lib/ui/alta-borrador";
 import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
@@ -215,13 +215,6 @@ export function NuevaDemandaPanel({
     });
   };
 
-  const addZonaExtra = () => {
-    const zona = zonaExtra.trim();
-    if (!zona) return;
-    setDraft((prev) => ({ ...prev, zonas: prev.zonas.includes(zona) ? prev.zonas : [...prev.zonas, zona] }));
-    setZonaExtra("");
-  };
-
   const crear = async () => {
     if (!user) return;
     let clienteId = draft.clienteId;
@@ -349,35 +342,12 @@ export function NuevaDemandaPanel({
           </div>
           <div>
             <div className="mb-2.5 text-[12.5px] font-semibold text-[var(--text-2)]">Zonas</div>
-            <div className="flex flex-wrap gap-2">
-              {ZONAS_DEMANDA.map((zona) => (
-                <ToggleChip key={zona} on={draft.zonas.includes(zona)} onClick={() => toggleLista("zonas", zona)}>
-                  {zona}
-                </ToggleChip>
-              ))}
-              {draft.zonas.filter((z) => !(ZONAS_DEMANDA as readonly string[]).includes(z)).map((zona) => (
-                <ToggleChip key={zona} on onClick={() => toggleLista("zonas", zona)}>
-                  {zona}
-                </ToggleChip>
-              ))}
-            </div>
-            <div className="mt-3 flex gap-2">
-              <input
-                value={zonaExtra}
-                onChange={(e) => setZonaExtra(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addZonaExtra();
-                  }
-                }}
-                placeholder="Otra zona o CP"
-                className={`${altaControl} mt-0 flex-1`}
-              />
-              <button type="button" onClick={addZonaExtra} className="h-11 rounded-[10px] border border-[var(--input)] px-3.5 text-[13px] font-semibold">
-                Añadir
-              </button>
-            </div>
+            <BuscadorLocalidad
+              multiple
+              value={draft.zonas}
+              onChange={(valor) => set("zonas", Array.isArray(valor) ? valor : valor ? [valor] : [])}
+              placeholder="Toda España · 3 letras para añadir"
+            />
           </div>
         </div>
       </AltaSection>

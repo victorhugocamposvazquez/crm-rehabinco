@@ -1,5 +1,8 @@
-export const TIPOS_CITA = ["visita", "llamada", "firma", "otro"] as const;
+export const TIPOS_CITA = ["visita", "llamada", "firma", "evento", "recordatorio", "tarea", "otro"] as const;
 export type TipoCita = (typeof TIPOS_CITA)[number];
+
+export const TIPOS_ALTA_CALENDARIO = ["evento", "recordatorio", "tarea", "visita"] as const;
+export type TipoAltaCalendario = (typeof TIPOS_ALTA_CALENDARIO)[number];
 
 export const ESTADOS_CITA = ["prevista", "hecha", "no_asistio", "cancelada"] as const;
 export type EstadoCita = (typeof ESTADOS_CITA)[number];
@@ -28,6 +31,9 @@ export const TIPO_CITA_LABEL: Record<TipoCita, string> = {
   visita: "Visita",
   llamada: "Llamada",
   firma: "Firma",
+  evento: "Evento",
+  recordatorio: "Recordatorio",
+  tarea: "Tarea",
   otro: "Otro",
 };
 
@@ -167,6 +173,13 @@ export function minutosLocalesDeCita(empieza: string): number {
 export function minutosDesdeHora(hora: string): number {
   const [h, m] = hora.split(":").map(Number);
   return snapMinutos((Number.isFinite(h) ? h : CAL_HORA_INICIO) * 60 + (Number.isFinite(m) ? m : 0));
+}
+
+export function horaDesdeMinutos(minutos: number): string {
+  const acotados = Math.max(0, Math.min(23 * 60 + 45, snapMinutos(minutos)));
+  const h = Math.floor(acotados / 60);
+  const m = acotados % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
 export function prefillParteDesdeCita(cita: {

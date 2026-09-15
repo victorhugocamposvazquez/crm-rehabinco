@@ -15,6 +15,7 @@ import { UserPlus, Building2, KeyRound } from "lucide-react";
 import { PerfilComercialCard } from "@/components/settings/PerfilComercialCard";
 import { EquipoComercialesCard } from "@/components/settings/EquipoComercialesCard";
 import { SettingsAdminNav } from "@/components/settings/SettingsAdminNav";
+import { AvisosPwaCard } from "@/components/pwa/AvisosPwa";
 
 export default function SettingsPage() {
   const { user, signOut } = useAuth();
@@ -82,6 +83,7 @@ export default function SettingsPage() {
         </Card>
 
         {user?.id && user.role !== "editor" && <PerfilComercialCard userId={user.id} />}
+        {user?.id && user.role !== "editor" && <AvisosPwaCard />}
         {user?.role === "admin" && (
           <div id="equipo" className="contents">
             <EquipoComercialesCard />

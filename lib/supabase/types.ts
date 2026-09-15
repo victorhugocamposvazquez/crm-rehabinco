@@ -1088,6 +1088,50 @@ export interface Database {
           updated_by?: string | null;
         };
       };
+      crm_push_subs: {
+        Row: {
+          id: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+        };
+        Update: {
+          endpoint?: string;
+          p256dh?: string;
+          auth?: string;
+        };
+      };
+      crm_avisos: {
+        Row: {
+          id: string;
+          user_id: string;
+          clave: string;
+          titulo: string;
+          cuerpo: string | null;
+          url: string | null;
+          leida: boolean;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          clave: string;
+          titulo: string;
+          cuerpo?: string | null;
+          url?: string | null;
+          leida?: boolean;
+        };
+        Update: {
+          leida?: boolean;
+        };
+      };
     };
   };
 }

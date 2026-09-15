@@ -9,6 +9,7 @@ import { isWizardRoute } from "./wizard-chrome";
 import { cn } from "@/lib/utils";
 import { FiltroComercialProvider } from "@/lib/ui/filtro-comercial";
 import { FichaPeekProvider } from "@/components/crm/FichaPeek";
+import { AlertasPwaHost } from "@/components/pwa/AvisosPwa";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
 import { bandejaDeTarea } from "@/lib/tareas/tareas";
@@ -71,6 +72,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {!wizard && <MobileNav />}
         </div>
       </div>
+      <AlertasPwaHost />
       </FichaPeekProvider>
     </FiltroComercialProvider>
   );

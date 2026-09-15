@@ -1,7 +1,5 @@
 import { type TipoOperacionDemanda } from "./matching";
 
-export const ZONAS_DEMANDA = ["A Coruña", "Oleiros", "Cambre", "Culleredo", "Arteixo", "Sada"] as const;
-
 export const ORIGENES_DEMANDA = [
   { id: "llamada", label: "Llamada" },
   { id: "oficina", label: "Oficina" },

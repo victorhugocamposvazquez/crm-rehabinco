@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UserPlus } from "lucide-react";
 import { ClienteQuickSheet } from "@/components/clientes/ClienteQuickSheet";
+import { BuscadorLocalidad } from "@/components/geo/BuscadorLocalidad";
 import {
   ESTADOS_INMUEBLE,
   ESTADO_INMUEBLE_LABEL,
@@ -147,10 +148,11 @@ export function InmuebleForm({
           </div>
           <div className="space-y-2">
             <Label>Localidad / zona</Label>
-            <Input
-              placeholder="Oleiros"
+            <BuscadorLocalidad
               value={values.localidad}
-              onChange={(e) => set({ localidad: e.target.value })}
+              onChange={(valor) => set({ localidad: Array.isArray(valor) ? valor[0] ?? "" : valor })}
+              placeholder="Toda España · 3 letras"
+              inputClassName="h-10 rounded-lg text-sm"
             />
           </div>
         </div>

@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { AltaExtra, AltaField, AltaSection, AltaShell, altaControl } from "@/components/ui/alta-form";
-import { ZONAS_DEMANDA } from "@/lib/demandas/nueva";
+import { BuscadorLocalidad } from "@/components/geo/BuscadorLocalidad";
 import { altaCamposVacios, leerAltaBorrador } from "@/lib/ui/alta-borrador";
 import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
 
@@ -238,15 +238,12 @@ export function NuevoClientePanel({
           </AltaField>
           <div>
             <div className="mb-2.5 text-[12.5px] font-semibold text-[var(--text-2)]">Localidad</div>
-            <div className="flex flex-wrap gap-2">
-              {ZONAS_DEMANDA.map((zona) => (
-                <ToggleChip key={zona} on={localidad === zona} onClick={() => setLocalidad(localidad === zona ? "" : zona)}>
-                  {zona}
-                </ToggleChip>
-              ))}
-            </div>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <input value={localidad} onChange={(e) => setLocalidad(e.target.value)} placeholder="Otra localidad" className={`${altaControl} mt-0`} />
+            <div className="grid grid-cols-2 gap-3">
+              <BuscadorLocalidad
+                value={localidad}
+                onChange={(valor) => setLocalidad(Array.isArray(valor) ? valor[0] ?? "" : valor)}
+                placeholder="Toda España · 3 letras"
+              />
               <input value={codigoPostal} onChange={(e) => setCodigoPostal(e.target.value)} placeholder="CP" className={`${altaControl} mt-0`} />
             </div>
           </div>
