@@ -324,6 +324,35 @@ export default function CalendarioPage() {
     cargar();
   };
 
+  const revertirMovimiento = async (snapshot: {
+    id: string;
+    empieza: string;
+    termina: string;
+    tarea_id?: string | null;
+    vence: string;
+    hora: string;
+  }) => {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("citas")
+      .update({ empieza: snapshot.empieza, termina: snapshot.termina })
+      .eq("id", snapshot.id);
+    if (error) {
+      toast.error("No se ha podido deshacer el movimiento.");
+      return;
+    }
+    if (snapshot.tarea_id) {
+      await supabase.from("tareas").update({ vence: snapshot.vence, hora: snapshot.hora }).eq("id", snapshot.tarea_id);
+    }
+    setCitas((prev) =>
+      prev.map((item) =>
+        item.id === snapshot.id ? { ...item, empieza: snapshot.empieza, termina: snapshot.termina } : item
+      )
+    );
+    setDia(snapshot.empieza.slice(0, 10));
+    toast.success(`Cita devuelta a ${snapshot.hora}.`);
+  };
+
   const moverCita = async (id: string, diaDestino: string, opts?: { minutos?: number; offsetY?: number | null }) => {
     const cita = citas.find((item) => item.id === id);
     if (!cita || cita.estado === "hecha" || cita.estado === "cancelada") return;
@@ -335,6 +364,14 @@ export default function CalendarioPage() {
           : minutosDesdeOffsetY(opts.offsetY);
     const diaCita = cita.empieza.slice(0, 10);
     if (diaDestino === diaCita && minutos === minutosLocalesDeCita(cita.empieza)) return;
+    const snapshot = {
+      id,
+      empieza: cita.empieza,
+      termina: cita.termina,
+      tarea_id: cita.tarea_id,
+      vence: diaCita,
+      hora: horaCita(cita.empieza),
+    };
     const patch = moverCitaADiaHora({
       empieza: cita.empieza,
       termina: cita.termina,
@@ -357,7 +394,13 @@ export default function CalendarioPage() {
       prev.map((item) => (item.id === id ? { ...item, empieza: patch.empieza, termina: patch.termina } : item))
     );
     setDia(diaDestino);
-    toast.success(`Cita pasada a ${patch.hora}.`);
+    toast.success(`Cita pasada a ${patch.hora}.`, {
+      duration: 8000,
+      action: {
+        label: "Deshacer",
+        onClick: () => void revertirMovimiento(snapshot),
+      },
+    });
   };
 
   const cambiarEstado = async (id: string, estado: "hecha" | "cancelada") => {
@@ -380,7 +423,7 @@ export default function CalendarioPage() {
       <PageHeader
         breadcrumb={[{ label: "Calendario" }]}
         title="Calendario"
-        description="Pulsa un hueco para crear. Pulsa un evento para editarlo. Arrastra para mover."
+        description="Pulsa un hueco para crear. Pulsa un evento para editarlo. Arrastra para mover; puedes deshacer desde el aviso."
       />
       {admin ? (
         <div className="mt-4">
