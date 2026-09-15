@@ -18,7 +18,7 @@ export const FILTROS_DIVISION_FORM = [
   {
     value: "NO",
     label: "Candidatas (Sin DH)",
-    ayuda: "Solo parcelas o edificios que Catastro no tiene partidos en pisos. Es lo habitual para reforma.",
+    ayuda: "Solo parcelas o edificios que Catastro no tiene partidos en pisos.",
   },
   {
     value: "ALL",
@@ -33,7 +33,7 @@ export const FILTROS_DIVISION_FORM = [
 ] as const;
 
 export const AYUDA_FILTRO_DIVISION =
-  "Por defecto solo ves parcelas o edificios que Catastro no tiene partidos en pisos. Es lo habitual para reforma. Si la lista sale vacía, elige «Todas las fincas».";
+  "Por defecto solo ves parcelas o edificios que Catastro no tiene partidos en pisos. Si la lista sale vacía, elige «Todas las fincas».";
 
 /**
  * Leyenda de los 4 estados de división horizontal.
@@ -45,14 +45,14 @@ export const LEYENDA_ESTADOS_DIVISION = [
     etiqueta: "Candidata (Sin DH)",
     filtro: "Candidata (Sin DH)",
     texto:
-      "Catastro dice que el edificio está construido y no está partido en pisos. Es la finca típica para reforma integral, por eso sale por defecto.",
+      "Catastro dice que el edificio está construido y no está partido en pisos. Por eso sale por defecto.",
   },
   {
     status: "YES",
     etiqueta: "Con pisos (Con DH)",
     filtro: "Con pisos (Con DH)",
     texto:
-      "Catastro dice que ya hay división horizontal (pisos o locales). No es candidata de reforma de finca entera.",
+      "Catastro dice que ya hay división horizontal (pisos o locales).",
   },
   {
     status: "NOT_APPLICABLE",
@@ -277,7 +277,7 @@ export function resumenComercialFinca(finca: Pick<FincaBusquedaUi, "horizontalDi
   const partes: string[] = [];
   if (status === "NO") partes.push("Sin dividir en pisos");
   else if (status === "YES") partes.push("Ya tiene división horizontal");
-  else if (status === "NOT_APPLICABLE") partes.push("Tipología no aplicable a reforma de edificio");
+  else if (status === "NOT_APPLICABLE") partes.push("Tipología no aplicable a división de edificio");
   else partes.push("Catastro no aclara si está dividida");
   if (finca.superficieSolar != null) partes.push(`${finca.superficieSolar} m² de parcela`);
   if (inmuebles === 1) partes.push("1 inmueble");

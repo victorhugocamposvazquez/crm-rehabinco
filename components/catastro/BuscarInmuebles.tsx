@@ -563,7 +563,7 @@ export function BuscarInmuebles() {
       <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#5D6B67]">Catastro</p>
       <PageHeader
         title="Buscar fincas"
-        description="Rastreamos Catastro por bloques y nos quedamos las fincas sin división horizontal: las candidatas reales a reforma."
+        description="Rastreamos Catastro por bloques y nos quedamos las fincas sin división horizontal."
         descriptionClassName="max-w-[58ch] text-[15px] text-[#5D6B67]"
       />
 
