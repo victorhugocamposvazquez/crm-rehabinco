@@ -5,11 +5,13 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { ESTADOS_DEMANDA } from "@/lib/demandas/matching";
+import { ESTADOS_DEMANDA, TIPO_OPERACION_DEMANDA_LABEL, type TipoOperacionDemanda } from "@/lib/demandas/matching";
 import { relacionUno } from "@/lib/citas/citas";
 import { Chip } from "@/components/ui/chip";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { colorEstado, formatEuro } from "@/lib/ui/estados-vista";
+import { NuevaDemandaPanel } from "@/components/demandas/NuevaDemandaPanel";
+import { TIPO_INMUEBLE_LABEL, type TipoInmueble } from "@/lib/inmuebles/catalogo";
 
 type DemandaRow = {
   id: string;
@@ -24,12 +26,19 @@ type DemandaRow = {
   demanda_inmuebles?: Array<{ id: string; estado: string }> | null;
 };
 
+function labelTipos(tipos: string[] | null | undefined): string {
+  if (!tipos?.length) return "";
+  return tipos.map((t) => TIPO_INMUEBLE_LABEL[t as TipoInmueble] ?? t).join(", ");
+}
+
 export default function DemandasPage() {
   const [filas, setFilas] = useState<DemandaRow[]>([]);
   const [totales, setTotales] = useState<Record<string, number>>({});
   const [estado, setEstado] = useState("activa");
+  const [nuevaOpen, setNuevaOpen] = useState(false);
+  const [clienteInicial, setClienteInicial] = useState<string | undefined>();
 
-  useEffect(() => {
+  const cargarTotales = () => {
     const supabase = createClient();
     void supabase.from("demandas").select("estado").then(({ data }) => {
       const map: Record<string, number> = {};
@@ -40,16 +49,16 @@ export default function DemandasPage() {
       }
       setTotales(map);
     });
-  }, []);
+  };
 
-  useEffect(() => {
+  const cargarFilas = (estadoActual = estado) => {
     const supabase = createClient();
     void supabase
       .from("demandas")
       .select(
         "id, tipo_operacion, estado, zonas, tipos_inmueble, presupuesto_max, habitaciones_min, clientes:cliente_id(nombre), profiles:comercial_id(nombre_completo, color), demanda_inmuebles(id, estado)"
       )
-      .eq("estado", estado)
+      .eq("estado", estadoActual)
       .order("updated_at", { ascending: false })
       .then(({ data }) =>
         setFilas(
@@ -62,11 +71,32 @@ export default function DemandasPage() {
             ...fila,
             clientes: relacionUno(fila.clientes),
             profiles: relacionUno(fila.profiles),
-            demanda_inmuebles: Array.isArray(fila.demanda_inmuebles) ? fila.demanda_inmuebles : fila.demanda_inmuebles ? [fila.demanda_inmuebles] : [],
+            demanda_inmuebles: Array.isArray(fila.demanda_inmuebles)
+              ? fila.demanda_inmuebles
+              : fila.demanda_inmuebles
+                ? [fila.demanda_inmuebles]
+                : [],
           }))
         )
       );
+  };
+
+  useEffect(() => {
+    cargarTotales();
+  }, []);
+
+  useEffect(() => {
+    cargarFilas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [estado]);
+
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("nueva") !== "1") return;
+    setClienteInicial(q.get("cliente") ?? undefined);
+    setNuevaOpen(true);
+    window.history.replaceState({}, "", "/demandas");
+  }, []);
 
   return (
     <div>
@@ -75,8 +105,8 @@ export default function DemandasPage() {
         title="Demandas"
         description="Lo que busca cada cliente. El matching se confirma a mano."
         actions={
-          <Button asChild size="sm">
-            <Link href="/demandas/nueva">Nueva demanda</Link>
+          <Button type="button" size="sm" onClick={() => { setClienteInicial(undefined); setNuevaOpen(true); }}>
+            Nueva demanda
           </Button>
         }
       />
@@ -97,6 +127,8 @@ export default function DemandasPage() {
             fila.presupuesto_max != null ? `hasta ${formatEuro(fila.presupuesto_max)}` : null,
             fila.habitaciones_min != null ? `${fila.habitaciones_min}+ hab` : null,
           ].filter(Boolean) as string[];
+          const tipos = labelTipos(fila.tipos_inmueble);
+          const operacion = TIPO_OPERACION_DEMANDA_LABEL[fila.tipo_operacion as TipoOperacionDemanda] ?? fila.tipo_operacion;
           return (
             <li key={fila.id}>
               <Link
@@ -106,9 +138,9 @@ export default function DemandasPage() {
                 <div className="flex items-start justify-between gap-2.5">
                   <div className="min-w-0">
                     <p className="text-[15px] font-semibold">{fila.clientes?.nombre ?? "Cliente"}</p>
-                    <p className="mt-0.5 text-[12.5px] capitalize text-[var(--text-2)]">
-                      {fila.tipo_operacion}
-                      {fila.tipos_inmueble?.length ? ` · ${fila.tipos_inmueble.join(", ")}` : ""}
+                    <p className="mt-0.5 text-[12.5px] text-[var(--text-2)]">
+                      {operacion}
+                      {tipos ? ` · ${tipos}` : ""}
                     </p>
                   </div>
                   <span
@@ -144,6 +176,16 @@ export default function DemandasPage() {
           </li>
         ) : null}
       </ul>
+      <NuevaDemandaPanel
+        open={nuevaOpen}
+        onOpenChange={setNuevaOpen}
+        clienteIdInicial={clienteInicial}
+        onCreada={() => {
+          setEstado("activa");
+          cargarTotales();
+          cargarFilas("activa");
+        }}
+      />
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { FichaLink } from "@/components/crm/FichaPeek";
+import { NuevaDemandaPanel } from "@/components/demandas/NuevaDemandaPanel";
 import { Pencil, Trash2, FileText, Building2, Plus, Home } from "lucide-react";
 
 interface Cliente {
@@ -43,6 +44,8 @@ export default function DetalleClientePage() {
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [nuevaOpen, setNuevaOpen] = useState(false);
+  const [demandasTick, setDemandasTick] = useState(0);
 
   useEffect(() => {
     const supabase = createClient();
@@ -110,7 +113,7 @@ export default function DetalleClientePage() {
       .eq("cliente_id", id)
       .order("updated_at", { ascending: false })
       .then(({ data }) => setDemandas(data ?? []));
-  }, [id]);
+  }, [id, demandasTick]);
 
   const handleDelete = async () => {
     if (!cliente) return;
@@ -296,12 +299,10 @@ export default function DetalleClientePage() {
         <Card className="md:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Lo que busca</CardTitle>
-            <Button variant="secondary" size="sm" asChild>
-              <Link href={`/demandas/nueva?cliente=${id}`} className="gap-1.5">
+            <Button variant="secondary" size="sm" type="button" onClick={() => setNuevaOpen(true)} className="gap-1.5">
                 <Plus className="h-4 w-4" strokeWidth={1.5} />
                 Nueva demanda
-              </Link>
-            </Button>
+              </Button>
           </CardHeader>
           <CardContent>
             {demandas.length === 0 ? (
@@ -347,6 +348,13 @@ export default function DetalleClientePage() {
           </CardContent>
         </Card>
       </div>
+      <NuevaDemandaPanel
+        open={nuevaOpen}
+        onOpenChange={setNuevaOpen}
+        clienteIdInicial={id}
+        clienteNombre={cliente.nombre}
+        onCreada={() => setDemandasTick((n) => n + 1)}
+      />
     </div>
   );
 }

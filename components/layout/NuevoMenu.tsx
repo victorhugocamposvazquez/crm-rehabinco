@@ -40,7 +40,7 @@ export function NuevoMenu() {
         { href: "/calendario", label: "Cita", icon: CalendarDays },
         { href: "/propiedades/nueva", label: "Inmueble", icon: Building2 },
         { href: "/clientes/nuevo", label: "Cliente", icon: User },
-        { href: "/demandas/nueva", label: "Demanda", icon: Users },
+        { href: "/demandas?nueva=1", label: "Demanda", icon: Users },
         ...(admin
           ? [
               { href: "/presupuestos/nuevo", label: "Presupuesto", icon: ClipboardList },

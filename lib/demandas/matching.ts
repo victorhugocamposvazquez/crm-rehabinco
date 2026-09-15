@@ -1,6 +1,12 @@
 export const TIPOS_OPERACION_DEMANDA = ["compra", "alquiler", "ambos"] as const;
 export type TipoOperacionDemanda = (typeof TIPOS_OPERACION_DEMANDA)[number];
 
+export const TIPO_OPERACION_DEMANDA_LABEL: Record<TipoOperacionDemanda, string> = {
+  compra: "Compra",
+  alquiler: "Alquiler",
+  ambos: "Compra y alquiler",
+};
+
 export const ESTADOS_DEMANDA = ["activa", "pausada", "cubierta", "cerrada"] as const;
 export type EstadoDemanda = (typeof ESTADOS_DEMANDA)[number];
 
