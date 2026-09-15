@@ -320,6 +320,7 @@ export interface Database {
           video_url?: string | null;
           comercial_id?: string | null;
           publicado?: boolean;
+          origen?: string;
           updated_at?: string;
         };
       };

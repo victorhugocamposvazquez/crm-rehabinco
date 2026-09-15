@@ -9,7 +9,6 @@ import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { Sheet } from "@/components/ui/sheet";
 import { FiltroComercial, type ComercialFiltro } from "@/components/captacion/FiltroComercial";
 import { nombreYApellido, inicialesNombre } from "@/lib/ui/tokens";
-import { siguienteReferencia, tipoInmuebleDesdeAnuncio } from "@/lib/captacion/portales/captar";
 import { CIUDADES_FILTRO } from "@/lib/captacion/portales/zonas";
 import {
   FASE_KANBAN_META,
@@ -29,7 +28,6 @@ import {
   tagsConEstilo,
   type AlertaCaptacion,
   type AnuncioCaptacion,
-  type FaseAnuncio,
   type FaseKanban,
   type FuentePortal,
 } from "@/lib/captacion/portales/modelo";
@@ -85,6 +83,7 @@ function filaAnuncio(row: Record<string, unknown>): AnuncioCaptacion {
     comercial_id: typeof row.comercial_id === "string" ? row.comercial_id : null,
     proxima_accion: typeof row.proxima_accion === "string" ? row.proxima_accion : null,
     propiedad_id: typeof row.propiedad_id === "string" ? row.propiedad_id : null,
+    cliente_id: typeof row.cliente_id === "string" ? row.cliente_id : null,
     publicado_en: typeof row.publicado_en === "string" ? row.publicado_en : null,
     visto_en: String(row.visto_en ?? row.created_at ?? ""),
     desaparecido_en: typeof row.desaparecido_en === "string" ? row.desaparecido_en : null,
@@ -325,38 +324,66 @@ export function CaptacionPortales() {
 
   const captar = async (anuncio: AnuncioCaptacion) => {
     if (!user) return;
-    const supabase = createClient();
-    const year = new Date().getFullYear();
-    const { data: refs } = await supabase.from("propiedades").select("referencia");
-    const referencia = siguienteReferencia((refs ?? []).map((r) => r.referencia), year);
-    const { data, error } = await supabase
-      .from("propiedades")
-      .insert({
-        user_id: user.id,
-        comercial_id: anuncio.comercial_id || user.id,
-        titulo: anuncio.titulo,
-        direccion: anuncio.direccion,
-        localidad: anuncio.municipio,
-        tipo_operacion: anuncio.operacion === "alquiler" ? "alquiler" : "venta",
-        precio_venta: anuncio.operacion === "venta" ? anuncio.precio : null,
-        precio_alquiler: anuncio.operacion === "alquiler" ? anuncio.precio : null,
-        superficie_m2: anuncio.superficie,
-        habitaciones: anuncio.habitaciones,
-        tipo_inmueble: tipoInmuebleDesdeAnuncio(anuncio.tipo),
-        estado: "disponible",
-        origen: "PORTAL",
-        publicado: false,
-        referencia,
-        notas: anuncio.url ? `Origen ${anuncio.fuente}: ${anuncio.url}` : null,
-      })
-      .select("id, referencia")
-      .single();
-    if (error || !data) {
-      toast.error("No se ha podido crear el inmueble.");
+    const res = await fetch(`/api/captacion/anuncios/${anuncio.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fase: "captado" }),
+    });
+    const json = (await res.json()) as {
+      ok?: boolean;
+      error?: string;
+      convertido?: { referencia?: string; propiedadId?: string; clienteId?: string | null } | null;
+    };
+    if (!res.ok || !json.ok) {
+      toast.error(json.error || "No se ha podido crear el inmueble.");
       return;
     }
-    await patchAnuncio([anuncio.id], { fase: "captado", propiedad_id: data.id, proxima_accion: null }, `Mandato firmado → ${data.referencia}`, "captado");
-    toast.success(`Captado como ${data.referencia}.`);
+    const ref = json.convertido?.referencia;
+    setAnuncios((prev) =>
+      prev.map((a) =>
+        a.id === anuncio.id
+          ? {
+              ...a,
+              fase: "captado",
+              propiedad_id: json.convertido?.propiedadId ?? a.propiedad_id,
+              cliente_id: json.convertido?.clienteId ?? a.cliente_id,
+              proxima_accion: null,
+            }
+          : a
+      )
+    );
+    cargar();
+    toast.success(ref ? `Captado como ${ref}.` : "Captado como inmueble.");
+  };
+
+  const anotar = async (id: string, nota: string) => {
+    const texto = nota.trim();
+    if (!texto) return;
+    const res = await fetch(`/api/captacion/anuncios/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nota: texto }),
+    });
+    if (!res.ok) {
+      toast.error("No se ha podido guardar la nota.");
+      return;
+    }
+    toast.success("Nota guardada.");
+    setSel(id);
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("captacion_anuncios_actividad")
+      .select("id, detalle, created_at, tipo")
+      .eq("anuncio_id", id)
+      .order("created_at", { ascending: true });
+    setActividad(
+      ((data ?? []) as Array<{ id: string; detalle: string | null; created_at: string; tipo: string }>).map((row) => ({
+        id: row.id,
+        cuando: cuandoPublicado(row.created_at),
+        texto: row.detalle ?? row.tipo,
+        tipo: row.tipo,
+      }))
+    );
   };
 
   const moverFase = async (id: string, fase: FaseKanban) => {
@@ -818,6 +845,8 @@ export function CaptacionPortales() {
             comerciales={comerciales}
             onCerrar={() => setPanel(false)}
             onSeguir={() => seguir([seleccionado.id])}
+            onCaptar={() => void captar(seleccionado)}
+            onNota={(nota) => void anotar(seleccionado.id, nota)}
             onAsignar={(id) => void patchAnuncio([seleccionado.id], { comercial_id: id }, `Asignado a ${comercialDe(id)?.nombre.split(" ")[0] ?? ""}`, "asignacion")}
           />
         </Sheet>
@@ -893,6 +922,8 @@ function PeekAnuncio({
   comerciales,
   onCerrar,
   onSeguir,
+  onCaptar,
+  onNota,
   onAsignar,
 }: {
   anuncio: AnuncioCaptacion;
@@ -902,8 +933,11 @@ function PeekAnuncio({
   comerciales: ComercialFiltro[];
   onCerrar: () => void;
   onSeguir: () => void;
+  onCaptar: () => void;
+  onNota: (nota: string) => void;
   onAsignar: (id: string) => void;
 }) {
+  const [nota, setNota] = useState("");
   const a = anuncio;
   const alquiler = a.operacion === "alquiler";
   return (
@@ -934,7 +968,14 @@ function PeekAnuncio({
         </div>
       </div>
       <div className="flex flex-wrap gap-2 border-b border-[var(--border-soft)] px-4 py-3">
-        <button type="button" onClick={onSeguir} className="h-[38px] min-w-[130px] flex-1 rounded-[9px] bg-accent text-[13px] font-semibold text-white">Pasar a seguimiento</button>
+        {a.fase === "novedad" ? (
+          <button type="button" onClick={onSeguir} className="h-[38px] min-w-[130px] flex-1 rounded-[9px] bg-accent text-[13px] font-semibold text-white">Pasar a seguimiento</button>
+        ) : a.fase !== "captado" ? (
+          <button type="button" onClick={onCaptar} className="h-[38px] min-w-[130px] flex-1 rounded-[9px] bg-accent text-[13px] font-semibold text-white">Captar inmueble</button>
+        ) : a.propiedad_id ? (
+          <a href={`/propiedades/${a.propiedad_id}`} className="flex h-[38px] min-w-[130px] flex-1 items-center justify-center rounded-[9px] bg-accent text-[13px] font-semibold text-white no-underline">Ver inmueble</a>
+        ) : null}
+        {a.cliente_id ? <a href={`/clientes/${a.cliente_id}`} className="flex h-[38px] min-w-[90px] flex-1 items-center justify-center rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold no-underline">Ver cliente</a> : null}
         {a.contacto_telefono ? <a href={`tel:${a.contacto_telefono.replace(/\s/g, "")}`} className="flex h-[38px] min-w-[90px] flex-1 items-center justify-center rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold no-underline">Llamar</a> : null}
         {a.url ? <a href={a.url} target="_blank" rel="noopener noreferrer" className="flex h-[38px] min-w-[120px] flex-1 items-center justify-center rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold no-underline">Ver en {PORTAL_LABEL[a.fuente]}</a> : null}
       </div>
@@ -968,6 +1009,22 @@ function PeekAnuncio({
           </div>
         ))}
         {nRepite >= 3 ? <div className="mt-2 rounded-[9px] bg-[#FBF0D8] px-2.5 py-2 text-[12.5px] text-[#7A5A10]">Este teléfono aparece en {nRepite} anuncios. Puede ser un profesional encubierto.</div> : null}
+        <form
+          className="mt-3 flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            onNota(nota);
+            setNota("");
+          }}
+        >
+          <input
+            value={nota}
+            onChange={(e) => setNota(e.target.value)}
+            placeholder="Añadir nota…"
+            className="h-9 min-w-0 flex-1 rounded-[9px] border border-[var(--input)] px-3 text-[13px]"
+          />
+          <button type="submit" className="h-9 rounded-[9px] border border-[var(--input)] bg-white px-3 text-[12.5px] font-semibold">Guardar</button>
+        </form>
       </div>
     </div>
   );

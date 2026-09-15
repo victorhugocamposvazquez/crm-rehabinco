@@ -15,6 +15,9 @@
     },
     "app/api/captacion/sync/route.ts": {
       "maxDuration": 300
+    },
+    "app/api/captacion/portales/sync/route.ts": {
+      "maxDuration": 300
     }
   },
   "crons": [

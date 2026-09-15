@@ -117,6 +117,7 @@ export type AnuncioCaptacion = {
   comercial_id: string | null;
   proxima_accion: string | null;
   propiedad_id: string | null;
+  cliente_id: string | null;
   publicado_en: string | null;
   visto_en: string;
   desaparecido_en: string | null;

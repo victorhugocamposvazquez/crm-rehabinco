@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { anuncianteIdealista, mapearIdealista, paramsIdealistaDesdeAlerta, tipoIdealista } from "./idealista";
 import { claveContacto, diasEnPortal, pctBajada } from "./modelo";
 import { desaparecidosTrasSync, filtrarParticular, fusionarAnuncio } from "./sync";
-import { siguienteReferencia } from "./captar";
+import { siguienteReferencia, payloadClienteDesdeAnuncio, payloadPropiedadDesdeAnuncio, tipoInmuebleDesdeAnuncio } from "./captar";
 import { centroDeZonas } from "./zonas";
 
 describe("captación portales", () => {
@@ -155,5 +155,39 @@ describe("captación portales", () => {
     assert.equal(diasEnPortal("2026-09-15T08:00:00", new Date(2026, 8, 15)), 0);
     assert.equal(diasEnPortal("2026-09-13T08:00:00", new Date(2026, 8, 15)), 2);
     assert.equal(siguienteReferencia(["RHB-2026-0019", "X"], 2026), "RHB-2026-0020");
+  });
+
+  it("prepara cliente ofertante e inmueble PORTAL al captar", () => {
+    const anuncio = {
+      contacto_nombre: "Tania",
+      contacto_telefono: "600 111 222",
+      titulo: "Piso en Oleiros",
+      direccion: "Calle A 1",
+      codigo_postal: "15172",
+      municipio: "Oleiros",
+      anunciante: "particular" as const,
+      fuente: "idealista" as const,
+      url: "https://www.idealista.com/inmueble/1/",
+      operacion: "venta" as const,
+      precio: 150000,
+      superficie: 86,
+      habitaciones: 3,
+      tipo: "piso",
+      comercial_id: "com-1",
+    };
+    const cliente = payloadClienteDesdeAnuncio(anuncio, "user-1");
+    assert.equal(cliente.nombre, "Tania");
+    assert.equal(cliente.tipo_cliente, "particular");
+    assert.equal(cliente.telefono, "600 111 222");
+    const inmueble = payloadPropiedadDesdeAnuncio(anuncio, {
+      userId: "user-1",
+      referencia: "RHB-2026-0001",
+      ofertanteId: "cli-1",
+    });
+    assert.equal(inmueble.origen, "PORTAL");
+    assert.equal(inmueble.publicado, false);
+    assert.equal(inmueble.ofertante_id, "cli-1");
+    assert.equal(inmueble.precio_venta, 150000);
+    assert.equal(tipoInmuebleDesdeAnuncio("casa"), "chalet");
   });
 });

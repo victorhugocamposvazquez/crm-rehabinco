@@ -62,6 +62,13 @@ export async function ejecutarSyncPortales(): Promise<{
   const omitidas: string[] = [];
   const vistos: Array<{ fuente: string; externo_id: string }> = [];
 
+  const { data: todosPrevios } = await admin
+    .from("captacion_anuncios")
+    .select("id, fuente, externo_id, precio, tags, fase, alerta_id, desaparecido_en");
+  const previos = new Map(
+    ((todosPrevios ?? []) as AnuncioGuardado[]).map((row) => [`${row.fuente}:${row.externo_id}`, row])
+  );
+
   for (const alerta of alertas) {
     if (!alerta.portales.includes("idealista")) {
       omitidas.push(`${alerta.nombre}: sin conector activo`);
@@ -76,14 +83,6 @@ export async function ejecutarSyncPortales(): Promise<{
       omitidas.push(`${alerta.nombre}: zona sin coordenadas`);
       continue;
     }
-    const { data: previosRows } = await admin
-      .from("captacion_anuncios")
-      .select("id, fuente, externo_id, precio, tags, fase, alerta_id, desaparecido_en")
-      .eq("alerta_id", alerta.id);
-    const previos = new Map(
-      ((previosRows ?? []) as AnuncioGuardado[]).map((row) => [`${row.fuente}:${row.externo_id}`, row])
-    );
-
     for (let pagina = 1; pagina <= MAX_PAGINAS; pagina++) {
       const params = paramsIdealistaDesdeAlerta({
         operacion: alerta.operacion,
@@ -95,7 +94,11 @@ export async function ejecutarSyncPortales(): Promise<{
         radio_m: centro.radio,
         numPage: pagina,
       });
-      const resultado = await buscarIdealista(params);
+      const resultado = await buscarIdealista(params).catch((err: unknown) => {
+        omitidas.push(`${alerta.nombre}: ${err instanceof Error ? err.message : "error Idealista"}`);
+        return null;
+      });
+      if (!resultado) break;
       const mapeados = filtrarParticular(
         resultado.elementList.map(mapearIdealista).filter((item): item is NonNullable<typeof item> => Boolean(item)),
         alerta.solo_particulares
@@ -107,11 +110,21 @@ export async function ejecutarSyncPortales(): Promise<{
         if (patch.esNuevo) {
           const { data: creado, error: errIns } = await admin
             .from("captacion_anuncios")
-            .upsert(patch.row, { onConflict: "fuente,externo_id" })
+            .upsert(patch.row as never, { onConflict: "fuente,externo_id" })
             .select("id, comercial_id")
             .single();
           if (errIns || !creado) continue;
           nuevos += 1;
+          previos.set(`${item.fuente}:${item.externo_id}`, {
+            id: creado.id,
+            fuente: item.fuente,
+            externo_id: item.externo_id,
+            precio: item.precio,
+            tags: (patch.row.tags as string[]) ?? [],
+            fase: "novedad",
+            alerta_id: alerta.id,
+            desaparecido_en: null,
+          });
           if (alerta.comercial_id) {
             await admin.from("captacion_anuncios").update({ comercial_id: alerta.comercial_id }).eq("id", creado.id);
           }
@@ -131,7 +144,7 @@ export async function ejecutarSyncPortales(): Promise<{
             });
           }
         } else if (previo) {
-          await admin.from("captacion_anuncios").update(patch.row).eq("id", previo.id);
+          await admin.from("captacion_anuncios").update(patch.row as never).eq("id", previo.id);
           const bajada = patch.eventos.find((e) => e.tipo === "bajada");
           if (bajada && bajada.tipo === "bajada") {
             bajadas += 1;
@@ -147,30 +160,29 @@ export async function ejecutarSyncPortales(): Promise<{
     }
 
     await admin.from("captacion_alertas").update({ last_sync_at: ahora, updated_at: ahora }).eq("id", alerta.id);
+  }
 
-    const existentesAlerta = [...previos.values()];
-    const caidos = desaparecidosTrasSync(existentesAlerta, vistos, ahora);
-    for (const item of caidos) {
-      retirados += 1;
-      const faseSiguiente = ["contacto", "visita", "negociando"].includes(
-        existentesAlerta.find((a) => a.id === item.id)?.fase ?? ""
-      )
-        ? "perdido"
-        : existentesAlerta.find((a) => a.id === item.id)?.fase;
-      await admin
-        .from("captacion_anuncios")
-        .update({
-          desaparecido_en: ahora,
-          updated_at: ahora,
-          ...(faseSiguiente === "perdido" ? { fase: "perdido" } : {}),
-        })
-        .eq("id", item.id);
-      await admin.from("captacion_anuncios_actividad").insert({
-        anuncio_id: item.id,
-        tipo: "retirado",
-        detalle: "Anuncio retirado del portal",
-      });
-    }
+  const existentesIdealista = [...previos.values()].filter((a) => a.fuente === "idealista");
+  const caidos = desaparecidosTrasSync(existentesIdealista, vistos, ahora);
+  for (const item of caidos) {
+    retirados += 1;
+    const previo = existentesIdealista.find((a) => a.id === item.id);
+    const faseSiguiente = ["contacto", "visita", "negociando"].includes(previo?.fase ?? "")
+      ? "perdido"
+      : previo?.fase;
+    await admin
+      .from("captacion_anuncios")
+      .update({
+        desaparecido_en: ahora,
+        updated_at: ahora,
+        ...(faseSiguiente === "perdido" ? { fase: "perdido" } : {}),
+      })
+      .eq("id", item.id);
+    await admin.from("captacion_anuncios_actividad").insert({
+      anuncio_id: item.id,
+      tipo: "retirado",
+      detalle: "Anuncio retirado del portal",
+    });
   }
 
   return { ok: true, alertas: alertas.length, nuevos, bajadas, retirados, omitidas };
