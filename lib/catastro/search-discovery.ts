@@ -113,7 +113,7 @@ export type DiscoveryApiError = {
 };
 
 const CAMPOS_OBLIGATORIOS = ["provincia", "municipio", "sigla", "via"] as const;
-const CODIGOS_NO_ENCONTRADO = new Set(["10", "33"]);
+const CODIGOS_NO_ENCONTRADO = new Set(["10", "33", "43"]);
 
 function leer(params: URLSearchParams, nombre: string): string {
   return params.get(nombre)?.trim() ?? "";

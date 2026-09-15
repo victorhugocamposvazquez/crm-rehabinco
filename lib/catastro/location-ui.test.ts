@@ -17,6 +17,7 @@ import {
   esRespuestaObsoleta,
   filtrarCallesLocal,
   municipioDeshabilitado,
+  resolverCalleEscrita,
   seleccionarCallePorUrl,
   textoCargaCalles,
   textoCargaMunicipios,
@@ -189,5 +190,14 @@ describe("location-ui", () => {
       ["CL FUENCARRAL", "CM FUENCARRAL"]
     );
     assert.deepEqual(filtrarCallesLocal([FUENCARRAL], "f"), []);
+  });
+
+  it("resuelve el texto escrito a la calle oficial", () => {
+    const calles = [FUENCARRAL, CAMINO, GUAYANA];
+    assert.deepEqual(resolverCalleEscrita(calles, "CL FUENCARRAL"), FUENCARRAL);
+    assert.equal(resolverCalleEscrita(calles, "FUENCARRAL"), null);
+    assert.deepEqual(resolverCalleEscrita(calles, "guayana-mojonera"), GUAYANA);
+    assert.deepEqual(resolverCalleEscrita([FUENCARRAL], "fuencarral"), FUENCARRAL);
+    assert.equal(resolverCalleEscrita(calles, "CL SAN LUCAS"), null);
   });
 });

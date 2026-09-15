@@ -142,6 +142,29 @@ export type DiscoveryResult = {
 
 const LIMITACION_CALLEJERO =
   "Consulta_DNPLOC y ObtenerNumerero exigen el parámetro oficial Numero (error 41). No listan todos los portales de una vía.";
+const LIMITACION_NUMERERO =
+  "INSPIRE no devolvió portales; se usó ObtenerNumerero. Catastro puede no listar todos los de la vía.";
+
+/** Error 43: el portal no existe. Hay que rastrear el resto de la calle, no abortar. */
+export function esPortalInexistente(error: ErrorCatastro | null | undefined): boolean {
+  if (!error) return false;
+  if (error.codigo === "43") return true;
+  return /N[UÚ]MERO NO EXISTE/i.test(error.descripcion);
+}
+
+export function parsearNumerero(raw: unknown): string[] {
+  const root = asRecord(raw);
+  const payload = asRecord(root?.consulta_numereroResult) ?? root;
+  const vistos = new Set<string>();
+  const numeros: string[] = [];
+  for (const item of asArray(payload?.nump)) {
+    const numero = asString(asRecord(asRecord(item)?.num)?.pnp);
+    if (!numero || vistos.has(numero)) continue;
+    vistos.add(numero);
+    numeros.push(numero);
+  }
+  return numeros.sort((a, b) => Number(a) - Number(b) || a.localeCompare(b, "es"));
+}
 
 function extraerErrorOficial(raw: unknown): ErrorCatastro | null {
   const root = asRecord(raw);
@@ -286,51 +309,93 @@ async function descubrirNumerosOficiales(
     };
   }
 
-  let gml: string;
+  let inspireError: ErrorCatastro | null = null;
+  let inspireCut = false;
+  let numeros: string[] = [];
   try {
-    gml = await client.obtenerDireccionesPorCodigoVia({
+    const gml = await client.obtenerDireccionesPorCodigoVia({
       delegacion: codes.delegacion,
       municipio: codes.municipio,
       codigoVia,
     });
+    if (/ExceptionReport/i.test(gml)) {
+      inspireError = {
+        codigo: "inspire",
+        descripcion: "El WFS AD devolvió ExceptionReport en GetADByCodVIA.",
+      };
+    } else {
+      const parsed = parsearDireccionesInspire(gml);
+      numeros = numerosOficiales(parsed.direcciones);
+      inspireCut = parsed.posibleCorte;
+    }
   } catch (error) {
     // Vía oficial sin direcciones INSPIRE: el WFS redirige a /OVCError.aspx (HTTP 404).
-    // Verificado con Godelleta (DS DISEMINADO P 1, UR EL BOSQUE 1). No es una caída del servicio.
     if (error instanceof CatastroHttpError && error.status === 404) {
-      return {
-        numeros: [],
-        possibleCut: false,
-        error: null,
-        raw: callejero,
-        limitation: `${LIMITACION_CALLEJERO} INSPIRE GetADByCodVIA no tiene direcciones para esta vía (HTTP 404).`,
-      };
+      inspireError = null;
+    } else {
+      inspireError = errorDeExcepcion(error);
     }
-    throw error;
   }
-  if (/ExceptionReport/i.test(gml)) {
+
+  if (numeros.length > 0) {
+    return {
+      numeros,
+      possibleCut: inspireCut,
+      error: null,
+      raw: callejero,
+      limitation: inspireCut
+        ? "El WFS AD puede cortar en 5000 elementos o 4 km²; no se puede afirmar que estén todos los portales de la calle."
+        : null,
+    };
+  }
+
+  const numerero = await numerosDesdeNumerero(input, client);
+  if (numerero.length > 0) {
+    return {
+      numeros: numerero,
+      possibleCut: false,
+      error: null,
+      raw: callejero,
+      limitation: LIMITACION_NUMERERO,
+    };
+  }
+
+  if (inspireError) {
     return {
       numeros: [],
       possibleCut: false,
-      error: {
-        codigo: "inspire",
-        descripcion: "El WFS AD devolvió ExceptionReport en GetADByCodVIA.",
-      },
-      raw: null,
+      error: inspireError,
+      raw: callejero,
       limitation: LIMITACION_CALLEJERO,
     };
   }
 
-  const parsed = parsearDireccionesInspire(gml);
-  const numeros = numerosOficiales(parsed.direcciones);
   return {
-    numeros,
-    possibleCut: parsed.posibleCorte,
+    numeros: [],
+    possibleCut: false,
     error: null,
     raw: callejero,
-    limitation: parsed.posibleCorte
-      ? "El WFS AD puede cortar en 5000 elementos o 4 km²; no se puede afirmar que estén todos los portales de la calle."
-      : null,
+    limitation: `${LIMITACION_CALLEJERO} INSPIRE GetADByCodVIA no tiene direcciones para esta vía (HTTP 404).`,
   };
+}
+
+async function numerosDesdeNumerero(
+  input: DiscoveryQuery,
+  client: CatastroClient
+): Promise<string[]> {
+  try {
+    // Numero=0: Catastro lista los portales reales y añade error 43. No es una serie inventada.
+    const raw = await client.obtenerNumerero({
+      provincia: input.provincia,
+      municipio: input.municipio,
+      tipoVia: input.sigla,
+      nomVia: input.via,
+      numero: "0",
+    });
+    return parsearNumerero(raw);
+  } catch {
+    return [];
+  }
 }
 
 function portalVacio(number: string, extra: Partial<PortalDescubierto> = {}): PortalDescubierto {

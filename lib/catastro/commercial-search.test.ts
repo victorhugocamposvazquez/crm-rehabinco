@@ -542,6 +542,48 @@ describe("buscarFincasComerciales", () => {
     if (!fallo.ok) assert.equal(fallo.code, "upstream");
   });
 
+  it("18c. portal inexistente rastrea el resto de la calle", async () => {
+    const client = mockClient({
+      portales: [{ numero: "2" }, { numero: "4" }],
+      porNumero: {
+        "85": consultaError("43", "EL NUMERO NO EXISTE"),
+        "2": consultaOk([inmueble({ rc20: "AAAAAAAAAAAAAA0001AA", numero: "2", ltp: ltpNo })]),
+        "4": consultaOk([inmueble({ rc20: "AAAAAAAAAAAAAA0002BB", numero: "4", ltp: ltpNo })]),
+      },
+    });
+    const ejecucion = await buscarFincasComerciales(
+      { ...base, numero: "85", postalCode: "15001" },
+      { client, store: createDiscoveryStore() }
+    );
+    assert.equal(ejecucion.ok, true);
+    if (!ejecucion.ok) throw new Error("esperado ok");
+    assert.equal(ejecucion.resultado.search.numero, undefined);
+    assert.equal(ejecucion.resultado.search.postalCode, undefined);
+    assert.equal(ejecucion.resultado.results[0]?.fincaReference, "AAAAAAAAAAAAAA");
+    assert.ok(ejecucion.resultado.results[0]?.portals.includes("2"));
+  });
+
+  it("18d. si INSPIRE cae, el numerero oficial saca la calle", async () => {
+    const client: CatastroClient = {
+      ...mockClient({
+        porNumero: {
+          "2": consultaOk([inmueble({ rc20: "AAAAAAAAAAAAAA0001AA", numero: "2", ltp: ltpNo })]),
+        },
+      }),
+      obtenerDireccionesPorCodigoVia: async () => {
+        throw new CatastroHttpError("Catastro respondió HTTP 503", 503);
+      },
+      obtenerNumerero: async () => ({
+        consulta_numereroResult: { nump: [{ num: { pnp: "2" } }] },
+      }),
+    };
+    const ejecucion = await buscarFincasComerciales(base, { client, store: createDiscoveryStore() });
+    assert.equal(ejecucion.ok, true);
+    if (!ejecucion.ok) throw new Error("esperado ok");
+    assert.equal(ejecucion.resultado.results[0]?.fincaReference, "AAAAAAAAAAAAAA");
+    assert.match(ejecucion.discovery.discovery.limitation ?? "", /ObtenerNumerero/);
+  });
+
   it("19. HTTP 401 / 400 / 404 y contrato comercial", async () => {
     const sinSesion = await responderBusquedaComercial(requestDe("provincia=VALENCIA"), null);
     assert.equal(sinSesion.status, 401);

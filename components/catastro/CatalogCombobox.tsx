@@ -18,6 +18,7 @@ type CatalogComboboxProps<T> = {
   getLabel: (item: T) => string;
   filterItems: (items: T[], query: string) => T[];
   onChange: (item: T | null) => void;
+  onQueryChange?: (query: string) => void;
 };
 
 export function CatalogCombobox<T>({
@@ -34,6 +35,7 @@ export function CatalogCombobox<T>({
   getLabel,
   filterItems,
   onChange,
+  onQueryChange,
 }: CatalogComboboxProps<T>) {
   const listId = useId();
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -71,10 +73,32 @@ export function CatalogCombobox<T>({
         onFocus={() => {
           if (!disabled && !loading) setAbierto(true);
         }}
+        onKeyDown={(event) => {
+          if (event.key !== "Enter" || disabled || loading) return;
+          if (value) return;
+          if (visibles.length === 1) {
+            const unica = visibles[0]!;
+            onChange(unica);
+            setQuery(getLabel(unica));
+            onQueryChange?.(getLabel(unica));
+            setAbierto(false);
+            return;
+          }
+          if (query.trim()) event.preventDefault();
+        }}
         onChange={(event) => {
-          setQuery(event.target.value);
+          const texto = event.target.value;
+          setQuery(texto);
+          onQueryChange?.(texto);
           setAbierto(true);
-          if (value && event.target.value !== getLabel(value)) onChange(null);
+          const exacta = items.find(
+            (item) => getLabel(item).toUpperCase() === texto.trim().toUpperCase()
+          );
+          if (exacta) {
+            if (!value || getKey(value) !== getKey(exacta)) onChange(exacta);
+            return;
+          }
+          if (value) onChange(null);
         }}
       />
       {loading ? (

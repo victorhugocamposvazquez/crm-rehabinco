@@ -51,6 +51,7 @@ import {
   filtrarCallesLocal,
   filtrarMunicipiosLocal,
   municipioDeshabilitado,
+  resolverCalleEscrita,
   textoCargaCalles,
   textoCargaMunicipios,
   textoRevalidacionCalles,
@@ -149,6 +150,7 @@ export function BuscarInmuebles() {
   const selectorMunicipiosRef = useRef<SelectorCatalogo<MunicipioUi> | null>(null);
   const selectorCallesRef = useRef<SelectorCatalogo<CalleUi> | null>(null);
   const claveActivaRef = useRef<string | null>(null);
+  const calleTextoRef = useRef("");
   selectorMunicipiosRef.current ??= crearSelectorCatalogo<MunicipioUi>();
   selectorCallesRef.current ??= crearSelectorCatalogo<CalleUi>();
 
@@ -374,6 +376,7 @@ export function BuscarInmuebles() {
   const onCalle = (calle: EstadoUbicacion["calle"]) => {
     resetResultados();
     zona.nueva();
+    calleTextoRef.current = calle ? etiquetaCalle(calle) : calleTextoRef.current;
     setUbicacion((prev) => aplicarCambioCalle(prev, calle));
   };
 
@@ -433,17 +436,29 @@ export function BuscarInmuebles() {
       onPrepararZona();
       return;
     }
-    if (buscarTodoElMunicipio) {
+    const calleResuelta =
+      ubicacion.calle ?? resolverCalleEscrita(ubicacion.calles, calleTextoRef.current);
+    if (calleResuelta && calleResuelta !== ubicacion.calle) {
+      setUbicacion((prev) => aplicarCambioCalle(prev, calleResuelta));
+    }
+    if (!calleResuelta && calleTextoRef.current.trim()) {
+      setError("Elige una calle de la lista oficial.");
+      setBuscado(true);
+      return;
+    }
+    if (!calleResuelta) {
       onPrepararZona(criteriosMunicipio);
       return;
     }
-    if (loading || !criterios) return;
+    const origen = criteriosDesdeUbicacion({ ...ubicacion, calle: calleResuelta }, extras);
+    if (loading || !origen) return;
+    zona.nueva();
     setPaginas([]);
     // Repetir la misma búsqueda conserva la selección; otra distinta la vacía.
-    seleccionFincas.conservarPara(claveCriterios(criterios));
-    sincronizarUrl(criterios);
+    seleccionFincas.conservarPara(claveCriterios(origen));
+    sincronizarUrl(origen);
     irAResultados();
-    void ejecutarBusqueda(criterios, null, 0);
+    void ejecutarBusqueda(origen, null, 0);
   };
 
   const buscarConFiltroDivision = (filtro: string) => {
@@ -681,6 +696,9 @@ export function BuscarInmuebles() {
                 getLabel={etiquetaCalle}
                 filterItems={filtrarCallesLocal}
                 onChange={onCalle}
+                onQueryChange={(texto) => {
+                  calleTextoRef.current = texto;
+                }}
               />
             </div>
           ) : null}

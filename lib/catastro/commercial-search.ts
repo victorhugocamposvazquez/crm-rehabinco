@@ -18,7 +18,7 @@ import {
   API_MAX_PORTALS,
   TIPOS_VIA_OFICIALES,
 } from "./constants";
-import { discoverFincas, DiscoverySessionError } from "./discovery";
+import { discoverFincas, DiscoverySessionError, esPortalInexistente } from "./discovery";
 import type { DiscoveryResult } from "./discovery";
 import { getDiscoveryStore, type DiscoverySessionStore } from "./discovery-session";
 import type { FincaDescubierta as Finca, PrefiltroCodigoPostal } from "./finca";
@@ -103,7 +103,7 @@ export type EjecucionBusquedaComercial = {
 };
 
 const CAMPOS_OBLIGATORIOS = ["provincia", "municipio", "sigla", "via"] as const;
-const CODIGOS_NO_ENCONTRADO = new Set(["10", "33"]);
+const CODIGOS_NO_ENCONTRADO = new Set(["10", "33", "43"]);
 
 function normalizarTexto(valor: string): string {
   return valor.trim().replace(/\s+/g, " ").toUpperCase();
@@ -272,25 +272,36 @@ export async function buscarFincasComerciales(
   const started = Date.now();
 
   try {
-    const result = await discoverFincas(
-      {
-        provincia: criterios.provincia || "PENDIENTE",
-        municipio: criterios.municipio || "PENDIENTE",
-        sigla: criterios.sigla || "CL",
-        via: criterios.via || "PENDIENTE",
-        numero: criterios.numero,
-        postalCode: criterios.postalCode,
-      },
-      client,
-      {
-        maxPortals: criterios.pageSize,
-        pageSize: criterios.pageSize,
-        concurrency: Math.max(1, concurrency),
-        cursor: criterios.cursor,
-        paginated: !criterios.numero,
-        store,
-      }
-    );
+    const consulta = {
+      provincia: criterios.provincia || "PENDIENTE",
+      municipio: criterios.municipio || "PENDIENTE",
+      sigla: criterios.sigla || "CL",
+      via: criterios.via || "PENDIENTE",
+      numero: criterios.numero,
+      postalCode: criterios.postalCode,
+    };
+    const opcionesDiscovery = {
+      maxPortals: criterios.pageSize,
+      pageSize: criterios.pageSize,
+      concurrency: Math.max(1, concurrency),
+      cursor: criterios.cursor,
+      paginated: !criterios.numero,
+      store,
+    };
+    let result = await discoverFincas(consulta, client, opcionesDiscovery);
+
+    // Portal que Catastro no tiene (error 43): rastrear la calle, no devolver 502/404.
+    // El CP del formulario no se reutiliza: suele ser de las pastillas del municipio y
+    // ocultaría las fincas reales de esa vía.
+    if (criterios.numero && esPortalInexistente(result.error) && result.fincas.length === 0) {
+      delete search.numero;
+      delete search.postalCode;
+      result = await discoverFincas(
+        { ...consulta, numero: undefined, postalCode: undefined },
+        client,
+        { ...opcionesDiscovery, paginated: true, cursor: undefined }
+      );
+    }
 
     search.provincia = result.query.provincia;
     search.municipio = result.query.municipio;

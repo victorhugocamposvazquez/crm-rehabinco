@@ -151,6 +151,18 @@ export function etiquetaCalle(calle: CalleUi): string {
   return `${calle.sigla} ${calle.name}`;
 }
 
+/** Resuelve el texto del combobox a una calle oficial. No inventa vías. */
+export function resolverCalleEscrita(calles: CalleUi[], texto: string): CalleUi | null {
+  const q = texto.trim().toUpperCase();
+  if (!q) return null;
+  const porEtiqueta = calles.filter((item) => etiquetaCalle(item).toUpperCase() === q);
+  if (porEtiqueta.length === 1) return porEtiqueta[0] ?? null;
+  const porNombre = calles.filter((item) => item.name.toUpperCase() === q);
+  if (porNombre.length === 1) return porNombre[0] ?? null;
+  const filtradas = filtrarCallesLocal(calles, texto);
+  return filtradas.length === 1 ? (filtradas[0] ?? null) : null;
+}
+
 export function filtrarPorTexto<T>(
   items: T[],
   texto: string,

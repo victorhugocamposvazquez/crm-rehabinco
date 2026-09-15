@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createCatastroClient, type CatastroClient } from "./client";
 import { createDiscoveryStore } from "./discovery-session";
-import { discoverFincas } from "./discovery";
+import { discoverFincas, esPortalInexistente, parsearNumerero } from "./discovery";
+import { CatastroHttpError } from "./http";
 import { LTP_MIXTO_URBANO_RUSTICO } from "./unknown-reason";
 import { esReferenciaFinca, esReferenciaInmueble } from "./references";
 import { hayCorteWfs, numerosOficiales, parsearDireccionesInspire } from "./inspire-ad";
@@ -144,6 +145,8 @@ function mockClient(opts: {
   porNumero: Record<string, ResultadoConsultaCatastro | Error>;
   detalle?: ResultadoConsultaCatastro | ((ref: string) => ResultadoConsultaCatastro);
   viaInexistente?: boolean;
+  inspireError?: Error;
+  numerero?: Array<{ numero: string }>;
 }): { client: CatastroClient; counters: { dnploc: number; dnprc: number; maxInFlight: number } } {
   const counters = { dnploc: 0, dnprc: 0, maxInFlight: 0, inFlight: 0 };
   const datos = catalogo("GODELLETA", "DEMO");
@@ -186,9 +189,17 @@ function mockClient(opts: {
           }
         : datos.callejero,
     obtenerNumerero: async () => {
-      throw new Error("no usado");
+      if (!opts.numerero) throw new Error("no usado");
+      return {
+        consulta_numereroResult: {
+          nump: opts.numerero.map((item) => ({ num: { pnp: item.numero } })),
+        },
+      };
     },
-    obtenerDireccionesPorCodigoVia: async () => gmlPortales(portales, opts.gmlAttrs),
+    obtenerDireccionesPorCodigoVia: async () => {
+      if (opts.inspireError) throw opts.inspireError;
+      return gmlPortales(portales, opts.gmlAttrs);
+    },
     getStats: () => ({ fetches: 0, cacheHits: 0 }),
   } as CatastroClient;
 
@@ -241,6 +252,27 @@ describe("parsearDireccionesInspire", () => {
   });
 });
 
+describe("numerero oficial", () => {
+  it("parsea portales de ObtenerNumerero aunque venga error 43", () => {
+    assert.deepEqual(
+      parsearNumerero({
+        consulta_numereroResult: {
+          control: { cunum: 2, cuerr: 1 },
+          nump: [
+            { num: { pnp: "2" } },
+            { num: { pnp: "4", plp: " " } },
+            { num: { pnp: "2" } },
+          ],
+          lerr: { err: [{ cod: "43", des: "EL NUMERO NO EXISTE." }] },
+        },
+      }),
+      ["2", "4"]
+    );
+    assert.equal(esPortalInexistente({ codigo: "43", descripcion: "EL NUMERO NO EXISTE" }), true);
+    assert.equal(esPortalInexistente({ codigo: "10", descripcion: "NO HAY COINCIDENCIAS" }), false);
+  });
+});
+
 describe("discoverFincas — unidad", () => {
   const query = {
     provincia: "VALENCIA",
@@ -270,6 +302,23 @@ describe("discoverFincas — unidad", () => {
     assert.deepEqual(result.fincas[0]?.portals, ["3", "5", "7"]);
     assert.equal(result.discovery.portalsFound, 3);
     assert.equal(result.discovery.complete, true);
+  });
+
+  it("si INSPIRE cae, usa ObtenerNumerero", async () => {
+    const { client } = mockClient({
+      inspireError: new CatastroHttpError("Catastro respondió HTTP 503", 503),
+      numerero: [{ numero: "3" }, { numero: "5" }],
+      porNumero: {
+        "3": consultaOk([inmueble({ rc20: "AAAAAAAAAAAAAA0001AA", numero: "3", ltp: ltpNo })]),
+        "5": consultaOk([inmueble({ rc20: "AAAAAAAAAAAAAA0002BB", numero: "5", ltp: ltpNo })]),
+      },
+      detalle: consultaOk([inmueble({ rc20: "AAAAAAAAAAAAAA0001AA", numero: "3", ltp: ltpNo })]),
+    });
+    const result = await discoverFincas(query, client);
+    assert.deepEqual(result.numerosOficiales, ["3", "5"]);
+    assert.match(result.discovery.limitation ?? "", /ObtenerNumerero/);
+    assert.equal(result.error, null);
+    assert.equal(result.fincas.length, 1);
   });
 
   it("2. 3 portales → 3 fincas", async () => {

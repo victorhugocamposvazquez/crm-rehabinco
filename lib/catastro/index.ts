@@ -83,7 +83,7 @@ export type {
   InmuebleDeFinca,
   PrefiltroCodigoPostal,
 } from "./finca";
-export { discoverFincas, DiscoverySessionError } from "./discovery";
+export { discoverFincas, DiscoverySessionError, esPortalInexistente, parsearNumerero } from "./discovery";
 export type {
   DiscoveryInput,
   DiscoveryMeta,

@@ -1,7 +1,7 @@
 {
   "framework": "nextjs",
   "functions": {
-    "app/api/presupuestos/copiloto/route.ts": {
+    "app/api/catastro/search/route.ts": {
       "maxDuration": 60
     },
     "app/api/cron/catastro-zone/route.ts": {
