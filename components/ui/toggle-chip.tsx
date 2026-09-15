@@ -17,7 +17,7 @@ export function ToggleChip({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex h-8 items-center rounded-full border px-2.5 text-[12.5px] font-medium",
+        "flex h-9 items-center rounded-full border px-3 text-[13px] font-medium",
         on ? "border-accent bg-accent-soft text-accent-dark" : "border-[var(--border)] bg-white text-[var(--text-2)]"
       )}
     >

@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
-import { Sheet } from "@/components/ui/sheet";
 import { ToggleChip } from "@/components/ui/toggle-chip";
+import { AltaExtra, AltaField, AltaSection, AltaShell, altaControl } from "@/components/ui/alta-form";
 import { VisitContextoCatastro } from "@/components/partes-visita/VisitContextoCatastro";
 import {
   contextoCatastralDesdeProperty,
@@ -204,106 +204,102 @@ export function NuevoPartePanel({
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange} variant="side" side="right" className="min-[780px]:w-[min(52rem,90vw)]">
-      <div className="flex h-full flex-col">
-        <div className="flex items-center gap-2.5 border-b border-[var(--border-soft)] px-5 py-3.5">
-          <span className="flex-1 text-[11px] uppercase tracking-[0.08em] text-[var(--label)]">Nuevo parte de visita</span>
-          <button type="button" onClick={() => onOpenChange(false)} className="grid h-[34px] w-[34px] place-items-center rounded-lg text-[var(--text-2)]">
-            ×
-          </button>
+    <AltaShell
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Nuevo parte de visita"
+      hint="El acta que firma quien visita. Empieza por la persona que tienes delante."
+      primaryLabel="Crear parte"
+      saving={saving}
+      disablePrimary={!inmuebleDireccion.trim() || !agenteNombre.trim()}
+      onSubmit={crear}
+    >
+      <AltaSection title="Visitante" hint="Nombre y teléfono. El DNI puede ir en la firma.">
+        <div className="flex flex-col gap-5">
+          <AltaField label="Nombre">
+            <input autoFocus value={visitanteNombre} onChange={(e) => setVisitanteNombre(e.target.value)} className={altaControl} />
+          </AltaField>
+          <div className="grid grid-cols-2 gap-3">
+            <AltaField label="Teléfono" optional>
+              <input value={visitanteTelefono} onChange={(e) => setVisitanteTelefono(e.target.value)} className={altaControl} />
+            </AltaField>
+            <AltaField label="DNI / NIE" optional>
+              <input value={visitanteDocumento} onChange={(e) => setVisitanteDocumento(e.target.value)} className={altaControl} />
+            </AltaField>
+          </div>
+          <AltaField label="Email" optional>
+            <input type="email" value={visitanteEmail} onChange={(e) => setVisitanteEmail(e.target.value)} className={altaControl} />
+          </AltaField>
         </div>
-        <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-5 min-[780px]:grid min-[780px]:grid-cols-2 min-[780px]:items-start min-[780px]:gap-x-7 min-[780px]:gap-y-4">
-          <div className="flex flex-col gap-4">
-            {contextoCatastro ? <VisitContextoCatastro contexto={contextoCatastro} /> : null}
-            <label className="block text-[12px] font-semibold text-[var(--text-2)]">
-              Inmueble del stock{desdeProperty ? " *" : ""}
-              <select
-                value={propiedadId}
-                onChange={(e) => {
-                  if (!desdeProperty) setPropiedadId(e.target.value);
-                }}
-                disabled={desdeProperty}
-                className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 text-[14px] disabled:bg-[var(--surface-soft)]"
-              >
-                {desdeProperty ? null : <option value="">Sin ficha (solo dirección)</option>}
-                {propiedades.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {[p.referencia, p.titulo || p.direccion].filter(Boolean).join(" · ")}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-[12px] font-semibold text-[var(--text-2)]">
-              Dirección *
-              <input value={inmuebleDireccion} onChange={(e) => setInmuebleDireccion(e.target.value)} className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px]" />
-            </label>
-            <div className="grid grid-cols-2 gap-2.5">
-              <label className="block text-[12px] font-semibold text-[var(--text-2)]">
-                Referencia
-                <input value={inmuebleReferencia} onChange={(e) => setInmuebleReferencia(e.target.value)} className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px]" />
-              </label>
-              <label className="block text-[12px] font-semibold text-[var(--text-2)]">
-                Agente *
-                <input value={agenteNombre} onChange={(e) => setAgenteNombre(e.target.value)} className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px]" />
-              </label>
-              <label className="block text-[12px] font-semibold text-[var(--text-2)]">
-                Fecha *
-                <input type="date" value={fechaVisita} onChange={(e) => setFechaVisita(e.target.value)} className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px]" />
-              </label>
-              <label className="block text-[12px] font-semibold text-[var(--text-2)]">
-                Hora
-                <input type="time" value={horaVisita} onChange={(e) => setHoraVisita(e.target.value)} className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px]" />
-              </label>
+      </AltaSection>
+
+      <AltaSection title="Cuándo" hint="Fecha de la visita y si sale ya a firma.">
+        <div className="flex flex-col gap-5">
+          <div className="grid grid-cols-2 gap-3">
+            <AltaField label="Fecha">
+              <input type="date" value={fechaVisita} onChange={(e) => setFechaVisita(e.target.value)} className={altaControl} />
+            </AltaField>
+            <AltaField label="Hora" optional>
+              <input type="time" value={horaVisita} onChange={(e) => setHoraVisita(e.target.value)} className={altaControl} />
+            </AltaField>
+          </div>
+          <AltaField label="Agente">
+            <input value={agenteNombre} onChange={(e) => setAgenteNombre(e.target.value)} className={altaControl} />
+          </AltaField>
+          <div>
+            <div className="mb-2.5 text-[12.5px] font-semibold text-[var(--text-2)]">Estado</div>
+            <div className="flex flex-wrap gap-2">
+              <ToggleChip on={estado === "pendiente_firma"} onClick={() => setEstado("pendiente_firma")}>
+                Pendiente de firma
+              </ToggleChip>
+              <ToggleChip on={estado === "borrador"} onClick={() => setEstado("borrador")}>
+                Borrador
+              </ToggleChip>
             </div>
           </div>
-          <div className="flex flex-col gap-4">
-            <section>
-              <div className="mb-1.5 text-[12px] font-semibold text-[var(--text-2)]">Visitante</div>
-              <label className="block text-[12px] text-[var(--text-2)]">
-                Nombre
-                <input value={visitanteNombre} onChange={(e) => setVisitanteNombre(e.target.value)} className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px]" />
-              </label>
-              <div className="mt-2.5 grid grid-cols-2 gap-2.5">
-                <label className="block text-[12px] text-[var(--text-2)]">
-                  DNI / NIE
-                  <input value={visitanteDocumento} onChange={(e) => setVisitanteDocumento(e.target.value)} className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px]" />
-                </label>
-                <label className="block text-[12px] text-[var(--text-2)]">
-                  Teléfono
-                  <input value={visitanteTelefono} onChange={(e) => setVisitanteTelefono(e.target.value)} className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px]" />
-                </label>
-              </div>
-              <label className="mt-2.5 block text-[12px] text-[var(--text-2)]">
-                Email
-                <input type="email" value={visitanteEmail} onChange={(e) => setVisitanteEmail(e.target.value)} className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px]" />
-              </label>
-            </section>
-            <label className="block text-[12px] font-semibold text-[var(--text-2)]">
-              Observaciones
-              <textarea value={observaciones} onChange={(e) => setObservaciones(e.target.value)} rows={3} className="mt-1.5 w-full resize-none rounded-[9px] border border-[var(--input)] px-3 py-2 text-[14px]" />
-            </label>
-            <section>
-              <div className="mb-1.5 text-[12px] font-semibold text-[var(--text-2)]">Estado</div>
-              <div className="flex flex-wrap gap-1.5">
-                <ToggleChip on={estado === "pendiente_firma"} onClick={() => setEstado("pendiente_firma")}>
-                  Pendiente de firma
-                </ToggleChip>
-                <ToggleChip on={estado === "borrador"} onClick={() => setEstado("borrador")}>
-                  Borrador
-                </ToggleChip>
-              </div>
-            </section>
+        </div>
+      </AltaSection>
+
+      <AltaSection wide title="Inmueble" hint={desdeProperty ? "Ligado a la ficha desde la que vienes." : "Elige stock o escribe solo la dirección."}>
+        {contextoCatastro ? (
+          <div className="mb-5">
+            <VisitContextoCatastro contexto={contextoCatastro} />
+          </div>
+        ) : null}
+        <div className="grid gap-5 min-[780px]:grid-cols-2">
+          <AltaField label="Inmueble del stock" optional={!desdeProperty}>
+            <select
+              value={propiedadId}
+              onChange={(e) => {
+                if (!desdeProperty) setPropiedadId(e.target.value);
+              }}
+              disabled={desdeProperty}
+              className={altaControl}
+            >
+              {desdeProperty ? null : <option value="">Sin ficha (solo dirección)</option>}
+              {propiedades.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {[p.referencia, p.titulo || p.direccion].filter(Boolean).join(" · ")}
+                </option>
+              ))}
+            </select>
+          </AltaField>
+          <AltaField label="Referencia" optional>
+            <input value={inmuebleReferencia} onChange={(e) => setInmuebleReferencia(e.target.value)} className={altaControl} />
+          </AltaField>
+          <div className="min-[780px]:col-span-2">
+            <AltaField label="Dirección">
+              <input value={inmuebleDireccion} onChange={(e) => setInmuebleDireccion(e.target.value)} className={altaControl} />
+            </AltaField>
           </div>
         </div>
-        <div className="flex gap-2 border-t border-[var(--border-soft)] px-5 py-3">
-          <button type="button" disabled={saving} onClick={() => void crear()} className="h-10 flex-1 rounded-[9px] bg-accent text-[13.5px] font-semibold text-white disabled:opacity-60">
-            {saving ? "Guardando…" : "Crear parte"}
-          </button>
-          <button type="button" onClick={() => onOpenChange(false)} className="h-10 rounded-[9px] border border-[var(--input)] px-3.5 text-[13.5px] font-semibold">
-            Cancelar
-          </button>
-        </div>
-      </div>
-    </Sheet>
+      </AltaSection>
+
+      <AltaExtra label="Observaciones" open={Boolean(observaciones)}>
+        <AltaField label="Notas de la visita" optional>
+          <textarea value={observaciones} onChange={(e) => setObservaciones(e.target.value)} rows={3} className={`${altaControl} h-auto min-h-[5.5rem] resize-none py-2.5`} />
+        </AltaField>
+      </AltaExtra>
+    </AltaShell>
   );
 }
