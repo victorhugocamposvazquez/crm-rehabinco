@@ -14,7 +14,6 @@ import { AgendaVisitas } from "@/components/citas/AgendaVisitas";
 import { ESTADO_PARTE_LABELS, buildPublicFirmaUrl } from "@/lib/partes-visita";
 import { colorEstado } from "@/lib/ui/estados-vista";
 import { extraAlta } from "@/lib/ui/alta-panel";
-import { NuevoPartePanel } from "@/components/partes-visita/NuevoPartePanel";
 import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
 
 type ParteRow = {
@@ -35,19 +34,13 @@ export default function PartesVisitaPage() {
   const [filterEstado, setFilterEstado] = useState<"todos" | ParteRow["estado"]>("todos");
   const [partes, setPartes] = useState<ParteRow[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [nuevaOpen, setNuevaOpen] = useState(false);
-  const [propiedadInicial, setPropiedadInicial] = useState<string | undefined>();
-  const [citaInicial, setCitaInicial] = useState<string | undefined>();
-  const [cargaKey, setCargaKey] = useState(0);
   const hayBorrador = useHayAltaBorrador("parte");
 
   useEffect(() => {
     const extra = extraAlta(searchParams);
     if (!extra) return;
-    setPropiedadInicial(extra.get("propiedad") ?? undefined);
-    setCitaInicial(extra.get("cita") ?? undefined);
-    setNuevaOpen(true);
-    router.replace("/partes-visita", { scroll: false });
+    const q = extra.toString();
+    router.replace(q ? `/partes-visita/nuevo?${q}` : "/partes-visita/nuevo");
   }, [searchParams, router]);
 
   useEffect(() => {
@@ -65,7 +58,7 @@ export default function PartesVisitaPage() {
         }
         setLoading(false);
       });
-  }, [cargaKey]);
+  }, []);
 
   const filtered = useMemo(() => {
     return partes.filter((p) => filterEstado === "todos" || p.estado === filterEstado);
@@ -83,26 +76,22 @@ export default function PartesVisitaPage() {
   return (
     <div>
       <PageHeader
-        breadcrumb={[{ label: "Visitas", href: "/partes-visita" }]}
+        breadcrumb={[
+          { label: "Herramientas", href: "/herramientas" },
+          { label: "Visitas" },
+        ]}
         title="Visitas"
-        description="La agenda es la cita. El parte es el acta que firma el visitante."
+        description="La agenda es la cita. El parte es el PDF que se rellena y firma."
         actions={
           <div className="flex flex-wrap gap-2">
             <Button asChild size="sm" variant="secondary">
               <Link href="/calendario">Concertar visita</Link>
             </Button>
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => {
-                setPropiedadInicial(undefined);
-                setCitaInicial(undefined);
-                setNuevaOpen(true);
-              }}
-              className="hidden gap-2 min-[820px]:inline-flex"
-            >
-              <Plus className="h-4 w-4" strokeWidth={1.5} />
-              {hayBorrador ? "Continuar borrador" : "Nuevo parte"}
+            <Button asChild size="sm" className="hidden min-[820px]:inline-flex">
+              <Link href="/partes-visita/nuevo" className="gap-2">
+                <Plus className="h-4 w-4" strokeWidth={1.5} />
+                {hayBorrador ? "Continuar borrador" : "Nuevo parte"}
+              </Link>
             </Button>
           </div>
         }
@@ -138,18 +127,11 @@ export default function PartesVisitaPage() {
               </p>
               {partes.length === 0 ? (
                 <div className="flex justify-center pb-6">
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => {
-                      setPropiedadInicial(undefined);
-                      setCitaInicial(undefined);
-                      setNuevaOpen(true);
-                    }}
-                    className="gap-2"
-                  >
-                    <Plus className="h-4 w-4" strokeWidth={1.5} />
-                    {hayBorrador ? "Continuar borrador" : "Nuevo parte"}
+                  <Button asChild size="sm">
+                    <Link href="/partes-visita/nuevo" className="gap-2">
+                      <Plus className="h-4 w-4" strokeWidth={1.5} />
+                      {hayBorrador ? "Continuar borrador" : "Nuevo parte"}
+                    </Link>
                   </Button>
                 </div>
               ) : null}
@@ -181,27 +163,7 @@ export default function PartesVisitaPage() {
           )}
         </section>
       </div>
-      <Fab
-        onClick={() => {
-          setPropiedadInicial(undefined);
-          setCitaInicial(undefined);
-          setNuevaOpen(true);
-        }}
-        label={hayBorrador ? "Continuar borrador" : "Nuevo parte"}
-      />
-      <NuevoPartePanel
-        open={nuevaOpen}
-        onOpenChange={(open) => {
-          setNuevaOpen(open);
-          if (!open) {
-            setPropiedadInicial(undefined);
-            setCitaInicial(undefined);
-          }
-        }}
-        propiedadIdInicial={propiedadInicial}
-        citaIdInicial={citaInicial}
-        onCreado={() => setCargaKey((n) => n + 1)}
-      />
+      <Fab href="/partes-visita/nuevo" label={hayBorrador ? "Continuar borrador" : "Nuevo parte"} />
     </div>
   );
 }

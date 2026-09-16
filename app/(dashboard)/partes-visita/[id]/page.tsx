@@ -15,19 +15,20 @@ import {
   Copy,
   ExternalLink,
   CheckCircle2,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
-  EMPRESA_PARTE_VISITA,
   ESTADO_PARTE_LABELS,
   buildPublicFirmaUrl,
   contextoCatastralDesdeProperty,
-  formatFechaLargaEs,
   formatHoraVisita,
   type ContextoCatastralVisita,
 } from "@/lib/partes-visita";
 import { VisitContextoCatastro } from "@/components/partes-visita/VisitContextoCatastro";
 import { FichaLink } from "@/components/crm/FichaPeek";
+import { PdfFrame } from "@/components/documentos/DocumentoSplit";
+import { downloadParteVisitaPdf, htmlParteVisita, parseCalidadVisita } from "@/lib/parte-visita-pdf";
 
 interface ParteVisita {
   id: string;
@@ -41,6 +42,8 @@ interface ParteVisita {
   inmueble_referencia: string | null;
   fecha_visita: string | null;
   hora_visita: string | null;
+  hora_fin: string | null;
+  calidad: "comprador" | "arrendatario" | null;
   agente_nombre: string | null;
   observaciones: string | null;
   lugar_firma: string;
@@ -69,6 +72,7 @@ export default function DetalleParteVisitaPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [activating, setActivating] = useState(false);
+  const [printing, setPrinting] = useState(false);
   const [contextoCatastro, setContextoCatastro] = useState<ContextoCatastralVisita>(null);
 
   useEffect(() => {
@@ -173,6 +177,7 @@ export default function DetalleParteVisitaPage() {
     <div>
       <PageHeader
         breadcrumb={[
+          { label: "Herramientas", href: "/herramientas" },
           { label: "Partes de visita", href: "/partes-visita" },
           { label: parte.visitante_nombre || "Sin visitante" },
         ]}
@@ -180,6 +185,33 @@ export default function DetalleParteVisitaPage() {
         description={parte.inmueble_direccion ?? undefined}
         actions={
           <div className="flex shrink-0 items-center gap-1">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={printing}
+              onClick={() => {
+                setPrinting(true);
+                void downloadParteVisitaPdf({
+                  visitante_nombre: parte.visitante_nombre,
+                  visitante_documento: parte.visitante_documento,
+                  inmueble_direccion: parte.inmueble_direccion,
+                  fecha_visita: parte.fecha_visita,
+                  hora_visita: parte.hora_visita,
+                  hora_fin: parte.hora_fin,
+                  calidad: parseCalidadVisita(parte.calidad),
+                  agente_nombre: parte.agente_nombre,
+                  lugar_firma: parte.lugar_firma,
+                  firma_visitante: parte.firma_visitante,
+                })
+                  .then(() => toast.success("PDF descargado"))
+                  .catch((err) => toast.error(err instanceof Error ? err.message : "No se ha podido generar el PDF"))
+                  .finally(() => setPrinting(false));
+              }}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" strokeWidth={1.5} />
+              {printing ? "Generando…" : "PDF"}
+            </Button>
             <Button variant="secondary" size="sm" asChild>
               <Link href={`/partes-visita/${id}/editar`} className="gap-2">
                 <Pencil className="h-4 w-4" strokeWidth={1.5} />
@@ -331,7 +363,9 @@ export default function DetalleParteVisitaPage() {
             </p>
             <p>
               <span className="text-neutral-500">Hora:</span>{" "}
-              {formatHoraVisita(parte.hora_visita)}
+              {parte.hora_fin
+                ? `${formatHoraVisita(parte.hora_visita)} – ${formatHoraVisita(parte.hora_fin)}`
+                : formatHoraVisita(parte.hora_visita)}
             </p>
             <p>
               <span className="text-neutral-500">Agente:</span>{" "}
@@ -351,75 +385,38 @@ export default function DetalleParteVisitaPage() {
           </Card>
         )}
 
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Documento</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6 text-sm">
-            <div className="rounded-xl border border-border bg-neutral-50/60 p-5 sm:p-8">
-              <div className="text-center">
-                <h2 className="text-lg font-bold tracking-wide">PARTE DE VISITA</h2>
-                <p className="mt-2 font-semibold">{EMPRESA_PARTE_VISITA.razonSocial}</p>
-                <p className="text-neutral-600">CIF: {EMPRESA_PARTE_VISITA.cif}</p>
-                <p className="text-neutral-600">{EMPRESA_PARTE_VISITA.direccion}</p>
-              </div>
-
-              <div className="mt-6 space-y-1 border-t border-border pt-4">
-                <p className="font-semibold">Confirmación de la visita</p>
-                <p className="leading-relaxed text-neutral-700">
-                  Mediante la firma del presente documento, el visitante confirma
-                  haber realizado la visita al inmueble identificado acompañado
-                  por un asesor de {EMPRESA_PARTE_VISITA.razonSocial}. Asimismo,
-                  reconoce que el inmueble le ha sido presentado por{" "}
-                  {EMPRESA_PARTE_VISITA.razonSocial} dentro de su labor profesional
-                  de intermediación inmobiliaria.
-                </p>
-                <p className="pt-2 text-neutral-600">
-                  En {parte.lugar_firma}, a {formatFechaLargaEs(parte.fecha_visita)}.
-                </p>
-              </div>
-
-              <div className="mt-8 grid gap-8 sm:grid-cols-2">
-                <div>
-                  <p className="mb-2 font-semibold">EL VISITANTE</p>
-                  <p className="mb-3 text-neutral-600">
-                    {parte.visitante_nombre || "—"}
-                  </p>
-                  {parte.firma_visitante ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={parte.firma_visitante}
-                      alt="Firma del visitante"
-                      className="h-28 w-full rounded-lg border border-border bg-white object-contain"
-                    />
-                  ) : (
-                    <div className="flex h-28 items-center justify-center rounded-lg border border-dashed border-border text-neutral-400">
-                      Sin firma
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <p className="mb-2 font-semibold">{EMPRESA_PARTE_VISITA.razonSocial}</p>
-                  <p className="mb-3 text-neutral-600">
-                    Agente: {parte.agente_nombre || "—"}
-                  </p>
-                  {parte.firma_agente ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={parte.firma_agente}
-                      alt="Firma del agente"
-                      className="h-28 w-full rounded-lg border border-border bg-white object-contain"
-                    />
-                  ) : (
-                    <div className="flex h-28 items-center justify-center rounded-lg border border-dashed border-border text-neutral-400">
-                      Sin firma
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="md:col-span-2">
+          <PdfFrame
+            html={htmlParteVisita({
+              visitante_nombre: parte.visitante_nombre,
+              visitante_documento: parte.visitante_documento,
+              inmueble_direccion: parte.inmueble_direccion,
+              fecha_visita: parte.fecha_visita,
+              hora_visita: parte.hora_visita,
+              hora_fin: parte.hora_fin,
+              calidad: parseCalidadVisita(parte.calidad),
+              agente_nombre: parte.agente_nombre,
+              lugar_firma: parte.lugar_firma,
+              firma_visitante: parte.firma_visitante,
+            })}
+            pages={1}
+            onDownload={() =>
+              downloadParteVisitaPdf({
+                visitante_nombre: parte.visitante_nombre,
+                visitante_documento: parte.visitante_documento,
+                inmueble_direccion: parte.inmueble_direccion,
+                fecha_visita: parte.fecha_visita,
+                hora_visita: parte.hora_visita,
+                hora_fin: parte.hora_fin,
+                calidad: parseCalidadVisita(parte.calidad),
+                agente_nombre: parte.agente_nombre,
+                lugar_firma: parte.lugar_firma,
+                firma_visitante: parte.firma_visitante,
+              })
+            }
+            downloading={printing}
+          />
+        </div>
       </div>
     </div>
   );

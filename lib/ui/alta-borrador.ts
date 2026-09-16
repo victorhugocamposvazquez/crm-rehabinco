@@ -1,4 +1,4 @@
-export const TIPOS_ALTA = ["inmueble", "cliente", "demanda", "parte"] as const;
+export const TIPOS_ALTA = ["inmueble", "cliente", "demanda", "parte", "arras"] as const;
 export type TipoAlta = (typeof TIPOS_ALTA)[number];
 
 export const EVENTO_ALTA_BORRADOR = "crm-alta-borrador";

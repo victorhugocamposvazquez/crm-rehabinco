@@ -75,7 +75,8 @@ describe("roles", () => {
     assert.equal(comercial.includes("/captacion"), true);
     assert.equal(comercial.includes("/tareas"), true);
     assert.equal(comercial.includes("/calendario"), true);
-    assert.equal(comercial.includes("/partes-visita"), true);
+    assert.equal(comercial.includes("/herramientas"), true);
+    assert.equal(comercial.includes("/partes-visita"), false);
     assert.equal(comercial.includes("/facturas"), false);
     assert.equal(comercial.includes("/informes"), false);
     assert.equal(comercial.includes("/presupuestos"), false);
@@ -111,6 +112,8 @@ describe("roles", () => {
     assert.equal(isEditorBlockedPath("/seguimiento"), true);
     assert.equal(isEditorBlockedPath("/calendario"), true);
     assert.equal(isEditorBlockedPath("/partes-visita"), true);
+    assert.equal(isEditorBlockedPath("/herramientas"), true);
+    assert.equal(isEditorBlockedPath("/contratos-arras"), true);
     assert.equal(isEditorBlockedPath("/settings/portales"), true);
     assert.equal(isEditorBlockedPath("/presupuestos"), false);
   });

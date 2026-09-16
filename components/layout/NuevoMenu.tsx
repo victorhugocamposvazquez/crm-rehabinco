@@ -7,6 +7,7 @@ import {
   CalendarDays,
   ClipboardList,
   ClipboardPen,
+  FileSignature,
   FileText,
   ListTodo,
   Plus,
@@ -42,7 +43,8 @@ export function NuevoMenu() {
         { href: "/propiedades?nueva=1", label: "Inmueble", icon: Building2 },
         { href: "/clientes?nueva=1", label: "Cliente", icon: User },
         { href: "/demandas?nueva=1", label: "Demanda", icon: Users },
-        { href: "/partes-visita?nueva=1", label: "Parte de visita", icon: ClipboardPen },
+        { href: "/partes-visita/nuevo", label: "Parte de visita", icon: ClipboardPen },
+        { href: "/contratos-arras/nuevo", label: "Contrato de arras", icon: FileSignature },
         ...(admin
           ? [
               { href: "/presupuestos/nuevo", label: "Presupuesto", icon: ClipboardList },

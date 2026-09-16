@@ -13,6 +13,7 @@ import {
   ListTodo,
   Columns3,
   Radar,
+  Wrench,
 } from "lucide-react";
 import { isAdmin, type Role } from "@/lib/auth/roles";
 
@@ -32,7 +33,9 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/propiedades", label: "Inmuebles", icon: Building2 },
   { href: "/demandas", label: "Demandas", icon: Users },
   { href: "/clientes", label: "Clientes", icon: Users },
+  { href: "/herramientas", label: "Herramientas", icon: Wrench },
   { href: "/partes-visita", label: "Visitas", icon: ClipboardPenLine },
+  { href: "/contratos-arras", label: "Arras", icon: FileText },
   { href: "/presupuestos", label: "Presupuestos", icon: ClipboardList },
   { href: "/facturas", label: "Facturas", icon: FileText },
   { href: "/informes", label: "Informes", icon: BarChart3 },
@@ -41,7 +44,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
 
 export const NAV_GROUPS: { label: string; adminOnly?: boolean; hrefs: readonly string[] }[] = [
   { label: "Día a día", hrefs: ["/", "/calendario", "/tareas"] },
-  { label: "Captación", hrefs: ["/captacion", "/catastro", "/seguimiento", "/propiedades", "/demandas", "/clientes", "/partes-visita"] },
+  { label: "Captación", hrefs: ["/captacion", "/catastro", "/seguimiento", "/propiedades", "/demandas", "/clientes"] },
+  { label: "Herramientas", hrefs: ["/herramientas"] },
   { label: "Obra y facturación", adminOnly: true, hrefs: ["/presupuestos", "/facturas", "/informes"] },
 ];
 
@@ -61,6 +65,14 @@ export function navItemActivo(pathname: string, href: string): boolean {
   if (href === "/catastro" && pathname.startsWith("/buscar")) return true;
   if (href === "/settings") return pathname.startsWith("/settings");
   if (href === "/propiedades" && pathname.startsWith("/inmuebles")) return true;
+  if (href === "/herramientas") {
+    return (
+      pathname === "/herramientas" ||
+      pathname.startsWith("/partes-visita") ||
+      pathname.startsWith("/contratos-arras") ||
+      pathname.startsWith("/visitas")
+    );
+  }
   if (href === "/partes-visita" && pathname.startsWith("/visitas")) return true;
   if (href !== "/") return pathname.startsWith(href);
   return false;

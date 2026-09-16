@@ -20,6 +20,8 @@ export type ParteVisitaPublic = Pick<
   | "inmueble_referencia"
   | "fecha_visita"
   | "hora_visita"
+  | "hora_fin"
+  | "calidad"
   | "agente_nombre"
   | "observaciones"
   | "lugar_firma"
@@ -50,7 +52,7 @@ export async function getParteVisitaPublic(
     const { data, error } = await admin
       .from("partes_visita")
       .select(
-        "id, token, estado, visitante_nombre, visitante_documento, visitante_telefono, visitante_email, inmueble_direccion, inmueble_referencia, fecha_visita, hora_visita, agente_nombre, observaciones, lugar_firma, firma_visitante, firma_agente, firmado_en"
+        "id, token, estado, visitante_nombre, visitante_documento, visitante_telefono, visitante_email, inmueble_direccion, inmueble_referencia, fecha_visita, hora_visita, hora_fin, calidad, agente_nombre, observaciones, lugar_firma, firma_visitante, firma_agente, firmado_en"
       )
       .eq("token", token)
       .maybeSingle();

@@ -1,6 +1,8 @@
 /** Rutas de altas/edición con barra Atrás/Siguiente (sin menú inferior). */
 export function isWizardRoute(pathname: string) {
-  return /\/(nuevo|nueva|editar)(\/|$)/.test(pathname);
+  if (/\/(nuevo|nueva|editar)(\/|$)/.test(pathname)) return true;
+  if (/^\/contratos-arras\/[^/]+$/.test(pathname)) return true;
+  return false;
 }
 
 export const wizardActionBarClassName =

@@ -39,7 +39,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       }).length;
       setBadges({
         "/tareas": pendientes,
-        "/partes-visita": partes.count ?? 0,
+        "/herramientas": partes.count ?? 0,
         "/captacion": nuevosHoy,
       });
     });

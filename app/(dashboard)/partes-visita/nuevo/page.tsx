@@ -1,14 +1,23 @@
-import { redirect } from "next/navigation";
+"use client";
 
-export default async function NuevoParteRedirect({
-  searchParams,
-}: {
-  searchParams: Promise<{ propiedad?: string; propiedadId?: string; cita?: string }>;
-}) {
-  const params = await searchParams;
-  const q = new URLSearchParams({ nueva: "1" });
-  const propiedad = params.propiedad ?? params.propiedadId;
-  if (propiedad) q.set("propiedad", propiedad);
-  if (params.cita) q.set("cita", params.cita);
-  redirect(`/partes-visita?${q.toString()}`);
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import { ParteVisitaEditor } from "@/components/partes-visita/ParteVisitaEditor";
+
+function NuevoParteInner() {
+  const search = useSearchParams();
+  return (
+    <ParteVisitaEditor
+      propiedadIdInicial={search.get("propiedad") ?? undefined}
+      citaIdInicial={search.get("cita") ?? undefined}
+    />
+  );
+}
+
+export default function NuevoPartePage() {
+  return (
+    <Suspense>
+      <NuevoParteInner />
+    </Suspense>
+  );
 }

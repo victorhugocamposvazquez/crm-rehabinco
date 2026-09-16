@@ -198,20 +198,18 @@ export function ParteVisitaFirmaForm({ parte }: ParteVisitaFirmaFormProps) {
           Confirmación de la visita
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-neutral-700">
-          Mediante la firma del presente documento, el visitante confirma haber
-          realizado la visita al inmueble anteriormente identificado acompañado
-          por un asesor de {EMPRESA_PARTE_VISITA.razonSocial}.
+          D./Dña {nombre || "………………"} en calidad de{" "}
+          {parte.calidad === "arrendatario" ? "arrendatario" : "comprador"} ha
+          visitado el inmueble sito en {parte.inmueble_direccion || "………………"},
+          acompañado del agente comercial {parte.agente_nombre || "………………"},
+          miembro de {EMPRESA_PARTE_VISITA.razonSocial} con C.I.F.{" "}
+          {EMPRESA_PARTE_VISITA.cif}.
         </p>
         <p className="mt-2 text-sm leading-relaxed text-neutral-700">
-          Asimismo, reconoce que el inmueble le ha sido presentado por{" "}
-          {EMPRESA_PARTE_VISITA.razonSocial} dentro de su labor profesional de
-          intermediación inmobiliaria y que la información facilitada durante la
-          visita ha sido proporcionada por dicha empresa.
-        </p>
-        <p className="mt-2 text-sm leading-relaxed text-neutral-600">
-          El presente documento tiene como única finalidad dejar constancia de la
-          realización de la visita y de la intervención de{" "}
-          {EMPRESA_PARTE_VISITA.razonSocial} en la presentación del inmueble.
+          Asimismo “El Cliente” manifiesta que se compromete a no realizar ninguna
+          gestión encaminada a comprar/alquilar por sí mismo, por medio de
+          apoderado, o por conducto de terceras personas familiares directos el
+          inmueble visitado por mediación de {EMPRESA_PARTE_VISITA.razonSocial}.
         </p>
       </section>
 

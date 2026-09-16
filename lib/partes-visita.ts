@@ -1,10 +1,11 @@
 import { esOrigenCatastroExplorer, fincaReferenceDesdeVinculo } from "./catastro/explorer";
+import { ANIO_DOCUMENTO, EMPRESA_DOCUMENTOS } from "./empresa-documentos";
 
 export const EMPRESA_PARTE_VISITA = {
-  razonSocial: "REHABINCO, S.L.",
-  cif: "B22834005",
-  direccion: "Rúa da Merced nº 57, Bajo – 15009 A Coruña",
-  lugar: "A Coruña",
+  razonSocial: EMPRESA_DOCUMENTOS.razonSocial,
+  cif: EMPRESA_DOCUMENTOS.cif,
+  direccion: EMPRESA_DOCUMENTOS.direccionCompleta,
+  lugar: EMPRESA_DOCUMENTOS.lugar,
 } as const;
 
 export const ESTADO_PARTE_LABELS: Record<
@@ -17,13 +18,12 @@ export const ESTADO_PARTE_LABELS: Record<
 };
 
 export function formatFechaLargaEs(dateStr: string | null | undefined): string {
-  if (!dateStr) return "____ de ________________ de 20____";
+  if (!dateStr) return `____ de ________________ de ${ANIO_DOCUMENTO}`;
   const d = new Date(`${dateStr}T12:00:00`);
-  if (Number.isNaN(d.getTime())) return "____ de ________________ de 20____";
+  if (Number.isNaN(d.getTime())) return `____ de ________________ de ${ANIO_DOCUMENTO}`;
   const day = d.getDate();
   const month = d.toLocaleDateString("es-ES", { month: "long" });
-  const year = String(d.getFullYear()).slice(-2);
-  return `${day} de ${month} de 20${year}`;
+  return `${day} de ${month} de ${d.getFullYear()}`;
 }
 
 export function formatHoraVisita(hora: string | null | undefined): string {
@@ -32,7 +32,7 @@ export function formatHoraVisita(hora: string | null | undefined): string {
 }
 
 export function rutaNuevaVisitaDesdeProperty(propertyId: string): string {
-  return `/partes-visita?nueva=1&propiedad=${encodeURIComponent(propertyId)}`;
+  return `/partes-visita/nuevo?propiedad=${encodeURIComponent(propertyId)}`;
 }
 
 export function visitaDesdePropertyExigePropiedad(
