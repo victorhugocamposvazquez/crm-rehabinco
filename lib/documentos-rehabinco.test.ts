@@ -12,6 +12,7 @@ import {
   contratoArrasVacio,
   eurosEnPalabras,
   listarPersonasArras,
+  etiquetaEstadoCivil,
   parrafoReunidos,
   restoPrecio,
 } from "./contrato-arras";
@@ -119,7 +120,13 @@ describe("documentos Rehabinco 2026", () => {
     assert.equal(contratoArrasTieneConchado(textos.novena), false);
     assert.equal(htmlContratoArras(datos).includes("margin-top:auto"), false);
     assert.equal(listarPersonasArras(datos.vendedores), "DON Juan Pérez");
+    assert.match(parrafoReunidos(datos.vendedores, "vendedora"), /estado civil casado/);
+    assert.match(parrafoReunidos(datos.compradores, "compradora"), /estado civil soltera/);
     assert.match(parrafoReunidos(datos.vendedores, "vendedora"), /parte vendedora/);
+    assert.equal(
+      etiquetaEstadoCivil({ ...datos.compradores[0], estado_civil: "casado" }),
+      "casada"
+    );
     datos.cuenta_vendedora = "ES12 3456 7890 1234 5678 9012";
     const html = htmlContratoArras(datos);
     assert.match(html, /<strong>DON Juan Pérez<\/strong>/);

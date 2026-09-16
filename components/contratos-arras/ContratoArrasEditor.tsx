@@ -15,7 +15,9 @@ import { useImprimirDocumento } from "@/components/documentos/DialogoGuardarAlIm
 import {
   contratoArrasVacio,
   contratoDesdeFila,
+  ESTADOS_CIVILES,
   eurosEnPalabras,
+  normalizarEstadoCivil,
   personaArrasVacia,
   restoPrecio,
   type ContratoArrasDatos,
@@ -58,6 +60,7 @@ function PersonaCard({
   puedeQuitar: boolean;
 }) {
   const set = (patch: Partial<PersonaArras>) => onChange({ ...persona, ...patch });
+  const estadoCivil = normalizarEstadoCivil(persona.estado_civil);
   return (
     <div className="rounded-[12px] border border-[var(--border-soft)] p-3.5">
       <div className="mb-3 flex items-center justify-between gap-2">
@@ -82,7 +85,21 @@ function PersonaCard({
         </div>
         <div>
           <Label>Estado civil</Label>
-          <Input className="mt-1.5" value={persona.estado_civil} onChange={(e) => set({ estado_civil: e.target.value })} />
+          <select
+            className="mt-1.5 flex h-9 w-full rounded-[9px] border border-[var(--input)] bg-white px-3 py-0 text-[13.5px] outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15 max-[819px]:h-[46px] max-[819px]:text-base"
+            value={estadoCivil}
+            onChange={(e) => set({ estado_civil: e.target.value })}
+          >
+            <option value="">Seleccionar</option>
+            {ESTADOS_CIVILES.map((e) => (
+              <option key={e.value} value={e.value}>
+                {persona.tratamiento === "Doña" ? e.labelDona : e.labelDon}
+              </option>
+            ))}
+            {estadoCivil && !ESTADOS_CIVILES.some((e) => e.value === estadoCivil) ? (
+              <option value={estadoCivil}>{persona.estado_civil}</option>
+            ) : null}
+          </select>
         </div>
         <div>
           <Label>DNI</Label>

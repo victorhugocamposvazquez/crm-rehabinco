@@ -2,6 +2,17 @@ import { EMPRESA_DOCUMENTOS, formatFechaEncabezado } from "./empresa-documentos"
 
 export type TratamientoPersona = "Don" | "Doña";
 
+export const ESTADOS_CIVILES = [
+  { value: "soltero", don: "soltero", dona: "soltera", labelDon: "Soltero", labelDona: "Soltera" },
+  { value: "casado", don: "casado", dona: "casada", labelDon: "Casado", labelDona: "Casada" },
+  { value: "divorciado", don: "divorciado", dona: "divorciada", labelDon: "Divorciado", labelDona: "Divorciada" },
+  { value: "viudo", don: "viudo", dona: "viuda", labelDon: "Viudo", labelDona: "Viuda" },
+  { value: "separado", don: "separado", dona: "separada", labelDon: "Separado", labelDona: "Separada" },
+  { value: "pareja de hecho", don: "pareja de hecho", dona: "pareja de hecho", labelDon: "Pareja de hecho", labelDona: "Pareja de hecho" },
+] as const;
+
+export type EstadoCivilArras = (typeof ESTADOS_CIVILES)[number]["value"];
+
 export type PersonaArras = {
   tratamiento: TratamientoPersona;
   nombre: string;
@@ -10,6 +21,24 @@ export type PersonaArras = {
   domicilio: string;
   dni: string;
 };
+
+export function normalizarEstadoCivil(raw: string): string {
+  const t = raw.trim().toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ");
+  if (!t) return "";
+  for (const e of ESTADOS_CIVILES) {
+    const aliases = [e.value, e.don, e.dona, e.labelDon, e.labelDona].map((s) => s.toLowerCase());
+    if (aliases.includes(t) || t === `${e.don}/${e.dona}` || t === `${e.don}/a`) return e.value;
+  }
+  if (t === "union de hecho" || t === "unión de hecho") return "pareja de hecho";
+  return raw.trim();
+}
+
+export function etiquetaEstadoCivil(p: PersonaArras): string {
+  const value = normalizarEstadoCivil(p.estado_civil);
+  const opt = ESTADOS_CIVILES.find((e) => e.value === value);
+  if (!opt) return hueco(p.estado_civil);
+  return p.tratamiento === "Doña" ? opt.dona : opt.don;
+}
 
 export type ContratoArrasDatos = {
   lugar: string;
@@ -69,7 +98,7 @@ export function parsePersonasArras(value: unknown): PersonaArras[] {
     return {
       tratamiento: item.tratamiento === "Doña" ? "Doña" : "Don",
       nombre: String(item.nombre ?? ""),
-      estado_civil: String(item.estado_civil ?? ""),
+      estado_civil: normalizarEstadoCivil(String(item.estado_civil ?? "")),
       vecindad: String(item.vecindad ?? EMPRESA_DOCUMENTOS.lugar),
       domicilio: String(item.domicilio ?? ""),
       dni: String(item.dni ?? ""),
@@ -195,7 +224,7 @@ export function parrafoReunidos(personas: PersonaArras[], rol: "vendedora" | "co
   const varios = ps.length > 1;
   const nombres = listarPersonasArras(ps);
   const mayores = varios ? "mayores de edad" : "mayor de edad";
-  const estados = unicos(ps.map((p) => hueco(p.estado_civil))).join(" y ");
+  const estados = unicos(ps.map((p) => etiquetaEstadoCivil(p))).join(" y ");
   const vecindades = unicos(ps.map((p) => hueco(p.vecindad, EMPRESA_DOCUMENTOS.lugar)));
   const vecinos = vecindades.length === 1
     ? `${varios ? "vecinos" : ps[0].tratamiento === "Doña" ? "vecina" : "vecino"} de ${vecindades[0]}`
