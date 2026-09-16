@@ -120,6 +120,12 @@ describe("documentos Rehabinco 2026", () => {
     assert.equal(htmlContratoArras(datos).includes("margin-top:auto"), false);
     assert.equal(listarPersonasArras(datos.vendedores), "DON Juan Pérez");
     assert.match(parrafoReunidos(datos.vendedores, "vendedora"), /parte vendedora/);
+    datos.cuenta_vendedora = "ES12 3456 7890 1234 5678 9012";
+    const html = htmlContratoArras(datos);
+    assert.match(html, /<strong>DON Juan Pérez<\/strong>/);
+    assert.match(html, /<strong>DOÑA María López<\/strong>/);
+    assert.match(html, /<strong>QUINCE MIL EUROS \(15\.000,00 €\)<\/strong>/);
+    assert.match(html, /<strong>ES12 3456 7890 1234 5678 9012<\/strong>/);
   });
 
   it("el HTML incluye estilos de impresión A4", () => {

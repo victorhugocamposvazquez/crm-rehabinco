@@ -4,16 +4,35 @@ import {
   encabezadoContratoArras,
   eurosEnPalabras,
   listarPersonasArras,
+  nombrePersonaArras,
   parrafoReunidos,
+  personaArrasVacia,
   restoPrecio,
   textoHipoteca,
   textoViviendaVenta,
   verboPropiedad,
   type ContratoArrasDatos,
+  type PersonaArras,
 } from "./contrato-arras";
 
 function p(texto: string, extra = "") {
   return `<p style="margin:0 0 11px;font-size:13px;line-height:1.48;text-align:justify;${extra}">${texto}</p>`;
+}
+
+function nombresAResaltar(personas: PersonaArras[]): string[] {
+  const list = personas.length ? personas : [personaArrasVacia("Don")];
+  return list.map(nombrePersonaArras);
+}
+
+/** Escapa el texto y pone en negrita los fragmentos indicados. */
+export function htmlConNegrita(texto: string, fragmentos: string[]): string {
+  let html = htmlEsc(texto);
+  const unicos = [...new Set(fragmentos.map((f) => f.trim()).filter(Boolean))].sort((a, b) => b.length - a.length);
+  for (const fragmento of unicos) {
+    const esc = htmlEsc(fragmento);
+    html = html.split(esc).join(`<strong>${esc}</strong>`);
+  }
+  return html;
 }
 
 function h(texto: string) {
@@ -82,32 +101,36 @@ function pagina(inner: string) {
 
 export function htmlContratoArras(datos: ContratoArrasDatos): string {
   const t = textosContratoArras(datos);
-  const nl = (s: string) => htmlEsc(s).replace(/\n/g, "<br />");
+  const nombres = [...nombresAResaltar(datos.vendedores), ...nombresAResaltar(datos.compradores)];
+  const cuenta = datos.cuenta_vendedora.trim() || "…………………………………………";
+  const arras = eurosEnPalabras(datos.arras);
+  const conNombres = (s: string) => htmlConNegrita(s, nombres);
+  const nlNombres = (s: string) => conNombres(s).replace(/\n/g, "<br />");
   const body =
     pagina(`
       <p style="margin:0 0 22px;font-size:13.5px;text-align:center;">${htmlEsc(t.encabezado)}</p>
       ${h("REUNIDOS")}
-      ${p(htmlEsc(t.reunidosVendedores))}
-      ${p(htmlEsc(t.reunidosCompradores))}
+      ${p(conNombres(t.reunidosVendedores))}
+      ${p(conNombres(t.reunidosCompradores))}
       ${h("INTERVIENEN")}
       ${p(htmlEsc(t.intervienen))}
       ${h("EXPONEN")}
-      ${p(nl(t.exponenI))}
-      ${p(htmlEsc(t.exponenII))}
+      ${p(nlNombres(t.exponenI))}
+      ${p(conNombres(t.exponenII))}
       ${h("ESTIPULACIONES:")}
-      ${p(htmlEsc(t.primera))}
+      ${p(conNombres(t.primera))}
     `) +
     pagina(`
       ${p(htmlEsc(t.segunda))}
-      ${p(htmlEsc(t.tercera))}
-      ${p(nl(t.cuarta))}
-      ${p(nl(t.quinta))}
+      ${p(htmlConNegrita(t.tercera, [...nombres, arras, cuenta]))}
+      ${p(nlNombres(t.cuarta))}
+      ${p(nlNombres(t.quinta))}
       ${p(htmlEsc(t.sexta))}
       ${p(htmlEsc(t.septima))}
       ${p(htmlEsc(t.octava))}
     `) +
     pagina(`
-      ${p(nl(t.novena))}
+      ${p(htmlEsc(t.novena).replace(/\n/g, "<br />"))}
       ${p(htmlEsc(t.cierre), "margin-top:18px;")}
       <div style="margin-top:36px;display:flex;justify-content:space-between;gap:40px;">
         <div style="flex:1;text-align:center;">

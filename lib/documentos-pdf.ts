@@ -17,6 +17,7 @@ export function cssPaginasDocumento(opts?: { serif?: boolean }) {
       color: #1a1a1a;
       font-family: ${font};
     }
+    strong, b { font-weight: 700; }
     .pdf-page {
       width: ${PAGE_W_PX}px;
       height: ${PAGE_H_PX}px;
