@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { imprimirDocumentoHtml } from "@/lib/documentos-pdf";
+import { PrintOverlay } from "@/components/documentos/PrintOverlay";
 
 export function DialogoGuardarAlImprimir({
   open,
@@ -66,14 +66,15 @@ export function useImprimirDocumento(
   const [busy, setBusy] = useState(false);
   const [htmlPreparado, setHtmlPreparado] = useState<string | null>(null);
   const [preparando, setPreparando] = useState(false);
+  const [htmlImpresion, setHtmlImpresion] = useState<string | null>(null);
   const prepararHtmlRef = useRef(opts?.prepararHtml);
-  const htmlPreparadoRef = useRef<string | null>(null);
+  const htmlListoRef = useRef<string | null>(null);
   const preparacionRef = useRef<Promise<string> | null>(null);
   prepararHtmlRef.current = opts?.prepararHtml;
-  htmlPreparadoRef.current = htmlPreparado;
 
   useEffect(() => {
     const preparar = prepararHtmlRef.current;
+    htmlListoRef.current = null;
     if (!preparar) {
       setHtmlPreparado(null);
       setPreparando(false);
@@ -87,16 +88,16 @@ export function useImprimirDocumento(
 
     const promesa = preparar(html)
       .then((preparado) => {
-        if (!cancelado) {
-          setHtmlPreparado(preparado);
-          htmlPreparadoRef.current = preparado;
-        }
+        if (cancelado) return preparado;
+        htmlListoRef.current = preparado;
+        setHtmlPreparado(preparado);
         return preparado;
       })
       .catch((err) => {
         if (!cancelado) {
+          htmlListoRef.current = null;
           setHtmlPreparado(null);
-          htmlPreparadoRef.current = null;
+          toast.error("No se ha podido preparar el documento para imprimir.");
         }
         throw err;
       })
@@ -115,16 +116,18 @@ export function useImprimirDocumento(
   const resolverHtmlImpresion = async (): Promise<string> => {
     const preparar = prepararHtmlRef.current;
     if (!preparar) return html;
-    if (htmlPreparadoRef.current) return htmlPreparadoRef.current;
+    if (htmlListoRef.current) return htmlListoRef.current;
     if (preparacionRef.current) return preparacionRef.current;
-    return preparar(html);
+    const preparado = await preparar(html);
+    htmlListoRef.current = preparado;
+    return preparado;
   };
 
   const lanzarImpresion = async () => {
     try {
       const finalHtml = await resolverHtmlImpresion();
       if (!finalHtml.trim()) throw new Error("El documento está vacío.");
-      await imprimirDocumentoHtml(finalHtml);
+      setHtmlImpresion(finalHtml);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "No se ha podido imprimir.");
     }
@@ -134,24 +137,27 @@ export function useImprimirDocumento(
     preparando,
     pedirImprimir: () => setOpen(true),
     dialogo: (
-      <DialogoGuardarAlImprimir
-        open={open}
-        loading={busy}
-        preparando={Boolean(prepararHtmlRef.current && preparando)}
-        onOpenChange={setOpen}
-        onNo={() => {
-          setOpen(false);
-          void lanzarImpresion();
-        }}
-        onSi={async () => {
-          setBusy(true);
-          const ok = await guardar({ quedarse: true });
-          setBusy(false);
-          if (!ok) return;
-          setOpen(false);
-          await lanzarImpresion();
-        }}
-      />
+      <>
+        <DialogoGuardarAlImprimir
+          open={open}
+          loading={busy}
+          preparando={Boolean(prepararHtmlRef.current && preparando)}
+          onOpenChange={setOpen}
+          onNo={() => {
+            setOpen(false);
+            void lanzarImpresion();
+          }}
+          onSi={async () => {
+            setBusy(true);
+            const ok = await guardar({ quedarse: true });
+            setBusy(false);
+            if (!ok) return;
+            setOpen(false);
+            await lanzarImpresion();
+          }}
+        />
+        {htmlImpresion ? <PrintOverlay html={htmlImpresion} onClose={() => setHtmlImpresion(null)} /> : null}
+      </>
     ),
   };
 }
