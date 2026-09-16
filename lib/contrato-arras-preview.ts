@@ -9,6 +9,9 @@ const PADDING_X = 62;
 /** Altura útil de contenido dentro de una hoja A4 simulada (px). */
 export const ALTURA_UTIL_PAGINA_ARRAS = DOCUMENTO_PAGE_H - PADDING_TOP - PADDING_BOTTOM;
 
+/** Hueco mínimo (px) para intentar partir el bloque siguiente y rellenarlo. */
+export const MIN_HUECO_RELLENO_ARRAS = 56;
+
 export type BloqueMedido = {
   el: HTMLElement;
   alto: number;
@@ -166,6 +169,84 @@ function bloqueEsPartible(el: HTMLElement): boolean {
   return el.tagName === "P" || el.tagName === "DIV";
 }
 
+function separadorHtmlRestante(innerHtml: string): string {
+  return /<br\s*\/?>/i.test(innerHtml) ? "<br />" : " ";
+}
+
+/** Parte un bloque en dos: cabecera que cabe en `espacioRestante` y resto. */
+function partirBloqueAlEspacioRestante(
+  el: HTMLElement,
+  espacioRestante: number,
+  doc: Document,
+  flow: HTMLElement,
+  opts?: { quitarEdicion?: boolean }
+): boolean {
+  if (espacioRestante < MIN_HUECO_RELLENO_ARRAS) return false;
+  if (!bloqueEsPartible(el)) return false;
+  if (alturaDeBloque(el, doc) <= espacioRestante) return false;
+
+  let frags = dividirInnerHtmlEnFragmentos(el, el.innerHTML, doc, flow, espacioRestante);
+  if (frags.length <= 1) {
+    const plano = el.innerText.replace(/\s+/g, " ").trim();
+    const partes = partirSegmentosPorPalabras(plano, (seg) =>
+      medirInnerHtmlEnPlantilla(doc, flow, el, htmlEsc(seg)) <= espacioRestante
+    );
+    if (partes.length <= 1) return false;
+    frags = [htmlEsc(partes[0]), htmlEsc(partes.slice(1).join(" "))];
+  }
+
+  const primero = frags[0]?.trim();
+  const sep = separadorHtmlRestante(el.innerHTML);
+  const resto = frags.slice(1).join(sep).trim();
+  if (!primero || !resto) return false;
+
+  el.replaceWith(
+    crearFragmentoDesdePlantilla(el, primero, opts),
+    crearFragmentoDesdePlantilla(el, resto, opts)
+  );
+  return true;
+}
+
+/** Detecta el primer hueco rellenable tras simular el empaquetado (sin DOM). */
+export function encontrarPrimerHuecoRellenable(
+  medidas: BloqueMedido[],
+  alturaUtil = ALTURA_UTIL_PAGINA_ARRAS,
+  minHueco = MIN_HUECO_RELLENO_ARRAS
+): { indiceBloque: number; espacioRestante: number } | null {
+  const pages = empaquetarBloquesEnPaginas(medidas, alturaUtil);
+  for (let p = 0; p < pages.length - 1; p++) {
+    const altoPagina = pages[p].reduce((s, b) => s + b.alto, 0);
+    const restante = alturaUtil - altoPagina;
+    if (restante < minHueco) continue;
+    const next = pages[p + 1]?.[0];
+    if (!next || next.evitarCorte || next.tituloSeccion) continue;
+    if (next.alto <= restante) continue;
+    const idx = medidas.indexOf(next);
+    if (idx >= 0) return { indiceBloque: idx, espacioRestante: restante };
+  }
+  return null;
+}
+
+/** Itera empaquetado + partición para rellenar huecos entre hojas. */
+export function optimizarRellenoHuecos(
+  doc: Document,
+  alturaUtil = ALTURA_UTIL_PAGINA_ARRAS,
+  opts?: { quitarEdicion?: boolean }
+): void {
+  const flow = doc.querySelector<HTMLElement>(".pdf-flow");
+  if (!flow) return;
+
+  for (let iter = 0; iter < 80; iter++) {
+    const medidas = medirBloquesContratoArras(doc);
+    const hueco = encontrarPrimerHuecoRellenable(medidas, alturaUtil);
+    if (!hueco) return;
+
+    const bloque = medidas[hueco.indiceBloque]?.el;
+    if (!bloque) return;
+    if (!partirBloqueAlEspacioRestante(bloque, hueco.espacioRestante, doc, flow, opts)) return;
+  }
+}
+
 /** Divide bloques más altos que una hoja en fragmentos medidos. */
 export function fraccionarBloquesLargos(
   doc: Document,
@@ -295,7 +376,10 @@ export function repaginarContratoArrasEnDocumento(
   if (!flow) return;
 
   if (opts?.fraccionar) {
-    fraccionarBloquesLargos(doc, ALTURA_UTIL_PAGINA_ARRAS, { quitarEdicion: opts.quitarEdicion });
+    const fraccOpts = { quitarEdicion: opts.quitarEdicion };
+    fraccionarBloquesLargos(doc, ALTURA_UTIL_PAGINA_ARRAS, fraccOpts);
+    optimizarRellenoHuecos(doc, ALTURA_UTIL_PAGINA_ARRAS, fraccOpts);
+    fraccionarBloquesLargos(doc, ALTURA_UTIL_PAGINA_ARRAS, fraccOpts);
   }
 
   const medidas = medirBloquesContratoArras(doc);

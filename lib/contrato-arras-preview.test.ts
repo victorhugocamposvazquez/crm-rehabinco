@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   ALTURA_UTIL_PAGINA_ARRAS,
+  MIN_HUECO_RELLENO_ARRAS,
   empaquetarBloquesEnPaginas,
+  encontrarPrimerHuecoRellenable,
   partirSegmentosPorCaracteres,
   partirSegmentosPorPalabras,
   type BloqueMedido,
@@ -71,5 +73,30 @@ describe("contrato arras preview", () => {
     const partes = partirSegmentosPorCaracteres("X", () => false);
     assert.equal(partes.length, 1);
     assert.equal(partes[0], "X");
+  });
+
+  it("detecta hueco rellenable cuando el bloque siguiente no cabe en el espacio restante", () => {
+    const hueco = ALTURA_UTIL_PAGINA_ARRAS - 420;
+    const previo = bloque(hueco);
+    const novena = bloque(680);
+    const medidas = [previo, novena];
+    const hallado = encontrarPrimerHuecoRellenable(medidas);
+    assert.ok(hallado);
+    assert.equal(hallado.indiceBloque, 1);
+    assert.equal(hallado.espacioRestante, 420);
+  });
+
+  it("ignora huecos demasiado pequeños", () => {
+    const restante = MIN_HUECO_RELLENO_ARRAS - 10;
+    const medidas = [bloque(ALTURA_UTIL_PAGINA_ARRAS - restante), bloque(500)];
+    assert.equal(encontrarPrimerHuecoRellenable(medidas), null);
+  });
+
+  it("no intenta rellenar con bloques indivisibles", () => {
+    const medidas = [
+      bloque(ALTURA_UTIL_PAGINA_ARRAS - 200),
+      bloque(120, { evitarCorte: true }),
+    ];
+    assert.equal(encontrarPrimerHuecoRellenable(medidas), null);
   });
 });
