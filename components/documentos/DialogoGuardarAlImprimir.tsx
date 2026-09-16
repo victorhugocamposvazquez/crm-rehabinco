@@ -68,6 +68,7 @@ export function useImprimirDocumento(
   const [preparando, setPreparando] = useState(false);
   const prepararHtmlRef = useRef(opts?.prepararHtml);
   const htmlPreparadoRef = useRef<string | null>(null);
+  const preparacionRef = useRef<Promise<string> | null>(null);
   prepararHtmlRef.current = opts?.prepararHtml;
   htmlPreparadoRef.current = htmlPreparado;
 
@@ -76,6 +77,7 @@ export function useImprimirDocumento(
     if (!preparar) {
       setHtmlPreparado(null);
       setPreparando(false);
+      preparacionRef.current = null;
       return;
     }
 
@@ -83,22 +85,30 @@ export function useImprimirDocumento(
     setPreparando(true);
     setHtmlPreparado(null);
 
-    const timer = window.setTimeout(() => {
-      void preparar(html)
-        .then((preparado) => {
-          if (!cancelado) setHtmlPreparado(preparado);
-        })
-        .catch(() => {
-          if (!cancelado) setHtmlPreparado(null);
-        })
-        .finally(() => {
-          if (!cancelado) setPreparando(false);
-        });
-    }, 200);
+    const promesa = preparar(html)
+      .then((preparado) => {
+        if (!cancelado) {
+          setHtmlPreparado(preparado);
+          htmlPreparadoRef.current = preparado;
+        }
+        return preparado;
+      })
+      .catch((err) => {
+        if (!cancelado) {
+          setHtmlPreparado(null);
+          htmlPreparadoRef.current = null;
+        }
+        throw err;
+      })
+      .finally(() => {
+        if (!cancelado) setPreparando(false);
+        preparacionRef.current = null;
+      });
+
+    preparacionRef.current = promesa;
 
     return () => {
       cancelado = true;
-      window.clearTimeout(timer);
     };
   }, [html]);
 
@@ -106,6 +116,7 @@ export function useImprimirDocumento(
     const preparar = prepararHtmlRef.current;
     if (!preparar) return html;
     if (htmlPreparadoRef.current) return htmlPreparadoRef.current;
+    if (preparacionRef.current) return preparacionRef.current;
     return preparar(html);
   };
 

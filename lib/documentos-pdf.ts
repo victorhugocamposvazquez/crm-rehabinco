@@ -332,56 +332,41 @@ export async function downloadPagedHtmlPdf(params: {
   }
 }
 
-function esperarIframe(iframe: HTMLIFrameElement): Promise<Document> {
-  return new Promise((resolve, reject) => {
-    iframe.addEventListener(
-      "load",
-      () => {
-        const doc = iframe.contentDocument;
-        if (!doc?.body) {
-          reject(new Error("No se pudo abrir la impresión."));
-          return;
-        }
-        resolve(doc);
-      },
-      { once: true }
-    );
-    iframe.addEventListener(
-      "error",
-      () => reject(new Error("No se pudo abrir la impresión.")),
-      { once: true }
-    );
-  });
-}
-
 /** Abre el diálogo de impresión del navegador con el HTML paginado. */
-export async function imprimirDocumentoHtml(html: string): Promise<void> {
+export function imprimirDocumentoHtml(html: string): Promise<void> {
   const docHtml = normalizarHtmlImpresion(html);
 
-  const iframe = document.createElement("iframe");
-  iframe.setAttribute("title", "Imprimir");
-  Object.assign(iframe.style, {
-    position: "fixed",
-    left: "0",
-    top: "0",
-    width: `${PAGE_W_PX}px`,
-    height: `${PAGE_H_PX}px`,
-    border: "0",
-    opacity: "0",
-    pointerEvents: "none",
-    background: "#fff",
-  });
-  document.body.appendChild(iframe);
+  return new Promise((resolve, reject) => {
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("title", "Imprimir");
+    Object.assign(iframe.style, {
+      position: "fixed",
+      left: "0",
+      top: "0",
+      width: `${PAGE_W_PX}px`,
+      height: `${PAGE_H_PX}px`,
+      border: "0",
+      background: "#fff",
+    });
+    document.body.appendChild(iframe);
 
-  try {
-    iframe.srcdoc = docHtml;
-    const idoc = await esperarIframe(iframe);
+    const idoc = iframe.contentDocument;
+    if (!idoc) {
+      iframe.remove();
+      reject(new Error("No se pudo abrir la impresión."));
+      return;
+    }
 
-    await waitForImages(idoc);
-    await waitForLayout(idoc);
+    idoc.open();
+    idoc.write(docHtml);
+    idoc.close();
 
-    const altoContenido = Math.max(idoc.body.scrollHeight, idoc.documentElement.scrollHeight, 1);
-    iframe.style.height = `${altoContenido}px`;
+    const win = iframe.contentWindow;
+    if (!win) {
+      iframe.remove();
+      reject(new Error("No se pudo abrir la impresión."));
+      return;
+    }
 
     idoc.title = " ";
     const titulo = idoc.querySelector("title");
@@ -390,26 +375,26 @@ export async function imprimirDocumentoHtml(html: string): Promise<void> {
     idoc.body.style.margin = "0";
     idoc.body.style.height = "auto";
 
-    const win = iframe.contentWindow;
-    if (!win) throw new Error("No se pudo abrir la impresión.");
+    const limpiar = () => {
+      iframe.remove();
+      resolve();
+    };
 
-    await new Promise<void>((resolve, reject) => {
-      const cerrar = () => {
-        win.removeEventListener("afterprint", cerrar);
-        resolve();
-      };
-      win.addEventListener("afterprint", cerrar);
-      window.setTimeout(cerrar, 120000);
+    win.addEventListener("afterprint", limpiar, { once: true });
+    window.setTimeout(limpiar, 120000);
+
+    requestAnimationFrame(() => {
+      const altoContenido = Math.max(idoc.body.scrollHeight, idoc.documentElement.scrollHeight, 1);
+      iframe.style.height = `${altoContenido}px`;
       try {
         win.focus();
         win.print();
       } catch (err) {
+        iframe.remove();
         reject(err instanceof Error ? err : new Error("No se pudo abrir la impresión."));
       }
     });
-  } finally {
-    iframe.remove();
-  }
+  });
 }
 
 export function slugArchivo(texto: string, fallback: string) {
