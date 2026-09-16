@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BUILD_ID } from "@/lib/build-id";
 
-const INTERVALO_MS = 5 * 60 * 1000;
+/** Comprobación periódica mientras la pestaña sigue abierta. */
+const INTERVALO_MS = 60 * 1000;
 
 async function buildIdRemoto(): Promise<string | null> {
   try {
@@ -35,6 +37,7 @@ async function forzarServiceWorker(): Promise<void> {
 }
 
 export function AvisoNuevaVersion() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [actualizando, setActualizando] = useState(false);
   const avisadoRef = useRef(false);
@@ -50,6 +53,12 @@ export function AvisoNuevaVersion() {
     const remoto = await buildIdRemoto();
     if (remoto && remoto !== buildLocalRef.current) {
       marcarNuevaVersion();
+      return;
+    }
+
+    if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
+      const reg = await navigator.serviceWorker.getRegistration("/");
+      await reg?.update().catch(() => undefined);
     }
   }, [marcarNuevaVersion]);
 
@@ -82,8 +91,13 @@ export function AvisoNuevaVersion() {
     const onVisible = () => {
       if (document.visibilityState === "visible") void comprobarVersion();
     };
+    const onPageShow = () => void comprobarVersion();
+    const onOnline = () => void comprobarVersion();
+
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", onVisible);
+    window.addEventListener("pageshow", onPageShow);
+    window.addEventListener("online", onOnline);
 
     const intervalo = window.setInterval(() => void comprobarVersion(), INTERVALO_MS);
 
@@ -106,6 +120,8 @@ export function AvisoNuevaVersion() {
       return () => {
         document.removeEventListener("visibilitychange", onVisible);
         window.removeEventListener("focus", onVisible);
+        window.removeEventListener("pageshow", onPageShow);
+        window.removeEventListener("online", onOnline);
         window.clearInterval(intervalo);
         navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
       };
@@ -114,9 +130,15 @@ export function AvisoNuevaVersion() {
     return () => {
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", onVisible);
+      window.removeEventListener("pageshow", onPageShow);
+      window.removeEventListener("online", onOnline);
       window.clearInterval(intervalo);
     };
   }, [comprobarVersion, enlazarServiceWorker]);
+
+  useEffect(() => {
+    void comprobarVersion();
+  }, [pathname, comprobarVersion]);
 
   const actualizarFuerte = async () => {
     setActualizando(true);

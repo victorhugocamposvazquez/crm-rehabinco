@@ -1,5 +1,6 @@
 // Service worker PWA: instalación + avisos (Web Push / cron Vercel)
 
+
 self.addEventListener("install", () => {
   // Espera a que el usuario pulse «Actualizar» en el CRM antes de tomar el control.
 });
@@ -46,3 +47,4 @@ self.addEventListener("notificationclick", (event) => {
     })
   );
 });
+// BUILD_STAMP: dev
