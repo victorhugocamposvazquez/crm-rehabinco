@@ -95,8 +95,9 @@ LOS COMPRADORES se reservan el derecho de elevar a escritura pública la comprav
   };
 }
 
-function pagina(inner: string) {
-  return `<div class="pdf-page" style="padding:54px 62px 48px;">${inner}</div>`;
+function pagina(inner: string, extraClass = "") {
+  const cls = extraClass ? `pdf-page ${extraClass}` : "pdf-page";
+  return `<div class="${cls}" style="padding:54px 62px 48px;">${inner}</div>`;
 }
 
 export function htmlContratoArras(datos: ContratoArrasDatos): string {
@@ -129,7 +130,8 @@ export function htmlContratoArras(datos: ContratoArrasDatos): string {
       ${p(htmlEsc(t.septima))}
       ${p(htmlEsc(t.octava))}
     `) +
-    pagina(`
+    pagina(
+      `
       ${p(htmlEsc(t.novena).replace(/\n/g, "<br />"))}
       ${p(htmlEsc(t.cierre), "margin-top:18px;")}
       <div style="margin-top:36px;display:flex;justify-content:space-between;gap:40px;">
@@ -142,7 +144,9 @@ export function htmlContratoArras(datos: ContratoArrasDatos): string {
           <div style="border-top:1px solid #222;"></div>
         </div>
       </div>
-    `);
+    `,
+      "pdf-firmas"
+    );
   return envolverDocumentoHtml({
     title: `Contrato de arras · ${EMPRESA_DOCUMENTOS.razonSocial}`,
     body,

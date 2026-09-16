@@ -29,31 +29,32 @@ export function cssPaginasDocumento(opts?: { serif?: boolean }) {
       border-top: 12px solid #d9d6cf;
     }
     @media print {
-      @page { size: A4 portrait; margin: 0; }
+      @page { size: A4 portrait; margin: 12mm 16mm; }
       html, body {
-        width: 210mm;
+        width: auto;
         height: auto !important;
         margin: 0 !important;
         padding: 0 !important;
-        overflow: hidden;
+        overflow: visible !important;
         background: #fff;
       }
       .pdf-page + .pdf-page { border-top: 0 !important; }
       .pdf-page {
-        width: 210mm !important;
-        height: 297mm !important;
-        max-height: 297mm !important;
+        width: auto !important;
+        height: auto !important;
+        max-height: none !important;
         margin: 0 !important;
         border: 0 !important;
-        overflow: hidden !important;
-        break-inside: avoid;
-        page-break-inside: avoid;
-        break-after: page;
-        page-break-after: always;
-      }
-      .pdf-page:last-child {
+        padding: 0 0 6mm !important;
+        overflow: visible !important;
         break-after: auto;
         page-break-after: auto;
+        break-inside: auto;
+        page-break-inside: auto;
+      }
+      .pdf-firmas {
+        break-inside: avoid;
+        page-break-inside: avoid;
       }
     }
   `;
@@ -204,8 +205,9 @@ export async function imprimirDocumentoHtml(html: string): Promise<void> {
   await waitForImages(idoc);
   await new Promise((r) => setTimeout(r, 150));
 
-  const paginas = idoc.querySelectorAll(".pdf-page").length || 1;
-  iframe.style.height = `${297 * paginas}mm`;
+  const altoContenido = Math.max(idoc.body.scrollHeight, idoc.documentElement.scrollHeight, 1);
+  iframe.style.height = `${altoContenido}px`;
+  iframe.style.width = "210mm";
   idoc.documentElement.style.height = "auto";
   idoc.body.style.margin = "0";
   idoc.body.style.padding = "0";

@@ -142,7 +142,7 @@ describe("documentos Rehabinco 2026", () => {
     assert.match(visita, /@media print/);
     assert.match(visita, /size: A4/);
     assert.match(visita, /height: auto/);
-    assert.match(visita, /297mm/);
+    assert.match(visita, /page-break-after: auto/);
     assert.match(htmlContratoArras(contratoArrasVacio()), /@media print/);
   });
 
