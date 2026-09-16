@@ -283,22 +283,7 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
 
       {(["vendedores", "compradores"] as const).map((lado) => (
         <section key={lado} className="rounded-[14px] border border-border bg-white p-4 min-[820px]:p-5">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-[15px] font-semibold">{lado === "vendedores" ? "Parte vendedora" : "Parte compradora"}</h2>
-            {datos[lado].length < 4 ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                onClick={() =>
-                  setPersonas(lado, [...datos[lado], personaArrasVacia(datos[lado].length === 0 ? "Don" : "Doña")])
-                }
-              >
-                <Plus className="h-4 w-4" strokeWidth={1.5} />
-                Añadir
-              </Button>
-            ) : null}
-          </div>
+          <h2 className="text-[15px] font-semibold">{lado === "vendedores" ? "Parte vendedora" : "Parte compradora"}</h2>
           <div className="mt-4 space-y-3">
             {datos[lado].map((persona, i) => (
               <PersonaCard
@@ -310,6 +295,20 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
                 puedeQuitar={datos[lado].length > 1}
               />
             ))}
+            {datos[lado].length < 4 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  const ultimo = datos[lado][datos[lado].length - 1];
+                  const siguiente: TratamientoPersona = ultimo?.tratamiento === "Doña" ? "Don" : "Doña";
+                  setPersonas(lado, [...datos[lado], personaArrasVacia(datos[lado].length === 0 ? "Don" : siguiente)]);
+                }}
+                className="flex min-h-[72px] w-full items-center justify-center gap-2 rounded-[12px] border border-dashed border-[var(--input)] px-3 text-[13.5px] font-semibold text-[var(--text-2)] hover:border-accent hover:text-accent"
+              >
+                <Plus className="h-4 w-4" strokeWidth={1.5} />
+                {lado === "vendedores" ? "Añadir vendedor" : "Añadir comprador"}
+              </button>
+            ) : null}
           </div>
         </section>
       ))}

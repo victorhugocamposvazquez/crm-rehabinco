@@ -144,6 +144,14 @@ describe("documentos Rehabinco 2026", () => {
     assert.match(htmlContratoArras(contratoArrasVacio()), /@media print/);
   });
 
+  it("un contrato nuevo tiene una persona por parte", () => {
+    const vacio = contratoArrasVacio();
+    assert.equal(vacio.vendedores.length, 1);
+    assert.equal(vacio.compradores.length, 1);
+    assert.equal(vacio.vendedores[0]?.tratamiento, "Don");
+    assert.equal(vacio.compradores[0]?.tratamiento, "Don");
+  });
+
   it("pasa cantidades a euros en palabras", () => {
     assert.equal(eurosEnPalabras(1), "UN EURO (1,00 €)");
     assert.match(eurosEnPalabras(21) ?? "", /VEINTIÚN EUROS \(21,00 €\)/);

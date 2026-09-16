@@ -45,8 +45,8 @@ export function contratoArrasVacio(): ContratoArrasDatos {
   return {
     lugar: EMPRESA_DOCUMENTOS.lugar,
     fecha: null,
-    vendedores: [personaArrasVacia("Don"), personaArrasVacia("Doña")],
-    compradores: [personaArrasVacia("Don"), personaArrasVacia("Doña")],
+    vendedores: [personaArrasVacia("Don")],
+    compradores: [personaArrasVacia("Don")],
     finca_descripcion: "",
     finca_anejos: "",
     registro_libro: "",
@@ -191,7 +191,7 @@ function unicos(valores: string[]) {
 }
 
 export function parrafoReunidos(personas: PersonaArras[], rol: "vendedora" | "compradora"): string {
-  const ps = personas.length ? personas : [personaArrasVacia("Don"), personaArrasVacia("Doña")];
+  const ps = personas.length ? personas : [personaArrasVacia("Don")];
   const varios = ps.length > 1;
   const nombres = listarPersonasArras(ps);
   const mayores = varios ? "mayores de edad" : "mayor de edad";
@@ -260,8 +260,8 @@ export function contratoDesdeFila(row: {
   return {
     lugar: row.lugar || EMPRESA_DOCUMENTOS.lugar,
     fecha: row.fecha,
-    vendedores: vendedores.length ? vendedores : [personaArrasVacia("Don"), personaArrasVacia("Doña")],
-    compradores: compradores.length ? compradores : [personaArrasVacia("Don"), personaArrasVacia("Doña")],
+    vendedores: vendedores.length ? vendedores : [personaArrasVacia("Don")],
+    compradores: compradores.length ? compradores : [personaArrasVacia("Don")],
     finca_descripcion: row.finca_descripcion ?? "",
     finca_anejos: row.finca_anejos ?? "",
     registro_libro: row.registro_libro ?? "",
