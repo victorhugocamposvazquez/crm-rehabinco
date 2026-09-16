@@ -29,10 +29,32 @@ export function cssPaginasDocumento(opts?: { serif?: boolean }) {
       border-top: 12px solid #d9d6cf;
     }
     @media print {
-      @page { size: A4; margin: 0; }
-      .pdf-page + .pdf-page { border-top: 0; }
-      .pdf-page { break-after: page; page-break-after: always; }
-      .pdf-page:last-child { break-after: auto; page-break-after: auto; }
+      @page { size: A4 portrait; margin: 0; }
+      html, body {
+        width: 210mm;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden;
+        background: #fff;
+      }
+      .pdf-page + .pdf-page { border-top: 0 !important; }
+      .pdf-page {
+        width: 210mm !important;
+        height: 297mm !important;
+        max-height: 297mm !important;
+        margin: 0 !important;
+        border: 0 !important;
+        overflow: hidden !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+        break-after: page;
+        page-break-after: always;
+      }
+      .pdf-page:last-child {
+        break-after: auto;
+        page-break-after: auto;
+      }
     }
   `;
 }
@@ -156,10 +178,10 @@ export async function imprimirDocumentoHtml(html: string): Promise<void> {
     position: "fixed",
     left: "0",
     top: "0",
-    width: `${PAGE_W_PX}px`,
-    height: `${PAGE_H_PX * 6}px`,
+    width: "210mm",
+    height: "297mm",
     border: "0",
-    opacity: "0.01",
+    opacity: "1",
     pointerEvents: "none",
     zIndex: "-1",
     background: "#fff",
@@ -176,6 +198,13 @@ export async function imprimirDocumentoHtml(html: string): Promise<void> {
 
   await waitForImages(idoc);
   await new Promise((r) => setTimeout(r, 150));
+
+  const paginas = idoc.querySelectorAll(".pdf-page").length || 1;
+  iframe.style.height = `${297 * paginas}mm`;
+  idoc.documentElement.style.height = "auto";
+  idoc.body.style.margin = "0";
+  idoc.body.style.padding = "0";
+  idoc.body.style.height = "auto";
 
   const win = iframe.contentWindow;
   if (!win) {
