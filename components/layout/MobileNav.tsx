@@ -29,7 +29,7 @@ export function MobileNav() {
   const ui = (
     <>
       <nav className="mobile-tab-bar min-[820px]:hidden" role="navigation" aria-label="Navegación principal">
-        <div className="flex h-[4.25rem] items-center justify-evenly px-2">
+        <div className="flex h-[3.25rem] items-center justify-evenly px-1.5">
           {items.map(({ href, label, icon: Icon }) => {
             const esMas = href === "/settings" && isAdmin(user?.role);
             const isActive = esMas
@@ -47,11 +47,11 @@ export function MobileNav() {
                   type="button"
                   onClick={() => setMas(true)}
                   className={cn(
-                    "flex min-h-11 min-w-0 flex-1 basis-0 flex-col items-center justify-center gap-1 rounded-xl py-2 text-[11px] font-semibold",
+                    "flex min-h-10 min-w-0 flex-1 basis-0 flex-col items-center justify-center gap-0.5 rounded-lg py-1 text-[10.5px] font-semibold leading-none",
                     isActive ? "bg-accent-soft text-accent" : "text-[var(--text-2)]"
                   )}
                 >
-                  <MoreHorizontal className="h-[17px] w-[17px] shrink-0" strokeWidth={1.9} />
+                  <MoreHorizontal className="h-4 w-4 shrink-0" strokeWidth={1.9} />
                   <span className="truncate px-0.5">Más</span>
                 </button>
               );
@@ -61,11 +61,11 @@ export function MobileNav() {
                 key={href}
                 href={href}
                 className={cn(
-                  "flex min-h-11 min-w-0 flex-1 basis-0 flex-col items-center justify-center gap-1 rounded-xl py-2 text-[11px] font-semibold",
+                  "flex min-h-10 min-w-0 flex-1 basis-0 flex-col items-center justify-center gap-0.5 rounded-lg py-1 text-[10.5px] font-semibold leading-none",
                   isActive ? "bg-accent-soft text-accent" : "text-[var(--text-2)]"
                 )}
               >
-                <Icon className="h-[17px] w-[17px] shrink-0" strokeWidth={1.9} aria-hidden />
+                <Icon className="h-4 w-4 shrink-0" strokeWidth={1.9} aria-hidden />
                 <span className="truncate px-0.5">{texto}</span>
               </Link>
             );

@@ -31,9 +31,9 @@
   --muted: #5d6b67;
   --ring: #0b7461;
   --radius: 12px;
-  --mobile-nav-h: calc(4.25rem + env(safe-area-inset-bottom, 0px));
-  --mobile-fab-bottom: calc(var(--mobile-nav-h) + 0.75rem);
-  --mobile-content-pb: calc(var(--mobile-nav-h) + 1rem);
+  --mobile-nav-h: calc(3.25rem + env(safe-area-inset-bottom, 0px));
+  --mobile-fab-bottom: calc(var(--mobile-nav-h) + 0.5rem);
+  --mobile-content-pb: calc(var(--mobile-nav-h) + 0.5rem);
 }
 
 * {
@@ -72,7 +72,7 @@ body {
   }
 }
 
-/* Barra inferior fija al viewport (portal en body); safe area como padding, no hueco suelto */
+/* Barra inferior fija al viewport (portal en body); el safe area solo tinta el fondo */
 .mobile-tab-bar {
   position: fixed;
   left: 0;
@@ -84,6 +84,7 @@ body {
   border-top: 1px solid var(--border);
   background-color: #ffffff;
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  -webkit-tap-highlight-color: transparent;
 }
 
 @layer base {
