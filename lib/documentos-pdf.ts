@@ -30,11 +30,16 @@ export function cssPaginasDocumento(opts?: { serif?: boolean }) {
     }
     @media print {
       @page { size: A4 portrait; margin: 0; }
-      html, body {
+      html {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff;
+      }
+      body {
         width: auto;
         height: auto !important;
         margin: 0 !important;
-        padding: 14mm 16mm !important;
+        padding: 8mm 10mm !important;
         overflow: visible !important;
         background: #fff;
       }
@@ -45,7 +50,7 @@ export function cssPaginasDocumento(opts?: { serif?: boolean }) {
         max-height: none !important;
         margin: 0 !important;
         border: 0 !important;
-        padding: 0 0 6mm !important;
+        padding: 0 !important;
         overflow: visible !important;
         break-after: auto;
         page-break-after: auto;
