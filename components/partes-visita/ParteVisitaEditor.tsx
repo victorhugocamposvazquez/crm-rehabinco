@@ -385,7 +385,12 @@ export function ParteVisitaEditor({
     }
   };
 
-  const imprimir = useImprimirDocumento(html, guardar);
+  const imprimir = useImprimirDocumento(html, guardar, {
+    alternativaMovil: async () => {
+      await downloadParteVisitaPdf(pdfDatos);
+      toast.success("PDF listo. Ábrelo y usa Compartir → Imprimir.");
+    },
+  });
 
   if (loading) {
     return (

@@ -1,18 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Printer, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-function esDispositivoMovil(): boolean {
-  if (typeof navigator === "undefined") return false;
-  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-}
+import { esDispositivoMovil } from "@/components/documentos/DialogoGuardarAlImprimir";
 
 export function PrintOverlay({ html, onClose }: { html: string; onClose: () => void }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [listo, setListo] = useState(false);
-  const movil = esDispositivoMovil();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
 
   useEffect(() => {
     setListo(false);
@@ -22,7 +30,7 @@ export function PrintOverlay({ html, onClose }: { html: string; onClose: () => v
     const marcarListo = () => setListo(true);
     iframe.addEventListener("load", marcarListo, { once: true });
     iframe.srcdoc = html;
-    const fallback = window.setTimeout(marcarListo, 400);
+    const fallback = window.setTimeout(marcarListo, 500);
 
     return () => window.clearTimeout(fallback);
   }, [html]);
@@ -35,29 +43,29 @@ export function PrintOverlay({ html, onClose }: { html: string; onClose: () => v
   }, []);
 
   useEffect(() => {
-    if (!listo || movil) return;
-    const timer = window.setTimeout(imprimir, 300);
+    if (!listo || esDispositivoMovil()) return;
+    const timer = window.setTimeout(imprimir, 400);
     return () => window.clearTimeout(timer);
-  }, [listo, movil, imprimir]);
+  }, [listo, imprimir]);
 
   useEffect(() => {
     if (!listo) return;
-    const win = iframeRef.current?.contentWindow;
-    if (!win) return;
     const cerrar = () => onClose();
-    win.addEventListener("afterprint", cerrar);
-    return () => win.removeEventListener("afterprint", cerrar);
+    const win = iframeRef.current?.contentWindow;
+    win?.addEventListener("afterprint", cerrar);
+    window.addEventListener("afterprint", cerrar);
+    return () => {
+      win?.removeEventListener("afterprint", cerrar);
+      window.removeEventListener("afterprint", cerrar);
+    };
   }, [listo, onClose]);
 
-  return (
-    <div className="fixed inset-0 z-[200] flex flex-col bg-white">
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <div>
-          <h2 className="text-[15px] font-semibold">Vista de impresión</h2>
-          {movil ? (
-            <p className="text-[12px] text-[var(--text-2)]">Pulsa Imprimir para abrir el diálogo del sistema.</p>
-          ) : null}
-        </div>
+  if (!mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex flex-col bg-white" role="dialog" aria-modal="true">
+      <div className="flex items-center justify-between border-b border-border px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <h2 className="text-[15px] font-semibold">Vista de impresión</h2>
         <Button type="button" variant="ghost" size="sm" onClick={onClose} aria-label="Cerrar">
           <X className="h-5 w-5" strokeWidth={1.75} />
         </Button>
@@ -72,6 +80,7 @@ export function PrintOverlay({ html, onClose }: { html: string; onClose: () => v
           Cerrar
         </Button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

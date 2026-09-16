@@ -1,9 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PrintOverlay } from "@/components/documentos/PrintOverlay";
+
+export function esDispositivoMovil(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+}
 
 export function DialogoGuardarAlImprimir({
   open,
@@ -26,7 +32,7 @@ export function DialogoGuardarAlImprimir({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/40 p-4"
       onClick={() => {
         if (!bloqueado) onOpenChange(false);
       }}
@@ -60,23 +66,35 @@ export function DialogoGuardarAlImprimir({
 export function useImprimirDocumento(
   html: string,
   guardar: (opts?: { quedarse?: boolean }) => Promise<boolean>,
-  opts?: { prepararHtml?: (html: string) => Promise<string> }
+  opts?: {
+    prepararHtml?: (html: string) => Promise<string>;
+    /** En móvil, imprimir vía PDF u otra vía fiable (Safari bloquea print() en iframe). */
+    alternativaMovil?: () => Promise<void>;
+  }
 ) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [htmlPreparado, setHtmlPreparado] = useState<string | null>(null);
   const [preparando, setPreparando] = useState(false);
   const [htmlImpresion, setHtmlImpresion] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const prepararHtmlRef = useRef(opts?.prepararHtml);
+  const alternativaMovilRef = useRef(opts?.alternativaMovil);
   const htmlListoRef = useRef<string | null>(null);
   const preparacionRef = useRef<Promise<string> | null>(null);
   prepararHtmlRef.current = opts?.prepararHtml;
+  alternativaMovilRef.current = opts?.alternativaMovil;
+
+  useEffect(() => {
+    setMounted(true);
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
 
   useEffect(() => {
     const preparar = prepararHtmlRef.current;
     htmlListoRef.current = null;
     if (!preparar) {
-      setHtmlPreparado(null);
       setPreparando(false);
       preparacionRef.current = null;
       return;
@@ -84,19 +102,15 @@ export function useImprimirDocumento(
 
     let cancelado = false;
     setPreparando(true);
-    setHtmlPreparado(null);
 
     const promesa = preparar(html)
       .then((preparado) => {
-        if (cancelado) return preparado;
-        htmlListoRef.current = preparado;
-        setHtmlPreparado(preparado);
+        if (!cancelado) htmlListoRef.current = preparado;
         return preparado;
       })
       .catch((err) => {
         if (!cancelado) {
           htmlListoRef.current = null;
-          setHtmlPreparado(null);
           toast.error("No se ha podido preparar el documento para imprimir.");
         }
         throw err;
@@ -125,6 +139,11 @@ export function useImprimirDocumento(
 
   const lanzarImpresion = async () => {
     try {
+      if (esDispositivoMovil() && alternativaMovilRef.current) {
+        await alternativaMovilRef.current();
+        return;
+      }
+
       const finalHtml = await resolverHtmlImpresion();
       if (!finalHtml.trim()) throw new Error("El documento está vacío.");
       setHtmlImpresion(finalHtml);
@@ -133,31 +152,33 @@ export function useImprimirDocumento(
     }
   };
 
+  const ui = (
+    <>
+      <DialogoGuardarAlImprimir
+        open={open}
+        loading={busy}
+        preparando={Boolean(prepararHtmlRef.current && preparando)}
+        onOpenChange={setOpen}
+        onNo={() => {
+          setOpen(false);
+          void lanzarImpresion();
+        }}
+        onSi={async () => {
+          setBusy(true);
+          const ok = await guardar({ quedarse: true });
+          setBusy(false);
+          if (!ok) return;
+          setOpen(false);
+          await lanzarImpresion();
+        }}
+      />
+      {htmlImpresion ? <PrintOverlay html={htmlImpresion} onClose={() => setHtmlImpresion(null)} /> : null}
+    </>
+  );
+
   return {
     preparando,
     pedirImprimir: () => setOpen(true),
-    dialogo: (
-      <>
-        <DialogoGuardarAlImprimir
-          open={open}
-          loading={busy}
-          preparando={Boolean(prepararHtmlRef.current && preparando)}
-          onOpenChange={setOpen}
-          onNo={() => {
-            setOpen(false);
-            void lanzarImpresion();
-          }}
-          onSi={async () => {
-            setBusy(true);
-            const ok = await guardar({ quedarse: true });
-            setBusy(false);
-            if (!ok) return;
-            setOpen(false);
-            await lanzarImpresion();
-          }}
-        />
-        {htmlImpresion ? <PrintOverlay html={htmlImpresion} onClose={() => setHtmlImpresion(null)} /> : null}
-      </>
-    ),
+    dialogo: mounted ? createPortal(ui, document.body) : null,
   };
 }
