@@ -430,7 +430,8 @@ export async function prepararContratoArrasExportHtml(html: string): Promise<str
     idoc.close();
     await esperarLayoutDocumento(idoc);
     repaginarContratoArrasEnDocumento(idoc, { fraccionar: true, quitarEdicion: true });
-    return idoc.documentElement.outerHTML;
+    await esperarLayoutDocumento(idoc);
+    return `<!DOCTYPE html>\n${idoc.documentElement.outerHTML}`;
   } finally {
     iframe.remove();
   }

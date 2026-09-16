@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { imprimirDocumentoHtml } from "@/lib/documentos-pdf";
@@ -57,34 +57,89 @@ export function useImprimirDocumento(
 ) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [htmlPreparado, setHtmlPreparado] = useState<string | null>(null);
+  const [preparando, setPreparando] = useState(false);
+  const prepararHtmlRef = useRef(opts?.prepararHtml);
+  prepararHtmlRef.current = opts?.prepararHtml;
 
-  const lanzarImpresion = async () => {
+  useEffect(() => {
+    const preparar = prepararHtmlRef.current;
+    if (!preparar) {
+      setHtmlPreparado(null);
+      setPreparando(false);
+      return;
+    }
+
+    let cancelado = false;
+    setPreparando(true);
+    setHtmlPreparado(null);
+
+    const timer = window.setTimeout(() => {
+      void preparar(html)
+        .then((preparado) => {
+          if (!cancelado) setHtmlPreparado(preparado);
+        })
+        .catch(() => {
+          if (!cancelado) setHtmlPreparado(null);
+        })
+        .finally(() => {
+          if (!cancelado) setPreparando(false);
+        });
+    }, 200);
+
+    return () => {
+      cancelado = true;
+      window.clearTimeout(timer);
+    };
+  }, [html]);
+
+  const lanzarImpresion = async (ventanaImpresion?: Window | null) => {
     try {
-      const finalHtml = opts?.prepararHtml ? await opts.prepararHtml(html) : html;
-      await imprimirDocumentoHtml(finalHtml);
+      let finalHtml = html;
+      const preparar = prepararHtmlRef.current;
+      if (preparar) {
+        finalHtml = htmlPreparado ?? (await preparar(html));
+      }
+      await imprimirDocumentoHtml(finalHtml, ventanaImpresion);
     } catch (err) {
+      ventanaImpresion?.close();
       toast.error(err instanceof Error ? err.message : "No se ha podido imprimir.");
     }
   };
 
+  const abrirVentanaImpresion = () =>
+    typeof window !== "undefined" ? window.open("", "_blank", "noopener,noreferrer") : null;
+
   return {
-    pedirImprimir: () => setOpen(true),
+    preparando,
+    pedirImprimir: () => {
+      if (prepararHtmlRef.current && preparando) {
+        toast.info("Preparando el documento para imprimir…");
+        return;
+      }
+      setOpen(true);
+    },
     dialogo: (
       <DialogoGuardarAlImprimir
         open={open}
         loading={busy}
         onOpenChange={setOpen}
         onNo={() => {
+          const ventana = abrirVentanaImpresion();
           setOpen(false);
-          void lanzarImpresion();
+          void lanzarImpresion(ventana);
         }}
         onSi={async () => {
+          const ventana = abrirVentanaImpresion();
           setBusy(true);
           const ok = await guardar({ quedarse: true });
           setBusy(false);
-          if (!ok) return;
+          if (!ok) {
+            ventana?.close();
+            return;
+          }
           setOpen(false);
-          await lanzarImpresion();
+          await lanzarImpresion(ventana);
         }}
       />
     ),

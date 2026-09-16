@@ -115,6 +115,27 @@ function waitForImages(doc: Document): Promise<void> {
   ).then(() => undefined);
 }
 
+function waitForLayout(doc: Document): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const fonts = doc.fonts?.ready;
+        if (fonts) {
+          void fonts.then(() => resolve()).catch(() => resolve());
+          return;
+        }
+        resolve();
+      });
+    });
+  });
+}
+
+function normalizarHtmlImpresion(html: string): string {
+  const trimmed = html.trimStart();
+  if (trimmed.startsWith("<!DOCTYPE") || trimmed.startsWith("<html")) return html;
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8" /></head><body>${html}</body></html>`;
+}
+
 /** Captura un documento continuo y lo trocea en hojas A4 según la altura real del contenido. */
 export async function downloadFlowingHtmlPdf(params: {
   html: string;
@@ -311,8 +332,47 @@ export async function downloadPagedHtmlPdf(params: {
   }
 }
 
+async function imprimirEnDocumento(doc: Document, ventana?: Window | null): Promise<void> {
+  doc.title = " ";
+  const titulo = doc.querySelector("title");
+  if (titulo) titulo.textContent = " ";
+  doc.documentElement.style.height = "auto";
+  doc.body.style.margin = "0";
+  doc.body.style.height = "auto";
+
+  const win = ventana ?? doc.defaultView;
+  if (!win) throw new Error("No se pudo abrir la impresión.");
+
+  await new Promise<void>((resolve, reject) => {
+    const cerrar = () => {
+      win.removeEventListener("afterprint", cerrar);
+      resolve();
+    };
+    win.addEventListener("afterprint", cerrar);
+    window.setTimeout(cerrar, 120000);
+    try {
+      win.focus();
+      win.print();
+    } catch (err) {
+      reject(err instanceof Error ? err : new Error("No se pudo abrir la impresión."));
+    }
+  });
+}
+
 /** Abre el diálogo de impresión del navegador con el HTML paginado. */
-export async function imprimirDocumentoHtml(html: string): Promise<void> {
+export async function imprimirDocumentoHtml(html: string, ventanaImpresion?: Window | null): Promise<void> {
+  const docHtml = normalizarHtmlImpresion(html);
+
+  if (ventanaImpresion && !ventanaImpresion.closed) {
+    ventanaImpresion.document.open();
+    ventanaImpresion.document.write(docHtml);
+    ventanaImpresion.document.close();
+    await waitForImages(ventanaImpresion.document);
+    await waitForLayout(ventanaImpresion.document);
+    await imprimirEnDocumento(ventanaImpresion.document, ventanaImpresion);
+    return;
+  }
+
   const iframe = document.createElement("iframe");
   iframe.setAttribute("title", "Imprimir");
   Object.assign(iframe.style, {
@@ -322,48 +382,30 @@ export async function imprimirDocumentoHtml(html: string): Promise<void> {
     width: "210mm",
     height: "297mm",
     border: "0",
-    opacity: "1",
-    pointerEvents: "none",
-    zIndex: "-1",
+    visibility: "hidden",
     background: "#fff",
   });
   document.body.appendChild(iframe);
+
   const idoc = iframe.contentDocument;
   if (!idoc) {
     iframe.remove();
     throw new Error("No se pudo abrir la impresión.");
   }
+
   idoc.open();
-  idoc.write(html);
+  idoc.write(docHtml);
   idoc.close();
 
-  await waitForImages(idoc);
-  await new Promise((r) => setTimeout(r, 150));
-
-  const altoContenido = Math.max(idoc.body.scrollHeight, idoc.documentElement.scrollHeight, 1);
-  iframe.style.height = `${altoContenido}px`;
-  iframe.style.width = "210mm";
-  idoc.title = " ";
-  const titulo = idoc.querySelector("title");
-  if (titulo) titulo.textContent = " ";
-  idoc.documentElement.style.height = "auto";
-  idoc.body.style.margin = "0";
-  idoc.body.style.height = "auto";
-
-  const win = iframe.contentWindow;
-  if (!win) {
+  try {
+    await waitForImages(idoc);
+    await waitForLayout(idoc);
+    iframe.style.height = `${Math.max(idoc.body.scrollHeight, idoc.documentElement.scrollHeight, 1)}px`;
+    iframe.style.width = "210mm";
+    await imprimirEnDocumento(idoc, idoc.defaultView ?? undefined);
+  } finally {
     iframe.remove();
-    throw new Error("No se pudo abrir la impresión.");
   }
-
-  const cerrar = () => {
-    win.removeEventListener("afterprint", cerrar);
-    iframe.remove();
-  };
-  win.addEventListener("afterprint", cerrar);
-  window.setTimeout(cerrar, 120000);
-  win.focus();
-  win.print();
 }
 
 export function slugArchivo(texto: string, fallback: string) {
