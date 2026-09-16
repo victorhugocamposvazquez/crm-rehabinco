@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -26,7 +26,7 @@ import {
   type PersonaArras,
   type TratamientoPersona,
 } from "@/lib/contrato-arras";
-import { clausulasPersonalizadasDesdeEdicion } from "@/lib/contrato-arras-preview";
+import { clausulasPersonalizadasDesdeEdicion, prepararContratoArrasExportHtml } from "@/lib/contrato-arras-preview";
 import {
   downloadContratoArrasPdf,
   htmlContratoArras,
@@ -289,7 +289,11 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
     }
   };
 
-  const imprimir = useImprimirDocumento(htmlExport, guardar);
+  const prepararImpresion = useCallback(
+    (html: string) => prepararContratoArrasExportHtml(html),
+    []
+  );
+  const imprimir = useImprimirDocumento(htmlExport, guardar, { prepararHtml: prepararImpresion });
 
   if (loading) {
     return (

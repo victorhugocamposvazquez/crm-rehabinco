@@ -200,10 +200,12 @@ export function contratoArrasPdfFilename(datos: ContratoArrasDatos): string {
 }
 
 export async function downloadContratoArrasPdf(datos: ContratoArrasDatos) {
-  const { downloadFlowingHtmlPdf } = await import("./documentos-pdf");
-  await downloadFlowingHtmlPdf({
-    html: htmlContratoArrasExport(datos),
+  const { prepararContratoArrasExportHtml } = await import("./contrato-arras-preview");
+  const { downloadPagedHtmlPdf } = await import("./documentos-pdf");
+  const html = await prepararContratoArrasExportHtml(htmlContratoArrasExport(datos));
+  await downloadPagedHtmlPdf({
+    html,
     filename: contratoArrasPdfFilename(datos),
-    selector: ".pdf-flow",
+    ajustarAltura: true,
   });
 }

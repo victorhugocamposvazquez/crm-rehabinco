@@ -54,7 +54,7 @@ export function PdfFrameEditable({
           onClausulasChange(clausulas);
           void (async () => {
             await esperarLayoutDocumento(doc);
-            repaginarContratoArrasEnDocumento(doc);
+            repaginarContratoArrasEnDocumento(doc, { fraccionar: true });
             medirAlto();
           })();
         });
@@ -94,7 +94,7 @@ export function PdfFrameEditable({
     if (!doc) return;
     void (async () => {
       await esperarLayoutDocumento(doc);
-      repaginarContratoArrasEnDocumento(doc);
+      repaginarContratoArrasEnDocumento(doc, { fraccionar: true });
       enlazarEdicion(doc);
       medirAlto();
     })();

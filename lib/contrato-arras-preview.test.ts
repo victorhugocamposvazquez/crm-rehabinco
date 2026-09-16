@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { ALTURA_UTIL_PAGINA_ARRAS, empaquetarBloquesEnPaginas, type BloqueMedido } from "./contrato-arras-preview";
+import {
+  ALTURA_UTIL_PAGINA_ARRAS,
+  empaquetarBloquesEnPaginas,
+  partirSegmentosPorCaracteres,
+  partirSegmentosPorPalabras,
+  type BloqueMedido,
+} from "./contrato-arras-preview";
 
 function bloque(alto: number, opts?: Partial<BloqueMedido>): BloqueMedido {
   return {
@@ -36,5 +42,34 @@ describe("contrato arras preview", () => {
     const pages = empaquetarBloquesEnPaginas(medidas);
     assert.equal(pages.length, 2);
     assert.equal(pages[1]?.length, 1);
+  });
+
+  it("empaqueta bloques más altos que una hoja en página propia", () => {
+    const gigante = bloque(ALTURA_UTIL_PAGINA_ARRAS + 200);
+    const pages = empaquetarBloquesEnPaginas([bloque(100), gigante, bloque(80)]);
+    assert.equal(pages.length, 3);
+    assert.deepEqual(pages[1], [gigante]);
+  });
+
+  it("parte por palabras respetando cabida", () => {
+    const limite = 12;
+    const partes = partirSegmentosPorPalabras("uno dos tres cuatro cinco seis", (s) => s.length <= limite);
+    assert.ok(partes.every((p) => p.length <= limite));
+    assert.equal(partes.join(" "), "uno dos tres cuatro cinco seis");
+  });
+
+  it("parte palabras imposibles carácter a carácter", () => {
+    const limite = 5;
+    const token = "ABCDEFGHIJ";
+    const partes = partirSegmentosPorPalabras(token, (s) => s.length <= limite);
+    assert.ok(partes.length >= 2);
+    assert.ok(partes.every((p) => p.length <= limite));
+    assert.equal(partes.join(""), token);
+  });
+
+  it("partirSegmentosPorCaracteres nunca devuelve vacío", () => {
+    const partes = partirSegmentosPorCaracteres("X", () => false);
+    assert.equal(partes.length, 1);
+    assert.equal(partes[0], "X");
   });
 });
