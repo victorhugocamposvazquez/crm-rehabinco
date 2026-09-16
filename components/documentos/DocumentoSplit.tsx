@@ -34,9 +34,9 @@ export function PdfFrame({
   onPrint?: () => void;
 }) {
   const caja = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [scale, setScale] = useState(0.52);
-  const gap = pages > 1 ? 12 * (pages - 1) : 0;
-  const alto = DOCUMENTO_PAGE_H * pages + gap;
+  const [alto, setAlto] = useState(DOCUMENTO_PAGE_H * pages);
 
   useEffect(() => {
     const el = caja.current;
@@ -47,6 +47,20 @@ export function PdfFrame({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    const medir = () => {
+      const doc = iframe.contentDocument;
+      if (!doc?.body) return;
+      const h = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight);
+      if (h > 0) setAlto(h);
+    };
+    iframe.addEventListener("load", medir);
+    medir();
+    return () => iframe.removeEventListener("load", medir);
+  }, [html, pages]);
 
   return (
     <section className="overflow-hidden rounded-[14px] border border-border bg-white">
@@ -71,6 +85,7 @@ export function PdfFrame({
       <div ref={caja} className="overflow-auto bg-[#d9d6cf] p-3 min-[820px]:max-h-[calc(100dvh-9.5rem)]">
         <div style={{ height: alto * scale, width: "100%" }}>
           <iframe
+            ref={iframeRef}
             title="Previsualización del PDF"
             srcDoc={html}
             style={{

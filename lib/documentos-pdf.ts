@@ -20,7 +20,7 @@ export function cssPaginasDocumento(opts?: { serif?: boolean }) {
     strong, b { font-weight: 700; }
     .pdf-page {
       width: ${PAGE_W_PX}px;
-      height: ${PAGE_H_PX}px;
+      height: auto;
       overflow: hidden;
       position: relative;
       background: #fff;
@@ -139,6 +139,11 @@ export async function downloadPagedHtmlPdf(params: {
     ]);
     const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
     iframe.style.height = `${PAGE_H_PX}px`;
+    for (const page of pages) {
+      page.style.height = `${PAGE_H_PX}px`;
+      page.style.maxHeight = `${PAGE_H_PX}px`;
+      page.style.overflow = "hidden";
+    }
 
     for (let i = 0; i < pages.length; i++) {
       for (let j = 0; j < pages.length; j++) {
