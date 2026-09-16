@@ -20,7 +20,9 @@ export async function explorerStoreDesdeSesion() {
   return {
     user,
     role,
-    store: createSupabaseExplorerStore(supabase as unknown as ExplorerDbClient),
+    store: createSupabaseExplorerStore(supabase as unknown as ExplorerDbClient, {
+      verEquipo: puedeRastrearCatastro(role),
+    }),
     archive: createSupabaseZoneArchive(supabase as never),
     properties: createCrmPropertyIntegration(supabase as unknown as PropertyIntegrationClient),
     supabase,

@@ -100,8 +100,8 @@ describe("roles", () => {
     assert.deepEqual([...navHrefsForRole("admin", "mobile")], [
       "/",
       "/propiedades",
+      "/catastro",
       "/calendario",
-      "/tareas",
       "/settings",
     ]);
   });

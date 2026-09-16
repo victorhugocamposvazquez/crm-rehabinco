@@ -21,7 +21,7 @@ async function comercialesAsignables(
   const { data, error } = await supabase
     .from("profiles")
     .select("id, nombre_completo, email, role, activo")
-    .in("role", ["comercial", "agente", "admin"])
+    .in("role", ["comercial", "agente", "admin", "superadmin"])
     .order("nombre_completo");
   if (error) return [];
   return (data ?? [])

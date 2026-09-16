@@ -293,4 +293,46 @@ describe("SupabaseExplorerStore", () => {
     assert.equal((await store.getReview(userA, FINCA.fincaReference))?.status, "REVIEW");
     assert.equal((await store.listSearches(userB, { limit: 10, offset: 0 })).items[0]?.id, searchB);
   });
+
+  it("con verEquipo la dirección ve búsquedas de todo el equipo", async () => {
+    const { client } = clienteFalso();
+    const propio = createSupabaseExplorerStore(client);
+    const direccion = createSupabaseExplorerStore(client, { verEquipo: true });
+    const userA = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+    const userB = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+    const searchA = "11111111-1111-1111-1111-111111111111";
+    const searchB = "22222222-2222-2222-2222-222222222222";
+    const criterios = {
+      mode: "POSTAL_CODE" as const,
+      provincia: "VALENCIA",
+      municipio: "GODELLETA",
+      postalCode: "46388",
+      horizontalDivision: "ALL" as const,
+    };
+
+    await propio.putSearch({
+      id: searchA,
+      ownerId: userA,
+      criteria: criterios,
+      status: "COMPLETED",
+      coverage: { complete: true, completeCandidates: true, possibleCut: false, streetsFound: 1 },
+      totals: { fincas: 1, candidates: 1, yes: 0, unknown: 1, notApplicable: 0 },
+      createdAt: "2026-09-12T10:00:00.000Z",
+      updatedAt: "2026-09-12T10:00:00.000Z",
+    });
+    await propio.putSearch({
+      id: searchB,
+      ownerId: userB,
+      criteria: criterios,
+      status: "COMPLETED",
+      coverage: { complete: true, completeCandidates: true, possibleCut: false, streetsFound: 1 },
+      totals: { fincas: 2, candidates: 2, yes: 1, unknown: 1, notApplicable: 0 },
+      createdAt: "2026-09-12T11:00:00.000Z",
+      updatedAt: "2026-09-12T11:00:00.000Z",
+    });
+
+    assert.equal((await propio.listSearches(userA, { limit: 10, offset: 0 })).items.length, 1);
+    assert.equal((await direccion.listSearches(userA, { limit: 10, offset: 0 })).items.length, 2);
+    assert.equal((await direccion.getSearch(searchB, userA))?.id, searchB);
+  });
 });

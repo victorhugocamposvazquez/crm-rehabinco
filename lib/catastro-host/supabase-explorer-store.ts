@@ -276,7 +276,16 @@ export function revisionDesdeFila(row: ReviewRow): CatastroExplorerReview {
   };
 }
 
-export function createSupabaseExplorerStore(client: ExplorerDbClient): ExplorerStore {
+export type SupabaseExplorerStoreOptions = {
+  /** Dirección: ve búsquedas y resultados de todo el equipo, no solo los propios. */
+  verEquipo?: boolean;
+};
+
+export function createSupabaseExplorerStore(
+  client: ExplorerDbClient,
+  options: SupabaseExplorerStoreOptions = {}
+): ExplorerStore {
+  const verEquipo = options.verEquipo === true;
   const tabla = <T>(nombre: string) => client.from(nombre) as unknown as ExplorerDbQuery<T>;
 
   return {
@@ -305,13 +314,9 @@ export function createSupabaseExplorerStore(client: ExplorerDbClient): ExplorerS
       if (resultado.error) fallo(resultado.error);
     },
     async getSearch(searchId, ownerId) {
-      const row = await ejecutar(
-        tabla<SearchRow>("catastro_explorer_searches")
-          .select("*")
-          .eq("id", searchId)
-          .eq("user_id", ownerId)
-          .maybeSingle()
-      );
+      let consulta = tabla<SearchRow>("catastro_explorer_searches").select("*").eq("id", searchId);
+      if (!verEquipo) consulta = consulta.eq("user_id", ownerId);
+      const row = await ejecutar(consulta.maybeSingle());
       return row ? busquedaDesdeFila(row) : null;
     },
     async putSearch(search) {
@@ -326,9 +331,8 @@ export function createSupabaseExplorerStore(client: ExplorerDbClient): ExplorerS
       return pagina.items;
     },
     async listSearches(ownerId, query) {
-      let consulta = tabla<SearchRow>("catastro_explorer_searches")
-        .select("*", { count: "exact" })
-        .eq("user_id", ownerId);
+      let consulta = tabla<SearchRow>("catastro_explorer_searches").select("*", { count: "exact" });
+      if (!verEquipo) consulta = consulta.eq("user_id", ownerId);
       if (query.mode) consulta = consulta.eq("mode", query.mode);
       if (query.status) consulta = consulta.eq("status", query.status);
       const to = query.offset + Math.max(0, query.limit) - 1;
