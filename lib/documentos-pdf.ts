@@ -29,12 +29,12 @@ export function cssPaginasDocumento(opts?: { serif?: boolean }) {
       border-top: 12px solid #d9d6cf;
     }
     @media print {
-      @page { size: A4 portrait; margin: 12mm 16mm; }
+      @page { size: A4 portrait; margin: 0; }
       html, body {
         width: auto;
         height: auto !important;
         margin: 0 !important;
-        padding: 0 !important;
+        padding: 14mm 16mm !important;
         overflow: visible !important;
         background: #fff;
       }
@@ -69,10 +69,10 @@ export function envolverDocumentoHtml(params: {
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <title>${params.title.replace(/</g, "")}</title>
+  <title> </title>
   <style>${cssPaginasDocumento({ serif: params.serif })}</style>
 </head>
-<body>${params.body}</body>
+<body><!-- ${params.title.replace(/</g, "")} -->${params.body}</body>
 </html>`;
 }
 
@@ -208,9 +208,11 @@ export async function imprimirDocumentoHtml(html: string): Promise<void> {
   const altoContenido = Math.max(idoc.body.scrollHeight, idoc.documentElement.scrollHeight, 1);
   iframe.style.height = `${altoContenido}px`;
   iframe.style.width = "210mm";
+  idoc.title = " ";
+  const titulo = idoc.querySelector("title");
+  if (titulo) titulo.textContent = " ";
   idoc.documentElement.style.height = "auto";
   idoc.body.style.margin = "0";
-  idoc.body.style.padding = "0";
   idoc.body.style.height = "auto";
 
   const win = iframe.contentWindow;
