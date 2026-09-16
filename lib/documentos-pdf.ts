@@ -332,46 +332,31 @@ export async function downloadPagedHtmlPdf(params: {
   }
 }
 
-async function imprimirEnDocumento(doc: Document, ventana?: Window | null): Promise<void> {
-  doc.title = " ";
-  const titulo = doc.querySelector("title");
-  if (titulo) titulo.textContent = " ";
-  doc.documentElement.style.height = "auto";
-  doc.body.style.margin = "0";
-  doc.body.style.height = "auto";
-
-  const win = ventana ?? doc.defaultView;
-  if (!win) throw new Error("No se pudo abrir la impresión.");
-
-  await new Promise<void>((resolve, reject) => {
-    const cerrar = () => {
-      win.removeEventListener("afterprint", cerrar);
-      resolve();
-    };
-    win.addEventListener("afterprint", cerrar);
-    window.setTimeout(cerrar, 120000);
-    try {
-      win.focus();
-      win.print();
-    } catch (err) {
-      reject(err instanceof Error ? err : new Error("No se pudo abrir la impresión."));
-    }
+function esperarIframe(iframe: HTMLIFrameElement): Promise<Document> {
+  return new Promise((resolve, reject) => {
+    iframe.addEventListener(
+      "load",
+      () => {
+        const doc = iframe.contentDocument;
+        if (!doc?.body) {
+          reject(new Error("No se pudo abrir la impresión."));
+          return;
+        }
+        resolve(doc);
+      },
+      { once: true }
+    );
+    iframe.addEventListener(
+      "error",
+      () => reject(new Error("No se pudo abrir la impresión.")),
+      { once: true }
+    );
   });
 }
 
 /** Abre el diálogo de impresión del navegador con el HTML paginado. */
-export async function imprimirDocumentoHtml(html: string, ventanaImpresion?: Window | null): Promise<void> {
+export async function imprimirDocumentoHtml(html: string): Promise<void> {
   const docHtml = normalizarHtmlImpresion(html);
-
-  if (ventanaImpresion && !ventanaImpresion.closed) {
-    ventanaImpresion.document.open();
-    ventanaImpresion.document.write(docHtml);
-    ventanaImpresion.document.close();
-    await waitForImages(ventanaImpresion.document);
-    await waitForLayout(ventanaImpresion.document);
-    await imprimirEnDocumento(ventanaImpresion.document, ventanaImpresion);
-    return;
-  }
 
   const iframe = document.createElement("iframe");
   iframe.setAttribute("title", "Imprimir");
@@ -379,30 +364,49 @@ export async function imprimirDocumentoHtml(html: string, ventanaImpresion?: Win
     position: "fixed",
     left: "0",
     top: "0",
-    width: "210mm",
-    height: "297mm",
+    width: `${PAGE_W_PX}px`,
+    height: `${PAGE_H_PX}px`,
     border: "0",
-    visibility: "hidden",
+    opacity: "0",
+    pointerEvents: "none",
     background: "#fff",
   });
   document.body.appendChild(iframe);
 
-  const idoc = iframe.contentDocument;
-  if (!idoc) {
-    iframe.remove();
-    throw new Error("No se pudo abrir la impresión.");
-  }
-
-  idoc.open();
-  idoc.write(docHtml);
-  idoc.close();
-
   try {
+    iframe.srcdoc = docHtml;
+    const idoc = await esperarIframe(iframe);
+
     await waitForImages(idoc);
     await waitForLayout(idoc);
-    iframe.style.height = `${Math.max(idoc.body.scrollHeight, idoc.documentElement.scrollHeight, 1)}px`;
-    iframe.style.width = "210mm";
-    await imprimirEnDocumento(idoc, idoc.defaultView ?? undefined);
+
+    const altoContenido = Math.max(idoc.body.scrollHeight, idoc.documentElement.scrollHeight, 1);
+    iframe.style.height = `${altoContenido}px`;
+
+    idoc.title = " ";
+    const titulo = idoc.querySelector("title");
+    if (titulo) titulo.textContent = " ";
+    idoc.documentElement.style.height = "auto";
+    idoc.body.style.margin = "0";
+    idoc.body.style.height = "auto";
+
+    const win = iframe.contentWindow;
+    if (!win) throw new Error("No se pudo abrir la impresión.");
+
+    await new Promise<void>((resolve, reject) => {
+      const cerrar = () => {
+        win.removeEventListener("afterprint", cerrar);
+        resolve();
+      };
+      win.addEventListener("afterprint", cerrar);
+      window.setTimeout(cerrar, 120000);
+      try {
+        win.focus();
+        win.print();
+      } catch (err) {
+        reject(err instanceof Error ? err : new Error("No se pudo abrir la impresión."));
+      }
+    });
   } finally {
     iframe.remove();
   }

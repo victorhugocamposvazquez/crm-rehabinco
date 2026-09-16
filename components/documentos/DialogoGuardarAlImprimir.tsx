@@ -9,22 +9,26 @@ export function DialogoGuardarAlImprimir({
   open,
   onOpenChange,
   loading,
+  preparando,
   onSi,
   onNo,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   loading?: boolean;
+  preparando?: boolean;
   onSi: () => void | Promise<void>;
   onNo: () => void | Promise<void>;
 }) {
   if (!open) return null;
 
+  const bloqueado = loading || preparando;
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       onClick={() => {
-        if (!loading) onOpenChange(false);
+        if (!bloqueado) onOpenChange(false);
       }}
     >
       <div
@@ -37,11 +41,14 @@ export function DialogoGuardarAlImprimir({
         <p className="font-medium text-foreground" id="dialogo-imprimir-titulo">
           ¿Quieres guardar también el documento en el histórico?
         </p>
+        {preparando ? (
+          <p className="mt-2 text-[13px] text-[var(--text-2)]">Preparando el documento para imprimir…</p>
+        ) : null}
         <div className="mt-6 flex justify-end gap-2">
-          <Button type="button" variant="secondary" disabled={loading} onClick={() => void onNo()}>
+          <Button type="button" variant="secondary" disabled={bloqueado} onClick={() => void onNo()}>
             No
           </Button>
-          <Button type="button" disabled={loading} onClick={() => void onSi()}>
+          <Button type="button" disabled={bloqueado} onClick={() => void onSi()}>
             {loading ? "Guardando…" : "Sí"}
           </Button>
         </div>
@@ -60,7 +67,9 @@ export function useImprimirDocumento(
   const [htmlPreparado, setHtmlPreparado] = useState<string | null>(null);
   const [preparando, setPreparando] = useState(false);
   const prepararHtmlRef = useRef(opts?.prepararHtml);
+  const htmlPreparadoRef = useRef<string | null>(null);
   prepararHtmlRef.current = opts?.prepararHtml;
+  htmlPreparadoRef.current = htmlPreparado;
 
   useEffect(() => {
     const preparar = prepararHtmlRef.current;
@@ -93,53 +102,43 @@ export function useImprimirDocumento(
     };
   }, [html]);
 
-  const lanzarImpresion = async (ventanaImpresion?: Window | null) => {
+  const resolverHtmlImpresion = async (): Promise<string> => {
+    const preparar = prepararHtmlRef.current;
+    if (!preparar) return html;
+    if (htmlPreparadoRef.current) return htmlPreparadoRef.current;
+    return preparar(html);
+  };
+
+  const lanzarImpresion = async () => {
     try {
-      let finalHtml = html;
-      const preparar = prepararHtmlRef.current;
-      if (preparar) {
-        finalHtml = htmlPreparado ?? (await preparar(html));
-      }
-      await imprimirDocumentoHtml(finalHtml, ventanaImpresion);
+      const finalHtml = await resolverHtmlImpresion();
+      if (!finalHtml.trim()) throw new Error("El documento está vacío.");
+      await imprimirDocumentoHtml(finalHtml);
     } catch (err) {
-      ventanaImpresion?.close();
       toast.error(err instanceof Error ? err.message : "No se ha podido imprimir.");
     }
   };
 
-  const abrirVentanaImpresion = () =>
-    typeof window !== "undefined" ? window.open("", "_blank", "noopener,noreferrer") : null;
-
   return {
     preparando,
-    pedirImprimir: () => {
-      if (prepararHtmlRef.current && preparando) {
-        toast.info("Preparando el documento para imprimir…");
-        return;
-      }
-      setOpen(true);
-    },
+    pedirImprimir: () => setOpen(true),
     dialogo: (
       <DialogoGuardarAlImprimir
         open={open}
         loading={busy}
+        preparando={Boolean(prepararHtmlRef.current && preparando)}
         onOpenChange={setOpen}
         onNo={() => {
-          const ventana = abrirVentanaImpresion();
           setOpen(false);
-          void lanzarImpresion(ventana);
+          void lanzarImpresion();
         }}
         onSi={async () => {
-          const ventana = abrirVentanaImpresion();
           setBusy(true);
           const ok = await guardar({ quedarse: true });
           setBusy(false);
-          if (!ok) {
-            ventana?.close();
-            return;
-          }
+          if (!ok) return;
           setOpen(false);
-          await lanzarImpresion(ventana);
+          await lanzarImpresion();
         }}
       />
     ),
