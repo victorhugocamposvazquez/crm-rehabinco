@@ -48,7 +48,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <FiltroComercialProvider>
       <FichaPeekProvider>
-      <div className="flex min-h-screen bg-[var(--background)]">
+      <div className="flex min-h-dvh bg-[var(--background)]">
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-foreground focus:px-4 focus:py-2 focus:text-background focus:outline-none focus:ring-2 focus:ring-ring"
@@ -69,8 +69,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             {children}
           </main>
-          {!wizard && <MobileNav />}
         </div>
+        {!wizard && <MobileNav />}
       </div>
       <AlertasPwaHost />
       </FichaPeekProvider>

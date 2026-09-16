@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
@@ -15,23 +16,28 @@ export function MobileNav() {
   const pathname = usePathname();
   const { user } = useAuth();
   const [mas, setMas] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const items = itemsDesdeHrefs(navHrefsForRole(user?.role, "mobile"));
   const resto = itemsDesdeHrefs(navHrefsForRole(user?.role, "desktop")).filter(
     (item) => !items.some((visible) => visible.href === item.href) || item.href === "/settings"
   );
 
-  return (
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const ui = (
     <>
-      <nav
-        className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-white min-[820px]:hidden"
-        role="navigation"
-        aria-label="Navegación principal"
-      >
+      <nav className="mobile-tab-bar min-[820px]:hidden" role="navigation" aria-label="Navegación principal">
         <div className="flex h-[4.25rem] items-center justify-evenly px-2">
           {items.map(({ href, label, icon: Icon }) => {
             const esMas = href === "/settings" && isAdmin(user?.role);
             const isActive = esMas
-              ? mas || (!navHrefsForRole(user?.role, "mobile").some((item) => item !== "/settings" && navItemActivo(pathname, item)) && navItemActivo(pathname, href))
+              ? mas ||
+                (!navHrefsForRole(user?.role, "mobile").some(
+                  (item) => item !== "/settings" && navItemActivo(pathname, item)
+                ) &&
+                  navItemActivo(pathname, href))
               : navItemActivo(pathname, href);
             const texto = NAV_MOBILE_LABEL[href] ?? label;
             if (esMas) {
@@ -65,10 +71,12 @@ export function MobileNav() {
             );
           })}
         </div>
-        <div className="h-[env(safe-area-inset-bottom,0px)] bg-white" aria-hidden />
       </nav>
       <Sheet open={mas} onOpenChange={setMas} variant="side" side="left" showCloseButton>
-        <nav className="h-full overflow-y-auto overscroll-contain px-4 pb-8 pt-[max(3.5rem,calc(env(safe-area-inset-top)+2.75rem))]" aria-label="Más destinos">
+        <nav
+          className="h-full overflow-y-auto overscroll-contain px-4 pb-8 pt-[max(3.5rem,calc(env(safe-area-inset-top)+2.75rem))]"
+          aria-label="Más destinos"
+        >
           {user ? (
             <Link
               href="/settings"
@@ -91,7 +99,9 @@ export function MobileNav() {
                   onClick={() => setMas(false)}
                   className={cn(
                     "flex min-h-11 items-center gap-3 rounded-[9px] px-3 py-3 text-[15px] font-medium",
-                    navItemActivo(pathname, href) ? "bg-accent-soft text-accent" : "text-foreground hover:bg-[var(--surface-soft)]"
+                    navItemActivo(pathname, href)
+                      ? "bg-accent-soft text-accent"
+                      : "text-foreground hover:bg-[var(--surface-soft)]"
                   )}
                 >
                   <Icon size={17} strokeWidth={1.9} />
@@ -104,4 +114,7 @@ export function MobileNav() {
       </Sheet>
     </>
   );
+
+  if (!mounted) return null;
+  return createPortal(ui, document.body);
 }
