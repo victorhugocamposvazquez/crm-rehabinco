@@ -205,10 +205,11 @@ export async function downloadFlowingHtmlPdf(params: {
   }
 }
 
-/** Captura cada `.pdf-page` a A4. */
+/** Captura cada `.pdf-page` a A4. Con `ajustarAltura`, la hoja PDF se ajusta al contenido real. */
 export async function downloadPagedHtmlPdf(params: {
   html: string;
   filename: string;
+  ajustarAltura?: boolean;
 }): Promise<void> {
   const iframe = document.createElement("iframe");
   iframe.setAttribute("title", "PDF");
@@ -250,35 +251,58 @@ export async function downloadPagedHtmlPdf(params: {
       import("jspdf"),
     ]);
     const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-    iframe.style.height = `${PAGE_H_PX}px`;
-    for (const page of pages) {
-      page.style.height = `${PAGE_H_PX}px`;
-      page.style.maxHeight = `${PAGE_H_PX}px`;
-      page.style.overflow = "hidden";
-    }
+    const scale = 2;
+    const ajustar = params.ajustarAltura === true;
+    let pdfPage = 0;
 
     for (let i = 0; i < pages.length; i++) {
       for (let j = 0; j < pages.length; j++) {
         pages[j].style.display = j === i ? "block" : "none";
       }
       const page = pages[i];
+      page.style.height = "auto";
+      page.style.maxHeight = "none";
+      page.style.overflow = "visible";
+
       await new Promise((r) => requestAnimationFrame(() => r(undefined)));
-      const canvas = await html2canvas(page, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: "#ffffff",
-        width: PAGE_W_PX,
-        height: PAGE_H_PX,
-        windowWidth: PAGE_W_PX,
-        windowHeight: PAGE_H_PX,
-        scrollX: 0,
-        scrollY: 0,
-        imageTimeout: 15000,
-      });
-      const img = canvas.toDataURL("image/jpeg", 0.95);
-      if (i > 0) pdf.addPage("a4", "portrait");
-      pdf.addImage(img, "JPEG", 0, 0, 210, 297, undefined, "FAST");
+      const altoTotal = Math.max(page.scrollHeight, 1);
+      iframe.style.height = `${altoTotal + 40}px`;
+
+      const trozos = ajustar
+        ? (() => {
+            const out: number[] = [];
+            let y = 0;
+            while (y < altoTotal) {
+              out.push(Math.min(PAGE_H_PX, altoTotal - y));
+              y += PAGE_H_PX;
+            }
+            return out;
+          })()
+        : [PAGE_H_PX];
+
+      for (let t = 0; t < trozos.length; t++) {
+        const trozoH = trozos[t];
+        const offsetY = ajustar ? trozos.slice(0, t).reduce((a, b) => a + b, 0) : 0;
+        const canvas = await html2canvas(page, {
+          scale,
+          useCORS: true,
+          logging: false,
+          backgroundColor: "#ffffff",
+          width: PAGE_W_PX,
+          height: trozoH,
+          y: offsetY,
+          windowWidth: PAGE_W_PX,
+          windowHeight: altoTotal,
+          scrollX: 0,
+          scrollY: -offsetY,
+          imageTimeout: 15000,
+        });
+        const img = canvas.toDataURL("image/jpeg", 0.95);
+        const imgHmm = ajustar ? (trozoH / PAGE_H_PX) * 297 : 297;
+        if (pdfPage > 0) pdf.addPage("a4", "portrait");
+        pdf.addImage(img, "JPEG", 0, 0, 210, imgHmm, undefined, "FAST");
+        pdfPage += 1;
+      }
     }
 
     pdf.save(params.filename);

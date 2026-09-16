@@ -65,7 +65,7 @@ export function empaquetarBloquesEnPaginas(
 
     if (item.evitarCorte && actual.length > 0 && !cabeEnPagina(item.alto)) {
       cerrarPagina();
-    } else if (actual.length > 0 && !cabeEnPagina(item.alto)) {
+    } else if (actual.length > 0 && !cabeEnPagina(item.alto) && item.alto <= alturaUtil) {
       cerrarPagina();
     }
 
@@ -185,8 +185,8 @@ export function cssExportContratoArras(): string {
       background: #fff;
     }
     [data-bloque] {
-      break-inside: avoid-page;
-      page-break-inside: avoid;
+      break-inside: auto;
+      page-break-inside: auto;
     }
     .pdf-firmas {
       break-inside: avoid-page;
@@ -197,6 +197,43 @@ export function cssExportContratoArras(): string {
         width: auto !important;
         padding: 0 !important;
       }
+      .pdf-page {
+        break-before: auto !important;
+        break-after: auto !important;
+        page-break-before: auto !important;
+        page-break-after: auto !important;
+      }
     }
   `;
+}
+
+/** Repagina el HTML de exportación en hojas medidas (PDF). */
+export async function repaginarHtmlContratoArras(html: string): Promise<string> {
+  if (typeof document === "undefined") return html;
+
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("aria-hidden", "true");
+  Object.assign(iframe.style, {
+    position: "fixed",
+    left: "-9999px",
+    top: "0",
+    width: "794px",
+    height: "4000px",
+    border: "0",
+    visibility: "hidden",
+  });
+  document.body.appendChild(iframe);
+
+  try {
+    const idoc = iframe.contentDocument;
+    if (!idoc) return html;
+    idoc.open();
+    idoc.write(html);
+    idoc.close();
+    await esperarLayoutDocumento(idoc);
+    repaginarContratoArrasEnDocumento(idoc);
+    return idoc.documentElement.outerHTML;
+  } finally {
+    iframe.remove();
+  }
 }

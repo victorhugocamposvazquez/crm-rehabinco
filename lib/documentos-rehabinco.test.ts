@@ -180,7 +180,8 @@ describe("documentos Rehabinco 2026", () => {
     assert.match(html, /pdf-flow/);
     assert.equal(html.includes("contenteditable"), false);
     assert.equal(/class="pdf-page"/.test(html), false);
-    assert.match(html, /break-inside: avoid-page/);
+    assert.match(html, /break-inside: auto/);
+    assert.match(html, /\.pdf-firmas[\s\S]*break-inside: avoid-page/);
   });
 
   it("un contrato nuevo tiene una persona por parte", () => {
