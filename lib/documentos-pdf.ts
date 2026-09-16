@@ -84,13 +84,14 @@ export function envolverDocumentoHtml(params: {
   title: string;
   body: string;
   serif?: boolean;
+  extraCss?: string;
 }): string {
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
   <title> </title>
-  <style>${cssPaginasDocumento({ serif: params.serif })}</style>
+  <style>${cssPaginasDocumento({ serif: params.serif })}${params.extraCss ?? ""}</style>
 </head>
 <body><!-- ${params.title.replace(/</g, "")} -->${params.body}</body>
 </html>`;

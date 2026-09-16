@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ToggleChip } from "@/components/ui/toggle-chip";
-import { DocumentoSplit, PdfFrame } from "@/components/documentos/DocumentoSplit";
+import { DocumentoSplit } from "@/components/documentos/DocumentoSplit";
+import { PdfFrameEditable } from "@/components/documentos/PdfFrameEditable";
 import { useImprimirDocumento } from "@/components/documentos/DialogoGuardarAlImprimir";
 import {
   contratoArrasVacio,
@@ -20,11 +21,13 @@ import {
   normalizarEstadoCivil,
   personaArrasVacia,
   restoPrecio,
+  type ClausulasPersonalizadasArras,
   type ContratoArrasDatos,
   type PersonaArras,
   type TratamientoPersona,
 } from "@/lib/contrato-arras";
-import { downloadContratoArrasPdf, htmlContratoArras } from "@/lib/contrato-arras-pdf";
+import { clausulasPersonalizadasDesdeEdicion, repaginarHtmlContratoArras } from "@/lib/contrato-arras-preview";
+import { downloadContratoArrasPdf, htmlContratoArras, textosContratoArras } from "@/lib/contrato-arras-pdf";
 import { EMPRESA_DOCUMENTOS } from "@/lib/empresa-documentos";
 import { altaCamposVacios, leerAltaBorrador } from "@/lib/ui/alta-borrador";
 import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
@@ -142,8 +145,21 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
     estaVacio: snapVacio,
   });
 
-  const html = useMemo(() => htmlContratoArras(datos), [datos]);
+  const html = useMemo(() => htmlContratoArras(datos, { editable: true }), [datos]);
   const resto = restoPrecio(datos.precio, datos.arras);
+  const tieneClausulasPersonalizadas = Object.keys(datos.clausulas_personalizadas ?? {}).length > 0;
+
+  const setClausulasPersonalizadas = (clausulas: ClausulasPersonalizadasArras) => {
+    setDatos((d) => {
+      const generadas = textosContratoArras({ ...d, clausulas_personalizadas: {} });
+      return { ...d, clausulas_personalizadas: clausulasPersonalizadasDesdeEdicion(clausulas, generadas) };
+    });
+  };
+
+  const restablecerClausulas = () => {
+    setDatos((d) => ({ ...d, clausulas_personalizadas: {} }));
+    toast.message("Cláusulas restablecidas desde el formulario.");
+  };
 
   useEffect(() => {
     const supabase = createClient();
@@ -220,6 +236,7 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
       plazo_escritura_dias: datos.plazo_escritura_dias,
       incluye_anejos: datos.incluye_anejos,
       hay_hipoteca: datos.hay_hipoteca,
+      clausulas_personalizadas: datos.clausulas_personalizadas as unknown as Json,
       propiedad_id: propiedadId || null,
       updated_at: new Date().toISOString(),
     };
@@ -266,7 +283,9 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
     }
   };
 
-  const imprimir = useImprimirDocumento(html, guardar);
+  const imprimir = useImprimirDocumento(html, guardar, {
+    prepararHtml: repaginarHtmlContratoArras,
+  });
 
   if (loading) {
     return (
@@ -504,7 +523,20 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
         </div>
       </div>
 
-      <DocumentoSplit form={form} preview={<PdfFrame html={html} pages={3} onDownload={descargar} downloading={printing} onPrint={imprimir.pedirImprimir} />} />
+      <DocumentoSplit
+        form={form}
+        preview={
+          <PdfFrameEditable
+            html={html}
+            onClausulasChange={setClausulasPersonalizadas}
+            onRestablecerClausulas={restablecerClausulas}
+            tienePersonalizadas={tieneClausulasPersonalizadas}
+            onDownload={descargar}
+            downloading={printing}
+            onPrint={imprimir.pedirImprimir}
+          />
+        }
+      />
 
       {imprimir.dialogo}
 

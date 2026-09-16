@@ -16,6 +16,7 @@ import {
   parrafoReunidos,
   restoPrecio,
 } from "./contrato-arras";
+import { clausulasPersonalizadasDesdeEdicion, normalizarTextoClausula } from "./contrato-arras-preview";
 import { htmlContratoArras, textosContratoArras } from "./contrato-arras-pdf";
 
 describe("documentos Rehabinco 2026", () => {
@@ -151,6 +152,27 @@ describe("documentos Rehabinco 2026", () => {
     assert.match(visita, /height: auto/);
     assert.match(visita, /page-break-after: auto/);
     assert.match(htmlContratoArras(contratoArrasVacio()), /@media print/);
+  });
+
+  it("respeta cláusulas personalizadas y genera bloques editables", () => {
+    const datos = contratoArrasVacio();
+    datos.clausulas_personalizadas = { quinta: "QUINTA: Cláusula especial acordada entre las partes." };
+    const textos = textosContratoArras(datos);
+    assert.match(textos.quinta, /Cláusula especial/);
+    const html = htmlContratoArras(datos, { editable: true });
+    assert.match(html, /data-clausula="quinta"/);
+    assert.match(html, /contenteditable="true"/);
+    assert.match(html, /pdf-flow/);
+    const generadas = textosContratoArras({ ...datos, clausulas_personalizadas: {} });
+    assert.deepEqual(
+      clausulasPersonalizadasDesdeEdicion({ quinta: generadas.quinta }, generadas),
+      {}
+    );
+    assert.equal(
+      clausulasPersonalizadasDesdeEdicion({ quinta: "QUINTA: Otra redacción." }, generadas).quinta,
+      "QUINTA: Otra redacción."
+    );
+    assert.equal(normalizarTextoClausula("a\n\nb"), "a b");
   });
 
   it("un contrato nuevo tiene una persona por parte", () => {

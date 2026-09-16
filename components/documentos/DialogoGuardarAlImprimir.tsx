@@ -52,14 +52,16 @@ export function DialogoGuardarAlImprimir({
 
 export function useImprimirDocumento(
   html: string,
-  guardar: (opts?: { quedarse?: boolean }) => Promise<boolean>
+  guardar: (opts?: { quedarse?: boolean }) => Promise<boolean>,
+  opts?: { prepararHtml?: (html: string) => Promise<string> }
 ) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const lanzarImpresion = async () => {
     try {
-      await imprimirDocumentoHtml(html);
+      const finalHtml = opts?.prepararHtml ? await opts.prepararHtml(html) : html;
+      await imprimirDocumentoHtml(finalHtml);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "No se ha podido imprimir.");
     }

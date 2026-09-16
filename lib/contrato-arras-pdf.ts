@@ -1,4 +1,5 @@
 import { EMPRESA_DOCUMENTOS, htmlEsc } from "./empresa-documentos";
+import { cssPreviewEditableArras } from "./contrato-arras-preview";
 import { downloadPagedHtmlPdf, envolverDocumentoHtml, slugArchivo } from "./documentos-pdf";
 import {
   encabezadoContratoArras,
@@ -11,6 +12,8 @@ import {
   textoHipoteca,
   textoViviendaVenta,
   verboPropiedad,
+  type ClausulaArrasKey,
+  type ClausulasPersonalizadasArras,
   type ContratoArrasDatos,
   type PersonaArras,
 } from "./contrato-arras";
@@ -36,7 +39,21 @@ export function htmlConNegrita(texto: string, fragmentos: string[]): string {
 }
 
 function h(texto: string) {
-  return `<p style="margin:18px 0 10px;font-size:13.5px;font-weight:700;letter-spacing:0.04em;">${htmlEsc(texto)}</p>`;
+  return `<p data-bloque="1" style="margin:18px 0 10px;font-size:13.5px;font-weight:700;letter-spacing:0.04em;">${htmlEsc(texto)}</p>`;
+}
+
+function bloqueEditable(
+  key: ClausulaArrasKey,
+  innerHtml: string,
+  extraStyle = "",
+  opts?: { evitarCorte?: boolean }
+) {
+  const evitar = opts?.evitarCorte ? ' data-evitar-corte="1"' : "";
+  return `<p data-bloque="1" data-clausula="${key}" contenteditable="true"${evitar} style="margin:0 0 11px;font-size:13px;line-height:1.48;text-align:justify;${extraStyle}">${innerHtml}</p>`;
+}
+
+function bloqueEstatico(innerHtml: string, extraStyle = "") {
+  return `<p data-bloque="1" style="margin:0 0 11px;font-size:13px;line-height:1.48;text-align:justify;${extraStyle}">${innerHtml}</p>`;
 }
 
 function clausulaNovenaLopd(): string {
@@ -54,7 +71,17 @@ Igualmente, podrá ejercer los derechos de acceso, rectificación, cancelación,
 En caso de que no haya obtenido satisfacción en el ejercicio de sus derechos, puede presentar una reclamación ante la Autoridad de Control en materia de Protección de Datos competente.`;
 }
 
+function aplicarPersonalizacion(
+  key: ClausulaArrasKey,
+  generado: string,
+  personalizadas: ClausulasPersonalizadasArras
+): string {
+  const custom = personalizadas[key]?.trim();
+  return custom || generado;
+}
+
 export function textosContratoArras(datos: ContratoArrasDatos) {
+  const personalizadas = datos.clausulas_personalizadas ?? {};
   const vendedores = listarPersonasArras(datos.vendedores);
   const compradores = listarPersonasArras(datos.compradores);
   const { son, propietarios } = verboPropiedad(datos.vendedores);
@@ -64,7 +91,7 @@ export function textosContratoArras(datos: ContratoArrasDatos) {
     : "………………";
   const resto = restoPrecio(datos.precio, datos.arras);
   const plazo = datos.plazo_escritura_dias != null ? String(datos.plazo_escritura_dias) : "……";
-  return {
+  const generados = {
     encabezado: encabezadoContratoArras(datos),
     reunidosVendedores: `De una parte, ${parrafoReunidos(datos.vendedores, "vendedora")}`,
     reunidosCompradores: `Y de otra parte, ${parrafoReunidos(datos.compradores, "compradora")}`,
@@ -92,49 +119,54 @@ LOS COMPRADORES se reservan el derecho de elevar a escritura pública la comprav
     novena: clausulaNovenaLopd(),
     cierre:
       "Y en prueba de conformidad otorgan y firman este documento por duplicado y a un solo efecto en el lugar y fecha expresados en el encabezamiento.",
-  };
+  } satisfies Record<ClausulaArrasKey, string>;
+
+  const textos = {} as Record<ClausulaArrasKey, string>;
+  for (const key of Object.keys(generados) as ClausulaArrasKey[]) {
+    textos[key] = aplicarPersonalizacion(key, generados[key], personalizadas);
+  }
+  return textos;
 }
 
-function pagina(inner: string, extraClass = "") {
-  const cls = extraClass ? `pdf-page ${extraClass}` : "pdf-page";
-  return `<div class="${cls}" style="padding:54px 62px 48px;">${inner}</div>`;
-}
-
-export function htmlContratoArras(datos: ContratoArrasDatos): string {
+export function htmlContratoArras(datos: ContratoArrasDatos, opts?: { editable?: boolean }): string {
   const t = textosContratoArras(datos);
   const nombres = [...nombresAResaltar(datos.vendedores), ...nombresAResaltar(datos.compradores)];
   const cuenta = datos.cuenta_vendedora.trim() || "…………………………………………";
   const arras = eurosEnPalabras(datos.arras);
   const conNombres = (s: string) => htmlConNegrita(s, nombres);
   const nlNombres = (s: string) => conNombres(s).replace(/\n/g, "<br />");
-  const body =
-    pagina(`
-      <p style="margin:0 0 22px;font-size:13.5px;text-align:center;">${htmlEsc(t.encabezado)}</p>
-      ${h("REUNIDOS")}
-      ${p(conNombres(t.reunidosVendedores))}
-      ${p(conNombres(t.reunidosCompradores))}
-      ${h("INTERVIENEN")}
-      ${p(htmlEsc(t.intervienen))}
-      ${h("EXPONEN")}
-      ${p(nlNombres(t.exponenI))}
-      ${p(conNombres(t.exponenII))}
-      ${h("ESTIPULACIONES:")}
-      ${p(conNombres(t.primera))}
-    `) +
-    pagina(`
-      ${p(htmlEsc(t.segunda))}
-      ${p(htmlConNegrita(t.tercera, [...nombres, arras, cuenta]))}
-      ${p(nlNombres(t.cuarta))}
-      ${p(nlNombres(t.quinta))}
-      ${p(htmlEsc(t.sexta))}
-      ${p(htmlEsc(t.septima))}
-      ${p(htmlEsc(t.octava))}
-    `) +
-    pagina(
-      `
-      ${p(htmlEsc(t.novena).replace(/\n/g, "<br />"))}
-      ${p(htmlEsc(t.cierre), "margin-top:18px;")}
-      <div style="margin-top:36px;display:flex;justify-content:space-between;gap:40px;">
+  const nl = (s: string) => htmlEsc(s).replace(/\n/g, "<br />");
+  const editable = opts?.editable !== false;
+
+  const encabezado = editable
+    ? bloqueEditable("encabezado", htmlEsc(t.encabezado), "text-align:center;margin-bottom:22px;font-size:13.5px;")
+    : p(htmlEsc(t.encabezado), "text-align:center;margin-bottom:22px;font-size:13.5px;");
+
+  const clausula = (key: ClausulaArrasKey, inner: string, extra = "") =>
+    editable ? bloqueEditable(key, inner, extra) : bloqueEstatico(inner, extra);
+
+  const bloques =
+    encabezado +
+    h("REUNIDOS") +
+    clausula("reunidosVendedores", conNombres(t.reunidosVendedores)) +
+    clausula("reunidosCompradores", conNombres(t.reunidosCompradores)) +
+    h("INTERVIENEN") +
+    clausula("intervienen", htmlEsc(t.intervienen)) +
+    h("EXPONEN") +
+    clausula("exponenI", nlNombres(t.exponenI)) +
+    clausula("exponenII", conNombres(t.exponenII)) +
+    h("ESTIPULACIONES:") +
+    clausula("primera", conNombres(t.primera)) +
+    clausula("segunda", htmlEsc(t.segunda)) +
+    clausula("tercera", htmlConNegrita(t.tercera, [...nombres, arras, cuenta])) +
+    clausula("cuarta", nlNombres(t.cuarta)) +
+    clausula("quinta", nlNombres(t.quinta)) +
+    clausula("sexta", htmlEsc(t.sexta)) +
+    clausula("septima", htmlEsc(t.septima)) +
+    clausula("octava", htmlEsc(t.octava)) +
+    clausula("novena", nl(t.novena)) +
+    clausula("cierre", htmlEsc(t.cierre), "margin-top:18px;") +
+    `<div data-bloque="1" data-evitar-corte="1" class="pdf-firmas" style="margin-top:36px;display:flex;justify-content:space-between;gap:40px;">
         <div style="flex:1;text-align:center;">
           <p style="margin:0 0 64px;font-size:13px;font-weight:700;letter-spacing:0.04em;">LA PARTE VENDEDORA</p>
           <div style="border-top:1px solid #222;"></div>
@@ -143,14 +175,16 @@ export function htmlContratoArras(datos: ContratoArrasDatos): string {
           <p style="margin:0 0 64px;font-size:13px;font-weight:700;letter-spacing:0.04em;">LA PARTE COMPRADORA</p>
           <div style="border-top:1px solid #222;"></div>
         </div>
-      </div>
-    `,
-      "pdf-firmas"
-    );
+      </div>`;
+
+  const body = `<div class="pdf-flow" style="padding:${54}px ${62}px ${48}px;">${bloques}</div>`;
+  const extraCss = editable ? cssPreviewEditableArras() : "";
+
   return envolverDocumentoHtml({
     title: `Contrato de arras · ${EMPRESA_DOCUMENTOS.razonSocial}`,
     body,
     serif: true,
+    extraCss,
   });
 }
 
@@ -161,8 +195,10 @@ export function contratoArrasPdfFilename(datos: ContratoArrasDatos): string {
 }
 
 export async function downloadContratoArrasPdf(datos: ContratoArrasDatos) {
+  const { repaginarHtmlContratoArras } = await import("./contrato-arras-preview");
+  const html = await repaginarHtmlContratoArras(htmlContratoArras(datos, { editable: false }));
   await downloadPagedHtmlPdf({
-    html: htmlContratoArras(datos),
+    html,
     filename: contratoArrasPdfFilename(datos),
   });
 }

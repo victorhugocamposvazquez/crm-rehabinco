@@ -587,6 +587,7 @@ export interface Database {
           incluye_anejos: boolean;
           hay_hipoteca: boolean;
           observaciones: string | null;
+          clausulas_personalizadas: Json;
           created_at: string;
           updated_at: string;
         };
@@ -613,6 +614,7 @@ export interface Database {
           incluye_anejos?: boolean;
           hay_hipoteca?: boolean;
           observaciones?: string | null;
+          clausulas_personalizadas?: Json;
         };
         Update: {
           comercial_id?: string | null;
@@ -636,6 +638,7 @@ export interface Database {
           incluye_anejos?: boolean;
           hay_hipoteca?: boolean;
           observaciones?: string | null;
+          clausulas_personalizadas?: Json;
           updated_at?: string;
         };
       };

@@ -40,6 +40,37 @@ export function etiquetaEstadoCivil(p: PersonaArras): string {
   return p.tratamiento === "Doña" ? opt.dona : opt.don;
 }
 
+/** Claves de bloques editables en la previsualización del contrato. */
+export type ClausulaArrasKey =
+  | "encabezado"
+  | "reunidosVendedores"
+  | "reunidosCompradores"
+  | "intervienen"
+  | "exponenI"
+  | "exponenII"
+  | "primera"
+  | "segunda"
+  | "tercera"
+  | "cuarta"
+  | "quinta"
+  | "sexta"
+  | "septima"
+  | "octava"
+  | "novena"
+  | "cierre";
+
+export type ClausulasPersonalizadasArras = Partial<Record<ClausulaArrasKey, string>>;
+
+export function parseClausulasPersonalizadas(value: unknown): ClausulasPersonalizadasArras {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const raw = value as Record<string, unknown>;
+  const out: ClausulasPersonalizadasArras = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (typeof v === "string" && v.trim()) out[k as ClausulaArrasKey] = v;
+  }
+  return out;
+}
+
 export type ContratoArrasDatos = {
   lugar: string;
   fecha: string | null;
@@ -57,6 +88,7 @@ export type ContratoArrasDatos = {
   plazo_escritura_dias: number | null;
   incluye_anejos: boolean;
   hay_hipoteca: boolean;
+  clausulas_personalizadas: ClausulasPersonalizadasArras;
 };
 
 export function personaArrasVacia(tratamiento: TratamientoPersona = "Don"): PersonaArras {
@@ -88,6 +120,7 @@ export function contratoArrasVacio(): ContratoArrasDatos {
     plazo_escritura_dias: null,
     incluye_anejos: false,
     hay_hipoteca: false,
+    clausulas_personalizadas: {},
   };
 }
 
@@ -283,6 +316,7 @@ export function contratoDesdeFila(row: {
   plazo_escritura_dias: number | null;
   incluye_anejos: boolean;
   hay_hipoteca: boolean;
+  clausulas_personalizadas?: unknown;
 }): ContratoArrasDatos {
   const vendedores = parsePersonasArras(row.vendedores);
   const compradores = parsePersonasArras(row.compradores);
@@ -303,5 +337,6 @@ export function contratoDesdeFila(row: {
     plazo_escritura_dias: row.plazo_escritura_dias,
     incluye_anejos: row.incluye_anejos,
     hay_hipoteca: row.hay_hipoteca,
+    clausulas_personalizadas: parseClausulasPersonalizadas(row.clausulas_personalizadas),
   };
 }
