@@ -293,13 +293,7 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
     (html: string) => prepararContratoArrasExportHtml(html),
     []
   );
-  const imprimir = useImprimirDocumento(htmlExport, guardar, {
-    prepararHtml: prepararImpresion,
-    alternativaMovil: async () => {
-      await downloadContratoArrasPdf(datos);
-      toast.success("PDF listo. Ábrelo y usa Compartir → Imprimir.");
-    },
-  });
+  const imprimir = useImprimirDocumento(htmlExport, guardar, { prepararHtml: prepararImpresion });
 
   if (loading) {
     return (

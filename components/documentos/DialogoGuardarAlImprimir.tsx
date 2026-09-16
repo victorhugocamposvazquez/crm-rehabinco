@@ -66,11 +66,7 @@ export function DialogoGuardarAlImprimir({
 export function useImprimirDocumento(
   html: string,
   guardar: (opts?: { quedarse?: boolean }) => Promise<boolean>,
-  opts?: {
-    prepararHtml?: (html: string) => Promise<string>;
-    /** En móvil, imprimir vía PDF u otra vía fiable (Safari bloquea print() en iframe). */
-    alternativaMovil?: () => Promise<void>;
-  }
+  opts?: { prepararHtml?: (html: string) => Promise<string> }
 ) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -78,11 +74,9 @@ export function useImprimirDocumento(
   const [htmlImpresion, setHtmlImpresion] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const prepararHtmlRef = useRef(opts?.prepararHtml);
-  const alternativaMovilRef = useRef(opts?.alternativaMovil);
   const htmlListoRef = useRef<string | null>(null);
   const preparacionRef = useRef<Promise<string> | null>(null);
   prepararHtmlRef.current = opts?.prepararHtml;
-  alternativaMovilRef.current = opts?.alternativaMovil;
 
   useEffect(() => {
     setMounted(true);
@@ -139,11 +133,6 @@ export function useImprimirDocumento(
 
   const lanzarImpresion = async () => {
     try {
-      if (esDispositivoMovil() && alternativaMovilRef.current) {
-        await alternativaMovilRef.current();
-        return;
-      }
-
       const finalHtml = await resolverHtmlImpresion();
       if (!finalHtml.trim()) throw new Error("El documento está vacío.");
       setHtmlImpresion(finalHtml);

@@ -10,6 +10,7 @@ export function PrintOverlay({ html, onClose }: { html: string; onClose: () => v
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [listo, setListo] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const movil = esDispositivoMovil();
 
   useEffect(() => {
     setMounted(true);
@@ -65,7 +66,12 @@ export function PrintOverlay({ html, onClose }: { html: string; onClose: () => v
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex flex-col bg-white" role="dialog" aria-modal="true">
       <div className="flex items-center justify-between border-b border-border px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <h2 className="text-[15px] font-semibold">Vista de impresión</h2>
+        <div>
+          <h2 className="text-[15px] font-semibold">Vista de impresión</h2>
+          {movil ? (
+            <p className="text-[12px] text-[var(--text-2)]">Pulsa Imprimir para abrir el diálogo del sistema.</p>
+          ) : null}
+        </div>
         <Button type="button" variant="ghost" size="sm" onClick={onClose} aria-label="Cerrar">
           <X className="h-5 w-5" strokeWidth={1.75} />
         </Button>
