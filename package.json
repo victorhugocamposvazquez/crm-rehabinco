@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "tsx --test \"lib/catastro/**/*.test.ts\" \"lib/catastro-host/**/*.test.ts\" \"lib/captacion/**/*.test.ts\" \"lib/demandas/**/*.test.ts\" \"lib/citas/**/*.test.ts\" \"lib/tareas/**/*.test.ts\" \"lib/inmuebles/**/*.test.ts\" \"lib/geo/**/*.test.ts\" \"lib/alertas/**/*.test.ts\" \"lib/partes-visita.test.ts\" \"lib/documentos-rehabinco.test.ts\" \"lib/auth/**/*.test.ts\" \"lib/ui/**/*.test.ts\"",
+    "test": "tsx --test \"lib/catastro/**/*.test.ts\" \"lib/catastro-host/**/*.test.ts\" \"lib/captacion/**/*.test.ts\" \"lib/demandas/**/*.test.ts\" \"lib/citas/**/*.test.ts\" \"lib/tareas/**/*.test.ts\" \"lib/inmuebles/**/*.test.ts\" \"lib/geo/**/*.test.ts\" \"lib/alertas/**/*.test.ts\" \"lib/partes-visita.test.ts\" \"lib/documentos-rehabinco.test.ts\" \"lib/build-id.test.ts\" \"lib/auth/**/*.test.ts\" \"lib/ui/**/*.test.ts\"",
     "catastro:explore": "tsx lib/catastro/explore.ts"
   },
   "dependencies": {

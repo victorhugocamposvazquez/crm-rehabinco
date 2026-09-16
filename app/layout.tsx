@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Schibsted_Grotesk } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth/auth-context";
-import { ServiceWorkerRegistration } from "@/components/pwa/ServiceWorkerRegistration";
+import { AvisoNuevaVersion } from "@/components/pwa/AvisoNuevaVersion";
 import { Toaster } from "sonner";
 
 const schibsted = Schibsted_Grotesk({
@@ -42,7 +42,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-background font-sans antialiased">
         <AuthProvider>
           {children}
-          <ServiceWorkerRegistration />
+          <AvisoNuevaVersion />
         </AuthProvider>
         <Toaster position="top-center" richColors closeButton />
       </body>
