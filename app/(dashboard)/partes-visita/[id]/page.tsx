@@ -28,6 +28,7 @@ import {
 import { VisitContextoCatastro } from "@/components/partes-visita/VisitContextoCatastro";
 import { FichaLink } from "@/components/crm/FichaPeek";
 import { PdfFrame } from "@/components/documentos/DocumentoSplit";
+import { imprimirDocumentoHtml } from "@/lib/documentos-pdf";
 import { downloadParteVisitaPdf, htmlParteVisita, parseCalidadVisita } from "@/lib/parte-visita-pdf";
 
 interface ParteVisita {
@@ -133,6 +134,19 @@ export default function DetalleParteVisitaPage() {
 
   const publicUrl = buildPublicFirmaUrl(parte.token);
   const canShare = parte.estado === "pendiente_firma";
+  const datosPdf = {
+    visitante_nombre: parte.visitante_nombre,
+    visitante_documento: parte.visitante_documento,
+    inmueble_direccion: parte.inmueble_direccion,
+    fecha_visita: parte.fecha_visita,
+    hora_visita: parte.hora_visita,
+    hora_fin: parte.hora_fin,
+    calidad: parseCalidadVisita(parte.calidad),
+    agente_nombre: parte.agente_nombre,
+    lugar_firma: parte.lugar_firma,
+    firma_visitante: parte.firma_visitante,
+  };
+  const html = htmlParteVisita(datosPdf);
 
   const copyLink = async () => {
     try {
@@ -188,21 +202,22 @@ export default function DetalleParteVisitaPage() {
             <Button
               variant="secondary"
               size="sm"
+              onClick={() => {
+                void imprimirDocumentoHtml(html).catch((err) =>
+                  toast.error(err instanceof Error ? err.message : "No se ha podido imprimir")
+                );
+              }}
+              className="gap-2"
+            >
+              Imprimir
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               disabled={printing}
               onClick={() => {
                 setPrinting(true);
-                void downloadParteVisitaPdf({
-                  visitante_nombre: parte.visitante_nombre,
-                  visitante_documento: parte.visitante_documento,
-                  inmueble_direccion: parte.inmueble_direccion,
-                  fecha_visita: parte.fecha_visita,
-                  hora_visita: parte.hora_visita,
-                  hora_fin: parte.hora_fin,
-                  calidad: parseCalidadVisita(parte.calidad),
-                  agente_nombre: parte.agente_nombre,
-                  lugar_firma: parte.lugar_firma,
-                  firma_visitante: parte.firma_visitante,
-                })
+                void downloadParteVisitaPdf(datosPdf)
                   .then(() => toast.success("PDF descargado"))
                   .catch((err) => toast.error(err instanceof Error ? err.message : "No se ha podido generar el PDF"))
                   .finally(() => setPrinting(false));
@@ -387,34 +402,15 @@ export default function DetalleParteVisitaPage() {
 
         <div className="md:col-span-2">
           <PdfFrame
-            html={htmlParteVisita({
-              visitante_nombre: parte.visitante_nombre,
-              visitante_documento: parte.visitante_documento,
-              inmueble_direccion: parte.inmueble_direccion,
-              fecha_visita: parte.fecha_visita,
-              hora_visita: parte.hora_visita,
-              hora_fin: parte.hora_fin,
-              calidad: parseCalidadVisita(parte.calidad),
-              agente_nombre: parte.agente_nombre,
-              lugar_firma: parte.lugar_firma,
-              firma_visitante: parte.firma_visitante,
-            })}
+            html={html}
             pages={1}
-            onDownload={() =>
-              downloadParteVisitaPdf({
-                visitante_nombre: parte.visitante_nombre,
-                visitante_documento: parte.visitante_documento,
-                inmueble_direccion: parte.inmueble_direccion,
-                fecha_visita: parte.fecha_visita,
-                hora_visita: parte.hora_visita,
-                hora_fin: parte.hora_fin,
-                calidad: parseCalidadVisita(parte.calidad),
-                agente_nombre: parte.agente_nombre,
-                lugar_firma: parte.lugar_firma,
-                firma_visitante: parte.firma_visitante,
-              })
-            }
+            onDownload={() => downloadParteVisitaPdf(datosPdf)}
             downloading={printing}
+            onPrint={() => {
+              void imprimirDocumentoHtml(html).catch((err) =>
+                toast.error(err instanceof Error ? err.message : "No se ha podido imprimir")
+              );
+            }}
           />
         </div>
       </div>

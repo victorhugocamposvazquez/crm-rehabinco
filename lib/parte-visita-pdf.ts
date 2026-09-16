@@ -85,17 +85,17 @@ export function htmlParteVisita(datos: ParteVisitaPdfDatos): string {
     : `<div style="height:72px;"></div>`;
   const pie = pieContactoEmpresa().replace(/\n/g, "<br />");
   const body = `
-    <div class="pdf-page" style="padding:52px 58px 40px;display:flex;flex-direction:column;">
+    <div class="pdf-page" style="padding:52px 58px 40px;">
       <h1 style="margin:0 0 18px;font-size:22px;font-weight:700;">Parte de visita</h1>
       <p style="margin:0 0 22px;font-size:13.5px;line-height:1.45;">${htmlEsc(lineaFechaVisita(datos))}</p>
       <p style="margin:0 0 16px;font-size:13.5px;line-height:1.55;text-align:justify;">${htmlEsc(cuerpo[0] ?? "")}</p>
       <p style="margin:0 0 28px;font-size:13.5px;line-height:1.55;text-align:justify;">${htmlEsc(cuerpo[1] ?? "")}</p>
-      <div style="margin-top:8px;">
+      <div style="margin:0 0 28px;">
         <p style="margin:0 0 6px;font-size:13.5px;font-weight:700;">El Interesado</p>
         <p style="margin:0 0 4px;font-size:12px;color:#444;">Firma</p>
         <div style="border-bottom:1px solid #222;width:280px;min-height:76px;">${firmaVisitante}</div>
       </div>
-      <div style="margin-top:auto;padding-top:28px;">
+      <div>
         <p style="margin:0 0 8px;font-size:8.5px;line-height:1.4;color:#333;">${htmlEsc(clausulaLopdResponsable())}</p>
         <p style="margin:0 0 14px;font-size:8.5px;line-height:1.4;color:#333;white-space:pre-wrap;">${htmlEsc(
           clausulaLopdCuerpo(

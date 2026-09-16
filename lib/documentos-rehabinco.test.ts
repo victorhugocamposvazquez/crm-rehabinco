@@ -70,6 +70,16 @@ describe("documentos Rehabinco 2026", () => {
     assert.match(texto, /alquilar/);
     assert.match(texto, /mediación de REHABINCO/);
     assert.equal(/CONCHADO/i.test(texto), false);
+    assert.equal(htmlParteVisita({
+      visitante_nombre: "Luis",
+      visitante_documento: "111",
+      inmueble_direccion: "Panaderas 13",
+      fecha_visita: "2026-01-02",
+      hora_visita: "10:00",
+      hora_fin: null,
+      calidad: "arrendatario",
+      agente_nombre: "Marta",
+    }).includes("margin-top:auto"), false);
   });
 
   it("el contrato de arras rellena partes, resto y cláusula novena", () => {
@@ -107,8 +117,25 @@ describe("documentos Rehabinco 2026", () => {
     assert.match(textos.cuarta, /CIENTO TREINTA Y CINCO MIL EUROS/);
     assert.match(textos.novena, /REHABINCO, S\.L\./);
     assert.equal(contratoArrasTieneConchado(textos.novena), false);
+    assert.equal(htmlContratoArras(datos).includes("margin-top:auto"), false);
     assert.equal(listarPersonasArras(datos.vendedores), "DON Juan Pérez");
     assert.match(parrafoReunidos(datos.vendedores, "vendedora"), /parte vendedora/);
+  });
+
+  it("el HTML incluye estilos de impresión A4", () => {
+    const visita = htmlParteVisita({
+      visitante_nombre: "Ana",
+      visitante_documento: "1",
+      inmueble_direccion: "Rúa Real 1",
+      fecha_visita: "2026-10-31",
+      hora_visita: "17:00",
+      hora_fin: "19:00",
+      calidad: "comprador",
+      agente_nombre: "Hugo",
+    });
+    assert.match(visita, /@media print/);
+    assert.match(visita, /size: A4/);
+    assert.match(htmlContratoArras(contratoArrasVacio()), /@media print/);
   });
 
   it("pasa cantidades a euros en palabras", () => {

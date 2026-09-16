@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Download } from "lucide-react";
+import { Download, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DOCUMENTO_PAGE_H, DOCUMENTO_PAGE_W } from "@/lib/documentos-pdf";
 
@@ -25,14 +25,18 @@ export function PdfFrame({
   pages,
   onDownload,
   downloading,
+  onPrint,
 }: {
   html: string;
   pages: number;
   onDownload: () => void | Promise<void>;
   downloading?: boolean;
+  onPrint?: () => void;
 }) {
   const caja = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.52);
+  const gap = pages > 1 ? 12 * (pages - 1) : 0;
+  const alto = DOCUMENTO_PAGE_H * pages + gap;
 
   useEffect(() => {
     const el = caja.current;
@@ -51,19 +55,27 @@ export function PdfFrame({
           <h2 className="text-[15px] font-semibold">Previsualización</h2>
           <p className="text-[12px] text-[var(--text-2)]">El PDF se actualiza al rellenar los campos.</p>
         </div>
-        <Button type="button" size="sm" onClick={() => void onDownload()} disabled={downloading} className="gap-2">
-          <Download className="h-4 w-4" strokeWidth={1.5} />
-          {downloading ? "Generando…" : "Descargar PDF"}
-        </Button>
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          <Button type="button" size="sm" variant="secondary" onClick={() => void onDownload()} disabled={downloading} className="gap-2">
+            <Download className="h-4 w-4" strokeWidth={1.5} />
+            {downloading ? "Generando…" : "PDF"}
+          </Button>
+          {onPrint && (
+            <Button type="button" size="sm" onClick={onPrint} className="gap-2">
+              <Printer className="h-4 w-4" strokeWidth={1.5} />
+              Imprimir
+            </Button>
+          )}
+        </div>
       </div>
       <div ref={caja} className="overflow-auto bg-[#d9d6cf] p-3 min-[820px]:max-h-[calc(100dvh-9.5rem)]">
-        <div style={{ height: DOCUMENTO_PAGE_H * pages * scale, width: "100%" }}>
+        <div style={{ height: alto * scale, width: "100%" }}>
           <iframe
             title="Previsualización del PDF"
             srcDoc={html}
             style={{
               width: DOCUMENTO_PAGE_W,
-              height: DOCUMENTO_PAGE_H * pages,
+              height: alto,
               transform: `scale(${scale})`,
               transformOrigin: "top left",
               border: 0,

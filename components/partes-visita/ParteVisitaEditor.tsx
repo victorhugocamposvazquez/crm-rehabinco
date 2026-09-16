@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { DocumentoSplit, PdfFrame } from "@/components/documentos/DocumentoSplit";
+import { useImprimirDocumento } from "@/components/documentos/DialogoGuardarAlImprimir";
 import { VisitContextoCatastro } from "@/components/partes-visita/VisitContextoCatastro";
 import { prefillParteDesdeCita } from "@/lib/citas/citas";
 import {
@@ -289,18 +290,18 @@ export function ParteVisitaEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propiedadId]);
 
-  const guardar = async () => {
+  const guardar = async (opts?: { quedarse?: boolean }): Promise<boolean> => {
     if (!visitaDesdePropertyExigePropiedad(desdeProperty, propiedadId)) {
       toast.error("Esta visita debe quedar ligada a la propiedad.");
-      return;
+      return false;
     }
     if (!inmuebleDireccion.trim()) {
       toast.error("La dirección del inmueble es obligatoria.");
-      return;
+      return false;
     }
     if (!agenteNombre.trim()) {
       toast.error("El agente comercial es obligatorio.");
-      return;
+      return false;
     }
     const supabase = createClient();
     const {
@@ -308,7 +309,7 @@ export function ParteVisitaEditor({
     } = await supabase.auth.getUser();
     if (!authUser) {
       toast.error("Sesión expirada.");
-      return;
+      return false;
     }
     setSaving(true);
     const payload = {
@@ -333,12 +334,14 @@ export function ParteVisitaEditor({
       setSaving(false);
       if (error) {
         toast.error(error.message);
-        return;
+        return false;
       }
       toast.success("Parte guardado.");
-      router.push(`/partes-visita/${parteId}`);
-      router.refresh();
-      return;
+      if (!opts?.quedarse) {
+        router.push(`/partes-visita/${parteId}`);
+        router.refresh();
+      }
+      return true;
     }
     const { data, error } = await supabase
       .from("partes_visita")
@@ -357,12 +360,17 @@ export function ParteVisitaEditor({
     setSaving(false);
     if (error || !data) {
       toast.error(error?.message ?? "No se ha podido crear el parte.");
-      return;
+      return false;
     }
     altaBorrador.consumir();
     toast.success("Parte de visita guardado.");
-    router.push(`/partes-visita/${data.id}`);
+    if (opts?.quedarse) {
+      router.replace(`/partes-visita/${data.id}/editar`);
+    } else {
+      router.push(`/partes-visita/${data.id}`);
+    }
     router.refresh();
+    return true;
   };
 
   const descargar = async () => {
@@ -376,6 +384,8 @@ export function ParteVisitaEditor({
       setPrinting(false);
     }
   };
+
+  const imprimir = useImprimirDocumento(html, guardar);
 
   if (loading) {
     return (
@@ -404,8 +414,8 @@ export function ParteVisitaEditor({
           </p>
         </div>
         <div className="hidden gap-2 min-[820px]:flex">
-          <Button type="button" variant="secondary" onClick={() => void descargar()} disabled={printing}>
-            {printing ? "Generando…" : "Descargar PDF"}
+          <Button type="button" variant="secondary" onClick={imprimir.pedirImprimir}>
+            Imprimir
           </Button>
           <Button type="button" onClick={() => void guardar()} disabled={saving}>
             {saving ? "Guardando…" : "Guardar"}
@@ -531,12 +541,14 @@ export function ParteVisitaEditor({
             </section>
           </div>
         }
-        preview={<PdfFrame html={html} pages={1} onDownload={descargar} downloading={printing} />}
+        preview={<PdfFrame html={html} pages={1} onDownload={descargar} downloading={printing} onPrint={imprimir.pedirImprimir} />}
       />
 
+      {imprimir.dialogo}
+
       <div className="fixed bottom-0 left-0 right-0 z-40 flex gap-2 border-t border-border bg-white/95 px-4 py-3 min-[820px]:hidden">
-        <Button type="button" variant="secondary" className="flex-1" onClick={() => void descargar()} disabled={printing}>
-          PDF
+        <Button type="button" variant="secondary" className="flex-1" onClick={imprimir.pedirImprimir}>
+          Imprimir
         </Button>
         <Button type="button" className="flex-1" onClick={() => void guardar()} disabled={saving}>
           {saving ? "Guardando…" : "Guardar"}

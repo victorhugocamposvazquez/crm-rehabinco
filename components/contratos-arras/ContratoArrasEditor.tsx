@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { DocumentoSplit, PdfFrame } from "@/components/documentos/DocumentoSplit";
+import { useImprimirDocumento } from "@/components/documentos/DialogoGuardarAlImprimir";
 import {
   contratoArrasVacio,
   contratoDesdeFila,
@@ -174,14 +175,14 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
     setDatos((d) => ({ ...d, [lado]: next }));
   };
 
-  const guardar = async () => {
+  const guardar = async (_opts?: { quedarse?: boolean }): Promise<boolean> => {
     const supabase = createClient();
     const {
       data: { user: authUser },
     } = await supabase.auth.getUser();
     if (!authUser) {
       toast.error("Sesión expirada.");
-      return;
+      return false;
     }
     setSaving(true);
     const payload = {
@@ -210,10 +211,10 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
       setSaving(false);
       if (error) {
         toast.error(error.message);
-        return;
+        return false;
       }
       toast.success("Contrato guardado.");
-      return;
+      return true;
     }
     const { data, error } = await supabase
       .from("contratos_arras")
@@ -227,12 +228,13 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
     setSaving(false);
     if (error || !data) {
       toast.error(error?.message ?? "No se ha podido guardar el contrato.");
-      return;
+      return false;
     }
     altaBorrador.consumir();
     toast.success("Contrato de arras guardado.");
     router.replace(`/contratos-arras/${data.id}`);
     router.refresh();
+    return true;
   };
 
   const descargar = async () => {
@@ -246,6 +248,8 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
       setPrinting(false);
     }
   };
+
+  const imprimir = useImprimirDocumento(html, guardar);
 
   if (loading) {
     return (
@@ -475,8 +479,8 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
           </p>
         </div>
         <div className="hidden gap-2 min-[820px]:flex">
-          <Button type="button" variant="secondary" onClick={() => void descargar()} disabled={printing}>
-            {printing ? "Generando…" : "Descargar PDF"}
+          <Button type="button" variant="secondary" onClick={imprimir.pedirImprimir}>
+            Imprimir
           </Button>
           <Button type="button" onClick={() => void guardar()} disabled={saving}>
             {saving ? "Guardando…" : "Guardar"}
@@ -484,11 +488,13 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
         </div>
       </div>
 
-      <DocumentoSplit form={form} preview={<PdfFrame html={html} pages={3} onDownload={descargar} downloading={printing} />} />
+      <DocumentoSplit form={form} preview={<PdfFrame html={html} pages={3} onDownload={descargar} downloading={printing} onPrint={imprimir.pedirImprimir} />} />
+
+      {imprimir.dialogo}
 
       <div className="fixed bottom-0 left-0 right-0 z-40 flex gap-2 border-t border-border bg-white/95 px-4 py-3 min-[820px]:hidden">
-        <Button type="button" variant="secondary" className="flex-1" onClick={() => void descargar()} disabled={printing}>
-          PDF
+        <Button type="button" variant="secondary" className="flex-1" onClick={imprimir.pedirImprimir}>
+          Imprimir
         </Button>
         <Button type="button" className="flex-1" onClick={() => void guardar()} disabled={saving}>
           {saving ? "Guardando…" : "Guardar"}

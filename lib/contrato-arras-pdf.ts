@@ -77,7 +77,7 @@ LOS COMPRADORES se reservan el derecho de elevar a escritura pública la comprav
 }
 
 function pagina(inner: string) {
-  return `<div class="pdf-page" style="padding:54px 62px 48px;display:flex;flex-direction:column;">${inner}</div>`;
+  return `<div class="pdf-page" style="padding:54px 62px 48px;">${inner}</div>`;
 }
 
 export function htmlContratoArras(datos: ContratoArrasDatos): string {
@@ -109,7 +109,7 @@ export function htmlContratoArras(datos: ContratoArrasDatos): string {
     pagina(`
       ${p(nl(t.novena))}
       ${p(htmlEsc(t.cierre), "margin-top:18px;")}
-      <div style="margin-top:auto;display:flex;justify-content:space-between;gap:40px;padding-top:36px;">
+      <div style="margin-top:36px;display:flex;justify-content:space-between;gap:40px;">
         <div style="flex:1;text-align:center;">
           <p style="margin:0 0 64px;font-size:13px;font-weight:700;letter-spacing:0.04em;">LA PARTE VENDEDORA</p>
           <div style="border-top:1px solid #222;"></div>

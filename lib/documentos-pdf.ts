@@ -9,7 +9,6 @@ export function cssPaginasDocumento(opts?: { serif?: boolean }) {
     ? `'Times New Roman', Times, Georgia, serif`
     : `'Helvetica Neue', Helvetica, Arial, sans-serif`;
   return `
-    @page { size: A4; margin: 0; }
     * { box-sizing: border-box; }
     html, body {
       margin: 0;
@@ -24,7 +23,15 @@ export function cssPaginasDocumento(opts?: { serif?: boolean }) {
       overflow: hidden;
       position: relative;
       background: #fff;
-      page-break-after: always;
+    }
+    .pdf-page + .pdf-page {
+      border-top: 12px solid #d9d6cf;
+    }
+    @media print {
+      @page { size: A4; margin: 0; }
+      .pdf-page + .pdf-page { border-top: 0; }
+      .pdf-page { break-after: page; page-break-after: always; }
+      .pdf-page:last-child { break-after: auto; page-break-after: auto; }
     }
   `;
 }
@@ -138,6 +145,51 @@ export async function downloadPagedHtmlPdf(params: {
   } finally {
     if (iframe.parentNode) document.body.removeChild(iframe);
   }
+}
+
+/** Abre el diálogo de impresión del navegador con el HTML paginado. */
+export async function imprimirDocumentoHtml(html: string): Promise<void> {
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("title", "Imprimir");
+  Object.assign(iframe.style, {
+    position: "fixed",
+    left: "0",
+    top: "0",
+    width: `${PAGE_W_PX}px`,
+    height: `${PAGE_H_PX * 6}px`,
+    border: "0",
+    opacity: "0.01",
+    pointerEvents: "none",
+    zIndex: "-1",
+    background: "#fff",
+  });
+  document.body.appendChild(iframe);
+  const idoc = iframe.contentDocument;
+  if (!idoc) {
+    iframe.remove();
+    throw new Error("No se pudo abrir la impresión.");
+  }
+  idoc.open();
+  idoc.write(html);
+  idoc.close();
+
+  await waitForImages(idoc);
+  await new Promise((r) => setTimeout(r, 150));
+
+  const win = iframe.contentWindow;
+  if (!win) {
+    iframe.remove();
+    throw new Error("No se pudo abrir la impresión.");
+  }
+
+  const cerrar = () => {
+    win.removeEventListener("afterprint", cerrar);
+    iframe.remove();
+  };
+  win.addEventListener("afterprint", cerrar);
+  window.setTimeout(cerrar, 120000);
+  win.focus();
+  win.print();
 }
 
 export function slugArchivo(texto: string, fallback: string) {
