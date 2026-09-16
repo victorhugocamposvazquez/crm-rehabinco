@@ -1,6 +1,6 @@
 import { EMPRESA_DOCUMENTOS, htmlEsc } from "./empresa-documentos";
-import { cssPreviewEditableArras } from "./contrato-arras-preview";
-import { downloadPagedHtmlPdf, envolverDocumentoHtml, slugArchivo } from "./documentos-pdf";
+import { cssExportContratoArras, cssPreviewEditableArras } from "./contrato-arras-preview";
+import { envolverDocumentoHtml, slugArchivo } from "./documentos-pdf";
 import {
   encabezadoContratoArras,
   eurosEnPalabras,
@@ -39,7 +39,7 @@ export function htmlConNegrita(texto: string, fragmentos: string[]): string {
 }
 
 function h(texto: string) {
-  return `<p data-bloque="1" style="margin:18px 0 10px;font-size:13.5px;font-weight:700;letter-spacing:0.04em;">${htmlEsc(texto)}</p>`;
+  return `<p data-bloque="1" data-titulo-seccion="1" style="margin:18px 0 10px;font-size:13.5px;font-weight:700;letter-spacing:0.04em;">${htmlEsc(texto)}</p>`;
 }
 
 function bloqueEditable(
@@ -178,7 +178,7 @@ export function htmlContratoArras(datos: ContratoArrasDatos, opts?: { editable?:
       </div>`;
 
   const body = `<div class="pdf-flow" style="padding:${54}px ${62}px ${48}px;">${bloques}</div>`;
-  const extraCss = editable ? cssPreviewEditableArras() : "";
+  const extraCss = editable ? cssPreviewEditableArras() : cssExportContratoArras();
 
   return envolverDocumentoHtml({
     title: `Contrato de arras · ${EMPRESA_DOCUMENTOS.razonSocial}`,
@@ -188,6 +188,11 @@ export function htmlContratoArras(datos: ContratoArrasDatos, opts?: { editable?:
   });
 }
 
+/** HTML limpio para imprimir o generar PDF (sin edición ni repaginación previa). */
+export function htmlContratoArrasExport(datos: ContratoArrasDatos): string {
+  return htmlContratoArras(datos, { editable: false });
+}
+
 export function contratoArrasPdfFilename(datos: ContratoArrasDatos): string {
   const quien = slugArchivo(datos.compradores[0]?.nombre || datos.vendedores[0]?.nombre || "", "contrato");
   const fecha = datos.fecha?.slice(0, 10) || String(new Date().getFullYear());
@@ -195,10 +200,10 @@ export function contratoArrasPdfFilename(datos: ContratoArrasDatos): string {
 }
 
 export async function downloadContratoArrasPdf(datos: ContratoArrasDatos) {
-  const { repaginarHtmlContratoArras } = await import("./contrato-arras-preview");
-  const html = await repaginarHtmlContratoArras(htmlContratoArras(datos, { editable: false }));
-  await downloadPagedHtmlPdf({
-    html,
+  const { downloadFlowingHtmlPdf } = await import("./documentos-pdf");
+  await downloadFlowingHtmlPdf({
+    html: htmlContratoArrasExport(datos),
     filename: contratoArrasPdfFilename(datos),
+    selector: ".pdf-flow",
   });
 }

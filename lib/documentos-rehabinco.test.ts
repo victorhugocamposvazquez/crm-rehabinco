@@ -17,7 +17,7 @@ import {
   restoPrecio,
 } from "./contrato-arras";
 import { clausulasPersonalizadasDesdeEdicion, normalizarTextoClausula } from "./contrato-arras-preview";
-import { htmlContratoArras, textosContratoArras } from "./contrato-arras-pdf";
+import { htmlContratoArras, htmlContratoArrasExport, textosContratoArras } from "./contrato-arras-pdf";
 
 describe("documentos Rehabinco 2026", () => {
   it("no usa datos de Conchado y sí los de Rehabinco", () => {
@@ -173,6 +173,14 @@ describe("documentos Rehabinco 2026", () => {
       "QUINTA: Otra redacción."
     );
     assert.equal(normalizarTextoClausula("a\n\nb"), "a b");
+  });
+
+  it("el HTML de exportación no repagina ni permite edición inline", () => {
+    const html = htmlContratoArrasExport(contratoArrasVacio());
+    assert.match(html, /pdf-flow/);
+    assert.equal(html.includes("contenteditable"), false);
+    assert.equal(/class="pdf-page"/.test(html), false);
+    assert.match(html, /break-inside: avoid-page/);
   });
 
   it("un contrato nuevo tiene una persona por parte", () => {

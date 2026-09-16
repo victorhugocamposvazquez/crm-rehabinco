@@ -26,8 +26,13 @@ import {
   type PersonaArras,
   type TratamientoPersona,
 } from "@/lib/contrato-arras";
-import { clausulasPersonalizadasDesdeEdicion, repaginarHtmlContratoArras } from "@/lib/contrato-arras-preview";
-import { downloadContratoArrasPdf, htmlContratoArras, textosContratoArras } from "@/lib/contrato-arras-pdf";
+import { clausulasPersonalizadasDesdeEdicion } from "@/lib/contrato-arras-preview";
+import {
+  downloadContratoArrasPdf,
+  htmlContratoArras,
+  htmlContratoArrasExport,
+  textosContratoArras,
+} from "@/lib/contrato-arras-pdf";
 import { EMPRESA_DOCUMENTOS } from "@/lib/empresa-documentos";
 import { altaCamposVacios, leerAltaBorrador } from "@/lib/ui/alta-borrador";
 import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
@@ -145,7 +150,8 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
     estaVacio: snapVacio,
   });
 
-  const html = useMemo(() => htmlContratoArras(datos, { editable: true }), [datos]);
+  const htmlPreview = useMemo(() => htmlContratoArras(datos, { editable: true }), [datos]);
+  const htmlExport = useMemo(() => htmlContratoArrasExport(datos), [datos]);
   const resto = restoPrecio(datos.precio, datos.arras);
   const tieneClausulasPersonalizadas = Object.keys(datos.clausulas_personalizadas ?? {}).length > 0;
 
@@ -283,9 +289,7 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
     }
   };
 
-  const imprimir = useImprimirDocumento(html, guardar, {
-    prepararHtml: repaginarHtmlContratoArras,
-  });
+  const imprimir = useImprimirDocumento(htmlExport, guardar);
 
   if (loading) {
     return (
@@ -527,7 +531,7 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
         form={form}
         preview={
           <PdfFrameEditable
-            html={html}
+            html={htmlPreview}
             onClausulasChange={setClausulasPersonalizadas}
             onRestablecerClausulas={restablecerClausulas}
             tienePersonalizadas={tieneClausulasPersonalizadas}

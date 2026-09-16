@@ -115,6 +115,96 @@ function waitForImages(doc: Document): Promise<void> {
   ).then(() => undefined);
 }
 
+/** Captura un documento continuo y lo trocea en hojas A4 según la altura real del contenido. */
+export async function downloadFlowingHtmlPdf(params: {
+  html: string;
+  filename: string;
+  selector?: string;
+}): Promise<void> {
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("title", "PDF");
+  iframe.setAttribute("aria-hidden", "true");
+  Object.assign(iframe.style, {
+    position: "fixed",
+    left: "0",
+    top: "0",
+    width: `${PAGE_W_PX}px`,
+    height: `${PAGE_H_PX * 8}px`,
+    border: "0",
+    opacity: "0.01",
+    pointerEvents: "none",
+    zIndex: "-1",
+    background: "#fff",
+  });
+  document.body.appendChild(iframe);
+  const idoc = iframe.contentDocument;
+  if (!idoc) {
+    document.body.removeChild(iframe);
+    throw new Error("No se pudo generar el PDF. Inténtalo de nuevo.");
+  }
+  idoc.open();
+  idoc.write(params.html);
+  idoc.close();
+
+  await waitForImages(idoc);
+  await new Promise((r) => setTimeout(r, 200));
+
+  const root = idoc.querySelector(params.selector ?? ".pdf-flow") as HTMLElement | null;
+  if (!root) {
+    document.body.removeChild(iframe);
+    throw new Error("No se pudo generar el PDF. Inténtalo de nuevo.");
+  }
+
+  try {
+    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+      import("html2canvas"),
+      import("jspdf"),
+    ]);
+    const scale = 2;
+    const totalH = Math.max(root.scrollHeight, 1);
+    iframe.style.height = `${totalH + 40}px`;
+
+    const canvas = await html2canvas(root, {
+      scale,
+      useCORS: true,
+      logging: false,
+      backgroundColor: "#ffffff",
+      width: PAGE_W_PX,
+      height: totalH,
+      windowWidth: PAGE_W_PX,
+      windowHeight: totalH,
+      scrollX: 0,
+      scrollY: 0,
+      imageTimeout: 15000,
+    });
+
+    const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+    const sliceH = PAGE_H_PX * scale;
+    let y = 0;
+    let page = 0;
+
+    while (y < canvas.height) {
+      const h = Math.min(sliceH, canvas.height - y);
+      const slice = document.createElement("canvas");
+      slice.width = canvas.width;
+      slice.height = h;
+      const ctx = slice.getContext("2d");
+      if (!ctx) break;
+      ctx.drawImage(canvas, 0, y, canvas.width, h, 0, 0, canvas.width, h);
+      const img = slice.toDataURL("image/jpeg", 0.95);
+      const imgHmm = (h / scale) * (297 / PAGE_H_PX);
+      if (page > 0) pdf.addPage("a4", "portrait");
+      pdf.addImage(img, "JPEG", 0, 0, 210, imgHmm, undefined, "FAST");
+      y += sliceH;
+      page += 1;
+    }
+
+    pdf.save(params.filename);
+  } finally {
+    if (iframe.parentNode) document.body.removeChild(iframe);
+  }
+}
+
 /** Captura cada `.pdf-page` a A4. */
 export async function downloadPagedHtmlPdf(params: {
   html: string;
