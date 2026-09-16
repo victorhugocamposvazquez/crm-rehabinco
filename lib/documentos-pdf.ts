@@ -29,7 +29,18 @@ export function cssPaginasDocumento(opts?: { serif?: boolean }) {
       border-top: 12px solid #d9d6cf;
     }
     @media print {
-      @page { size: A4 portrait; margin: 0; }
+      @page {
+        size: A4 portrait;
+        margin: 12mm 12mm 18mm 12mm;
+      }
+      @page {
+        @top-left { content: none; }
+        @top-center { content: none; }
+        @top-right { content: none; }
+        @bottom-left { content: none; }
+        @bottom-center { content: none; }
+        @bottom-right { content: none; }
+      }
       html {
         margin: 0 !important;
         padding: 0 !important;
@@ -39,9 +50,13 @@ export function cssPaginasDocumento(opts?: { serif?: boolean }) {
         width: auto;
         height: auto !important;
         margin: 0 !important;
-        padding: 8mm 10mm !important;
+        padding: 0 !important;
         overflow: visible !important;
         background: #fff;
+      }
+      p {
+        orphans: 3;
+        widows: 3;
       }
       .pdf-page + .pdf-page { border-top: 0 !important; }
       .pdf-page {
