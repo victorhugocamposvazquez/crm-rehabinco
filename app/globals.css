@@ -31,6 +31,9 @@
   --muted: #5d6b67;
   --ring: #0b7461;
   --radius: 12px;
+  --mobile-nav-h: calc(4.25rem + env(safe-area-inset-bottom, 0px));
+  --mobile-fab-bottom: calc(var(--mobile-nav-h) + 0.75rem);
+  --mobile-content-pb: calc(var(--mobile-nav-h) + 4.25rem);
 }
 
 * {

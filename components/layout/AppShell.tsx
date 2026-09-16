@@ -64,7 +64,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               "mx-auto w-full max-w-[1600px] flex-1 px-3.5 pt-5 min-[820px]:px-6 min-[820px]:pt-6",
               wizard
                 ? "pb-4 md:pb-10"
-                : "pb-[calc(6rem+env(safe-area-inset-bottom,0px))] min-[820px]:pb-10"
+                : "pb-[var(--mobile-content-pb)] min-[820px]:pb-10"
             )}
           >
             {children}

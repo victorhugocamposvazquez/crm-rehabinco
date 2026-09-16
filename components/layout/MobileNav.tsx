@@ -23,7 +23,7 @@ export function MobileNav() {
   return (
     <>
       <nav
-        className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-white pb-[env(safe-area-inset-bottom)] min-[820px]:hidden"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-white min-[820px]:hidden"
         role="navigation"
         aria-label="Navegación principal"
       >
@@ -65,6 +65,7 @@ export function MobileNav() {
             );
           })}
         </div>
+        <div className="h-[env(safe-area-inset-bottom,0px)] bg-white" aria-hidden />
       </nav>
       <Sheet open={mas} onOpenChange={setMas} variant="side" side="left" showCloseButton>
         <nav className="h-full overflow-y-auto overscroll-contain px-4 pb-8 pt-[max(3.5rem,calc(env(safe-area-inset-top)+2.75rem))]" aria-label="Más destinos">

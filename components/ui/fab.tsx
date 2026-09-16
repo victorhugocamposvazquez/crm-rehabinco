@@ -13,7 +13,7 @@ interface FabProps {
 
 export function Fab({ href, onClick, label, className }: FabProps) {
   const cls = cn(
-    "fixed bottom-20 right-4 z-[45] flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-accent-foreground shadow-[0_12px_24px_rgba(13,148,136,0.28)] transition-transform hover:opacity-95 active:scale-95 min-[820px]:hidden [&_svg]:h-6 [&_svg]:w-6",
+    "fixed right-4 z-[55] flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-accent-foreground shadow-[0_12px_24px_rgba(13,148,136,0.28)] transition-transform hover:opacity-95 active:scale-95 min-[820px]:hidden bottom-[var(--mobile-fab-bottom)] [&_svg]:h-6 [&_svg]:w-6",
     "animate-[fadeIn_0.2s_ease-out]",
     className
   );

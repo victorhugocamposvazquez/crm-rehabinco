@@ -341,7 +341,7 @@ export default function ClientesPage() {
             <aside
               className={cn(
                 "overflow-hidden rounded-[14px] border border-border bg-white",
-                narrow ? "fixed inset-0 z-[80] overflow-y-auto rounded-none pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]" : "sticky top-[72px] min-w-[300px] flex-[1_1_330px]"
+                narrow ? "fixed inset-0 z-[80] overflow-y-auto rounded-none pb-[var(--mobile-content-pb)]" : "sticky top-[72px] min-w-[300px] flex-[1_1_330px]"
               )}
             >
               <div className="flex items-center gap-3 border-b border-[var(--border-soft)] px-4 py-4">
