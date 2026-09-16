@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
+const buildId = process.env.VERCEL_GIT_COMMIT_SHA ?? "dev";
+
 const nextConfig: NextConfig = {
+  env: {
+    NEXT_PUBLIC_BUILD_ID: buildId,
+  },
   async redirects() {
     return [
       { source: "/inmuebles", destination: "/propiedades", permanent: false },
