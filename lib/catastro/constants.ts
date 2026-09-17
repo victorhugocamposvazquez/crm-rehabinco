@@ -191,4 +191,9 @@ export const TIPOS_VIA_OFICIALES: ReadonlyArray<{
 export const DEFAULT_MIN_INTERVAL_MS = 400;
 export const DEFAULT_CACHE_TTL_MS = 30 * 60 * 1000;
 export const DEFAULT_TIMEOUT_MS = 20_000;
+/**
+ * Callejeros y listados INSPIRE de municipios grandes (Madrid, Barcelona…) pesan
+ * más de 1 MB y Catastro tarda 25-30 s en servirlos. Timeout específico para ellos.
+ */
+export const CATALOGO_TIMEOUT_MS = 45_000;
 export const CATASTRO_USER_AGENT = "RehabincoCRM-CatastroExplorer/0.1";

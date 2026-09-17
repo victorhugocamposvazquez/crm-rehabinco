@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { createCatastroClient, type CatastroClient } from "./client";
 import { createDiscoveryStore } from "./discovery-session";
 import { discoverFincas, esPortalInexistente, parsearNumerero } from "./discovery";
-import { CatastroHttpError } from "./http";
+import { CATASTRO_OVCERROR_STATUS, CatastroHttpError } from "./http";
 import { LTP_MIXTO_URBANO_RUSTICO } from "./unknown-reason";
 import { esReferenciaFinca, esReferenciaInmueble } from "./references";
 import { hayCorteWfs, numerosOficiales, parsearDireccionesInspire } from "./inspire-ad";
@@ -319,6 +319,21 @@ describe("discoverFincas — unidad", () => {
     assert.match(result.discovery.limitation ?? "", /ObtenerNumerero/);
     assert.equal(result.error, null);
     assert.equal(result.fincas.length, 1);
+  });
+
+  it("si INSPIRE redirige a OVCError y el numerero está vacío, son 0 portales sin error", async () => {
+    for (const status of [404, CATASTRO_OVCERROR_STATUS]) {
+      const { client } = mockClient({
+        inspireError: new CatastroHttpError("Catastro ha devuelto su página de error (OVCError)", status),
+        numerero: [],
+        porNumero: {},
+      });
+      const result = await discoverFincas(query, client);
+      assert.equal(result.error, null, `status ${status}`);
+      assert.deepEqual(result.numerosOficiales, []);
+      assert.equal(result.fincas.length, 0);
+      assert.match(result.discovery.limitation ?? "", /no tiene direcciones para esta vía/);
+    }
   });
 
   it("2. 3 portales → 3 fincas", async () => {

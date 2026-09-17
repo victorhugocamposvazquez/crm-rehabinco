@@ -7,8 +7,9 @@
     "build": "next build && node scripts/stamp-sw-build.mjs",
     "start": "next start",
     "lint": "next lint",
-    "test": "tsx --test \"lib/catastro/**/*.test.ts\" \"lib/catastro-host/**/*.test.ts\" \"lib/captacion/**/*.test.ts\" \"lib/demandas/**/*.test.ts\" \"lib/citas/**/*.test.ts\" \"lib/tareas/**/*.test.ts\" \"lib/inmuebles/**/*.test.ts\" \"lib/geo/**/*.test.ts\" \"lib/alertas/**/*.test.ts\" \"lib/partes-visita.test.ts\" \"lib/documentos-rehabinco.test.ts\" \"lib/documentos-paginacion.test.ts\" \"lib/contrato-arras-preview.test.ts\" \"lib/build-id.test.ts\" \"lib/auth/**/*.test.ts\" \"lib/ui/**/*.test.ts\" \"scripts/stamp-sw-build.test.mjs\"",
-    "catastro:explore": "tsx lib/catastro/explore.ts"
+    "test": "CATASTRO_SKIP_LIVE=1 tsx --test \"lib/catastro/**/*.test.ts\" \"lib/catastro-host/**/*.test.ts\" \"lib/captacion/**/*.test.ts\" \"lib/demandas/**/*.test.ts\" \"lib/citas/**/*.test.ts\" \"lib/tareas/**/*.test.ts\" \"lib/inmuebles/**/*.test.ts\" \"lib/geo/**/*.test.ts\" \"lib/alertas/**/*.test.ts\" \"lib/partes-visita.test.ts\" \"lib/documentos-rehabinco.test.ts\" \"lib/documentos-paginacion.test.ts\" \"lib/contrato-arras-preview.test.ts\" \"lib/build-id.test.ts\" \"lib/auth/**/*.test.ts\" \"lib/ui/**/*.test.ts\" \"scripts/stamp-sw-build.test.mjs\"",
+    "catastro:explore": "tsx lib/catastro/explore.ts",
+    "test:live": "tsx --test \"lib/catastro/**/*.test.ts\""
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.52",

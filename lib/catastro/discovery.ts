@@ -51,7 +51,7 @@ import type {
   InmuebleNormalizado,
   JsonValue,
 } from "./types";
-import { CatastroHttpError } from "./http";
+import { CATASTRO_OVCERROR_STATUS, CatastroHttpError } from "./http";
 
 export type { DireccionFinca, FincaDescubierta };
 
@@ -330,7 +330,11 @@ async function descubrirNumerosOficiales(
     }
   } catch (error) {
     // Vía oficial sin direcciones INSPIRE: el WFS redirige a /OVCError.aspx (HTTP 404).
-    if (error instanceof CatastroHttpError && error.status === 404) {
+    // El cliente marca esa redirección con CATASTRO_OVCERROR_STATUS.
+    if (
+      error instanceof CatastroHttpError &&
+      (error.status === 404 || error.status === CATASTRO_OVCERROR_STATUS)
+    ) {
       inspireError = null;
     } else {
       inspireError = errorDeExcepcion(error);

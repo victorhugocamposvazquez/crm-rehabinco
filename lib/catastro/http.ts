@@ -12,6 +12,9 @@ type CacheEntry = {
   payload: unknown;
 };
 
+/** Status sintético con el que marcamos las redirecciones a OVCError (Catastro devuelve 404 ahí). */
+export const CATASTRO_OVCERROR_STATUS = 502;
+
 export class CatastroHttpError extends Error {
   constructor(
     message: string,
@@ -23,10 +26,24 @@ export class CatastroHttpError extends Error {
   }
 }
 
+export type CatastroRequestOptions = {
+  /** Sustituye el timeout por defecto del cliente para esta petición. */
+  timeoutMs?: number;
+};
+
+/**
+ * Catastro no devuelve códigos de error limpios: ante un fallo interno redirige a
+ * `OVCError.aspx`, que responde 404 con una página HTML. Lo detectamos para no
+ * confundirlo con una respuesta legítima.
+ */
+export function esRedireccionAErrorCatastro(response: Pick<Response, "url" | "redirected">): boolean {
+  return Boolean(response.redirected) && /OVCError/i.test(response.url ?? "");
+}
+
 export function createCatastroHttp(options: CatastroClientOptions = {}) {
   const minIntervalMs = options.minIntervalMs ?? DEFAULT_MIN_INTERVAL_MS;
   const cacheTtlMs = options.cacheTtlMs ?? DEFAULT_CACHE_TTL_MS;
-  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const defaultTimeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const fetchImpl = options.fetchImpl ?? fetch;
   const cache = new Map<string, CacheEntry>();
   let lastRequestAt = 0;
@@ -53,8 +70,10 @@ export function createCatastroHttp(options: CatastroClientOptions = {}) {
 
   async function getJson(
     operation: string,
-    params: Record<string, string | undefined>
+    params: Record<string, string | undefined>,
+    requestOptions: CatastroRequestOptions = {}
   ): Promise<JsonValue> {
+    const timeoutMs = requestOptions.timeoutMs ?? defaultTimeoutMs;
     const search = new URLSearchParams();
     for (const [key, value] of Object.entries(params)) {
       if (value != null && value !== "") {
@@ -94,6 +113,13 @@ export function createCatastroHttp(options: CatastroClientOptions = {}) {
           signal: controller.signal,
         });
 
+        if (esRedireccionAErrorCatastro(response)) {
+          throw new CatastroHttpError(
+            `Catastro ha devuelto su página de error (OVCError) en ${operation}`,
+            CATASTRO_OVCERROR_STATUS,
+            url
+          );
+        }
         if (!response.ok) {
           throw new CatastroHttpError(
             `Catastro respondió HTTP ${response.status} en ${operation}`,
@@ -122,7 +148,12 @@ export function createCatastroHttp(options: CatastroClientOptions = {}) {
     });
   }
 
-  async function getText(url: string, accept = "application/xml,text/xml"): Promise<string> {
+  async function getText(
+    url: string,
+    accept = "application/xml,text/xml",
+    requestOptions: CatastroRequestOptions = {}
+  ): Promise<string> {
+    const timeoutMs = requestOptions.timeoutMs ?? defaultTimeoutMs;
     const cached = cache.get(url);
     if (cached && cached.expiresAt > Date.now() && typeof cached.payload === "string") {
       cacheHits += 1;
@@ -151,6 +182,13 @@ export function createCatastroHttp(options: CatastroClientOptions = {}) {
           signal: controller.signal,
         });
 
+        if (esRedireccionAErrorCatastro(response)) {
+          throw new CatastroHttpError(
+            "Catastro ha devuelto su página de error (OVCError)",
+            CATASTRO_OVCERROR_STATUS,
+            url
+          );
+        }
         if (!response.ok) {
           throw new CatastroHttpError(
             `Catastro respondió HTTP ${response.status}`,

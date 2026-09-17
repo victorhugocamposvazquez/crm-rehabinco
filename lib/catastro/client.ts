@@ -1,4 +1,9 @@
-import { CATASTRO_COORDENADAS_JSON, CATASTRO_INSPIRE_AD_WFS, CATASTRO_OPERATIONS } from "./constants";
+import {
+  CATALOGO_TIMEOUT_MS,
+  CATASTRO_COORDENADAS_JSON,
+  CATASTRO_INSPIRE_AD_WFS,
+  CATASTRO_OPERATIONS,
+} from "./constants";
 import { getFincaReference } from "./references";
 import { createCatastroHttp } from "./http";
 import { parseConsultaDnp, separarTipoVia } from "./parse";
@@ -19,6 +24,8 @@ function compactQuery(params: Record<string, string | undefined>): Record<string
 
 export function createCatastroClient(options: CatastroClientOptions = {}) {
   const http = createCatastroHttp(options);
+  // Si el llamador fija un timeout explícito mayor, se respeta; si no, el de catálogos.
+  const catalogoTimeoutMs = Math.max(options.timeoutMs ?? 0, CATALOGO_TIMEOUT_MS);
 
   async function consultarDireccion(
     consulta: ConsultaDireccion
@@ -82,12 +89,19 @@ export function createCatastroClient(options: CatastroClientOptions = {}) {
     tipoVia?: string;
     nomVia?: string;
   }): Promise<JsonValue> {
-    return http.getJson(CATASTRO_OPERATIONS.callejero, {
-      Provincia: params.provincia.trim(),
-      Municipio: params.municipio.trim(),
-      TipoVia: params.tipoVia?.trim(),
-      NomVia: params.nomVia?.trim(),
-    });
+    // Sin filtro de vía es el callejero completo del municipio: en capitales
+    // grandes pesa >1 MB y tarda casi 30 s, así que va con timeout amplio.
+    const callejeroCompleto = !params.tipoVia?.trim() && !params.nomVia?.trim();
+    return http.getJson(
+      CATASTRO_OPERATIONS.callejero,
+      {
+        Provincia: params.provincia.trim(),
+        Municipio: params.municipio.trim(),
+        TipoVia: params.tipoVia?.trim(),
+        NomVia: params.nomVia?.trim(),
+      },
+      callejeroCompleto ? { timeoutMs: catalogoTimeoutMs } : {}
+    );
   }
 
   async function obtenerNumerero(params: {
@@ -137,7 +151,7 @@ export function createCatastroClient(options: CatastroClientOptions = {}) {
     url.searchParams.set("POSTALCODE", params.codigoPostal.trim());
     if (params.startIndex != null) url.searchParams.set("startIndex", String(params.startIndex));
     if (params.count != null) url.searchParams.set("count", String(params.count));
-    return http.getText(url.toString());
+    return http.getText(url.toString(), undefined, { timeoutMs: catalogoTimeoutMs });
   }
 
   /** Consulta_CPMRC: centroide oficial de la parcela. RefCat de 14. */

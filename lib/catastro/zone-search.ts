@@ -13,7 +13,7 @@
 import { filtrarPorDivision, fusionarFincas, parsearFiltroDivision } from "./candidates";
 import { getCatastroClient, type CatastroClient } from "./client";
 import { getCatalogCache, obtenerCallejeroOficial, type CalleCatalogo, type CatalogCache } from "./catalog";
-import { CatastroHttpError } from "./http";
+import { CATASTRO_OVCERROR_STATUS, CatastroHttpError } from "./http";
 import { codigosViaUnicos, normalizarCodigoVia, parsearDireccionesInspire } from "./inspire-ad";
 import {
   buscarFincasComerciales,
@@ -425,8 +425,15 @@ async function callesDelCodigoPostal(
       }),
     };
   } catch (error) {
-    if (error instanceof CatastroHttpError && error.status === 404) {
-      return { ok: true, calles: [] };
+    if (
+      error instanceof CatastroHttpError &&
+      (error.status === 404 || error.status === CATASTRO_OVCERROR_STATUS)
+    ) {
+      // Catastro responde igual (redirección a OVCError → 404) cuando el CP no
+      // existe y cuando su servicio INSPIRE falla para un CP real. Como no se
+      // pueden distinguir, no damos el CP por vacío: se recorre el callejero
+      // completo y el filtro por CP se aplica finca a finca, como siempre.
+      return { ok: true, calles: callejero };
     }
     return { ok: false, code: "upstream", error: "Catastro no ha podido listar las calles de ese código postal." };
   }

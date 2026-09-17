@@ -4,6 +4,7 @@ import { createCatalogCache, normalizarNombreCatalogo, type CalleCatalogo } from
 import { createCatastroClient, type CatastroClient } from "./client";
 import { buscarFincasComerciales, type CriteriosBusquedaComercial, type Finca } from "./commercial-search";
 import { createDiscoveryStore } from "./discovery-session";
+import { CATASTRO_OVCERROR_STATUS, CatastroHttpError } from "./http";
 import {
   leerParametrosZona,
   responderZonaCancelar,
@@ -378,6 +379,42 @@ describe("Zona: preparación", () => {
     );
     assert.equal(session.streetsTotal, 2);
     assert.equal(snapshotZona(session).coverage.hasNextBlock, false);
+  });
+
+  it("si Catastro no puede listar el CP (OVCError/404) recorre todo el callejero y filtra finca a finca", async () => {
+    const calles = [calle("11", "AGRA MONTES"), calle("88", "MAYOR"), calle("999", "OTRA")];
+    for (const status of [404, CATASTRO_OVCERROR_STATUS]) {
+      const mundo = mundoFalso(calles.map((item) => ({ calle: item })));
+      const deps = depsFalsas(mundo, calles, {
+        client: {
+          obtenerDireccionesPorCodigoPostal: async () => {
+            throw new CatastroHttpError("Catastro ha devuelto su página de error (OVCError)", status);
+          },
+        } as unknown as CatastroClient,
+      });
+      const session = await prepararOk(deps, { ...CRITERIOS, postalCode: "46388" });
+      assert.deepEqual(
+        session.calles.map((item) => item.calle.code),
+        ["11", "88", "999"],
+        `status ${status}: usa el callejero completo`
+      );
+      assert.equal(session.streetsTotal, 3);
+    }
+  });
+
+  it("otros fallos al listar el CP siguen siendo error upstream", async () => {
+    const calles = [calle("11", "AGRA MONTES")];
+    const mundo = mundoFalso(calles.map((item) => ({ calle: item })));
+    const deps = depsFalsas(mundo, calles, {
+      client: {
+        obtenerDireccionesPorCodigoPostal: async () => {
+          throw new CatastroHttpError("Catastro respondió HTTP 500", 500);
+        },
+      } as unknown as CatastroClient,
+    });
+    const resultado = await prepararZona({ ...CRITERIOS, postalCode: "46388" }, USUARIO, deps);
+    assert.equal(resultado.ok, false);
+    if (!resultado.ok) assert.equal(resultado.code, "upstream");
   });
 
   it("rechaza provincia o municipio no oficiales", async () => {
