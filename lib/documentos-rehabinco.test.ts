@@ -151,7 +151,12 @@ describe("documentos Rehabinco 2026", () => {
     assert.match(visita, /margin: 12mm 12mm 18mm 12mm/);
     assert.match(visita, /height: auto/);
     assert.match(visita, /page-break-after: auto/);
-    assert.match(htmlContratoArras(contratoArrasVacio()), /@media print/);
+    const arras = htmlContratoArras(contratoArrasVacio(), { editable: false });
+    assert.match(arras, /@media print/);
+    // Cada hoja paginada por JS debe ocupar exactamente un A4 físico al imprimir.
+    assert.match(arras, /@page\s*\{\s*size: A4 portrait;\s*margin: 0;/);
+    assert.match(arras, /\.pdf-page\s*\{[^}]*width: 210mm !important;[^}]*height: 297mm !important;/);
+    assert.match(arras, /\.pdf-page\s*\{[^}]*page-break-after: always;/);
   });
 
   it("respeta cláusulas personalizadas y genera bloques editables", () => {
@@ -176,9 +181,13 @@ describe("documentos Rehabinco 2026", () => {
   });
 
   it("el HTML de exportación no repagina ni permite edición inline", () => {
-    const html = htmlContratoArrasExport(contratoArrasVacio());
+    const datos = contratoArrasVacio();
+    datos.fecha = "2026-09-17";
+    const html = htmlContratoArrasExport(datos);
     assert.match(html, /pdf-flow/);
     assert.equal(html.includes("contenteditable"), false);
+    // El encabezado (lugar y fecha) debe ser un bloque paginable o el repaginador lo pierde.
+    assert.match(html, /<p data-bloque="1"[^>]*>En A Coruña, a 17 de septiembre de 2026<\/p>/);
     assert.equal(/class="pdf-page"/.test(html), false);
     assert.match(html, /break-inside: auto/);
     assert.match(html, /\.pdf-firmas[\s\S]*break-inside: avoid-page/);

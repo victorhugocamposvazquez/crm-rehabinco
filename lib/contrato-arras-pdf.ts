@@ -18,10 +18,6 @@ import {
   type PersonaArras,
 } from "./contrato-arras";
 
-function p(texto: string, extra = "") {
-  return `<p style="margin:0 0 11px;font-size:13px;line-height:1.48;text-align:justify;${extra}">${texto}</p>`;
-}
-
 function nombresAResaltar(personas: PersonaArras[]): string[] {
   const list = personas.length ? personas : [personaArrasVacia("Don")];
   return list.map(nombrePersonaArras);
@@ -138,9 +134,10 @@ export function htmlContratoArras(datos: ContratoArrasDatos, opts?: { editable?:
   const nl = (s: string) => htmlEsc(s).replace(/\n/g, "<br />");
   const editable = opts?.editable !== false;
 
+  // Debe ser un bloque con data-bloque: el repaginador descarta lo que no lo lleve.
   const encabezado = editable
     ? bloqueEditable("encabezado", htmlEsc(t.encabezado), "text-align:center;margin-bottom:22px;font-size:13.5px;")
-    : p(htmlEsc(t.encabezado), "text-align:center;margin-bottom:22px;font-size:13.5px;");
+    : bloqueEstatico(htmlEsc(t.encabezado), "text-align:center;margin-bottom:22px;font-size:13.5px;");
 
   const clausula = (key: ClausulaArrasKey, inner: string, extra = "") =>
     editable ? bloqueEditable(key, inner, extra) : bloqueEstatico(inner, extra);

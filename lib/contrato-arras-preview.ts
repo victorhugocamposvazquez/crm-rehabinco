@@ -487,25 +487,40 @@ export function cssExportContratoArras(): string {
       page-break-inside: avoid;
     }
     @media print {
+      /*
+       * Las hojas ya vienen paginadas por JS a 794x1123 px (A4 a 96 dpi), con el
+       * margen dentro de la propia hoja como padding. Para que la impresión sea
+       * idéntica al PDF, cada .pdf-page tiene que ocupar exactamente una hoja
+       * física: sin márgenes de @page y con tamaño fijo A4. Si no, el área útil
+       * encoge, la hoja desborda y el navegador mete hojas casi vacías.
+       */
+      @page {
+        size: A4 portrait;
+        margin: 0;
+      }
       html, body {
         margin: 0 !important;
         padding: 0 !important;
+        width: 210mm;
       }
       .pdf-flow {
         display: none !important;
       }
       .pdf-page {
-        width: auto !important;
-        height: auto !important;
+        width: 210mm !important;
+        height: 297mm !important;
+        min-height: 0 !important;
+        max-height: none !important;
         margin: 0 !important;
         padding: ${PADDING_TOP}px ${PADDING_X}px ${PADDING_BOTTOM}px !important;
-        overflow: visible !important;
+        overflow: hidden !important;
         break-after: page;
         page-break-after: always;
         break-inside: avoid-page;
         page-break-inside: avoid;
       }
       .pdf-page:last-child {
+        height: auto !important;
         break-after: auto;
         page-break-after: auto;
       }
