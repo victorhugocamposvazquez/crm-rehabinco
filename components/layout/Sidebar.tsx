@@ -48,13 +48,16 @@ export function Sidebar({ badges }: { badges?: Record<string, number> }) {
     >
       <Link
         href={home}
-        className={cn("flex h-14 items-center overflow-hidden", collapsed ? "justify-center px-2" : "px-3")}
+        className={cn(
+          "flex h-14 items-center overflow-hidden bg-[#14161A]",
+          collapsed ? "justify-center px-2" : "px-2.5"
+        )}
         aria-label="Inicio"
       >
         {collapsed ? (
           <img src="/images/icono.png" alt="" className="h-8 w-8 shrink-0 object-contain" />
         ) : (
-          <img src="/images/logo-web.png" alt="" className="h-8 w-auto max-w-full shrink-0 object-contain" />
+          <img src="/images/logo-web.png" alt="" className="h-9 w-auto max-w-full shrink-0 object-contain" />
         )}
       </Link>
       <nav className="flex-1 overflow-y-auto px-2 py-2.5">
