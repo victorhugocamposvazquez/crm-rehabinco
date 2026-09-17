@@ -49,7 +49,7 @@ export function Sidebar({ badges }: { badges?: Record<string, number> }) {
       <Link
         href={home}
         className={cn(
-          "flex h-14 items-center overflow-hidden bg-[#14161A]",
+          "flex h-14 items-center overflow-hidden",
           collapsed ? "justify-center px-2" : "px-2.5"
         )}
         aria-label="Inicio"

@@ -55,7 +55,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-[var(--background)] px-4 py-12">
       <div className="w-full max-w-[400px] rounded-[14px] border border-border bg-white p-8">
-        <div className="-mx-8 -mt-8 mb-6 flex justify-center bg-[#14161A] px-8 py-7">
+        <div className="mb-6 flex justify-center">
           <img
             src="/images/logo-login.png"
             alt="REHABINCO"
