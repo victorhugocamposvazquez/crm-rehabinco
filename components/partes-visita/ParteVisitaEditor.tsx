@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { DocumentoSplit, PdfFrame } from "@/components/documentos/DocumentoSplit";
 import { useImprimirDocumento } from "@/components/documentos/DialogoGuardarAlImprimir";
+import { prepararDocumentoExportHtml } from "@/lib/documentos-paginacion";
 import { VisitContextoCatastro } from "@/components/partes-visita/VisitContextoCatastro";
 import { prefillParteDesdeCita } from "@/lib/citas/citas";
 import {
@@ -385,7 +386,7 @@ export function ParteVisitaEditor({
     }
   };
 
-  const imprimir = useImprimirDocumento(html, guardar);
+  const imprimir = useImprimirDocumento(html, guardar, { prepararHtml: prepararDocumentoExportHtml });
 
   if (loading) {
     return (

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Download, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DOCUMENTO_PAGE_H, DOCUMENTO_PAGE_W } from "@/lib/documentos-pdf";
+import { esperarLayoutDocumento, repaginarDocumento } from "@/lib/documentos-paginacion";
 
 export function DocumentoSplit({
   form,
@@ -51,15 +52,30 @@ export function PdfFrame({
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
+    let cancelado = false;
     const medir = () => {
       const doc = iframe.contentDocument;
       if (!doc?.body) return;
       const h = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight);
       if (h > 0) setAlto(h);
     };
-    iframe.addEventListener("load", medir);
+    // La previsualización muestra las mismas hojas que saldrán en PDF e impresión.
+    const paginarYMedir = () => {
+      const doc = iframe.contentDocument;
+      if (!doc?.body) return;
+      void (async () => {
+        await esperarLayoutDocumento(doc);
+        if (cancelado) return;
+        repaginarDocumento(doc, { fraccionar: true });
+        medir();
+      })();
+    };
+    iframe.addEventListener("load", paginarYMedir);
     medir();
-    return () => iframe.removeEventListener("load", medir);
+    return () => {
+      cancelado = true;
+      iframe.removeEventListener("load", paginarYMedir);
+    };
   }, [html, pages]);
 
   return (

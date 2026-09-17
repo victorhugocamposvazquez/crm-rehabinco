@@ -1,5 +1,6 @@
 import { EMPRESA_DOCUMENTOS, htmlEsc } from "./empresa-documentos";
 import { cssExportContratoArras, cssPreviewEditableArras } from "./contrato-arras-preview";
+import { envolverFlujoDocumento } from "./documentos-paginacion";
 import { envolverDocumentoHtml, slugArchivo } from "./documentos-pdf";
 import {
   encabezadoContratoArras,
@@ -129,15 +130,17 @@ export function htmlContratoArras(datos: ContratoArrasDatos, opts?: { editable?:
   const nombres = [...nombresAResaltar(datos.vendedores), ...nombresAResaltar(datos.compradores)];
   const cuenta = datos.cuenta_vendedora.trim() || "…………………………………………";
   const arras = eurosEnPalabras(datos.arras);
-  const conNombres = (s: string) => htmlConNegrita(s, nombres);
-  const nlNombres = (s: string) => conNombres(s).replace(/\n/g, "<br />");
-  const nl = (s: string) => htmlEsc(s).replace(/\n/g, "<br />");
   const editable = opts?.editable !== false;
+
+  // Todas las cláusulas pasan por aquí: nombres en negrita y cada salto de línea
+  // (generado o escrito al editar inline) se respeta como <br />.
+  const render = (s: string, extraNegritas: string[] = []) =>
+    htmlConNegrita(s, [...nombres, ...extraNegritas]).replace(/\n/g, "<br />");
 
   // Debe ser un bloque con data-bloque: el repaginador descarta lo que no lo lleve.
   const encabezado = editable
-    ? bloqueEditable("encabezado", htmlEsc(t.encabezado), "text-align:center;margin-bottom:22px;font-size:13.5px;")
-    : bloqueEstatico(htmlEsc(t.encabezado), "text-align:center;margin-bottom:22px;font-size:13.5px;");
+    ? bloqueEditable("encabezado", render(t.encabezado), "text-align:center;margin-bottom:22px;font-size:13.5px;")
+    : bloqueEstatico(render(t.encabezado), "text-align:center;margin-bottom:22px;font-size:13.5px;");
 
   const clausula = (key: ClausulaArrasKey, inner: string, extra = "") =>
     editable ? bloqueEditable(key, inner, extra) : bloqueEstatico(inner, extra);
@@ -145,24 +148,24 @@ export function htmlContratoArras(datos: ContratoArrasDatos, opts?: { editable?:
   const bloques =
     encabezado +
     h("REUNIDOS") +
-    clausula("reunidosVendedores", conNombres(t.reunidosVendedores)) +
-    clausula("reunidosCompradores", conNombres(t.reunidosCompradores)) +
+    clausula("reunidosVendedores", render(t.reunidosVendedores)) +
+    clausula("reunidosCompradores", render(t.reunidosCompradores)) +
     h("INTERVIENEN") +
-    clausula("intervienen", htmlEsc(t.intervienen)) +
+    clausula("intervienen", render(t.intervienen)) +
     h("EXPONEN") +
-    clausula("exponenI", nlNombres(t.exponenI)) +
-    clausula("exponenII", conNombres(t.exponenII)) +
+    clausula("exponenI", render(t.exponenI)) +
+    clausula("exponenII", render(t.exponenII)) +
     h("ESTIPULACIONES:") +
-    clausula("primera", conNombres(t.primera)) +
-    clausula("segunda", htmlEsc(t.segunda)) +
-    clausula("tercera", htmlConNegrita(t.tercera, [...nombres, arras, cuenta])) +
-    clausula("cuarta", nlNombres(t.cuarta)) +
-    clausula("quinta", nlNombres(t.quinta)) +
-    clausula("sexta", htmlEsc(t.sexta)) +
-    clausula("septima", htmlEsc(t.septima)) +
-    clausula("octava", htmlEsc(t.octava)) +
-    clausula("novena", nl(t.novena)) +
-    clausula("cierre", htmlEsc(t.cierre), "margin-top:18px;") +
+    clausula("primera", render(t.primera)) +
+    clausula("segunda", render(t.segunda)) +
+    clausula("tercera", render(t.tercera, [arras, cuenta])) +
+    clausula("cuarta", render(t.cuarta)) +
+    clausula("quinta", render(t.quinta)) +
+    clausula("sexta", render(t.sexta)) +
+    clausula("septima", render(t.septima)) +
+    clausula("octava", render(t.octava)) +
+    clausula("novena", render(t.novena)) +
+    clausula("cierre", render(t.cierre), "margin-top:18px;") +
     `<div data-bloque="1" data-evitar-corte="1" class="pdf-firmas" style="margin-top:36px;display:flex;justify-content:space-between;gap:40px;">
         <div style="flex:1;text-align:center;">
           <p style="margin:0 0 64px;font-size:13px;font-weight:700;letter-spacing:0.04em;">LA PARTE VENDEDORA</p>
@@ -174,7 +177,7 @@ export function htmlContratoArras(datos: ContratoArrasDatos, opts?: { editable?:
         </div>
       </div>`;
 
-  const body = `<div class="pdf-flow" style="padding:${54}px ${62}px ${48}px;">${bloques}</div>`;
+  const body = envolverFlujoDocumento(bloques);
   const extraCss = editable ? cssPreviewEditableArras() : cssExportContratoArras();
 
   return envolverDocumentoHtml({
@@ -197,9 +200,9 @@ export function contratoArrasPdfFilename(datos: ContratoArrasDatos): string {
 }
 
 export async function downloadContratoArrasPdf(datos: ContratoArrasDatos) {
-  const { prepararContratoArrasExportHtml } = await import("./contrato-arras-preview");
+  const { prepararDocumentoExportHtml } = await import("./documentos-paginacion");
   const { downloadPagedHtmlPdf } = await import("./documentos-pdf");
-  const html = await prepararContratoArrasExportHtml(htmlContratoArrasExport(datos));
+  const html = await prepararDocumentoExportHtml(htmlContratoArrasExport(datos));
   await downloadPagedHtmlPdf({
     html,
     filename: contratoArrasPdfFilename(datos),

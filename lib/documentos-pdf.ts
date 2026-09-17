@@ -1,13 +1,18 @@
 const PAGE_W_PX = 794;
 const PAGE_H_PX = 1123;
 
+/** A4 a 96 dpi: 794 x 1123 px. Todo el pipeline (preview, PDF e impresión) mide con estas medidas. */
 export const DOCUMENTO_PAGE_W = PAGE_W_PX;
 export const DOCUMENTO_PAGE_H = PAGE_H_PX;
+
+/** Margen interior de cada hoja. Va dentro de la hoja como padding, no como margen de @page. */
+export const DOCUMENTO_PADDING = { top: 54, x: 62, bottom: 48 } as const;
 
 export function cssPaginasDocumento(opts?: { serif?: boolean }) {
   const font = opts?.serif
     ? `'Times New Roman', Times, Georgia, serif`
     : `'Helvetica Neue', Helvetica, Arial, sans-serif`;
+  const pad = `${DOCUMENTO_PADDING.top}px ${DOCUMENTO_PADDING.x}px ${DOCUMENTO_PADDING.bottom}px`;
   return `
     * { box-sizing: border-box; }
     html, body {
@@ -29,9 +34,16 @@ export function cssPaginasDocumento(opts?: { serif?: boolean }) {
       border-top: 12px solid #d9d6cf;
     }
     @media print {
+      /*
+       * Las hojas ya vienen paginadas por JS a ${PAGE_W_PX}x${PAGE_H_PX} px con el margen
+       * dentro como padding. Para que la impresión sea idéntica al PDF, cada .pdf-page
+       * ocupa exactamente una hoja física: @page sin márgenes, ancho igual al de medida
+       * (si el ancho cambiara, el texto envolvería distinto y se recortaría) y alto A4.
+       * Sin márgenes de @page el navegador tampoco tiene sitio para pintar cabeceras.
+       */
       @page {
         size: A4 portrait;
-        margin: 12mm 12mm 18mm 12mm;
+        margin: 0;
       }
       @page {
         @top-left { content: none; }
@@ -41,40 +53,33 @@ export function cssPaginasDocumento(opts?: { serif?: boolean }) {
         @bottom-center { content: none; }
         @bottom-right { content: none; }
       }
-      html {
-        margin: 0 !important;
-        padding: 0 !important;
-        background: #fff;
-      }
-      body {
-        width: auto;
+      html, body {
+        width: ${PAGE_W_PX}px;
         height: auto !important;
         margin: 0 !important;
         padding: 0 !important;
         overflow: visible !important;
         background: #fff;
-      }
-      p {
-        orphans: 3;
-        widows: 3;
       }
       .pdf-page + .pdf-page { border-top: 0 !important; }
       .pdf-page {
-        width: auto !important;
-        height: auto !important;
+        width: ${PAGE_W_PX}px !important;
+        height: 297mm !important;
+        min-height: 0 !important;
         max-height: none !important;
         margin: 0 !important;
         border: 0 !important;
-        padding: 0 !important;
-        overflow: visible !important;
+        padding: ${pad} !important;
+        overflow: hidden !important;
+        break-after: page;
+        page-break-after: always;
+        break-inside: avoid-page;
+        page-break-inside: avoid;
+      }
+      .pdf-page:last-child {
+        height: auto !important;
         break-after: auto;
         page-break-after: auto;
-        break-inside: auto;
-        page-break-inside: auto;
-      }
-      .pdf-firmas {
-        break-inside: avoid;
-        page-break-inside: avoid;
       }
     }
   `;

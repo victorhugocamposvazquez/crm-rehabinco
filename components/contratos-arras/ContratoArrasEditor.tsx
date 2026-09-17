@@ -26,7 +26,8 @@ import {
   type PersonaArras,
   type TratamientoPersona,
 } from "@/lib/contrato-arras";
-import { clausulasPersonalizadasDesdeEdicion, prepararContratoArrasExportHtml } from "@/lib/contrato-arras-preview";
+import { clausulasPersonalizadasDesdeEdicion } from "@/lib/contrato-arras-preview";
+import { prepararDocumentoExportHtml } from "@/lib/documentos-paginacion";
 import {
   downloadContratoArrasPdf,
   htmlContratoArras,
@@ -289,11 +290,7 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
     }
   };
 
-  const prepararImpresion = useCallback(
-    (html: string) => prepararContratoArrasExportHtml(html),
-    []
-  );
-  const imprimir = useImprimirDocumento(htmlExport, guardar, { prepararHtml: prepararImpresion });
+  const imprimir = useImprimirDocumento(htmlExport, guardar, { prepararHtml: prepararDocumentoExportHtml });
 
   if (loading) {
     return (

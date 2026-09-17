@@ -147,16 +147,21 @@ describe("documentos Rehabinco 2026", () => {
       calidad: "comprador",
       agente_nombre: "Hugo",
     });
-    assert.match(visita, /@media print/);
-    assert.match(visita, /margin: 12mm 12mm 18mm 12mm/);
-    assert.match(visita, /height: auto/);
-    assert.match(visita, /page-break-after: auto/);
     const arras = htmlContratoArras(contratoArrasVacio(), { editable: false });
-    assert.match(arras, /@media print/);
-    // Cada hoja paginada por JS debe ocupar exactamente un A4 físico al imprimir.
-    assert.match(arras, /@page\s*\{\s*size: A4 portrait;\s*margin: 0;/);
-    assert.match(arras, /\.pdf-page\s*\{[^}]*width: 210mm !important;[^}]*height: 297mm !important;/);
-    assert.match(arras, /\.pdf-page\s*\{[^}]*page-break-after: always;/);
+    for (const html of [visita, arras]) {
+      assert.match(html, /@media print/);
+      // Cada hoja paginada por JS debe ocupar exactamente un A4 físico al imprimir,
+      // con el mismo ancho con el que se midió (si no, el texto envuelve distinto).
+      assert.match(html, /@page\s*\{\s*size: A4 portrait;\s*margin: 0;/);
+      assert.match(html, /\.pdf-page\s*\{[^}]*width: 794px !important;[^}]*height: 297mm !important;/);
+      assert.match(html, /\.pdf-page\s*\{[^}]*page-break-after: always;/);
+      assert.match(html, /\.pdf-page:last-child\s*\{[^}]*height: auto !important;/);
+      // Ambos documentos usan el mismo motor: flujo de bloques paginables.
+      assert.match(html, /class="pdf-flow"/);
+      assert.match(html, /data-bloque="1"/);
+    }
+    // El parte de visita marca las firmas como indivisibles.
+    assert.match(visita, /data-evitar-corte="1"[^>]*class="pdf-firmas"/);
   });
 
   it("respeta cláusulas personalizadas y genera bloques editables", () => {
@@ -178,6 +183,17 @@ describe("documentos Rehabinco 2026", () => {
       "QUINTA: Otra redacción."
     );
     assert.equal(normalizarTextoClausula("a\n\nb"), "a b");
+  });
+
+  it("respeta los saltos de línea escritos en cualquier cláusula", () => {
+    const datos = contratoArrasVacio();
+    datos.clausulas_personalizadas = {
+      segunda: "SEGUNDA: Primer párrafo.\nSegundo párrafo añadido a mano.",
+      reunidosVendedores: "De una parte, DON Juan Pérez.\nRepresentado por su apoderado.",
+    };
+    const html = htmlContratoArrasExport(datos);
+    assert.match(html, /Primer párrafo\.<br \/>Segundo párrafo añadido a mano\./);
+    assert.match(html, /DON Juan Pérez\.<br \/>Representado por su apoderado\./);
   });
 
   it("el HTML de exportación no repagina ni permite edición inline", () => {

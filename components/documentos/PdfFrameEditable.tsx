@@ -4,11 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Download, Printer, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DOCUMENTO_PAGE_H, DOCUMENTO_PAGE_W } from "@/lib/documentos-pdf";
-import {
-  esperarLayoutDocumento,
-  extraerClausulasDesdeDocumento,
-  repaginarContratoArrasEnDocumento,
-} from "@/lib/contrato-arras-preview";
+import { esperarLayoutDocumento, repaginarDocumento } from "@/lib/documentos-paginacion";
+import { extraerClausulasDesdeDocumento } from "@/lib/contrato-arras-preview";
 import type { ClausulasPersonalizadasArras } from "@/lib/contrato-arras";
 
 export function PdfFrameEditable({
@@ -54,7 +51,7 @@ export function PdfFrameEditable({
           onClausulasChange(clausulas);
           void (async () => {
             await esperarLayoutDocumento(doc);
-            repaginarContratoArrasEnDocumento(doc, { fraccionar: true });
+            repaginarDocumento(doc, { fraccionar: true });
             medirAlto();
           })();
         });
@@ -94,7 +91,7 @@ export function PdfFrameEditable({
     if (!doc) return;
     void (async () => {
       await esperarLayoutDocumento(doc);
-      repaginarContratoArrasEnDocumento(doc, { fraccionar: true });
+      repaginarDocumento(doc, { fraccionar: true });
       enlazarEdicion(doc);
       medirAlto();
     })();

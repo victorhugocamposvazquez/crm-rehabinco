@@ -1,331 +1,42 @@
-import { htmlEsc } from "./empresa-documentos";
-import { DOCUMENTO_PAGE_H, DOCUMENTO_PAGE_W } from "./documentos-pdf";
+import { DOCUMENTO_PAGE_W } from "./documentos-pdf";
+import {
+  ALTURA_UTIL_PAGINA,
+  MIN_HUECO_RELLENO,
+  cssDocumentoPaginado,
+  medirBloquesDocumento,
+  prepararDocumentoExportHtml,
+  repaginarDocumento,
+  unirTextoFragmentos,
+} from "./documentos-paginacion";
 import type { ClausulaArrasKey, ClausulasPersonalizadasArras } from "./contrato-arras";
 
-const PADDING_TOP = 54;
-const PADDING_BOTTOM = 48;
-const PADDING_X = 62;
+/**
+ * Capa específica del contrato de arras sobre el motor genérico de paginación
+ * (`documentos-paginacion.ts`): edición inline de cláusulas y sus estilos.
+ */
 
-/** Altura útil de contenido dentro de una hoja A4 simulada (px). */
-export const ALTURA_UTIL_PAGINA_ARRAS = DOCUMENTO_PAGE_H - PADDING_TOP - PADDING_BOTTOM;
+export {
+  alturaDeBloque,
+  empaquetarBloquesEnPaginas,
+  encontrarPrimerHuecoRellenable,
+  esperarLayoutDocumento,
+  fraccionarBloquesLargos,
+  optimizarRellenoHuecos,
+  partirSegmentosPorCaracteres,
+  partirSegmentosPorPalabras,
+  type BloqueMedido,
+} from "./documentos-paginacion";
 
-/** Hueco mínimo (px) para intentar partir el bloque siguiente y rellenarlo. */
-export const MIN_HUECO_RELLENO_ARRAS = 56;
+export const ALTURA_UTIL_PAGINA_ARRAS = ALTURA_UTIL_PAGINA;
+export const MIN_HUECO_RELLENO_ARRAS = MIN_HUECO_RELLENO;
 
-export type BloqueMedido = {
-  el: HTMLElement;
-  alto: number;
-  evitarCorte: boolean;
-  tituloSeccion: boolean;
-};
+export const medirBloquesContratoArras = medirBloquesDocumento;
+export const repaginarContratoArrasEnDocumento = repaginarDocumento;
+export const prepararContratoArrasExportHtml = prepararDocumentoExportHtml;
 
-export function alturaDeBloque(el: HTMLElement, doc: Document): number {
-  const style = doc.defaultView?.getComputedStyle(el);
-  const mt = style ? parseFloat(style.marginTop) || 0 : 0;
-  const mb = style ? parseFloat(style.marginBottom) || 0 : 0;
-  return el.offsetHeight + mt + mb;
-}
-
-export function medirBloquesContratoArras(doc: Document): BloqueMedido[] {
-  const flow = doc.querySelector<HTMLElement>(".pdf-flow");
-  if (!flow) return [];
-  const bloques = Array.from(flow.querySelectorAll<HTMLElement>("[data-bloque]:not([data-probe])"));
-  return bloques.map((el) => ({
-    el,
-    alto: alturaDeBloque(el, doc),
-    evitarCorte: el.dataset.evitarCorte === "1",
-    tituloSeccion: el.dataset.tituloSeccion === "1",
-  }));
-}
-
-/** Parte un texto en segmentos que pasan la prueba de cabida (p. ej. altura medida). */
-export function partirSegmentosPorPalabras(
-  texto: string,
-  cabe: (segmento: string) => boolean
-): string[] {
-  const limpio = texto.trim();
-  if (!limpio) return [];
-  if (cabe(limpio)) return [limpio];
-
-  const palabras = limpio.split(/\s+/).filter(Boolean);
-  if (palabras.length === 0) return [];
-
-  const out: string[] = [];
-  let acum = "";
-
-  for (const palabra of palabras) {
-    const candidato = acum ? `${acum} ${palabra}` : palabra;
-    if (cabe(candidato)) {
-      acum = candidato;
-      continue;
-    }
-    if (acum) {
-      out.push(...partirSegmentosPorCaracteres(acum, cabe));
-      acum = "";
-    }
-    if (cabe(palabra)) {
-      acum = palabra;
-    } else {
-      out.push(...partirSegmentosPorCaracteres(palabra, cabe));
-    }
-  }
-  if (acum) out.push(...partirSegmentosPorCaracteres(acum, cabe));
-  return out.filter(Boolean);
-}
-
-/** Último recurso: parte carácter a carácter (URLs, tokens largos, etc.). */
-export function partirSegmentosPorCaracteres(
-  texto: string,
-  cabe: (segmento: string) => boolean
-): string[] {
-  const limpio = texto.trim();
-  if (!limpio) return [];
-  if (cabe(limpio)) return [limpio];
-
-  const out: string[] = [];
-  let acum = "";
-  for (const ch of limpio) {
-    const candidato = acum + ch;
-    if (cabe(candidato)) {
-      acum = candidato;
-      continue;
-    }
-    if (acum) out.push(acum);
-    acum = ch;
-  }
-  if (acum) out.push(acum);
-  return out.length ? out : [limpio.slice(0, 1)];
-}
-
-function medirInnerHtmlEnPlantilla(
-  doc: Document,
-  flow: HTMLElement,
-  plantilla: HTMLElement,
-  innerHtml: string
-): number {
-  const probe = plantilla.cloneNode(false) as HTMLElement;
-  probe.innerHTML = innerHtml;
-  probe.dataset.probe = "1";
-  flow.appendChild(probe);
-  const h = alturaDeBloque(probe, doc);
-  probe.remove();
-  return h;
-}
-
-function crearFragmentoDesdePlantilla(
-  plantilla: HTMLElement,
-  innerHtml: string,
-  opts?: { quitarEdicion?: boolean }
-): HTMLElement {
-  const n = plantilla.cloneNode(false) as HTMLElement;
-  n.innerHTML = innerHtml;
-  if (opts?.quitarEdicion) n.removeAttribute("contenteditable");
-  return n;
-}
-
-function dividirInnerHtmlEnFragmentos(
-  plantilla: HTMLElement,
-  innerHtml: string,
-  doc: Document,
-  flow: HTMLElement,
-  maxAlto: number
-): string[] {
-  const limpio = innerHtml.trim();
-  if (!limpio) return [];
-  if (medirInnerHtmlEnPlantilla(doc, flow, plantilla, limpio) <= maxAlto) return [limpio];
-
-  const segmentosBr = limpio.split(/<br\s*\/?>/gi).map((s) => s.trim()).filter(Boolean);
-  if (segmentosBr.length > 1) {
-    const out: string[] = [];
-    let acum = "";
-    for (const seg of segmentosBr) {
-      const candidato = acum ? `${acum}<br />${seg}` : seg;
-      if (medirInnerHtmlEnPlantilla(doc, flow, plantilla, candidato) <= maxAlto) {
-        acum = candidato;
-        continue;
-      }
-      if (acum) out.push(...dividirInnerHtmlEnFragmentos(plantilla, acum, doc, flow, maxAlto));
-      out.push(...dividirInnerHtmlEnFragmentos(plantilla, seg, doc, flow, maxAlto));
-      acum = "";
-    }
-    if (acum) out.push(acum);
-    return out;
-  }
-
-  const plano = limpio.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-  const escapados = partirSegmentosPorPalabras(plano, (seg) =>
-    medirInnerHtmlEnPlantilla(doc, flow, plantilla, htmlEsc(seg)) <= maxAlto
-  ).map((seg) => htmlEsc(seg));
-  if (escapados.length === 0 && plano) return [htmlEsc(plano.slice(0, 1))];
-  return escapados;
-}
-
-function bloqueEsIndivisible(el: HTMLElement): boolean {
-  return el.classList.contains("pdf-firmas") || el.dataset.evitarCorte === "1";
-}
-
-function bloqueEsPartible(el: HTMLElement): boolean {
-  if (bloqueEsIndivisible(el)) return false;
-  return el.tagName === "P" || el.tagName === "DIV";
-}
-
-function separadorHtmlRestante(innerHtml: string): string {
-  return /<br\s*\/?>/i.test(innerHtml) ? "<br />" : " ";
-}
-
-/** Parte un bloque en dos: cabecera que cabe en `espacioRestante` y resto. */
-function partirBloqueAlEspacioRestante(
-  el: HTMLElement,
-  espacioRestante: number,
-  doc: Document,
-  flow: HTMLElement,
-  opts?: { quitarEdicion?: boolean }
-): boolean {
-  if (espacioRestante < MIN_HUECO_RELLENO_ARRAS) return false;
-  if (!bloqueEsPartible(el)) return false;
-  if (alturaDeBloque(el, doc) <= espacioRestante) return false;
-
-  let frags = dividirInnerHtmlEnFragmentos(el, el.innerHTML, doc, flow, espacioRestante);
-  if (frags.length <= 1) {
-    const plano = el.innerText.replace(/\s+/g, " ").trim();
-    const partes = partirSegmentosPorPalabras(plano, (seg) =>
-      medirInnerHtmlEnPlantilla(doc, flow, el, htmlEsc(seg)) <= espacioRestante
-    );
-    if (partes.length <= 1) return false;
-    frags = [htmlEsc(partes[0]), htmlEsc(partes.slice(1).join(" "))];
-  }
-
-  const primero = frags[0]?.trim();
-  const sep = separadorHtmlRestante(el.innerHTML);
-  const resto = frags.slice(1).join(sep).trim();
-  if (!primero || !resto) return false;
-
-  el.replaceWith(
-    crearFragmentoDesdePlantilla(el, primero, opts),
-    crearFragmentoDesdePlantilla(el, resto, opts)
-  );
-  return true;
-}
-
-/** Detecta el primer hueco rellenable tras simular el empaquetado (sin DOM). */
-export function encontrarPrimerHuecoRellenable(
-  medidas: BloqueMedido[],
-  alturaUtil = ALTURA_UTIL_PAGINA_ARRAS,
-  minHueco = MIN_HUECO_RELLENO_ARRAS
-): { indiceBloque: number; espacioRestante: number } | null {
-  const pages = empaquetarBloquesEnPaginas(medidas, alturaUtil);
-  for (let p = 0; p < pages.length - 1; p++) {
-    const altoPagina = pages[p].reduce((s, b) => s + b.alto, 0);
-    const restante = alturaUtil - altoPagina;
-    if (restante < minHueco) continue;
-    const next = pages[p + 1]?.[0];
-    if (!next || next.evitarCorte || next.tituloSeccion) continue;
-    if (next.alto <= restante) continue;
-    const idx = medidas.indexOf(next);
-    if (idx >= 0) return { indiceBloque: idx, espacioRestante: restante };
-  }
-  return null;
-}
-
-/** Itera empaquetado + partición para rellenar huecos entre hojas. */
-export function optimizarRellenoHuecos(
-  doc: Document,
-  alturaUtil = ALTURA_UTIL_PAGINA_ARRAS,
-  opts?: { quitarEdicion?: boolean }
-): void {
-  const flow = doc.querySelector<HTMLElement>(".pdf-flow");
-  if (!flow) return;
-
-  for (let iter = 0; iter < 80; iter++) {
-    const medidas = medirBloquesContratoArras(doc);
-    const hueco = encontrarPrimerHuecoRellenable(medidas, alturaUtil);
-    if (!hueco) return;
-
-    const bloque = medidas[hueco.indiceBloque]?.el;
-    if (!bloque) return;
-    if (!partirBloqueAlEspacioRestante(bloque, hueco.espacioRestante, doc, flow, opts)) return;
-  }
-}
-
-/** Divide bloques más altos que una hoja en fragmentos medidos. */
-export function fraccionarBloquesLargos(
-  doc: Document,
-  alturaUtil = ALTURA_UTIL_PAGINA_ARRAS,
-  opts?: { quitarEdicion?: boolean }
-): void {
-  const flow = doc.querySelector<HTMLElement>(".pdf-flow");
-  if (!flow) return;
-
-  let cambio = true;
-  while (cambio) {
-    cambio = false;
-    const originales = Array.from(flow.querySelectorAll<HTMLElement>("[data-bloque]:not([data-probe])"));
-    for (const el of originales) {
-      if (!bloqueEsPartible(el)) continue;
-      if (alturaDeBloque(el, doc) <= alturaUtil) continue;
-
-      let fragmentos = dividirInnerHtmlEnFragmentos(el, el.innerHTML, doc, flow, alturaUtil);
-      if (fragmentos.length <= 1) {
-        const plano = el.innerText.replace(/\s+/g, " ").trim();
-        fragmentos = partirSegmentosPorCaracteres(plano, (seg) =>
-          medirInnerHtmlEnPlantilla(doc, flow, el, htmlEsc(seg)) <= alturaUtil
-        ).map((seg) => htmlEsc(seg));
-      }
-      if (fragmentos.length === 0) continue;
-
-      const nodos = fragmentos.map((html) =>
-        crearFragmentoDesdePlantilla(el, html, { quitarEdicion: opts?.quitarEdicion })
-      );
-      el.replaceWith(...nodos);
-      cambio = true;
-      break;
-    }
-  }
-}
-
-/** Empaqueta bloques en hojas evitando títulos huérfanos y huecos por bloques indivisibles. */
-export function empaquetarBloquesEnPaginas(
-  medidas: BloqueMedido[],
-  alturaUtil = ALTURA_UTIL_PAGINA_ARRAS
-): BloqueMedido[][] {
-  const pages: BloqueMedido[][] = [];
-  let actual: BloqueMedido[] = [];
-  let altoActual = 0;
-
-  const cerrarPagina = () => {
-    if (actual.length) pages.push(actual);
-    actual = [];
-    altoActual = 0;
-  };
-
-  const cabeEnPagina = (alto: number) => altoActual + alto <= alturaUtil;
-
-  for (let i = 0; i < medidas.length; i++) {
-    const item = medidas[i];
-    const siguiente = medidas[i + 1];
-
-    if (
-      item.tituloSeccion &&
-      siguiente &&
-      actual.length > 0 &&
-      !cabeEnPagina(item.alto + siguiente.alto) &&
-      item.alto + siguiente.alto <= alturaUtil
-    ) {
-      cerrarPagina();
-    }
-
-    if (item.evitarCorte && actual.length > 0 && !cabeEnPagina(item.alto)) {
-      cerrarPagina();
-    } else if (actual.length > 0 && !cabeEnPagina(item.alto)) {
-      cerrarPagina();
-    }
-
-    actual.push(item);
-    altoActual += item.alto;
-  }
-
-  if (actual.length) pages.push(actual);
-  return pages;
+/** @deprecated Usar prepararContratoArrasExportHtml */
+export async function repaginarHtmlContratoArras(html: string): Promise<string> {
+  return prepararDocumentoExportHtml(html);
 }
 
 export function normalizarTextoClausula(texto: string): string {
@@ -346,104 +57,31 @@ export function clausulasPersonalizadasDesdeEdicion(
   return out;
 }
 
+/**
+ * Lee el texto de cada cláusula desde el documento editado. Una cláusula puede
+ * estar partida en varios fragmentos (entre hojas); se reúnen respetando si el
+ * corte fue a mitad de frase (espacio) o en un salto de línea.
+ */
 export function extraerClausulasDesdeDocumento(doc: Document): ClausulasPersonalizadasArras {
-  const out: ClausulasPersonalizadasArras = {};
+  const porClave = new Map<ClausulaArrasKey, HTMLElement[]>();
   doc.querySelectorAll<HTMLElement>("[data-clausula]").forEach((el) => {
     const key = el.dataset.clausula as ClausulaArrasKey | undefined;
     if (!key) return;
-    const texto = (el.innerText || el.textContent || "").replace(/\u00a0/g, " ").trim();
-    if (!texto) return;
-    out[key] = out[key] ? `${out[key]}\n${texto}` : texto;
+    const lista = porClave.get(key) ?? [];
+    lista.push(el);
+    porClave.set(key, lista);
   });
+  const out: ClausulasPersonalizadasArras = {};
+  for (const [key, elementos] of porClave) {
+    const texto = unirTextoFragmentos(elementos);
+    if (texto) out[key] = texto;
+  }
   return out;
-}
-
-function crearPagina(doc: Document, extraClass = ""): HTMLDivElement {
-  const page = doc.createElement("div");
-  page.className = extraClass ? `pdf-page ${extraClass}` : "pdf-page";
-  page.style.padding = `${PADDING_TOP}px ${PADDING_X}px ${PADDING_BOTTOM}px`;
-  page.style.height = "auto";
-  page.style.minHeight = "0";
-  page.style.maxHeight = "none";
-  return page;
-}
-
-export function repaginarContratoArrasEnDocumento(
-  doc: Document,
-  opts?: { fraccionar?: boolean; quitarEdicion?: boolean }
-): void {
-  const flow = doc.querySelector<HTMLElement>(".pdf-flow");
-  if (!flow) return;
-
-  if (opts?.fraccionar) {
-    const fraccOpts = { quitarEdicion: opts.quitarEdicion };
-    fraccionarBloquesLargos(doc, ALTURA_UTIL_PAGINA_ARRAS, fraccOpts);
-    optimizarRellenoHuecos(doc, ALTURA_UTIL_PAGINA_ARRAS, fraccOpts);
-    fraccionarBloquesLargos(doc, ALTURA_UTIL_PAGINA_ARRAS, fraccOpts);
-  }
-
-  const medidas = medirBloquesContratoArras(doc);
-  if (medidas.length === 0) return;
-
-  const pages = empaquetarBloquesEnPaginas(medidas);
-  const contenedor = flow.parentElement ?? doc.body;
-  contenedor.querySelectorAll(".pdf-page").forEach((p) => p.remove());
-
-  for (const pageData of pages) {
-    const esFirmas = pageData.some((b) => b.el.classList.contains("pdf-firmas"));
-    const page = crearPagina(doc, esFirmas ? "pdf-firmas" : "");
-    for (const { el } of pageData) page.appendChild(el);
-    contenedor.appendChild(page);
-  }
-
-  flow.remove();
-}
-
-export async function esperarLayoutDocumento(doc: Document): Promise<void> {
-  await new Promise<void>((r) => requestAnimationFrame(() => r()));
-  await new Promise<void>((r) => requestAnimationFrame(() => r()));
-  if (doc.fonts?.ready) await doc.fonts.ready.catch(() => undefined);
-}
-
-/** Pipeline completo: partir bloques largos + empaquetar hojas para imprimir/PDF. */
-export async function prepararContratoArrasExportHtml(html: string): Promise<string> {
-  if (typeof document === "undefined") return html;
-
-  const iframe = document.createElement("iframe");
-  iframe.setAttribute("aria-hidden", "true");
-  Object.assign(iframe.style, {
-    position: "fixed",
-    left: "-9999px",
-    top: "0",
-    width: `${DOCUMENTO_PAGE_W}px`,
-    height: "8000px",
-    border: "0",
-    visibility: "hidden",
-  });
-  document.body.appendChild(iframe);
-
-  try {
-    const idoc = iframe.contentDocument;
-    if (!idoc) return html;
-    idoc.open();
-    idoc.write(html);
-    idoc.close();
-    await esperarLayoutDocumento(idoc);
-    repaginarContratoArrasEnDocumento(idoc, { fraccionar: true, quitarEdicion: true });
-    await esperarLayoutDocumento(idoc);
-    return `<!DOCTYPE html>\n${idoc.documentElement.outerHTML}`;
-  } finally {
-    iframe.remove();
-  }
-}
-
-/** @deprecated Usar prepararContratoArrasExportHtml */
-export async function repaginarHtmlContratoArras(html: string): Promise<string> {
-  return prepararContratoArrasExportHtml(html);
 }
 
 export function cssPreviewEditableArras(): string {
   return `
+    ${cssDocumentoPaginado()}
     [data-clausula] {
       cursor: text;
       border-radius: 3px;
@@ -459,71 +97,10 @@ export function cssPreviewEditableArras(): string {
     }
     .pdf-flow {
       width: ${DOCUMENTO_PAGE_W}px;
-      background: #fff;
-      box-sizing: border-box;
-    }
-    .pdf-page {
-      height: auto !important;
-      min-height: 0 !important;
-      max-height: none !important;
     }
   `;
 }
 
 export function cssExportContratoArras(): string {
-  return `
-    .pdf-flow {
-      width: ${DOCUMENTO_PAGE_W}px;
-      max-width: 100%;
-      box-sizing: border-box;
-      background: #fff;
-    }
-    [data-bloque] {
-      break-inside: auto;
-      page-break-inside: auto;
-    }
-    .pdf-firmas {
-      break-inside: avoid-page;
-      page-break-inside: avoid;
-    }
-    @media print {
-      /*
-       * Las hojas ya vienen paginadas por JS a 794x1123 px (A4 a 96 dpi), con el
-       * margen dentro de la propia hoja como padding. Para que la impresión sea
-       * idéntica al PDF, cada .pdf-page tiene que ocupar exactamente una hoja
-       * física: sin márgenes de @page y con tamaño fijo A4. Si no, el área útil
-       * encoge, la hoja desborda y el navegador mete hojas casi vacías.
-       */
-      @page {
-        size: A4 portrait;
-        margin: 0;
-      }
-      html, body {
-        margin: 0 !important;
-        padding: 0 !important;
-        width: 210mm;
-      }
-      .pdf-flow {
-        display: none !important;
-      }
-      .pdf-page {
-        width: 210mm !important;
-        height: 297mm !important;
-        min-height: 0 !important;
-        max-height: none !important;
-        margin: 0 !important;
-        padding: ${PADDING_TOP}px ${PADDING_X}px ${PADDING_BOTTOM}px !important;
-        overflow: hidden !important;
-        break-after: page;
-        page-break-after: always;
-        break-inside: avoid-page;
-        page-break-inside: avoid;
-      }
-      .pdf-page:last-child {
-        height: auto !important;
-        break-after: auto;
-        page-break-after: auto;
-      }
-    }
-  `;
+  return cssDocumentoPaginado();
 }

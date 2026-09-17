@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { esDispositivoMovil } from "@/components/documentos/DialogoGuardarAlImprimir";
 import { DOCUMENTO_PAGE_W, imprimirDocumentoHtml } from "@/lib/documentos-pdf";
-import { esperarLayoutDocumento } from "@/lib/contrato-arras-preview";
+import { esperarLayoutDocumento } from "@/lib/documentos-paginacion";
 
 async function cargarHtmlEnIframe(iframe: HTMLIFrameElement, html: string): Promise<number> {
   const idoc = iframe.contentDocument;

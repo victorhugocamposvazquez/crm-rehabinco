@@ -8,6 +8,7 @@ import {
   htmlEsc,
   pieContactoEmpresa,
 } from "./empresa-documentos";
+import { cssDocumentoPaginado, envolverFlujoDocumento, prepararDocumentoExportHtml } from "./documentos-paginacion";
 import { downloadPagedHtmlPdf, envolverDocumentoHtml, slugArchivo } from "./documentos-pdf";
 
 export type CalidadVisita = "comprador" | "arrendatario";
@@ -77,6 +78,12 @@ export function textoCuerpoParteVisita(datos: ParteVisitaPdfDatos): string {
 Asimismo “El Cliente” manifiesta que se compromete a no realizar ninguna gestión encaminada a ${gestion} por sí mismo, por medio de apoderado, o por conducto de terceras personas familiares directos el inmueble visitado por mediación de ${e.razonSocial}.`;
 }
 
+/**
+ * El parte se emite como `.pdf-flow` con bloques `[data-bloque]` y pasa por el
+ * mismo motor de paginación que el contrato de arras: si el texto crece
+ * (direcciones largas, varias viviendas, cláusulas nuevas) se reparte en hojas
+ * A4 igual en previsualización, PDF e impresión.
+ */
 export function htmlParteVisita(datos: ParteVisitaPdfDatos): string {
   const e = EMPRESA_DOCUMENTOS;
   const cuerpo = textoCuerpoParteVisita(datos).split("\n\n");
@@ -84,29 +91,30 @@ export function htmlParteVisita(datos: ParteVisitaPdfDatos): string {
     ? `<img src="${htmlEsc(datos.firma_visitante)}" alt="Firma del interesado" style="height:72px;max-width:240px;object-fit:contain;" />`
     : `<div style="height:72px;"></div>`;
   const pie = pieContactoEmpresa().replace(/\n/g, "<br />");
-  const body = `
-    <div class="pdf-page" style="padding:52px 58px 40px;">
-      <h1 style="margin:0 0 18px;font-size:22px;font-weight:700;">Parte de visita</h1>
-      <p style="margin:0 0 22px;font-size:13.5px;line-height:1.45;">${htmlEsc(lineaFechaVisita(datos))}</p>
-      <p style="margin:0 0 16px;font-size:13.5px;line-height:1.55;text-align:justify;">${htmlEsc(cuerpo[0] ?? "")}</p>
-      <p style="margin:0 0 28px;font-size:13.5px;line-height:1.55;text-align:justify;">${htmlEsc(cuerpo[1] ?? "")}</p>
-      <div style="margin:0 0 28px;">
+  const lopd = htmlEsc(
+    clausulaLopdCuerpo(
+      "llevar a cabo un registro y control de las visitas realizadas a los inmuebles gestionados por la misma."
+    )
+  ).replace(/\n/g, "<br />");
+  const bloques = `
+      <h1 data-bloque="1" data-titulo-seccion="1" style="margin:0 0 18px;font-size:22px;font-weight:700;">Parte de visita</h1>
+      <p data-bloque="1" style="margin:0 0 22px;font-size:13.5px;line-height:1.45;">${htmlEsc(lineaFechaVisita(datos))}</p>
+      <p data-bloque="1" style="margin:0 0 16px;font-size:13.5px;line-height:1.55;text-align:justify;">${htmlEsc(cuerpo[0] ?? "")}</p>
+      <p data-bloque="1" style="margin:0 0 28px;font-size:13.5px;line-height:1.55;text-align:justify;">${htmlEsc(cuerpo[1] ?? "")}</p>
+      <div data-bloque="1" data-evitar-corte="1" class="pdf-firmas" style="margin:0 0 28px;">
         <p style="margin:0 0 6px;font-size:13.5px;font-weight:700;">El Interesado</p>
         <p style="margin:0 0 4px;font-size:12px;color:#444;">Firma</p>
         <div style="border-bottom:1px solid #222;width:280px;min-height:76px;">${firmaVisitante}</div>
       </div>
-      <div>
-        <p style="margin:0 0 8px;font-size:8.5px;line-height:1.4;color:#333;">${htmlEsc(clausulaLopdResponsable())}</p>
-        <p style="margin:0 0 14px;font-size:8.5px;line-height:1.4;color:#333;white-space:pre-wrap;">${htmlEsc(
-          clausulaLopdCuerpo(
-            "llevar a cabo un registro y control de las visitas realizadas a los inmuebles gestionados por la misma."
-          )
-        )}</p>
-        <p style="margin:0;font-size:10px;line-height:1.45;color:#222;">${pie}</p>
-      </div>
-    </div>
+      <p data-bloque="1" style="margin:0 0 8px;font-size:8.5px;line-height:1.4;color:#333;">${htmlEsc(clausulaLopdResponsable())}</p>
+      <p data-bloque="1" style="margin:0 0 14px;font-size:8.5px;line-height:1.4;color:#333;">${lopd}</p>
+      <p data-bloque="1" data-evitar-corte="1" style="margin:0;font-size:10px;line-height:1.45;color:#222;">${pie}</p>
   `;
-  return envolverDocumentoHtml({ title: `Parte de visita · ${e.razonSocial}`, body });
+  return envolverDocumentoHtml({
+    title: `Parte de visita · ${e.razonSocial}`,
+    body: envolverFlujoDocumento(bloques),
+    extraCss: cssDocumentoPaginado(),
+  });
 }
 
 export function parteVisitaPdfFilename(datos: ParteVisitaPdfDatos): string {
@@ -116,8 +124,10 @@ export function parteVisitaPdfFilename(datos: ParteVisitaPdfDatos): string {
 }
 
 export async function downloadParteVisitaPdf(datos: ParteVisitaPdfDatos) {
+  const html = await prepararDocumentoExportHtml(htmlParteVisita(datos));
   await downloadPagedHtmlPdf({
-    html: htmlParteVisita(datos),
+    html,
     filename: parteVisitaPdfFilename(datos),
+    ajustarAltura: true,
   });
 }

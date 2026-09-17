@@ -29,6 +29,7 @@ import { VisitContextoCatastro } from "@/components/partes-visita/VisitContextoC
 import { FichaLink } from "@/components/crm/FichaPeek";
 import { PdfFrame } from "@/components/documentos/DocumentoSplit";
 import { imprimirDocumentoHtml } from "@/lib/documentos-pdf";
+import { prepararDocumentoExportHtml } from "@/lib/documentos-paginacion";
 import { downloadParteVisitaPdf, htmlParteVisita, parseCalidadVisita } from "@/lib/parte-visita-pdf";
 
 interface ParteVisita {
@@ -148,6 +149,12 @@ export default function DetalleParteVisitaPage() {
   };
   const html = htmlParteVisita(datosPdf);
 
+  const imprimir = () => {
+    void prepararDocumentoExportHtml(html)
+      .then(imprimirDocumentoHtml)
+      .catch((err) => toast.error(err instanceof Error ? err.message : "No se ha podido imprimir"));
+  };
+
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(publicUrl);
@@ -202,11 +209,7 @@ export default function DetalleParteVisitaPage() {
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => {
-                void imprimirDocumentoHtml(html).catch((err) =>
-                  toast.error(err instanceof Error ? err.message : "No se ha podido imprimir")
-                );
-              }}
+              onClick={imprimir}
               className="gap-2"
             >
               Imprimir
@@ -406,11 +409,7 @@ export default function DetalleParteVisitaPage() {
             pages={1}
             onDownload={() => downloadParteVisitaPdf(datosPdf)}
             downloading={printing}
-            onPrint={() => {
-              void imprimirDocumentoHtml(html).catch((err) =>
-                toast.error(err instanceof Error ? err.message : "No se ha podido imprimir")
-              );
-            }}
+            onPrint={imprimir}
           />
         </div>
       </div>
