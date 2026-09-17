@@ -93,7 +93,7 @@ export function TopBar() {
               <img
                 src="/images/logo-web.png"
                 alt=""
-                className="h-8 w-auto object-contain sm:h-9"
+                className="h-8 w-auto max-w-[180px] object-contain sm:h-9"
               />
             </Link>
           </div>

@@ -46,8 +46,16 @@ export function Sidebar({ badges }: { badges?: Record<string, number> }) {
       className="sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-border bg-white transition-[width] duration-200 min-[820px]:flex"
       style={{ width: collapsed ? 62 : 232 }}
     >
-      <Link href={home} className="flex h-14 items-center gap-2 overflow-hidden px-3" aria-label="Inicio">
-        <img src="/images/logo-web.png" alt="" className="h-8 w-auto shrink-0 object-contain" />
+      <Link
+        href={home}
+        className={cn("flex h-14 items-center overflow-hidden", collapsed ? "justify-center px-2" : "px-3")}
+        aria-label="Inicio"
+      >
+        {collapsed ? (
+          <img src="/images/icono.png" alt="" className="h-8 w-8 shrink-0 object-contain" />
+        ) : (
+          <img src="/images/logo-web.png" alt="" className="h-8 w-auto max-w-full shrink-0 object-contain" />
+        )}
       </Link>
       <nav className="flex-1 overflow-y-auto px-2 py-2.5">
         {grupos.map((grupo) => (

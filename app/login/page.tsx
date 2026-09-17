@@ -59,7 +59,7 @@ export default function LoginPage() {
           <img
             src="/images/logo-login.png"
             alt="REHABINCO"
-            className="h-16 w-auto object-contain"
+            className="h-auto w-full max-w-[280px] object-contain"
           />
         </div>
         <h1 className="mb-6 text-center text-[22px] font-semibold tracking-tight">Entrar</h1>

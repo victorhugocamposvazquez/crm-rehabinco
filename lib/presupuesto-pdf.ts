@@ -1,4 +1,4 @@
-import { resolveInvoiceLogoUrl } from "@/lib/empresa-facturacion";
+import { isDefaultRehabincoLogo, resolveInvoiceLogoUrl } from "@/lib/empresa-facturacion";
 import type { EmisorPresupuesto } from "@/lib/emisores-presupuesto";
 import {
   avisosDePartida,
@@ -63,6 +63,8 @@ const ASSETS = {
   deportivoBlanco: "/images/presupuestos/deportivo-blanco.png",
   deportivoNegro: "/images/presupuestos/deportivo-negro.png",
   fondoRiazor: "/images/presupuestos/fondo-riazor-a4.jpg",
+  rehabincoBlanco: "/images/facturas/rehabinco-blanco.png",
+  rehabincoNegro: "/images/logo-web.png",
 } as const;
 
 type PdfCtx = {
@@ -219,8 +221,10 @@ function logoEmisorUrl(ctx: PdfCtx, invert: boolean): string | null {
   if (ctx.esGaral) {
     return absAsset(ctx.origin, invert ? ASSETS.garalBlanco : ASSETS.garalNegro);
   }
-  if (hasAsset(ctx.emisor.logo_url)) return resolveAssetUrl(ctx.emisor.logo_url, ctx.origin);
-  return null;
+  if (hasAsset(ctx.emisor.logo_url) && !isDefaultRehabincoLogo(ctx.emisor.logo_url)) {
+    return resolveAssetUrl(ctx.emisor.logo_url, ctx.origin);
+  }
+  return absAsset(ctx.origin, invert ? ASSETS.rehabincoBlanco : ASSETS.rehabincoNegro);
 }
 
 function logoClienteUrl(ctx: PdfCtx, invert: boolean): string | null {
