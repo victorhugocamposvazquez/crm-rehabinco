@@ -12,6 +12,7 @@ export function CreadorDocumento({
   creador,
   viewerId,
   admin,
+  variant = "lista",
   size = 22,
   className = "",
 }: {
@@ -20,6 +21,8 @@ export function CreadorDocumento({
   creador?: PerfilCreador | PerfilCreador[] | null;
   viewerId?: string;
   admin?: boolean;
+  /** lista: solo iniciales; detalle: iniciales + nombre */
+  variant?: "lista" | "detalle";
   size?: number;
   className?: string;
 }) {
@@ -31,10 +34,34 @@ export function CreadorDocumento({
     nombreYApellido(perfil?.nombre_completo, perfil?.email) ||
     perfil?.nombre_completo?.trim() ||
     (id === viewerId ? "Tú" : "Usuario");
+
+  if (variant === "lista") {
+    return (
+      <span className={`inline-flex shrink-0 ${className}`}>
+        <AvatarComercial
+          id={id}
+          nombre={perfil?.nombre_completo}
+          email={perfil?.email}
+          color={perfil?.color}
+          size={size}
+          title={nombre}
+          className="cursor-default"
+        />
+      </span>
+    );
+  }
+
   return (
-    <span className={`inline-flex shrink-0 items-center gap-1.5 text-[12px] text-[var(--text-2)] ${className}`}>
-      <AvatarComercial id={id} nombre={perfil?.nombre_completo} color={perfil?.color} size={size} />
-      <span className="max-w-[8rem] truncate">{nombre}</span>
+    <span className={`inline-flex shrink-0 items-center gap-2 text-[13px] text-[var(--text-2)] ${className}`}>
+      <AvatarComercial
+        id={id}
+        nombre={perfil?.nombre_completo}
+        email={perfil?.email}
+        color={perfil?.color}
+        size={size}
+        title={nombre}
+      />
+      <span className="font-medium text-foreground">{nombre}</span>
     </span>
   );
 }

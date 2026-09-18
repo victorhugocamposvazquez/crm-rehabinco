@@ -272,7 +272,8 @@ export default function DetalleParteVisitaPage() {
             creador={parte.creador}
             viewerId={user?.id}
             admin
-            size={22}
+            variant="detalle"
+            size={24}
           />
         ) : null}
         {parte.firmado_en && (

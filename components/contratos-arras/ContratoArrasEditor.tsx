@@ -563,7 +563,8 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
               creador={metaCreador.creador}
               viewerId={user?.id}
               admin
-              size={22}
+              variant="detalle"
+              size={24}
               className="mt-2"
             />
           ) : null}
