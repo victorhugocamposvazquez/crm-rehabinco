@@ -56,7 +56,16 @@ export function puedeVerApisPortales(role: Role | null | undefined): boolean {
   return isSuperAdmin(role);
 }
 
+/** Crear o solicitar baja de usuarios (admin → papelera; superadmin directo). */
+export function puedeSolicitarUsuarios(role: Role | null | undefined): boolean {
+  return isAdmin(role);
+}
+
 export function puedeGestionarUsuarios(role: Role | null | undefined): boolean {
+  return isSuperAdmin(role);
+}
+
+export function puedeVerPapelera(role: Role | null | undefined): boolean {
   return isSuperAdmin(role);
 }
 

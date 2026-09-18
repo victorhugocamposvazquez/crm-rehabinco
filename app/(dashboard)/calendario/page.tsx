@@ -57,13 +57,12 @@ type CitaRow = {
   termina: string;
   propiedad_id: string | null;
   cliente_id: string | null;
-  cliente2_id?: string | null;
+  clientes_extra_ids?: string[] | null;
   notas?: string | null;
   estado: string;
   lugar?: string | null;
   tarea_id?: string | null;
   clientes?: { nombre?: string | null } | null;
-  cliente2?: { nombre?: string | null } | null;
   profiles?: { nombre_completo?: string | null; color?: string | null } | null;
   propiedades?: { titulo?: string | null; direccion?: string | null; localidad?: string | null; referencia?: string | null } | null;
 };
@@ -81,7 +80,7 @@ export default function CalendarioPage() {
   const [saving, setSaving] = useState(false);
   const [propiedadId, setPropiedadId] = useState(searchParams.get("propiedad") ?? "");
   const [clienteId, setClienteId] = useState(searchParams.get("cliente") ?? "");
-  const [cliente2Id, setCliente2Id] = useState("");
+  const [clientesExtraIds, setClientesExtraIds] = useState<string[]>([]);
   const [notas, setNotas] = useState("");
   const [lugar, setLugar] = useState("");
   const [editando, setEditando] = useState<CitaRow | null>(null);
@@ -107,29 +106,44 @@ export default function CalendarioPage() {
     let q = supabase
       .from("citas")
       .select(
-        "id, comercial_id, tipo, titulo, empieza, termina, propiedad_id, cliente_id, cliente2_id, notas, estado, tarea_id, lugar, profiles:comercial_id(nombre_completo, color), propiedades:propiedad_id(titulo, direccion, localidad, referencia), clientes:cliente_id(nombre), cliente2:cliente2_id(nombre)"
+        "id, comercial_id, tipo, titulo, empieza, termina, propiedad_id, cliente_id, clientes_extra_ids, notas, estado, tarea_id, lugar, profiles:comercial_id(nombre_completo, color), propiedades:propiedad_id(titulo, direccion, localidad, referencia), clientes:cliente_id(nombre)"
       )
       .gte("empieza", inicio)
       .lte("empieza", fin)
       .neq("estado", "cancelada")
       .order("empieza");
     if (!admin) q = q.eq("comercial_id", user.id);
-    void q.then(({ data }) =>
-      setCitas(
-        ((data ?? []) as Array<
-          CitaRow & {
-            profiles?: CitaRow["profiles"] | CitaRow["profiles"][];
-            propiedades?: CitaRow["propiedades"] | CitaRow["propiedades"][];
-          }
-        >).map((row) => ({
-          ...row,
-          profiles: relacionUno(row.profiles),
-          propiedades: relacionUno(row.propiedades),
-          clientes: relacionUno(row.clientes as CitaRow["clientes"] | CitaRow["clientes"][] | null),
-          cliente2: relacionUno(row.cliente2 as CitaRow["cliente2"] | CitaRow["cliente2"][] | null),
-        }))
-      )
-    );
+    void q.then(({ data }) => {
+      const filas = ((data ?? []) as Array<
+        CitaRow & {
+          profiles?: CitaRow["profiles"] | CitaRow["profiles"][];
+          propiedades?: CitaRow["propiedades"] | CitaRow["propiedades"][];
+        }
+      >).map((row) => ({
+        ...row,
+        profiles: relacionUno(row.profiles),
+        propiedades: relacionUno(row.propiedades),
+        clientes: relacionUno(row.clientes as CitaRow["clientes"] | CitaRow["clientes"][] | null),
+        clientes_extra_ids: row.clientes_extra_ids ?? [],
+      }));
+      setCitas(filas);
+      const extraIds = [...new Set(filas.flatMap((row) => row.clientes_extra_ids ?? []).filter(Boolean))];
+      if (extraIds.length === 0) return;
+      void supabase
+        .from("clientes")
+        .select("id, nombre, telefono")
+        .in("id", extraIds)
+        .then(({ data: extras }) => {
+          if (!extras?.length) return;
+          setClientes((prev) => {
+            const byId = new Map(prev.map((c) => [c.id, c] as const));
+            for (const c of extras) {
+              if (!byId.has(c.id)) byId.set(c.id, c);
+            }
+            return [...byId.values()].sort((a, b) => a.nombre.localeCompare(b.nombre));
+          });
+        });
+    });
   };
 
   useEffect(() => {
@@ -214,7 +228,7 @@ export default function CalendarioPage() {
     setEditando(null);
     setPropiedadId("");
     setClienteId("");
-    setCliente2Id("");
+    setClientesExtraIds([]);
     setNotas("");
     setLugar("");
     setDia(diaDestino);
@@ -230,12 +244,12 @@ export default function CalendarioPage() {
     setHora(horaCita(cita.empieza));
     setPropiedadId(cita.propiedad_id ?? "");
     setClienteId(cita.cliente_id ?? "");
-    setCliente2Id(cita.cliente2_id ?? "");
+    setClientesExtraIds(cita.clientes_extra_ids ?? []);
     setNotas(cita.notas?.trim() ?? "");
     setLugar(cita.lugar?.trim() || direccionDeInmueble(cita.propiedades ?? {}));
     if (cita.propiedad_id) mezclarInmueble(cita.propiedad_id);
     if (cita.cliente_id) mezclarCliente(cita.cliente_id, cita.clientes?.nombre);
-    if (cita.cliente2_id) mezclarCliente(cita.cliente2_id, cita.cliente2?.nombre);
+    for (const id of cita.clientes_extra_ids ?? []) mezclarCliente(id);
     setSheetOpen(true);
   };
 
@@ -249,7 +263,8 @@ export default function CalendarioPage() {
         : TIPO_CITA_LABEL[tipo]);
     const lugarFinal = lugar.trim() || (inmueble ? direccionDeInmueble(inmueble) : "") || null;
     const notasFinal = tipo === "evento" ? notas.trim() || null : null;
-    const cliente2Final = tipo === "evento" && cliente2Id && cliente2Id !== clienteId ? cliente2Id : null;
+    const clientesExtraFinal =
+      tipo === "evento" ? clientesExtraIds.filter((id) => id && id !== clienteId) : [];
     setSaving(true);
     const supabase = createClient();
 
@@ -270,7 +285,7 @@ export default function CalendarioPage() {
           termina: patch.termina,
           propiedad_id: propiedadId || null,
           cliente_id: clienteId || null,
-          cliente2_id: tipoFinal === "evento" ? cliente2Final : null,
+          clientes_extra_ids: tipoFinal === "evento" ? clientesExtraFinal : [],
           notas: tipoFinal === "evento" ? notasFinal : null,
           lugar: lugarFinal,
         })
@@ -320,7 +335,7 @@ export default function CalendarioPage() {
         termina: termina.toISOString(),
         propiedad_id: propiedadId || null,
         cliente_id: clienteId || null,
-        cliente2_id: tipoCita === "evento" ? cliente2Final : null,
+        clientes_extra_ids: tipoCita === "evento" ? clientesExtraFinal : [],
         notas: tipoCita === "evento" ? notasFinal : null,
         lugar: lugarFinal,
       })
@@ -573,12 +588,12 @@ export default function CalendarioPage() {
         clientes={clientes}
         propiedadId={propiedadId}
         clienteId={clienteId}
-        cliente2Id={cliente2Id}
+        clientesExtraIds={clientesExtraIds}
         notas={notas}
         lugar={lugar}
         onPropiedad={setPropiedadId}
         onCliente={setClienteId}
-        onCliente2={setCliente2Id}
+        onClientesExtra={setClientesExtraIds}
         onNotas={setNotas}
         onLugar={setLugar}
         saving={saving}
@@ -631,9 +646,16 @@ export default function CalendarioPage() {
                       <EnlaceMaps consulta={mapsConsulta} />
                     </p>
                   ) : null}
-                  {cita.tipo === "evento" && (cita.clientes?.nombre || cita.cliente2?.nombre) ? (
+                  {cita.tipo === "evento" &&
+                  (cita.clientes?.nombre || (cita.clientes_extra_ids?.length ?? 0) > 0) ? (
                     <p className="mt-1 text-xs text-[#5D6B67]">
-                      {[cita.clientes?.nombre, cita.cliente2?.nombre ? `+ ${cita.cliente2.nombre}` : null]
+                      {[
+                        cita.clientes?.nombre,
+                        ...(cita.clientes_extra_ids ?? []).map((id) => {
+                          const nombre = clientes.find((c) => c.id === id)?.nombre;
+                          return nombre ? `+ ${nombre}` : null;
+                        }),
+                      ]
                         .filter(Boolean)
                         .join(" ")}
                     </p>

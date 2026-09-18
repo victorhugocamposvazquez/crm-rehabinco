@@ -832,7 +832,7 @@ export interface Database {
           termina: string;
           propiedad_id: string | null;
           cliente_id: string | null;
-          cliente2_id: string | null;
+          clientes_extra_ids: string[];
           demanda_id: string | null;
           finca_reference: string | null;
           lugar: string | null;
@@ -849,7 +849,7 @@ export interface Database {
           termina: string;
           propiedad_id?: string | null;
           cliente_id?: string | null;
-          cliente2_id?: string | null;
+          clientes_extra_ids?: string[];
           demanda_id?: string | null;
           finca_reference?: string | null;
           lugar?: string | null;
@@ -864,7 +864,7 @@ export interface Database {
           termina?: string;
           propiedad_id?: string | null;
           cliente_id?: string | null;
-          cliente2_id?: string | null;
+          clientes_extra_ids?: string[];
           demanda_id?: string | null;
           finca_reference?: string | null;
           lugar?: string | null;

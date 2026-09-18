@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Plus } from "lucide-react";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { AltaField, AltaPersona, AltaSection, AltaShell, altaControl, type PersonaOpcion } from "@/components/ui/alta-form";
 import { NuevoClientePanel } from "@/components/clientes/NuevoClientePanel";
@@ -37,12 +38,12 @@ export function NuevaEntradaCalendario({
   clientes,
   propiedadId,
   clienteId,
-  cliente2Id,
+  clientesExtraIds,
   notas,
   lugar,
   onPropiedad,
   onCliente,
-  onCliente2,
+  onClientesExtra,
   onNotas,
   onLugar,
   saving,
@@ -59,12 +60,12 @@ export function NuevaEntradaCalendario({
   clientes: PersonaOpcion[];
   propiedadId: string;
   clienteId: string;
-  cliente2Id: string;
+  clientesExtraIds: string[];
   notas: string;
   lugar: string;
   onPropiedad: (id: string) => void;
   onCliente: (id: string) => void;
-  onCliente2: (id: string) => void;
+  onClientesExtra: (ids: string[]) => void;
   onNotas: (notas: string) => void;
   onLugar: (lugar: string) => void;
   saving: boolean;
@@ -74,20 +75,22 @@ export function NuevaEntradaCalendario({
   const [tipo, setTipo] = useState<TipoAltaCalendario>("evento");
   const [titulo, setTitulo] = useState("");
   const [qCliente, setQCliente] = useState("");
-  const [qCliente2, setQCliente2] = useState("");
+  const [qClienteExtra, setQClienteExtra] = useState("");
   const [agenda, setAgenda] = useState<PersonaOpcion[]>(clientes);
   const [altaClienteOpen, setAltaClienteOpen] = useState(false);
   const [altaClienteNombre, setAltaClienteNombre] = useState("");
-  const [altaCliente2Open, setAltaCliente2Open] = useState(false);
-  const [altaCliente2Nombre, setAltaCliente2Nombre] = useState("");
+  const [altaClienteExtraOpen, setAltaClienteExtraOpen] = useState(false);
+  const [altaClienteExtraNombre, setAltaClienteExtraNombre] = useState("");
+  const [anadiendoClienteExtra, setAnadiendoClienteExtra] = useState(false);
   const [qInmueble, setQInmueble] = useState("");
   const [catalogo, setCatalogo] = useState<InmuebleCalendario[]>(propiedades);
 
   useEffect(() => {
     if (!open) return;
     setQCliente("");
-    setQCliente2("");
+    setQClienteExtra("");
     setQInmueble("");
+    setAnadiendoClienteExtra(false);
     if (edicion) {
       setTitulo(edicion.titulo);
       setTipo(TIPOS_ALTA_CALENDARIO.includes(edicion.tipo as TipoAltaCalendario) ? (edicion.tipo as TipoAltaCalendario) : "evento");
@@ -97,8 +100,8 @@ export function NuevaEntradaCalendario({
     setTitulo("");
     setTipo("evento");
     onNotas("");
-    onCliente2("");
-  }, [open, edicion, onNotas, onCliente2]);
+    onClientesExtra([]);
+  }, [open, edicion, onNotas, onClientesExtra]);
 
   useEffect(() => {
     setAgenda((prev) => {
@@ -167,7 +170,6 @@ export function NuevaEntradaCalendario({
     month: "long",
   });
   const clienteSel = agenda.find((c) => c.id === clienteId);
-  const cliente2Sel = agenda.find((c) => c.id === cliente2Id);
   const inmuebleSel = catalogo.find((p) => p.id === propiedadId);
   const esEvento = tipo === "evento";
   const tipos = edicion?.tipo === "tarea" ? (["tarea"] as const) : TIPOS_ALTA_CALENDARIO.filter((item) => item !== "tarea" || !edicion);
@@ -177,13 +179,14 @@ export function NuevaEntradaCalendario({
     if (!q) return [];
     return agenda.filter((c) => `${c.nombre} ${c.telefono ?? ""}`.toLowerCase().includes(q)).slice(0, 6);
   }, [agenda, qCliente]);
-  const sugeridos2 = useMemo(() => {
-    const q = qCliente2.trim().toLowerCase();
+  const sugeridosExtra = useMemo(() => {
+    const q = qClienteExtra.trim().toLowerCase();
     if (!q) return [];
+    const excluir = new Set([clienteId, ...clientesExtraIds]);
     return agenda
-      .filter((c) => c.id !== clienteId && `${c.nombre} ${c.telefono ?? ""}`.toLowerCase().includes(q))
+      .filter((c) => !excluir.has(c.id) && `${c.nombre} ${c.telefono ?? ""}`.toLowerCase().includes(q))
       .slice(0, 6);
-  }, [agenda, qCliente2, clienteId]);
+  }, [agenda, qClienteExtra, clienteId, clientesExtraIds]);
   const sugeridosInmueble = useMemo(() => {
     const q = qInmueble.trim();
     const lista = q ? catalogo.filter((p) => coincideInmueble(p, q)) : catalogo;
@@ -197,6 +200,17 @@ export function NuevaEntradaCalendario({
     const siguiente = next ? direccionDeInmueble(next) : "";
     if (!lugar.trim() || lugar.trim() === prev) onLugar(siguiente);
     setQInmueble("");
+  };
+
+  const quitarClienteExtra = (id: string) => {
+    onClientesExtra(clientesExtraIds.filter((item) => item !== id));
+  };
+
+  const anadirClienteExtra = (id: string) => {
+    if (!id || id === clienteId || clientesExtraIds.includes(id)) return;
+    onClientesExtra([...clientesExtraIds, id]);
+    setQClienteExtra("");
+    setAnadiendoClienteExtra(false);
   };
 
   return (
@@ -257,7 +271,9 @@ export function NuevaEntradaCalendario({
             seleccionado={clienteSel}
             onSeleccionar={(persona) => {
               onCliente(persona.id);
-              if (persona.id === cliente2Id) onCliente2("");
+              if (clientesExtraIds.includes(persona.id)) {
+                onClientesExtra(clientesExtraIds.filter((id) => id !== persona.id));
+              }
             }}
             onLimpiar={() => onCliente("")}
             q={qCliente}
@@ -271,23 +287,61 @@ export function NuevaEntradaCalendario({
         </AltaSection>
 
         {esEvento ? (
-          <AltaSection wide title="Acompañante" hint="Opcional. Otro cliente que venga al evento.">
-            <AltaPersona
-              permitirNinguno
-              seleccionado={cliente2Sel}
-              onSeleccionar={(persona) => {
-                if (persona.id === clienteId) return;
-                onCliente2(persona.id);
-              }}
-              onLimpiar={() => onCliente2("")}
-              q={qCliente2}
-              setQ={setQCliente2}
-              sugeridos={sugeridos2}
-              onAltaNueva={(nombreSugerido) => {
-                setAltaCliente2Nombre(nombreSugerido ?? "");
-                setAltaCliente2Open(true);
-              }}
-            />
+          <AltaSection wide title="Más clientes" hint="Opcional. Añade todos los que vengan al evento.">
+            <div className="flex flex-col gap-3">
+              {clientesExtraIds.length > 0 ? (
+                <ul className="flex flex-wrap gap-2">
+                  {clientesExtraIds.map((id) => {
+                    const persona = agenda.find((c) => c.id === id);
+                    return (
+                      <li
+                        key={id}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-1.5 text-[13px]"
+                      >
+                        <span className="font-medium">{persona?.nombre ?? "Cliente"}</span>
+                        <button
+                          type="button"
+                          onClick={() => quitarClienteExtra(id)}
+                          className="text-[var(--text-3)] hover:text-[var(--text-1)]"
+                          aria-label={`Quitar ${persona?.nombre ?? "cliente"}`}
+                        >
+                          ×
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : null}
+              {anadiendoClienteExtra ? (
+                <div>
+                  <AltaPersona
+                    permitirNinguno
+                    seleccionado={undefined}
+                    onSeleccionar={(persona) => anadirClienteExtra(persona.id)}
+                    onLimpiar={() => {
+                      setAnadiendoClienteExtra(false);
+                      setQClienteExtra("");
+                    }}
+                    q={qClienteExtra}
+                    setQ={setQClienteExtra}
+                    sugeridos={sugeridosExtra}
+                    onAltaNueva={(nombreSugerido) => {
+                      setAltaClienteExtraNombre(nombreSugerido ?? "");
+                      setAltaClienteExtraOpen(true);
+                    }}
+                  />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setAnadiendoClienteExtra(true)}
+                  className="inline-flex items-center gap-1.5 self-start rounded-[9px] border border-dashed border-[var(--border)] px-3 py-2 text-[13px] font-semibold text-accent hover:border-accent/40 hover:bg-accent/5"
+                >
+                  <Plus className="h-4 w-4" aria-hidden />
+                  Añadir cliente
+                </button>
+              )}
+            </div>
           </AltaSection>
         ) : null}
 
@@ -394,10 +448,10 @@ export function NuevaEntradaCalendario({
         }}
       />
       <NuevoClientePanel
-        open={altaCliente2Open}
-        onOpenChange={setAltaCliente2Open}
+        open={altaClienteExtraOpen}
+        onOpenChange={setAltaClienteExtraOpen}
         elevated
-        nombreInicial={altaCliente2Nombre}
+        nombreInicial={altaClienteExtraNombre}
         ambito="desde-calendario"
         onCreado={(id, extra) => {
           setAgenda((prev) => {
@@ -406,7 +460,7 @@ export function NuevaEntradaCalendario({
               a.nombre.localeCompare(b.nombre)
             );
           });
-          if (id !== clienteId) onCliente2(id);
+          anadirClienteExtra(id);
         }}
       />
     </>

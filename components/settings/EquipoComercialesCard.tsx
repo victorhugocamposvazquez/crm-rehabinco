@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { deleteUserAccess, setUserActivo } from "@/lib/actions/usuarios";
-import { puedeGestionarUsuarios, roleLabel, type Role } from "@/lib/auth/roles";
+import { setUserActivo } from "@/lib/actions/usuarios";
+import { solicitarEliminarUsuario } from "@/lib/actions/papelera";
+import { isSuperAdmin, puedeSolicitarUsuarios, roleLabel, type Role } from "@/lib/auth/roles";
 
 type UsuarioRow = {
   id: string;
@@ -26,7 +27,8 @@ export function EquipoComercialesCard({
 }) {
   const [filas, setFilas] = useState<UsuarioRow[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const gestiona = puedeGestionarUsuarios(role);
+  const gestiona = puedeSolicitarUsuarios(role);
+  const superadmin = isSuperAdmin(role);
 
   const cargar = () => {
     const supabase = createClient();
@@ -62,9 +64,9 @@ export function EquipoComercialesCard({
       return;
     }
     setBusyId(item.id);
-    const result = await deleteUserAccess(item.id);
+    const result = await solicitarEliminarUsuario(item.id);
     setBusyId(null);
-    if (!result.success) {
+    if (!result.ok) {
       toast.error(result.error);
       return;
     }
@@ -80,8 +82,10 @@ export function EquipoComercialesCard({
       <CardContent>
         <p className="mb-3 text-sm text-neutral-500">
           {gestiona
-            ? "Desactiva o elimina accesos. El historial del CRM se conserva si esa persona ya tiene datos."
-            : "Color y zona salen en el calendario. Solo el superadministrador gestiona altas y bajas."}
+            ? superadmin
+              ? "Desactiva o elimina accesos. El historial del CRM se conserva si esa persona ya tiene datos."
+              : "Las altas y bajas van a la papelera del superadministrador para confirmarlas."
+            : "Color y zona salen en el calendario. Solo dirección gestiona altas y bajas."}
         </p>
         <ul className="space-y-2">
           {filas.map((item) => (
@@ -98,21 +102,23 @@ export function EquipoComercialesCard({
               </div>
               {gestiona ? (
                 <div className="flex shrink-0 items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={busyId === item.id}
-                    className="text-xs font-semibold text-[#0B7461] hover:underline disabled:opacity-50"
-                    onClick={() => void desactivar(item)}
-                  >
-                    {item.activo ? "Desactivar" : "Activar"}
-                  </button>
+                  {superadmin ? (
+                    <button
+                      type="button"
+                      disabled={busyId === item.id}
+                      className="text-xs font-semibold text-[#0B7461] hover:underline disabled:opacity-50"
+                      onClick={() => void desactivar(item)}
+                    >
+                      {item.activo ? "Desactivar" : "Activar"}
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     disabled={busyId === item.id}
                     className="text-xs font-semibold text-[var(--red)] hover:underline disabled:opacity-50"
                     onClick={() => void eliminar(item)}
                   >
-                    Eliminar
+                    {superadmin ? "Eliminar" : "Solicitar baja"}
                   </button>
                 </div>
               ) : (

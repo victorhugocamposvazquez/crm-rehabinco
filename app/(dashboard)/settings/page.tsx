@@ -9,12 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
-import { createUser } from "@/lib/actions/usuarios";
+import { solicitarCrearUsuario } from "@/lib/actions/papelera";
 import {
   ROLE_LABELS,
   ROLES_CREABLES,
   isAdmin,
-  puedeGestionarUsuarios,
+  isSuperAdmin,
+  puedeSolicitarUsuarios,
   puedeVerApisPortales,
   roleLabel,
   type Role,
@@ -42,7 +43,8 @@ export default function SettingsPage() {
   const [createUserSaving, setCreateUserSaving] = useState(false);
   const [equipoTick, setEquipoTick] = useState(0);
   const direccion = isAdmin(user?.role);
-  const superadmin = puedeGestionarUsuarios(user?.role);
+  const superadmin = isSuperAdmin(user?.role);
+  const puedeUsuarios = puedeSolicitarUsuarios(user?.role);
 
   const onUpdatePassword = async () => {
     setError(null);
@@ -190,7 +192,7 @@ export default function SettingsPage() {
           </Card>
         )}
 
-        {superadmin && (
+        {puedeUsuarios && (
           <Card className="md:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -199,6 +201,11 @@ export default function SettingsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {!superadmin ? (
+                <p className="mb-4 text-sm text-neutral-600">
+                  La solicitud irá a la papelera del superadministrador para que la confirme.
+                </p>
+              ) : null}
               <form
                 onSubmit={async (e) => {
                   e.preventDefault();
@@ -213,14 +220,14 @@ export default function SettingsPage() {
                     return;
                   }
                   setCreateUserSaving(true);
-                  const result = await createUser(newUserEmail, newUserPassword, newUserRole);
+                  const result = await solicitarCrearUsuario(newUserEmail, newUserPassword, newUserRole);
                   setCreateUserSaving(false);
-                  if (result.success) {
-                    setCreateUserMessage(result.message);
+                  if (result.ok) {
+                    setCreateUserMessage(result.message ?? "Usuario creado.");
                     setNewUserEmail("");
                     setNewUserPassword("");
                     setNewUserConfirmPassword("");
-                    setEquipoTick((n) => n + 1);
+                    if (superadmin) setEquipoTick((n) => n + 1);
                   } else {
                     setCreateUserError(result.error);
                   }
@@ -284,7 +291,7 @@ export default function SettingsPage() {
                   {createUserError && <p className="text-sm text-red-600">{createUserError}</p>}
                   {createUserMessage && <p className="text-sm text-emerald-700">{createUserMessage}</p>}
                   <Button type="submit" disabled={createUserSaving}>
-                    {createUserSaving ? "Creando…" : "Crear usuario"}
+                    {createUserSaving ? "Enviando…" : superadmin ? "Crear usuario" : "Solicitar alta"}
                   </Button>
                 </div>
               </form>

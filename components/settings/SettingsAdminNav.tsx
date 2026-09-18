@@ -3,23 +3,31 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { puedeVerApisPortales, type Role } from "@/lib/auth/roles";
+import { puedeVerApisPortales, puedeVerPapelera, type Role } from "@/lib/auth/roles";
 
 const ITEMS = [
-  { href: "/settings", label: "Perfil y seguridad", portales: false },
-  { href: "/settings#equipo", label: "Equipo", portales: false },
-  { href: "/settings/empresa", label: "Datos de empresa", portales: false },
-  { href: "/settings/emisores-presupuesto", label: "Emisores de presupuesto", portales: false },
-  { href: "/settings/portales", label: "APIs de portales", portales: true },
+  { href: "/settings", label: "Perfil y seguridad", portales: false, papelera: false },
+  { href: "/settings#equipo", label: "Equipo", portales: false, papelera: false },
+  { href: "/settings/papelera", label: "Papelera", portales: false, papelera: true },
+  { href: "/settings/empresa", label: "Datos de empresa", portales: false, papelera: false },
+  { href: "/settings/emisores-presupuesto", label: "Emisores de presupuesto", portales: false, papelera: false },
+  { href: "/settings/portales", label: "APIs de portales", portales: true, papelera: false },
 ] as const;
 
 export function SettingsAdminNav({ role }: { role?: Role | null }) {
   const pathname = usePathname();
-  const items = ITEMS.filter((item) => !item.portales || puedeVerApisPortales(role));
+  const items = ITEMS.filter((item) => {
+    if (item.portales && !puedeVerApisPortales(role)) return false;
+    if (item.papelera && !puedeVerPapelera(role)) return false;
+    return true;
+  });
   return (
     <nav className="mt-4 flex flex-wrap gap-1 min-[820px]:w-52 min-[820px]:flex-col min-[820px]:float-left min-[820px]:mr-6">
       {items.map((item) => {
-        const activo = item.href === "/settings" || item.href === "/settings#equipo" ? pathname === "/settings" : pathname === item.href;
+        const activo =
+          item.href === "/settings" || item.href === "/settings#equipo"
+            ? pathname === "/settings"
+            : pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (
           <Link
             key={item.href}

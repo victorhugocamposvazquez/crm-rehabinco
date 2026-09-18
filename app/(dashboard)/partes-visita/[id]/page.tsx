@@ -4,6 +4,9 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { eliminarDocumentos } from "@/lib/actions/papelera";
+import { useAuth } from "@/lib/auth/auth-context";
+import { isSuperAdmin } from "@/lib/auth/roles";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -65,6 +68,8 @@ function estadoVariant(
 }
 
 export default function DetalleParteVisitaPage() {
+  const { user } = useAuth();
+  const superadmin = isSuperAdmin(user?.role);
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
@@ -182,14 +187,14 @@ export default function DetalleParteVisitaPage() {
 
   const handleDelete = async () => {
     setDeleting(true);
-    const supabase = createClient();
-    const { error: err } = await supabase.from("partes_visita").delete().eq("id", id);
+    const result = await eliminarDocumentos("parte_visita", [id]);
     setDeleting(false);
     setShowDeleteConfirm(false);
-    if (err) {
-      setError(err.message);
+    if (!result.ok) {
+      setError(result.error);
       return;
     }
+    toast.success(result.message ?? "Parte eliminado.");
     router.push("/partes-visita");
     router.refresh();
   };
@@ -269,8 +274,12 @@ export default function DetalleParteVisitaPage() {
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
         title="¿Eliminar este parte de visita?"
-        description="Esta acción no se puede deshacer."
-        confirmLabel={deleting ? "Eliminando…" : "Eliminar"}
+        description={
+          superadmin
+            ? "Se borrará de forma permanente."
+            : "Irá a la papelera del superadministrador para confirmar el borrado definitivo."
+        }
+        confirmLabel={deleting ? "Eliminando…" : superadmin ? "Eliminar" : "Enviar a papelera"}
         onConfirm={handleDelete}
         loading={deleting}
         variant="destructive"

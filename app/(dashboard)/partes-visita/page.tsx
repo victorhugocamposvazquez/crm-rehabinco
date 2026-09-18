@@ -5,6 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { eliminarDocumentos } from "@/lib/actions/papelera";
+import { useAuth } from "@/lib/auth/auth-context";
+import { isSuperAdmin } from "@/lib/auth/roles";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Fab } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
@@ -30,6 +33,8 @@ type ParteRow = {
 };
 
 export default function PartesVisitaPage() {
+  const { user } = useAuth();
+  const superadmin = isSuperAdmin(user?.role);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -54,6 +59,7 @@ export default function PartesVisitaPage() {
     supabase
       .from("partes_visita")
       .select("id, visitante_nombre, inmueble_direccion, fecha_visita, hora_visita, estado, agente_nombre, token")
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .then(({ data, error: err }) => {
         if (err) {
@@ -88,17 +94,16 @@ export default function PartesVisitaPage() {
     const ids = [...selectedIds];
     if (ids.length === 0) return;
     setBulkDeleting(true);
-    const supabase = createClient();
-    const { error: delErr } = await supabase.from("partes_visita").delete().in("id", ids);
+    const result = await eliminarDocumentos("parte_visita", ids);
     setBulkDeleting(false);
-    if (delErr) {
-      toast.error(delErr.message);
+    if (!result.ok) {
+      toast.error(result.error);
       return;
     }
     setPartes((prev) => prev.filter((p) => !ids.includes(p.id)));
     exitSelectionMode();
     setBulkDeleteOpen(false);
-    toast.success(ids.length === 1 ? "1 parte eliminado" : `${ids.length} partes eliminados`);
+    toast.success(result.message ?? (ids.length === 1 ? "1 parte eliminado" : `${ids.length} partes eliminados`));
     router.refresh();
   };
 
@@ -259,8 +264,12 @@ export default function PartesVisitaPage() {
         open={bulkDeleteOpen}
         onOpenChange={setBulkDeleteOpen}
         title={`¿Eliminar ${selectedIds.size} parte${selectedIds.size !== 1 ? "s" : ""}?`}
-        description="Se borrarán de forma permanente, incluidas las firmas. Esta acción no se puede deshacer."
-        confirmLabel={bulkDeleting ? "Eliminando…" : "Eliminar definitivamente"}
+        description={
+          superadmin
+            ? "Se borrarán de forma permanente, incluidas las firmas."
+            : "Irán a la papelera del superadministrador para confirmar el borrado definitivo."
+        }
+        confirmLabel={bulkDeleting ? "Eliminando…" : superadmin ? "Eliminar definitivamente" : "Enviar a papelera"}
         onConfirm={() => void handleBulkDelete()}
         loading={bulkDeleting}
         variant="destructive"

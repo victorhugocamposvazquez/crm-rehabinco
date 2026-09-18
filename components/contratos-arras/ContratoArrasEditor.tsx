@@ -6,6 +6,9 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { ChevronLeft, Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { eliminarDocumentos } from "@/lib/actions/papelera";
+import { useAuth } from "@/lib/auth/auth-context";
+import { isSuperAdmin } from "@/lib/auth/roles";
 import { Button } from "@/components/ui/button";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
@@ -130,6 +133,8 @@ function PersonaCard({
 
 export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
   const router = useRouter();
+  const { user } = useAuth();
+  const superadmin = isSuperAdmin(user?.role);
   const [loading, setLoading] = useState(Boolean(contratoId));
   const [datos, setDatos] = useState<ContratoArrasDatos>(() => ({
     ...contratoArrasVacio(),
@@ -506,15 +511,14 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
   const eliminar = async () => {
     if (!contratoId) return;
     setDeleting(true);
-    const supabase = createClient();
-    const { error } = await supabase.from("contratos_arras").delete().eq("id", contratoId);
+    const result = await eliminarDocumentos("contrato_arras", [contratoId]);
     setDeleting(false);
     setShowDeleteConfirm(false);
-    if (error) {
-      toast.error("No se ha podido eliminar el contrato.");
+    if (!result.ok) {
+      toast.error(result.error);
       return;
     }
-    toast.success("Contrato eliminado.");
+    toast.success(result.message ?? "Contrato eliminado.");
     router.push("/contratos-arras");
     router.refresh();
   };
@@ -562,8 +566,12 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
         title="¿Eliminar este contrato de arras?"
-        description="Se borrará de forma permanente. Esta acción no se puede deshacer."
-        confirmLabel={deleting ? "Eliminando…" : "Eliminar"}
+        description={
+          superadmin
+            ? "Se borrará de forma permanente."
+            : "Irá a la papelera del superadministrador para confirmar el borrado definitivo."
+        }
+        confirmLabel={deleting ? "Eliminando…" : superadmin ? "Eliminar" : "Enviar a papelera"}
         onConfirm={() => void eliminar()}
         loading={deleting}
         variant="destructive"

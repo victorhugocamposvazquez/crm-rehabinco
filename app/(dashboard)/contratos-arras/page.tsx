@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { ListChecks, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { eliminarDocumentos } from "@/lib/actions/papelera";
+import { useAuth } from "@/lib/auth/auth-context";
+import { isSuperAdmin } from "@/lib/auth/roles";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { AlertDialog } from "@/components/ui/alert-dialog";
@@ -26,6 +29,8 @@ type Row = {
 };
 
 export default function ContratosArrasPage() {
+  const { user } = useAuth();
+  const superadmin = isSuperAdmin(user?.role);
   const router = useRouter();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +45,7 @@ export default function ContratosArrasPage() {
     void supabase
       .from("contratos_arras")
       .select("id, fecha, estado, finca_descripcion, precio, arras, compradores, vendedores")
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .then(({ data }) => {
         setRows((data ?? []) as Row[]);
@@ -65,17 +71,16 @@ export default function ContratosArrasPage() {
     const ids = [...selectedIds];
     if (ids.length === 0) return;
     setBulkDeleting(true);
-    const supabase = createClient();
-    const { error } = await supabase.from("contratos_arras").delete().in("id", ids);
+    const result = await eliminarDocumentos("contrato_arras", ids);
     setBulkDeleting(false);
-    if (error) {
-      toast.error(error.message);
+    if (!result.ok) {
+      toast.error(result.error);
       return;
     }
     setRows((prev) => prev.filter((r) => !ids.includes(r.id)));
     exitSelectionMode();
     setBulkDeleteOpen(false);
-    toast.success(ids.length === 1 ? "1 contrato eliminado" : `${ids.length} contratos eliminados`);
+    toast.success(result.message ?? (ids.length === 1 ? "1 contrato eliminado" : `${ids.length} contratos eliminados`));
     router.refresh();
   };
 
@@ -200,8 +205,12 @@ export default function ContratosArrasPage() {
         open={bulkDeleteOpen}
         onOpenChange={setBulkDeleteOpen}
         title={`¿Eliminar ${selectedIds.size} contrato${selectedIds.size !== 1 ? "s" : ""}?`}
-        description="Se borrarán de forma permanente. Esta acción no se puede deshacer."
-        confirmLabel={bulkDeleting ? "Eliminando…" : "Eliminar definitivamente"}
+        description={
+          superadmin
+            ? "Se borrarán de forma permanente."
+            : "Irán a la papelera del superadministrador para confirmar el borrado definitivo."
+        }
+        confirmLabel={bulkDeleting ? "Eliminando…" : superadmin ? "Eliminar definitivamente" : "Enviar a papelera"}
         onConfirm={() => void handleBulkDelete()}
         loading={bulkDeleting}
         variant="destructive"
