@@ -20,6 +20,7 @@ import {
   textoVinculoTarea,
   type ColumnaTarea,
 } from "@/lib/tareas/tareas";
+import { syncCitaDesdeTarea } from "@/lib/tareas/sync-cita";
 import { TareasBoard, AvataresTarea, type TareaTarjeta } from "@/components/tareas/TareasBoard";
 import { TareaPanel, type TareaDetalle } from "@/components/tareas/TareaPanel";
 
@@ -144,44 +145,6 @@ export default function TareasPage() {
       });
   }, [visibles, hoy, comerciales, user]);
 
-  const syncCita = async (tarea: TareaDetalle, patch: { hora?: string | null; vence?: string | null; titulo?: string }) => {
-    const hora = (patch.hora !== undefined ? patch.hora : tarea.hora)?.slice(0, 5) ?? null;
-    const vence = (patch.vence !== undefined ? patch.vence : tarea.vence) ?? hoy;
-    const tituloCita = patch.titulo ?? tarea.titulo;
-    if (!hora) return tarea.cita_id ?? null;
-    const supabase = createClient();
-    const [hh, mm] = hora.split(":").map(Number);
-    const empieza = new Date(`${vence}T12:00:00`);
-    empieza.setHours(hh || 12, mm || 0, 0, 0);
-    const termina = new Date(empieza);
-    termina.setHours(empieza.getHours() + 1);
-    if (tarea.cita_id) {
-      await supabase
-        .from("citas")
-        .update({ empieza: empieza.toISOString(), termina: termina.toISOString(), titulo: tituloCita })
-        .eq("id", tarea.cita_id);
-      return tarea.cita_id;
-    }
-    const { data } = await supabase
-      .from("citas")
-      .insert({
-        comercial_id: tarea.comercial_id,
-        tipo: "tarea",
-        titulo: tituloCita,
-        empieza: empieza.toISOString(),
-        termina: termina.toISOString(),
-        tarea_id: tarea.id,
-        propiedad_id: tarea.propiedad_id,
-        cliente_id: tarea.cliente_id,
-      })
-      .select("id")
-      .single();
-    if (data?.id) {
-      await supabase.from("tareas").update({ cita_id: data.id }).eq("id", tarea.id);
-    }
-    return data?.id ?? null;
-  };
-
   const crearCon = async (texto: string, col?: ColumnaTarea) => {
     if (!user) return;
     const parsed = parseTareaRapida(texto);
@@ -215,7 +178,11 @@ export default function TareasPage() {
       creada.profiles = { nombre_completo: user.nombre, color: user.color ?? null, email: user.email };
     }
     if (parsed.hora) {
-      await syncCita(creada, { hora: parsed.hora, vence: creada.vence, titulo: creada.titulo });
+      await syncCitaDesdeTarea(createClient(), creada, {
+        hora: parsed.hora,
+        vence: creada.vence,
+        titulo: creada.titulo,
+      });
     }
     setTitulo("");
     toast.success(parsed.hora ? "Tarea y cita creadas." : "Tarea creada.");
@@ -232,6 +199,12 @@ export default function TareasPage() {
     if (error) {
       toast.error("No se ha podido actualizar la tarea.");
       return;
+    }
+    if (actual?.cita_id) {
+      await supabase
+        .from("citas")
+        .update({ estado: siguiente === "hecha" ? "hecha" : "prevista" })
+        .eq("id", actual.cita_id);
     }
     setTareas((prev) => prev.map((item) => (item.id === id ? { ...item, estado: siguiente } : item)));
   };
@@ -265,7 +238,7 @@ export default function TareasPage() {
       }
     }
     if (patch.hora !== undefined || patch.vence !== undefined || patch.titulo !== undefined) {
-      const citaId = await syncCita(actual, {
+      const citaId = await syncCitaDesdeTarea(createClient(), actual, {
         hora: (patch.hora as string | null | undefined) ?? actual.hora,
         vence: (patch.vence as string | null | undefined) ?? actual.vence,
         titulo: (patch.titulo as string | undefined) ?? actual.titulo,
@@ -285,7 +258,7 @@ export default function TareasPage() {
       <PageHeader
         breadcrumb={[{ label: "Tareas" }]}
         title="Tareas"
-        description="Arrastra entre columnas. Lo que tiene hora pasa al calendario."
+        description="Todo lo del calendario entra aquí por día. Arrastra entre columnas; lo que tiene hora también aparece en la agenda."
         actions={
           <div className="flex overflow-hidden rounded-[9px] border border-border">
             <button

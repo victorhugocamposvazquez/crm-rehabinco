@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { anuncianteIdealista, mapearIdealista, paramsIdealistaDesdeAlerta, tipoIdealista } from "./idealista";
+import { anuncianteIdealista, mapearIdealista, paramsIdealistaDesdeAlerta, tipoIdealista } from "./legacy/idealista";
 import { claveContacto, diasEnPortal, pctBajada } from "./modelo";
 import { desaparecidosTrasSync, filtrarParticular, fusionarAnuncio } from "./sync";
 import { enmascararClave } from "./credenciales";
@@ -41,7 +41,7 @@ describe("captación portales", () => {
     assert.equal(mapped.anunciante, "particular");
     assert.equal(mapped.tipo, "piso");
     assert.equal(mapped.precio, 150000);
-    assert.equal(claveContacto(mapped.contacto_telefono, mapped.contacto_nombre, mapped.municipio), "n:tania|oleiros");
+    assert.equal(claveContacto(mapped.contacto_telefono, mapped.contacto_nombre, mapped.municipio), "nom:tania|oleiros");
   });
 
   it("filtra particulares y detecta bajada, alta y desaparecido", () => {
@@ -63,14 +63,14 @@ describe("captación portales", () => {
     })!;
     assert.equal(filtrarParticular([particular, agencia], true).length, 1);
 
-    const alta = fusionarAnuncio(null, particular, "2026-09-15T08:00:00.000Z", "alerta-1");
+    const alta = fusionarAnuncio(null, { ...particular, portal_id: "idealista" }, "2026-09-15T08:00:00.000Z", "alerta-1");
     assert.equal(alta.esNuevo, true);
     assert.equal(alta.eventos[0]?.tipo, "nuevo");
 
     const bajada = fusionarAnuncio(
       {
         id: "uuid",
-        fuente: "idealista",
+        portal_id: "idealista",
         externo_id: "1",
         precio: 200000,
         tags: [],
@@ -78,7 +78,7 @@ describe("captación portales", () => {
         alerta_id: "alerta-1",
         desaparecido_en: null,
       },
-      { ...particular, precio: 190000 },
+      { ...particular, portal_id: "idealista", precio: 190000 },
       "2026-09-15T09:00:00.000Z",
       "alerta-1"
     );
@@ -91,7 +91,7 @@ describe("captación portales", () => {
       [
         {
           id: "a",
-          fuente: "idealista",
+          portal_id: "idealista",
           externo_id: "1",
           precio: 1,
           tags: [],
@@ -101,7 +101,7 @@ describe("captación portales", () => {
         },
         {
           id: "b",
-          fuente: "idealista",
+          portal_id: "idealista",
           externo_id: "9",
           precio: 1,
           tags: [],
@@ -110,7 +110,7 @@ describe("captación portales", () => {
           desaparecido_en: null,
         },
       ],
-      [{ fuente: "idealista", externo_id: "1" }],
+      [{ portal_id: "idealista", externo_id: "1" }],
       "2026-09-15T10:00:00.000Z"
     );
     assert.equal(fuera.length, 0);
@@ -118,7 +118,7 @@ describe("captación portales", () => {
       [
         {
           id: "a",
-          fuente: "idealista",
+          portal_id: "idealista",
           externo_id: "1",
           precio: 1,
           tags: [],

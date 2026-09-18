@@ -3,8 +3,8 @@ import {
   type AnunciantePortal,
   type AnuncioEntrante,
   type TipoAnuncioPortal,
-} from "./modelo";
-import { leerCredencialesPortal } from "./credenciales";
+} from "../modelo";
+import { leerCredencialesPortal } from "../credenciales";
 
 export type IdealistaContact = {
   commercialName?: string | null;

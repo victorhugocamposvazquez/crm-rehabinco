@@ -1,6 +1,25 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { agruparTareas, bandejaDeTarea, columnaDeTarea, parseTareaRapida, recuentoTareas, textoVinculoTarea, cuandoActividad, cuandoComentario } from "./tareas";
+import {
+  agruparTareas,
+  bandejaDeTarea,
+  columnaDeTarea,
+  parseTareaRapida,
+  recuentoTareas,
+  textoVinculoTarea,
+  cuandoActividad,
+  cuandoComentario,
+} from "./tareas";
+import {
+  estadoTareaDesdeCita,
+  tituloTareaDesdeCita,
+  venceYHoraDesdeCita,
+} from "./sync-cita";
+
+function horaLocal(iso: string): string {
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
 
 describe("organizador de tareas", () => {
   it("separa vencidas, hoy y próximas", () => {
@@ -33,6 +52,20 @@ describe("organizador de tareas", () => {
     assert.equal(grupos.VENCIDAS.length, 1);
     assert.equal(grupos.HOY.length, 1);
     assert.equal(recuentoTareas(grupos.VENCIDAS.concat(grupos.HOY), "2026-09-14").HOY, 1);
+  });
+
+  it("sincroniza calendario → tarea por fecha y tipo", () => {
+    assert.deepEqual(venceYHoraDesdeCita("2026-09-18T10:30:00.000Z"), {
+      vence: "2026-09-18",
+      hora: horaLocal("2026-09-18T10:30:00.000Z"),
+    });
+    assert.equal(tituloTareaDesdeCita({ tipo: "visita", titulo: "Piso en Narón" }), "Visita: Piso en Narón");
+    assert.equal(tituloTareaDesdeCita({ tipo: "tarea", titulo: "Llamar al propietario" }), "Llamar al propietario");
+    assert.equal(estadoTareaDesdeCita("hecha"), "hecha");
+    assert.equal(estadoTareaDesdeCita("cancelada"), "hecha");
+    assert.equal(estadoTareaDesdeCita("prevista"), "pendiente");
+    assert.equal(columnaDeTarea("2026-09-18", "2026-09-18", "pendiente"), "hoy");
+    assert.equal(columnaDeTarea("2026-09-22", "2026-09-18", "pendiente"), "curso");
   });
 
   it("elige el vínculo principal y etiqueta la actividad", () => {

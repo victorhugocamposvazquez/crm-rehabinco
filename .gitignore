@@ -15,6 +15,7 @@ dist
 .DS_Store
 *.pem
 .env*.local
+crawler/.env
 .vercel
 
 # debug

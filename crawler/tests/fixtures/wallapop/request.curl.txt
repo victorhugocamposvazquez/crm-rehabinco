@@ -1,0 +1,16 @@
+# Capturado desde DevTools (Network → search). /api/v3/general/search devuelve 403 sin Origin.
+# Mínimo que funciona desde el worker:
+
+curl -sS 'https://api.wallapop.com/api/v3/search?source=search_box&keywords=piso&category_id=200&latitude=43.3623&longitude=-8.4115&distance_in_km=15&order_by=most_relevance&start=0' \
+  -H 'Host: api.wallapop.com' \
+  -H 'X-DeviceOS: 0' \
+  -H 'Accept: application/json' \
+  -H 'Accept-Language: es-ES,es;q=0.9' \
+  -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' \
+  -H 'Origin: https://es.wallapop.com' \
+  -H 'Referer: https://es.wallapop.com/' \
+  -H 'x-appversion: 81234' \
+  -H 'x-deviceid: crm-crawler-fixture'
+
+# Paginación: incrementar start de 40 en 40 (típico page size).
+# Inmobiliaria: category_id=200. Coordenadas/radio desde portal_params (lat, lng, radio_km).

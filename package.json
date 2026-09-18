@@ -7,9 +7,11 @@
     "build": "next build && node scripts/stamp-sw-build.mjs",
     "start": "next start",
     "lint": "next lint",
-    "test": "CATASTRO_SKIP_LIVE=1 tsx --test \"lib/catastro/**/*.test.ts\" \"lib/catastro-host/**/*.test.ts\" \"lib/captacion/**/*.test.ts\" \"lib/demandas/**/*.test.ts\" \"lib/citas/**/*.test.ts\" \"lib/tareas/**/*.test.ts\" \"lib/inmuebles/**/*.test.ts\" \"lib/geo/**/*.test.ts\" \"lib/alertas/**/*.test.ts\" \"lib/partes-visita.test.ts\" \"lib/documentos-rehabinco.test.ts\" \"lib/documentos-paginacion.test.ts\" \"lib/contrato-arras-preview.test.ts\" \"lib/build-id.test.ts\" \"lib/auth/**/*.test.ts\" \"lib/ui/**/*.test.ts\" \"scripts/stamp-sw-build.test.mjs\"",
+    "test": "node scripts/run-crm-tests.mjs",
+    "test:crawler": "npm test --prefix crawler",
     "catastro:explore": "tsx lib/catastro/explore.ts",
-    "test:live": "tsx --test \"lib/catastro/**/*.test.ts\""
+    "test:live": "tsx --test \"lib/catastro/**/*.test.ts\"",
+    "test:captacion": "tsx --test \"lib/captacion/**/*.test.ts\""
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.52",
@@ -23,6 +25,7 @@
     "html2canvas": "^1.4.1",
     "html2pdf.js": "^0.14.0",
     "jspdf": "^4.2.1",
+    "libphonenumber-js": "^1.13.13",
     "lucide-react": "^0.460.0",
     "next": "^15.0.0",
     "react": "^19.0.0",

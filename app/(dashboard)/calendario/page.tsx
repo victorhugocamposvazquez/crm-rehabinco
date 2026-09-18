@@ -40,6 +40,7 @@ import { EnlaceMaps } from "@/components/citas/InmueblePreviewCita";
 import { FichaLink } from "@/components/crm/FichaPeek";
 import { CalendarioMovil } from "@/components/citas/CalendarioMovil";
 import { NuevaEntradaCalendario } from "@/components/citas/NuevaEntradaCalendario";
+import { syncEstadoTareaDesdeCita, syncTareaDesdeCita } from "@/lib/tareas/sync-cita";
 
 type CitaRow = {
   id: string;
@@ -245,8 +246,24 @@ export default function CalendarioPage() {
         toast.error("No se ha podido guardar la entrada.");
         return;
       }
-      if (editando.tarea_id) {
-        await supabase.from("tareas").update({ titulo: tituloFinal, vence: patch.vence, hora: patch.hora, propiedad_id: propiedadId || null, cliente_id: clienteId || null }).eq("id", editando.tarea_id);
+      try {
+        await syncTareaDesdeCita(
+          supabase,
+          {
+            id: editando.id,
+            comercial_id: editando.comercial_id,
+            tipo: tipoFinal,
+            titulo: tituloFinal,
+            empieza: patch.empieza,
+            propiedad_id: propiedadId || null,
+            cliente_id: clienteId || null,
+            estado: editando.estado,
+            tarea_id: editando.tarea_id,
+          },
+          { creadoPor: user.id }
+        );
+      } catch {
+        toast.error("Cita guardada, pero no se pudo sincronizar con Tareas.");
       }
       setSaving(false);
       setSheetOpen(false);
@@ -258,65 +275,30 @@ export default function CalendarioPage() {
 
     const empieza = new Date(`${dia}T${hora}:00`);
     const termina = new Date(empieza.getTime() + 60 * 60 * 1000);
-    if (tipo === "tarea") {
-      const { data: tarea, error: errorTarea } = await supabase
-        .from("tareas")
-        .insert({
-          comercial_id: user.id,
-          creado_por: user.id,
-          titulo: tituloFinal,
-          vence: dia,
-          hora,
-          estado: "pendiente",
-          propiedad_id: propiedadId || null,
-          cliente_id: clienteId || null,
-        })
-        .select("id")
-        .single();
-      if (errorTarea || !tarea) {
-        setSaving(false);
-        toast.error("No se ha podido crear la tarea.");
-        return;
-      }
-      const { data: cita, error } = await supabase
-        .from("citas")
-        .insert({
-          comercial_id: user.id,
-          tipo: "tarea",
-          titulo: tituloFinal,
-          empieza: empieza.toISOString(),
-          termina: termina.toISOString(),
-          propiedad_id: propiedadId || null,
-          cliente_id: clienteId || null,
-          tarea_id: tarea.id,
-          lugar: lugarFinal,
-        })
-        .select("id")
-        .single();
-      if (error) {
-        setSaving(false);
-        toast.error("La tarea está creada, pero no ha pasado al calendario.");
-        return;
-      }
-      if (cita?.id) {
-        await supabase.from("tareas").update({ cita_id: cita.id }).eq("id", tarea.id);
-      }
-    } else {
-      const { error } = await supabase.from("citas").insert({
+    const tipoCita = tipo === "tarea" ? "tarea" : tipo;
+    const { data: cita, error } = await supabase
+      .from("citas")
+      .insert({
         comercial_id: user.id,
-        tipo,
+        tipo: tipoCita,
         titulo: tituloFinal,
         empieza: empieza.toISOString(),
         termina: termina.toISOString(),
         propiedad_id: propiedadId || null,
         cliente_id: clienteId || null,
         lugar: lugarFinal,
-      });
-      if (error) {
-        setSaving(false);
-        toast.error("No se ha podido crear la entrada.");
-        return;
-      }
+      })
+      .select("id, comercial_id, tipo, titulo, empieza, propiedad_id, cliente_id, estado, tarea_id")
+      .single();
+    if (error || !cita) {
+      setSaving(false);
+      toast.error("No se ha podido crear la entrada.");
+      return;
+    }
+    try {
+      await syncTareaDesdeCita(supabase, cita, { creadoPor: user.id });
+    } catch {
+      toast.error("Entrada creada en calendario, pero no pasó al tablero de Tareas.");
     }
     setSaving(false);
     setSheetOpen(false);
@@ -342,7 +324,14 @@ export default function CalendarioPage() {
       return;
     }
     if (snapshot.tarea_id) {
-      await supabase.from("tareas").update({ vence: snapshot.vence, hora: snapshot.hora }).eq("id", snapshot.tarea_id);
+      const original = citas.find((item) => item.id === snapshot.id);
+      if (original) {
+        await syncTareaDesdeCita(supabase, {
+          ...original,
+          empieza: snapshot.empieza,
+          tarea_id: snapshot.tarea_id,
+        });
+      }
     }
     setCitas((prev) =>
       prev.map((item) =>
@@ -387,8 +376,13 @@ export default function CalendarioPage() {
       toast.error("No se ha podido mover la cita.");
       return;
     }
-    if (cita.tarea_id) {
-      await supabase.from("tareas").update({ vence: patch.vence, hora: patch.hora }).eq("id", cita.tarea_id);
+    try {
+      await syncTareaDesdeCita(supabase, {
+        ...cita,
+        empieza: patch.empieza,
+      });
+    } catch {
+      toast.error("Cita movida, pero no se actualizó en Tareas.");
     }
     setCitas((prev) =>
       prev.map((item) => (item.id === id ? { ...item, empieza: patch.empieza, termina: patch.termina } : item))
@@ -404,11 +398,19 @@ export default function CalendarioPage() {
   };
 
   const cambiarEstado = async (id: string, estado: "hecha" | "cancelada") => {
+    const cita = citas.find((item) => item.id === id);
     const supabase = createClient();
     const { error } = await supabase.from("citas").update({ estado }).eq("id", id);
     if (error) {
       toast.error("No se ha podido actualizar la cita.");
       return;
+    }
+    if (cita) {
+      try {
+        await syncEstadoTareaDesdeCita(supabase, cita, estado);
+      } catch {
+        /* la cita ya cambió; el tablero se refrescará en la próxima visita */
+      }
     }
     toast.success(estado === "hecha" ? "Cita marcada como hecha." : "Cita cancelada.");
     cargar();

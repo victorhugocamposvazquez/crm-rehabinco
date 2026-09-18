@@ -1,5 +1,6 @@
+import { normalizarTexto } from "@/lib/captacion/pipeline/normalize";
 import { convertirAnuncioACrm } from "@/lib/captacion/portales/captar";
-import { parseFaseAnuncio, type AnuncioCaptacion, type FaseAnuncio } from "@/lib/captacion/portales/modelo";
+import { fuenteDesdeFila, parseFaseAnuncio, type AnuncioCaptacion, type FaseAnuncio } from "@/lib/captacion/portales/modelo";
 import { sesionCaptacion } from "@/lib/captacion/portales/sesion";
 
 export const runtime = "nodejs";
@@ -8,11 +9,11 @@ export const dynamic = "force-dynamic";
 function filaAnuncio(row: Record<string, unknown>): AnuncioCaptacion {
   return {
     id: String(row.id),
-    fuente: row.fuente === "fotocasa" || row.fuente === "milanuncios" ? row.fuente : "idealista",
+    fuente: fuenteDesdeFila(row),
     externo_id: String(row.externo_id),
     url: typeof row.url === "string" ? row.url : null,
-    titulo: String(row.titulo ?? ""),
-    descripcion: typeof row.descripcion === "string" ? row.descripcion : null,
+    titulo: normalizarTexto(String(row.titulo ?? "")) ?? "",
+    descripcion: typeof row.descripcion === "string" ? normalizarTexto(row.descripcion) : null,
     operacion: row.operacion === "alquiler" ? "alquiler" : "venta",
     tipo: typeof row.tipo === "string" ? row.tipo : null,
     anunciante:
@@ -24,16 +25,16 @@ function filaAnuncio(row: Record<string, unknown>): AnuncioCaptacion {
     superficie: row.superficie == null ? null : Number(row.superficie),
     habitaciones: row.habitaciones == null ? null : Number(row.habitaciones),
     banos: row.banos == null ? null : Number(row.banos),
-    direccion: typeof row.direccion === "string" ? row.direccion : null,
-    zona: typeof row.zona === "string" ? row.zona : null,
-    municipio: typeof row.municipio === "string" ? row.municipio : null,
+    direccion: typeof row.direccion === "string" ? normalizarTexto(row.direccion) : null,
+    zona: typeof row.zona === "string" ? normalizarTexto(row.zona) : null,
+    municipio: typeof row.municipio === "string" ? normalizarTexto(row.municipio) : null,
     codigo_postal: typeof row.codigo_postal === "string" ? row.codigo_postal : null,
     lat: typeof row.lat === "number" ? row.lat : null,
     lng: typeof row.lng === "number" ? row.lng : null,
     thumb: typeof row.thumb === "string" ? row.thumb : null,
     n_fotos: row.n_fotos == null ? null : Number(row.n_fotos),
     fotos: row.fotos,
-    contacto_nombre: typeof row.contacto_nombre === "string" ? row.contacto_nombre : null,
+    contacto_nombre: typeof row.contacto_nombre === "string" ? normalizarTexto(row.contacto_nombre) : null,
     contacto_telefono: typeof row.contacto_telefono === "string" ? row.contacto_telefono : null,
     contacto_clave: typeof row.contacto_clave === "string" ? row.contacto_clave : null,
     tags: Array.isArray(row.tags) ? (row.tags as string[]) : [],

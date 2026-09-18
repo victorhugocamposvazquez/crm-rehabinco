@@ -9,6 +9,7 @@ import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { Sheet } from "@/components/ui/sheet";
 import { FiltroComercial, type ComercialFiltro } from "@/components/captacion/FiltroComercial";
 import { nombreYApellido, inicialesNombre } from "@/lib/ui/tokens";
+import { normalizarTexto } from "@/lib/captacion/pipeline/normalize";
 import { CIUDADES_FILTRO } from "@/lib/captacion/portales/zonas";
 import {
   indiciosEncubierta,
@@ -30,6 +31,8 @@ import {
   euros,
   eurosM2,
   parseFaseAnuncio,
+  fuenteDesdeFila,
+  labelFuentePortal,
   parseFuentePortal,
   pctBajada,
   tagsConEstilo,
@@ -57,11 +60,11 @@ const PREF_LABELS: Array<{ key: keyof Prefs; label: string }> = [
 function filaAnuncio(row: Record<string, unknown>): AnuncioCaptacion {
   return {
     id: String(row.id),
-    fuente: parseFuentePortal(row.fuente) ?? "idealista",
+    fuente: fuenteDesdeFila(row),
     externo_id: String(row.externo_id),
     url: typeof row.url === "string" ? row.url : null,
-    titulo: String(row.titulo ?? ""),
-    descripcion: typeof row.descripcion === "string" ? row.descripcion : null,
+    titulo: normalizarTexto(String(row.titulo ?? "")) ?? "",
+    descripcion: typeof row.descripcion === "string" ? normalizarTexto(row.descripcion) : null,
     operacion: row.operacion === "alquiler" ? "alquiler" : "venta",
     tipo: typeof row.tipo === "string" ? row.tipo : null,
     anunciante:
@@ -73,15 +76,15 @@ function filaAnuncio(row: Record<string, unknown>): AnuncioCaptacion {
     superficie: row.superficie == null ? null : Number(row.superficie),
     habitaciones: row.habitaciones == null ? null : Number(row.habitaciones),
     banos: row.banos == null ? null : Number(row.banos),
-    direccion: typeof row.direccion === "string" ? row.direccion : null,
-    zona: typeof row.zona === "string" ? row.zona : null,
-    municipio: typeof row.municipio === "string" ? row.municipio : null,
+    direccion: typeof row.direccion === "string" ? normalizarTexto(row.direccion) : null,
+    zona: typeof row.zona === "string" ? normalizarTexto(row.zona) : null,
+    municipio: typeof row.municipio === "string" ? normalizarTexto(row.municipio) : null,
     codigo_postal: typeof row.codigo_postal === "string" ? row.codigo_postal : null,
     lat: typeof row.lat === "number" ? row.lat : null,
     lng: typeof row.lng === "number" ? row.lng : null,
     thumb: typeof row.thumb === "string" ? row.thumb : null,
     n_fotos: row.n_fotos == null ? null : Number(row.n_fotos),
-    contacto_nombre: typeof row.contacto_nombre === "string" ? row.contacto_nombre : null,
+    contacto_nombre: typeof row.contacto_nombre === "string" ? normalizarTexto(row.contacto_nombre) : null,
     contacto_telefono: typeof row.contacto_telefono === "string" ? row.contacto_telefono : null,
     contacto_clave: typeof row.contacto_clave === "string" ? row.contacto_clave : null,
     tags: Array.isArray(row.tags) ? (row.tags as string[]) : [],
@@ -174,7 +177,7 @@ export function CaptacionPortales() {
   });
   const [draftAlerta, setDraftAlerta] = useState({
     nombre: "",
-    portales: ["idealista"] as FuentePortal[],
+    portales: ["habitaclia"] as FuentePortal[],
     zonas: "",
     operacion: "venta" as "venta" | "alquiler",
     tipo: "",
@@ -469,6 +472,16 @@ export function CaptacionPortales() {
     ["bajada", "Bajadas", nov.filter((a) => a.tags.includes("Bajada")).length],
     ["edif", "Edificios y casas", nov.filter((a) => a.tipo === "edificio" || a.tipo === "casa").length],
   ];
+  const portalChips = useMemo(() => {
+    let base = nov;
+    if (fAlerta !== "todas") base = base.filter((a) => a.alerta_id === fAlerta);
+    if (fCiudad !== "todas") base = base.filter((a) => (a.municipio ?? "").startsWith(fCiudad));
+    return FUENTES_PORTAL.map((p) => ({
+      id: p,
+      label: PORTAL_LABEL[p] ?? p,
+      n: base.filter((a) => a.fuente === p).length,
+    })).filter((c) => c.n > 0);
+  }, [nov, fAlerta, fCiudad]);
   const tabs: Array<[Tab, string, number]> = [
     ["nov", "Novedades", nov.length],
     ["seg", "Seguimiento", seg.length],
@@ -640,6 +653,28 @@ export function CaptacionPortales() {
                 <option value="m2">m² ↓</option>
               </select>
             </div>
+            {portalChips.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-1.5 border-b border-[var(--border-soft)] px-3.5 py-2">
+                {portalChips.map(({ id, label, n }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => {
+                      setFiltros((f) => ({ ...f, portal: f.portal === id ? "todos" : id }));
+                      setPag(1);
+                    }}
+                    className={cn(
+                      "h-[30px] rounded-full border px-2.5 text-[12.5px] font-medium",
+                      filtros.portal === id
+                        ? "border-accent bg-accent-soft text-accent-dark"
+                        : "border-[var(--border)] bg-white text-[var(--text-2)]"
+                    )}
+                  >
+                    {label} <span className="opacity-60">{n}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
             {mapa ? (
               <div className="relative h-[260px] overflow-hidden border-b border-[var(--border-soft)] bg-[#E9ECE8]">
                 {pins.map((p) => (
@@ -706,7 +741,7 @@ export function CaptacionPortales() {
                         </p>
                       </div>
                       <p className="mt-1 truncate text-[12px] text-[var(--text-2)]">
-                        {PORTAL_LABEL[a.fuente]}
+                        {labelFuentePortal(a.fuente)}
                         {a.habitaciones ? ` · ${a.habitaciones} hab` : ""}
                         {a.superficie ? ` · ${a.superficie} m²` : ""}
                         {a.municipio ? ` · ${a.municipio}` : ""}
@@ -738,7 +773,7 @@ export function CaptacionPortales() {
                         {!wide && nRep > 1 ? <span className="shrink-0 rounded border border-[#CDE9E1] px-1 text-[10.5px] font-semibold text-accent" title="Este contacto tiene más anuncios">×{nRep}</span> : null}
                       </div>
                       <div className="mt-0.5 flex gap-2 overflow-hidden text-[12px] text-[var(--text-2)]">
-                        <span className="flex shrink-0 items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ background: PORTAL_COLOR[a.fuente] }} />{PORTAL_LABEL[a.fuente]}</span>
+                        <span className="flex shrink-0 items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ background: PORTAL_COLOR[a.fuente] }} />{labelFuentePortal(a.fuente)}</span>
                         <span className="font-mono text-[11px]">{a.fuente.slice(0, 2)}.{a.externo_id}</span>
                         <span className="whitespace-nowrap">{a.tipo ? TIPO_ANUNCIO_LABEL[a.tipo as keyof typeof TIPO_ANUNCIO_LABEL] ?? a.tipo : "—"}{a.habitaciones ? ` · ${a.habitaciones} hab` : ""}{!wide && a.superficie ? ` · ${a.superficie} m²` : ""}</span>
                         <span className="whitespace-nowrap">{cuandoPublicado(a.publicado_en)}</span>
@@ -920,6 +955,36 @@ export function CaptacionPortales() {
             onNota={(nota) => void anotar(seleccionado.id, nota)}
             onAbrir={(id) => setSel(id)}
             onAsignar={(id) => void patchAnuncio([seleccionado.id], { comercial_id: id }, `Asignado a ${comercialDe(id)?.nombre.split(" ")[0] ?? ""}`, "asignacion")}
+            onPedirDetalle={() => {
+              if (!seleccionado.url) return;
+              void fetch("/api/captacion/crawl/detalle", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  portalId: seleccionado.fuente,
+                  url: seleccionado.url,
+                  alertaId: seleccionado.alerta_id,
+                  externoId: seleccionado.externo_id,
+                }),
+              })
+                .then((r) => r.json())
+                .then((j) => toast.success(j.ok ? "Detalle encolado" : j.error ?? "Error"))
+                .catch(() => toast.error("No se pudo encolar el detalle"));
+            }}
+            onClasificar={(tipo) => {
+              if (!seleccionado.contacto_clave) {
+                toast.error("Sin clave de contacto");
+                return;
+              }
+              void fetch("/api/captacion/contactos/clasificar", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contactoClave: seleccionado.contacto_clave, clasificacion: tipo }),
+              })
+                .then((r) => r.json())
+                .then((j) => toast.success(j.ok ? `Marcado como ${tipo}` : j.error ?? "Error"))
+                .catch(() => toast.error("No se pudo guardar"));
+            }}
           />
         </Sheet>
       ) : null}
@@ -945,7 +1010,7 @@ export function CaptacionPortales() {
                     );
                   })}
                 </div>
-                <p className="mt-1.5 text-[12px] text-[var(--text-3)]">Idealista es la fuente activa. Fotocasa y Milanuncios quedan listos cuando haya API de lectura.</p>
+                <p className="mt-1.5 text-[12px] text-[var(--text-3)]">Captación activa por crawler: Habitaclia, pisos.com, Milanuncios y Fotocasa. Idealista requiere API aparte.</p>
               </div>
               <label className="block text-[12px] font-semibold text-[var(--text-2)]">Zonas<input value={draftAlerta.zonas} onChange={(e) => setDraftAlerta((d) => ({ ...d, zonas: e.target.value }))} placeholder="A Coruña, Cambre, Oleiros…" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px]" /></label>
               <div className="grid grid-cols-2 gap-2.5">
@@ -1000,6 +1065,8 @@ function PeekAnuncio({
   onNota,
   onAbrir,
   onAsignar,
+  onPedirDetalle,
+  onClasificar,
 }: {
   anuncio: AnuncioCaptacion;
   alertaNombre?: string;
@@ -1014,6 +1081,8 @@ function PeekAnuncio({
   onNota: (nota: string) => void;
   onAbrir: (id: string) => void;
   onAsignar: (id: string) => void;
+  onPedirDetalle?: () => void;
+  onClasificar?: (tipo: "particular" | "profesional") => void;
 }) {
   const [nota, setNota] = useState("");
   const a = anuncio;
@@ -1025,7 +1094,7 @@ function PeekAnuncio({
       <div className="relative aspect-video bg-[#E8E4DC]">
         {a.thumb ? <img src={a.thumb} alt="" className="h-full w-full object-cover" /> : null}
         <div className="absolute bottom-2.5 left-3 flex flex-wrap gap-1.5">
-          <span className="flex items-center gap-1 rounded-md bg-white/95 px-2 py-0.5 text-[11px] font-semibold"><span className="h-1.5 w-1.5 rounded-full" style={{ background: PORTAL_COLOR[a.fuente] }} />{PORTAL_LABEL[a.fuente]} · {a.anunciante === "particular" ? "Particular" : a.anunciante}</span>
+          <span className="flex items-center gap-1 rounded-md bg-white/95 px-2 py-0.5 text-[11px] font-semibold"><span className="h-1.5 w-1.5 rounded-full" style={{ background: PORTAL_COLOR[a.fuente] }} />{labelFuentePortal(a.fuente)} · {a.anunciante === "particular" ? "Particular" : a.anunciante}</span>
           {a.n_fotos ? <span className="rounded-md bg-white/95 px-2 py-0.5 text-[11px] font-semibold text-[var(--text-2)]">{a.n_fotos} fotos</span> : null}
         </div>
         <button type="button" onClick={onCerrar} className="absolute right-2.5 top-2.5 grid h-[34px] w-[34px] place-items-center rounded-[9px] bg-white/95">×</button>
@@ -1057,7 +1126,16 @@ function PeekAnuncio({
         ) : null}
         {a.cliente_id ? <a href={`/clientes/${a.cliente_id}`} className="flex h-[38px] min-w-[90px] flex-1 items-center justify-center rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold no-underline">Ver cliente</a> : null}
         {a.contacto_telefono ? <a href={`tel:${a.contacto_telefono.replace(/\s/g, "")}`} className="flex h-[38px] min-w-[90px] flex-1 items-center justify-center rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold no-underline">Llamar</a> : null}
-        {a.url ? <a href={a.url} target="_blank" rel="noopener noreferrer" className="flex h-[38px] min-w-[120px] flex-1 items-center justify-center rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold no-underline">Ver en {PORTAL_LABEL[a.fuente]}</a> : null}
+        {a.url ? <a href={a.url} target="_blank" rel="noopener noreferrer" className="flex h-[38px] min-w-[120px] flex-1 items-center justify-center rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold no-underline">Ver en {labelFuentePortal(a.fuente)}</a> : null}
+        {!a.contacto_telefono && a.url && onPedirDetalle ? (
+          <button type="button" onClick={onPedirDetalle} className="h-[38px] min-w-[120px] flex-1 rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold">Pedir detalle</button>
+        ) : null}
+        {onClasificar ? (
+          <>
+            <button type="button" onClick={() => onClasificar("profesional")} className="h-[38px] min-w-[100px] flex-1 rounded-[9px] border border-[#E8D4D4] bg-[#FBF0F0] text-[13px] font-semibold text-[#8A3030]">Era agencia</button>
+            <button type="button" onClick={() => onClasificar("particular")} className="h-[38px] min-w-[100px] flex-1 rounded-[9px] border border-[#D4E8DE] bg-[#F0FBF4] text-[13px] font-semibold text-[#0B7461]">Era particular</button>
+          </>
+        ) : null}
       </div>
       <div className="grid grid-cols-3 gap-2.5 border-b border-[var(--border-soft)] px-4 py-3 text-[13.5px]">
         <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Tipo</div>{a.tipo ? TIPO_ANUNCIO_LABEL[a.tipo as keyof typeof TIPO_ANUNCIO_LABEL] ?? a.tipo : "—"}</div>

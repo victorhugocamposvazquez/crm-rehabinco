@@ -1,5 +1,13 @@
-export const FUENTES_PORTAL = ["idealista", "fotocasa", "milanuncios"] as const;
+export const FUENTES_PORTAL = [
+  "idealista",
+  "habitaclia",
+  "milanuncios",
+  "fotocasa",
+  "pisos.com",
+  "wallapop",
+] as const;
 export type FuentePortal = (typeof FUENTES_PORTAL)[number];
+export type PortalId = FuentePortal;
 
 export const FASES_ANUNCIO = [
   "novedad",
@@ -21,16 +29,22 @@ export type AnunciantePortal = (typeof ANUNCIANTES)[number];
 export const TIPOS_ANUNCIO = ["piso", "casa", "edificio", "local", "terreno"] as const;
 export type TipoAnuncioPortal = (typeof TIPOS_ANUNCIO)[number];
 
-export const PORTAL_COLOR: Record<FuentePortal, string> = {
+export const PORTAL_COLOR: Partial<Record<FuentePortal, string>> = {
   idealista: "#B5D334",
+  habitaclia: "#E85D04",
   fotocasa: "#5B4FC9",
   milanuncios: "#E8642B",
+  "pisos.com": "#0066CC",
+  wallapop: "#13C1AC",
 };
 
-export const PORTAL_LABEL: Record<FuentePortal, string> = {
-  idealista: "idealista",
+export const PORTAL_LABEL: Partial<Record<FuentePortal, string>> = {
+  idealista: "Idealista",
+  habitaclia: "Habitaclia",
   fotocasa: "Fotocasa",
   milanuncios: "Milanuncios",
+  "pisos.com": "pisos.com",
+  wallapop: "Wallapop",
 };
 
 export const TIPO_ANUNCIO_LABEL: Record<TipoAnuncioPortal, string> = {
@@ -127,6 +141,7 @@ export type AnuncioCaptacion = {
 
 export type AnuncioEntrante = {
   fuente: FuentePortal;
+  portal_id?: FuentePortal;
   externo_id: string;
   url: string | null;
   titulo: string;
@@ -138,6 +153,9 @@ export type AnuncioEntrante = {
   superficie: number | null;
   habitaciones: number | null;
   banos: number | null;
+  planta?: string | null;
+  geo_aproximada?: boolean;
+  nombre_comercial?: string | null;
   direccion: string | null;
   zona: string | null;
   municipio: string | null;
@@ -157,22 +175,29 @@ export function parseFuentePortal(value: unknown): FuentePortal | null {
   return FUENTES_PORTAL.includes(value as FuentePortal) ? (value as FuentePortal) : null;
 }
 
+/** Resuelve la fuente desde fila DB; prioriza portal_id (FK crawler) sobre fuente legacy. */
+export function fuenteDesdeFila(row: { fuente?: unknown; portal_id?: unknown }): FuentePortal {
+  const parsed = parseFuentePortal(row.portal_id) ?? parseFuentePortal(row.fuente);
+  if (parsed) return parsed;
+  const raw =
+    (typeof row.portal_id === "string" && row.portal_id) ||
+    (typeof row.fuente === "string" && row.fuente) ||
+    "idealista";
+  return raw as FuentePortal;
+}
+
+export function labelFuentePortal(fuente: string): string {
+  const known = PORTAL_LABEL[fuente as FuentePortal];
+  if (known) return known;
+  if (fuente.includes(".")) return fuente;
+  return fuente.charAt(0).toUpperCase() + fuente.slice(1);
+}
+
 export function parseFaseAnuncio(value: unknown): FaseAnuncio {
   return FASES_ANUNCIO.includes(value as FaseAnuncio) ? (value as FaseAnuncio) : "novedad";
 }
 
-export function claveContacto(
-  telefono?: string | null,
-  nombre?: string | null,
-  municipio?: string | null
-): string | null {
-  const digits = (telefono ?? "").replace(/\D/g, "");
-  if (digits.length >= 9) return `t:${digits}`;
-  const n = (nombre ?? "").trim().toLowerCase();
-  const m = (municipio ?? "").trim().toLowerCase();
-  if (n.length >= 2 && m) return `n:${n}|${m}`;
-  return null;
-}
+export { claveContacto, claveContactoCanonica, telefonoE164 } from "@/lib/captacion/contacto";
 
 export function euros(n: number | null | undefined, alquiler = false): string {
   if (n == null || Number.isNaN(n)) return "—";
