@@ -38,7 +38,7 @@ export function AgendaVisitas({ compact = false }: { compact?: boolean }) {
   const cargar = () => {
     if (!user) return;
     const supabase = createClient();
-    let q = supabase
+    const q = supabase
       .from("citas")
       .select(
         "id, comercial_id, tipo, titulo, empieza, propiedad_id, cliente_id, estado, profiles:comercial_id(nombre_completo, color), propiedades:propiedad_id(titulo, direccion, referencia), clientes:cliente_id(nombre)"
