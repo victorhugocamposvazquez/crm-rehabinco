@@ -20,7 +20,7 @@ import {
   textoVinculoTarea,
   type ColumnaTarea,
 } from "@/lib/tareas/tareas";
-import { syncCitaDesdeTarea } from "@/lib/tareas/sync-cita";
+import { backfillTareasDesdeCalendario, syncCitaDesdeTarea } from "@/lib/tareas/sync-cita";
 import { TareasBoard, AvataresTarea, type TareaTarjeta } from "@/components/tareas/TareasBoard";
 import { TareaPanel, type TareaDetalle } from "@/components/tareas/TareaPanel";
 
@@ -107,7 +107,15 @@ export default function TareasPage() {
   }, [user]);
 
   useEffect(() => {
-    cargar();
+    if (!user) return;
+    const supabase = createClient();
+    void (async () => {
+      await backfillTareasDesdeCalendario(supabase, {
+        comercialId: admin ? undefined : user.id,
+        creadoPor: user.id,
+      });
+      cargar();
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, admin]);
 

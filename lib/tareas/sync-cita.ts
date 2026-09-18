@@ -141,3 +141,36 @@ export async function syncEstadoTareaDesdeCita(
 ): Promise<void> {
   await syncTareaDesdeCita(supabase, { ...cita, estado }, { creadoPor: cita.comercial_id });
 }
+
+const SELECT_CITA_SYNC =
+  "id, comercial_id, tipo, titulo, empieza, propiedad_id, cliente_id, demanda_id, finca_reference, estado, tarea_id";
+
+/** Crea tareas para citas antiguas que aún no tienen enlace (backfill en cliente). */
+export async function backfillTareasDesdeCalendario(
+  supabase: SupabaseClient,
+  opts?: { comercialId?: string; creadoPor?: string }
+): Promise<number> {
+  let q = supabase
+    .from("citas")
+    .select(SELECT_CITA_SYNC)
+    .is("tarea_id", null)
+    .neq("estado", "cancelada")
+    .order("empieza", { ascending: false })
+    .limit(50);
+  if (opts?.comercialId) q = q.eq("comercial_id", opts.comercialId);
+  const { data: citas, error } = await q;
+  if (error || !citas?.length) return 0;
+
+  let n = 0;
+  for (const cita of citas) {
+    try {
+      await syncTareaDesdeCita(supabase, cita as CitaParaTarea, {
+        creadoPor: opts?.creadoPor ?? cita.comercial_id,
+      });
+      n += 1;
+    } catch {
+      /* siguiente cita */
+    }
+  }
+  return n;
+}
