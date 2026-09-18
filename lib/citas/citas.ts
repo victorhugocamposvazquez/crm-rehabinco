@@ -111,6 +111,42 @@ export function semanaDesde(dia: string): string[] {
   });
 }
 
+export type VistaCalendario = "semana" | "mes";
+
+export function moverMes(dia: string, meses: number): string {
+  const base = new Date(`${dia.slice(0, 10)}T12:00:00`);
+  base.setMonth(base.getMonth() + meses, 1);
+  return base.toISOString().slice(0, 10);
+}
+
+export function etiquetaMes(dia: string): string {
+  return new Date(`${dia.slice(0, 10)}T12:00:00`).toLocaleDateString("es-ES", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
+export function rangoGrillaMes(dia: string): { dias: string[]; inicio: string; fin: string } {
+  const base = new Date(`${dia.slice(0, 10)}T12:00:00`);
+  const primero = new Date(base.getFullYear(), base.getMonth(), 1, 12, 0, 0);
+  const offset = (primero.getDay() + 6) % 7;
+  const inicioGrilla = new Date(primero);
+  inicioGrilla.setDate(primero.getDate() - offset);
+  const dias = Array.from({ length: 42 }, (_, i) => {
+    const d = new Date(inicioGrilla);
+    d.setDate(inicioGrilla.getDate() + i);
+    return d.toISOString().slice(0, 10);
+  });
+  return { dias, inicio: `${dias[0]}T00:00:00`, fin: `${dias[41]}T23:59:59` };
+}
+
+export type CeldaMes = { dia: string; fueraMes: boolean };
+
+export function celdasMes(dia: string): CeldaMes[] {
+  const clave = dia.slice(0, 7);
+  return rangoGrillaMes(dia).dias.map((d) => ({ dia: d, fueraMes: d.slice(0, 7) !== clave }));
+}
+
 export const CAL_HORA_INICIO = 9;
 export const CAL_HORA_FIN = 19;
 export const CAL_PX_HORA = 48;

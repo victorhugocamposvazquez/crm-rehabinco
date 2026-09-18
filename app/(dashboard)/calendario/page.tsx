@@ -22,11 +22,15 @@ import {
   minutosDesdeOffsetY,
   minutosLocalesDeCita,
   moverCitaADiaHora,
+  etiquetaMes,
+  moverMes,
   moverSemana,
   relacionUno,
+  rangoGrillaMes,
   SELECT_INMUEBLE_CALENDARIO,
   semanaDesde,
   TIPO_CITA_LABEL,
+  type VistaCalendario,
   type EstadoCita,
   type InmuebleCalendario,
   type TipoAltaCalendario,
@@ -36,6 +40,8 @@ import { FiltroComercial, type ComercialFiltro } from "@/components/captacion/Fi
 import { useFiltroComercial } from "@/lib/ui/filtro-comercial";
 import { CitaAcciones } from "@/components/citas/CitaAcciones";
 import { CalendarioSemana } from "@/components/citas/CalendarioSemana";
+import { CalendarioMes } from "@/components/citas/CalendarioMes";
+import { ToggleChip } from "@/components/ui/toggle-chip";
 import { EnlaceMaps } from "@/components/citas/InmueblePreviewCita";
 import { FichaLink } from "@/components/crm/FichaPeek";
 import { CalendarioMovil } from "@/components/citas/CalendarioMovil";
@@ -68,6 +74,7 @@ export default function CalendarioPage() {
   const admin = isAdmin(user?.role);
   const hoy = new Date().toISOString().slice(0, 10);
   const [dia, setDia] = useState(() => hoy);
+  const [vista, setVista] = useState<VistaCalendario>("semana");
   const [citas, setCitas] = useState<CitaRow[]>([]);
   const [hora, setHora] = useState("10:00");
   const [sheetOpen, setSheetOpen] = useState(() => Boolean(searchParams.get("propiedad") || searchParams.get("cliente")));
@@ -83,16 +90,20 @@ export default function CalendarioPage() {
   const [comerciales, setComerciales] = useState<ComercialFiltro[]>([]);
   const { comercialId: filtroComercial, setComercialId: setFiltroComercial } = useFiltroComercial();
   const semana = useMemo(() => semanaDesde(dia), [dia]);
+  const grillaMes = useMemo(() => rangoGrillaMes(dia), [dia]);
   const etiquetaSemana = `${new Date(`${semana[0]}T12:00:00`).toLocaleDateString("es-ES", {
     day: "numeric",
     month: "short",
   })} – ${new Date(`${semana[6]}T12:00:00`).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}`;
+  const etiquetaPeriodo = vista === "mes" ? etiquetaMes(dia) : etiquetaSemana;
+  const diasVista = vista === "mes" ? grillaMes.dias : semana;
 
   const cargar = () => {
     if (!user) return;
     const supabase = createClient();
-    const inicio = `${semana[0]}T00:00:00`;
-    const fin = `${semana[6]}T23:59:59`;
+    const rango = vista === "mes" ? grillaMes : { inicio: `${semana[0]}T00:00:00`, fin: `${semana[6]}T23:59:59` };
+    const inicio = rango.inicio;
+    const fin = rango.fin;
     let q = supabase
       .from("citas")
       .select(
@@ -179,7 +190,7 @@ export default function CalendarioPage() {
   useEffect(() => {
     cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, admin, dia]);
+  }, [user, admin, dia, vista]);
 
   useEffect(() => {
     if (propiedadId) mezclarInmueble(propiedadId);
@@ -442,8 +453,11 @@ export default function CalendarioPage() {
   };
 
   const visibles = filtroComercial ? citas.filter((item) => item.comercial_id === filtroComercial) : citas;
-  const porDia = useMemo(() => citasAgrupadasPorDia(visibles, semana), [visibles, semana]);
+  const porDia = useMemo(() => citasAgrupadasPorDia(visibles, diasVista), [visibles, diasVista]);
   const delDia = citasDelDia(visibles, dia);
+
+  const irAnterior = () => setDia(vista === "mes" ? moverMes(dia, -1) : moverSemana(dia, -1));
+  const irSiguiente = () => setDia(vista === "mes" ? moverMes(dia, 1) : moverSemana(dia, 1));
 
   return (
     <div>
@@ -459,12 +473,20 @@ export default function CalendarioPage() {
       ) : null}
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Button type="button" size="sm" variant="secondary" onClick={() => setDia(moverSemana(dia, -1))} aria-label="Semana anterior">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex gap-1 rounded-full border border-[var(--border)] bg-white p-0.5">
+            <ToggleChip on={vista === "semana"} onClick={() => setVista("semana")}>
+              Semana
+            </ToggleChip>
+            <ToggleChip on={vista === "mes"} onClick={() => setVista("mes")}>
+              Mes
+            </ToggleChip>
+          </div>
+          <Button type="button" size="sm" variant="secondary" onClick={irAnterior} aria-label={vista === "mes" ? "Mes anterior" : "Semana anterior"}>
             <ChevronLeft className="h-4 w-4" strokeWidth={1.5} />
           </Button>
-          <p className="min-w-[9rem] text-center text-sm font-semibold capitalize">{etiquetaSemana}</p>
-          <Button type="button" size="sm" variant="secondary" onClick={() => setDia(moverSemana(dia, 1))} aria-label="Semana siguiente">
+          <p className="min-w-[9rem] text-center text-sm font-semibold capitalize">{etiquetaPeriodo}</p>
+          <Button type="button" size="sm" variant="secondary" onClick={irSiguiente} aria-label={vista === "mes" ? "Mes siguiente" : "Semana siguiente"}>
             <ChevronRight className="h-4 w-4" strokeWidth={1.5} />
           </Button>
         </div>
@@ -478,32 +500,64 @@ export default function CalendarioPage() {
         </div>
       </div>
 
-      <div className="mt-4">
-        <CalendarioMovil
-          semana={semana}
+      {vista === "mes" ? (
+        <CalendarioMes
           dia={dia}
           hoy={hoy}
-          citas={delDia}
           porDia={porDia}
-          admin={admin}
           onPickDia={setDia}
-          onMover={(id, destino) => void moverCita(id, destino)}
-          onEstado={cambiarEstado}
-          onCambiarHora={(id, horaNueva) => void moverCita(id, dia, { minutos: minutosDesdeHora(horaNueva) })}
-          onCrearHueco={(minutos) => abrirHueco(dia, minutos)}
           onEditar={abrirEdicion}
+          onCrearHueco={abrirHueco}
         />
-      </div>
+      ) : (
+        <>
+          <div className="mt-4">
+            <CalendarioMovil
+              semana={semana}
+              dia={dia}
+              hoy={hoy}
+              citas={delDia}
+              porDia={porDia}
+              admin={admin}
+              onPickDia={setDia}
+              onMover={(id, destino) => void moverCita(id, destino)}
+              onEstado={cambiarEstado}
+              onCambiarHora={(id, horaNueva) => void moverCita(id, dia, { minutos: minutosDesdeHora(horaNueva) })}
+              onCrearHueco={(minutos) => abrirHueco(dia, minutos)}
+              onEditar={abrirEdicion}
+            />
+          </div>
 
-      <CalendarioSemana
-        semana={semana}
-        hoy={hoy}
-        porDia={porDia}
-        onPickDia={setDia}
-        onMover={(id, destino, opts) => void moverCita(id, destino, opts)}
-        onEditar={abrirEdicion}
-        onCrearHueco={abrirHueco}
-      />
+          <CalendarioSemana
+            semana={semana}
+            hoy={hoy}
+            porDia={porDia}
+            onPickDia={setDia}
+            onMover={(id, destino, opts) => void moverCita(id, destino, opts)}
+            onEditar={abrirEdicion}
+            onCrearHueco={abrirHueco}
+          />
+        </>
+      )}
+
+      {vista === "mes" ? (
+        <div className="mt-4 min-[820px]:hidden">
+          <CalendarioMovil
+            semana={semana}
+            dia={dia}
+            hoy={hoy}
+            citas={delDia}
+            porDia={porDia}
+            admin={admin}
+            soloLista
+            onPickDia={setDia}
+            onMover={(id, destino) => void moverCita(id, destino)}
+            onEstado={cambiarEstado}
+            onCambiarHora={(id, horaNueva) => void moverCita(id, dia, { minutos: minutosDesdeHora(horaNueva) })}
+            onEditar={abrirEdicion}
+          />
+        </div>
+      ) : null}
 
       <NuevaEntradaCalendario
         open={sheetOpen}

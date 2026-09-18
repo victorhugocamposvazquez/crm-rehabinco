@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { citasAgrupadasPorDia, citasDelDia, coincideInmueble, direccionDeInmueble, enlaceGoogleMaps, etiquetaInmueble, horaCita, horaDesdeMinutos, minutosDesdeHora, minutosDesdeOffsetY, moverCitaADiaHora, moverSemana, orFiltroInmueble, puedeHacerParte, portadaDeMedia, prefillParteDesdeCita, relacionUno, rutaNuevaCita, rutaNuevaVisitaDesdeCita, semanaDesde, snapMinutos } from "./citas";
+import { celdasMes, citasAgrupadasPorDia, citasDelDia, coincideInmueble, direccionDeInmueble, enlaceGoogleMaps, etiquetaInmueble, horaCita, horaDesdeMinutos, minutosDesdeHora, minutosDesdeOffsetY, moverCitaADiaHora, moverMes, moverSemana, orFiltroInmueble, puedeHacerParte, portadaDeMedia, prefillParteDesdeCita, rangoGrillaMes, relacionUno, rutaNuevaCita, rutaNuevaVisitaDesdeCita, semanaDesde, snapMinutos } from "./citas";
 
 describe("citas", () => {
   it("el parte se abre prellenado desde la cita, no al revés", () => {
@@ -58,6 +58,17 @@ describe("citas", () => {
     assert.equal(puedeHacerParte({ tipo: "visita", estado: "prevista" }), true);
     assert.equal(puedeHacerParte({ tipo: "llamada", estado: "prevista" }), false);
     assert.equal(puedeHacerParte({ tipo: "visita", estado: "hecha" }), false);
+  });
+
+  it("calcula la grilla mensual y navega de mes en mes", () => {
+    const rango = rangoGrillaMes("2026-09-16");
+    assert.equal(rango.dias.length, 42);
+    assert.equal(rango.dias[0], "2026-08-31");
+    assert.ok(rango.dias.some((d) => d.startsWith("2026-09-")));
+    const celdas = celdasMes("2026-09-16");
+    assert.equal(celdas.filter((c) => !c.fueraMes).length, 30);
+    assert.equal(moverMes("2026-09-16", 1), "2026-10-01");
+    assert.equal(moverMes("2026-09-16", -1), "2026-08-01");
   });
 
   it("arrastra una cita a otro día y hora en saltos de 15 minutos", () => {

@@ -48,6 +48,7 @@ export function CalendarioMovil({
   onCambiarHora,
   onCrearHueco,
   onEditar,
+  soloLista,
 }: {
   semana: string[];
   dia: string;
@@ -55,6 +56,7 @@ export function CalendarioMovil({
   citas: CitaMovil[];
   porDia: Map<string, unknown[]>;
   admin: boolean;
+  soloLista?: boolean;
   onPickDia: (dia: string) => void;
   onMover: (id: string, dia: string) => void;
   onEstado: (id: string, estado: "hecha" | "cancelada") => void;
@@ -149,7 +151,8 @@ export function CalendarioMovil({
   const arrastrada = citas.find((item) => item.id === draggingId);
 
   return (
-    <div className="min-[820px]:hidden">
+    <div className={soloLista ? "" : "min-[820px]:hidden"}>
+      {!soloLista ? (
       <div className="flex gap-1.5">
         {semana.map((d) => {
           const activo = d === dia;
@@ -179,7 +182,10 @@ export function CalendarioMovil({
           );
         })}
       </div>
+      ) : null}
 
+      {!soloLista ? (
+      <>
       <p className="mt-3 text-[12.5px] text-[var(--text-2)]">
         {draggingId
           ? overDia && overDia !== dia
@@ -251,8 +257,10 @@ export function CalendarioMovil({
           <p className="truncate text-[12px] font-medium">{arrastrada.titulo}</p>
         </div>
       ) : null}
+      </>
+      ) : null}
 
-      <div className="mt-4 overflow-hidden rounded-[14px] border border-border bg-white">
+      <div className={`overflow-hidden rounded-[14px] border border-border bg-white ${soloLista ? "" : "mt-4"}`}>
         <div className="border-b border-[var(--border-soft)] px-3.5 py-3 text-[14px] font-semibold capitalize">
           {new Date(`${dia}T12:00:00`).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}
         </div>
