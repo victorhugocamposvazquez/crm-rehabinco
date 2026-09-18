@@ -41,7 +41,8 @@ export function CalendarioMovil({
   hoy,
   citas,
   porDia,
-  admin,
+  userId,
+  puedeGestionar,
   onPickDia,
   onMover,
   onEstado,
@@ -55,7 +56,8 @@ export function CalendarioMovil({
   hoy: string;
   citas: CitaMovil[];
   porDia: Map<string, unknown[]>;
-  admin: boolean;
+  userId?: string;
+  puedeGestionar?: (comercialId: string) => boolean;
   soloLista?: boolean;
   onPickDia: (dia: string) => void;
   onMover: (id: string, dia: string) => void;
@@ -214,12 +216,13 @@ export function CalendarioMovil({
           const { top, height } = posicionEventoCalendario(cita.empieza, cita.termina);
           const color = colorComercial(cita.comercial_id, cita.profiles?.color);
           const prevista = cita.estado === "prevista";
+          const editable = prevista && (puedeGestionar?.(cita.comercial_id) ?? true);
           return (
             <div
               key={cita.id}
               data-cal-evento
               onPointerDown={(e) => {
-                if (!prevista) return;
+                if (!editable) return;
                 empezar(cita.id, e);
               }}
               onPointerMove={seguir}
@@ -269,6 +272,7 @@ export function CalendarioMovil({
         ) : (
           citas.map((cita) => {
             const prevista = cita.estado === "prevista";
+            const editable = prevista && (puedeGestionar?.(cita.comercial_id) ?? true);
             const mapsConsulta = cita.lugar?.trim() || cita.propiedades?.direccion;
             return (
               <div
@@ -277,7 +281,7 @@ export function CalendarioMovil({
                   prevista ? "" : "opacity-60"
                 }`}
               >
-                {prevista ? (
+                {editable ? (
                   <button
                     type="button"
                     aria-label="Arrastrar a otro día"
@@ -302,7 +306,9 @@ export function CalendarioMovil({
                 <div className="min-w-0 flex-1">
                   <p className="text-[14.5px] font-semibold">{cita.titulo}</p>
                   <p className="mt-0.5 text-[12px] text-[var(--text-2)]">
-                    {admin && cita.profiles?.nombre_completo ? `${cita.profiles.nombre_completo} · ` : ""}
+                    {cita.profiles?.nombre_completo && cita.comercial_id !== userId
+                      ? `${cita.profiles.nombre_completo} · `
+                      : ""}
                     {TIPO_CITA_LABEL[(cita.tipo as TipoCita) ?? "otro"] ?? cita.tipo}
                     {" · "}
                     {ESTADO_CITA_LABEL[(cita.estado as EstadoCita) ?? "prevista"] ?? cita.estado}
@@ -319,7 +325,7 @@ export function CalendarioMovil({
                       <EnlaceMaps consulta={mapsConsulta} compact />
                     </p>
                   ) : null}
-                  {prevista ? (
+                  {editable ? (
                     <label className="mt-2 flex items-center gap-2 text-[12.5px] text-[var(--text-2)]">
                       Hora
                       <input
@@ -334,9 +340,11 @@ export function CalendarioMovil({
                   ) : (
                     <p className="mt-1 font-mono text-[13px] text-[var(--text-2)]">{horaCita(cita.empieza)}</p>
                   )}
-                  <div className="mt-2">
-                    <CitaAcciones cita={cita} onEstado={onEstado} onEditar={onEditar} compact />
-                  </div>
+                  {editable ? (
+                    <div className="mt-2">
+                      <CitaAcciones cita={cita} onEstado={onEstado} onEditar={onEditar} compact />
+                    </div>
+                  ) : null}
                 </div>
               </div>
             );

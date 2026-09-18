@@ -12,6 +12,7 @@ export function CalendarioMes({
   dia,
   hoy,
   porDia,
+  puedeGestionar,
   onPickDia,
   onEditar,
   onCrearHueco,
@@ -19,6 +20,7 @@ export function CalendarioMes({
   dia: string;
   hoy: string;
   porDia: Map<string, CitaRejilla[]>;
+  puedeGestionar?: (comercialId: string) => boolean;
   onPickDia: (dia: string) => void;
   onEditar: (id: string) => void;
   onCrearHueco: (dia: string, minutos: number) => void;
@@ -94,7 +96,7 @@ export function CalendarioMes({
                       onClick={(e) => {
                         e.stopPropagation();
                         onPickDia(d);
-                        onEditar(cita.id);
+                        if (puedeGestionar?.(cita.comercial_id) ?? true) onEditar(cita.id);
                       }}
                       className={cn(
                         "w-full truncate rounded px-1 py-0.5 text-left text-[10px] font-medium min-[820px]:text-[11px]",

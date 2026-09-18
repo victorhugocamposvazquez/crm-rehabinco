@@ -17,6 +17,7 @@ import {
   ESTADO_CITA_LABEL,
   horaCita,
   horaDesdeMinutos,
+  puedeGestionarCita,
   mapInmuebleCalendario,
   minutosDesdeHora,
   minutosDesdeOffsetY,
@@ -112,7 +113,6 @@ export default function CalendarioPage() {
       .lte("empieza", fin)
       .neq("estado", "cancelada")
       .order("empieza");
-    if (!admin) q = q.eq("comercial_id", user.id);
     void q.then(({ data }) => {
       const filas = ((data ?? []) as Array<
         CitaRow & {
@@ -169,12 +169,12 @@ export default function CalendarioPage() {
   }, []);
 
   useEffect(() => {
-    if (!admin) return;
+    if (!user) return;
     const supabase = createClient();
     void supabase
       .from("profiles")
       .select("id, nombre_completo, email, color")
-      .in("role", ["comercial", "admin", "superadmin"])
+      .in("role", ["comercial", "admin", "agente", "superadmin"])
       .eq("activo", true)
       .then(({ data }) =>
         setComerciales(
@@ -185,7 +185,7 @@ export default function CalendarioPage() {
           }))
         )
       );
-  }, [admin]);
+  }, [user]);
 
   const mezclarInmueble = (id: string) => {
     if (!id || propiedades.some((p) => p.id === id)) return;
@@ -204,7 +204,7 @@ export default function CalendarioPage() {
   useEffect(() => {
     cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, admin, dia, vista]);
+  }, [user, dia, vista]);
 
   useEffect(() => {
     if (propiedadId) mezclarInmueble(propiedadId);
@@ -236,9 +236,15 @@ export default function CalendarioPage() {
     setSheetOpen(true);
   };
 
+  const gestiona = (comercialId: string) => puedeGestionarCita(comercialId, user?.id, admin);
+
   const abrirEdicion = (id: string) => {
     const cita = citas.find((item) => item.id === id);
     if (!cita || cita.estado === "cancelada") return;
+    if (!gestiona(cita.comercial_id)) {
+      toast.message("Solo puedes editar tus propias entradas.");
+      return;
+    }
     setEditando(cita);
     setDia(cita.empieza.slice(0, 10));
     setHora(horaCita(cita.empieza));
@@ -396,6 +402,10 @@ export default function CalendarioPage() {
   const moverCita = async (id: string, diaDestino: string, opts?: { minutos?: number; offsetY?: number | null }) => {
     const cita = citas.find((item) => item.id === id);
     if (!cita || cita.estado === "hecha" || cita.estado === "cancelada") return;
+    if (!gestiona(cita.comercial_id)) {
+      toast.message("Solo puedes mover tus propias entradas.");
+      return;
+    }
     const minutos =
       opts?.minutos != null
         ? opts.minutos
@@ -450,6 +460,10 @@ export default function CalendarioPage() {
 
   const cambiarEstado = async (id: string, estado: "hecha" | "cancelada") => {
     const cita = citas.find((item) => item.id === id);
+    if (cita && !gestiona(cita.comercial_id)) {
+      toast.message("Solo puedes cambiar el estado de tus propias entradas.");
+      return;
+    }
     const supabase = createClient();
     const { error } = await supabase.from("citas").update({ estado }).eq("id", id);
     if (error) {
@@ -479,13 +493,11 @@ export default function CalendarioPage() {
       <PageHeader
         breadcrumb={[{ label: "Calendario" }]}
         title="Calendario"
-        description="Pulsa un hueco para crear. Pulsa un evento para editarlo. Arrastra para mover; puedes deshacer desde el aviso."
+        description="Agenda de todo el equipo. Pulsa un hueco para crear; solo puedes editar o mover tus propias entradas."
       />
-      {admin ? (
-        <div className="mt-4">
-          <FiltroComercial comerciales={comerciales} valor={filtroComercial} onChange={setFiltroComercial} />
-        </div>
-      ) : null}
+      <div className="mt-4">
+        <FiltroComercial comerciales={comerciales} valor={filtroComercial} onChange={setFiltroComercial} />
+      </div>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -520,6 +532,7 @@ export default function CalendarioPage() {
           dia={dia}
           hoy={hoy}
           porDia={porDia}
+          puedeGestionar={gestiona}
           onPickDia={setDia}
           onEditar={abrirEdicion}
           onCrearHueco={abrirHueco}
@@ -533,7 +546,8 @@ export default function CalendarioPage() {
               hoy={hoy}
               citas={delDia}
               porDia={porDia}
-              admin={admin}
+              userId={user?.id}
+              puedeGestionar={gestiona}
               onPickDia={setDia}
               onMover={(id, destino) => void moverCita(id, destino)}
               onEstado={cambiarEstado}
@@ -547,6 +561,7 @@ export default function CalendarioPage() {
             semana={semana}
             hoy={hoy}
             porDia={porDia}
+            puedeGestionar={gestiona}
             onPickDia={setDia}
             onMover={(id, destino, opts) => void moverCita(id, destino, opts)}
             onEditar={abrirEdicion}
@@ -563,7 +578,8 @@ export default function CalendarioPage() {
             hoy={hoy}
             citas={delDia}
             porDia={porDia}
-            admin={admin}
+            userId={user?.id}
+            puedeGestionar={gestiona}
             soloLista
             onPickDia={setDia}
             onMover={(id, destino) => void moverCita(id, destino)}
@@ -630,7 +646,10 @@ export default function CalendarioPage() {
                   <p className="font-medium">{cita.titulo}</p>
                   <p className="text-xs text-[#5D6B67]">
                     {horaCita(cita.empieza)}
-                    {admin && cita.profiles?.nombre_completo ? ` · ${cita.profiles.nombre_completo}` : ""} ·{" "}
+                    {cita.profiles?.nombre_completo && cita.comercial_id !== user?.id
+                      ? ` · ${cita.profiles.nombre_completo}`
+                      : ""}{" "}
+                    ·{" "}
                     {TIPO_CITA_LABEL[(cita.tipo as TipoCita) ?? "otro"] ?? cita.tipo} ·{" "}
                     {ESTADO_CITA_LABEL[(cita.estado as EstadoCita) ?? "prevista"] ?? cita.estado}
                   </p>
@@ -665,7 +684,9 @@ export default function CalendarioPage() {
                   ) : null}
                 </div>
               </div>
-              <CitaAcciones cita={cita} onEstado={cambiarEstado} onEditar={abrirEdicion} />
+              {gestiona(cita.comercial_id) ? (
+                <CitaAcciones cita={cita} onEstado={cambiarEstado} onEditar={abrirEdicion} />
+              ) : null}
             </li>
           );
         })}

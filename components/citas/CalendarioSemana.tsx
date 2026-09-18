@@ -64,6 +64,7 @@ export function CalendarioSemana({
   semana,
   hoy,
   porDia,
+  puedeGestionar,
   onPickDia,
   onMover,
   onEditar,
@@ -72,6 +73,7 @@ export function CalendarioSemana({
   semana: string[];
   hoy: string;
   porDia: Map<string, CitaRejilla[]>;
+  puedeGestionar?: (comercialId: string) => boolean;
   onPickDia: (dia: string) => void;
   onMover: (id: string, dia: string, opts?: { offsetY?: number | null }) => void;
   onEditar: (id: string) => void;
@@ -177,13 +179,14 @@ export function CalendarioSemana({
                 const { top, height } = posicionEventoCalendario(cita.empieza, cita.termina);
                 const color = colorComercial(cita.comercial_id, cita.profiles?.color);
                 const prevista = cita.estado === "prevista";
+                const editable = prevista && (puedeGestionar?.(cita.comercial_id) ?? true);
                 const arrastrando = draggingId === cita.id;
                 return (
                   <button
                     key={cita.id}
                     type="button"
                     data-cal-evento
-                    draggable={prevista}
+                    draggable={editable}
                     onDragStart={(e) => {
                       arrastroRef.current = true;
                       e.dataTransfer.setData("text/cita", cita.id);
@@ -210,9 +213,14 @@ export function CalendarioSemana({
                         return;
                       }
                       onPickDia(d);
-                      onEditar(cita.id);
+                      if (editable) onEditar(cita.id);
                     }}
-                    className={cn("cal-evento absolute inset-x-1 overflow-hidden rounded-[7px] px-1.5 py-0.5 text-left", prevista && "cursor-grab active:cursor-grabbing", arrastrando && "cal-evento--dragging")}
+                    className={cn(
+                      "cal-evento absolute inset-x-1 overflow-hidden rounded-[7px] px-1.5 py-0.5 text-left",
+                      editable && "cursor-grab active:cursor-grabbing",
+                      !editable && prevista && "cursor-default",
+                      arrastrando && "cal-evento--dragging"
+                    )}
                     style={{
                       top,
                       height,

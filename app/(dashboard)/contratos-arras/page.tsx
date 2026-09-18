@@ -8,7 +8,9 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { eliminarDocumentos } from "@/lib/actions/papelera";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isSuperAdmin } from "@/lib/auth/roles";
+import { isAdmin, isSuperAdmin } from "@/lib/auth/roles";
+import { relacionUno } from "@/lib/citas/citas";
+import { CreadorDocumento } from "@/components/documentos/CreadorDocumento";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { AlertDialog } from "@/components/ui/alert-dialog";
@@ -19,6 +21,8 @@ import { cn } from "@/lib/utils";
 
 type Row = {
   id: string;
+  user_id: string;
+  comercial_id: string | null;
   fecha: string | null;
   estado: "borrador" | "cerrado";
   finca_descripcion: string | null;
@@ -26,10 +30,12 @@ type Row = {
   arras: number | null;
   compradores: unknown;
   vendedores: unknown;
+  creador?: { nombre_completo?: string | null; color?: string | null; email?: string | null } | null;
 };
 
 export default function ContratosArrasPage() {
   const { user } = useAuth();
+  const admin = isAdmin(user?.role);
   const superadmin = isSuperAdmin(user?.role);
   const router = useRouter();
   const [rows, setRows] = useState<Row[]>([]);
@@ -44,11 +50,18 @@ export default function ContratosArrasPage() {
     const supabase = createClient();
     void supabase
       .from("contratos_arras")
-      .select("id, fecha, estado, finca_descripcion, precio, arras, compradores, vendedores")
+      .select(
+        "id, user_id, comercial_id, fecha, estado, finca_descripcion, precio, arras, compradores, vendedores, creador:comercial_id(nombre_completo, color, email)"
+      )
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .then(({ data }) => {
-        setRows((data ?? []) as Row[]);
+        setRows(
+          ((data ?? []) as Array<Row & { creador?: Row["creador"] | Row["creador"][] }>).map((row) => ({
+            ...row,
+            creador: relacionUno(row.creador),
+          }))
+        );
         setLoading(false);
       });
   }, []);
@@ -92,7 +105,11 @@ export default function ContratosArrasPage() {
           { label: "Contratos de arras" },
         ]}
         title="Contratos de arras"
-        description="Histórico de contratos. Cada uno se rellena en el CRM y se descarga en PDF."
+        description={
+          admin
+            ? "Contratos de todo el equipo. Cada fila indica quién lo creó."
+            : "Tus contratos de arras. Cada uno se rellena en el CRM y se descarga en PDF."
+        }
         actions={
           <div className="flex flex-wrap items-center gap-2">
             {!loading && rows.length > 0 ? (
@@ -174,6 +191,13 @@ export default function ContratosArrasPage() {
                       .join(" · ")}
                   </div>
                 </div>
+                <CreadorDocumento
+                  userId={row.user_id}
+                  comercialId={row.comercial_id}
+                  creador={row.creador}
+                  viewerId={user?.id}
+                  admin={admin}
+                />
                 <span className="text-[12.5px] text-[var(--text-2)]">{row.estado === "cerrado" ? "Cerrado" : "Borrador"}</span>
               </>
             );

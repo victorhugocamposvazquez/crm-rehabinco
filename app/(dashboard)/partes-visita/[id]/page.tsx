@@ -6,7 +6,9 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { eliminarDocumentos } from "@/lib/actions/papelera";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isSuperAdmin } from "@/lib/auth/roles";
+import { isAdmin, isSuperAdmin } from "@/lib/auth/roles";
+import { relacionUno } from "@/lib/citas/citas";
+import { CreadorDocumento } from "@/components/documentos/CreadorDocumento";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,6 +39,8 @@ import { downloadParteVisitaPdf, htmlParteVisita, parseCalidadVisita } from "@/l
 
 interface ParteVisita {
   id: string;
+  user_id: string;
+  comercial_id: string | null;
   token: string;
   estado: "borrador" | "pendiente_firma" | "firmado";
   visitante_nombre: string | null;
@@ -56,6 +60,7 @@ interface ParteVisita {
   firma_agente: string | null;
   firmado_en: string | null;
   propiedad_id: string | null;
+  creador?: { nombre_completo?: string | null; color?: string | null; email?: string | null } | null;
 }
 
 function estadoVariant(
@@ -69,6 +74,7 @@ function estadoVariant(
 
 export default function DetalleParteVisitaPage() {
   const { user } = useAuth();
+  const admin = isAdmin(user?.role);
   const superadmin = isSuperAdmin(user?.role);
   const params = useParams();
   const router = useRouter();
@@ -86,7 +92,7 @@ export default function DetalleParteVisitaPage() {
     const supabase = createClient();
     supabase
       .from("partes_visita")
-      .select("*")
+      .select("*, creador:comercial_id(nombre_completo, color, email)")
       .eq("id", id)
       .single()
       .then(async ({ data, error: err }) => {
@@ -96,7 +102,8 @@ export default function DetalleParteVisitaPage() {
           setLoading(false);
           return;
         }
-        const parte = data as ParteVisita;
+        const row = data as ParteVisita & { creador?: ParteVisita["creador"] | ParteVisita["creador"][] };
+        const parte: ParteVisita = { ...row, creador: relacionUno(row.creador) };
         setParte(parte);
         if (parte.propiedad_id) {
           const { data: propiedad } = await supabase
@@ -258,6 +265,16 @@ export default function DetalleParteVisitaPage() {
         <Badge variant={estadoVariant(parte.estado)}>
           {ESTADO_PARTE_LABELS[parte.estado]}
         </Badge>
+        {admin ? (
+          <CreadorDocumento
+            userId={parte.user_id}
+            comercialId={parte.comercial_id}
+            creador={parte.creador}
+            viewerId={user?.id}
+            admin
+            size={22}
+          />
+        ) : null}
         {parte.firmado_en && (
           <span className="inline-flex items-center gap-1 text-sm text-emerald-700">
             <CheckCircle2 className="h-4 w-4" strokeWidth={1.5} />

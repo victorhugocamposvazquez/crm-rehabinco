@@ -7,7 +7,9 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { eliminarDocumentos } from "@/lib/actions/papelera";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isSuperAdmin } from "@/lib/auth/roles";
+import { isAdmin, isSuperAdmin } from "@/lib/auth/roles";
+import { relacionUno } from "@/lib/citas/citas";
+import { CreadorDocumento } from "@/components/documentos/CreadorDocumento";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Fab } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
@@ -23,6 +25,8 @@ import { cn } from "@/lib/utils";
 
 type ParteRow = {
   id: string;
+  user_id: string;
+  comercial_id: string | null;
   visitante_nombre: string | null;
   inmueble_direccion: string | null;
   fecha_visita: string | null;
@@ -30,10 +34,12 @@ type ParteRow = {
   estado: "borrador" | "pendiente_firma" | "firmado";
   agente_nombre: string | null;
   token: string | null;
+  creador?: { nombre_completo?: string | null; color?: string | null; email?: string | null } | null;
 };
 
 export default function PartesVisitaPage() {
   const { user } = useAuth();
+  const admin = isAdmin(user?.role);
   const superadmin = isSuperAdmin(user?.role);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -58,7 +64,9 @@ export default function PartesVisitaPage() {
     const supabase = createClient();
     supabase
       .from("partes_visita")
-      .select("id, visitante_nombre, inmueble_direccion, fecha_visita, hora_visita, estado, agente_nombre, token")
+      .select(
+        "id, user_id, comercial_id, visitante_nombre, inmueble_direccion, fecha_visita, hora_visita, estado, agente_nombre, token, creador:comercial_id(nombre_completo, color, email)"
+      )
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .then(({ data, error: err }) => {
@@ -66,7 +74,12 @@ export default function PartesVisitaPage() {
           setError(err.message);
           setPartes([]);
         } else {
-          setPartes((data ?? []) as ParteRow[]);
+          setPartes(
+            ((data ?? []) as Array<ParteRow & { creador?: ParteRow["creador"] | ParteRow["creador"][] }>).map((row) => ({
+              ...row,
+              creador: relacionUno(row.creador),
+            }))
+          );
         }
         setLoading(false);
       });
@@ -124,7 +137,11 @@ export default function PartesVisitaPage() {
           { label: "Visitas" },
         ]}
         title="Visitas"
-        description="La agenda es la cita. El parte es el PDF que se rellena y firma."
+        description={
+          admin
+            ? "Partes de todo el equipo. Cada fila indica quién lo creó."
+            : "Tus partes de visita. La agenda es la cita; el parte es el PDF que se rellena y firma."
+        }
         actions={
           <div className="flex flex-wrap gap-2">
             {!loading && partes.length > 0 ? (
@@ -241,6 +258,13 @@ export default function PartesVisitaPage() {
                     {[p.inmueble_direccion, p.fecha_visita].filter(Boolean).join(" · ")}
                   </div>
                 </Link>
+                <CreadorDocumento
+                  userId={p.user_id}
+                  comercialId={p.comercial_id}
+                  creador={p.creador}
+                  viewerId={user?.id}
+                  admin={admin}
+                />
                 <div className="flex items-center gap-1.5 whitespace-nowrap text-[12.5px]" style={{ color: colorEstado(p.estado) }}>
                   <span className="h-[7px] w-[7px] rounded-full" style={{ background: colorEstado(p.estado) }} />
                   {ESTADO_PARTE_LABELS[p.estado]}

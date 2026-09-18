@@ -8,7 +8,9 @@ import { ChevronLeft, Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { eliminarDocumentos } from "@/lib/actions/papelera";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isSuperAdmin } from "@/lib/auth/roles";
+import { isAdmin, isSuperAdmin } from "@/lib/auth/roles";
+import { relacionUno } from "@/lib/citas/citas";
+import { CreadorDocumento } from "@/components/documentos/CreadorDocumento";
 import { Button } from "@/components/ui/button";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
@@ -134,7 +136,13 @@ function PersonaCard({
 export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
   const router = useRouter();
   const { user } = useAuth();
+  const admin = isAdmin(user?.role);
   const superadmin = isSuperAdmin(user?.role);
+  const [metaCreador, setMetaCreador] = useState<{
+    user_id: string;
+    comercial_id: string | null;
+    creador: { nombre_completo?: string | null; color?: string | null; email?: string | null } | null;
+  } | null>(null);
   const [loading, setLoading] = useState(Boolean(contratoId));
   const [datos, setDatos] = useState<ContratoArrasDatos>(() => ({
     ...contratoArrasVacio(),
@@ -203,7 +211,7 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
     const supabase = createClient();
     void supabase
       .from("contratos_arras")
-      .select("*")
+      .select("*, creador:comercial_id(nombre_completo, color, email)")
       .eq("id", contratoId)
       .single()
       .then(({ data, error }) => {
@@ -215,6 +223,14 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
         setDatos(contratoDesdeFila(data));
         setPropiedadId(data.propiedad_id ?? "");
         setEstado(data.estado);
+        setMetaCreador({
+          user_id: data.user_id,
+          comercial_id: data.comercial_id,
+          creador: relacionUno(
+            (data as { creador?: { nombre_completo?: string | null; color?: string | null; email?: string | null } | null })
+              .creador
+          ),
+        });
         setLoading(false);
       });
   }, [contratoId]);
@@ -540,6 +556,17 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
           <p className="mt-1 text-[13px] text-[var(--text-2)]">
             Las cláusulas de protección de datos salen con Rehabinco, no con Conchado. Año {new Date().getFullYear()}.
           </p>
+          {admin && metaCreador ? (
+            <CreadorDocumento
+              userId={metaCreador.user_id}
+              comercialId={metaCreador.comercial_id}
+              creador={metaCreador.creador}
+              viewerId={user?.id}
+              admin
+              size={22}
+              className="mt-2"
+            />
+          ) : null}
         </div>
         <div className="hidden gap-2 min-[820px]:flex">
           {contratoId ? (

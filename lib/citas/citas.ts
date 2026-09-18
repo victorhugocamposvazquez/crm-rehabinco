@@ -308,6 +308,11 @@ export function mapInmuebleCalendario(
   };
 }
 
+/** Editar, mover o cambiar estado: propietario de la cita o admin. */
+export function puedeGestionarCita(comercialId: string, userId: string | undefined, admin: boolean) {
+  return Boolean(userId && (admin || comercialId === userId));
+}
+
 export function prefillParteDesdeCita(cita: {
   titulo: string;
   empieza: string;

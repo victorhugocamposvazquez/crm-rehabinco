@@ -10,7 +10,7 @@ import { FiltroComercial, type ComercialFiltro } from "@/components/captacion/Fi
 import { CitaAcciones } from "@/components/citas/CitaAcciones";
 import { FichaLink } from "@/components/crm/FichaPeek";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
-import { ESTADO_CITA_LABEL, horaCita, relacionUno, type EstadoCita } from "@/lib/citas/citas";
+import { ESTADO_CITA_LABEL, horaCita, puedeGestionarCita, relacionUno, type EstadoCita } from "@/lib/citas/citas";
 
 type CitaAgenda = {
   id: string;
@@ -46,7 +46,6 @@ export function AgendaVisitas({ compact = false }: { compact?: boolean }) {
       .eq("tipo", "visita")
       .neq("estado", "cancelada")
       .order("empieza");
-    if (!admin) q = q.eq("comercial_id", user.id);
     void q.then(({ data }) => {
       setCitas(
         ((data ?? []) as Array<
@@ -69,15 +68,15 @@ export function AgendaVisitas({ compact = false }: { compact?: boolean }) {
   useEffect(() => {
     cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, admin]);
+  }, [user]);
 
   useEffect(() => {
-    if (!admin) return;
+    if (!user) return;
     const supabase = createClient();
     void supabase
       .from("profiles")
       .select("id, nombre_completo, email, color")
-      .in("role", ["comercial", "admin", "superadmin"])
+      .in("role", ["comercial", "admin", "agente", "superadmin"])
       .eq("activo", true)
       .then(({ data }) =>
         setComerciales(
@@ -88,7 +87,7 @@ export function AgendaVisitas({ compact = false }: { compact?: boolean }) {
           }))
         )
       );
-  }, [admin]);
+  }, [user]);
 
   const visibles = filtroComercial ? citas.filter((item) => item.comercial_id === filtroComercial) : citas;
   const previstas = useMemo(
@@ -105,7 +104,14 @@ export function AgendaVisitas({ compact = false }: { compact?: boolean }) {
     return dia >= hoy;
   });
 
+  const gestiona = (comercialId: string) => puedeGestionarCita(comercialId, user?.id, admin);
+
   const cambiarEstado = async (id: string, estado: "hecha" | "cancelada") => {
+    const cita = citas.find((item) => item.id === id);
+    if (cita && !gestiona(cita.comercial_id)) {
+      toast.message("Solo puedes cambiar el estado de tus propias visitas.");
+      return;
+    }
     const supabase = createClient();
     const { error } = await supabase.from("citas").update({ estado }).eq("id", id);
     if (error) {
@@ -126,14 +132,15 @@ export function AgendaVisitas({ compact = false }: { compact?: boolean }) {
 
   return (
     <div className={compact ? "" : "space-y-6"}>
-      {admin && !compact ? <FiltroComercial comerciales={comerciales} valor={filtroComercial} onChange={setFiltroComercial} /> : null}
+      {!compact ? <FiltroComercial comerciales={comerciales} valor={filtroComercial} onChange={setFiltroComercial} /> : null}
       {!compact && atrasadas.length > 0 ? (
-        <ListaGrupo titulo="Atrasadas" citas={atrasadas} admin={admin} onEstado={cambiarEstado} />
+        <ListaGrupo titulo="Atrasadas" citas={atrasadas} userId={user?.id} gestiona={gestiona} onEstado={cambiarEstado} />
       ) : null}
       <ListaGrupo
         titulo={compact ? undefined : "Próximas"}
         citas={proximas}
-        admin={admin}
+        userId={user?.id}
+        gestiona={gestiona}
         onEstado={cambiarEstado}
         vacio="No hay visitas previstas."
         compact={compact}
@@ -145,14 +152,16 @@ export function AgendaVisitas({ compact = false }: { compact?: boolean }) {
 function ListaGrupo({
   titulo,
   citas,
-  admin,
+  userId,
+  gestiona,
   onEstado,
   vacio,
   compact,
 }: {
   titulo?: string;
   citas: CitaAgenda[];
-  admin: boolean;
+  userId?: string;
+  gestiona: (comercialId: string) => boolean;
   onEstado: (id: string, estado: "hecha" | "cancelada") => void;
   vacio?: string;
   compact?: boolean;
@@ -186,7 +195,7 @@ function ListaGrupo({
                   {cita.clientes?.nombre ? ` · ${cita.clientes.nombre}` : ""}
                 </div>
               </div>
-              <CitaAcciones cita={cita} onEstado={onEstado} compact />
+              {gestiona(cita.comercial_id) ? <CitaAcciones cita={cita} onEstado={onEstado} compact /> : null}
             </li>
           );
         })}
@@ -223,7 +232,9 @@ function ListaGrupo({
                       month: "short",
                     })}{" "}
                     · {horaCita(cita.empieza)}
-                    {admin && cita.profiles?.nombre_completo ? ` · ${cita.profiles.nombre_completo}` : ""}
+                    {cita.profiles?.nombre_completo && cita.comercial_id !== userId
+                      ? ` · ${cita.profiles.nombre_completo}`
+                      : ""}
                     {` · ${ESTADO_CITA_LABEL[(cita.estado as EstadoCita) ?? "prevista"] ?? cita.estado}`}
                   </p>
                   <p className="mt-1 text-xs text-[#5D6B67]">
@@ -249,7 +260,7 @@ function ListaGrupo({
                   </p>
                 </div>
               </div>
-              <CitaAcciones cita={cita} onEstado={onEstado} />
+              {gestiona(cita.comercial_id) ? <CitaAcciones cita={cita} onEstado={onEstado} /> : null}
             </li>
           ))}
         </ul>

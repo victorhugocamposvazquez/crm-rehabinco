@@ -4,7 +4,11 @@ import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ClipboardPenLine, FileSignature, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/lib/auth/auth-context";
+import { isAdmin } from "@/lib/auth/roles";
+import { relacionUno } from "@/lib/citas/citas";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { CreadorDocumento } from "@/components/documentos/CreadorDocumento";
 import { Button } from "@/components/ui/button";
 import { ESTADO_PARTE_LABELS } from "@/lib/partes-visita";
 import { colorEstado } from "@/lib/ui/estados-vista";
@@ -12,19 +16,25 @@ import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
 
 type ParteRow = {
   id: string;
+  user_id: string;
+  comercial_id: string | null;
   visitante_nombre: string | null;
   inmueble_direccion: string | null;
   fecha_visita: string | null;
   estado: "borrador" | "pendiente_firma" | "firmado";
+  creador?: { nombre_completo?: string | null; color?: string | null; email?: string | null } | null;
 };
 
 type ArrasRow = {
   id: string;
+  user_id: string;
+  comercial_id: string | null;
   fecha: string | null;
   estado: "borrador" | "cerrado";
   finca_descripcion: string | null;
   compradores: unknown;
   vendedores: unknown;
+  creador?: { nombre_completo?: string | null; color?: string | null; email?: string | null } | null;
 };
 
 function nombrePersona(raw: unknown): string {
@@ -35,6 +45,8 @@ function nombrePersona(raw: unknown): string {
 }
 
 export default function HerramientasPage() {
+  const { user } = useAuth();
+  const admin = isAdmin(user?.role);
   const [partes, setPartes] = useState<ParteRow[]>([]);
   const [arras, setArras] = useState<ArrasRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,17 +58,33 @@ export default function HerramientasPage() {
     void Promise.all([
       supabase
         .from("partes_visita")
-        .select("id, visitante_nombre, inmueble_direccion, fecha_visita, estado")
+        .select(
+          "id, user_id, comercial_id, visitante_nombre, inmueble_direccion, fecha_visita, estado, creador:comercial_id(nombre_completo, color, email)"
+        )
+        .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(8),
       supabase
         .from("contratos_arras")
-        .select("id, fecha, estado, finca_descripcion, compradores, vendedores")
+        .select(
+          "id, user_id, comercial_id, fecha, estado, finca_descripcion, compradores, vendedores, creador:comercial_id(nombre_completo, color, email)"
+        )
+        .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(8),
     ]).then(([p, a]) => {
-      setPartes((p.data ?? []) as ParteRow[]);
-      setArras((a.data ?? []) as ArrasRow[]);
+      setPartes(
+        ((p.data ?? []) as Array<ParteRow & { creador?: ParteRow["creador"] | ParteRow["creador"][] }>).map((row) => ({
+          ...row,
+          creador: relacionUno(row.creador),
+        }))
+      );
+      setArras(
+        ((a.data ?? []) as Array<ArrasRow & { creador?: ArrasRow["creador"] | ArrasRow["creador"][] }>).map((row) => ({
+          ...row,
+          creador: relacionUno(row.creador),
+        }))
+      );
       setLoading(false);
     });
   }, []);
@@ -66,7 +94,11 @@ export default function HerramientasPage() {
       <PageHeader
         breadcrumb={[{ label: "Herramientas" }]}
         title="Herramientas"
-        description="Partes de visita y contratos de arras. Los datos quedan en el histórico y el PDF se rellena a la vista."
+        description={
+          admin
+            ? "Partes y contratos de todo el equipo. Los administradores ven quién creó cada documento."
+            : "Tus partes de visita y contratos de arras. El PDF se rellena a la vista."
+        }
       />
 
       <div className="mt-5 grid items-start gap-4 min-[820px]:grid-cols-2">
@@ -93,6 +125,13 @@ export default function HerramientasPage() {
                   {[p.inmueble_direccion, p.fecha_visita].filter(Boolean).join(" · ")}
                 </div>
               </div>
+              <CreadorDocumento
+                userId={p.user_id}
+                comercialId={p.comercial_id}
+                creador={p.creador}
+                viewerId={user?.id}
+                admin={admin}
+              />
               <span className="whitespace-nowrap text-[12.5px]" style={{ color: colorEstado(p.estado) }}>
                 {ESTADO_PARTE_LABELS[p.estado]}
               </span>
@@ -125,6 +164,13 @@ export default function HerramientasPage() {
                     {[c.finca_descripcion, c.fecha].filter(Boolean).join(" · ") || "Sin finca"}
                   </div>
                 </div>
+                <CreadorDocumento
+                  userId={c.user_id}
+                  comercialId={c.comercial_id}
+                  creador={c.creador}
+                  viewerId={user?.id}
+                  admin={admin}
+                />
                 <span className="whitespace-nowrap text-[12.5px] text-[var(--text-2)]">
                   {c.estado === "cerrado" ? "Cerrado" : "Borrador"}
                 </span>

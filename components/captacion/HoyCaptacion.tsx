@@ -64,8 +64,6 @@ export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFactu
       .eq("estado", "prevista")
       .gte("empieza", `${hoy}T00:00:00`)
       .lt("empieza", `${hoy}T23:59:59`);
-    if (!admin) citasQ = citasQ.eq("comercial_id", user.id);
-
     let partesQ = supabase
       .from("partes_visita")
       .select("id, visitante_nombre, estado, fecha_visita, inmueble_direccion")
