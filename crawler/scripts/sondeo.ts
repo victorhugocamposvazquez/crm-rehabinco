@@ -19,6 +19,7 @@ type Fila = {
   bytes: number;
   challenge: string;
   formato: string;
+  saved?: string;
 };
 
 function parseArgs() {

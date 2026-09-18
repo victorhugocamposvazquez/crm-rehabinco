@@ -5,7 +5,7 @@ import {
   PORTALES_API,
   type PortalApi,
 } from "@/lib/captacion/portales/credenciales";
-import { probarIdealista } from "@/lib/captacion/portales/idealista";
+import { probarIdealista } from "@/lib/captacion/portales/legacy/idealista";
 import { sesionSuperadminCaptacion } from "@/lib/captacion/portales/sesion";
 
 export const runtime = "nodejs";

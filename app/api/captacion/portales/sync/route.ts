@@ -1,1 +1,5 @@
-export { POST, runtime, dynamic, maxDuration } from "../../sync/route";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 300;
+
+export { POST } from "../../sync/route";

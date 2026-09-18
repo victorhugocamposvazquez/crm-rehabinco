@@ -87,8 +87,8 @@ export async function syncCitaDesdeTarea(
     comercial_id: string;
     titulo: string;
     vence: string | null;
-    hora: string | null;
-    cita_id: string | null;
+    hora?: string | null;
+    cita_id?: string | null;
     propiedad_id?: string | null;
     cliente_id?: string | null;
   },
@@ -97,7 +97,7 @@ export async function syncCitaDesdeTarea(
   const hora = (patch.hora !== undefined ? patch.hora : tarea.hora)?.slice(0, 5) ?? null;
   const vence = (patch.vence !== undefined ? patch.vence : tarea.vence) ?? new Date().toISOString().slice(0, 10);
   const tituloCita = patch.titulo ?? tarea.titulo;
-  if (!hora) return tarea.cita_id;
+  if (!hora) return tarea.cita_id ?? null;
 
   const [hh, mm] = hora.split(":").map(Number);
   const empieza = new Date(`${vence}T12:00:00`);
