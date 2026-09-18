@@ -832,9 +832,11 @@ export interface Database {
           termina: string;
           propiedad_id: string | null;
           cliente_id: string | null;
+          cliente2_id: string | null;
           demanda_id: string | null;
           finca_reference: string | null;
           lugar: string | null;
+          notas: string | null;
           tarea_id: string | null;
           estado: string;
           created_at: string;
@@ -847,9 +849,11 @@ export interface Database {
           termina: string;
           propiedad_id?: string | null;
           cliente_id?: string | null;
+          cliente2_id?: string | null;
           demanda_id?: string | null;
           finca_reference?: string | null;
           lugar?: string | null;
+          notas?: string | null;
           tarea_id?: string | null;
           estado?: string;
         };
@@ -860,9 +864,11 @@ export interface Database {
           termina?: string;
           propiedad_id?: string | null;
           cliente_id?: string | null;
+          cliente2_id?: string | null;
           demanda_id?: string | null;
           finca_reference?: string | null;
           lugar?: string | null;
+          notas?: string | null;
           tarea_id?: string | null;
           estado?: string;
         };

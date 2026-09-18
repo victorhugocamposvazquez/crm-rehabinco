@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { ChevronLeft, Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ToggleChip } from "@/components/ui/toggle-chip";
@@ -142,6 +143,8 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
   const [saving, setSaving] = useState(false);
   const [printing, setPrinting] = useState(false);
   const [listo, setListo] = useState(!contratoId);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const altaBorrador = useAltaBorrador({
     tipo: "arras",
@@ -500,6 +503,22 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
     </div>
   );
 
+  const eliminar = async () => {
+    if (!contratoId) return;
+    setDeleting(true);
+    const supabase = createClient();
+    const { error } = await supabase.from("contratos_arras").delete().eq("id", contratoId);
+    setDeleting(false);
+    setShowDeleteConfirm(false);
+    if (error) {
+      toast.error("No se ha podido eliminar el contrato.");
+      return;
+    }
+    toast.success("Contrato eliminado.");
+    router.push("/contratos-arras");
+    router.refresh();
+  };
+
   return (
     <div>
       <div className="mb-5 flex items-center gap-3">
@@ -519,6 +538,17 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
           </p>
         </div>
         <div className="hidden gap-2 min-[820px]:flex">
+          {contratoId ? (
+            <Button
+              type="button"
+              variant="secondary"
+              className="text-red-600 hover:bg-red-50 hover:text-red-700"
+              onClick={() => setShowDeleteConfirm(true)}
+              aria-label="Eliminar contrato"
+            >
+              <Trash2 className="h-4 w-4" strokeWidth={1.5} />
+            </Button>
+          ) : null}
           <Button type="button" variant="secondary" onClick={imprimir.pedirImprimir}>
             Imprimir
           </Button>
@@ -527,6 +557,17 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
           </Button>
         </div>
       </div>
+
+      <AlertDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title="¿Eliminar este contrato de arras?"
+        description="Se borrará de forma permanente. Esta acción no se puede deshacer."
+        confirmLabel={deleting ? "Eliminando…" : "Eliminar"}
+        onConfirm={() => void eliminar()}
+        loading={deleting}
+        variant="destructive"
+      />
 
       <DocumentoSplit
         form={form}
@@ -546,6 +587,17 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
       {imprimir.dialogo}
 
       <div className="fixed bottom-0 left-0 right-0 z-40 flex gap-2 border-t border-border bg-white/95 px-4 py-3 min-[820px]:hidden">
+        {contratoId ? (
+          <Button
+            type="button"
+            variant="secondary"
+            className="shrink-0 text-red-600"
+            onClick={() => setShowDeleteConfirm(true)}
+            aria-label="Eliminar contrato"
+          >
+            <Trash2 className="h-4 w-4" strokeWidth={1.5} />
+          </Button>
+        ) : null}
         <Button type="button" variant="secondary" className="flex-1" onClick={imprimir.pedirImprimir}>
           Imprimir
         </Button>

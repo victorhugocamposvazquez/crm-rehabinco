@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -9,12 +9,14 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Fab } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
-import { Plus } from "lucide-react";
+import { AlertDialog } from "@/components/ui/alert-dialog";
+import { ListChecks, Plus, Trash2 } from "lucide-react";
 import { AgendaVisitas } from "@/components/citas/AgendaVisitas";
 import { ESTADO_PARTE_LABELS, buildPublicFirmaUrl } from "@/lib/partes-visita";
 import { colorEstado } from "@/lib/ui/estados-vista";
 import { extraAlta } from "@/lib/ui/alta-panel";
 import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
+import { cn } from "@/lib/utils";
 
 type ParteRow = {
   id: string;
@@ -34,6 +36,10 @@ export default function PartesVisitaPage() {
   const [filterEstado, setFilterEstado] = useState<"todos" | ParteRow["estado"]>("todos");
   const [partes, setPartes] = useState<ParteRow[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const hayBorrador = useHayAltaBorrador("parte");
 
   useEffect(() => {
@@ -64,6 +70,38 @@ export default function PartesVisitaPage() {
     return partes.filter((p) => filterEstado === "todos" || p.estado === filterEstado);
   }, [partes, filterEstado]);
 
+  const exitSelectionMode = useCallback(() => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  const toggleSelectId = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  }, []);
+
+  const handleBulkDelete = async () => {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+    const supabase = createClient();
+    const { error: delErr } = await supabase.from("partes_visita").delete().in("id", ids);
+    setBulkDeleting(false);
+    if (delErr) {
+      toast.error(delErr.message);
+      return;
+    }
+    setPartes((prev) => prev.filter((p) => !ids.includes(p.id)));
+    exitSelectionMode();
+    setBulkDeleteOpen(false);
+    toast.success(ids.length === 1 ? "1 parte eliminado" : `${ids.length} partes eliminados`);
+    router.refresh();
+  };
+
   const copiarFirma = async (token: string) => {
     try {
       await navigator.clipboard.writeText(buildPublicFirmaUrl(token));
@@ -84,6 +122,18 @@ export default function PartesVisitaPage() {
         description="La agenda es la cita. El parte es el PDF que se rellena y firma."
         actions={
           <div className="flex flex-wrap gap-2">
+            {!loading && partes.length > 0 ? (
+              <Button
+                type="button"
+                variant={selectionMode ? "default" : "secondary"}
+                size="sm"
+                onClick={() => (selectionMode ? exitSelectionMode() : setSelectionMode(true))}
+                className="gap-2"
+              >
+                <ListChecks className="h-4 w-4" strokeWidth={1.5} />
+                {selectionMode ? "Cancelar selección" : "Seleccionar"}
+              </Button>
+            ) : null}
             <Button asChild size="sm" variant="secondary">
               <Link href="/calendario">Concertar visita</Link>
             </Button>
@@ -117,6 +167,38 @@ export default function PartesVisitaPage() {
               </Chip>
             ))}
           </div>
+
+          {!loading && partes.length > 0 && selectionMode ? (
+            <div className="flex flex-col gap-2 border-b border-[var(--border-soft)] bg-[var(--surface-soft)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-[var(--text-2)]">
+                <span className="font-medium text-foreground">{selectedIds.size}</span> seleccionado
+                {selectedIds.size !== 1 ? "s" : ""}
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setSelectedIds(new Set(filtered.map((p) => p.id)))}
+                  disabled={filtered.length === 0}
+                >
+                  Seleccionar visibles
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setBulkDeleteOpen(true)}
+                  disabled={selectedIds.size === 0}
+                  className="gap-1.5 border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                >
+                  <Trash2 className="h-4 w-4" strokeWidth={1.5} />
+                  Eliminar
+                </Button>
+              </div>
+            </div>
+          ) : null}
+
           {error ? <p className="mx-4 mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
           {loading ? (
             <p className="px-4 py-8 text-center text-[12.5px] text-[var(--text-2)]">Cargando partes…</p>
@@ -138,7 +220,16 @@ export default function PartesVisitaPage() {
             </div>
           ) : (
             filtered.map((p) => (
-              <div key={p.id} className="flex items-center gap-3 border-b border-[var(--border-row)] px-4 py-2.5 hover:bg-[var(--surface-soft)]">
+              <div
+                key={p.id}
+                className={cn(
+                  "flex items-center gap-3 border-b border-[var(--border-row)] px-4 py-2.5 hover:bg-[var(--surface-soft)]",
+                  selectionMode && selectedIds.has(p.id) && "bg-[var(--row-active)]"
+                )}
+              >
+                {selectionMode ? (
+                  <input type="checkbox" checked={selectedIds.has(p.id)} onChange={() => toggleSelectId(p.id)} />
+                ) : null}
                 <Link href={`/partes-visita/${p.id}`} className="min-w-0 flex-1">
                   <div className="text-[14px] font-semibold">{p.visitante_nombre || "Visitante"}</div>
                   <div className="mt-0.5 truncate text-[12px] text-[var(--text-2)]">
@@ -149,7 +240,7 @@ export default function PartesVisitaPage() {
                   <span className="h-[7px] w-[7px] rounded-full" style={{ background: colorEstado(p.estado) }} />
                   {ESTADO_PARTE_LABELS[p.estado]}
                 </div>
-                {p.estado === "pendiente_firma" && p.token ? (
+                {!selectionMode && p.estado === "pendiente_firma" && p.token ? (
                   <button
                     type="button"
                     onClick={() => void copiarFirma(p.token!)}
@@ -163,6 +254,18 @@ export default function PartesVisitaPage() {
           )}
         </section>
       </div>
+
+      <AlertDialog
+        open={bulkDeleteOpen}
+        onOpenChange={setBulkDeleteOpen}
+        title={`¿Eliminar ${selectedIds.size} parte${selectedIds.size !== 1 ? "s" : ""}?`}
+        description="Se borrarán de forma permanente, incluidas las firmas. Esta acción no se puede deshacer."
+        confirmLabel={bulkDeleting ? "Eliminando…" : "Eliminar definitivamente"}
+        onConfirm={() => void handleBulkDelete()}
+        loading={bulkDeleting}
+        variant="destructive"
+      />
+
       <Fab href="/partes-visita/nuevo" label={hayBorrador ? "Continuar borrador" : "Nuevo parte"} />
     </div>
   );

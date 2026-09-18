@@ -23,6 +23,7 @@ export type EdicionCalendario = {
   id: string;
   tipo: string;
   titulo: string;
+  notas?: string | null;
 };
 
 export function NuevaEntradaCalendario({
@@ -36,9 +37,13 @@ export function NuevaEntradaCalendario({
   clientes,
   propiedadId,
   clienteId,
+  cliente2Id,
+  notas,
   lugar,
   onPropiedad,
   onCliente,
+  onCliente2,
+  onNotas,
   onLugar,
   saving,
   edicion,
@@ -54,9 +59,13 @@ export function NuevaEntradaCalendario({
   clientes: PersonaOpcion[];
   propiedadId: string;
   clienteId: string;
+  cliente2Id: string;
+  notas: string;
   lugar: string;
   onPropiedad: (id: string) => void;
   onCliente: (id: string) => void;
+  onCliente2: (id: string) => void;
+  onNotas: (notas: string) => void;
   onLugar: (lugar: string) => void;
   saving: boolean;
   edicion?: EdicionCalendario | null;
@@ -65,24 +74,31 @@ export function NuevaEntradaCalendario({
   const [tipo, setTipo] = useState<TipoAltaCalendario>("evento");
   const [titulo, setTitulo] = useState("");
   const [qCliente, setQCliente] = useState("");
+  const [qCliente2, setQCliente2] = useState("");
   const [agenda, setAgenda] = useState<PersonaOpcion[]>(clientes);
   const [altaClienteOpen, setAltaClienteOpen] = useState(false);
   const [altaClienteNombre, setAltaClienteNombre] = useState("");
+  const [altaCliente2Open, setAltaCliente2Open] = useState(false);
+  const [altaCliente2Nombre, setAltaCliente2Nombre] = useState("");
   const [qInmueble, setQInmueble] = useState("");
   const [catalogo, setCatalogo] = useState<InmuebleCalendario[]>(propiedades);
 
   useEffect(() => {
     if (!open) return;
     setQCliente("");
+    setQCliente2("");
     setQInmueble("");
     if (edicion) {
       setTitulo(edicion.titulo);
       setTipo(TIPOS_ALTA_CALENDARIO.includes(edicion.tipo as TipoAltaCalendario) ? (edicion.tipo as TipoAltaCalendario) : "evento");
+      onNotas(edicion.notas?.trim() ?? "");
       return;
     }
     setTitulo("");
     setTipo("evento");
-  }, [open, edicion]);
+    onNotas("");
+    onCliente2("");
+  }, [open, edicion, onNotas, onCliente2]);
 
   useEffect(() => {
     setAgenda((prev) => {
@@ -151,7 +167,9 @@ export function NuevaEntradaCalendario({
     month: "long",
   });
   const clienteSel = agenda.find((c) => c.id === clienteId);
+  const cliente2Sel = agenda.find((c) => c.id === cliente2Id);
   const inmuebleSel = catalogo.find((p) => p.id === propiedadId);
+  const esEvento = tipo === "evento";
   const tipos = edicion?.tipo === "tarea" ? (["tarea"] as const) : TIPOS_ALTA_CALENDARIO.filter((item) => item !== "tarea" || !edicion);
   const mapsConsulta = lugar.trim() || (inmuebleSel ? direccionDeInmueble(inmuebleSel) : "");
   const sugeridos = useMemo(() => {
@@ -159,6 +177,13 @@ export function NuevaEntradaCalendario({
     if (!q) return [];
     return agenda.filter((c) => `${c.nombre} ${c.telefono ?? ""}`.toLowerCase().includes(q)).slice(0, 6);
   }, [agenda, qCliente]);
+  const sugeridos2 = useMemo(() => {
+    const q = qCliente2.trim().toLowerCase();
+    if (!q) return [];
+    return agenda
+      .filter((c) => c.id !== clienteId && `${c.nombre} ${c.telefono ?? ""}`.toLowerCase().includes(q))
+      .slice(0, 6);
+  }, [agenda, qCliente2, clienteId]);
   const sugeridosInmueble = useMemo(() => {
     const q = qInmueble.trim();
     const lista = q ? catalogo.filter((p) => coincideInmueble(p, q)) : catalogo;
@@ -230,7 +255,10 @@ export function NuevaEntradaCalendario({
           <AltaPersona
             permitirNinguno
             seleccionado={clienteSel}
-            onSeleccionar={(persona) => onCliente(persona.id)}
+            onSeleccionar={(persona) => {
+              onCliente(persona.id);
+              if (persona.id === cliente2Id) onCliente2("");
+            }}
             onLimpiar={() => onCliente("")}
             q={qCliente}
             setQ={setQCliente}
@@ -241,6 +269,39 @@ export function NuevaEntradaCalendario({
             }}
           />
         </AltaSection>
+
+        {esEvento ? (
+          <AltaSection wide title="Acompañante" hint="Opcional. Otro cliente que venga al evento.">
+            <AltaPersona
+              permitirNinguno
+              seleccionado={cliente2Sel}
+              onSeleccionar={(persona) => {
+                if (persona.id === clienteId) return;
+                onCliente2(persona.id);
+              }}
+              onLimpiar={() => onCliente2("")}
+              q={qCliente2}
+              setQ={setQCliente2}
+              sugeridos={sugeridos2}
+              onAltaNueva={(nombreSugerido) => {
+                setAltaCliente2Nombre(nombreSugerido ?? "");
+                setAltaCliente2Open(true);
+              }}
+            />
+          </AltaSection>
+        ) : null}
+
+        {esEvento ? (
+          <AltaSection title="Notas" hint="Observaciones internas. No salen en el título del calendario.">
+            <textarea
+              value={notas}
+              onChange={(e) => onNotas(e.target.value)}
+              placeholder="Detalles, acuerdos, recordatorios…"
+              rows={3}
+              className="min-h-[5rem] w-full resize-y rounded-[9px] border border-[var(--input)] bg-white px-3 py-2.5 text-[13.5px] outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15 max-[819px]:text-base"
+            />
+          </AltaSection>
+        ) : null}
 
         <AltaSection wide title="Inmueble y visita" hint="Busca un inmueble ya creado por referencia, calle o localidad. Al elegirlo verás la ficha y el enlace a Maps.">
           {inmuebleSel ? (
@@ -330,6 +391,22 @@ export function NuevaEntradaCalendario({
             );
           });
           onCliente(id);
+        }}
+      />
+      <NuevoClientePanel
+        open={altaCliente2Open}
+        onOpenChange={setAltaCliente2Open}
+        elevated
+        nombreInicial={altaCliente2Nombre}
+        ambito="desde-calendario"
+        onCreado={(id, extra) => {
+          setAgenda((prev) => {
+            if (prev.some((c) => c.id === id)) return prev;
+            return [...prev, { id, nombre: extra?.nombre ?? "Cliente", telefono: extra?.telefono ?? null }].sort((a, b) =>
+              a.nombre.localeCompare(b.nombre)
+            );
+          });
+          if (id !== clienteId) onCliente2(id);
         }}
       />
     </>

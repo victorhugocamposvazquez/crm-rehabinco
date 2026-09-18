@@ -51,9 +51,13 @@ type CitaRow = {
   termina: string;
   propiedad_id: string | null;
   cliente_id: string | null;
+  cliente2_id?: string | null;
+  notas?: string | null;
   estado: string;
   lugar?: string | null;
   tarea_id?: string | null;
+  clientes?: { nombre?: string | null } | null;
+  cliente2?: { nombre?: string | null } | null;
   profiles?: { nombre_completo?: string | null; color?: string | null } | null;
   propiedades?: { titulo?: string | null; direccion?: string | null; localidad?: string | null; referencia?: string | null } | null;
 };
@@ -70,6 +74,8 @@ export default function CalendarioPage() {
   const [saving, setSaving] = useState(false);
   const [propiedadId, setPropiedadId] = useState(searchParams.get("propiedad") ?? "");
   const [clienteId, setClienteId] = useState(searchParams.get("cliente") ?? "");
+  const [cliente2Id, setCliente2Id] = useState("");
+  const [notas, setNotas] = useState("");
   const [lugar, setLugar] = useState("");
   const [editando, setEditando] = useState<CitaRow | null>(null);
   const [propiedades, setPropiedades] = useState<InmuebleCalendario[]>([]);
@@ -90,7 +96,7 @@ export default function CalendarioPage() {
     let q = supabase
       .from("citas")
       .select(
-        "id, comercial_id, tipo, titulo, empieza, termina, propiedad_id, cliente_id, estado, tarea_id, lugar, profiles:comercial_id(nombre_completo, color), propiedades:propiedad_id(titulo, direccion, localidad, referencia)"
+        "id, comercial_id, tipo, titulo, empieza, termina, propiedad_id, cliente_id, cliente2_id, notas, estado, tarea_id, lugar, profiles:comercial_id(nombre_completo, color), propiedades:propiedad_id(titulo, direccion, localidad, referencia), clientes:cliente_id(nombre), cliente2:cliente2_id(nombre)"
       )
       .gte("empieza", inicio)
       .lte("empieza", fin)
@@ -108,6 +114,8 @@ export default function CalendarioPage() {
           ...row,
           profiles: relacionUno(row.profiles),
           propiedades: relacionUno(row.propiedades),
+          clientes: relacionUno(row.clientes as CitaRow["clientes"] | CitaRow["clientes"][] | null),
+          cliente2: relacionUno(row.cliente2 as CitaRow["cliente2"] | CitaRow["cliente2"][] | null),
         }))
       )
     );
@@ -186,10 +194,17 @@ export default function CalendarioPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propiedadId, propiedades]);
 
+  const mezclarCliente = (id: string, nombre?: string | null) => {
+    if (!id || clientes.some((c) => c.id === id)) return;
+    setClientes((prev) => [...prev, { id, nombre: nombre?.trim() || "Cliente", telefono: null }].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+  };
+
   const abrirHueco = (diaDestino: string, minutos: number) => {
     setEditando(null);
     setPropiedadId("");
     setClienteId("");
+    setCliente2Id("");
+    setNotas("");
     setLugar("");
     setDia(diaDestino);
     setHora(horaDesdeMinutos(minutos));
@@ -204,8 +219,12 @@ export default function CalendarioPage() {
     setHora(horaCita(cita.empieza));
     setPropiedadId(cita.propiedad_id ?? "");
     setClienteId(cita.cliente_id ?? "");
+    setCliente2Id(cita.cliente2_id ?? "");
+    setNotas(cita.notas?.trim() ?? "");
     setLugar(cita.lugar?.trim() || direccionDeInmueble(cita.propiedades ?? {}));
     if (cita.propiedad_id) mezclarInmueble(cita.propiedad_id);
+    if (cita.cliente_id) mezclarCliente(cita.cliente_id, cita.clientes?.nombre);
+    if (cita.cliente2_id) mezclarCliente(cita.cliente2_id, cita.cliente2?.nombre);
     setSheetOpen(true);
   };
 
@@ -218,6 +237,8 @@ export default function CalendarioPage() {
         ? `${TIPO_CITA_LABEL[tipo]} ${inmueble.referencia || inmueble.direccion || ""}`.trim()
         : TIPO_CITA_LABEL[tipo]);
     const lugarFinal = lugar.trim() || (inmueble ? direccionDeInmueble(inmueble) : "") || null;
+    const notasFinal = tipo === "evento" ? notas.trim() || null : null;
+    const cliente2Final = tipo === "evento" && cliente2Id && cliente2Id !== clienteId ? cliente2Id : null;
     setSaving(true);
     const supabase = createClient();
 
@@ -238,6 +259,8 @@ export default function CalendarioPage() {
           termina: patch.termina,
           propiedad_id: propiedadId || null,
           cliente_id: clienteId || null,
+          cliente2_id: tipoFinal === "evento" ? cliente2Final : null,
+          notas: tipoFinal === "evento" ? notasFinal : null,
           lugar: lugarFinal,
         })
         .eq("id", editando.id);
@@ -286,6 +309,8 @@ export default function CalendarioPage() {
         termina: termina.toISOString(),
         propiedad_id: propiedadId || null,
         cliente_id: clienteId || null,
+        cliente2_id: tipoCita === "evento" ? cliente2Final : null,
+        notas: tipoCita === "evento" ? notasFinal : null,
         lugar: lugarFinal,
       })
       .select("id, comercial_id, tipo, titulo, empieza, propiedad_id, cliente_id, estado, tarea_id")
@@ -494,12 +519,20 @@ export default function CalendarioPage() {
         clientes={clientes}
         propiedadId={propiedadId}
         clienteId={clienteId}
+        cliente2Id={cliente2Id}
+        notas={notas}
         lugar={lugar}
         onPropiedad={setPropiedadId}
         onCliente={setClienteId}
+        onCliente2={setCliente2Id}
+        onNotas={setNotas}
         onLugar={setLugar}
         saving={saving}
-        edicion={editando ? { id: editando.id, tipo: editando.tipo, titulo: editando.titulo } : null}
+        edicion={
+          editando
+            ? { id: editando.id, tipo: editando.tipo, titulo: editando.titulo, notas: editando.notas }
+            : null
+        }
         onGuardar={(tipo, titulo) => void guardar(tipo, titulo)}
       />
 
@@ -543,6 +576,16 @@ export default function CalendarioPage() {
                     <p className="mt-1 text-xs">
                       <EnlaceMaps consulta={mapsConsulta} />
                     </p>
+                  ) : null}
+                  {cita.tipo === "evento" && (cita.clientes?.nombre || cita.cliente2?.nombre) ? (
+                    <p className="mt-1 text-xs text-[#5D6B67]">
+                      {[cita.clientes?.nombre, cita.cliente2?.nombre ? `+ ${cita.cliente2.nombre}` : null]
+                        .filter(Boolean)
+                        .join(" ")}
+                    </p>
+                  ) : null}
+                  {cita.notas?.trim() ? (
+                    <p className="mt-1 text-xs italic text-[#5D6B67]">{cita.notas.trim()}</p>
                   ) : null}
                 </div>
               </div>
