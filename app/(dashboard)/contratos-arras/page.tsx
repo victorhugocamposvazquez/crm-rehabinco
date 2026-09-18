@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isAdmin } from "@/lib/auth/roles";
+import { isAdmin, puedeVerPapelera } from "@/lib/auth/roles";
 import { relacionUno } from "@/lib/citas/citas";
 import { CreadorDocumento } from "@/components/documentos/CreadorDocumento";
 import { BotonPapeleraDocumento } from "@/components/documentos/BotonPapeleraDocumento";
@@ -32,6 +32,7 @@ type Row = {
 export default function ContratosArrasPage() {
   const { user } = useAuth();
   const admin = isAdmin(user?.role);
+  const verPapelera = puedeVerPapelera(user?.role);
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const hayBorrador = useHayAltaBorrador("arras");
@@ -70,12 +71,22 @@ export default function ContratosArrasPage() {
             : "Tus contratos de arras. Cada uno se rellena en el CRM y se descarga en PDF."
         }
         actions={
-          <Button asChild size="sm" className="hidden min-[820px]:inline-flex">
-            <Link href="/contratos-arras/nuevo" className="gap-2">
-              <Plus className="h-4 w-4" strokeWidth={1.5} />
-              {hayBorrador ? "Continuar borrador" : "Nuevo contrato"}
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {verPapelera ? (
+              <Button asChild size="sm" variant="secondary">
+                <Link href="/contratos-arras/papelera" className="gap-2">
+                  <Trash2 className="h-4 w-4" strokeWidth={1.5} />
+                  Papelera
+                </Link>
+              </Button>
+            ) : null}
+            <Button asChild size="sm" className="hidden min-[820px]:inline-flex">
+              <Link href="/contratos-arras/nuevo" className="gap-2">
+                <Plus className="h-4 w-4" strokeWidth={1.5} />
+                {hayBorrador ? "Continuar borrador" : "Nuevo contrato"}
+              </Link>
+            </Button>
+          </div>
         }
       />
 

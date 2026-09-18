@@ -17,10 +17,11 @@ import {
   isSuperAdmin,
   puedeSolicitarUsuarios,
   puedeVerApisPortales,
+  puedeVerPapelera,
   roleLabel,
   type Role,
 } from "@/lib/auth/roles";
-import { UserPlus, Building2, KeyRound } from "lucide-react";
+import { UserPlus, Building2, KeyRound, Trash2 } from "lucide-react";
 import { PerfilComercialCard } from "@/components/settings/PerfilComercialCard";
 import { EquipoComercialesCard } from "@/components/settings/EquipoComercialesCard";
 import { SettingsAdminNav } from "@/components/settings/SettingsAdminNav";
@@ -168,6 +169,26 @@ export default function SettingsPage() {
               </p>
               <Button className="mt-4" variant="secondary" asChild>
                 <Link href="/settings/emisores-presupuesto">Editar emisores de presupuesto</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {puedeVerPapelera(user?.role) && (
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Trash2 className="h-5 w-5" strokeWidth={1.5} />
+                Papelera de usuarios
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-neutral-600">
+                Altas y bajas de usuarios solicitadas por administradores. Los documentos de
+                Herramientas tienen su papelera en cada sección.
+              </p>
+              <Button className="mt-4" variant="secondary" asChild>
+                <Link href="/settings/papelera">Abrir papelera de usuarios</Link>
               </Button>
             </CardContent>
           </Card>

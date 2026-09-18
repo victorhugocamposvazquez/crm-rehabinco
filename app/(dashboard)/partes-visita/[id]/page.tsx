@@ -6,7 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { eliminarDocumentos } from "@/lib/actions/papelera";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isAdmin, isSuperAdmin } from "@/lib/auth/roles";
+import { isAdmin } from "@/lib/auth/roles";
 import { relacionUno } from "@/lib/citas/citas";
 import { CreadorDocumento } from "@/components/documentos/CreadorDocumento";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -75,7 +75,6 @@ function estadoVariant(
 export default function DetalleParteVisitaPage() {
   const { user } = useAuth();
   const admin = isAdmin(user?.role);
-  const superadmin = isSuperAdmin(user?.role);
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
@@ -292,12 +291,8 @@ export default function DetalleParteVisitaPage() {
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
         title="¿Eliminar este parte de visita?"
-        description={
-          superadmin
-            ? "Se borrará de forma permanente."
-            : "Irá a la papelera del superadministrador para confirmar el borrado definitivo."
-        }
-        confirmLabel={deleting ? "Eliminando…" : superadmin ? "Eliminar" : "Enviar a papelera"}
+        description="Irá a la papelera de partes de visita para confirmar el borrado definitivo."
+        confirmLabel={deleting ? "Enviando…" : "Enviar a papelera"}
         onConfirm={handleDelete}
         loading={deleting}
         variant="destructive"

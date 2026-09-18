@@ -44,7 +44,54 @@ async function encolar(
     solicitado_por: input.solicitadoPor,
   });
   if (error) return { ok: false, error: error.message };
-  return { ok: true, message: "Enviado a la papelera del superadministrador." };
+  return { ok: true, message: "Enviado a la papelera." };
+}
+
+function etiquetaDocumento(tipo: TipoDocumentoPapelera, fila: Record<string, unknown>): string {
+  if (tipo === "parte_visita") {
+    return (fila.visitante_nombre as string | null) || (fila.inmueble_direccion as string | null) || "Parte de visita";
+  }
+  return (fila.finca_descripcion as string | null) || "Contrato de arras";
+}
+
+/** Recupera soft deletes que no llegaron a papelera_items (p. ej. fallo previo al encolar). */
+async function sincronizarDocumentosHuerfanos(admin: ReturnType<typeof createAdminClient>) {
+  const tipos: TipoDocumentoPapelera[] = ["parte_visita", "contrato_arras"];
+  for (const tipo of tipos) {
+    const tabla = tablaDocumentoPapelera(tipo);
+    const { data: borrados } = await admin
+      .from(tabla)
+      .select("id, visitante_nombre, inmueble_direccion, finca_descripcion, compradores, vendedores, deleted_at, deleted_by")
+      .not("deleted_at", "is", null);
+    if (!borrados?.length) continue;
+
+    const ids = borrados.map((f) => f.id as string);
+    const { data: pendientes } = await admin
+      .from("papelera_items")
+      .select("entity_id")
+      .eq("tipo", tipo)
+      .eq("accion", "eliminar")
+      .is("resuelto_at", null)
+      .in("entity_id", ids);
+    const yaEncolados = new Set((pendientes ?? []).map((p) => p.entity_id as string));
+
+    for (const fila of borrados) {
+      const entityId = fila.id as string;
+      const solicitadoPor = fila.deleted_by as string | null;
+      if (yaEncolados.has(entityId) || !solicitadoPor) continue;
+      await encolar(
+        {
+          tipo,
+          accion: "eliminar",
+          entityId,
+          etiqueta: etiquetaDocumento(tipo, fila as Record<string, unknown>),
+          snapshot: fila as Record<string, unknown>,
+          solicitadoPor,
+        },
+        admin
+      );
+    }
+  }
 }
 
 export async function eliminarDocumentos(tipo: TipoDocumentoPapelera, ids: string[]): Promise<Result> {
@@ -54,12 +101,6 @@ export async function eliminarDocumentos(tipo: TipoDocumentoPapelera, ids: strin
 
   const admin = createAdminClient();
   const tabla = tablaDocumentoPapelera(tipo);
-
-  if (sesion.superadmin) {
-    const { error } = await admin.from(tabla).delete().in("id", ids);
-    if (error) return { ok: false, error: error.message };
-    return { ok: true, message: ids.length === 1 ? "Eliminado." : `${ids.length} eliminados.` };
-  }
 
   const { data: filas, error: readErr } = await admin
     .from(tabla)
@@ -80,16 +121,12 @@ export async function eliminarDocumentos(tipo: TipoDocumentoPapelera, ids: strin
   if (softErr) return { ok: false, error: softErr.message };
 
   for (const f of vivas) {
-    const etiqueta =
-      tipo === "parte_visita"
-        ? (f.visitante_nombre as string | null) || (f.inmueble_direccion as string | null) || "Parte de visita"
-        : (f.finca_descripcion as string | null) || "Contrato de arras";
     const r = await encolar(
       {
         tipo,
         accion: "eliminar",
         entityId: f.id as string,
-        etiqueta,
+        etiqueta: etiquetaDocumento(tipo, f as Record<string, unknown>),
         snapshot: f as Record<string, unknown>,
         solicitadoPor: sesion.id,
       },
@@ -100,10 +137,7 @@ export async function eliminarDocumentos(tipo: TipoDocumentoPapelera, ids: strin
 
   return {
     ok: true,
-    message:
-      vivas.length === 1
-        ? "Enviado a la papelera del superadministrador."
-        : `${vivas.length} enviados a la papelera del superadministrador.`,
+    message: vivas.length === 1 ? "Enviado a la papelera." : `${vivas.length} enviados a la papelera.`,
   };
 }
 
@@ -173,17 +207,21 @@ export async function solicitarEliminarUsuario(userId: string): Promise<Result> 
   );
 }
 
-export async function listarPapeleraPendiente(): Promise<PapeleraItem[] | { error: string }> {
+async function listarPapeleraPorTipos(tipos: TipoPapelera[]): Promise<PapeleraItem[] | { error: string }> {
   const sesion = await sesionAdmin();
   if (!sesion.ok) return { error: sesion.error };
   if (!sesion.superadmin) return { error: "Solo el superadministrador ve la papelera." };
 
   const admin = createAdminClient();
+  const incluyeDocumentos = tipos.some((t) => t === "parte_visita" || t === "contrato_arras");
+  if (incluyeDocumentos) await sincronizarDocumentosHuerfanos(admin);
+
   const { data, error } = await admin
     .from("papelera_items")
     .select(
       "id, tipo, accion, entity_id, etiqueta, snapshot, solicitado_por, created_at, resuelto_at, resolucion, solicitante:solicitado_por(nombre_completo, email)"
     )
+    .in("tipo", tipos)
     .is("resuelto_at", null)
     .order("created_at", { ascending: false });
   if (error) return { error: error.message };
@@ -194,6 +232,16 @@ export async function listarPapeleraPendiente(): Promise<PapeleraItem[] | { erro
       solicitante: Array.isArray(row.solicitante) ? row.solicitante[0] ?? null : row.solicitante ?? null,
     })
   );
+}
+
+export async function listarPapeleraDocumentos(
+  tipo: TipoDocumentoPapelera
+): Promise<PapeleraItem[] | { error: string }> {
+  return listarPapeleraPorTipos([tipo]);
+}
+
+export async function listarPapeleraUsuarios(): Promise<PapeleraItem[] | { error: string }> {
+  return listarPapeleraPorTipos(["usuario"]);
 }
 
 export async function resolverPapelera(itemId: string, accion: "aprobar" | "rechazar" | "restaurar"): Promise<Result> {

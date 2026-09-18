@@ -8,7 +8,7 @@ import { ChevronLeft, Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { eliminarDocumentos } from "@/lib/actions/papelera";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isAdmin, isSuperAdmin } from "@/lib/auth/roles";
+import { isAdmin } from "@/lib/auth/roles";
 import { relacionUno } from "@/lib/citas/citas";
 import { CreadorDocumento } from "@/components/documentos/CreadorDocumento";
 import { Button } from "@/components/ui/button";
@@ -137,7 +137,6 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
   const router = useRouter();
   const { user } = useAuth();
   const admin = isAdmin(user?.role);
-  const superadmin = isSuperAdmin(user?.role);
   const [metaCreador, setMetaCreador] = useState<{
     user_id: string;
     comercial_id: string | null;
@@ -594,12 +593,8 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
         title="¿Eliminar este contrato de arras?"
-        description={
-          superadmin
-            ? "Se borrará de forma permanente."
-            : "Irá a la papelera del superadministrador para confirmar el borrado definitivo."
-        }
-        confirmLabel={deleting ? "Eliminando…" : superadmin ? "Eliminar" : "Enviar a papelera"}
+        description="Irá a la papelera de contratos de arras para confirmar el borrado definitivo."
+        confirmLabel={deleting ? "Enviando…" : "Enviar a papelera"}
         onConfirm={() => void eliminar()}
         loading={deleting}
         variant="destructive"

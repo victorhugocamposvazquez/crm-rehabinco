@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ClipboardPenLine, FileSignature, Plus } from "lucide-react";
+import { ClipboardPenLine, FileSignature, Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isAdmin } from "@/lib/auth/roles";
+import { isAdmin, puedeVerPapelera } from "@/lib/auth/roles";
 import { relacionUno } from "@/lib/citas/citas";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { CreadorDocumento } from "@/components/documentos/CreadorDocumento";
@@ -48,6 +48,7 @@ function nombrePersona(raw: unknown): string {
 export default function HerramientasPage() {
   const { user } = useAuth();
   const admin = isAdmin(user?.role);
+  const verPapelera = puedeVerPapelera(user?.role);
   const [partes, setPartes] = useState<ParteRow[]>([]);
   const [arras, setArras] = useState<ArrasRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,7 +102,7 @@ export default function HerramientasPage() {
         title="Herramientas"
         description={
           admin
-            ? "Partes y contratos de todo el equipo. La papelera de cada fila envía el documento a revisión."
+            ? "Partes y contratos de todo el equipo. Cada sección tiene su papelera para confirmar borrados."
             : "Tus partes de visita y contratos de arras. Usa la papelera de cada fila para eliminar."
         }
       />
@@ -115,6 +116,7 @@ export default function HerramientasPage() {
           nuevoLabel={hayParte ? "Continuar borrador" : "Nuevo parte"}
           historicoHref="/partes-visita"
           historicoLabel="Agenda e histórico"
+          papeleraHref={verPapelera ? "/partes-visita/papelera" : undefined}
           loading={loading}
           vacio="Aún no hay partes."
         >
@@ -158,6 +160,7 @@ export default function HerramientasPage() {
           nuevoLabel={hayArras ? "Continuar borrador" : "Nuevo contrato"}
           historicoHref="/contratos-arras"
           historicoLabel="Ver histórico"
+          papeleraHref={verPapelera ? "/contratos-arras/papelera" : undefined}
           loading={loading}
           vacio="Aún no hay contratos de arras."
         >
@@ -208,6 +211,7 @@ function Zona({
   nuevoLabel,
   historicoHref,
   historicoLabel,
+  papeleraHref,
   loading,
   vacio,
   children,
@@ -219,6 +223,7 @@ function Zona({
   nuevoLabel: string;
   historicoHref: string;
   historicoLabel: string;
+  papeleraHref?: string;
   loading: boolean;
   vacio: string;
   children: ReactNode;
@@ -246,6 +251,14 @@ function Zona({
           <Button asChild size="sm" variant="secondary">
             <Link href={historicoHref}>{historicoLabel}</Link>
           </Button>
+          {papeleraHref ? (
+            <Button asChild size="sm" variant="secondary">
+              <Link href={papeleraHref} className="gap-2">
+                <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+                Papelera
+              </Link>
+            </Button>
+          ) : null}
         </div>
       </div>
       {loading ? (

@@ -8,7 +8,7 @@ import { puedeVerApisPortales, puedeVerPapelera, type Role } from "@/lib/auth/ro
 const ITEMS = [
   { href: "/settings", label: "Perfil y seguridad", portales: false, papelera: false },
   { href: "/settings#equipo", label: "Equipo", portales: false, papelera: false },
-  { href: "/settings/papelera", label: "Papelera", portales: false, papelera: true },
+  { href: "/settings/papelera", label: "Papelera de usuarios", portales: false, papelera: true },
   { href: "/settings/empresa", label: "Datos de empresa", portales: false, papelera: false },
   { href: "/settings/emisores-presupuesto", label: "Emisores de presupuesto", portales: false, papelera: false },
   { href: "/settings/portales", label: "APIs de portales", portales: true, papelera: false },

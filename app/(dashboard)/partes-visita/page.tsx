@@ -6,7 +6,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isAdmin } from "@/lib/auth/roles";
+import { isAdmin, puedeVerPapelera } from "@/lib/auth/roles";
 import { relacionUno } from "@/lib/citas/citas";
 import { CreadorDocumento } from "@/components/documentos/CreadorDocumento";
 import { BotonPapeleraDocumento } from "@/components/documentos/BotonPapeleraDocumento";
@@ -14,7 +14,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Fab } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { AgendaVisitas } from "@/components/citas/AgendaVisitas";
 import { ESTADO_PARTE_LABELS, buildPublicFirmaUrl } from "@/lib/partes-visita";
 import { colorEstado } from "@/lib/ui/estados-vista";
@@ -38,6 +38,7 @@ type ParteRow = {
 export default function PartesVisitaPage() {
   const { user } = useAuth();
   const admin = isAdmin(user?.role);
+  const verPapelera = puedeVerPapelera(user?.role);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -106,6 +107,14 @@ export default function PartesVisitaPage() {
         }
         actions={
           <div className="flex flex-wrap gap-2">
+            {verPapelera ? (
+              <Button asChild size="sm" variant="secondary">
+                <Link href="/partes-visita/papelera" className="gap-2">
+                  <Trash2 className="h-4 w-4" strokeWidth={1.5} />
+                  Papelera
+                </Link>
+              </Button>
+            ) : null}
             <Button asChild size="sm" variant="secondary">
               <Link href="/calendario">Concertar visita</Link>
             </Button>

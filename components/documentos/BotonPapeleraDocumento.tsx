@@ -5,7 +5,7 @@ import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { eliminarDocumentos } from "@/lib/actions/papelera";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isSuperAdmin } from "@/lib/auth/roles";
+import { isAdmin } from "@/lib/auth/roles";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +23,7 @@ export function BotonPapeleraDocumento({
   className?: string;
 }) {
   const { user } = useAuth();
-  const superadmin = isSuperAdmin(user?.role);
+  const puedeEliminar = isAdmin(user?.role);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const etiqueta = tipo === "parte_visita" ? "parte de visita" : "contrato de arras";
@@ -40,6 +40,8 @@ export function BotonPapeleraDocumento({
     onEliminado?.(id);
     toast.success(result.message ?? "Enviado a la papelera.");
   };
+
+  if (!puedeEliminar) return null;
 
   return (
     <>
@@ -63,11 +65,11 @@ export function BotonPapeleraDocumento({
         onOpenChange={setOpen}
         title={`¿Eliminar este ${etiqueta}?`}
         description={
-          superadmin
-            ? "Se borrará de forma permanente."
-            : "Irá a la papelera del superadministrador para confirmar el borrado definitivo."
+          tipo === "parte_visita"
+            ? "Irá a la papelera de partes de visita para confirmar el borrado definitivo."
+            : "Irá a la papelera de contratos de arras para confirmar el borrado definitivo."
         }
-        confirmLabel={loading ? "Eliminando…" : superadmin ? "Eliminar" : "Enviar a papelera"}
+        confirmLabel={loading ? "Enviando…" : "Enviar a papelera"}
         onConfirm={() => void confirmar()}
         loading={loading}
         variant="destructive"

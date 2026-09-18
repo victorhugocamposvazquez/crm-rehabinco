@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { SettingsAdminNav } from "@/components/settings/SettingsAdminNav";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
-import { listarPapeleraPendiente, resolverPapelera } from "@/lib/actions/papelera";
+import { listarPapeleraUsuarios, resolverPapelera } from "@/lib/actions/papelera";
 import {
   ACCION_PAPELERA_LABEL,
   TIPO_PAPELERA_LABEL,
@@ -14,14 +14,14 @@ import {
 } from "@/lib/papelera/papelera";
 import { puedeVerPapelera } from "@/lib/auth/roles";
 
-export default function PapeleraPage() {
+export default function PapeleraUsuariosPage() {
   const { user } = useAuth();
   const [items, setItems] = useState<PapeleraItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const cargar = () => {
-    void listarPapeleraPendiente().then((data) => {
+    void listarPapeleraUsuarios().then((data) => {
       if ("error" in data) {
         toast.error(data.error);
         setItems([]);
@@ -55,7 +55,10 @@ export default function PapeleraPage() {
   if (!puedeVerPapelera(user?.role)) {
     return (
       <div>
-        <PageHeader breadcrumb={[{ label: "Ajustes", href: "/settings" }, { label: "Papelera" }]} title="Papelera" />
+        <PageHeader
+          breadcrumb={[{ label: "Ajustes", href: "/settings" }, { label: "Papelera de usuarios" }]}
+          title="Papelera de usuarios"
+        />
         <p className="mt-6 text-sm text-[var(--text-2)]">Solo el superadministrador puede ver la papelera.</p>
       </div>
     );
@@ -64,9 +67,9 @@ export default function PapeleraPage() {
   return (
     <div>
       <PageHeader
-        breadcrumb={[{ label: "Ajustes", href: "/settings" }, { label: "Papelera" }]}
-        title="Papelera"
-        description="Solicitudes de borrado y altas de usuarios hechas por administradores."
+        breadcrumb={[{ label: "Ajustes", href: "/settings" }, { label: "Papelera de usuarios" }]}
+        title="Papelera de usuarios"
+        description="Altas y bajas de usuarios solicitadas por administradores."
       />
       <SettingsAdminNav role={user?.role} />
 
@@ -74,7 +77,9 @@ export default function PapeleraPage() {
         {loading ? (
           <p className="px-4 py-8 text-center text-[13px] text-[var(--text-2)]">Cargando…</p>
         ) : items.length === 0 ? (
-          <p className="px-4 py-10 text-center text-[13.5px] text-[var(--text-2)]">No hay nada pendiente en la papelera.</p>
+          <p className="px-4 py-10 text-center text-[13.5px] text-[var(--text-2)]">
+            No hay solicitudes de usuarios pendientes.
+          </p>
         ) : (
           items.map((item) => (
             <div
@@ -91,17 +96,6 @@ export default function PapeleraPage() {
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                {item.accion === "eliminar" && item.tipo !== "usuario" ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    disabled={busyId === item.id}
-                    onClick={() => void resolver(item.id, "restaurar")}
-                  >
-                    Restaurar
-                  </Button>
-                ) : null}
                 <Button
                   type="button"
                   size="sm"
