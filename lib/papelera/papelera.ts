@@ -41,3 +41,10 @@ export type SnapshotUsuarioEliminar = {
   nombre: string | null;
   role: string | null;
 };
+
+export type TipoDocumentoPapelera = Extract<TipoPapelera, "parte_visita" | "contrato_arras">;
+
+/** Nombre real en Postgres (el tipo en papelera_items usa clave lógica). */
+export function tablaDocumentoPapelera(tipo: TipoDocumentoPapelera): "partes_visita" | "contratos_arras" {
+  return tipo === "parte_visita" ? "partes_visita" : "contratos_arras";
+}

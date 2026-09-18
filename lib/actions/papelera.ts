@@ -4,7 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createUser, deleteUserAccess } from "@/lib/actions/usuarios";
 import { isAdmin, isSuperAdmin, parseRole, type Role } from "@/lib/auth/roles";
-import type { AccionPapelera, PapeleraItem, TipoPapelera } from "@/lib/papelera/papelera";
+import type { AccionPapelera, PapeleraItem, TipoDocumentoPapelera, TipoPapelera } from "@/lib/papelera/papelera";
+import { tablaDocumentoPapelera } from "@/lib/papelera/papelera";
 
 type Result = { ok: true; message?: string } | { ok: false; error: string };
 
@@ -46,16 +47,13 @@ async function encolar(
   return { ok: true, message: "Enviado a la papelera del superadministrador." };
 }
 
-export async function eliminarDocumentos(
-  tipo: "parte_visita" | "contrato_arras",
-  ids: string[]
-): Promise<Result> {
+export async function eliminarDocumentos(tipo: TipoDocumentoPapelera, ids: string[]): Promise<Result> {
   const sesion = await sesionAdmin();
   if (!sesion.ok) return { ok: false, error: sesion.error };
   if (ids.length === 0) return { ok: false, error: "Nada que eliminar." };
 
   const admin = createAdminClient();
-  const tabla = tipo;
+  const tabla = tablaDocumentoPapelera(tipo);
 
   if (sesion.superadmin) {
     const { error } = await admin.from(tabla).delete().in("id", ids);
@@ -222,8 +220,10 @@ export async function resolverPapelera(itemId: string, accion: "aprobar" | "rech
 
   if (accion === "rechazar") {
     if (item.tipo !== "usuario" && item.accion === "eliminar" && item.entity_id) {
-      const tabla = item.tipo as "parte_visita" | "contrato_arras";
-      await admin.from(tabla).update({ deleted_at: null, deleted_by: null }).eq("id", item.entity_id);
+      await admin
+        .from(tablaDocumentoPapelera(item.tipo as TipoDocumentoPapelera))
+        .update({ deleted_at: null, deleted_by: null })
+        .eq("id", item.entity_id);
     }
     await marcar("rechazado");
     return { ok: true, message: "Solicitud rechazada." };
@@ -231,8 +231,10 @@ export async function resolverPapelera(itemId: string, accion: "aprobar" | "rech
 
   if (accion === "restaurar") {
     if (item.accion === "eliminar" && item.entity_id && item.tipo !== "usuario") {
-      const tabla = item.tipo as "parte_visita" | "contrato_arras";
-      await admin.from(tabla).update({ deleted_at: null, deleted_by: null }).eq("id", item.entity_id);
+      await admin
+        .from(tablaDocumentoPapelera(item.tipo as TipoDocumentoPapelera))
+        .update({ deleted_at: null, deleted_by: null })
+        .eq("id", item.entity_id);
     }
     await marcar("restaurado");
     return { ok: true, message: "Restaurado." };
@@ -255,8 +257,10 @@ export async function resolverPapelera(itemId: string, accion: "aprobar" | "rech
   }
 
   if (item.accion === "eliminar" && item.entity_id) {
-    const tabla = item.tipo as "parte_visita" | "contrato_arras";
-    const { error: delErr } = await admin.from(tabla).delete().eq("id", item.entity_id);
+    const { error: delErr } = await admin
+      .from(tablaDocumentoPapelera(item.tipo as TipoDocumentoPapelera))
+      .delete()
+      .eq("id", item.entity_id);
     if (delErr) return { ok: false, error: delErr.message };
     await marcar("aprobado");
     return { ok: true, message: "Eliminado definitivamente." };
