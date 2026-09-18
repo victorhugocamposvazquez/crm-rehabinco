@@ -58,7 +58,7 @@ export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFactu
       .neq("estado", "hecha")
       .order("vence");
 
-    let citasQ = supabase
+    const citasQ = supabase
       .from("citas")
       .select("id, comercial_id, titulo, empieza, tipo, propiedad_id, estado, profiles:comercial_id(color, nombre_completo)")
       .eq("estado", "prevista")

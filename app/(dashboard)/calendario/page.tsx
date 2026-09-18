@@ -104,7 +104,7 @@ export default function CalendarioPage() {
     const rango = vista === "mes" ? grillaMes : { inicio: `${semana[0]}T00:00:00`, fin: `${semana[6]}T23:59:59` };
     const inicio = rango.inicio;
     const fin = rango.fin;
-    let q = supabase
+    const q = supabase
       .from("citas")
       .select(
         "id, comercial_id, tipo, titulo, empieza, termina, propiedad_id, cliente_id, clientes_extra_ids, notas, estado, tarea_id, lugar, profiles:comercial_id(nombre_completo, color), propiedades:propiedad_id(titulo, direccion, localidad, referencia), clientes:cliente_id(nombre)"
