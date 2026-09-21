@@ -7,7 +7,12 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_BUILD_ID: buildId,
   },
   async headers() {
+    const permisosContactos = [{ key: "Permissions-Policy", value: "contacts=(self)" }];
     return [
+      {
+        source: "/((?!_next/static|_next/image|favicon.ico|sw\\.js|manifest\\.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+        headers: permisosContactos,
+      },
       {
         source: "/sw.js",
         headers: [{ key: "Cache-Control", value: "no-cache, must-revalidate" }],
