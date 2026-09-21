@@ -11,6 +11,22 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#0d9488",
     orientation: "portrait-primary",
     scope: "/",
+    share_target: {
+      action: "/clientes/importar-compartido",
+      method: "POST",
+      enctype: "multipart/form-data",
+      params: {
+        title: "title",
+        text: "text",
+        url: "url",
+        files: [
+          {
+            name: "contact",
+            accept: ["text/vcard", "text/x-vcard", ".vcf"],
+          },
+        ],
+      },
+    },
     icons: [
       {
         src: "/icon-192.png",

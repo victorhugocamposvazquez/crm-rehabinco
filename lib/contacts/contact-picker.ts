@@ -4,7 +4,7 @@ export type ContactoImportado = {
   email?: string;
 };
 
-type ContactProperty = "name" | "email" | "tel";
+type ContactProperty = "name" | "email" | "tel" | "address" | "icon";
 
 interface ContactInfo {
   name?: string[];
@@ -13,6 +13,7 @@ interface ContactInfo {
 }
 
 interface ContactsManager {
+  getProperties(): Promise<ContactProperty[]>;
   select(properties: ContactProperty[], options?: { multiple?: boolean }): Promise<ContactInfo[]>;
 }
 
@@ -21,26 +22,30 @@ declare global {
     contacts?: ContactsManager;
     standalone?: boolean;
   }
+  interface Window {
+    ContactsManager?: unknown;
+  }
 }
 
+export function esIos(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+export function esAndroid(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Android/i.test(navigator.userAgent);
+}
+
+/** Chrome/Android: abre la lista nativa de contactos. No existe en iPhone. */
 export function contactPickerDisponible(): boolean {
   if (typeof window === "undefined") return false;
   return "contacts" in navigator && typeof navigator.contacts?.select === "function";
 }
 
-/** PWA instalada o teléfono/tablet: mostramos el botón aunque iOS no tenga Contact Picker API. */
-export function mostrarBotonImportarContacto(): boolean {
+export function mostrarAyudaCompartirContacto(): boolean {
   if (typeof window === "undefined") return false;
-  if (contactPickerDisponible()) return true;
-
-  const ua = navigator.userAgent;
-  const movil = /Android|iPhone|iPad|iPod/i.test(ua);
-  const pwa =
-    window.matchMedia("(display-mode: standalone)").matches ||
-    window.matchMedia("(display-mode: fullscreen)").matches ||
-    navigator.standalone === true;
-
-  return movil || pwa;
+  return esIos() && !contactPickerDisponible();
 }
 
 function normalizarNombre(names?: string[]): string | undefined {
@@ -59,7 +64,7 @@ function normalizarEmail(raw?: string): string | undefined {
   return raw?.trim() || undefined;
 }
 
-function parsearVCard(texto: string): ContactoImportado | null {
+export function parsearVCard(texto: string): ContactoImportado | null {
   const fn = texto.match(/^FN:(.+)$/im)?.[1]?.trim();
   const tel = texto.match(/^TEL[^:]*:(.+)$/im)?.[1]?.trim();
   const email = texto.match(/^EMAIL[^:]*:(.+)$/im)?.[1]?.trim();
@@ -71,7 +76,7 @@ function parsearVCard(texto: string): ContactoImportado | null {
   };
 }
 
-function parsearTextoPlano(texto: string): ContactoImportado | null {
+export function parsearTextoContacto(texto: string): ContactoImportado | null {
   const limpio = texto.trim();
   if (!limpio) return null;
   if (limpio.includes("BEGIN:VCARD")) return parsearVCard(limpio);
@@ -94,8 +99,25 @@ function parsearTextoPlano(texto: string): ContactoImportado | null {
   };
 }
 
-async function importarDesdeAgenda(): Promise<ContactoImportado | null> {
-  const seleccion = await navigator.contacts!.select(["name", "tel", "email"], { multiple: false });
+/** Abre el selector nativo de contactos (solo Android/Chrome). */
+export async function importarContactoTelefono(): Promise<ContactoImportado | null> {
+  if (!contactPickerDisponible()) {
+    if (esIos()) {
+      throw new Error(
+        "En iPhone no se puede abrir la agenda desde la web. Usa Contactos → Compartir → CRM REHABINCO."
+      );
+    }
+    throw new Error("Tu navegador no permite elegir contactos. Prueba Chrome en Android.");
+  }
+
+  const manager = navigator.contacts!;
+  const soportados = await manager.getProperties();
+  const props = (["name", "tel", "email"] as ContactProperty[]).filter((p) => soportados.includes(p));
+  if (props.length === 0) {
+    throw new Error("Este dispositivo no permite leer contactos.");
+  }
+
+  const seleccion = await manager.select(props, { multiple: false });
   const contacto = seleccion[0];
   if (!contacto) return null;
 
@@ -106,44 +128,10 @@ async function importarDesdeAgenda(): Promise<ContactoImportado | null> {
   };
 }
 
-async function importarDesdePortapapeles(): Promise<ContactoImportado | null> {
-  if (!navigator.clipboard?.readText) {
-    throw new Error(
-      "En iPhone: abre Contactos, mantén pulsado el contacto, elige Copiar y vuelve a pulsar este botón."
-    );
-  }
-
-  let texto = "";
-  try {
-    texto = await navigator.clipboard.readText();
-  } catch {
-    throw new Error(
-      "Permite pegar desde el portapapeles o copia el contacto desde la app Contactos y vuelve a pulsar."
-    );
-  }
-
-  const datos = parsearTextoPlano(texto);
-  if (!datos) {
-    throw new Error(
-      "No hay un contacto en el portapapeles. Cópialo desde Contactos (Compartir o Copiar) y pulsa de nuevo."
-    );
-  }
-  return datos;
-}
-
-export async function importarContactoTelefono(): Promise<ContactoImportado | null> {
-  if (contactPickerDisponible()) {
-    try {
-      return await importarDesdeAgenda();
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : "";
-      if (!/cancel/i.test(msg)) {
-        const desdePortapapeles = await importarDesdePortapapeles().catch(() => null);
-        if (desdePortapapeles) return desdePortapapeles;
-      }
-      throw error;
-    }
-  }
-
-  return importarDesdePortapapeles();
+export function contactoARedireccion(datos: ContactoImportado): URLSearchParams {
+  const params = new URLSearchParams({ nueva: "1" });
+  if (datos.nombre) params.set("nombre", datos.nombre);
+  if (datos.telefono) params.set("telefono", datos.telefono);
+  if (datos.email) params.set("email", datos.email);
+  return params;
 }

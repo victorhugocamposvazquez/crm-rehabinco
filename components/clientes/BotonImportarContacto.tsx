@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Contact } from "lucide-react";
+import { Contact, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   contactPickerDisponible,
   importarContactoTelefono,
-  mostrarBotonImportarContacto,
+  mostrarAyudaCompartirContacto,
   type ContactoImportado,
 } from "@/lib/contacts/contact-picker";
 import { cn } from "@/lib/utils";
@@ -18,18 +18,18 @@ export function BotonImportarContacto({
   onImport: (datos: ContactoImportado) => void;
   className?: string;
 }) {
-  const [visible, setVisible] = useState(false);
   const [conAgenda, setConAgenda] = useState(false);
+  const [ayudaIos, setAyudaIos] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setVisible(mostrarBotonImportarContacto());
     setConAgenda(contactPickerDisponible());
+    setAyudaIos(mostrarAyudaCompartirContacto());
   }, []);
 
-  if (!visible) return null;
+  if (!conAgenda && !ayudaIos) return null;
 
-  const importar = async () => {
+  const elegirDeAgenda = async () => {
     setLoading(true);
     try {
       const datos = await importarContactoTelefono();
@@ -45,31 +45,53 @@ export function BotonImportarContacto({
       onImport(datos);
       toast.success("Contacto importado.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo importar el contacto.", {
-        duration: 6000,
+      if (error instanceof Error && /abort|cancel/i.test(error.name + error.message)) {
+        setLoading(false);
+        return;
+      }
+      toast.error(error instanceof Error ? error.message : "No se pudo abrir la agenda.", {
+        duration: 7000,
       });
     }
     setLoading(false);
   };
 
-  return (
-    <div className={cn("flex flex-col gap-1.5", className)}>
-      <button
-        type="button"
-        onClick={() => void importar()}
-        disabled={loading}
+  if (ayudaIos && !conAgenda) {
+    return (
+      <div
         className={cn(
-          "inline-flex items-center justify-center gap-2 rounded-[10px] border border-[var(--input)] bg-[var(--surface-soft)] px-3 py-2.5 text-[13px] font-medium text-[var(--text-2)] transition-colors hover:border-accent hover:text-accent disabled:opacity-60"
+          "rounded-[10px] border border-[var(--input)] bg-[var(--surface-soft)] px-3 py-3 text-[12.5px] text-[var(--text-2)]",
+          className
         )}
       >
-        <Contact className="h-4 w-4 shrink-0" strokeWidth={1.6} />
-        {loading ? "Importando…" : conAgenda ? "Elegir de contactos del teléfono" : "Importar de contactos"}
-      </button>
-      {!conAgenda ? (
-        <p className="text-[11.5px] leading-4 text-[var(--text-3)]">
-          En iPhone: copia el contacto desde la app Contactos y pulsa este botón para pegarlo aquí.
+        <p className="flex items-center gap-2 font-medium text-[var(--text-1)]">
+          <Share2 className="h-4 w-4 shrink-0 text-accent" strokeWidth={1.6} />
+          Importar desde Contactos (iPhone)
         </p>
-      ) : null}
-    </div>
+        <ol className="mt-2 list-decimal space-y-1 pl-4 leading-5">
+          <li>Abre la app <strong>Contactos</strong></li>
+          <li>Elige un contacto → <strong>Compartir contacto</strong></li>
+          <li>Selecciona <strong>CRM REHABINCO</strong></li>
+        </ol>
+        <p className="mt-2 text-[11.5px] text-[var(--text-3)]">
+          iPhone no permite abrir la agenda dentro de la web; compartir es la única forma.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => void elegirDeAgenda()}
+      disabled={loading}
+      className={cn(
+        "inline-flex w-full items-center justify-center gap-2 rounded-[10px] border border-[var(--input)] bg-[var(--surface-soft)] px-3 py-2.5 text-[13px] font-medium text-[var(--text-2)] transition-colors hover:border-accent hover:text-accent disabled:opacity-60",
+        className
+      )}
+    >
+      <Contact className="h-4 w-4 shrink-0" strokeWidth={1.6} />
+      {loading ? "Abriendo agenda…" : "Elegir de la agenda del teléfono"}
+    </button>
   );
 }

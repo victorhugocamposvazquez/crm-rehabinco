@@ -36,6 +36,7 @@ export function NuevoClientePanel({
   onCreado,
   elevated = false,
   nombreInicial,
+  contactoInicial,
   ambito: ambitoProp,
 }: {
   open: boolean;
@@ -45,6 +46,7 @@ export function NuevoClientePanel({
   onCreado: (id: string, extra?: { nombre: string; telefono: string | null }) => void;
   elevated?: boolean;
   nombreInicial?: string;
+  contactoInicial?: ContactoImportado;
   ambito?: string;
 }) {
   const empresaAsociada = Boolean(padreId);
@@ -97,10 +99,16 @@ export function NuevoClientePanel({
       setNotas(d.notas);
     } else {
       vaciar();
-      if (nombreInicial?.trim()) setNombre(nombreInicial.trim());
+      if (contactoInicial) {
+        if (contactoInicial.nombre) setNombre(contactoInicial.nombre);
+        if (contactoInicial.telefono) setTelefono(contactoInicial.telefono);
+        if (contactoInicial.email) setEmail(contactoInicial.email);
+      } else if (nombreInicial?.trim()) {
+        setNombre(nombreInicial.trim());
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, padreId, nombreInicial]);
+  }, [open, padreId, nombreInicial, contactoInicial]);
 
   const aplicarContacto = (datos: ContactoImportado) => {
     if (datos.nombre) setNombre(datos.nombre);
@@ -209,7 +217,7 @@ export function NuevoClientePanel({
         </div>
       </AltaSection>
 
-      <AltaSection title="Contacto" hint="El teléfono es lo que más se usa en captación y visitas. En el móvil puedes importar de la agenda.">
+      <AltaSection title="Contacto" hint="En Android puedes elegir de la agenda. En iPhone, comparte el contacto desde la app Contactos.">
         <div className="flex flex-col gap-5">
           <BotonImportarContacto onImport={aplicarContacto} />
           <AltaField label="Teléfono" optional>

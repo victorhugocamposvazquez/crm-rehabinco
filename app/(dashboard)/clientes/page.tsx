@@ -60,6 +60,9 @@ export default function ClientesPage() {
   const [error, setError] = useState<string | null>(null);
   const [nuevaOpen, setNuevaOpen] = useState(false);
   const [padreInicial, setPadreInicial] = useState<string | undefined>();
+  const [contactoInicial, setContactoInicial] = useState<
+    { nombre?: string; telefono?: string; email?: string } | undefined
+  >();
   const [cargaKey, setCargaKey] = useState(0);
   const [pendingSelectedId, setPendingSelectedId] = useState<string | null>(null);
   const hayBorrador = useHayAltaBorrador("cliente");
@@ -76,6 +79,18 @@ export default function ClientesPage() {
     const extra = extraAlta(searchParams);
     if (!extra) return;
     setPadreInicial(extra.get("padre") ?? undefined);
+    const nombre = extra.get("nombre")?.trim();
+    const telefono = extra.get("telefono")?.trim();
+    const email = extra.get("email")?.trim();
+    if (nombre || telefono || email) {
+      setContactoInicial({
+        nombre: nombre || undefined,
+        telefono: telefono || undefined,
+        email: email || undefined,
+      });
+    } else {
+      setContactoInicial(undefined);
+    }
     setNuevaOpen(true);
     router.replace("/clientes", { scroll: false });
   }, [searchParams, router]);
@@ -487,14 +502,18 @@ export default function ClientesPage() {
         </div>
       )}
 
-      <Fab onClick={() => { setPadreInicial(undefined); setNuevaOpen(true); }} label={hayBorrador ? "Continuar borrador" : "Añadir cliente"} />
+      <Fab onClick={() => { setPadreInicial(undefined); setContactoInicial(undefined); setNuevaOpen(true); }} label={hayBorrador ? "Continuar borrador" : "Añadir cliente"} />
       <NuevoClientePanel
         open={nuevaOpen}
         onOpenChange={(open) => {
           setNuevaOpen(open);
-          if (!open) setPadreInicial(undefined);
+          if (!open) {
+            setPadreInicial(undefined);
+            setContactoInicial(undefined);
+          }
         }}
         padreId={padreInicial}
+        contactoInicial={contactoInicial}
         onCreado={(id) => {
           setPendingSelectedId(id);
           setCargaKey((n) => n + 1);
