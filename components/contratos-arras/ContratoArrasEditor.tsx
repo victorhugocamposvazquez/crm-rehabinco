@@ -593,7 +593,7 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
         title="¿Eliminar este contrato de arras?"
-        description="Irá a la papelera de contratos de arras para confirmar el borrado definitivo."
+        description="Irá a la papelera de Herramientas para confirmar el borrado definitivo."
         confirmLabel={deleting ? "Enviando…" : "Enviar a papelera"}
         onConfirm={() => void eliminar()}
         loading={deleting}

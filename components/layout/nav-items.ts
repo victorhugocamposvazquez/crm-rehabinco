@@ -60,6 +60,16 @@ export function itemsDesdeHrefs(hrefs: readonly string[]): NavItem[] {
     .filter((item): item is NavItem => Boolean(item));
 }
 
+export function esRutaHerramientas(pathname: string): boolean {
+  return (
+    pathname === "/herramientas" ||
+    pathname.startsWith("/herramientas/") ||
+    pathname.startsWith("/partes-visita") ||
+    pathname.startsWith("/contratos-arras") ||
+    pathname.startsWith("/visitas")
+  );
+}
+
 export function navItemActivo(pathname: string, href: string): boolean {
   if (pathname === href) return true;
   if (href === "/catastro" && pathname.startsWith("/buscar")) return true;

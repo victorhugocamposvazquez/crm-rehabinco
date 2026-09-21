@@ -8,6 +8,8 @@ import { AltaField, AltaSection, AltaShell, altaControl } from "@/components/ui/
 import { BuscadorLocalidad } from "@/components/geo/BuscadorLocalidad";
 import { altaCamposVacios, leerAltaBorrador } from "@/lib/ui/alta-borrador";
 import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
+import { BotonImportarContacto } from "@/components/clientes/BotonImportarContacto";
+import type { ContactoImportado } from "@/lib/contacts/contact-picker";
 
 type ClienteAltaSnap = {
   tipoCliente: "particular" | "empresa";
@@ -99,6 +101,12 @@ export function NuevoClientePanel({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, padreId, nombreInicial]);
+
+  const aplicarContacto = (datos: ContactoImportado) => {
+    if (datos.nombre) setNombre(datos.nombre);
+    if (datos.telefono) setTelefono(datos.telefono);
+    if (datos.email) setEmail(datos.email);
+  };
 
   const crear = async () => {
     if (!nombre.trim()) {
@@ -201,8 +209,9 @@ export function NuevoClientePanel({
         </div>
       </AltaSection>
 
-      <AltaSection title="Contacto" hint="El teléfono es lo que más se usa en captación y visitas.">
+      <AltaSection title="Contacto" hint="El teléfono es lo que más se usa en captación y visitas. En el móvil puedes importar de la agenda.">
         <div className="flex flex-col gap-5">
+          <BotonImportarContacto onImport={aplicarContacto} />
           <AltaField label="Teléfono" optional>
             <input value={telefono} onChange={(e) => setTelefono(e.target.value)} placeholder="600 000 000" className={altaControl} />
           </AltaField>

@@ -64,11 +64,7 @@ export function BotonPapeleraDocumento({
         open={open}
         onOpenChange={setOpen}
         title={`¿Eliminar este ${etiqueta}?`}
-        description={
-          tipo === "parte_visita"
-            ? "Irá a la papelera de partes de visita para confirmar el borrado definitivo."
-            : "Irá a la papelera de contratos de arras para confirmar el borrado definitivo."
-        }
+        description="Irá a la papelera de Herramientas para confirmar el borrado definitivo."
         confirmLabel={loading ? "Enviando…" : "Enviar a papelera"}
         onConfirm={() => void confirmar()}
         loading={loading}

@@ -34,6 +34,7 @@
   --mobile-nav-h: calc(3.25rem + env(safe-area-inset-bottom, 0px));
   --mobile-fab-bottom: calc(var(--mobile-nav-h) + 0.5rem);
   --mobile-content-pb: calc(var(--mobile-nav-h) + 0.5rem);
+  --herramientas-footer-h: calc(3.25rem + var(--mobile-nav-h));
 }
 
 * {

@@ -291,7 +291,7 @@ export default function DetalleParteVisitaPage() {
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
         title="¿Eliminar este parte de visita?"
-        description="Irá a la papelera de partes de visita para confirmar el borrado definitivo."
+        description="Irá a la papelera de Herramientas para confirmar el borrado definitivo."
         confirmLabel={deleting ? "Enviando…" : "Enviar a papelera"}
         onConfirm={handleDelete}
         loading={deleting}

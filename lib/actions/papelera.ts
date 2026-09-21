@@ -99,7 +99,12 @@ export async function eliminarDocumentos(tipo: TipoDocumentoPapelera, ids: strin
   if (!sesion.ok) return { ok: false, error: sesion.error };
   if (ids.length === 0) return { ok: false, error: "Nada que eliminar." };
 
-  const admin = createAdminClient();
+  let admin: ReturnType<typeof createAdminClient>;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return { ok: false, error: "No se pudo conectar con la base de datos." };
+  }
   const tabla = tablaDocumentoPapelera(tipo);
 
   const { data: filas, error: readErr } = await admin
@@ -132,7 +137,16 @@ export async function eliminarDocumentos(tipo: TipoDocumentoPapelera, ids: strin
       },
       admin
     );
-    if (!r.ok) return r;
+    if (!r.ok) {
+      await admin
+        .from(tabla)
+        .update({ deleted_at: null, deleted_by: null })
+        .in(
+          "id",
+          vivas.map((v) => v.id)
+        );
+      return r;
+    }
   }
 
   return {
@@ -235,9 +249,9 @@ async function listarPapeleraPorTipos(tipos: TipoPapelera[]): Promise<PapeleraIt
 }
 
 export async function listarPapeleraDocumentos(
-  tipo: TipoDocumentoPapelera
+  tipo?: TipoDocumentoPapelera
 ): Promise<PapeleraItem[] | { error: string }> {
-  return listarPapeleraPorTipos([tipo]);
+  return listarPapeleraPorTipos(tipo ? [tipo] : ["parte_visita", "contrato_arras"]);
 }
 
 export async function listarPapeleraUsuarios(): Promise<PapeleraItem[] | { error: string }> {

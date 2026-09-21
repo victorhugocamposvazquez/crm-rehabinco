@@ -19,6 +19,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { wizardActionBarClassName } from "@/components/layout/wizard-chrome";
 import { BuscadorLocalidad } from "@/components/geo/BuscadorLocalidad";
+import { BotonImportarContacto } from "@/components/clientes/BotonImportarContacto";
+import type { ContactoImportado } from "@/lib/contacts/contact-picker";
 
 const STEPS = [
   { id: 1, title: "Datos básicos" },
@@ -119,6 +121,12 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
     defaultValues: { direccion: "", codigo_postal: "", localidad: "", notas: "" },
     values: data ? { direccion: data.direccion ?? "", codigo_postal: data.codigo_postal ?? "", localidad: data.localidad ?? "", notas: data.notas ?? "" } : undefined,
   });
+
+  const aplicarContacto = (datos: ContactoImportado) => {
+    if (datos.nombre) formStep1.setValue("nombre", datos.nombre, { shouldDirty: true });
+    if (datos.telefono) formStep1.setValue("telefono", datos.telefono, { shouldDirty: true });
+    if (datos.email) formStep1.setValue("email", datos.email, { shouldDirty: true });
+  };
 
   const onStep1 = formStep1.handleSubmit((values) => {
     setData((p) => ({ ...p, ...values }));
@@ -330,6 +338,7 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
                     {...formStep1.register("documento_fiscal")}
                   />
                 </div>
+                {!clienteId ? <BotonImportarContacto onImport={aplicarContacto} className="w-full justify-center" /> : null}
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input

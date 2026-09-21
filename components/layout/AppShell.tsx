@@ -6,6 +6,8 @@ import { MobileNav } from "./MobileNav";
 import { AppTopBar } from "./AppTopBar";
 import { Sidebar } from "./Sidebar";
 import { isWizardRoute } from "./wizard-chrome";
+import { HerramientasFooter } from "@/components/herramientas/HerramientasFooter";
+import { esRutaHerramientas } from "./nav-items";
 import { cn } from "@/lib/utils";
 import { FiltroComercialProvider } from "@/lib/ui/filtro-comercial";
 import { FichaPeekProvider } from "@/components/crm/FichaPeek";
@@ -17,6 +19,7 @@ import { bandejaDeTarea } from "@/lib/tareas/tareas";
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const wizard = isWizardRoute(pathname);
+  const herramientas = esRutaHerramientas(pathname ?? "");
   const { user } = useAuth();
   const [badges, setBadges] = useState<Record<string, number>>({});
 
@@ -64,11 +67,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               "mx-auto w-full max-w-[1600px] flex-1 px-3.5 pt-5 min-[820px]:px-6 min-[820px]:pt-6",
               wizard
                 ? "pb-4 md:pb-10"
-                : "pb-[var(--mobile-content-pb)] min-[820px]:pb-10"
+                : herramientas
+                  ? "pb-[var(--herramientas-footer-h)] min-[820px]:pb-[3.25rem]"
+                  : "pb-[var(--mobile-content-pb)] min-[820px]:pb-10"
             )}
           >
             {children}
           </main>
+          {herramientas && !wizard ? <HerramientasFooter /> : null}
         </div>
         {!wizard && <MobileNav />}
       </div>
