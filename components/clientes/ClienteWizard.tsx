@@ -297,14 +297,14 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
                   </Label>
                   <Input
                     id="nombre"
-                    name="name"
-                    autoComplete="name"
                     autoCapitalize="words"
                     placeholder={formStep1.watch("tipo_cliente") === "empresa" ? "Nombre de la empresa" : "Nombre y apellidos del contacto"}
                     aria-describedby={formStep1.formState.errors.nombre ? "nombre-error" : undefined}
                     aria-invalid={!!formStep1.formState.errors.nombre}
                     className="alta-contacto"
                     {...formStep1.register("nombre")}
+                    name="name"
+                    autoComplete="name"
                   />
                   {formStep1.formState.errors.nombre && (
                     <p id="nombre-error" className="text-sm text-red-600" role="alert">
@@ -357,12 +357,12 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
                   <Input
                     id="email"
                     type="email"
-                    name="email"
-                    autoComplete="email"
                     placeholder="email@ejemplo.com"
                     aria-describedby={formStep1.formState.errors.email ? "email-error" : undefined}
                     aria-invalid={!!formStep1.formState.errors.email}
                     {...formStep1.register("email")}
+                    name="email"
+                    autoComplete="email"
                   />
                   {formStep1.formState.errors.email && (
                     <p id="email-error" className="text-sm text-red-600" role="alert">
@@ -375,12 +375,12 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
                   <Input
                     id="telefono"
                     type="tel"
-                    name="tel"
-                    autoComplete="tel"
                     inputMode="tel"
                     placeholder="+34 600 000 000"
                     className="alta-contacto"
                     {...formStep1.register("telefono")}
+                    name="tel"
+                    autoComplete="tel"
                   />
                 </div>
               </form>
