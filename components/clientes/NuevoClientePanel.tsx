@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { ToggleChip } from "@/components/ui/toggle-chip";
@@ -62,6 +62,18 @@ export function NuevoClientePanel({
   const [localidad, setLocalidad] = useState("");
   const [notas, setNotas] = useState("");
   const [saving, setSaving] = useState(false);
+  const nombreRef = useRef<HTMLInputElement>(null);
+
+  const sincronizarAutofill = () => {
+    const form = nombreRef.current?.form;
+    if (!form) return;
+    const nombreDom = (form.elements.namedItem("name") as HTMLInputElement | null)?.value;
+    const telDom = (form.elements.namedItem("tel") as HTMLInputElement | null)?.value;
+    const emailDom = (form.elements.namedItem("email") as HTMLInputElement | null)?.value;
+    if (typeof nombreDom === "string") setNombre(nombreDom);
+    if (typeof telDom === "string") setTelefono(telDom);
+    if (typeof emailDom === "string") setEmail(emailDom);
+  };
 
   const snapshot = useMemo<ClienteAltaSnap>(
     () => ({ tipoCliente, tipoDocumento, nombre, documentoFiscal, email, telefono, direccion, codigoPostal, localidad, notas }),
@@ -212,19 +224,57 @@ export function NuevoClientePanel({
             </div>
           )}
           <AltaField label={tipoCliente === "empresa" ? "Razón social" : "Nombre y apellidos"}>
-            <input autoFocus value={nombre} onChange={(e) => setNombre(e.target.value)} className={altaControl} />
+            <input
+              ref={nombreRef}
+              name="name"
+              autoComplete="name"
+              autoCapitalize="words"
+              autoCorrect="off"
+              autoFocus
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              onInput={sincronizarAutofill}
+              onAnimationStart={sincronizarAutofill}
+              className={`${altaControl} alta-contacto pr-10`}
+            />
           </AltaField>
         </div>
       </AltaSection>
 
-      <AltaSection title="Contacto" hint="En Android puedes elegir de la agenda. En iPhone, comparte el contacto desde la app Contactos.">
+      <AltaSection title="Contacto" hint="Elige un contacto de la agenda del teléfono o rellénalo a mano.">
         <div className="flex flex-col gap-5">
-          <BotonImportarContacto onImport={aplicarContacto} />
+          <BotonImportarContacto
+            onImport={aplicarContacto}
+            onIosFocusCampo={() => {
+              nombreRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+              requestAnimationFrame(() => nombreRef.current?.focus());
+            }}
+          />
           <AltaField label="Teléfono" optional>
-            <input value={telefono} onChange={(e) => setTelefono(e.target.value)} placeholder="600 000 000" className={altaControl} />
+            <input
+              name="tel"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              value={telefono}
+              onChange={(e) => setTelefono(e.target.value)}
+              onInput={sincronizarAutofill}
+              onAnimationStart={sincronizarAutofill}
+              placeholder="600 000 000"
+              className={`${altaControl} alta-contacto pr-10`}
+            />
           </AltaField>
           <AltaField label="Email" optional>
-            <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" className={altaControl} />
+            <input
+              name="email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onInput={sincronizarAutofill}
+              onAnimationStart={sincronizarAutofill}
+              className={altaControl}
+            />
           </AltaField>
         </div>
       </AltaSection>
@@ -259,7 +309,13 @@ export function NuevoClientePanel({
       <AltaSection title="Dónde" hint="Zona de trabajo, no tiene que ser el padrón.">
         <div className="flex flex-col gap-5">
           <AltaField label="Dirección" optional>
-            <input value={direccion} onChange={(e) => setDireccion(e.target.value)} className={altaControl} />
+            <input
+              name="street-address"
+              autoComplete="street-address"
+              value={direccion}
+              onChange={(e) => setDireccion(e.target.value)}
+              className={altaControl}
+            />
           </AltaField>
           <div>
             <div className="mb-2.5 text-[12.5px] font-semibold text-[var(--text-2)]">Localidad</div>
@@ -269,7 +325,14 @@ export function NuevoClientePanel({
                 onChange={(valor) => setLocalidad(Array.isArray(valor) ? valor[0] ?? "" : valor)}
                 placeholder="Toda España · 3 letras"
               />
-              <input value={codigoPostal} onChange={(e) => setCodigoPostal(e.target.value)} placeholder="CP" className={`${altaControl} mt-0`} />
+              <input
+                name="postal-code"
+                autoComplete="postal-code"
+                value={codigoPostal}
+                onChange={(e) => setCodigoPostal(e.target.value)}
+                placeholder="CP"
+                className={`${altaControl} mt-0`}
+              />
             </div>
           </div>
         </div>

@@ -57,6 +57,7 @@ export function AltaShell({
     >
       <form
         className="flex h-full min-h-0 flex-col"
+        autoComplete="on"
         onSubmit={enviar}
         onKeyDown={(evento) => {
           if ((evento.metaKey || evento.ctrlKey) && evento.key === "Enter") enviar();

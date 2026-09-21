@@ -255,7 +255,7 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
               <CardTitle>Datos básicos</CardTitle>
             </CardHeader>
             <CardContent>
-              <form id="cliente-step1-form" onSubmit={onStep1} className="space-y-4">
+              <form id="cliente-step1-form" autoComplete="on" onSubmit={onStep1} className="space-y-4">
                 {!initialClientePadreId && (
                 <div className="space-y-2">
                   <Label>Tipo de cliente</Label>
@@ -297,9 +297,13 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
                   </Label>
                   <Input
                     id="nombre"
+                    name="name"
+                    autoComplete="name"
+                    autoCapitalize="words"
                     placeholder={formStep1.watch("tipo_cliente") === "empresa" ? "Nombre de la empresa" : "Nombre y apellidos del contacto"}
                     aria-describedby={formStep1.formState.errors.nombre ? "nombre-error" : undefined}
                     aria-invalid={!!formStep1.formState.errors.nombre}
+                    className="alta-contacto"
                     {...formStep1.register("nombre")}
                   />
                   {formStep1.formState.errors.nombre && (
@@ -338,12 +342,23 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
                     {...formStep1.register("documento_fiscal")}
                   />
                 </div>
-                {!clienteId ? <BotonImportarContacto onImport={aplicarContacto} className="w-full justify-center" /> : null}
+                {!clienteId ? (
+                  <BotonImportarContacto
+                    onImport={aplicarContacto}
+                    onIosFocusCampo={() => {
+                      const campo = document.getElementById("nombre") as HTMLInputElement | null;
+                      campo?.scrollIntoView({ block: "center", behavior: "smooth" });
+                      requestAnimationFrame(() => campo?.focus());
+                    }}
+                  />
+                ) : null}
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     type="email"
+                    name="email"
+                    autoComplete="email"
                     placeholder="email@ejemplo.com"
                     aria-describedby={formStep1.formState.errors.email ? "email-error" : undefined}
                     aria-invalid={!!formStep1.formState.errors.email}
@@ -359,7 +374,12 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
                   <Label htmlFor="telefono">Teléfono</Label>
                   <Input
                     id="telefono"
+                    type="tel"
+                    name="tel"
+                    autoComplete="tel"
+                    inputMode="tel"
                     placeholder="+34 600 000 000"
+                    className="alta-contacto"
                     {...formStep1.register("telefono")}
                   />
                 </div>

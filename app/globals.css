@@ -59,6 +59,29 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+@keyframes crm-autofill-start {
+  from {
+    opacity: 0.99;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+input:-webkit-autofill {
+  animation-name: crm-autofill-start;
+}
+
+/* Icono nativo de contactos que Safari pinta en campos autocomplete=name/tel */
+input.alta-contacto::-webkit-contacts-auto-fill-button {
+  visibility: visible !important;
+  display: inline-block !important;
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  margin-right: 6px;
+  background-color: var(--accent);
+}
+
 /* Evita zoom automático en iOS al enfocar inputs */
 @media (max-width: 819px) {
   input:not([type="checkbox"]):not([type="radio"]),

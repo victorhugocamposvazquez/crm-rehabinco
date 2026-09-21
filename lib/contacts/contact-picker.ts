@@ -37,15 +37,25 @@ export function esAndroid(): boolean {
   return /Android/i.test(navigator.userAgent);
 }
 
-/** Chrome/Android: abre la lista nativa de contactos. No existe en iPhone. */
+/** Chrome/Android, y Safari iOS si el flag experimental está activo. */
 export function contactPickerDisponible(): boolean {
   if (typeof window === "undefined") return false;
-  return "contacts" in navigator && typeof navigator.contacts?.select === "function";
+  return (
+    "contacts" in navigator &&
+    typeof navigator.contacts?.select === "function" &&
+    (typeof window.ContactsManager !== "undefined" || esAndroid() || esIos())
+  );
 }
 
-export function mostrarAyudaCompartirContacto(): boolean {
+export function mostrarBotonAgenda(): boolean {
   if (typeof window === "undefined") return false;
-  return esIos() && !contactPickerDisponible();
+  const ua = navigator.userAgent;
+  const movil = /Android|iPhone|iPad|iPod/i.test(ua);
+  const pwa =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.matchMedia("(display-mode: fullscreen)").matches ||
+    navigator.standalone === true;
+  return movil || pwa || contactPickerDisponible();
 }
 
 function normalizarNombre(names?: string[]): string | undefined {
@@ -99,22 +109,23 @@ export function parsearTextoContacto(texto: string): ContactoImportado | null {
   };
 }
 
-/** Abre el selector nativo de contactos (solo Android/Chrome). */
+/**
+ * Abre el selector nativo si el navegador lo expone.
+ * En iPhone suele devolver null: hay que usar AutoFill Contact del teclado.
+ */
 export async function importarContactoTelefono(): Promise<ContactoImportado | null> {
-  if (!contactPickerDisponible()) {
-    if (esIos()) {
-      throw new Error(
-        "En iPhone no se puede abrir la agenda desde la web. Usa Contactos → Compartir → CRM REHABINCO."
-      );
-    }
-    throw new Error("Tu navegador no permite elegir contactos. Prueba Chrome en Android.");
-  }
+  if (!contactPickerDisponible()) return null;
 
   const manager = navigator.contacts!;
-  const soportados = await manager.getProperties();
-  const props = (["name", "tel", "email"] as ContactProperty[]).filter((p) => soportados.includes(p));
-  if (props.length === 0) {
-    throw new Error("Este dispositivo no permite leer contactos.");
+  let props: ContactProperty[] = ["name", "tel", "email"];
+  if (typeof manager.getProperties === "function") {
+    try {
+      const soportados = await manager.getProperties();
+      const filtrados = props.filter((p) => soportados.includes(p));
+      if (filtrados.length > 0) props = filtrados;
+    } catch {
+      /* Safari a veces tiene select() pero no getProperties() */
+    }
   }
 
   const seleccion = await manager.select(props, { multiple: false });
