@@ -411,15 +411,14 @@ export function CaptacionPortales() {
 
   const refrescar = async () => {
     setSyncing(true);
-    const res = await fetch("/api/captacion/sync", { method: "POST" });
-    const json = (await res.json()) as { ok?: boolean; error?: string; nuevos?: number };
+    const res = await fetch("/api/captacion/brightdata/trigger", { method: "POST" });
+    const json = (await res.json()) as { ok?: boolean; error?: string };
     setSyncing(false);
     if (!res.ok || !json.ok) {
-      toast.error(json.error || "No se ha podido actualizar.");
+      toast.error(json.error || "No se ha podido lanzar Idealista.");
       return;
     }
-    toast.success(json.nuevos ? `${json.nuevos} anuncios nuevos.` : "Sin anuncios nuevos.");
-    cargar();
+    toast.success("Idealista en marcha. Los anuncios entrarán al terminar la recogida.");
   };
 
   const crearAlerta = async () => {
@@ -523,14 +522,16 @@ export function CaptacionPortales() {
         <div className="flex items-center gap-2 text-[12.5px] text-[var(--text-2)]">
           <span className="h-2 w-2 rounded-full bg-accent" />
           Última actualización {ultima ? cuandoPublicado(ultima) : "—"}
-          <button
-            type="button"
-            onClick={() => void refrescar()}
-            disabled={syncing}
-            className="h-8 rounded-lg border border-[var(--input)] bg-white px-2.5 text-[12.5px] font-semibold hover:border-accent hover:text-accent disabled:opacity-60"
-          >
-            {syncing ? "Actualizando…" : "Actualizar"}
-          </button>
+          {admin ? (
+            <button
+              type="button"
+              onClick={() => void refrescar()}
+              disabled={syncing}
+              className="h-8 rounded-lg border border-[var(--input)] bg-white px-2.5 text-[12.5px] font-semibold hover:border-accent hover:text-accent disabled:opacity-60"
+            >
+              {syncing ? "Lanzando…" : "Traer Idealista"}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => setAlertaOpen(true)}

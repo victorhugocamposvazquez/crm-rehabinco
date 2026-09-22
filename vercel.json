@@ -18,6 +18,9 @@
     },
     "app/api/captacion/portales/sync/route.ts": {
       "maxDuration": 300
+    },
+    "app/api/captacion/brightdata/route.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [
