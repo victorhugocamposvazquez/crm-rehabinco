@@ -261,6 +261,9 @@ export function portadaDeMedia(
   return fotos.find((item) => item.portada)?.url ?? fotos[0]?.url ?? null;
 }
 
+export const MIN_CHARS_BUSQUEDA_INMUEBLE = 2;
+export const BUSQUEDA_INMUEBLE_LIMIT = 20;
+
 export const SELECT_INMUEBLE_CALENDARIO =
   "id, titulo, direccion, localidad, referencia, tipo_operacion, precio_venta, precio_alquiler, habitaciones, superficie_m2, lat, lng";
 
