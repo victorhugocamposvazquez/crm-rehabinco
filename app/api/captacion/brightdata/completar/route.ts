@@ -14,9 +14,6 @@ export async function POST(request: Request) {
 
   const config = configBrightDataIdealista();
   if ("error" in config) return Response.json({ ok: false, error: config.error }, { status: 503 });
-  if (!config.fichaCollectorId) {
-    return Response.json({ ok: false, error: "Falta BRIGHTDATA_IDEALISTA_FICHA_COLLECTOR_ID." }, { status: 503 });
-  }
 
   let ids: string[] = [];
   try {
