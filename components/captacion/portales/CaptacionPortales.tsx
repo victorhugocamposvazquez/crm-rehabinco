@@ -179,7 +179,6 @@ export function CaptacionPortales() {
   const [comerciales, setComerciales] = useState<ComercialFiltro[]>([]);
   const [filtroCom, setFiltroCom] = useState("");
   const [alertaOpen, setAlertaOpen] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const [wide, setWide] = useState(true);
   const [compact, setCompact] = useState(false);
   const [filtros, setFiltros] = useState({
@@ -326,7 +325,9 @@ export function CaptacionPortales() {
   const pagina = Math.min(pag, nPag);
   const page = listado.slice((pagina - 1) * PAGE_NOVEDADES, pagina * PAGE_NOVEDADES);
   const seleccionado = anuncios.find((a) => a.id === sel) ?? page[0] ?? null;
-  const ultima = anuncios.reduce((acc, a) => (a.visto_en > acc ? a.visto_en : acc), "");
+  const idealistaAbiertos = anuncios.filter((a) => a.fuente === "idealista" && a.fase !== "captado" && a.fase !== "descartado");
+  const sinTelefonoPortal = idealistaAbiertos.filter((a) => !a.contacto_telefono).length;
+  const sinFechaPortal = idealistaAbiertos.filter((a) => !a.publicado_en || publicadoEsCarga(a.publicado_en, a.created_at)).length;
 
   const patchAnuncio = async (ids: string[], patch: Record<string, unknown>, detalle?: string, tipo = "fase") => {
     const supabase = createClient();
@@ -437,110 +438,6 @@ export function CaptacionPortales() {
     await patchAnuncio([id], { fase }, `Movido a ${meta?.label ?? fase}`);
   };
 
-  const CLAVE_RECOGIDA = "captacion-ultima-recogida";
-  const guardarRecogida = (id: unknown) => {
-    if (typeof id === "string" && id.startsWith("j_")) localStorage.setItem(CLAVE_RECOGIDA, id);
-  };
-
-  const refrescar = async () => {
-    setSyncing(true);
-    const res = await fetch("/api/captacion/brightdata/trigger", { method: "POST" });
-    const json = (await res.json()) as { ok?: boolean; error?: string; zonas?: number; snapshotId?: string };
-    setSyncing(false);
-    if (!res.ok || !json.ok) {
-      toast.error(json.error || "No se ha podido lanzar Idealista.");
-      return;
-    }
-    guardarRecogida(json.snapshotId);
-    const zonas = json.zonas ?? 1;
-    toast.success(
-      `Idealista en marcha para ${zonas} ${zonas === 1 ? "zona" : "zonas"}. Los anuncios entran en el CRM de 20 en 20.`
-    );
-  };
-
-  const actualizarIdealista = async () => {
-    const recogidas = ["j_mue9q856184ug8pzl8", "j_muehl9ow292hnw4zof", "j_muehvde1vt1lwdnpp", "j_muehvd1vt1lwdnpp"];
-    setSyncing(true);
-    toast.loading("Actualizando teléfono y fecha…", { id: "recogida" });
-    let conTelefono = 0;
-    let conFecha = 0;
-    let actualizados = 0;
-    try {
-      for (const idRecogida of recogidas) {
-        let desde = 0;
-        let esperas = 0;
-        let seguir = true;
-        while (seguir) {
-          const res = await fetch("/api/captacion/brightdata/importar", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: idRecogida, desde }),
-          });
-          const json = (await res.json()) as {
-            ok?: boolean;
-            error?: string;
-            pendiente?: boolean;
-            esperaSegundos?: number;
-            actualizados?: number;
-            conTelefono?: number;
-            conFecha?: number;
-            siguiente?: number;
-            queda?: number;
-          };
-          if (!res.ok) {
-            if (/not found|no encontrad/i.test(json.error ?? "")) break;
-            toast.error(json.error || "No se ha podido actualizar.", { id: "recogida" });
-            return;
-          }
-          if (json.pendiente) {
-            esperas += 1;
-            if (esperas > 4) break;
-            const espera = Math.min(20, Math.max(8, json.esperaSegundos ?? 15));
-            toast.loading("Bright Data está preparando el archivo…", { id: "recogida" });
-            await new Promise((resolver) => setTimeout(resolver, espera * 1000));
-            continue;
-          }
-          actualizados += json.actualizados ?? 0;
-          conTelefono += json.conTelefono ?? 0;
-          conFecha += json.conFecha ?? 0;
-          const siguiente = json.siguiente ?? desde;
-          if ((json.queda ?? 0) <= 0 || siguiente <= desde) {
-            seguir = false;
-            break;
-          }
-          desde = siguiente;
-          toast.loading(`Guardadas ${actualizados} fichas. Teléfonos: ${conTelefono}. Fechas: ${conFecha}.`, { id: "recogida" });
-        }
-      }
-      let cursor = 0;
-      for (let vuelta = 0; vuelta < 80; vuelta += 1) {
-        const res = await fetch("/api/captacion/brightdata/aplicar", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ desde: cursor }),
-        });
-        const json = (await res.json()) as { telefonos?: number; fechas?: number; siguiente?: number; queda?: number; error?: string };
-        if (!res.ok) break;
-        conTelefono += json.telefonos ?? 0;
-        conFecha += json.fechas ?? 0;
-        if ((json.queda ?? 0) <= 0) break;
-        const siguiente = json.siguiente ?? cursor;
-        if (siguiente <= cursor) break;
-        cursor = siguiente;
-      }
-      if (conTelefono === 0 && conFecha === 0) {
-        toast.error("Esas recogidas no traen ningún teléfono ni ninguna fecha de Idealista.", { id: "recogida" });
-      } else {
-        toast.success(`Teléfonos: ${conTelefono}. Fechas de Idealista: ${conFecha}.`, { id: "recogida" });
-      }
-      cargar();
-    } catch {
-      toast.error("No se ha podido actualizar.", { id: "recogida" });
-    } finally {
-      setSyncing(false);
-    }
-  };
-
   const crearAlerta = async () => {
     if (!user || !draftAlerta.nombre.trim()) {
       toast.error("Pon un nombre a la alerta.");
@@ -565,7 +462,7 @@ export function CaptacionPortales() {
       return;
     }
     setAlertaOpen(false);
-    toast.success("Alerta creada. Actualiza para traer anuncios.");
+    toast.success("Alerta creada.");
     cargar();
   };
 
@@ -640,29 +537,6 @@ export function CaptacionPortales() {
           <p className="mt-1.5 text-[13.5px] text-[var(--text-2)]">Anuncios de particulares en portales. Lo que entra hoy y lo que estás trabajando.</p>
         </div>
         <div className="flex items-center gap-2 text-[12.5px] text-[var(--text-2)]">
-          <span className="h-2 w-2 rounded-full bg-accent" />
-          Última actualización {ultima ? cuandoPublicado(ultima) : "—"}
-          {admin ? (
-            <>
-              <button
-                type="button"
-                onClick={() => void actualizarIdealista()}
-                disabled={syncing}
-                className="h-8 rounded-lg border border-[var(--input)] bg-white px-2.5 text-[12.5px] font-semibold hover:border-accent hover:text-accent disabled:opacity-60"
-              >
-                {syncing ? "Actualizando…" : "Actualizar Idealista"}
-              </button>
-              <button
-                type="button"
-                onClick={() => void refrescar()}
-                disabled={syncing}
-                title="Busca anuncios nuevos. Gasta créditos."
-                className="h-8 rounded-lg border border-[var(--input)] bg-white px-2.5 text-[12.5px] font-semibold hover:border-accent hover:text-accent disabled:opacity-60"
-              >
-                {syncing ? "Lanzando…" : "Traer Idealista"}
-              </button>
-            </>
-          ) : null}
           <button
             type="button"
             onClick={() => setAlertaOpen(true)}
@@ -672,6 +546,12 @@ export function CaptacionPortales() {
           </button>
         </div>
       </div>
+
+      {idealistaAbiertos.length > 0 && (sinTelefonoPortal > 0 || sinFechaPortal > 0) ? (
+        <p className="mb-3.5 rounded-lg border border-[#E7D7A8] bg-[#FBF6EA] px-3 py-2 text-[13px] leading-snug text-[#6B5420]">
+          Idealista no está al día. {sinTelefonoPortal} sin teléfono y {sinFechaPortal} sin fecha de publicación. Si un anuncio ya no está en el portal, sigue en esta lista: la última lectura no era completa y no se dan de baja.
+        </p>
+      ) : null}
 
       <div className="mb-4 flex gap-1 overflow-x-auto border-b border-[var(--border)]">
         {tabs.map(([id, label, n]) => {
