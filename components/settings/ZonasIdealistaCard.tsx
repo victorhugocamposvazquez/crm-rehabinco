@@ -52,7 +52,7 @@ export function ZonasIdealistaCard() {
       return;
     }
     if (json.activas) setActivas(json.activas);
-    toast.success("Zonas guardadas. Traer Idealista usará solo estas.");
+    toast.success("Zonas guardadas. El listado usará solo estas.");
   };
 
   return (
@@ -60,9 +60,9 @@ export function ZonasIdealistaCard() {
       <CardHeader>
         <CardTitle>Zonas de Idealista</CardTitle>
         <CardDescription>
-          El botón Traer Idealista, en Captación, lanza solo las zonas marcadas. Hoy son{" "}
-          {anunciosDeZonas(activas).toLocaleString("es-ES")} anuncios en Idealista. El scraper lee la primera página de
-          cada zona, unos 30 anuncios, hasta que recorra el listado entero.
+          El listado de Idealista entra solo por las zonas marcadas. Hoy son{" "}
+          {anunciosDeZonas(activas).toLocaleString("es-ES")} anuncios en Idealista. Cada pasada lee hasta 10 páginas de
+          cada zona.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

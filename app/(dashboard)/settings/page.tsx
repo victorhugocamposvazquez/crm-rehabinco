@@ -76,7 +76,7 @@ export default function SettingsPage() {
       <PageHeader
         breadcrumb={[{ label: "Ajustes", href: "/settings" }]}
         title="Ajustes"
-        description="Perfil, equipo y empresa. El superadministrador también crea usuarios y ve las APIs de portales."
+        description="Perfil, equipo y empresa. El superadministrador también crea usuarios y configura la captación."
       />
       {direccion ? <SettingsAdminNav role={user?.role} /> : null}
 
@@ -204,7 +204,7 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-neutral-600">
-                Zonas de Idealista que se traen, y las claves antiguas de las APIs. Solo las ve el superadministrador.
+                Zonas de Idealista y el gasto de Bright Data. Solo lo ve el superadministrador.
               </p>
               <Button className="mt-4" variant="secondary" asChild>
                 <Link href="/settings/portales">Elegir zonas de Captación</Link>

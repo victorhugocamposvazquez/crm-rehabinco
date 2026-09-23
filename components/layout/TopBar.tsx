@@ -259,7 +259,7 @@ export function TopBar() {
               className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-[15px] font-medium text-foreground transition-colors hover:bg-neutral-50"
             >
               <KeyRound className="h-5 w-5 shrink-0 text-neutral-500" strokeWidth={1.5} />
-              <span>APIs de portales</span>
+              <span>Captación</span>
             </Link>
           )}
 
