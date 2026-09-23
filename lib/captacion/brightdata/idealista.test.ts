@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { indiciosEncubierta } from "@/lib/captacion/portales/relacionados";
 import { upsertAnuncio } from "@/lib/captacion/pipeline/upsert";
-import { mapearBrightDataIdealista, parsearRespuestaDataset, registrosBrightData } from "./idealista";
+import { mapearBrightDataIdealista, fechaPortalIdealista, parsearRespuestaDataset, registrosBrightData } from "./idealista";
 
 describe("mapearBrightDataIdealista", () => {
   it("traduce el JSON del collector y deja el teléfono para agrupar contactos", () => {
@@ -51,6 +51,28 @@ describe("mapearBrightDataIdealista", () => {
     assert.equal(anuncio.lat, 43.36);
     assert.equal(anuncio.lng, -8.41);
     assert.equal(anuncio.nombre_comercial, "Fincas Norte");
+  });
+
+  it("lee el teléfono de la respuesta de Idealista y una sola foto por imagen", () => {
+    const anuncio = mapearBrightDataIdealista({
+      url: "https://www.idealista.com/inmueble/111341722/",
+      title: "Piso en Plaza de la Milagrosa",
+      price: 298000,
+      phone: null,
+      telefono_ajax: { phone1: { formatted: "881 35 09 92", number: "+34881350992" } },
+      publication_text: "Actualizado el 12 de septiembre",
+      photos: [
+        "https://img3.idealista.com/blur/WEB_LISTING/0/id.pro.es.image.master/abc/abc.jpg",
+        "https://img3.idealista.com/blur/WEB_DETAIL-XL-L/0/id.pro.es.image.master/abc/abc.jpg",
+        "https://img3.idealista.com/blur/WEB_DETAIL-XL-L/0/id.pro.es.image.master/def/def.jpg",
+        "https://img3.idealista.com/video.master/x.mp4",
+      ],
+    });
+    assert.ok(anuncio);
+    assert.equal(anuncio.contacto_telefono, "+34881350992");
+    assert.equal(anuncio.fotos?.length, 2);
+    assert.match(anuncio.thumb ?? "", /WEB_DETAIL-XL-L/);
+    assert.equal(anuncio.publicado_en?.slice(0, 10), fechaPortalIdealista("12 de septiembre de 2026")?.slice(0, 10));
   });
 
   it("ignora filas sin ficha de Idealista", () => {

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { anuncianteIdealista, mapearIdealista, paramsIdealistaDesdeAlerta, tipoIdealista } from "./legacy/idealista";
-import { claveContacto, diasEnPortal, pctBajada } from "./modelo";
+import { claveContacto, diasEnPortal, pctBajada, publicadoEsCarga } from "./modelo";
 import { desaparecidosTrasSync, filtrarParticular, fusionarAnuncio } from "./sync";
 import { enmascararClave } from "./credenciales";
 import { siguienteReferencia, payloadClienteDesdeAnuncio, payloadPropiedadDesdeAnuncio, tipoInmuebleDesdeAnuncio } from "./captar";
@@ -156,6 +156,8 @@ describe("captación portales", () => {
     assert.equal(diasEnPortal("2026-09-15T08:00:00", new Date(2026, 8, 15)), 0);
     assert.equal(diasEnPortal("2026-09-13T08:00:00", new Date(2026, 8, 15)), 2);
     assert.equal(siguienteReferencia(["RHB-2026-0019", "X"], 2026), "RHB-2026-0020");
+    assert.equal(publicadoEsCarga("2026-09-23T14:08:00.000Z", "2026-09-23T14:08:20.000Z"), true);
+    assert.equal(publicadoEsCarga("2026-09-01T10:00:00.000Z", "2026-09-23T14:08:00.000Z"), false);
   });
 
   it("prepara cliente ofertante e inmueble PORTAL al captar", () => {

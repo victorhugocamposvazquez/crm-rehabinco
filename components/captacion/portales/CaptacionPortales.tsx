@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -30,11 +30,13 @@ import {
   diasEnPortal,
   euros,
   eurosM2,
+  fotosAnuncio,
   parseFaseAnuncio,
   fuenteDesdeFila,
   labelFuentePortal,
   parseFuentePortal,
   pctBajada,
+  publicadoEsCarga,
   tagsConEstilo,
   type AlertaCaptacion,
   type AnuncioCaptacion,
@@ -85,6 +87,7 @@ function filaAnuncio(row: Record<string, unknown>): AnuncioCaptacion {
     lng: typeof row.lng === "number" ? row.lng : null,
     thumb: typeof row.thumb === "string" ? row.thumb : null,
     n_fotos: row.n_fotos == null ? null : Number(row.n_fotos),
+    fotos: fotosAnuncio(row.fotos),
     contacto_nombre: typeof row.contacto_nombre === "string" ? normalizarTexto(row.contacto_nombre) : null,
     contacto_telefono: typeof row.contacto_telefono === "string" ? row.contacto_telefono : null,
     contacto_clave: typeof row.contacto_clave === "string" ? row.contacto_clave : null,
@@ -100,6 +103,15 @@ function filaAnuncio(row: Record<string, unknown>): AnuncioCaptacion {
     desaparecido_en: typeof row.desaparecido_en === "string" ? row.desaparecido_en : null,
     created_at: String(row.created_at ?? ""),
   };
+}
+
+function portadaDe(a: { thumb: string | null; fotos?: string[] }): string | null {
+  return a.thumb || a.fotos?.[0] || null;
+}
+
+function FotoPortal({ src, className }: { src: string | null | undefined; className?: string }) {
+  if (!src) return null;
+  return <img src={src} alt="" referrerPolicy="no-referrer" className={className ?? "h-full w-full object-cover"} />;
 }
 
 function filaAlerta(row: Record<string, unknown>): AlertaCaptacion {
@@ -166,6 +178,7 @@ export function CaptacionPortales() {
   const [filtroCom, setFiltroCom] = useState("");
   const [alertaOpen, setAlertaOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const fichasHechas = useRef(false);
   const [wide, setWide] = useState(true);
   const [compact, setCompact] = useState(false);
   const [filtros, setFiltros] = useState({
@@ -241,6 +254,72 @@ export function CaptacionPortales() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
+
+  const hayIdealista = anuncios.some((a) => a.fuente === "idealista");
+
+  useEffect(() => {
+    if (!hayIdealista) return;
+    if (fichasHechas.current || sessionStorage.getItem("captacion-ficha-2026-09-23") === "1") return;
+    fichasHechas.current = true;
+    let cancelado = false;
+    void (async () => {
+      toast.loading("Completando fotos y teléfonos…", { id: "fichas" });
+      let desde = 0;
+      let telefonos = 0;
+      let fotos = 0;
+      let fechas = 0;
+      try {
+        for (let vuelta = 0; vuelta < 200; vuelta += 1) {
+          const res = await fetch("/api/captacion/brightdata/reaplicar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ desde }),
+          });
+          const json = (await res.json()) as {
+            ok?: boolean;
+            error?: string;
+            telefonos?: number;
+            fotos?: number;
+            fechas?: number;
+            total?: number;
+            siguiente?: number;
+            queda?: number;
+          };
+          if (!res.ok || !json.ok) {
+            fichasHechas.current = false;
+            toast.error(json.error || "No se han podido completar las fichas.", { id: "fichas" });
+            return;
+          }
+          telefonos += json.telefonos ?? 0;
+          fotos += json.fotos ?? 0;
+          fechas += json.fechas ?? 0;
+          const siguiente = json.siguiente ?? desde;
+          if ((json.queda ?? 0) <= 0) break;
+          if (siguiente <= desde) break;
+          desde = siguiente;
+          if (!cancelado) toast.loading(`Revisadas ${desde} de ${json.total ?? desde}…`, { id: "fichas" });
+        }
+        if (cancelado) return;
+        sessionStorage.setItem("captacion-ficha-2026-09-23", "1");
+        if (telefonos + fotos + fechas === 0) {
+          toast.dismiss("fichas");
+          return;
+        }
+        toast.success(
+          `Fotos en ${fotos} anuncios, teléfonos en ${telefonos}${fechas ? `, fechas de Idealista en ${fechas}` : ""}.`,
+          { id: "fichas" }
+        );
+        cargar();
+      } catch {
+        fichasHechas.current = false;
+        toast.error("No se han podido completar las fichas.", { id: "fichas" });
+      }
+    })();
+    return () => {
+      cancelado = true;
+      if (sessionStorage.getItem("captacion-ficha-2026-09-23") !== "1") fichasHechas.current = false;
+    };
+  }, [hayIdealista]);
 
   useEffect(() => {
     if (!sel) {
@@ -810,7 +889,7 @@ export function CaptacionPortales() {
                       <span className="grid h-4 w-4 place-items-center rounded border" style={{ borderColor: ck ? "#0B7461" : "#CFCBC2", background: ck ? "#0B7461" : "#fff" }} />
                     </button>
                     <div className="relative h-[72px] w-[88px] shrink-0 overflow-hidden rounded-[8px] bg-[#E8E4DC]">
-                      {a.thumb ? <img src={a.thumb} alt="" className="h-full w-full object-cover" /> : null}
+                      <FotoPortal src={portadaDe(a)} />
                       {diasEnPortal(a.publicado_en) === 0 ? <span className="absolute left-0 top-0 rounded-br bg-accent px-1 py-px text-[9px] font-bold tracking-wide text-white">NUEVO</span> : null}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -844,7 +923,7 @@ export function CaptacionPortales() {
                   <button type="button" onClick={(e) => { e.stopPropagation(); setChecks((prev) => (ck ? prev.filter((x) => x !== a.id) : [...prev, a.id])); }} className="grid h-4 w-4 place-items-center rounded border" style={{ borderColor: ck ? "#0B7461" : "#CFCBC2", background: ck ? "#0B7461" : "#fff" }} />
                   <div className="flex min-w-0 items-center gap-2.5">
                     <div className="relative h-11 w-[60px] shrink-0 overflow-hidden rounded-[7px] bg-[#E8E4DC]">
-                      {a.thumb ? <img src={a.thumb} alt="" className="h-full w-full object-cover" /> : null}
+                      <FotoPortal src={portadaDe(a)} />
                       {diasEnPortal(a.publicado_en) === 0 ? <span className="absolute left-0 top-0 rounded-br bg-accent px-1 py-px text-[9px] font-bold tracking-wide text-white">NUEVO</span> : null}
                     </div>
                     <div className="min-w-0">
@@ -857,7 +936,7 @@ export function CaptacionPortales() {
                         <span className="flex shrink-0 items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ background: PORTAL_COLOR[a.fuente] }} />{labelFuentePortal(a.fuente)}</span>
                         <span className="font-mono text-[11px]">{a.fuente.slice(0, 2)}.{a.externo_id}</span>
                         <span className="whitespace-nowrap">{a.tipo ? TIPO_ANUNCIO_LABEL[a.tipo as keyof typeof TIPO_ANUNCIO_LABEL] ?? a.tipo : "—"}{a.habitaciones ? ` · ${a.habitaciones} hab` : ""}{!wide && a.superficie ? ` · ${a.superficie} m²` : ""}</span>
-                        <span className="whitespace-nowrap">{cuandoPublicado(a.publicado_en)}</span>
+                        <span className="whitespace-nowrap">{publicadoEsCarga(a.publicado_en, a.created_at) ? "Sin fecha del portal" : cuandoPublicado(a.publicado_en)}</span>
                       </div>
                     </div>
                   </div>
@@ -927,7 +1006,7 @@ export function CaptacionPortales() {
                     return (
                       <div key={a.id} draggable onDragStart={(e) => e.dataTransfer.setData("text/plain", a.id)} onClick={() => { setSel(a.id); setPanel(true); }} className="mb-2 cursor-grab rounded-[11px] border border-[var(--border)] bg-white p-2.5 hover:border-accent">
                         <div className="flex gap-2.5">
-                          <div className="h-[34px] w-11 shrink-0 overflow-hidden rounded-md bg-[#E8E4DC]">{a.thumb ? <img src={a.thumb} alt="" className="h-full w-full object-cover" /> : null}</div>
+                          <div className="h-[34px] w-11 shrink-0 overflow-hidden rounded-md bg-[#E8E4DC]"><FotoPortal src={portadaDe(a)} /></div>
                           <div className="min-w-0"><div className="text-[13.5px] font-semibold leading-snug">{a.titulo}</div><div className="mt-0.5 text-[11.5px] text-[var(--text-2)]">{a.zona} · {a.superficie ?? "—"} m²</div></div>
                         </div>
                         <div className="mt-2 flex items-center gap-2">
@@ -1146,6 +1225,41 @@ export function CaptacionPortales() {
   );
 }
 
+function GaleriaAnuncio({ anuncio, onCerrar }: { anuncio: AnuncioCaptacion; onCerrar: () => void }) {
+  const fotos = anuncio.fotos?.length ? anuncio.fotos : anuncio.thumb ? [anuncio.thumb] : [];
+  const [indice, setIndice] = useState(0);
+  useEffect(() => {
+    setIndice(0);
+  }, [anuncio.id]);
+  const actual = fotos[indice] ?? fotos[0] ?? null;
+  return (
+    <div className="border-b border-[var(--border-soft)] bg-[#E8E4DC]">
+      <div className="relative aspect-video">
+        <FotoPortal src={actual} />
+        <div className="absolute bottom-2.5 left-3 flex flex-wrap gap-1.5">
+          <span className="flex items-center gap-1 rounded-md bg-white/95 px-2 py-0.5 text-[11px] font-semibold"><span className="h-1.5 w-1.5 rounded-full" style={{ background: PORTAL_COLOR[anuncio.fuente] }} />{labelFuentePortal(anuncio.fuente)} · {anuncio.anunciante === "particular" ? "Particular" : anuncio.anunciante}</span>
+          {fotos.length ? <span className="rounded-md bg-white/95 px-2 py-0.5 text-[11px] font-semibold text-[var(--text-2)]">{fotos.length} fotos</span> : null}
+        </div>
+        <button type="button" onClick={onCerrar} className="absolute right-2.5 top-2.5 grid h-[34px] w-[34px] place-items-center rounded-[9px] bg-white/95">×</button>
+      </div>
+      {fotos.length > 1 ? (
+        <div className="flex gap-1.5 overflow-x-auto px-3 py-2">
+          {fotos.map((url, i) => (
+            <button
+              key={`${anuncio.id}-${i}`}
+              type="button"
+              onClick={() => setIndice(i)}
+              className={cn("h-14 w-[72px] shrink-0 overflow-hidden rounded-md border-2 bg-white", i === indice ? "border-accent" : "border-transparent")}
+            >
+              <FotoPortal src={url} />
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function PeekAnuncio({
   anuncio,
   alertaNombre,
@@ -1190,14 +1304,7 @@ function PeekAnuncio({
   const avisoFuerte = indicios.aviso === "probable";
   return (
     <div className="flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain">
-      <div className="relative aspect-video bg-[#E8E4DC]">
-        {a.thumb ? <img src={a.thumb} alt="" className="h-full w-full object-cover" /> : null}
-        <div className="absolute bottom-2.5 left-3 flex flex-wrap gap-1.5">
-          <span className="flex items-center gap-1 rounded-md bg-white/95 px-2 py-0.5 text-[11px] font-semibold"><span className="h-1.5 w-1.5 rounded-full" style={{ background: PORTAL_COLOR[a.fuente] }} />{labelFuentePortal(a.fuente)} · {a.anunciante === "particular" ? "Particular" : a.anunciante}</span>
-          {a.n_fotos ? <span className="rounded-md bg-white/95 px-2 py-0.5 text-[11px] font-semibold text-[var(--text-2)]">{a.n_fotos} fotos</span> : null}
-        </div>
-        <button type="button" onClick={onCerrar} className="absolute right-2.5 top-2.5 grid h-[34px] w-[34px] place-items-center rounded-[9px] bg-white/95">×</button>
-      </div>
+      <GaleriaAnuncio anuncio={a} onCerrar={onCerrar} />
       <div className="border-b border-[var(--border-soft)] px-4 py-3.5">
         <div className="flex items-start justify-between gap-2.5">
           <div className="min-w-0">
@@ -1245,7 +1352,7 @@ function PeekAnuncio({
         <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Hab.</div>{a.habitaciones ?? "—"}</div>
         <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Contacto</div>{a.contacto_nombre || "—"}</div>
         <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Teléfono</div><span className="font-mono text-[12.5px]">{a.contacto_telefono || "Solo por el portal"}</span></div>
-        <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Publicado</div>{cuandoPublicado(a.publicado_en)}</div>
+        <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Publicado</div>{publicadoEsCarga(a.publicado_en, a.created_at) ? "Sin fecha del portal" : cuandoPublicado(a.publicado_en)}</div>
       </div>
       <div className="border-b border-[var(--border-soft)] px-4 py-3">
         <div className="mb-2 text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Asignar a</div>
@@ -1281,7 +1388,7 @@ function PeekAnuncio({
                   className="flex items-center gap-2 rounded-[9px] border border-[var(--border)] bg-white px-2 py-1.5 text-left hover:border-accent"
                 >
                   <span className="h-9 w-11 shrink-0 overflow-hidden rounded-md bg-[#E8E4DC]">
-                    {r.thumb ? <img src={r.thumb} alt="" className="h-full w-full object-cover" /> : null}
+                    <FotoPortal src={portadaDe(r)} />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[13px] font-semibold">{r.titulo}</span>

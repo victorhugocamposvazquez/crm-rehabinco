@@ -74,16 +74,131 @@ function idDesdeUrl(url: string | null): string | null {
 
 function fotosDe(raw: Registro): string[] {
   const valor = campo(raw, ["photos", "images", "fotos", "gallery", "pictures"]);
-  if (!Array.isArray(valor)) {
-    const una = texto(campo(raw, ["thumbnail", "thumb", "image", "photo"]));
-    return una ? [una] : [];
-  }
-  const urls: string[] = [];
-  for (const item of valor) {
+  const candidatos: string[] = [];
+  const meter = (item: unknown) => {
     const url = texto(item);
-    if (url && /^https?:\/\//i.test(url)) urls.push(url);
+    if (!url || !/^https?:\/\//i.test(url) || /video\.master/i.test(url)) return;
+    candidatos.push(url);
+  };
+  if (Array.isArray(valor)) valor.forEach(meter);
+  else meter(valor);
+  if (candidatos.length === 0) meter(campo(raw, ["thumbnail", "thumb", "image", "photo"]));
+
+  const porId = new Map<string, string>();
+  const sueltos: string[] = [];
+  for (const url of candidatos) {
+    const id = url.match(/id\.pro\.es\.image\.master\/([^./?]+)/i)?.[1];
+    if (!id) {
+      sueltos.push(url);
+      continue;
+    }
+    const previa = porId.get(id);
+    if (!previa || rangoFoto(url) > rangoFoto(previa)) porId.set(id, url);
   }
-  return urls;
+  return [...porId.values(), ...sueltos];
+}
+
+function rangoFoto(url: string): number {
+  if (url.includes("WEB_DETAIL-XL-L")) return 3;
+  if (url.includes("WEB_DETAIL")) return 2;
+  return 1;
+}
+
+function telefonoAjax(valor: unknown): string | null {
+  let obj = valor;
+  if (typeof valor === "string") {
+    const t = valor.trim();
+    if (!t) return null;
+    try {
+      obj = JSON.parse(t) as unknown;
+    } catch {
+      return t;
+    }
+  }
+  if (!esRegistro(obj)) return null;
+  for (const clave of ["phone1", "phone2", "phone3", "phone"]) {
+    const tel = obj[clave];
+    if (typeof tel === "string" && tel.trim()) return tel;
+    if (esRegistro(tel)) {
+      const n = texto(tel.number ?? tel.formatted ?? tel.phoneNumber);
+      if (n) return n;
+    }
+  }
+  return null;
+}
+
+function telefonoDe(raw: Registro): string | null {
+  const candidatos = [
+    telefonoAjax(raw.telefono_ajax),
+    telefonoAjax(raw.contact_phones),
+    texto(campo(raw, ["phone", "telephone", "telefono", "teléfono", "phone1", "contact_phone", "mobile"])),
+  ];
+  for (const candidato of candidatos) {
+    const numero = normalizarTelefono(candidato);
+    if (numero) return numero;
+  }
+  return null;
+}
+
+const MESES: Record<string, number> = {
+  enero: 1,
+  febrero: 2,
+  marzo: 3,
+  abril: 4,
+  mayo: 5,
+  junio: 6,
+  julio: 7,
+  agosto: 8,
+  septiembre: 9,
+  setiembre: 9,
+  octubre: 10,
+  noviembre: 11,
+  diciembre: 12,
+};
+
+/** Fecha de Idealista, no la hora en que el CRM guardó el anuncio. */
+export function fechaPortalIdealista(textoFecha: string | null, ahora = new Date()): string | null {
+  if (!textoFecha) return null;
+  const limpio = textoFecha.trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(limpio)) {
+    const iso = Date.parse(limpio);
+    if (!Number.isNaN(iso)) return new Date(iso).toISOString();
+  }
+  const m = limpio
+    .toLowerCase()
+    .match(
+      /(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?:\s+de\s+(\d{4}))?/
+    );
+  if (!m) return null;
+  const dia = Number(m[1]);
+  const mes = MESES[m[2]] ?? 0;
+  if (!mes || dia < 1 || dia > 31) return null;
+  let anio = m[3] ? Number(m[3]) : ahora.getFullYear();
+  if (!m[3]) {
+    const candidata = new Date(anio, mes - 1, dia, 12);
+    if (candidata.getTime() > ahora.getTime() + 86400000) anio -= 1;
+  }
+  const fecha = new Date(Date.UTC(anio, mes - 1, dia, 12));
+  if (fecha.getUTCDate() !== dia) return null;
+  return fecha.toISOString();
+}
+
+function fechaDe(raw: Registro): string | null {
+  const cruda = texto(
+    campo(raw, [
+      "published_at",
+      "publicado_en",
+      "publication_date",
+      "date_posted",
+      "datePosted",
+      "listing_date",
+      "publication_text",
+      "updated_text",
+      "date_text",
+      "stats",
+    ])
+  );
+  return fechaPortalIdealista(cruda);
 }
 
 function anuncianteDe(raw: Registro): AnunciantePortal {
@@ -126,9 +241,7 @@ export function mapearBrightDataIdealista(raw: Registro): AnuncioEntrante | null
     [direccion, zona, municipio].filter(Boolean).join(", ") ||
     `Anuncio ${externoId}`;
   const fotos = fotosDe(raw);
-  const telefono = normalizarTelefono(
-    texto(campo(raw, ["phone", "telephone", "telefono", "phone1", "contact_phone", "mobile"]))
-  );
+  const telefono = telefonoDe(raw);
   const nombre = normalizarTexto(
     texto(campo(raw, ["contact_name", "seller_name", "advertiser_name", "owner_name", "contacto_nombre", "name"]))
   );
@@ -163,7 +276,7 @@ export function mapearBrightDataIdealista(raw: Registro): AnuncioEntrante | null
     contacto_nombre: nombre && nombre !== titulo ? nombre : null,
     contacto_telefono: telefono,
     nombre_comercial: comercial && comercial !== nombre ? comercial : null,
-    publicado_en: normalizarTexto(texto(campo(raw, ["published_at", "publicado_en", "date", "listing_date"]))),
+    publicado_en: fechaDe(raw),
     raw,
   };
 }

@@ -122,7 +122,7 @@ export type AnuncioCaptacion = {
   lng: number | null;
   thumb: string | null;
   n_fotos: number | null;
-  fotos?: unknown;
+  fotos?: string[];
   contacto_nombre: string | null;
   contacto_telefono: string | null;
   contacto_clave: string | null;
@@ -216,6 +216,32 @@ export function pctBajada(anterior: number | null | undefined, actual: number | 
   const pct = Math.round(((anterior - actual) / anterior) * 100);
   if (pct < 1) return null;
   return `−${pct} % (${euros(anterior)})`;
+}
+
+/** La carga guarda `publicado_en` con la hora del CRM cuando Idealista no mandó fecha. */
+export function publicadoEsCarga(
+  publicado: string | null | undefined,
+  creado: string | null | undefined
+): boolean {
+  if (!publicado || !creado) return false;
+  const a = new Date(publicado).getTime();
+  const b = new Date(creado).getTime();
+  if (Number.isNaN(a) || Number.isNaN(b)) return false;
+  return Math.abs(a - b) < 3 * 60 * 1000;
+}
+
+export function fotosAnuncio(valor: unknown): string[] {
+  if (!Array.isArray(valor)) return [];
+  const urls: string[] = [];
+  for (const item of valor) {
+    if (typeof item === "string" && /^https?:\/\//i.test(item)) urls.push(item);
+    else if (item && typeof item === "object") {
+      const rec = item as Record<string, unknown>;
+      const url = rec.url ?? rec.src;
+      if (typeof url === "string" && /^https?:\/\//i.test(url)) urls.push(url);
+    }
+  }
+  return urls;
 }
 
 export function cuandoPublicado(iso: string | null | undefined, ahora = new Date()): string {

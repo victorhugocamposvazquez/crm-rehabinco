@@ -1,6 +1,6 @@
 import { normalizarTexto } from "@/lib/captacion/pipeline/normalize";
 import { convertirAnuncioACrm } from "@/lib/captacion/portales/captar";
-import { fuenteDesdeFila, parseFaseAnuncio, type AnuncioCaptacion, type FaseAnuncio } from "@/lib/captacion/portales/modelo";
+import { fuenteDesdeFila, fotosAnuncio, parseFaseAnuncio, type AnuncioCaptacion, type FaseAnuncio } from "@/lib/captacion/portales/modelo";
 import { sesionCaptacion } from "@/lib/captacion/portales/sesion";
 
 export const runtime = "nodejs";
@@ -33,7 +33,7 @@ function filaAnuncio(row: Record<string, unknown>): AnuncioCaptacion {
     lng: typeof row.lng === "number" ? row.lng : null,
     thumb: typeof row.thumb === "string" ? row.thumb : null,
     n_fotos: row.n_fotos == null ? null : Number(row.n_fotos),
-    fotos: row.fotos,
+    fotos: fotosAnuncio(row.fotos),
     contacto_nombre: typeof row.contacto_nombre === "string" ? normalizarTexto(row.contacto_nombre) : null,
     contacto_telefono: typeof row.contacto_telefono === "string" ? row.contacto_telefono : null,
     contacto_clave: typeof row.contacto_clave === "string" ? row.contacto_clave : null,
