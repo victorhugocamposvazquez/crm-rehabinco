@@ -448,6 +448,24 @@ export function CaptacionPortales() {
     );
   };
 
+  const completarVacios = async () => {
+    setSyncing(true);
+    const res = await fetch("/api/captacion/brightdata/completar", { method: "POST" });
+    const json = (await res.json()) as { ok?: boolean; error?: string; fichas?: number };
+    setSyncing(false);
+    if (!res.ok || !json.ok) {
+      toast.error(json.error || "No se han podido pedir las fichas vacías.");
+      return;
+    }
+    if (!json.fichas) {
+      toast.message("No hay fichas vacías.");
+      return;
+    }
+    toast.success(
+      `Pedidas otra vez ${json.fichas} fichas que llegaron vacías. Las que ya tienen precio no se vuelven a pedir.`
+    );
+  };
+
   const cargarRecogida = async () => {
     setSyncing(true);
     toast.loading("Cargando anuncios…", { id: "recogida" });
@@ -614,6 +632,14 @@ export function CaptacionPortales() {
                 className="h-8 rounded-lg border border-[var(--input)] bg-white px-2.5 text-[12.5px] font-semibold hover:border-accent hover:text-accent disabled:opacity-60"
               >
                 {syncing ? "Cargando…" : "Cargar recogida"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void completarVacios()}
+                disabled={syncing}
+                className="h-8 rounded-lg border border-[var(--input)] bg-white px-2.5 text-[12.5px] font-semibold hover:border-accent hover:text-accent disabled:opacity-60"
+              >
+                {syncing ? "Pidiendo…" : "Completar vacíos"}
               </button>
               <button
                 type="button"

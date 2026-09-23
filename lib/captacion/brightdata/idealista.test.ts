@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { indiciosEncubierta } from "@/lib/captacion/portales/relacionados";
 import { upsertAnuncio } from "@/lib/captacion/pipeline/upsert";
-import { mapearBrightDataIdealista, fechaPortalIdealista, parsearRespuestaDataset, registrosBrightData } from "./idealista";
+import { anuncioIdealistaVacio, mapearBrightDataIdealista, fechaPortalIdealista, parsearRespuestaDataset, registrosBrightData, urlFichaIdealista } from "./idealista";
 
 describe("mapearBrightDataIdealista", () => {
   it("traduce el JSON del collector y deja el teléfono para agrupar contactos", () => {
@@ -81,6 +81,15 @@ describe("mapearBrightDataIdealista", () => {
 
   it("ignora filas sin ficha de Idealista", () => {
     assert.equal(mapearBrightDataIdealista({ title: "sin url" }), null);
+  });
+
+  it("marca como vacía la ficha que solo trajo el id", () => {
+    assert.equal(anuncioIdealistaVacio({ titulo: "Anuncio 91907401", precio: null, thumb: null }), true);
+    assert.equal(
+      anuncioIdealistaVacio({ titulo: "Piso en venta en Calle Costa Vella, 17", precio: 420000, thumb: "https://img3.idealista.com/a.jpg" }),
+      false
+    );
+    assert.equal(urlFichaIdealista("91907401", null), "https://www.idealista.com/inmueble/91907401/");
   });
 
   it("saca registros de un array o de un sobre data", () => {

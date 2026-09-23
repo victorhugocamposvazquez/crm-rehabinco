@@ -1,4 +1,5 @@
 import { claveContacto } from "@/lib/captacion/contacto";
+import { publicadoEsCarga } from "@/lib/captacion/portales/modelo";
 import { urlsDeFotosPortal } from "@/lib/inmuebles/media";
 import type { AnuncioEntrante, FaseAnuncio } from "@/lib/captacion/portales/modelo";
 
@@ -20,6 +21,8 @@ export type AnuncioGuardado = {
   contacto_telefono?: string | null;
   contacto_nombre?: string | null;
   municipio?: string | null;
+  publicado_en?: string | null;
+  created_at?: string | null;
 };
 
 export type EventoSync =
@@ -162,7 +165,10 @@ export function upsertAnuncio(
             publicado_en: entrante.publicado_en ?? ahoraIso,
             visto_primera_vez: ahoraIso,
           }
-        : {}),
+        : entrante.publicado_en &&
+            (!previo?.publicado_en || publicadoEsCarga(previo.publicado_en, previo.created_at))
+          ? { publicado_en: entrante.publicado_en }
+          : {}),
     },
   };
 }

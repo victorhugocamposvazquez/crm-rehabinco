@@ -3,7 +3,7 @@ import { upsertAnuncio, type AnuncioGuardado } from "@/lib/captacion/pipeline/up
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const SELECT_PREVIO =
-  "id, portal_id, externo_id, precio, precio_anterior, tags, fase, alerta_id, desaparecido_en, hash_contenido, raw_path, parser_version, titulo, descripcion, contacto_telefono, contacto_nombre, municipio, anunciante";
+  "id, portal_id, externo_id, precio, precio_anterior, tags, fase, alerta_id, desaparecido_en, hash_contenido, raw_path, parser_version, titulo, descripcion, contacto_telefono, contacto_nombre, municipio, anunciante, publicado_en, created_at";
 
 export type ResultadoIngesta = {
   nuevos: number;

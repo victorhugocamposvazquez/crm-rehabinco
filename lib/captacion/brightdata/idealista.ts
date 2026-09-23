@@ -233,7 +233,22 @@ function anuncianteDe(raw: Registro): AnunciantePortal {
   return "particular";
 }
 
-/** Traduce un registro del collector de Bright Data al anuncio que guarda el CRM. */
+/** Ficha que solo trajo el id: sin título real y sin precio ni foto. */
+export function anuncioIdealistaVacio(row: {
+  titulo?: string | null;
+  precio?: number | null;
+  thumb?: string | null;
+}): boolean {
+  const titulo = (row.titulo ?? "").trim();
+  if (/^Anuncio \d+$/.test(titulo)) return true;
+  return row.precio == null && !row.thumb;
+}
+
+export function urlFichaIdealista(externoId: string, url?: string | null): string | null {
+  if (url && /idealista\.com\/inmueble\/\d+/i.test(url)) return url;
+  if (!/^\d{5,}$/.test(externoId)) return null;
+  return `https://www.idealista.com/inmueble/${externoId}/`;
+}
 export function mapearBrightDataIdealista(raw: Registro): AnuncioEntrante | null {
   const url = normalizarTexto(texto(campo(raw, ["url", "listing_url", "link", "property_url"])));
   const crudoId = texto(
