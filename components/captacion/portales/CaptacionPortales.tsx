@@ -489,10 +489,11 @@ export function CaptacionPortales() {
   };
 
   const cargarRecogida = async () => {
+    const recogida1739 = "j_mue9q856184ug8pzl8";
     const ultima = localStorage.getItem(CLAVE_RECOGIDA) || "";
-    const sugerida = ultima.startsWith("j_mue12") ? "" : ultima;
+    const sugerida = !ultima || ultima.startsWith("j_mue12") ? recogida1739 : ultima;
     const pedido = window.prompt(
-      "Pega el id de la recogida de las 17:39 (874 fichas). Empieza por j_. La de esta mañana no trae teléfono ni fecha.",
+      "Id de la recogida de las 17:39. Ya está escrito. Pulsa Aceptar.",
       sugerida
     );
     if (pedido == null) return;
