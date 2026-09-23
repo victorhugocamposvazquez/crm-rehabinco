@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { indiciosEncubierta } from "@/lib/captacion/portales/relacionados";
 import { upsertAnuncio } from "@/lib/captacion/pipeline/upsert";
-import { mapearBrightDataIdealista, registrosBrightData } from "./idealista";
+import { mapearBrightDataIdealista, parsearRespuestaDataset, registrosBrightData } from "./idealista";
 
 describe("mapearBrightDataIdealista", () => {
   it("traduce el JSON del collector y deja el teléfono para agrupar contactos", () => {
@@ -61,6 +61,22 @@ describe("mapearBrightDataIdealista", () => {
     assert.equal(registrosBrightData([{ url: "https://www.idealista.com/inmueble/1/" }]).length, 1);
     assert.equal(registrosBrightData({ snapshot_id: "s_1" }).length, 0);
     assert.equal(registrosBrightData({ data: [{ url: "https://www.idealista.com/inmueble/2/" }] }).length, 1);
+  });
+
+  it("lee un anuncio por línea cuando el archivo no es un solo JSON", () => {
+    const cuerpo = parsearRespuestaDataset(
+      '{"url":"https://www.idealista.com/inmueble/1/","price":1}\n{"url":"https://www.idealista.com/inmueble/2/","price":2}\n'
+    );
+    assert.equal(registrosBrightData(cuerpo).length, 2);
+  });
+
+  it("se salta la línea de estado y se queda con los anuncios", () => {
+    const cuerpo = parsearRespuestaDataset(
+      '{"status":"building","message":"espera"}\n{"url":"https://www.idealista.com/inmueble/3/"}\n'
+    );
+    const registros = registrosBrightData(cuerpo);
+    assert.equal(registros.length, 1);
+    assert.equal(registros[0]?.url, "https://www.idealista.com/inmueble/3/");
   });
 
   it("convive con la detección de inmobiliarias encubiertas", () => {

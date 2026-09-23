@@ -1,4 +1,5 @@
 import type { BrightDataIdealistaConfig } from "@/lib/captacion/brightdata/config";
+import { parsearRespuestaDataset } from "@/lib/captacion/brightdata/idealista";
 
 export async function dispararIdealista(
   config: BrightDataIdealistaConfig,
@@ -54,11 +55,11 @@ export async function descargarSnapshot(token: string, snapshotId: string): Prom
     : `https://api.brightdata.com/datasets/v3/snapshot/${encodeURIComponent(snapshotId)}?format=json`;
   const res = await fetch(ruta, { headers: { Authorization: `Bearer ${token}` } });
   if (res.status === 202) return { pendiente: true };
+  const texto = await res.text();
   if (!res.ok) {
-    const texto = await res.text();
     throw new Error(texto.slice(0, 300) || `Snapshot ${res.status}.`);
   }
-  const data = await res.json();
+  const data = parsearRespuestaDataset(texto);
   if (data && typeof data === "object" && !Array.isArray(data)) {
     const estado = String((data as { status?: unknown; Status?: unknown }).status ?? (data as { Status?: unknown }).Status ?? "");
     if (/running|collecting|building|starting|pending/i.test(estado)) return { pendiente: true };

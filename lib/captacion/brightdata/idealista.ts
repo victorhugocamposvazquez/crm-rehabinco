@@ -168,6 +168,53 @@ export function mapearBrightDataIdealista(raw: Registro): AnuncioEntrante | null
   };
 }
 
+/** Bright Data a veces manda un JSON por línea. JSON.parse se para en el primero. */
+export function parsearRespuestaDataset(texto: string): unknown {
+  const limpio = texto.replace(/^\uFEFF/, "").trim();
+  if (!limpio) return [];
+  const valores = valoresJsonConcatenados(limpio);
+  if (valores.length <= 1) return valores[0] ?? [];
+  const registros: unknown[] = [];
+  for (const valor of valores) {
+    if (Array.isArray(valor)) {
+      registros.push(...valor);
+      continue;
+    }
+    if (!esRegistro(valor)) continue;
+    const estado = String(valor.status ?? valor.Status ?? "");
+    if (/^(running|collecting|building|starting|pending)$/i.test(estado) && !("url" in valor)) continue;
+    const lista = ["data", "results", "records", "items"].map((clave) => valor[clave]).find(Array.isArray);
+    if (Array.isArray(lista)) {
+      registros.push(...lista);
+      continue;
+    }
+    registros.push(valor);
+  }
+  return registros.length > 0 ? registros : valores[0];
+}
+
+function valoresJsonConcatenados(texto: string): unknown[] {
+  const valores: unknown[] = [];
+  let inicio = 0;
+  while (inicio < texto.length) {
+    while (inicio < texto.length && /\s/.test(texto[inicio] ?? "")) inicio += 1;
+    if (inicio >= texto.length) break;
+    const resto = texto.slice(inicio);
+    try {
+      valores.push(JSON.parse(resto));
+      break;
+    } catch (error) {
+      if (!(error instanceof SyntaxError) || !/after JSON/i.test(error.message)) throw error;
+      const marca = /position (\d+)/.exec(error.message);
+      const pos = marca ? Number(marca[1]) : 0;
+      if (pos <= 0 || pos >= resto.length) throw error;
+      valores.push(JSON.parse(resto.slice(0, pos)));
+      inicio += pos;
+    }
+  }
+  return valores;
+}
+
 /** Saca la lista de anuncios de un webhook o de un snapshot de Bright Data. */
 export function registrosBrightData(cuerpo: unknown): Registro[] {
   if (Array.isArray(cuerpo)) return cuerpo.filter(esRegistro);

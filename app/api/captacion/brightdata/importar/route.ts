@@ -17,9 +17,11 @@ export async function POST(request: Request) {
   if ("error" in config) return Response.json({ ok: false, error: config.error }, { status: 503 });
 
   let id = "";
+  let desde = 0;
   try {
-    const cuerpo = (await request.json()) as { id?: unknown };
+    const cuerpo = (await request.json()) as { id?: unknown; desde?: unknown };
     id = typeof cuerpo.id === "string" ? cuerpo.id.trim() : "";
+    desde = typeof cuerpo.desde === "number" && Number.isFinite(cuerpo.desde) ? Math.max(0, Math.floor(cuerpo.desde)) : 0;
   } catch {
     return Response.json({ ok: false, error: "JSON no válido." }, { status: 400 });
   }
@@ -32,9 +34,17 @@ export async function POST(request: Request) {
     if (snapshot && typeof snapshot === "object" && "pendiente" in snapshot) {
       return Response.json({ ok: true, pendiente: true });
     }
-    const resultado = await ingestarIdealistaBrightData(registrosBrightData(snapshot));
-    const status = resultado.errores.length > 0 ? 500 : 200;
-    return Response.json({ ok: resultado.errores.length === 0, ...resultado }, { status });
+    const todos = registrosBrightData(snapshot);
+    const lote = todos.slice(desde, desde + 80);
+    const resultado = await ingestarIdealistaBrightData(lote, new Date().toISOString(), { paralelo: 8 });
+    const siguiente = desde + lote.length;
+    return Response.json({
+      ok: resultado.errores.length === 0,
+      ...resultado,
+      total: todos.length,
+      siguiente,
+      queda: Math.max(0, todos.length - siguiente),
+    });
   } catch (error) {
     return Response.json(
       { ok: false, error: error instanceof Error ? error.message : "No se pudo cargar la recogida." },

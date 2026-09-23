@@ -437,23 +437,58 @@ export function CaptacionPortales() {
 
   const cargarRecogida = async () => {
     setSyncing(true);
-    const res = await fetch("/api/captacion/brightdata/importar", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: "j_mue12jm92i4iigvxps" }),
-    });
-    const json = (await res.json()) as { ok?: boolean; error?: string; pendiente?: boolean; nuevos?: number; actualizados?: number };
-    setSyncing(false);
-    if (!res.ok || !json.ok) {
-      toast.error(json.error || "No se ha podido cargar la recogida.");
-      return;
+    toast.loading("Cargando anuncios…", { id: "recogida" });
+    let desde = 0;
+    let nuevos = 0;
+    let actualizados = 0;
+    let errores = 0;
+    try {
+      for (let vuelta = 0; vuelta < 200; vuelta += 1) {
+        const res = await fetch("/api/captacion/brightdata/importar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: "j_mue12jm92i4iigvxps", desde }),
+        });
+        const json = (await res.json()) as {
+          ok?: boolean;
+          error?: string;
+          pendiente?: boolean;
+          nuevos?: number;
+          actualizados?: number;
+          errores?: string[];
+          total?: number;
+          siguiente?: number;
+          queda?: number;
+        };
+        if (!res.ok) {
+          toast.error(json.error || "No se ha podido cargar la recogida.", { id: "recogida" });
+          return;
+        }
+        if (json.pendiente) {
+          toast.message("Bright Data sigue recogiendo. Prueba otra vez en unos minutos.", { id: "recogida" });
+          return;
+        }
+        nuevos += json.nuevos ?? 0;
+        actualizados += json.actualizados ?? 0;
+        errores += json.errores?.length ?? 0;
+        const siguiente = json.siguiente ?? desde;
+        const queda = json.queda ?? 0;
+        if (queda <= 0) break;
+        if (siguiente <= desde) {
+          toast.error("La carga no avanza.", { id: "recogida" });
+          return;
+        }
+        desde = siguiente;
+        toast.loading(`Guardados ${desde} de ${json.total ?? desde}…`, { id: "recogida" });
+      }
+      const aviso = errores > 0 ? ` ${errores} no se han podido guardar.` : "";
+      toast.success(`Cargados ${nuevos} anuncios nuevos y ${actualizados} actualizados.${aviso}`, { id: "recogida" });
+      cargar();
+    } catch {
+      toast.error("No se ha podido cargar la recogida.", { id: "recogida" });
+    } finally {
+      setSyncing(false);
     }
-    if (json.pendiente) {
-      toast.message("Bright Data sigue recogiendo. Prueba otra vez en unos minutos.");
-      return;
-    }
-    toast.success(`Cargados ${json.nuevos ?? 0} anuncios nuevos y ${json.actualizados ?? 0} actualizados.`);
-    cargar();
   };
 
   const crearAlerta = async () => {

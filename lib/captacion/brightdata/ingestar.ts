@@ -15,53 +15,73 @@ export type ResultadoIngesta = {
 /** Guarda el JSON de Bright Data. La detección de encubiertas lee estos mismos anuncios en /captacion. */
 export async function ingestarIdealistaBrightData(
   registros: Record<string, unknown>[],
-  ahoraIso = new Date().toISOString()
+  ahoraIso = new Date().toISOString(),
+  opts?: { paralelo?: number }
 ): Promise<ResultadoIngesta> {
   const supabase = createAdminClient();
   const resultado: ResultadoIngesta = { nuevos: 0, actualizados: 0, omitidos: 0, errores: [] };
+  const paralelo = Math.max(1, opts?.paralelo ?? 1);
 
-  for (const registro of registros) {
-    const entrante = mapearBrightDataIdealista(registro);
-    if (!entrante) {
-      resultado.omitidos += 1;
-      continue;
-    }
-    const { data: prev, error: selErr } = await supabase
-      .from("captacion_anuncios")
-      .select(SELECT_PREVIO)
-      .eq("portal_id", "idealista")
-      .eq("externo_id", entrante.externo_id)
-      .maybeSingle();
-    if (selErr) {
-      resultado.errores.push(`${entrante.externo_id}: ${selErr.message}`);
-      continue;
-    }
-    const patch = upsertAnuncio(prev as AnuncioGuardado | null, entrante, ahoraIso, null, {
-      parserVersion: PARSER_VERSION,
-    });
-    if (patch.esNuevo) {
-      const { data: inserted, error: insErr } = await supabase
-        .from("captacion_anuncios")
-        .insert(patch.row)
-        .select("id")
-        .single();
-      if (insErr || !inserted) {
-        resultado.errores.push(`${entrante.externo_id}: ${insErr?.message ?? "sin fila"}`);
-        continue;
-      }
-      resultado.nuevos += 1;
-      await guardarHistorial(supabase, inserted.id, patch.historial, resultado, entrante.externo_id);
-    } else if (prev) {
-      const { error: updErr } = await supabase.from("captacion_anuncios").update(patch.row).eq("id", prev.id);
-      if (updErr) {
-        resultado.errores.push(`${entrante.externo_id}: ${updErr.message}`);
-        continue;
-      }
-      resultado.actualizados += 1;
-      await guardarHistorial(supabase, prev.id, patch.historial, resultado, entrante.externo_id);
+  for (let i = 0; i < registros.length; i += paralelo) {
+    const partes = await Promise.all(
+      registros.slice(i, i + paralelo).map((registro) => guardarRegistro(supabase, registro, ahoraIso))
+    );
+    for (const parte of partes) {
+      resultado.nuevos += parte.nuevos;
+      resultado.actualizados += parte.actualizados;
+      resultado.omitidos += parte.omitidos;
+      resultado.errores.push(...parte.errores);
     }
   }
 
+  return resultado;
+}
+
+async function guardarRegistro(
+  supabase: ReturnType<typeof createAdminClient>,
+  registro: Record<string, unknown>,
+  ahoraIso: string
+): Promise<ResultadoIngesta> {
+  const resultado: ResultadoIngesta = { nuevos: 0, actualizados: 0, omitidos: 0, errores: [] };
+  const entrante = mapearBrightDataIdealista(registro);
+  if (!entrante) {
+    resultado.omitidos += 1;
+    return resultado;
+  }
+  const { data: prev, error: selErr } = await supabase
+    .from("captacion_anuncios")
+    .select(SELECT_PREVIO)
+    .eq("portal_id", "idealista")
+    .eq("externo_id", entrante.externo_id)
+    .maybeSingle();
+  if (selErr) {
+    resultado.errores.push(`${entrante.externo_id}: ${selErr.message}`);
+    return resultado;
+  }
+  const patch = upsertAnuncio(prev as AnuncioGuardado | null, entrante, ahoraIso, null, {
+    parserVersion: PARSER_VERSION,
+  });
+  if (patch.esNuevo) {
+    const { data: inserted, error: insErr } = await supabase
+      .from("captacion_anuncios")
+      .insert(patch.row)
+      .select("id")
+      .single();
+    if (insErr || !inserted) {
+      resultado.errores.push(`${entrante.externo_id}: ${insErr?.message ?? "sin fila"}`);
+      return resultado;
+    }
+    resultado.nuevos += 1;
+    await guardarHistorial(supabase, inserted.id, patch.historial, resultado, entrante.externo_id);
+  } else if (prev) {
+    const { error: updErr } = await supabase.from("captacion_anuncios").update(patch.row).eq("id", prev.id);
+    if (updErr) {
+      resultado.errores.push(`${entrante.externo_id}: ${updErr.message}`);
+      return resultado;
+    }
+    resultado.actualizados += 1;
+    await guardarHistorial(supabase, prev.id, patch.historial, resultado, entrante.externo_id);
+  }
   return resultado;
 }
 
