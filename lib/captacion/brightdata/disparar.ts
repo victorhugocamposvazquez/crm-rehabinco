@@ -16,6 +16,8 @@ export async function dispararIdealista(
     ? new URLSearchParams({
         collector: config.datasetId,
         queue_next: "1",
+        // telefono_ajax llega como objeto y el esquema lo tiene como texto. El CRM no lo usa.
+        override_incompatible_schema: "1",
       })
     : new URLSearchParams({
         dataset_id: config.datasetId,
