@@ -431,7 +431,7 @@ export function CaptacionPortales() {
     }
     const zonas = json.zonas ?? 1;
     toast.success(
-      `Idealista en marcha para ${zonas} ${zonas === 1 ? "zona" : "zonas"}. Los anuncios entrarán al terminar la recogida.`
+      `Idealista en marcha para ${zonas} ${zonas === 1 ? "zona" : "zonas"}. Los anuncios entran en el CRM de 20 en 20.`
     );
   };
 

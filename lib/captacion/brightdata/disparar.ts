@@ -9,12 +9,12 @@ export async function dispararIdealista(
   if (urls.length === 0) throw new Error("No hay zonas marcadas.");
   const destino = new URL(webhookUrl);
   if (!destino.searchParams.get("token")) destino.searchParams.set("token", config.webhookSecret);
-  const aviso = JSON.stringify({ type: "webhook", endpoint: destino.toString() });
+  // En un collector, notify sustituye la entrega configurada y no manda los anuncios.
+  // Sin notify ni deliver se usan las Delivery preferences: webhook y lotes de 20.
   const params = config.datasetId.startsWith("c_")
     ? new URLSearchParams({
         collector: config.datasetId,
         queue_next: "1",
-        notify: aviso,
       })
     : new URLSearchParams({
         dataset_id: config.datasetId,
