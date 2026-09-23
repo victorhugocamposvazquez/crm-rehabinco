@@ -247,6 +247,15 @@ export function publicadoEsCarga(
   return Math.abs(a - b) < 3 * 60 * 1000;
 }
 
+/** Fecha que mandó el portal. Null si `publicado_en` es solo la hora en que el CRM lo guardó. */
+export function fechaPublicacionPortal(
+  publicado: string | null | undefined,
+  creado: string | null | undefined
+): string | null {
+  if (!publicado || publicadoEsCarga(publicado, creado)) return null;
+  return publicado;
+}
+
 export function fotosAnuncio(valor: unknown): string[] {
   if (!Array.isArray(valor)) return [];
   const urls: string[] = [];
@@ -314,6 +323,25 @@ export function diasEnPortal(iso: string | null | undefined, ahora = new Date())
   const a = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
   const b = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
   return Math.max(0, Math.round((a.getTime() - b.getTime()) / 86400000));
+}
+
+export function publicadoHoy(
+  publicado: string | null | undefined,
+  creado: string | null | undefined,
+  ahora = new Date()
+): boolean {
+  const portal = fechaPublicacionPortal(publicado, creado);
+  return portal != null && diasEnPortal(portal, ahora) === 0;
+}
+
+/** Fecha de Idealista, o un aviso si el listado no la trajo. */
+export function textoPublicado(
+  a: { publicado_en: string | null; created_at: string | null; desaparecido_en?: string | null },
+  ahora = new Date()
+): string {
+  if (a.desaparecido_en) return `Retirado el ${fechaCorta(new Date(a.desaparecido_en))}`;
+  const portal = fechaPublicacionPortal(a.publicado_en, a.created_at);
+  return portal ? cuandoPublicado(portal, ahora) : "Sin fecha del portal";
 }
 
 export function tagsConEstilo(tags: string[]) {

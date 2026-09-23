@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { anuncianteIdealista, mapearIdealista, paramsIdealistaDesdeAlerta, tipoIdealista } from "./legacy/idealista";
-import { claveContacto, cuandoPublicado, diasEnPortal, paginasVisibles, pctBajada, publicadoEsCarga } from "./modelo";
+import { claveContacto, cuandoPublicado, diasEnPortal, paginasVisibles, pctBajada, publicadoEsCarga, publicadoHoy, textoPublicado } from "./modelo";
 import { desaparecidosTrasSync, filtrarParticular, fusionarAnuncio } from "./sync";
 import { enmascararClave } from "./credenciales";
 import { siguienteReferencia, payloadClienteDesdeAnuncio, payloadPropiedadDesdeAnuncio, tipoInmuebleDesdeAnuncio } from "./captar";
@@ -158,6 +158,19 @@ describe("captación portales", () => {
     assert.equal(siguienteReferencia(["RHB-2026-0019", "X"], 2026), "RHB-2026-0020");
     assert.equal(publicadoEsCarga("2026-09-23T14:08:00.000Z", "2026-09-23T14:08:20.000Z"), true);
     assert.equal(publicadoEsCarga("2026-09-01T10:00:00.000Z", "2026-09-23T14:08:00.000Z"), false);
+    assert.equal(publicadoHoy("2026-09-23T14:08:00.000Z", "2026-09-23T14:08:20.000Z", new Date("2026-09-23T18:00:00.000Z")), false);
+    assert.equal(publicadoHoy("2026-09-23T12:00:00.000Z", "2026-09-23T18:00:00.000Z", new Date("2026-09-23T18:00:00.000Z")), true);
+    assert.equal(
+      textoPublicado({ publicado_en: "2026-09-23T14:08:00.000Z", created_at: "2026-09-23T14:08:20.000Z" }),
+      "Sin fecha del portal"
+    );
+    assert.equal(
+      textoPublicado(
+        { publicado_en: "2026-09-01T12:00:00.000Z", created_at: "2026-09-23T14:08:00.000Z" },
+        new Date("2026-09-23T18:00:00.000Z")
+      ),
+      "01/09/2026"
+    );
     assert.deepEqual(paginasVisibles(1, 3), [1, 2, 3]);
     assert.deepEqual(paginasVisibles(14, 337), [1, "…", 13, 14, 15, "…", 337]);
   });

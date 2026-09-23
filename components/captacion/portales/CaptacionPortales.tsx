@@ -29,6 +29,7 @@ import {
   TIPOS_ANUNCIO,
   cuandoPublicado,
   diasEnPortal,
+  fechaPublicacionPortal,
   euros,
   eurosM2,
   fotosAnuncio,
@@ -37,10 +38,9 @@ import {
   labelFuentePortal,
   parseFuentePortal,
   pctBajada,
-  detectadoEl,
   estadoTelefonoIdealista,
-  fechaCorta,
-  publicadoEsCarga,
+  publicadoHoy,
+  textoPublicado,
   tagsConEstilo,
   type AlertaCaptacion,
   type AnuncioCaptacion,
@@ -310,7 +310,7 @@ export function CaptacionPortales() {
       const smax = Number(filtros.m2Max);
       if (filtros.m2Min && (a.superficie == null || a.superficie < smin)) return false;
       if (filtros.m2Max && (a.superficie == null || a.superficie > smax)) return false;
-      if (chip === "hoy" && diasEnPortal(a.publicado_en) !== 0) return false;
+      if (chip === "hoy" && !publicadoHoy(a.publicado_en, a.created_at)) return false;
       if (chip === "sinasig" && a.comercial_id) return false;
       if (chip === "mias" && (admin ? !a.comercial_id : a.comercial_id !== user?.id)) return false;
       if (chip === "bajada" && !a.tags.includes("Bajada")) return false;
@@ -322,7 +322,11 @@ export function CaptacionPortales() {
       if (orden === "precio") return (a.precio ?? 0) - (b.precio ?? 0);
       if (orden === "pm2") return (a.precio ?? 0) / Math.max(a.superficie ?? 1, 1) - (b.precio ?? 0) / Math.max(b.superficie ?? 1, 1);
       if (orden === "m2") return (b.superficie ?? 0) - (a.superficie ?? 0);
-      return diasEnPortal(a.publicado_en) - diasEnPortal(b.publicado_en);
+      const dias = (row: { publicado_en: string | null; created_at: string | null }) => {
+        const portal = fechaPublicacionPortal(row.publicado_en, row.created_at);
+        return portal ? diasEnPortal(portal) : Number.MAX_SAFE_INTEGER;
+      };
+      return dias(a) - dias(b);
     });
     return list;
   }, [nov, anuncios, q, fAlerta, fCiudad, filtros, chip, orden, admin, user?.id]);
@@ -481,14 +485,14 @@ export function CaptacionPortales() {
   };
 
   const kpis = [
-    { valor: nov.filter((a) => diasEnPortal(a.publicado_en) === 0).length, label: "Nuevos hoy", chip: "hoy" as ChipNov, fg: "#131C1A" },
+    { valor: nov.filter((a) => publicadoHoy(a.publicado_en, a.created_at)).length, label: "Nuevos hoy", chip: "hoy" as ChipNov, fg: "#131C1A" },
     { valor: nov.filter((a) => !a.comercial_id).length, label: "Sin asignar", chip: "sinasig" as ChipNov, fg: nov.some((a) => !a.comercial_id) ? "#7A5A10" : "#131C1A" },
     { valor: nov.filter((a) => a.tags.includes("Bajada")).length, label: "Bajadas de precio", chip: "bajada" as ChipNov, fg: "#0B7461" },
     { valor: seg.filter((a) => a.fase !== "captado" && a.fase !== "perdido").length, label: "En seguimiento", chip: "todas" as ChipNov, fg: "#131C1A" },
   ];
   const chips: Array<[ChipNov, string, number]> = [
     ["todas", "Todas", nov.length],
-    ["hoy", "Hoy", nov.filter((a) => diasEnPortal(a.publicado_en) === 0).length],
+    ["hoy", "Hoy", nov.filter((a) => publicadoHoy(a.publicado_en, a.created_at)).length],
     ["sinasig", "Sin asignar", nov.filter((a) => !a.comercial_id).length],
     ["mias", admin ? "Asignadas" : "Mías", nov.filter((a) => (admin ? Boolean(a.comercial_id) : a.comercial_id === user?.id)).length],
     ["bajada", "Bajadas", nov.filter((a) => a.tags.includes("Bajada")).length],
@@ -744,7 +748,7 @@ export function CaptacionPortales() {
                     </button>
                     <div className="relative h-[72px] w-[88px] shrink-0 overflow-hidden rounded-[8px] bg-[#E8E4DC]">
                       <FotoPortal src={portadaDe(a)} />
-                      {diasEnPortal(a.publicado_en) === 0 ? <span className="absolute left-0 top-0 rounded-br bg-accent px-1 py-px text-[9px] font-bold tracking-wide text-white">NUEVO</span> : null}
+                      {publicadoHoy(a.publicado_en, a.created_at) ? <span className="absolute left-0 top-0 rounded-br bg-accent px-1 py-px text-[9px] font-bold tracking-wide text-white">NUEVO</span> : null}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
@@ -778,7 +782,7 @@ export function CaptacionPortales() {
                   <div className="flex min-w-0 items-center gap-2.5">
                     <div className="relative h-11 w-[60px] shrink-0 overflow-hidden rounded-[7px] bg-[#E8E4DC]">
                       <FotoPortal src={portadaDe(a)} />
-                      {diasEnPortal(a.publicado_en) === 0 ? <span className="absolute left-0 top-0 rounded-br bg-accent px-1 py-px text-[9px] font-bold tracking-wide text-white">NUEVO</span> : null}
+                      {publicadoHoy(a.publicado_en, a.created_at) ? <span className="absolute left-0 top-0 rounded-br bg-accent px-1 py-px text-[9px] font-bold tracking-wide text-white">NUEVO</span> : null}
                     </div>
                     <div className="min-w-0">
                       <div className="flex min-w-0 items-center gap-1.5">
@@ -790,7 +794,7 @@ export function CaptacionPortales() {
                         <span className="flex shrink-0 items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ background: PORTAL_COLOR[a.fuente] }} />{labelFuentePortal(a.fuente)}</span>
                         <span className="font-mono text-[11px]">{a.fuente.slice(0, 2)}.{a.externo_id}</span>
                         <span className="whitespace-nowrap">{a.tipo ? TIPO_ANUNCIO_LABEL[a.tipo as keyof typeof TIPO_ANUNCIO_LABEL] ?? a.tipo : "—"}{a.habitaciones ? ` · ${a.habitaciones} hab` : ""}{!wide && a.superficie ? ` · ${a.superficie} m²` : ""}</span>
-                        <span className="whitespace-nowrap">{a.desaparecido_en ? `Retirado el ${fechaCorta(new Date(a.desaparecido_en))}` : publicadoEsCarga(a.publicado_en, a.created_at) ? detectadoEl(a.visto_primera_vez || a.created_at) : cuandoPublicado(a.publicado_en)}</span>
+                        <span className="whitespace-nowrap">{textoPublicado(a)}</span>
                       </div>
                     </div>
                   </div>
@@ -907,7 +911,7 @@ export function CaptacionPortales() {
           <div className="grid grid-cols-1 gap-3 min-[720px]:grid-cols-2 min-[1100px]:grid-cols-3">
             {alertas.map((a) => {
               const com = comercialDe(a.comercial_id) ?? comercialDe(a.created_by);
-              const hoy = nov.filter((n) => n.alerta_id === a.id && diasEnPortal(n.publicado_en) === 0).length;
+              const hoy = nov.filter((n) => n.alerta_id === a.id && publicadoHoy(n.publicado_en, n.created_at)).length;
               return (
                 <div key={a.id} className="rounded-[13px] border border-[var(--border)] bg-white p-4" style={{ opacity: a.activa ? 1 : 0.6 }}>
                   <div className="flex items-start justify-between gap-2.5">
@@ -1236,7 +1240,7 @@ function PeekAnuncio({
         <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Hab.</div>{a.habitaciones ?? "—"}</div>
         <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Contacto</div>{a.contacto_nombre || "—"}</div>
         <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Teléfono</div><span className="font-mono text-[12.5px]">{a.contacto_telefono || "Sin teléfono"}</span>{estadoTelefonoIdealista(a) ? <div className="text-[11px] text-[var(--text-2)]">{estadoTelefonoIdealista(a)}</div> : null}</div>
-        <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Publicado</div>{a.desaparecido_en ? `Retirado el ${fechaCorta(new Date(a.desaparecido_en))}` : publicadoEsCarga(a.publicado_en, a.created_at) ? detectadoEl(a.visto_primera_vez || a.created_at) : cuandoPublicado(a.publicado_en)}</div>
+        <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Publicado</div>{textoPublicado(a)}</div>
       </div>
       <div className="border-b border-[var(--border-soft)] px-4 py-3">
         <div className="mb-2 text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Asignar a</div>
