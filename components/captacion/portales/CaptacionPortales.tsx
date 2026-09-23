@@ -424,6 +424,27 @@ export function CaptacionPortales() {
     );
   };
 
+  const cargarRecogida = async () => {
+    setSyncing(true);
+    const res = await fetch("/api/captacion/brightdata/importar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: "j_mudw48hdle77970gz" }),
+    });
+    const json = (await res.json()) as { ok?: boolean; error?: string; pendiente?: boolean; nuevos?: number; actualizados?: number };
+    setSyncing(false);
+    if (!res.ok || !json.ok) {
+      toast.error(json.error || "No se ha podido cargar la recogida.");
+      return;
+    }
+    if (json.pendiente) {
+      toast.message("Bright Data sigue recogiendo. Prueba otra vez en unos minutos.");
+      return;
+    }
+    toast.success(`Cargados ${json.nuevos ?? 0} anuncios nuevos y ${json.actualizados ?? 0} actualizados.`);
+    cargar();
+  };
+
   const crearAlerta = async () => {
     if (!user || !draftAlerta.nombre.trim()) {
       toast.error("Pon un nombre a la alerta.");
@@ -526,14 +547,24 @@ export function CaptacionPortales() {
           <span className="h-2 w-2 rounded-full bg-accent" />
           Última actualización {ultima ? cuandoPublicado(ultima) : "—"}
           {admin ? (
-            <button
-              type="button"
-              onClick={() => void refrescar()}
-              disabled={syncing}
-              className="h-8 rounded-lg border border-[var(--input)] bg-white px-2.5 text-[12.5px] font-semibold hover:border-accent hover:text-accent disabled:opacity-60"
-            >
-              {syncing ? "Lanzando…" : "Traer Idealista"}
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => void cargarRecogida()}
+                disabled={syncing}
+                className="h-8 rounded-lg border border-[var(--input)] bg-white px-2.5 text-[12.5px] font-semibold hover:border-accent hover:text-accent disabled:opacity-60"
+              >
+                {syncing ? "Cargando…" : "Cargar recogida"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void refrescar()}
+                disabled={syncing}
+                className="h-8 rounded-lg border border-[var(--input)] bg-white px-2.5 text-[12.5px] font-semibold hover:border-accent hover:text-accent disabled:opacity-60"
+              >
+                {syncing ? "Lanzando…" : "Traer Idealista"}
+              </button>
+            </>
           ) : null}
           <button
             type="button"

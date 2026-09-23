@@ -9,12 +9,20 @@ export async function dispararIdealista(
   if (urls.length === 0) throw new Error("No hay zonas marcadas.");
   const destino = new URL(webhookUrl);
   if (!destino.searchParams.get("token")) destino.searchParams.set("token", config.webhookSecret);
-  const entrega = JSON.stringify({ type: "webhook", endpoint: destino.toString() });
+  const destinoUrl = destino.toString();
+  const entrega = JSON.stringify({
+    type: "webhook",
+    endpoint: destinoUrl,
+    filename: { template: "idealista", extension: "json" },
+    delivery_type: "deliver_results",
+  });
+  const aviso = JSON.stringify({ type: "webhook", endpoint: destinoUrl });
   const params = config.datasetId.startsWith("c_")
     ? new URLSearchParams({
         collector: config.datasetId,
         queue_next: "1",
         deliver: entrega,
+        notify: aviso,
       })
     : new URLSearchParams({
         dataset_id: config.datasetId,
@@ -58,5 +66,10 @@ export async function descargarSnapshot(token: string, snapshotId: string): Prom
     const texto = await res.text();
     throw new Error(texto.slice(0, 300) || `Snapshot ${res.status}.`);
   }
-  return res.json();
+  const data = await res.json();
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    const estado = String((data as { status?: unknown; Status?: unknown }).status ?? (data as { Status?: unknown }).Status ?? "");
+    if (/running|collecting|building|starting|pending/i.test(estado)) return { pendiente: true };
+  }
+  return data;
 }
