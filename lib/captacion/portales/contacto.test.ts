@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { notasRecordatorioCaptacion, rellenarPlantilla, telefonoWhatsapp, urlWhatsapp } from "./contacto";
+import {
+  inmuebleDesdeNotasCaptacion,
+  notasRecordatorioCaptacion,
+  rellenarPlantilla,
+  telefonoWhatsapp,
+  urlWhatsapp,
+} from "./contacto";
 
 describe("contacto de captación", () => {
   it("rellena la plantilla y quita el nombre vacío", () => {
@@ -32,5 +38,6 @@ describe("contacto de captación", () => {
     assert.match(notas, /^Captación\n/);
     assert.match(notas, /Alex/);
     assert.match(notas, /112617965/);
+    assert.equal(inmuebleDesdeNotasCaptacion(notas, "Ciudad Jardín, A Coruña"), "Ático en Ciudad Jardín · Ciudad Jardín, A Coruña");
   });
 });

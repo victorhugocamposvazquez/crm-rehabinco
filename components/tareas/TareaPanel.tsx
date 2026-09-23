@@ -10,6 +10,7 @@ import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { CampoComentario, TextoConMenciones } from "@/components/tareas/CampoComentario";
 import { useFichaPeek } from "@/components/crm/FichaPeek";
 import { relacionUno } from "@/lib/citas/citas";
+import { inmuebleDesdeNotasCaptacion } from "@/lib/captacion/portales/contacto";
 import { nombreYApellido } from "@/lib/ui/tokens";
 import {
   COLUMNAS_TAREA,
@@ -40,6 +41,7 @@ export type TareaDetalle = {
   clientes?: { nombre?: string | null } | null;
   demandas?: { tipo_operacion?: string | null } | null;
   partes_visita?: { inmueble_direccion?: string | null; fecha_visita?: string | null } | null;
+  cita?: { lugar?: string | null; notas?: string | null } | null;
   profiles?: { nombre_completo?: string | null; color?: string | null; email?: string | null } | null;
   creador?: { nombre_completo?: string | null; color?: string | null; email?: string | null } | null;
 };
@@ -193,10 +195,11 @@ export function TareaPanel({
       tarea.profiles?.nombre_completo ?? comerciales.find((c) => c.id === tarea.comercial_id)?.nombre,
       tarea.profiles?.email
     ) || "—";
+  const inmuebleCaptacion = tarea.propiedad_id ? null : inmuebleDesdeNotasCaptacion(tarea.cita?.notas, tarea.cita?.lugar);
   const vinculo = textoVinculoTarea({
     propiedad: [tarea.propiedades?.referencia, tarea.propiedades?.titulo || tarea.propiedades?.direccion]
       .filter(Boolean)
-      .join(" · "),
+      .join(" · ") || inmuebleCaptacion,
     cliente: tarea.clientes?.nombre,
     finca: tarea.finca_reference,
     demanda: tarea.demandas?.tipo_operacion ? `Demanda ${tarea.demandas.tipo_operacion}` : null,
@@ -375,6 +378,8 @@ export function TareaPanel({
                 >
                   {vinculo}
                 </button>
+              ) : inmuebleCaptacion ? (
+                <p className="mt-1 rounded-[9px] bg-accent-soft px-3 py-2 text-[13.5px] font-medium text-accent">{inmuebleCaptacion}</p>
               ) : (
                 <p className="mt-1 text-[13.5px] text-[var(--text-2)]">Sin vincular</p>
               )}
@@ -412,9 +417,19 @@ export function TareaPanel({
           <div className="mt-[18px] grid gap-3">
             <CampoVinculo
               label="Inmueble"
-              valor={tarea.propiedad_id ? (propsOpts.find((p) => p.id === tarea.propiedad_id)?.label || vinculo) : null}
+              valor={
+                tarea.propiedad_id
+                  ? propsOpts.find((p) => p.id === tarea.propiedad_id)?.label || vinculo
+                  : inmuebleCaptacion
+              }
               onVer={tarea.propiedad_id ? () => abrirFicha({ tipo: "propiedad", id: tarea.propiedad_id! }) : undefined}
             >
+              {inmuebleCaptacion ? (
+                <div className="mt-1 rounded-[9px] bg-accent-soft px-3 py-2">
+                  <div className="text-[11px] font-semibold uppercase tracking-[.07em] text-accent">Captación</div>
+                  <p className="mt-0.5 text-[13.5px] font-medium leading-snug">{inmuebleCaptacion}</p>
+                </div>
+              ) : null}
               <select
                 value={tarea.propiedad_id ?? ""}
                 onChange={(e) =>
@@ -422,7 +437,7 @@ export function TareaPanel({
                 }
                 className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 text-[13.5px] text-foreground"
               >
-                <option value="">Sin inmueble</option>
+                <option value="">{inmuebleCaptacion ? "Sin inmueble del CRM" : "Sin inmueble"}</option>
                 {propsOpts.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.label}

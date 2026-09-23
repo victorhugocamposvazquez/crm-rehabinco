@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { FiltroComercial, type ComercialFiltro } from "@/components/captacion/FiltroComercial";
 import { useFiltroComercial } from "@/lib/ui/filtro-comercial";
 import { relacionUno } from "@/lib/citas/citas";
+import { inmuebleDesdeNotasCaptacion } from "@/lib/captacion/portales/contacto";
 import { nombreYApellido } from "@/lib/ui/tokens";
 import {
   COLUMNAS_TAREA,
@@ -31,13 +32,14 @@ function normalizar(row: TareaDetalle & Record<string, unknown>): TareaDetalle {
     clientes: relacionUno(row.clientes as TareaDetalle["clientes"] | TareaDetalle["clientes"][] | null),
     demandas: relacionUno(row.demandas as TareaDetalle["demandas"] | TareaDetalle["demandas"][] | null),
     partes_visita: relacionUno(row.partes_visita as TareaDetalle["partes_visita"] | TareaDetalle["partes_visita"][] | null),
+    cita: relacionUno(row.cita as TareaDetalle["cita"] | TareaDetalle["cita"][] | null),
     profiles: relacionUno(row.profiles as TareaDetalle["profiles"] | TareaDetalle["profiles"][] | null),
     creador: relacionUno(row.creador as TareaDetalle["creador"] | TareaDetalle["creador"][] | null),
   };
 }
 
 const SELECT_TAREA =
-  "id, comercial_id, creado_por, mencionados, titulo, vence, hora, estado, finca_reference, propiedad_id, cliente_id, demanda_id, cita_id, parte_visita_id, created_at, propiedades:propiedad_id(titulo, direccion, referencia), clientes:cliente_id(nombre), demandas:demanda_id(tipo_operacion), partes_visita:parte_visita_id(inmueble_direccion, fecha_visita), profiles:comercial_id(nombre_completo, color, email), creador:creado_por(nombre_completo, color, email)";
+  "id, comercial_id, creado_por, mencionados, titulo, vence, hora, estado, finca_reference, propiedad_id, cliente_id, demanda_id, cita_id, parte_visita_id, created_at, propiedades:propiedad_id(titulo, direccion, referencia), clientes:cliente_id(nombre), demandas:demanda_id(tipo_operacion), partes_visita:parte_visita_id(inmueble_direccion, fecha_visita), cita:citas!tareas_cita_id_fkey(lugar, notas), profiles:comercial_id(nombre_completo, color, email), creador:creado_por(nombre_completo, color, email)";
 
 function personaDe(
   id: string,
@@ -138,8 +140,13 @@ export default function TareasPage() {
           vencida: v.vencida,
           hecha: t.estado === "hecha",
           link: (() => {
+            const captacion = inmuebleDesdeNotasCaptacion(t.cita?.notas, t.cita?.lugar);
             const texto = textoVinculoTarea({
-              propiedad: t.propiedades?.referencia || t.propiedades?.titulo || t.propiedades?.direccion,
+              propiedad:
+                t.propiedades?.referencia ||
+                t.propiedades?.titulo ||
+                t.propiedades?.direccion ||
+                captacion,
               cliente: t.clientes?.nombre,
               finca: t.finca_reference,
               demanda: t.demandas?.tipo_operacion,

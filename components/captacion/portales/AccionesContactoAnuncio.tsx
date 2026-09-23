@@ -21,7 +21,35 @@ function mananaIso(): string {
   return fecha.toISOString().slice(0, 10);
 }
 
-export function AccionesContactoAnuncio({ anuncio }: { anuncio: AnuncioCaptacion }) {
+export type HechoCaptacion = { id: string; tipo: string; texto: string; cuando: string };
+
+const ETIQUETA_HECHO: Record<string, string> = {
+  fase: "Seguimiento",
+  nota: "Nota",
+  asignacion: "Asignación",
+  bajada: "Precio",
+  captado: "Captado",
+  detectado: "Entrada",
+  retirado: "Retirado",
+};
+
+function etiquetaHecho(item: HechoCaptacion): string {
+  const texto = item.texto.toLowerCase();
+  if (texto.startsWith("whatsapp")) return "WhatsApp";
+  if (texto.startsWith("recordatorio")) return "Recordatorio";
+  if (texto.startsWith("llamada")) return "Llamada";
+  return ETIQUETA_HECHO[item.tipo] ?? "Actividad";
+}
+
+export function AccionesContactoAnuncio({
+  anuncio,
+  hechos,
+  onRegistrado,
+}: {
+  anuncio: AnuncioCaptacion;
+  hechos: HechoCaptacion[];
+  onRegistrado?: () => void;
+}) {
   const { user } = useAuth();
   const telefono = anuncio.contacto_telefono?.trim() || "";
   const [modo, setModo] = useState<null | "recordatorio" | "whatsapp">(null);
@@ -29,8 +57,6 @@ export function AccionesContactoAnuncio({ anuncio }: { anuncio: AnuncioCaptacion
   const [hora, setHora] = useState("10:00");
   const [guardando, setGuardando] = useState(false);
   const [plantillaId, setPlantillaId] = useState(PLANTILLAS_WHATSAPP[0].id);
-
-  if (!telefono) return null;
 
   const comercial = nombreYApellido(user?.nombre, user?.email) || "Rehabinco";
   const plantilla = PLANTILLAS_WHATSAPP.find((item) => item.id === plantillaId) ?? PLANTILLAS_WHATSAPP[0];
@@ -99,45 +125,83 @@ export function AccionesContactoAnuncio({ anuncio }: { anuncio: AnuncioCaptacion
     });
     setGuardando(false);
     setModo(null);
+    onRegistrado?.();
     toast.success("Recordatorio en el calendario y en Tareas.");
   };
 
-  const abrirWhatsapp = () => {
+  const abrirWhatsapp = async () => {
     window.open(urlWhatsapp(telefono, mensaje), "_blank", "noopener,noreferrer");
+    if (user) {
+      const supabase = createClient();
+      await supabase.from("captacion_anuncios_actividad").insert({
+        anuncio_id: anuncio.id,
+        actor_id: user.id,
+        tipo: "nota",
+        detalle: `WhatsApp · ${plantilla.nombre}`,
+      });
+      onRegistrado?.();
+    }
     setModo(null);
   };
 
+  const registrarLlamada = async () => {
+    if (!user) return;
+    const supabase = createClient();
+    await supabase.from("captacion_anuncios_actividad").insert({
+      anuncio_id: anuncio.id,
+      actor_id: user.id,
+      tipo: "nota",
+      detalle: "Llamada desde captación",
+    });
+    onRegistrado?.();
+  };
+
+  const hechosOrdenados = [...hechos].reverse();
+
   return (
     <div className="border-b border-[var(--border-soft)] px-4 py-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <a href={`tel:${telefono.replace(/\s/g, "")}`} className="font-mono text-[16px] font-semibold tracking-tight text-[var(--text)] no-underline">
-            {telefono}
-          </a>
-          {anuncio.contacto_nombre ? <div className="text-[12.5px] text-[var(--text-2)]">{anuncio.contacto_nombre}</div> : null}
-        </div>
-        <div className="flex shrink-0 gap-1.5">
-          <button
-            type="button"
-            onClick={() => setModo(modo === "recordatorio" ? null : "recordatorio")}
-            className="h-8 rounded-lg border border-[var(--input)] bg-white px-2.5 text-[12px] font-semibold hover:border-accent"
-          >
-            Recordatorio
-          </button>
-          <button
-            type="button"
-            onClick={() => setModo(modo === "whatsapp" ? null : "whatsapp")}
-            className="h-8 rounded-lg bg-[#128C7E] px-2.5 text-[12px] font-semibold text-white"
-          >
-            WhatsApp
-          </button>
-        </div>
+      {telefono ? (
+      <>
+      <div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Contacto</div>
+      <div className="mt-1.5 flex items-baseline justify-between gap-3">
+        <a href={`tel:${telefono.replace(/\s/g, "")}`} className="font-mono text-[18px] font-semibold tracking-tight text-[var(--text)] no-underline">
+          {telefono}
+        </a>
+        {anuncio.contacto_nombre ? <span className="truncate text-[13px] text-[var(--text-2)]">{anuncio.contacto_nombre}</span> : null}
+      </div>
+      <div className="mt-2.5 grid grid-cols-3 gap-1.5">
+        <a
+          href={`tel:${telefono.replace(/\s/g, "")}`}
+          onClick={() => void registrarLlamada()}
+          className="flex h-9 items-center justify-center rounded-lg border border-[var(--input)] bg-white text-[12.5px] font-semibold no-underline"
+        >
+          Llamar
+        </a>
+        <button
+          type="button"
+          onClick={() => setModo(modo === "recordatorio" ? null : "recordatorio")}
+          className="h-9 rounded-lg border text-[12.5px] font-semibold"
+          style={{
+            borderColor: modo === "recordatorio" ? "#0B7461" : "var(--input)",
+            background: modo === "recordatorio" ? "#E7F3EF" : "white",
+          }}
+        >
+          Recordatorio
+        </button>
+        <button
+          type="button"
+          onClick={() => setModo(modo === "whatsapp" ? null : "whatsapp")}
+          className="h-9 rounded-lg text-[12.5px] font-semibold text-white"
+          style={{ background: modo === "whatsapp" ? "#075E54" : "#128C7E" }}
+        >
+          WhatsApp
+        </button>
       </div>
 
       {modo === "recordatorio" ? (
         <div className="mt-3 rounded-[10px] border border-[var(--border)] bg-[#F7F6F3] p-3">
           <p className="text-[12.5px] text-[var(--text-2)]">
-            Se crea un recordatorio de captación en el calendario y una tarea. {anuncio.propiedad_id ? "El inmueble del CRM queda enlazado." : "El anuncio va en el título y en las notas."}
+            Se crea un recordatorio de captación en el calendario y una tarea, con el anuncio escrito en el inmueble. {anuncio.propiedad_id ? "El inmueble del CRM queda enlazado." : ""}
           </p>
           <div className="mt-2 flex gap-2">
             <input
@@ -192,6 +256,33 @@ export function AccionesContactoAnuncio({ anuncio }: { anuncio: AnuncioCaptacion
           </button>
         </div>
       ) : null}
+      </>
+      ) : null}
+
+      <div className={telefono ? "mt-4" : ""}>
+        <div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Hecho</div>
+        {hechosOrdenados.length === 0 ? (
+          <p className="mt-2 text-[12.5px] text-[var(--text-3)]">Todavía no hay llamadas, WhatsApp ni recordatorios.</p>
+        ) : (
+          <ol className="mt-2">
+            {hechosOrdenados.map((item, indice) => (
+              <li key={item.id} className="grid grid-cols-[16px_1fr] gap-2">
+                <span className="flex flex-col items-center">
+                  <span className="mt-1.5 h-2 w-2 rounded-full bg-accent" />
+                  {indice < hechosOrdenados.length - 1 ? <span className="w-px flex-1 bg-[var(--border)]" /> : null}
+                </span>
+                <div className="pb-3">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-[12px] font-semibold text-accent">{etiquetaHecho(item)}</span>
+                    <span className="shrink-0 text-[11px] tabular-nums text-[var(--text-3)]">{item.cuando}</span>
+                  </div>
+                  <p className="mt-0.5 text-[13px] leading-snug">{item.texto}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
     </div>
   );
 }

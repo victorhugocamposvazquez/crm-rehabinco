@@ -61,6 +61,18 @@ export function urlWhatsapp(telefono: string, mensaje: string): string {
   return `https://wa.me/${telefonoWhatsapp(telefono)}?text=${encodeURIComponent(mensaje)}`;
 }
 
+/** Título y zona guardados en las notas de un recordatorio de captación. */
+export function inmuebleDesdeNotasCaptacion(notas: string | null | undefined, lugar?: string | null): string | null {
+  const lineas = (notas ?? "")
+    .split("\n")
+    .map((linea) => linea.trim())
+    .filter(Boolean);
+  if (lineas[0] !== "Captación") return lugar?.trim() || null;
+  const titulo = lineas[1] ?? "";
+  const zona = lugar?.trim() && lugar.trim() !== titulo ? lugar.trim() : "";
+  return [titulo, zona].filter(Boolean).join(" · ") || "Captación";
+}
+
 export function notasRecordatorioCaptacion(datos: {
   titulo: string;
   zona?: string | null;

@@ -159,6 +159,7 @@ export function CaptacionPortales() {
   const [anuncios, setAnuncios] = useState<AnuncioCaptacion[]>([]);
   const [alertas, setAlertas] = useState<AlertaCaptacion[]>([]);
   const [actividad, setActividad] = useState<Actividad[]>([]);
+  const [actividadTick, setActividadTick] = useState(0);
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const [prefs, setPrefs] = useState<Prefs>({ nuevos: true, bajada: true, retirado: true, telefono_repite: false, sin_mover: true });
   const [comerciales, setComerciales] = useState<ComercialFiltro[]>([]);
@@ -262,7 +263,7 @@ export function CaptacionPortales() {
           }))
         );
       });
-  }, [sel]);
+  }, [sel, actividadTick]);
 
   const recuentoClave = useMemo(() => recuentoPorClave(anuncios), [anuncios]);
 
@@ -1152,7 +1153,7 @@ function PeekAnuncio({
           <span className="rounded-md bg-[#F4F3EF] px-2 py-0.5 text-[11px] text-[var(--text-2)]">Alerta: {alertaNombre ?? "—"}</span>
         </div>
       </div>
-      <AccionesContactoAnuncio anuncio={a} />
+      <AccionesContactoAnuncio anuncio={a} hechos={historial} onRegistrado={() => setActividadTick((n) => n + 1)} />
       <div className="flex flex-wrap gap-2 border-b border-[var(--border-soft)] px-4 py-3">
         {a.fase === "novedad" ? (
           <button type="button" onClick={onSeguir} className="h-[38px] min-w-[130px] flex-1 rounded-[9px] bg-accent text-[13px] font-semibold text-white">Pasar a seguimiento</button>
@@ -1162,7 +1163,6 @@ function PeekAnuncio({
           <a href={`/propiedades/${a.propiedad_id}`} className="flex h-[38px] min-w-[130px] flex-1 items-center justify-center rounded-[9px] bg-accent text-[13px] font-semibold text-white no-underline">Ver inmueble</a>
         ) : null}
         {a.cliente_id ? <a href={`/clientes/${a.cliente_id}`} className="flex h-[38px] min-w-[90px] flex-1 items-center justify-center rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold no-underline">Ver cliente</a> : null}
-        {a.contacto_telefono ? <a href={`tel:${a.contacto_telefono.replace(/\s/g, "")}`} className="flex h-[38px] min-w-[90px] flex-1 items-center justify-center rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold no-underline">Llamar</a> : null}
         {a.url ? <a href={a.url} target="_blank" rel="noopener noreferrer" className="flex h-[38px] min-w-[120px] flex-1 items-center justify-center rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold no-underline">Ver en {labelFuentePortal(a.fuente)}</a> : null}
         {!a.contacto_telefono && a.url && onPedirDetalle ? (
           <button type="button" onClick={onPedirDetalle} className="h-[38px] min-w-[120px] flex-1 rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold">Pedir detalle</button>
@@ -1196,13 +1196,6 @@ function PeekAnuncio({
         </div>
       </div>
       <div className="px-4 py-3">
-        <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Historial del anuncio<span className="normal-case tracking-normal text-[12px] text-[var(--text-2)]">{diasEnPortal(a.publicado_en) === 0 ? "publicado hoy" : `${diasEnPortal(a.publicado_en)} días en portal`}</span></div>
-        {historial.map((h) => (
-          <div key={h.id} className="flex gap-2.5 py-1.5 text-[13px]">
-            <span className="w-[58px] shrink-0 tabular-nums text-[var(--text-3)]">{h.cuando}</span>
-            <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-accent" />{h.texto}</span>
-          </div>
-        ))}
         {aviso ? (
           <div
             className="mt-2 rounded-[9px] px-2.5 py-2 text-[12.5px]"
