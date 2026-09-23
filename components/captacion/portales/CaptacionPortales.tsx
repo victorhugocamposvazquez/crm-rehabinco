@@ -45,6 +45,7 @@ import {
   type FuentePortal,
 } from "@/lib/captacion/portales/modelo";
 import { AccionesContactoAnuncio } from "@/components/captacion/portales/AccionesContactoAnuncio";
+import { anuncioIdealistaVacio } from "@/lib/captacion/brightdata/idealista";
 import { cn } from "@/lib/utils";
 
 type Tab = "nov" | "seg" | "ale" | "not";
@@ -170,6 +171,7 @@ export function CaptacionPortales() {
   const [panel, setPanel] = useState(false);
   const [checks, setChecks] = useState<string[]>([]);
   const [anuncios, setAnuncios] = useState<AnuncioCaptacion[]>([]);
+  const [nVacios, setNVacios] = useState(0);
   const [alertas, setAlertas] = useState<AlertaCaptacion[]>([]);
   const [actividad, setActividad] = useState<Actividad[]>([]);
   const [actividadTick, setActividadTick] = useState(0);
@@ -212,7 +214,11 @@ export function CaptacionPortales() {
       supabase.from("captacion_notif_prefs").select("*").eq("user_id", user?.id ?? "").maybeSingle(),
       supabase.from("profiles").select("id, nombre_completo, color, email, role").eq("activo", true),
     ]).then(([a, al, n, p, c]) => {
-      setAnuncios(((a.data ?? []) as Record<string, unknown>[]).map(filaAnuncio));
+      const filas = ((a.data ?? []) as Record<string, unknown>[]).map(filaAnuncio);
+      // Las fichas de Idealista que llegaron sin datos se apartan hasta que se completen.
+      const vacios = filas.filter((f) => f.fuente === "idealista" && f.fase === "novedad" && anuncioIdealistaVacio(f));
+      setNVacios(vacios.length);
+      setAnuncios(filas.filter((f) => !vacios.includes(f)));
       setAlertas(((al.data ?? []) as Record<string, unknown>[]).map(filaAlerta));
       setNotifs((n.data ?? []) as Notif[]);
       if (p.data) {
@@ -633,14 +639,17 @@ export function CaptacionPortales() {
               >
                 {syncing ? "Cargando…" : "Cargar recogida"}
               </button>
-              <button
-                type="button"
-                onClick={() => void completarVacios()}
-                disabled={syncing}
-                className="h-8 rounded-lg border border-[var(--input)] bg-white px-2.5 text-[12.5px] font-semibold hover:border-accent hover:text-accent disabled:opacity-60"
-              >
-                {syncing ? "Pidiendo…" : "Completar vacíos"}
-              </button>
+              {nVacios > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => void completarVacios()}
+                  disabled={syncing}
+                  title="Vuelve a pedir a Bright Data solo las fichas que llegaron sin datos"
+                  className="h-8 rounded-lg border border-[var(--input)] bg-white px-2.5 text-[12.5px] font-semibold hover:border-accent hover:text-accent disabled:opacity-60"
+                >
+                  {syncing ? "Pidiendo…" : `Completar ${nVacios} vacías`}
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={() => void refrescar()}

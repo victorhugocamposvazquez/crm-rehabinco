@@ -264,11 +264,15 @@ export function mapearBrightDataIdealista(raw: Registro): AnuncioEntrante | null
     texto(campo(raw, ["neighborhood", "neighbourhood", "district", "zona", "area"]))
   );
   const direccion = normalizarTexto(texto(campo(raw, ["address", "direccion", "street"])));
+  const tituloPortal = normalizarTexto(texto(campo(raw, ["title", "property_title", "titulo", "name"])));
+  const fotos = fotosDe(raw);
+  const precio = normalizarPrecio(campo(raw, ["price", "precio", "amount"]));
+  // Una ficha que no cargó llega solo con la URL. No pisa lo que ya haya ni entra vacía.
+  if (!tituloPortal && precio == null && fotos.length === 0) return null;
   const titulo =
-    normalizarTexto(texto(campo(raw, ["title", "property_title", "titulo", "name"]))) ||
+    tituloPortal ||
     [direccion, zona, municipio].filter(Boolean).join(", ") ||
     `Anuncio ${externoId}`;
-  const fotos = fotosDe(raw);
   const telefono = telefonoDe(raw);
   const nombre = normalizarTexto(
     texto(campo(raw, ["contact_name", "seller_name", "advertiser_name", "owner_name", "contacto_nombre", "name"]))
@@ -287,7 +291,7 @@ export function mapearBrightDataIdealista(raw: Registro): AnuncioEntrante | null
     operacion: normalizarOperacion(texto(campo(raw, ["operation", "operacion", "listing_type", "transaction"]))),
     tipo: normalizarTipo(texto(campo(raw, ["property_type", "propertyType", "tipo", "type", "building_type"]))),
     anunciante: anuncianteDe(raw),
-    precio: normalizarPrecio(campo(raw, ["price", "precio", "amount"])),
+    precio,
     superficie: normalizarM2(campo(raw, ["size", "surface", "superficie", "sqm", "m2", "area_m2"])),
     habitaciones: normalizarPrecio(campo(raw, ["rooms", "habitaciones", "bedrooms", "num_rooms"])),
     banos: normalizarPrecio(campo(raw, ["bathrooms", "banos", "baths", "num_baths"])),

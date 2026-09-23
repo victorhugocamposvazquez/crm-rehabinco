@@ -90,6 +90,7 @@ describe("mapearBrightDataIdealista", () => {
       false
     );
     assert.equal(urlFichaIdealista("91907401", null), "https://www.idealista.com/inmueble/91907401/");
+    assert.equal(mapearBrightDataIdealista({ url: "https://www.idealista.com/inmueble/91907401/", phone: null }), null);
   });
 
   it("saca registros de un array o de un sobre data", () => {
