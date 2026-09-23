@@ -91,7 +91,12 @@ export async function descargarSnapshot(token: string, snapshotId: string): Prom
     ? `https://api.brightdata.com/dca/dataset?id=${encodeURIComponent(snapshotId)}`
     : `https://api.brightdata.com/datasets/v3/snapshot/${encodeURIComponent(snapshotId)}?format=json`;
   const res = await fetch(ruta, { headers: { Authorization: `Bearer ${token}` } });
-  if (res.status === 202) return { pendiente: true };
+  if (res.status === 202) {
+    const texto = await res.text();
+    const aviso = /try again in\s+(\d+)/i.exec(texto);
+    const esperaSegundos = aviso ? Math.min(45, Math.max(8, Number(aviso[1]))) : 20;
+    return { pendiente: true, esperaSegundos };
+  }
   const texto = await res.text();
   if (!res.ok) {
     throw new Error(texto.slice(0, 300) || `Snapshot ${res.status}.`);

@@ -524,6 +524,7 @@ export function CaptacionPortales() {
           ok?: boolean;
           error?: string;
           pendiente?: boolean;
+          esperaSegundos?: number;
           nuevos?: number;
           actualizados?: number;
           errores?: string[];
@@ -536,8 +537,14 @@ export function CaptacionPortales() {
           return;
         }
         if (json.pendiente) {
-          toast.message("Bright Data sigue recogiendo. Prueba otra vez en unos minutos.", { id: "recogida" });
-          return;
+          if (vuelta >= 8) {
+            toast.message("El archivo todavía no está listo para bajar. Pulsa Cargar recogida otra vez en un minuto.", { id: "recogida" });
+            return;
+          }
+          const espera = Math.min(30, Math.max(8, json.esperaSegundos ?? 20));
+          toast.loading(`Bright Data está preparando el archivo. Sigo en ${espera} s…`, { id: "recogida" });
+          await new Promise((resolver) => setTimeout(resolver, espera * 1000));
+          continue;
         }
         nuevos += json.nuevos ?? 0;
         actualizados += json.actualizados ?? 0;

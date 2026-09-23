@@ -32,7 +32,8 @@ export async function POST(request: Request) {
   try {
     const snapshot = await descargarSnapshot(config.token, id);
     if (snapshot && typeof snapshot === "object" && "pendiente" in snapshot) {
-      return Response.json({ ok: true, pendiente: true });
+      const esperaSegundos = (snapshot as { esperaSegundos?: number }).esperaSegundos ?? 20;
+      return Response.json({ ok: true, pendiente: true, esperaSegundos });
     }
     const todos = registrosBrightData(snapshot);
     const lote = todos.slice(desde, desde + 80);
