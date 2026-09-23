@@ -75,7 +75,10 @@ export function upsertAnuncio(
   opts?: { rawPath?: string | null; parserVersion?: string | null }
 ): PatchAnuncio {
   const portalId = entrante.portal_id ?? entrante.fuente;
-  const clave = claveContacto(entrante.contacto_telefono, entrante.contacto_nombre, entrante.municipio);
+  // Si esta pasada no trajo el teléfono, no se borra el que ya teníamos.
+  const telefono = entrante.contacto_telefono ?? previo?.contacto_telefono ?? null;
+  const nombreContacto = entrante.contacto_nombre ?? previo?.contacto_nombre ?? null;
+  const clave = claveContacto(telefono, nombreContacto, entrante.municipio);
   const tags = new Set(previo?.tags ?? []);
   if (entrante.tipo === "edificio") tags.add("Edificio");
 
@@ -146,8 +149,8 @@ export function upsertAnuncio(
       thumb: entrante.thumb,
       n_fotos: entrante.n_fotos,
       fotos: urlsDeFotosPortal({ thumb: entrante.thumb, fotos: entrante.fotos, raw: entrante.raw }),
-      contacto_nombre: entrante.contacto_nombre,
-      contacto_telefono: entrante.contacto_telefono,
+      contacto_nombre: nombreContacto,
+      contacto_telefono: telefono,
       contacto_clave: clave,
       nombre_comercial: entrante.nombre_comercial ?? null,
       tags: [...tags],

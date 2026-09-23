@@ -84,6 +84,24 @@ describe("upsertAnuncio", () => {
     assert.notEqual(patch.row.hash_contenido, "old");
   });
 
+  it("conserva el teléfono guardado si la nueva pasada no lo trae", () => {
+    const previo = {
+      id: "uuid",
+      portal_id: "idealista",
+      externo_id: "123",
+      precio: 200000,
+      tags: [],
+      fase: "novedad" as const,
+      alerta_id: null,
+      desaparecido_en: null,
+      contacto_telefono: "+34600111222",
+      contacto_nombre: "Fran",
+    };
+    const patch = upsertAnuncio(previo, { ...base, contacto_telefono: null }, "2026-09-23T10:00:00.000Z", null);
+    assert.equal(patch.row.contacto_telefono, "+34600111222");
+    assert.equal(patch.row.contacto_clave, "tel:+34600111222");
+  });
+
   it("marca desaparecidos por portal_id", () => {
     const fuera = desaparecidosTrasSync(
       [

@@ -19,22 +19,26 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("captacion_anuncios")
-    .select("titulo, precio, thumb, externo_id, url")
-    .eq("portal_id", "idealista");
+    .select("titulo, precio, thumb, externo_id, url, contacto_telefono, fase")
+    .eq("portal_id", "idealista")
+    .in("fase", ["novedad", "contacto", "visita", "negociando"]);
   if (error) return Response.json({ ok: false, error: error.message }, { status: 500 });
 
-  const urls = (data ?? [])
-    .filter((row) => anuncioIdealistaVacio(row))
+  // Vacías (solo llegó el id) y con datos pero sin teléfono. Las completas no se piden.
+  const pendientes = (data ?? []).filter((row) => anuncioIdealistaVacio(row) || !row.contacto_telefono);
+  const urls = pendientes
     .map((row) => urlFichaIdealista(String(row.externo_id ?? ""), row.url))
     .filter((url): url is string => Boolean(url));
+  const vacias = pendientes.filter((row) => anuncioIdealistaVacio(row)).length;
+  const sinTelefono = pendientes.length - vacias;
 
   if (urls.length === 0) {
-    return Response.json({ ok: true, fichas: 0 });
+    return Response.json({ ok: true, fichas: 0, vacias, sinTelefono });
   }
 
   try {
     const { snapshotId } = await dispararIdealista(config, urlWebhookPublica(request), urls);
-    return Response.json({ ok: true, fichas: urls.length, snapshotId });
+    return Response.json({ ok: true, fichas: urls.length, vacias, sinTelefono, snapshotId });
   } catch (error) {
     return Response.json(
       { ok: false, error: error instanceof Error ? error.message : "No se han podido pedir las fichas." },

@@ -454,21 +454,30 @@ export function CaptacionPortales() {
     );
   };
 
+  const nSinTelefono = anuncios.filter(
+    (a) => a.fuente === "idealista" && !a.contacto_telefono && !["captado", "descartado"].includes(a.fase)
+  ).length;
+  const nPendientes = nVacios + nSinTelefono;
+
   const completarVacios = async () => {
+    const aviso =
+      `Se van a pedir otra vez ${nPendientes} fichas a Bright Data` +
+      ` (${nVacios} vacías y ${nSinTelefono} sin teléfono). Cada ficha gasta créditos. ¿Seguir?`;
+    if (!window.confirm(aviso)) return;
     setSyncing(true);
     const res = await fetch("/api/captacion/brightdata/completar", { method: "POST" });
-    const json = (await res.json()) as { ok?: boolean; error?: string; fichas?: number };
+    const json = (await res.json()) as { ok?: boolean; error?: string; fichas?: number; vacias?: number; sinTelefono?: number };
     setSyncing(false);
     if (!res.ok || !json.ok) {
-      toast.error(json.error || "No se han podido pedir las fichas vacías.");
+      toast.error(json.error || "No se han podido pedir las fichas.");
       return;
     }
     if (!json.fichas) {
-      toast.message("No hay fichas vacías.");
+      toast.message("No hay fichas que completar.");
       return;
     }
     toast.success(
-      `Pedidas otra vez ${json.fichas} fichas que llegaron vacías. Las que ya tienen precio no se vuelven a pedir.`
+      `Pedidas ${json.fichas} fichas: ${json.vacias ?? 0} vacías y ${json.sinTelefono ?? 0} sin teléfono. Irán entrando de 20 en 20.`
     );
   };
 
@@ -639,15 +648,15 @@ export function CaptacionPortales() {
               >
                 {syncing ? "Cargando…" : "Cargar recogida"}
               </button>
-              {nVacios > 0 ? (
+              {nPendientes > 0 ? (
                 <button
                   type="button"
                   onClick={() => void completarVacios()}
                   disabled={syncing}
-                  title="Vuelve a pedir a Bright Data solo las fichas que llegaron sin datos"
+                  title={`${nVacios} vacías y ${nSinTelefono} sin teléfono. Se piden otra vez a Bright Data; las completas no.`}
                   className="h-8 rounded-lg border border-[var(--input)] bg-white px-2.5 text-[12.5px] font-semibold hover:border-accent hover:text-accent disabled:opacity-60"
                 >
-                  {syncing ? "Pidiendo…" : `Completar ${nVacios} vacías`}
+                  {syncing ? "Pidiendo…" : `Completar ${nPendientes} fichas`}
                 </button>
               ) : null}
               <button
