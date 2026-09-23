@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { indiciosEncubierta } from "@/lib/captacion/portales/relacionados";
 import { upsertAnuncio } from "@/lib/captacion/pipeline/upsert";
-import { anuncioIdealistaVacio, mapearBrightDataIdealista, fechaPortalIdealista, parsearRespuestaDataset, registrosBrightData, urlFichaIdealista } from "./idealista";
+import { anuncioIdealistaVacio, datosPortalDe, mapearBrightDataIdealista, fechaPortalIdealista, parsearRespuestaDataset, registrosBrightData, urlFichaIdealista } from "./idealista";
 
 describe("mapearBrightDataIdealista", () => {
   it("traduce el JSON del collector y deja el teléfono para agrupar contactos", () => {
@@ -86,6 +86,32 @@ describe("mapearBrightDataIdealista", () => {
     assert.equal(
       fechaPortalIdealista("Actualizado hace 3 días", new Date(2026, 8, 23, 12))?.slice(0, 10),
       "2026-09-20"
+    );
+  });
+
+  it("guarda teléfono y fecha aunque la ficha no tenga título", () => {
+    const datos = datosPortalDe({
+      url: "https://www.idealista.com/inmueble/111341722/",
+      phone: "881350992",
+      published_at: "2026-09-22",
+    });
+    assert.ok(datos);
+    assert.equal(datos.externoId, "111341722");
+    assert.equal(datos.telefono, "+34881350992");
+    assert.equal(datos.publicado_en?.slice(0, 10), "2026-09-22");
+    assert.equal(
+      datosPortalDe({
+        url: "https://www.idealista.com/inmueble/111341722/",
+        telefono_ajax: "+34881350992",
+      })?.telefono,
+      "+34881350992"
+    );
+    assert.equal(
+      datosPortalDe({
+        url: "https://www.idealista.com/inmueble/111341722/",
+        telefono_ajax: "<!DOCTYPE html><html>963836808</html>",
+      })?.telefono,
+      null
     );
   });
 

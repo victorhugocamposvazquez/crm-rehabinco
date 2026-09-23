@@ -108,8 +108,11 @@ function telefonoAjax(valor: unknown): string | null {
   let obj = valor;
   if (typeof valor === "string") {
     const t = valor.trim();
-    // Si no es JSON (por ejemplo, la página de desafío de Idealista) no hay teléfono.
-    if (!t.startsWith("{")) return null;
+    if (!t.startsWith("{") && !t.startsWith("[")) {
+      // Un número suelto sí vale. El HTML del desafío de Idealista, no.
+      if (/<[a-z!]/i.test(t)) return null;
+      return /^[+\d][\d\s().-]{8,}$/.test(t) ? t : null;
+    }
     try {
       obj = JSON.parse(t) as unknown;
     } catch {
@@ -197,22 +200,37 @@ export function fechaPortalIdealista(textoFecha: string | null, ahora = new Date
   return fecha.toISOString();
 }
 
+const CLAVES_FECHA = [
+  "published_at",
+  "publicado_en",
+  "publication_date",
+  "date_posted",
+  "datePosted",
+  "listing_date",
+  "publication_text",
+  "updated_text",
+  "date_text",
+  "stats",
+];
+
 function fechaDe(raw: Registro): string | null {
-  const cruda = texto(
-    campo(raw, [
-      "published_at",
-      "publicado_en",
-      "publication_date",
-      "date_posted",
-      "datePosted",
-      "listing_date",
-      "publication_text",
-      "updated_text",
-      "date_text",
-      "stats",
-    ])
+  for (const clave of CLAVES_FECHA) {
+    const iso = fechaPortalIdealista(texto(campo(raw, [clave])));
+    if (iso) return iso;
+  }
+  return null;
+}
+
+/** Teléfono y fecha aunque la ficha no tenga título ni precio. No crea un anuncio vacío. */
+export function datosPortalDe(raw: unknown): { externoId: string; telefono: string | null; publicado_en: string | null } | null {
+  if (!esRegistro(raw)) return null;
+  const url = normalizarTexto(texto(campo(raw, ["url", "listing_url", "link", "property_url"])));
+  const crudoId = texto(
+    campo(raw, ["property_code", "propertyCode", "listing_id", "ad_id", "externo_id", "id", "reference"])
   );
-  return fechaPortalIdealista(cruda);
+  const externoId = idDesdeUrl(url) ?? crudoId?.replace(/\D/g, "") ?? "";
+  if (!/^\d{5,}$/.test(externoId)) return null;
+  return { externoId, telefono: telefonoDe(raw), publicado_en: fechaDe(raw) };
 }
 
 function anuncianteDe(raw: Registro): AnunciantePortal {

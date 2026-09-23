@@ -171,7 +171,6 @@ export function CaptacionPortales() {
   const [panel, setPanel] = useState(false);
   const [checks, setChecks] = useState<string[]>([]);
   const [anuncios, setAnuncios] = useState<AnuncioCaptacion[]>([]);
-  const [nVacios, setNVacios] = useState(0);
   const [alertas, setAlertas] = useState<AlertaCaptacion[]>([]);
   const [actividad, setActividad] = useState<Actividad[]>([]);
   const [actividadTick, setActividadTick] = useState(0);
@@ -217,7 +216,6 @@ export function CaptacionPortales() {
       const filas = ((a.data ?? []) as Record<string, unknown>[]).map(filaAnuncio);
       // Las fichas de Idealista que llegaron sin datos se apartan hasta que se completen.
       const vacios = filas.filter((f) => f.fuente === "idealista" && f.fase === "novedad" && anuncioIdealistaVacio(f));
-      setNVacios(vacios.length);
       setAnuncios(filas.filter((f) => !vacios.includes(f)));
       setAlertas(((al.data ?? []) as Record<string, unknown>[]).map(filaAlerta));
       setNotifs((n.data ?? []) as Notif[]);
@@ -460,110 +458,84 @@ export function CaptacionPortales() {
     );
   };
 
-  const nSinTelefono = anuncios.filter(
-    (a) => a.fuente === "idealista" && !a.contacto_telefono && !["captado", "descartado"].includes(a.fase)
-  ).length;
-  const nPendientes = nVacios + nSinTelefono;
-
-  const completarVacios = async () => {
-    const aviso =
-      `Se van a pedir otra vez ${nPendientes} fichas a Bright Data` +
-      ` (${nVacios} vacías y ${nSinTelefono} sin teléfono). Cada ficha gasta créditos. ¿Seguir?`;
-    if (!window.confirm(aviso)) return;
+  const actualizarIdealista = async () => {
+    const recogidas = ["j_mue9q856184ug8pzl8", "j_muehl9ow292hnw4zof", "j_muehvde1vt1lwdnpp", "j_muehvd1vt1lwdnpp"];
     setSyncing(true);
-    const res = await fetch("/api/captacion/brightdata/completar", { method: "POST" });
-    const json = (await res.json()) as { ok?: boolean; error?: string; fichas?: number; vacias?: number; sinTelefono?: number; snapshotId?: string };
-    setSyncing(false);
-    if (!res.ok || !json.ok) {
-      toast.error(json.error || "No se han podido pedir las fichas.");
-      return;
-    }
-    guardarRecogida(json.snapshotId);
-    if (!json.fichas) {
-      toast.message("No hay fichas que completar.");
-      return;
-    }
-    toast.success(
-      `Pedidas ${json.fichas} fichas: ${json.vacias ?? 0} vacías y ${json.sinTelefono ?? 0} sin teléfono. Irán entrando de 20 en 20.`
-    );
-  };
-
-  const cargarRecogida = async () => {
-    const recogida1739 = "j_mue9q856184ug8pzl8";
-    const ultima = localStorage.getItem(CLAVE_RECOGIDA) || "";
-    const sugerida = !ultima || ultima.startsWith("j_mue12") ? recogida1739 : ultima;
-    const pedido = window.prompt(
-      "Id de la recogida de las 17:39. Ya está escrito. Pulsa Aceptar.",
-      sugerida
-    );
-    if (pedido == null) return;
-    const idRecogida = pedido.trim();
-    if (!idRecogida.startsWith("j_")) {
-      toast.error("El id tiene que empezar por j_.");
-      return;
-    }
-    if (idRecogida.startsWith("j_mue12")) {
-      toast.error("Esa es la recogida de esta mañana. No trae teléfono ni fecha. Pega la de las 17:39.");
-      return;
-    }
-    guardarRecogida(idRecogida);
-    setSyncing(true);
-    toast.loading("Cargando anuncios…", { id: "recogida" });
-    let desde = 0;
-    let nuevos = 0;
+    toast.loading("Actualizando teléfono y fecha…", { id: "recogida" });
+    let conTelefono = 0;
+    let conFecha = 0;
     let actualizados = 0;
-    let errores = 0;
     try {
-      for (let vuelta = 0; vuelta < 200; vuelta += 1) {
-        const res = await fetch("/api/captacion/brightdata/importar", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: idRecogida, desde }),
-        });
-        const json = (await res.json()) as {
-          ok?: boolean;
-          error?: string;
-          pendiente?: boolean;
-          esperaSegundos?: number;
-          nuevos?: number;
-          actualizados?: number;
-          errores?: string[];
-          total?: number;
-          siguiente?: number;
-          queda?: number;
-        };
-        if (!res.ok) {
-          toast.error(json.error || "No se ha podido cargar la recogida.", { id: "recogida" });
-          return;
-        }
-        if (json.pendiente) {
-          if (vuelta >= 8) {
-            toast.message("El archivo todavía no está listo para bajar. Pulsa Cargar recogida otra vez en un minuto.", { id: "recogida" });
+      for (const idRecogida of recogidas) {
+        let desde = 0;
+        let esperas = 0;
+        let seguir = true;
+        while (seguir) {
+          const res = await fetch("/api/captacion/brightdata/importar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: idRecogida, desde }),
+          });
+          const json = (await res.json()) as {
+            ok?: boolean;
+            error?: string;
+            pendiente?: boolean;
+            esperaSegundos?: number;
+            actualizados?: number;
+            conTelefono?: number;
+            conFecha?: number;
+            siguiente?: number;
+            queda?: number;
+          };
+          if (!res.ok) {
+            if (/not found|no encontrad/i.test(json.error ?? "")) break;
+            toast.error(json.error || "No se ha podido actualizar.", { id: "recogida" });
             return;
           }
-          const espera = Math.min(30, Math.max(8, json.esperaSegundos ?? 20));
-          toast.loading(`Bright Data está preparando el archivo. Sigo en ${espera} s…`, { id: "recogida" });
-          await new Promise((resolver) => setTimeout(resolver, espera * 1000));
-          continue;
+          if (json.pendiente) {
+            esperas += 1;
+            if (esperas > 4) break;
+            const espera = Math.min(20, Math.max(8, json.esperaSegundos ?? 15));
+            toast.loading("Bright Data está preparando el archivo…", { id: "recogida" });
+            await new Promise((resolver) => setTimeout(resolver, espera * 1000));
+            continue;
+          }
+          actualizados += json.actualizados ?? 0;
+          conTelefono += json.conTelefono ?? 0;
+          conFecha += json.conFecha ?? 0;
+          const siguiente = json.siguiente ?? desde;
+          if ((json.queda ?? 0) <= 0 || siguiente <= desde) {
+            seguir = false;
+            break;
+          }
+          desde = siguiente;
+          toast.loading(`Guardadas ${actualizados} fichas. Teléfonos: ${conTelefono}. Fechas: ${conFecha}.`, { id: "recogida" });
         }
-        nuevos += json.nuevos ?? 0;
-        actualizados += json.actualizados ?? 0;
-        errores += json.errores?.length ?? 0;
-        const siguiente = json.siguiente ?? desde;
-        const queda = json.queda ?? 0;
-        if (queda <= 0) break;
-        if (siguiente <= desde) {
-          toast.error("La carga no avanza.", { id: "recogida" });
-          return;
-        }
-        desde = siguiente;
-        toast.loading(`Guardados ${desde} de ${json.total ?? desde}…`, { id: "recogida" });
       }
-      const aviso = errores > 0 ? ` ${errores} no se han podido guardar.` : "";
-      toast.success(`Cargados ${nuevos} anuncios nuevos y ${actualizados} actualizados.${aviso}`, { id: "recogida" });
+      let cursor = 0;
+      for (let vuelta = 0; vuelta < 80; vuelta += 1) {
+        const res = await fetch("/api/captacion/brightdata/aplicar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ desde: cursor }),
+        });
+        const json = (await res.json()) as { telefonos?: number; fechas?: number; siguiente?: number; queda?: number; error?: string };
+        if (!res.ok) break;
+        conTelefono += json.telefonos ?? 0;
+        conFecha += json.fechas ?? 0;
+        if ((json.queda ?? 0) <= 0) break;
+        const siguiente = json.siguiente ?? cursor;
+        if (siguiente <= cursor) break;
+        cursor = siguiente;
+      }
+      if (conTelefono === 0 && conFecha === 0) {
+        toast.error("Esas recogidas no traen ningún teléfono ni ninguna fecha de Idealista.", { id: "recogida" });
+      } else {
+        toast.success(`Teléfonos: ${conTelefono}. Fechas de Idealista: ${conFecha}.`, { id: "recogida" });
+      }
       cargar();
     } catch {
-      toast.error("No se ha podido cargar la recogida.", { id: "recogida" });
+      toast.error("No se ha podido actualizar.", { id: "recogida" });
     } finally {
       setSyncing(false);
     }
@@ -674,27 +646,17 @@ export function CaptacionPortales() {
             <>
               <button
                 type="button"
-                onClick={() => void cargarRecogida()}
+                onClick={() => void actualizarIdealista()}
                 disabled={syncing}
                 className="h-8 rounded-lg border border-[var(--input)] bg-white px-2.5 text-[12.5px] font-semibold hover:border-accent hover:text-accent disabled:opacity-60"
               >
-                {syncing ? "Cargando…" : "Cargar recogida"}
+                {syncing ? "Actualizando…" : "Actualizar Idealista"}
               </button>
-              {nPendientes > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => void completarVacios()}
-                  disabled={syncing}
-                  title={`${nVacios} vacías y ${nSinTelefono} sin teléfono. Se piden otra vez a Bright Data; las completas no.`}
-                  className="h-8 rounded-lg border border-[var(--input)] bg-white px-2.5 text-[12.5px] font-semibold hover:border-accent hover:text-accent disabled:opacity-60"
-                >
-                  {syncing ? "Pidiendo…" : `Completar ${nPendientes} fichas`}
-                </button>
-              ) : null}
               <button
                 type="button"
                 onClick={() => void refrescar()}
                 disabled={syncing}
+                title="Busca anuncios nuevos. Gasta créditos."
                 className="h-8 rounded-lg border border-[var(--input)] bg-white px-2.5 text-[12.5px] font-semibold hover:border-accent hover:text-accent disabled:opacity-60"
               >
                 {syncing ? "Lanzando…" : "Traer Idealista"}
