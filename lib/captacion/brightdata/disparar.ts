@@ -9,15 +9,25 @@ export async function dispararIdealista(
   if (urls.length === 0) throw new Error("No hay zonas marcadas.");
   const destino = new URL(webhookUrl);
   if (!destino.searchParams.get("token")) destino.searchParams.set("token", config.webhookSecret);
-  const params = new URLSearchParams({
-    dataset_id: config.datasetId,
-    endpoint: destino.toString(),
-    auth_header: `Bearer ${config.webhookSecret}`,
-    format: "json",
-    uncompressed_webhook: "true",
-    include_errors: "true",
-  });
-  const res = await fetch(`https://api.brightdata.com/datasets/v3/trigger?${params}`, {
+  const entrega = JSON.stringify({ type: "webhook", endpoint: destino.toString() });
+  const params = config.datasetId.startsWith("c_")
+    ? new URLSearchParams({
+        collector: config.datasetId,
+        queue_next: "1",
+        deliver: entrega,
+      })
+    : new URLSearchParams({
+        dataset_id: config.datasetId,
+        endpoint: destino.toString(),
+        auth_header: `Bearer ${config.webhookSecret}`,
+        format: "json",
+        uncompressed_webhook: "true",
+        include_errors: "true",
+      });
+  const ruta = config.datasetId.startsWith("c_")
+    ? "https://api.brightdata.com/dca/trigger"
+    : "https://api.brightdata.com/datasets/v3/trigger";
+  const res = await fetch(`${ruta}?${params}`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${config.token}`,
@@ -25,18 +35,24 @@ export async function dispararIdealista(
     },
     body: JSON.stringify(urls.map((url) => ({ url }))),
   });
-  const json = (await res.json().catch(() => ({}))) as { snapshot_id?: string; error?: string };
-  if (!res.ok || !json.snapshot_id) {
+  const json = (await res.json().catch(() => ({}))) as {
+    snapshot_id?: string;
+    collection_id?: string;
+    error?: string;
+  };
+  const snapshotId = json.collection_id || json.snapshot_id;
+  if (!res.ok || !snapshotId) {
     throw new Error(json.error || `Bright Data respondió ${res.status}.`);
   }
-  return { snapshotId: json.snapshot_id };
+  return { snapshotId };
 }
 
 export async function descargarSnapshot(token: string, snapshotId: string): Promise<unknown> {
-  const res = await fetch(
-    `https://api.brightdata.com/datasets/v3/snapshot/${encodeURIComponent(snapshotId)}?format=json`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
+  const esCollector = snapshotId.startsWith("j_") || snapshotId.startsWith("d");
+  const ruta = esCollector
+    ? `https://api.brightdata.com/dca/dataset?id=${encodeURIComponent(snapshotId)}`
+    : `https://api.brightdata.com/datasets/v3/snapshot/${encodeURIComponent(snapshotId)}?format=json`;
+  const res = await fetch(ruta, { headers: { Authorization: `Bearer ${token}` } });
   if (res.status === 202) return { pendiente: true };
   if (!res.ok) {
     const texto = await res.text();

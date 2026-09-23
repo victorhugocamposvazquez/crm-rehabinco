@@ -183,6 +183,6 @@ export function registrosBrightData(cuerpo: unknown): Registro[] {
 
 export function snapshotIdDe(cuerpo: unknown): string | null {
   if (!esRegistro(cuerpo)) return null;
-  const id = cuerpo.snapshot_id ?? cuerpo.snapshotId;
+  const id = cuerpo.snapshot_id ?? cuerpo.snapshotId ?? cuerpo.collection_id ?? cuerpo.collectionId;
   return typeof id === "string" && id.trim() ? id.trim() : null;
 }
