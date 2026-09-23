@@ -164,9 +164,22 @@ export function fechaPortalIdealista(textoFecha: string | null, ahora = new Date
     const iso = Date.parse(limpio);
     if (!Number.isNaN(iso)) return new Date(iso).toISOString();
   }
-  const m = limpio
-    .toLowerCase()
-    .match(
+  const t = limpio.toLowerCase();
+  const diaLocal = (fecha: Date) =>
+    new Date(Date.UTC(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), 12)).toISOString();
+  if (/\bhoy\b/.test(t) || /hace\s+(un|una|\d+)\s+horas?/.test(t)) return diaLocal(ahora);
+  if (/\bayer\b/.test(t) || /hace\s+(un|1)\s+d[ií]a\b/.test(t)) {
+    const d = new Date(ahora);
+    d.setDate(d.getDate() - 1);
+    return diaLocal(d);
+  }
+  const hace = t.match(/hace\s+(\d+)\s+d[ií]as/);
+  if (hace) {
+    const d = new Date(ahora);
+    d.setDate(d.getDate() - Number(hace[1]));
+    return diaLocal(d);
+  }
+  const m = t.match(
       /(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?:\s+de\s+(\d{4}))?/
     );
   if (!m) return null;

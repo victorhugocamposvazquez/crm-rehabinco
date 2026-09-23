@@ -79,6 +79,22 @@ export const TAG_ESTILO: Record<string, { bg: string; fg: string; label: string 
 
 export const PAGE_NOVEDADES = 8;
 
+/** Primera, última y las de alrededor. El hueco se marca con «…». */
+export function paginasVisibles(actual: number, total: number): Array<number | "…"> {
+  const n = Math.max(1, total);
+  const pagina = Math.min(Math.max(1, actual), n);
+  if (n <= 7) return Array.from({ length: n }, (_, i) => i + 1);
+  const marcas = [1, n, pagina - 1, pagina, pagina + 1].filter((x) => x >= 1 && x <= n);
+  const unicas = [...new Set(marcas)].sort((a, b) => a - b);
+  const salida: Array<number | "…"> = [];
+  for (const num of unicas) {
+    const previo = salida[salida.length - 1];
+    if (typeof previo === "number" && num - previo > 1) salida.push("…");
+    salida.push(num);
+  }
+  return salida;
+}
+
 export type AlertaCaptacion = {
   id: string;
   nombre: string;

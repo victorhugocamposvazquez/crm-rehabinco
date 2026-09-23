@@ -73,6 +73,10 @@ describe("mapearBrightDataIdealista", () => {
     assert.equal(anuncio.fotos?.length, 2);
     assert.match(anuncio.thumb ?? "", /WEB_DETAIL-XL-L/);
     assert.equal(anuncio.publicado_en?.slice(0, 10), fechaPortalIdealista("12 de septiembre de 2026")?.slice(0, 10));
+    assert.equal(
+      fechaPortalIdealista("Actualizado hace 3 días", new Date(2026, 8, 23, 12))?.slice(0, 10),
+      "2026-09-20"
+    );
   });
 
   it("ignora filas sin ficha de Idealista", () => {

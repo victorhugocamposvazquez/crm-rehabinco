@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -22,6 +22,7 @@ import {
   FASE_KANBAN_META,
   FUENTES_PORTAL,
   PAGE_NOVEDADES,
+  paginasVisibles,
   PORTAL_COLOR,
   PORTAL_LABEL,
   TIPO_ANUNCIO_LABEL,
@@ -178,7 +179,6 @@ export function CaptacionPortales() {
   const [filtroCom, setFiltroCom] = useState("");
   const [alertaOpen, setAlertaOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const fichasHechas = useRef(false);
   const [wide, setWide] = useState(true);
   const [compact, setCompact] = useState(false);
   const [filtros, setFiltros] = useState({
@@ -254,72 +254,6 @@ export function CaptacionPortales() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
-
-  const hayIdealista = anuncios.some((a) => a.fuente === "idealista");
-
-  useEffect(() => {
-    if (!hayIdealista) return;
-    if (fichasHechas.current || sessionStorage.getItem("captacion-ficha-2026-09-23") === "1") return;
-    fichasHechas.current = true;
-    let cancelado = false;
-    void (async () => {
-      toast.loading("Completando fotos y teléfonos…", { id: "fichas" });
-      let desde = 0;
-      let telefonos = 0;
-      let fotos = 0;
-      let fechas = 0;
-      try {
-        for (let vuelta = 0; vuelta < 200; vuelta += 1) {
-          const res = await fetch("/api/captacion/brightdata/reaplicar", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ desde }),
-          });
-          const json = (await res.json()) as {
-            ok?: boolean;
-            error?: string;
-            telefonos?: number;
-            fotos?: number;
-            fechas?: number;
-            total?: number;
-            siguiente?: number;
-            queda?: number;
-          };
-          if (!res.ok || !json.ok) {
-            fichasHechas.current = false;
-            toast.error(json.error || "No se han podido completar las fichas.", { id: "fichas" });
-            return;
-          }
-          telefonos += json.telefonos ?? 0;
-          fotos += json.fotos ?? 0;
-          fechas += json.fechas ?? 0;
-          const siguiente = json.siguiente ?? desde;
-          if ((json.queda ?? 0) <= 0) break;
-          if (siguiente <= desde) break;
-          desde = siguiente;
-          if (!cancelado) toast.loading(`Revisadas ${desde} de ${json.total ?? desde}…`, { id: "fichas" });
-        }
-        if (cancelado) return;
-        sessionStorage.setItem("captacion-ficha-2026-09-23", "1");
-        if (telefonos + fotos + fechas === 0) {
-          toast.dismiss("fichas");
-          return;
-        }
-        toast.success(
-          `Fotos en ${fotos} anuncios, teléfonos en ${telefonos}${fechas ? `, fechas de Idealista en ${fechas}` : ""}.`,
-          { id: "fichas" }
-        );
-        cargar();
-      } catch {
-        fichasHechas.current = false;
-        toast.error("No se han podido completar las fichas.", { id: "fichas" });
-      }
-    })();
-    return () => {
-      cancelado = true;
-      if (sessionStorage.getItem("captacion-ficha-2026-09-23") !== "1") fichasHechas.current = false;
-    };
-  }, [hayIdealista]);
 
   useEffect(() => {
     if (!sel) {
@@ -662,7 +596,7 @@ export function CaptacionPortales() {
   })();
 
   return (
-    <div>
+    <div className="min-w-0 max-w-full">
       <div className="mb-3.5 flex flex-wrap items-end justify-between gap-3.5">
         <div>
           <h1 className="text-[24px] font-semibold tracking-[-0.02em] min-[820px]:text-[28px]">Captación</h1>
@@ -748,7 +682,7 @@ export function CaptacionPortales() {
             ))}
           </div>
 
-          <section className="overflow-hidden rounded-[14px] border border-[var(--border)] bg-white">
+          <section className="min-w-0 max-w-full overflow-hidden rounded-[14px] border border-[var(--border)] bg-white">
             <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border-soft)] px-3.5 py-3">
               <div className="flex h-9 min-w-0 flex-[1_1_200px] items-center gap-2 rounded-[9px] border border-[var(--input)] px-2.5">
                 <input
@@ -963,13 +897,21 @@ export function CaptacionPortales() {
               );
             })}
             {page.length === 0 ? <div className="m-5 rounded-[11px] border border-dashed border-[var(--input)] p-7 text-center text-[13.5px] text-[var(--text-2)]">Nada nuevo con estos filtros. Las alertas siguen vigilando.</div> : null}
-            <div className="flex flex-wrap items-center justify-between gap-2.5 px-3.5 py-2.5 text-[12.5px] text-[var(--text-2)]">
-              <span>{listado.length ? `${(pagina - 1) * PAGE_NOVEDADES + 1}–${Math.min(pagina * PAGE_NOVEDADES, listado.length)} de ${listado.length} anuncios` : "Sin anuncios"}</span>
-              <div className="flex gap-1">
-                {Array.from({ length: nPag }, (_, i) => i + 1).map((n) => (
-                  <button key={n} type="button" onClick={() => setPag(n)} className="min-w-8 rounded-lg border px-2 py-1.5 text-[13px] font-semibold" style={{ borderColor: n === pagina ? "#0B7461" : "#DAD6CE", background: n === pagina ? "#0B7461" : "#fff", color: n === pagina ? "#fff" : "#131C1A" }}>{n}</button>
-                ))}
-              </div>
+            <div className="flex min-w-0 max-w-full flex-wrap items-center justify-between gap-2.5 px-3.5 py-2.5 text-[12.5px] text-[var(--text-2)]">
+              <span className="shrink-0">{listado.length ? `${(pagina - 1) * PAGE_NOVEDADES + 1}–${Math.min(pagina * PAGE_NOVEDADES, listado.length)} de ${listado.length} anuncios` : "Sin anuncios"}</span>
+              {nPag > 1 ? (
+                <div className="flex min-w-0 max-w-full flex-wrap items-center justify-end gap-1">
+                  <button type="button" disabled={pagina <= 1} onClick={() => setPag(pagina - 1)} className="h-8 rounded-lg border border-[#DAD6CE] bg-white px-2.5 text-[13px] font-semibold text-[#131C1A] disabled:opacity-40">Anterior</button>
+                  {paginasVisibles(pagina, nPag).map((n, i) =>
+                    n === "…" ? (
+                      <span key={`puntos-${i}`} className="px-0.5 text-[13px] text-[var(--text-2)]">…</span>
+                    ) : (
+                      <button key={n} type="button" onClick={() => setPag(n)} className="h-8 min-w-8 rounded-lg border px-2 text-[13px] font-semibold" style={{ borderColor: n === pagina ? "#0B7461" : "#DAD6CE", background: n === pagina ? "#0B7461" : "#fff", color: n === pagina ? "#fff" : "#131C1A" }}>{n}</button>
+                    )
+                  )}
+                  <button type="button" disabled={pagina >= nPag} onClick={() => setPag(pagina + 1)} className="h-8 rounded-lg border border-[#DAD6CE] bg-white px-2.5 text-[13px] font-semibold text-[#131C1A] disabled:opacity-40">Siguiente</button>
+                </div>
+              ) : null}
             </div>
           </section>
         </>
