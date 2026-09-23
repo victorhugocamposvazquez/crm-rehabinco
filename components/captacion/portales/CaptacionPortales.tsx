@@ -439,15 +439,21 @@ export function CaptacionPortales() {
     await patchAnuncio([id], { fase }, `Movido a ${meta?.label ?? fase}`);
   };
 
+  const CLAVE_RECOGIDA = "captacion-ultima-recogida";
+  const guardarRecogida = (id: unknown) => {
+    if (typeof id === "string" && id.startsWith("j_")) localStorage.setItem(CLAVE_RECOGIDA, id);
+  };
+
   const refrescar = async () => {
     setSyncing(true);
     const res = await fetch("/api/captacion/brightdata/trigger", { method: "POST" });
-    const json = (await res.json()) as { ok?: boolean; error?: string; zonas?: number };
+    const json = (await res.json()) as { ok?: boolean; error?: string; zonas?: number; snapshotId?: string };
     setSyncing(false);
     if (!res.ok || !json.ok) {
       toast.error(json.error || "No se ha podido lanzar Idealista.");
       return;
     }
+    guardarRecogida(json.snapshotId);
     const zonas = json.zonas ?? 1;
     toast.success(
       `Idealista en marcha para ${zonas} ${zonas === 1 ? "zona" : "zonas"}. Los anuncios entran en el CRM de 20 en 20.`
@@ -466,12 +472,13 @@ export function CaptacionPortales() {
     if (!window.confirm(aviso)) return;
     setSyncing(true);
     const res = await fetch("/api/captacion/brightdata/completar", { method: "POST" });
-    const json = (await res.json()) as { ok?: boolean; error?: string; fichas?: number; vacias?: number; sinTelefono?: number };
+    const json = (await res.json()) as { ok?: boolean; error?: string; fichas?: number; vacias?: number; sinTelefono?: number; snapshotId?: string };
     setSyncing(false);
     if (!res.ok || !json.ok) {
       toast.error(json.error || "No se han podido pedir las fichas.");
       return;
     }
+    guardarRecogida(json.snapshotId);
     if (!json.fichas) {
       toast.message("No hay fichas que completar.");
       return;
@@ -482,6 +489,15 @@ export function CaptacionPortales() {
   };
 
   const cargarRecogida = async () => {
+    const ultima = localStorage.getItem(CLAVE_RECOGIDA) || "j_mue12jm92i4iigvxps";
+    const pedido = window.prompt("Id de la recogida en Bright Data (empieza por j_):", ultima);
+    if (pedido == null) return;
+    const idRecogida = pedido.trim();
+    if (!idRecogida.startsWith("j_")) {
+      toast.error("El id tiene que empezar por j_.");
+      return;
+    }
+    guardarRecogida(idRecogida);
     setSyncing(true);
     toast.loading("Cargando anuncios…", { id: "recogida" });
     let desde = 0;
@@ -493,7 +509,7 @@ export function CaptacionPortales() {
         const res = await fetch("/api/captacion/brightdata/importar", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: "j_mue12jm92i4iigvxps", desde }),
+          body: JSON.stringify({ id: idRecogida, desde }),
         });
         const json = (await res.json()) as {
           ok?: boolean;
