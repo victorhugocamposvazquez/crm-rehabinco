@@ -489,12 +489,20 @@ export function CaptacionPortales() {
   };
 
   const cargarRecogida = async () => {
-    const ultima = localStorage.getItem(CLAVE_RECOGIDA) || "j_mue12jm92i4iigvxps";
-    const pedido = window.prompt("Id de la recogida en Bright Data (empieza por j_):", ultima);
+    const ultima = localStorage.getItem(CLAVE_RECOGIDA) || "";
+    const sugerida = ultima.startsWith("j_mue12") ? "" : ultima;
+    const pedido = window.prompt(
+      "Pega el id de la recogida de las 17:39 (874 fichas). Empieza por j_. La de esta mañana no trae teléfono ni fecha.",
+      sugerida
+    );
     if (pedido == null) return;
     const idRecogida = pedido.trim();
     if (!idRecogida.startsWith("j_")) {
       toast.error("El id tiene que empezar por j_.");
+      return;
+    }
+    if (idRecogida.startsWith("j_mue12")) {
+      toast.error("Esa es la recogida de esta mañana. No trae teléfono ni fecha. Pega la de las 17:39.");
       return;
     }
     guardarRecogida(idRecogida);
