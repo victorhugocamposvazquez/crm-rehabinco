@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { anuncianteIdealista, mapearIdealista, paramsIdealistaDesdeAlerta, tipoIdealista } from "./legacy/idealista";
-import { claveContacto, diasEnPortal, paginasVisibles, pctBajada, publicadoEsCarga } from "./modelo";
+import { claveContacto, cuandoPublicado, diasEnPortal, paginasVisibles, pctBajada, publicadoEsCarga } from "./modelo";
 import { desaparecidosTrasSync, filtrarParticular, fusionarAnuncio } from "./sync";
 import { enmascararClave } from "./credenciales";
 import { siguienteReferencia, payloadClienteDesdeAnuncio, payloadPropiedadDesdeAnuncio, tipoInmuebleDesdeAnuncio } from "./captar";
@@ -160,6 +160,15 @@ describe("captación portales", () => {
     assert.equal(publicadoEsCarga("2026-09-01T10:00:00.000Z", "2026-09-23T14:08:00.000Z"), false);
     assert.deepEqual(paginasVisibles(1, 3), [1, 2, 3]);
     assert.deepEqual(paginasVisibles(14, 337), [1, "…", 13, 14, 15, "…", 337]);
+  });
+
+  it("escribe cuándo se publicó como lo lee una persona", () => {
+    const ahora = new Date(2026, 3, 24, 18, 0, 0);
+    assert.equal(cuandoPublicado(new Date(2026, 3, 24, 17, 30).toISOString(), ahora), "hace 30 minutos");
+    assert.equal(cuandoPublicado(new Date(2026, 3, 24, 8, 0).toISOString(), ahora), "hace 10 horas");
+    assert.equal(cuandoPublicado(new Date(2026, 3, 23, 9, 0).toISOString(), ahora), "Ayer");
+    assert.equal(cuandoPublicado(new Date(2026, 3, 22, 9, 0).toISOString(), ahora), "22/04/2026");
+    assert.equal(cuandoPublicado("2026-04-24T12:00:00.000Z", ahora), "Hoy");
   });
 
   it("prepara cliente ofertante e inmueble PORTAL al captar", () => {

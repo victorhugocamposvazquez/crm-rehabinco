@@ -260,21 +260,35 @@ export function fotosAnuncio(valor: unknown): string[] {
   return urls;
 }
 
+function mismoDia(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+/** Idealista solo da el día; el CRM lo guarda a las 12:00 UTC para distinguirlo de una hora real. */
+function soloDia(iso: string): boolean {
+  return /T12:00:00(\.000)?Z$/.test(iso);
+}
+
+export function fechaCorta(fecha: Date): string {
+  return `${String(fecha.getDate()).padStart(2, "0")}/${String(fecha.getMonth() + 1).padStart(2, "0")}/${fecha.getFullYear()}`;
+}
+
+/** «hace 30 minutos», «hace 10 horas», «Ayer» o 22/04/2026. */
 export function cuandoPublicado(iso: string | null | undefined, ahora = new Date()): string {
   if (!iso) return "—";
   const fecha = new Date(iso);
   if (Number.isNaN(fecha.getTime())) return "—";
-  const dia = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}-${String(fecha.getDate()).padStart(2, "0")}`;
-  const hoy = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, "0")}-${String(ahora.getDate()).padStart(2, "0")}`;
-  const ayerDate = new Date(ahora);
-  ayerDate.setDate(ayerDate.getDate() - 1);
-  const ayer = `${ayerDate.getFullYear()}-${String(ayerDate.getMonth() + 1).padStart(2, "0")}-${String(ayerDate.getDate()).padStart(2, "0")}`;
-  const hora = fecha.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
-  if (dia === hoy) return `Hoy ${hora}`;
-  if (dia === ayer) return "Ayer";
-  const diff = Math.round((new Date(`${hoy}T12:00:00`).getTime() - new Date(`${dia}T12:00:00`).getTime()) / 86400000);
-  if (diff > 1 && diff < 8) return `Hace ${diff} días`;
-  return fecha.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+  const ayer = new Date(ahora);
+  ayer.setDate(ayer.getDate() - 1);
+  if (mismoDia(fecha, ayer)) return "Ayer";
+  if (!mismoDia(fecha, ahora)) return fechaCorta(fecha);
+  if (soloDia(iso)) return "Hoy";
+  const minutos = Math.max(0, Math.round((ahora.getTime() - fecha.getTime()) / 60000));
+  if (minutos < 1) return "ahora mismo";
+  if (minutos < 60) return `hace ${minutos} ${minutos === 1 ? "minuto" : "minutos"}`;
+  const horas = Math.round(minutos / 60);
+  if (horas < 24) return `hace ${horas} ${horas === 1 ? "hora" : "horas"}`;
+  return "Hoy";
 }
 
 export function diasEnPortal(iso: string | null | undefined, ahora = new Date()): number {

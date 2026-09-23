@@ -278,7 +278,7 @@ export function CaptacionPortales() {
             id: row.id,
             tipo: row.tipo,
             texto: row.detalle ?? "",
-            cuando: cuandoPublicado(row.created_at).replace(/^Hoy /, ""),
+            cuando: cuandoPublicado(row.created_at),
           }))
         );
       });
