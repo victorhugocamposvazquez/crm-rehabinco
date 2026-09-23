@@ -336,6 +336,15 @@ export function CaptacionPortales() {
     toast.success("En seguimiento.");
   };
 
+  const quitarSeguimiento = (ids: string[]) => {
+    void patchAnuncio(
+      ids,
+      { fase: "novedad", proxima_accion: null },
+      `Fuera de seguimiento por ${nombreYApellido(user?.nombre, user?.email) || "ti"}`
+    );
+    toast.success("Fuera de seguimiento. Vuelve a Novedades.");
+  };
+
   const captar = async (anuncio: AnuncioCaptacion) => {
     if (!user) return;
     const res = await fetch(`/api/captacion/anuncios/${anuncio.id}`, {
@@ -893,6 +902,18 @@ export function CaptacionPortales() {
                           {a.proxima_accion ? <span className="rounded-md bg-[#FBF0D8] px-1.5 py-0.5 text-[11px] font-medium text-[#7A5A10]">{a.proxima_accion}</span> : null}
                           {com ? <AvatarComercial nombre={com.nombre} color={com.color} size={22} /> : null}
                         </div>
+                        {a.fase !== "captado" ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              quitarSeguimiento([a.id]);
+                            }}
+                            className="mt-2 h-7 w-full rounded-lg border border-[var(--border)] text-[12px] font-semibold text-[var(--text-2)] hover:border-[#A33B2A] hover:text-[#A33B2A]"
+                          >
+                            Quitar de seguimiento
+                          </button>
+                        ) : null}
                       </div>
                     );
                   })}
@@ -988,7 +1009,9 @@ export function CaptacionPortales() {
             comerciales={comerciales}
             onCerrar={() => setPanel(false)}
             onSeguir={() => seguir([seleccionado.id])}
+            onQuitar={() => quitarSeguimiento([seleccionado.id])}
             onCaptar={() => void captar(seleccionado)}
+            onRegistrado={() => setActividadTick((n) => n + 1)}
             onNota={(nota) => void anotar(seleccionado.id, nota)}
             onAbrir={(id) => setSel(id)}
             onAsignar={(id) => void patchAnuncio([seleccionado.id], { comercial_id: id }, `Asignado a ${comercialDe(id)?.nombre.split(" ")[0] ?? ""}`, "asignacion")}
@@ -1098,7 +1121,9 @@ function PeekAnuncio({
   comerciales,
   onCerrar,
   onSeguir,
+  onQuitar,
   onCaptar,
+  onRegistrado,
   onNota,
   onAbrir,
   onAsignar,
@@ -1114,7 +1139,9 @@ function PeekAnuncio({
   comerciales: ComercialFiltro[];
   onCerrar: () => void;
   onSeguir: () => void;
+  onQuitar: () => void;
   onCaptar: () => void;
+  onRegistrado: () => void;
   onNota: (nota: string) => void;
   onAbrir: (id: string) => void;
   onAsignar: (id: string) => void;
@@ -1153,7 +1180,7 @@ function PeekAnuncio({
           <span className="rounded-md bg-[#F4F3EF] px-2 py-0.5 text-[11px] text-[var(--text-2)]">Alerta: {alertaNombre ?? "—"}</span>
         </div>
       </div>
-      <AccionesContactoAnuncio anuncio={a} hechos={historial} onRegistrado={() => setActividadTick((n) => n + 1)} />
+      <AccionesContactoAnuncio anuncio={a} hechos={historial} onRegistrado={onRegistrado} />
       <div className="flex flex-wrap gap-2 border-b border-[var(--border-soft)] px-4 py-3">
         {a.fase === "novedad" ? (
           <button type="button" onClick={onSeguir} className="h-[38px] min-w-[130px] flex-1 rounded-[9px] bg-accent text-[13px] font-semibold text-white">Pasar a seguimiento</button>
@@ -1161,6 +1188,9 @@ function PeekAnuncio({
           <button type="button" onClick={onCaptar} className="h-[38px] min-w-[130px] flex-1 rounded-[9px] bg-accent text-[13px] font-semibold text-white">Captar inmueble</button>
         ) : a.propiedad_id ? (
           <a href={`/propiedades/${a.propiedad_id}`} className="flex h-[38px] min-w-[130px] flex-1 items-center justify-center rounded-[9px] bg-accent text-[13px] font-semibold text-white no-underline">Ver inmueble</a>
+        ) : null}
+        {a.fase !== "novedad" && a.fase !== "captado" && a.fase !== "descartado" ? (
+          <button type="button" onClick={onQuitar} className="h-[38px] min-w-[150px] flex-1 rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold">Quitar de seguimiento</button>
         ) : null}
         {a.cliente_id ? <a href={`/clientes/${a.cliente_id}`} className="flex h-[38px] min-w-[90px] flex-1 items-center justify-center rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold no-underline">Ver cliente</a> : null}
         {a.url ? <a href={a.url} target="_blank" rel="noopener noreferrer" className="flex h-[38px] min-w-[120px] flex-1 items-center justify-center rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold no-underline">Ver en {labelFuentePortal(a.fuente)}</a> : null}
