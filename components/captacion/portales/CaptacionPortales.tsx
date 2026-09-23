@@ -41,6 +41,7 @@ import {
   type FaseKanban,
   type FuentePortal,
 } from "@/lib/captacion/portales/modelo";
+import { AccionesContactoAnuncio } from "@/components/captacion/portales/AccionesContactoAnuncio";
 import { cn } from "@/lib/utils";
 
 type Tab = "nov" | "seg" | "ale" | "not";
@@ -1151,6 +1152,7 @@ function PeekAnuncio({
           <span className="rounded-md bg-[#F4F3EF] px-2 py-0.5 text-[11px] text-[var(--text-2)]">Alerta: {alertaNombre ?? "—"}</span>
         </div>
       </div>
+      <AccionesContactoAnuncio anuncio={a} />
       <div className="flex flex-wrap gap-2 border-b border-[var(--border-soft)] px-4 py-3">
         {a.fase === "novedad" ? (
           <button type="button" onClick={onSeguir} className="h-[38px] min-w-[130px] flex-1 rounded-[9px] bg-accent text-[13px] font-semibold text-white">Pasar a seguimiento</button>
