@@ -2,6 +2,7 @@ import { configBrightDataIdealista, webhookAutorizado } from "@/lib/captacion/br
 import { descargarSnapshot, leerCuerpoBrightData } from "@/lib/captacion/brightdata/disparar";
 import { registrosBrightData, snapshotIdDe } from "@/lib/captacion/brightdata/idealista";
 import { ingestarIdealistaBrightData } from "@/lib/captacion/brightdata/ingestar";
+import { anotarLote, intentarCerrarRecogida, recogidaAbiertaSiUnica } from "@/lib/captacion/brightdata/recogidas";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,6 +47,15 @@ export async function POST(request: Request) {
 
   try {
     const resultado = await ingestarIdealistaBrightData(registros);
+    const collectionId =
+      snapshotIdDe(cuerpo) ||
+      request.headers.get("x-snapshot-id") ||
+      request.headers.get("x-collection-id") ||
+      (await recogidaAbiertaSiUnica());
+    if (collectionId?.startsWith("j_")) {
+      await anotarLote(collectionId, registros);
+      await intentarCerrarRecogida(config.token, collectionId).catch(() => false);
+    }
     const status = resultado.errores.length > 0 ? 500 : 200;
     return Response.json({ ok: resultado.errores.length === 0, ...resultado }, { status });
   } catch (error) {

@@ -9,7 +9,7 @@ import {
 } from "@/lib/captacion/pipeline/normalize";
 import type { AnuncioEntrante, AnunciantePortal } from "@/lib/captacion/portales/modelo";
 
-export const PARSER_VERSION = "brightdata-idealista-2026-09-22";
+export const PARSER_VERSION = "brightdata-idealista-listado-2026-09-23";
 
 /** Listado de venta de particulares en A Coruña. Se puede sustituir con BRIGHTDATA_IDEALISTA_URL. */
 export const URL_PARTICULARES_CORUNA =
@@ -286,8 +286,9 @@ export function mapearBrightDataIdealista(raw: Registro): AnuncioEntrante | null
   const tituloPortal = normalizarTexto(texto(campo(raw, ["title", "property_title", "titulo", "name"])));
   const fotos = fotosDe(raw);
   const precio = normalizarPrecio(campo(raw, ["price", "precio", "amount"]));
-  // Una ficha que no cargó llega solo con la URL. No pisa lo que ya haya ni entra vacía.
-  if (!tituloPortal && precio == null && fotos.length === 0) return null;
+  const esListado = raw.listing_position != null;
+  // Una ficha que no cargó llega solo con la URL. Un listado sin teléfono sí es válido.
+  if (!esListado && !tituloPortal && precio == null && fotos.length === 0) return null;
   const titulo =
     tituloPortal ||
     [direccion, zona, municipio].filter(Boolean).join(", ") ||
@@ -306,7 +307,9 @@ export function mapearBrightDataIdealista(raw: Registro): AnuncioEntrante | null
     externo_id: externoId,
     url: url ?? `https://www.idealista.com/inmueble/${externoId}/`,
     titulo,
-    descripcion: normalizarTexto(texto(campo(raw, ["description", "descripcion", "comment"]))),
+    descripcion: normalizarTexto(
+      texto(campo(raw, ["description", "description_snippet", "descripcion", "comment"]))
+    ),
     operacion: normalizarOperacion(texto(campo(raw, ["operation", "operacion", "listing_type", "transaction"]))),
     tipo: normalizarTipo(texto(campo(raw, ["property_type", "propertyType", "tipo", "type", "building_type"]))),
     anunciante: anuncianteDe(raw),

@@ -9,5 +9,6 @@ describe("zonas Idealista", () => {
     assert.equal(anunciosDeZonas(ids), 4589);
     assert.equal(urlsDeZonas(["coruna", "ferrol"]).length, 2);
     assert.equal(urlsDeZonas([]).length, 14);
+    assert.ok(urlsDeZonas(["coruna"])[0]?.endsWith("/con-particulares/"));
   });
 });

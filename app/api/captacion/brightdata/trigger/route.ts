@@ -1,6 +1,7 @@
 import { configBrightDataIdealista, urlWebhookPublica } from "@/lib/captacion/brightdata/config";
 import { dispararIdealista } from "@/lib/captacion/brightdata/disparar";
-import { urlsZonasActivas } from "@/lib/captacion/brightdata/zonas-guardadas";
+import { abrirRecogida, zonasBloqueadas } from "@/lib/captacion/brightdata/recogidas";
+import { idsZonasActivas, urlsZonasActivas } from "@/lib/captacion/brightdata/zonas-guardadas";
 import { sesionAdminCaptacion } from "@/lib/captacion/portales/sesion";
 
 export const runtime = "nodejs";
@@ -15,6 +16,7 @@ export async function POST(request: Request) {
   if ("error" in config) return Response.json({ ok: false, error: config.error }, { status: 503 });
 
   try {
+    const zonas = await idsZonasActivas();
     const urls = await urlsZonasActivas();
     if (urls.length === 0) {
       return Response.json(
@@ -22,7 +24,15 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+    const bloqueadas = await zonasBloqueadas(zonas);
+    if (bloqueadas.length > 0) {
+      return Response.json(
+        { ok: false, error: `Hay una recogida abierta (menos de 6 h) en: ${bloqueadas.join(", ")}.` },
+        { status: 409 }
+      );
+    }
     const { snapshotId } = await dispararIdealista(config, urlWebhookPublica(request), urls);
+    await abrirRecogida(snapshotId, zonas);
     return Response.json({ ok: true, snapshotId, zonas: urls.length });
   } catch (error) {
     return Response.json(

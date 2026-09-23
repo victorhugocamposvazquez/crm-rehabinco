@@ -115,6 +115,37 @@ describe("mapearBrightDataIdealista", () => {
     );
   });
 
+  it("un listado de 20 sin teléfono sigue siendo anuncio", () => {
+    const filas = Array.from({ length: 20 }, (_, i) => {
+      const id = 110000000 + i;
+      return mapearBrightDataIdealista({
+        url: `https://www.idealista.com/inmueble/${id}/`,
+        externo_id: String(id),
+        title: `Piso ${i + 1} en Oleiros`,
+        price: 150000 + i * 1000,
+        size: 70 + i,
+        rooms: 2,
+        bathrooms: 1,
+        property_type: "Piso",
+        municipality: "Oleiros",
+        neighborhood: "Perillo",
+        latitude: 43.33,
+        longitude: -8.32,
+        photos: [`https://img3.idealista.com/blur/WEB_LISTING/0/id.pro.es.image.master/a${i}/a${i}.jpg`],
+        description_snippet: "Piso luminoso",
+        agency_name: null,
+        seller_type: "particular",
+        listing_position: i + 1,
+        scraped_at: "2026-09-23T20:00:00.000Z",
+      });
+    });
+    assert.equal(filas.length, 20);
+    assert.ok(filas.every((fila) => fila && fila.contacto_telefono == null && fila.precio != null));
+    const guardado = upsertAnuncio(null, filas[0]!, "2026-09-23T20:00:00.000Z", null);
+    assert.equal(guardado.row.portal_id, "idealista");
+    assert.equal(guardado.row.contacto_telefono, null);
+  });
+
   it("ignora filas sin ficha de Idealista", () => {
     assert.equal(mapearBrightDataIdealista({ title: "sin url" }), null);
   });

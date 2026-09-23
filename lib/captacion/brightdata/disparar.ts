@@ -23,7 +23,8 @@ export function leerCuerpoBrightData(bytes: Uint8Array, encoding = ""): unknown 
 export async function dispararIdealista(
   config: BrightDataIdealistaConfig,
   webhookUrl: string,
-  listUrls: string[]
+  listUrls: string[],
+  collectorId = config.datasetId
 ): Promise<{ snapshotId: string }> {
   const urls = [...new Set(listUrls.map((url) => url.trim()).filter(Boolean))];
   if (urls.length === 0) throw new Error("No hay zonas marcadas.");
@@ -31,9 +32,9 @@ export async function dispararIdealista(
   if (!destino.searchParams.get("token")) destino.searchParams.set("token", config.webhookSecret);
   // En un collector, notify sustituye la entrega configurada y no manda los anuncios.
   // Sin notify ni deliver se usan las Delivery preferences: webhook y lotes de 20.
-  const params = config.datasetId.startsWith("c_")
+  const params = collectorId.startsWith("c_")
     ? new URLSearchParams({
-        collector: config.datasetId,
+        collector: collectorId,
         queue_next: "1",
         // telefono_ajax llega como objeto y el esquema lo tiene como texto. El CRM no lo usa.
         override_incompatible_schema: "1",
@@ -46,7 +47,7 @@ export async function dispararIdealista(
         uncompressed_webhook: "true",
         include_errors: "true",
       });
-  const ruta = config.datasetId.startsWith("c_")
+  const ruta = collectorId.startsWith("c_")
     ? "https://api.brightdata.com/dca/trigger"
     : "https://api.brightdata.com/datasets/v3/trigger";
   const res = await fetch(`${ruta}?${params}`, {

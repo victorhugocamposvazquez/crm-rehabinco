@@ -24,7 +24,30 @@ export const ZONAS_IDEALISTA: ZonaIdealista[] = [
   { id: "boiro", grupo: "Barbanza", nombre: "Boiro", anuncios: 134, url: "https://www.idealista.com/venta-viviendas/boiro-a-coruna/" },
 ];
 
+/** Filtro de particulares de Idealista: segmento de ruta `/con-particulares/`, no un query param. */
+export function urlParticularesIdealista(url: string): string {
+  if (url.includes("/con-particulares/")) return url;
+  return `${url.replace(/\/$/, "")}/con-particulares/`;
+}
+
 const POR_ID = new Map(ZONAS_IDEALISTA.map((zona) => [zona.id, zona]));
+
+/** Compara municipio/zona del anuncio con el catálogo (A Coruña, Santiago, …). */
+export function idsZonaDeAnuncio(municipio: string | null | undefined, zona: string | null | undefined): string[] {
+  const blob = `${municipio ?? ""} ${zona ?? ""}`
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  return ZONAS_IDEALISTA.filter((item) => {
+    const nombre = item.nombre
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/\s+y alrededores$/, "");
+    const token = nombre.startsWith("a ") ? nombre.slice(2) : nombre;
+    return token.length > 2 && blob.includes(token);
+  }).map((item) => item.id);
+}
 
 export function esZonaIdealista(id: string): boolean {
   return POR_ID.has(id);
@@ -37,9 +60,11 @@ export function urlsDeZonas(ids: string[]): string[] {
   const vistas = new Set<string>();
   for (const id of elegidas) {
     const zona = POR_ID.get(id);
-    if (!zona || vistas.has(zona.url)) continue;
-    vistas.add(zona.url);
-    urls.push(zona.url);
+    if (!zona) continue;
+    const url = urlParticularesIdealista(zona.url);
+    if (vistas.has(url)) continue;
+    vistas.add(url);
+    urls.push(url);
   }
   return urls;
 }

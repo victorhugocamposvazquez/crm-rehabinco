@@ -151,6 +151,7 @@ export type AnuncioCaptacion = {
   cliente_id: string | null;
   publicado_en: string | null;
   visto_en: string;
+  visto_primera_vez: string | null;
   desaparecido_en: string | null;
   created_at: string;
 };
@@ -267,6 +268,21 @@ function mismoDia(a: Date, b: Date): boolean {
 /** Idealista solo da el día; el CRM lo guarda a las 12:00 UTC para distinguirlo de una hora real. */
 function soloDia(iso: string): boolean {
   return /T12:00:00(\.000)?Z$/.test(iso);
+}
+
+export function detectadoEl(iso: string | null | undefined): string {
+  if (!iso) return "Detectado";
+  const fecha = new Date(iso);
+  if (Number.isNaN(fecha.getTime())) return "Detectado";
+  return `Detectado el ${fechaCorta(fecha)}`;
+}
+
+export function estadoTelefonoIdealista(a: { fuente: string; contacto_telefono: string | null; tags: string[] }): "pendiente" | "recibido" | "no disponible" | null {
+  if (a.fuente !== "idealista") return null;
+  if (a.contacto_telefono) return "recibido";
+  if (a.tags.includes("tel_pendiente")) return "pendiente";
+  if (a.tags.includes("tel_no_disponible")) return "no disponible";
+  return null;
 }
 
 export function fechaCorta(fecha: Date): string {

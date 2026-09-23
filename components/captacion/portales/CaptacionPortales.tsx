@@ -37,6 +37,9 @@ import {
   labelFuentePortal,
   parseFuentePortal,
   pctBajada,
+  detectadoEl,
+  estadoTelefonoIdealista,
+  fechaCorta,
   publicadoEsCarga,
   tagsConEstilo,
   type AlertaCaptacion,
@@ -49,7 +52,7 @@ import { anuncioIdealistaVacio } from "@/lib/captacion/brightdata/idealista";
 import { cn } from "@/lib/utils";
 
 type Tab = "nov" | "seg" | "ale" | "not";
-type ChipNov = "todas" | "hoy" | "sinasig" | "mias" | "bajada" | "edif";
+type ChipNov = "todas" | "hoy" | "sinasig" | "mias" | "bajada" | "edif" | "retirados";
 type Actividad = { id: string; cuando: string; texto: string; tipo: string };
 type Notif = { id: string; tipo: string; titulo: string; detalle: string | null; leida: boolean; created_at: string };
 type Prefs = { nuevos: boolean; bajada: boolean; retirado: boolean; telefono_repite: boolean; sin_mover: boolean };
@@ -102,6 +105,7 @@ function filaAnuncio(row: Record<string, unknown>): AnuncioCaptacion {
     cliente_id: typeof row.cliente_id === "string" ? row.cliente_id : null,
     publicado_en: typeof row.publicado_en === "string" ? row.publicado_en : null,
     visto_en: String(row.visto_en ?? row.created_at ?? ""),
+    visto_primera_vez: typeof row.visto_primera_vez === "string" ? row.visto_primera_vez : null,
     desaparecido_en: typeof row.desaparecido_en === "string" ? row.desaparecido_en : null,
     created_at: String(row.created_at ?? ""),
   };
@@ -290,7 +294,8 @@ export function CaptacionPortales() {
 
   const listado = useMemo(() => {
     const query = q.trim().toLowerCase();
-    let list = nov.filter((a) => {
+    const base = chip === "retirados" ? anuncios.filter((a) => a.desaparecido_en && a.fase !== "descartado") : nov.filter((a) => !a.desaparecido_en);
+    let list = base.filter((a) => {
       if (query && ![a.titulo, a.zona, a.municipio, a.contacto_nombre, a.externo_id].filter(Boolean).join(" ").toLowerCase().includes(query)) return false;
       if (fAlerta !== "todas" && a.alerta_id !== fAlerta) return false;
       if (fCiudad !== "todas" && !(a.municipio ?? "").startsWith(fCiudad)) return false;
@@ -310,6 +315,7 @@ export function CaptacionPortales() {
       if (chip === "mias" && (admin ? !a.comercial_id : a.comercial_id !== user?.id)) return false;
       if (chip === "bajada" && !a.tags.includes("Bajada")) return false;
       if (chip === "edif" && a.tipo !== "edificio" && a.tipo !== "casa") return false;
+      if (chip === "retirados" && !a.desaparecido_en) return false;
       return true;
     });
     list = list.slice().sort((a, b) => {
@@ -319,15 +325,15 @@ export function CaptacionPortales() {
       return diasEnPortal(a.publicado_en) - diasEnPortal(b.publicado_en);
     });
     return list;
-  }, [nov, q, fAlerta, fCiudad, filtros, chip, orden, admin, user?.id]);
+  }, [nov, anuncios, q, fAlerta, fCiudad, filtros, chip, orden, admin, user?.id]);
 
   const nPag = Math.max(1, Math.ceil(listado.length / PAGE_NOVEDADES));
   const pagina = Math.min(pag, nPag);
   const page = listado.slice((pagina - 1) * PAGE_NOVEDADES, pagina * PAGE_NOVEDADES);
   const seleccionado = anuncios.find((a) => a.id === sel) ?? page[0] ?? null;
-  const idealistaAbiertos = anuncios.filter((a) => a.fuente === "idealista" && a.fase !== "captado" && a.fase !== "descartado");
-  const sinTelefonoPortal = idealistaAbiertos.filter((a) => !a.contacto_telefono).length;
-  const sinFechaPortal = idealistaAbiertos.filter((a) => !a.publicado_en || publicadoEsCarga(a.publicado_en, a.created_at)).length;
+  const sinTelefonoPortal = anuncios.filter(
+    (a) => a.fuente === "idealista" && !a.contacto_telefono && !a.desaparecido_en && a.fase !== "captado" && a.fase !== "descartado"
+  ).length;
 
   const patchAnuncio = async (ids: string[], patch: Record<string, unknown>, detalle?: string, tipo = "fase") => {
     const supabase = createClient();
@@ -487,6 +493,7 @@ export function CaptacionPortales() {
     ["mias", admin ? "Asignadas" : "Mías", nov.filter((a) => (admin ? Boolean(a.comercial_id) : a.comercial_id === user?.id)).length],
     ["bajada", "Bajadas", nov.filter((a) => a.tags.includes("Bajada")).length],
     ["edif", "Edificios y casas", nov.filter((a) => a.tipo === "edificio" || a.tipo === "casa").length],
+    ["retirados", "Retirados", anuncios.filter((a) => a.desaparecido_en && a.fase !== "descartado").length],
   ];
   const portalChips = useMemo(() => {
     let base = nov;
@@ -537,6 +544,7 @@ export function CaptacionPortales() {
           <p className="mt-1.5 text-[13.5px] text-[var(--text-2)]">Anuncios de particulares en portales. Lo que entra hoy y lo que estás trabajando.</p>
         </div>
         <div className="flex items-center gap-2 text-[12.5px] text-[var(--text-2)]">
+          {sinTelefonoPortal > 0 ? <span>{sinTelefonoPortal} sin teléfono</span> : null}
           <button
             type="button"
             onClick={() => setAlertaOpen(true)}
@@ -546,12 +554,6 @@ export function CaptacionPortales() {
           </button>
         </div>
       </div>
-
-      {idealistaAbiertos.length > 0 && (sinTelefonoPortal > 0 || sinFechaPortal > 0) ? (
-        <p className="mb-3.5 rounded-lg border border-[#E7D7A8] bg-[#FBF6EA] px-3 py-2 text-[13px] leading-snug text-[#6B5420]">
-          Idealista no está al día. {sinTelefonoPortal} sin teléfono y {sinFechaPortal} sin fecha de publicación. Si un anuncio ya no está en el portal, sigue en esta lista: la última lectura no era completa y no se dan de baja.
-        </p>
-      ) : null}
 
       <div className="mb-4 flex gap-1 overflow-x-auto border-b border-[var(--border)]">
         {tabs.map(([id, label, n]) => {
@@ -788,7 +790,7 @@ export function CaptacionPortales() {
                         <span className="flex shrink-0 items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ background: PORTAL_COLOR[a.fuente] }} />{labelFuentePortal(a.fuente)}</span>
                         <span className="font-mono text-[11px]">{a.fuente.slice(0, 2)}.{a.externo_id}</span>
                         <span className="whitespace-nowrap">{a.tipo ? TIPO_ANUNCIO_LABEL[a.tipo as keyof typeof TIPO_ANUNCIO_LABEL] ?? a.tipo : "—"}{a.habitaciones ? ` · ${a.habitaciones} hab` : ""}{!wide && a.superficie ? ` · ${a.superficie} m²` : ""}</span>
-                        <span className="whitespace-nowrap">{publicadoEsCarga(a.publicado_en, a.created_at) ? "Sin fecha del portal" : cuandoPublicado(a.publicado_en)}</span>
+                        <span className="whitespace-nowrap">{a.desaparecido_en ? `Retirado el ${fechaCorta(new Date(a.desaparecido_en))}` : publicadoEsCarga(a.publicado_en, a.created_at) ? detectadoEl(a.visto_primera_vez || a.created_at) : cuandoPublicado(a.publicado_en)}</span>
                       </div>
                     </div>
                   </div>
@@ -989,6 +991,24 @@ export function CaptacionPortales() {
             onNota={(nota) => void anotar(seleccionado.id, nota)}
             onAbrir={(id) => setSel(id)}
             onAsignar={(id) => void patchAnuncio([seleccionado.id], { comercial_id: id }, `Asignado a ${comercialDe(id)?.nombre.split(" ")[0] ?? ""}`, "asignacion")}
+            onPedirTelefono={() => {
+              void (async () => {
+                const res = await fetch("/api/captacion/brightdata/completar", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ externo_ids: [seleccionado.externo_id] }),
+                });
+                const json = (await res.json()) as { ok?: boolean; error?: string };
+                if (!res.ok || !json.ok) {
+                  toast.error(json.error || "No se ha podido pedir el teléfono.");
+                  return;
+                }
+                const tags = seleccionado.tags.filter((tag) => tag !== "tel_no_disponible");
+                if (!tags.includes("tel_pendiente")) tags.push("tel_pendiente");
+                await patchAnuncio([seleccionado.id], { tags });
+                toast.success("Ficha pedida.");
+              })();
+            }}
             onPedirDetalle={() => {
               if (!seleccionado.url) return;
               void fetch("/api/captacion/crawl/detalle", {
@@ -1137,6 +1157,7 @@ function PeekAnuncio({
   onAbrir,
   onAsignar,
   onPedirDetalle,
+  onPedirTelefono,
   onClasificar,
 }: {
   anuncio: AnuncioCaptacion;
@@ -1155,6 +1176,7 @@ function PeekAnuncio({
   onAbrir: (id: string) => void;
   onAsignar: (id: string) => void;
   onPedirDetalle?: () => void;
+  onPedirTelefono?: () => void;
   onClasificar?: (tipo: "particular" | "profesional") => void;
 }) {
   const [nota, setNota] = useState("");
@@ -1196,7 +1218,9 @@ function PeekAnuncio({
         ) : null}
         {a.cliente_id ? <a href={`/clientes/${a.cliente_id}`} className="flex h-[38px] min-w-[90px] flex-1 items-center justify-center rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold no-underline">Ver cliente</a> : null}
         {a.url ? <a href={a.url} target="_blank" rel="noopener noreferrer" className="flex h-[38px] min-w-[120px] flex-1 items-center justify-center rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold no-underline">Ver en {labelFuentePortal(a.fuente)}</a> : null}
-        {!a.contacto_telefono && a.url && onPedirDetalle ? (
+        {!a.contacto_telefono && a.fuente === "idealista" && onPedirTelefono ? (
+          <button type="button" disabled={estadoTelefonoIdealista(a) === "pendiente"} onClick={onPedirTelefono} className="h-[38px] min-w-[120px] flex-1 rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold disabled:opacity-60">Pedir teléfono</button>
+        ) : !a.contacto_telefono && a.url && onPedirDetalle ? (
           <button type="button" onClick={onPedirDetalle} className="h-[38px] min-w-[120px] flex-1 rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold">Pedir detalle</button>
         ) : null}
         {onClasificar ? (
@@ -1211,8 +1235,8 @@ function PeekAnuncio({
         <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Superficie</div>{a.superficie ? `${a.superficie} m²` : "—"}</div>
         <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Hab.</div>{a.habitaciones ?? "—"}</div>
         <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Contacto</div>{a.contacto_nombre || "—"}</div>
-        <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Teléfono</div><span className="font-mono text-[12.5px]">{a.contacto_telefono || "Solo por el portal"}</span></div>
-        <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Publicado</div>{publicadoEsCarga(a.publicado_en, a.created_at) ? "Sin fecha del portal" : cuandoPublicado(a.publicado_en)}</div>
+        <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Teléfono</div><span className="font-mono text-[12.5px]">{a.contacto_telefono || "Sin teléfono"}</span>{estadoTelefonoIdealista(a) ? <div className="text-[11px] text-[var(--text-2)]">{estadoTelefonoIdealista(a)}</div> : null}</div>
+        <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Publicado</div>{a.desaparecido_en ? `Retirado el ${fechaCorta(new Date(a.desaparecido_en))}` : publicadoEsCarga(a.publicado_en, a.created_at) ? detectadoEl(a.visto_primera_vez || a.created_at) : cuandoPublicado(a.publicado_en)}</div>
       </div>
       <div className="border-b border-[var(--border-soft)] px-4 py-3">
         <div className="mb-2 text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Asignar a</div>

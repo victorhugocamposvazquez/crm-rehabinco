@@ -3,6 +3,7 @@ import { URL_PARTICULARES_CORUNA } from "@/lib/captacion/brightdata/idealista";
 export type BrightDataIdealistaConfig = {
   token: string;
   datasetId: string;
+  fichaCollectorId: string | null;
   webhookSecret: string;
   listUrl: string;
 };
@@ -20,6 +21,7 @@ export function configBrightDataIdealista(): BrightDataIdealistaConfig | { error
   return {
     token,
     datasetId,
+    fichaCollectorId: process.env.BRIGHTDATA_IDEALISTA_FICHA_COLLECTOR_ID?.trim() || null,
     webhookSecret,
     listUrl: process.env.BRIGHTDATA_IDEALISTA_URL?.trim() || URL_PARTICULARES_CORUNA,
   };
