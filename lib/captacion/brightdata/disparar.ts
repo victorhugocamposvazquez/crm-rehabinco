@@ -9,19 +9,11 @@ export async function dispararIdealista(
   if (urls.length === 0) throw new Error("No hay zonas marcadas.");
   const destino = new URL(webhookUrl);
   if (!destino.searchParams.get("token")) destino.searchParams.set("token", config.webhookSecret);
-  const destinoUrl = destino.toString();
-  const entrega = JSON.stringify({
-    type: "webhook",
-    endpoint: destinoUrl,
-    filename: { template: "idealista", extension: "json" },
-    delivery_type: "deliver_results",
-  });
-  const aviso = JSON.stringify({ type: "webhook", endpoint: destinoUrl });
+  const aviso = JSON.stringify({ type: "webhook", endpoint: destino.toString() });
   const params = config.datasetId.startsWith("c_")
     ? new URLSearchParams({
         collector: config.datasetId,
         queue_next: "1",
-        deliver: entrega,
         notify: aviso,
       })
     : new URLSearchParams({
