@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { SettingsAdminNav } from "@/components/settings/SettingsAdminNav";
+import { ZonasIdealistaCard } from "@/components/settings/ZonasIdealistaCard";
 import type { PortalApi } from "@/lib/captacion/portales/credenciales";
 
 type EstadoPortal = { enApp: boolean; enServidor: boolean; keyHint: string | null };
@@ -126,8 +127,8 @@ export default function SettingsPortalesPage() {
     return (
       <div>
         <PageHeader
-          breadcrumb={[{ label: "Ajustes", href: "/settings" }, { label: "APIs de portales" }]}
-          title="APIs de portales"
+          breadcrumb={[{ label: "Ajustes", href: "/settings" }, { label: "Captación" }]}
+          title="Captación"
         />
         <p className="mt-8 text-sm text-neutral-500">Cargando…</p>
       </div>
@@ -137,12 +138,13 @@ export default function SettingsPortalesPage() {
   return (
     <div>
       <PageHeader
-        breadcrumb={[{ label: "Ajustes", href: "/settings" }, { label: "APIs de portales" }]}
-        title="APIs de portales"
-        description="Solo el superadministrador. Las claves no se muestran enteras después de guardar y no van al navegador del resto del equipo."
+        breadcrumb={[{ label: "Ajustes", href: "/settings" }, { label: "Captación" }]}
+        title="Captación"
+        description="Zonas de Idealista que se traen, y las claves antiguas de las APIs. Solo el superadministrador."
       />
       <SettingsAdminNav role={user?.role} />
       <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <ZonasIdealistaCard />
         {PORTALES.map((portal) => {
           const st = estado[portal.id];
           const form = forms[portal.id];
@@ -215,11 +217,11 @@ export default function SettingsPortalesPage() {
         })}
       </div>
       <p className="mt-6 text-[13px] text-[var(--text-2)]">
-        Con Idealista configurado, abre{" "}
+        Con las zonas guardadas, abre{" "}
         <Link href="/captacion" className="font-medium text-accent-dark">
           Captación
         </Link>{" "}
-        y pulsa Actualizar, o espera al cron diario.
+        y pulsa Traer Idealista. Entran los anuncios de la primera página de cada zona marcada.
       </p>
     </div>
   );

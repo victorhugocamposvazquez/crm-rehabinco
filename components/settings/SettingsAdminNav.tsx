@@ -11,7 +11,7 @@ const ITEMS = [
   { href: "/settings/papelera", label: "Papelera de usuarios", portales: false, papelera: true },
   { href: "/settings/empresa", label: "Datos de empresa", portales: false, papelera: false },
   { href: "/settings/emisores-presupuesto", label: "Emisores de presupuesto", portales: false, papelera: false },
-  { href: "/settings/portales", label: "APIs de portales", portales: true, papelera: false },
+  { href: "/settings/portales", label: "Captación", portales: true, papelera: false },
 ] as const;
 
 export function SettingsAdminNav({ role }: { role?: Role | null }) {

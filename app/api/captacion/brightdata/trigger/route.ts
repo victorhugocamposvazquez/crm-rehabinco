@@ -1,5 +1,6 @@
 import { configBrightDataIdealista, urlWebhookPublica } from "@/lib/captacion/brightdata/config";
 import { dispararIdealista } from "@/lib/captacion/brightdata/disparar";
+import { urlsZonasActivas } from "@/lib/captacion/brightdata/zonas-guardadas";
 import { sesionAdminCaptacion } from "@/lib/captacion/portales/sesion";
 
 export const runtime = "nodejs";
@@ -14,8 +15,15 @@ export async function POST(request: Request) {
   if ("error" in config) return Response.json({ ok: false, error: config.error }, { status: 503 });
 
   try {
-    const { snapshotId } = await dispararIdealista(config, urlWebhookPublica(request));
-    return Response.json({ ok: true, snapshotId });
+    const urls = await urlsZonasActivas();
+    if (urls.length === 0) {
+      return Response.json(
+        { ok: false, error: "No hay zonas marcadas. Elige alguna en Ajustes → Captación." },
+        { status: 400 }
+      );
+    }
+    const { snapshotId } = await dispararIdealista(config, urlWebhookPublica(request), urls);
+    return Response.json({ ok: true, snapshotId, zonas: urls.length });
   } catch (error) {
     return Response.json(
       { ok: false, error: error instanceof Error ? error.message : "No se ha podido lanzar Idealista." },

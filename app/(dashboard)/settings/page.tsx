@@ -199,15 +199,15 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <KeyRound className="h-5 w-5" strokeWidth={1.5} />
-                APIs de portales
+                Captación
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-neutral-600">
-                Claves de Idealista y Fotocasa para Captación. Solo las ve el superadministrador.
+                Zonas de Idealista que se traen, y las claves antiguas de las APIs. Solo las ve el superadministrador.
               </p>
               <Button className="mt-4" variant="secondary" asChild>
-                <Link href="/settings/portales">Configurar APIs de portales</Link>
+                <Link href="/settings/portales">Elegir zonas de Captación</Link>
               </Button>
             </CardContent>
           </Card>

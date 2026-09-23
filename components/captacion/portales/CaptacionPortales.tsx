@@ -412,13 +412,16 @@ export function CaptacionPortales() {
   const refrescar = async () => {
     setSyncing(true);
     const res = await fetch("/api/captacion/brightdata/trigger", { method: "POST" });
-    const json = (await res.json()) as { ok?: boolean; error?: string };
+    const json = (await res.json()) as { ok?: boolean; error?: string; zonas?: number };
     setSyncing(false);
     if (!res.ok || !json.ok) {
       toast.error(json.error || "No se ha podido lanzar Idealista.");
       return;
     }
-    toast.success("Idealista en marcha. Los anuncios entrarán al terminar la recogida.");
+    const zonas = json.zonas ?? 1;
+    toast.success(
+      `Idealista en marcha para ${zonas} ${zonas === 1 ? "zona" : "zonas"}. Los anuncios entrarán al terminar la recogida.`
+    );
   };
 
   const crearAlerta = async () => {
