@@ -70,6 +70,16 @@ describe("mapearBrightDataIdealista", () => {
     });
     assert.ok(anuncio);
     assert.equal(anuncio.contacto_telefono, "+34881350992");
+    assert.equal(
+      mapearBrightDataIdealista({
+        url: "https://www.idealista.com/inmueble/111341722/",
+        title: "Piso",
+        price: 1,
+        phone: null,
+        telefono_ajax: "<!DOCTYPE html><html><body>963836808</body></html>",
+      })?.contacto_telefono,
+      null
+    );
     assert.equal(anuncio.fotos?.length, 2);
     assert.match(anuncio.thumb ?? "", /WEB_DETAIL-XL-L/);
     assert.equal(anuncio.publicado_en?.slice(0, 10), fechaPortalIdealista("12 de septiembre de 2026")?.slice(0, 10));

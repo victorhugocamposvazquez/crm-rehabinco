@@ -108,11 +108,12 @@ function telefonoAjax(valor: unknown): string | null {
   let obj = valor;
   if (typeof valor === "string") {
     const t = valor.trim();
-    if (!t) return null;
+    // Si no es JSON (por ejemplo, la página de desafío de Idealista) no hay teléfono.
+    if (!t.startsWith("{")) return null;
     try {
       obj = JSON.parse(t) as unknown;
     } catch {
-      return t;
+      return null;
     }
   }
   if (!esRegistro(obj)) return null;
