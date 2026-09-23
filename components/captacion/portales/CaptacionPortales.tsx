@@ -440,7 +440,7 @@ export function CaptacionPortales() {
     const res = await fetch("/api/captacion/brightdata/importar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: "j_mue12jm92i4ligvxps" }),
+      body: JSON.stringify({ id: "j_mue12jm92i4iigvxps" }),
     });
     const json = (await res.json()) as { ok?: boolean; error?: string; pendiente?: boolean; nuevos?: number; actualizados?: number };
     setSyncing(false);
