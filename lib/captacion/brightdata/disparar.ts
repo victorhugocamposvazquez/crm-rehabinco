@@ -39,13 +39,29 @@ export async function dispararIdealista(
   const json = (await res.json().catch(() => ({}))) as {
     snapshot_id?: string;
     collection_id?: string;
-    error?: string;
+    error?: unknown;
+    message?: unknown;
+    errors?: unknown;
   };
   const snapshotId = json.collection_id || json.snapshot_id;
   if (!res.ok || !snapshotId) {
-    throw new Error(json.error || `Bright Data respondió ${res.status}.`);
+    throw new Error(`${textoError(json.error ?? json.message ?? json.errors) || "Bright Data no ha aceptado la petición"} (${res.status}).`);
   }
   return { snapshotId };
+}
+
+/** Bright Data a veces devuelve el error como objeto; se muestra su texto, no «[object Object]». */
+function textoError(valor: unknown): string {
+  if (valor == null) return "";
+  if (typeof valor === "string") return valor;
+  if (Array.isArray(valor)) return valor.map(textoError).filter(Boolean).join("; ");
+  if (typeof valor === "object") {
+    const rec = valor as Record<string, unknown>;
+    const directo = rec.message ?? rec.error ?? rec.detail ?? rec.reason;
+    if (typeof directo === "string") return directo;
+    return JSON.stringify(valor).slice(0, 300);
+  }
+  return String(valor);
 }
 
 export async function descargarSnapshot(token: string, snapshotId: string): Promise<unknown> {
