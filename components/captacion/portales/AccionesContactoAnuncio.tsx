@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -57,6 +58,7 @@ export function AccionesContactoAnuncio({
   const [hora, setHora] = useState("10:00");
   const [guardando, setGuardando] = useState(false);
   const [plantillaId, setPlantillaId] = useState(PLANTILLAS_WHATSAPP[0].id);
+  const [historialAbierto, setHistorialAbierto] = useState(false);
 
   const comercial = nombreYApellido(user?.nombre, user?.email) || "Rehabinco";
   const plantilla = PLANTILLAS_WHATSAPP.find((item) => item.id === plantillaId) ?? PLANTILLAS_WHATSAPP[0];
@@ -260,28 +262,42 @@ export function AccionesContactoAnuncio({
       ) : null}
 
       <div className={telefono ? "mt-4" : ""}>
-        <div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Hecho</div>
-        {hechosOrdenados.length === 0 ? (
-          <p className="mt-2 text-[12.5px] text-[var(--text-3)]">Todavía no hay llamadas, WhatsApp ni recordatorios.</p>
-        ) : (
-          <ol className="mt-2">
-            {hechosOrdenados.map((item, indice) => (
-              <li key={item.id} className="grid grid-cols-[16px_1fr] gap-2">
-                <span className="flex flex-col items-center">
-                  <span className="mt-1.5 h-2 w-2 rounded-full bg-accent" />
-                  {indice < hechosOrdenados.length - 1 ? <span className="w-px flex-1 bg-[var(--border)]" /> : null}
-                </span>
-                <div className="pb-3">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-[12px] font-semibold text-accent">{etiquetaHecho(item)}</span>
-                    <span className="shrink-0 text-[11px] tabular-nums text-[var(--text-3)]">{item.cuando}</span>
+        <button
+          type="button"
+          onClick={() => setHistorialAbierto((abierto) => !abierto)}
+          aria-expanded={historialAbierto}
+          className="flex w-full items-center gap-1.5 text-left"
+        >
+          <ChevronDown
+            className={`h-3.5 w-3.5 shrink-0 text-[var(--text-3)] transition-transform ${historialAbierto ? "rotate-180" : ""}`}
+            aria-hidden
+          />
+          <span className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Hecho</span>
+          <span className="text-[11px] tabular-nums text-[var(--text-3)]">{hechosOrdenados.length}</span>
+        </button>
+        {historialAbierto ? (
+          hechosOrdenados.length === 0 ? (
+            <p className="mt-2 text-[12.5px] text-[var(--text-3)]">Todavía no hay llamadas, WhatsApp ni recordatorios.</p>
+          ) : (
+            <ol className="mt-2">
+              {hechosOrdenados.map((item, indice) => (
+                <li key={item.id} className="grid grid-cols-[16px_1fr] gap-2">
+                  <span className="flex flex-col items-center">
+                    <span className="mt-1.5 h-2 w-2 rounded-full bg-accent" />
+                    {indice < hechosOrdenados.length - 1 ? <span className="w-px flex-1 bg-[var(--border)]" /> : null}
+                  </span>
+                  <div className="pb-3">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-[12px] font-semibold text-accent">{etiquetaHecho(item)}</span>
+                      <span className="shrink-0 text-[11px] tabular-nums text-[var(--text-3)]">{item.cuando}</span>
+                    </div>
+                    <p className="mt-0.5 text-[13px] leading-snug">{item.texto}</p>
                   </div>
-                  <p className="mt-0.5 text-[13px] leading-snug">{item.texto}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        )}
+                </li>
+              ))}
+            </ol>
+          )
+        ) : null}
       </div>
     </div>
   );
