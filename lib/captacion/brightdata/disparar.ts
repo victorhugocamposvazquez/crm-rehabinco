@@ -1,5 +1,24 @@
+import { gunzipSync } from "zlib";
 import type { BrightDataIdealistaConfig } from "@/lib/captacion/brightdata/config";
 import { parsearRespuestaDataset } from "@/lib/captacion/brightdata/idealista";
+
+/** Webhook o descarga: JSON, un anuncio por línea, o gzip. */
+export function leerCuerpoBrightData(bytes: Uint8Array, encoding = ""): unknown {
+  const gzip =
+    encoding.toLowerCase().includes("gzip") ||
+    (bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b);
+  let texto: string;
+  if (gzip) {
+    try {
+      texto = gunzipSync(Buffer.from(bytes)).toString("utf8");
+    } catch {
+      texto = new TextDecoder().decode(bytes);
+    }
+  } else {
+    texto = new TextDecoder().decode(bytes);
+  }
+  return parsearRespuestaDataset(texto);
+}
 
 export async function dispararIdealista(
   config: BrightDataIdealistaConfig,

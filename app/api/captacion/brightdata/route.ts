@@ -1,5 +1,5 @@
 import { configBrightDataIdealista, webhookAutorizado } from "@/lib/captacion/brightdata/config";
-import { descargarSnapshot } from "@/lib/captacion/brightdata/disparar";
+import { descargarSnapshot, leerCuerpoBrightData } from "@/lib/captacion/brightdata/disparar";
 import { registrosBrightData, snapshotIdDe } from "@/lib/captacion/brightdata/idealista";
 import { ingestarIdealistaBrightData } from "@/lib/captacion/brightdata/ingestar";
 
@@ -18,7 +18,8 @@ export async function POST(request: Request) {
 
   let cuerpo: unknown;
   try {
-    cuerpo = await request.json();
+    const crudo = new Uint8Array(await request.arrayBuffer());
+    cuerpo = leerCuerpoBrightData(crudo, request.headers.get("content-encoding") ?? "");
   } catch {
     return Response.json({ ok: false, error: "JSON no válido." }, { status: 400 });
   }
