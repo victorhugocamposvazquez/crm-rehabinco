@@ -47,6 +47,8 @@ function filaAnuncio(row: Record<string, unknown>): AnuncioCaptacion {
     publicado_en: typeof row.publicado_en === "string" ? row.publicado_en : null,
     visto_en: String(row.visto_en ?? row.created_at ?? ""),
     visto_primera_vez: typeof row.visto_primera_vez === "string" ? row.visto_primera_vez : null,
+    telefono_capturado_por: typeof row.telefono_capturado_por === "string" ? row.telefono_capturado_por : null,
+    telefono_capturado_en: typeof row.telefono_capturado_en === "string" ? row.telefono_capturado_en : null,
     desaparecido_en: typeof row.desaparecido_en === "string" ? row.desaparecido_en : null,
     created_at: String(row.created_at ?? ""),
   };

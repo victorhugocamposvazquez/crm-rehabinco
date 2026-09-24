@@ -103,11 +103,11 @@ async function pedir(token: string, url: string, init?: RequestInit): Promise<{ 
 }
 
 function mensaje(status: number, cuerpo: unknown): string {
-  const texto = texto(cuerpo);
-  if (/inactive/i.test(texto)) {
+  const detalle = texto(cuerpo);
+  if (/inactive/i.test(detalle)) {
     return "La cuenta de Bright Data está inactiva. El contador volverá cuando recargues saldo.";
   }
-  return texto || `Bright Data ha respondido ${status}.`;
+  return detalle || `Bright Data ha respondido ${status}.`;
 }
 
 function texto(valor: unknown): string {
