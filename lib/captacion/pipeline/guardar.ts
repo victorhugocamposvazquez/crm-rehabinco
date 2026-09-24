@@ -1,3 +1,4 @@
+import { fechaDeFiltro, filtroDeListado, fusionarFechaPortal } from "@/lib/captacion/brightdata/fecha-portal";
 import { calcularScore } from "@/lib/captacion/score";
 import { PARSER_VERSION } from "@/lib/captacion/brightdata/idealista";
 import { buscarInmuebleDuplicado } from "@/lib/captacion/pipeline/dedup";
@@ -6,7 +7,7 @@ import type { AnuncioEntrante } from "@/lib/captacion/portales/modelo";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const SELECT_PREVIO =
-  "id, portal_id, externo_id, precio, precio_anterior, tags, fase, alerta_id, desaparecido_en, hash_contenido, raw_path, parser_version, titulo, descripcion, contacto_telefono, contacto_nombre, municipio, anunciante, publicado_en, created_at";
+  "id, portal_id, externo_id, precio, precio_anterior, tags, fase, alerta_id, desaparecido_en, hash_contenido, raw_path, parser_version, titulo, descripcion, contacto_telefono, contacto_nombre, municipio, anunciante, publicado_en, publicado_en_portal, publicado_precision, created_at";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -34,9 +35,25 @@ export async function guardarAnuncioPipeline(
     .maybeSingle();
   if (selErr) return { nuevo: false, actualizado: false, anuncioId: null, errores: [`${entrante.externo_id}: ${selErr.message}`] };
 
-  const previo = prev as AnuncioGuardado | null;
+  const previo = prev as (AnuncioGuardado & { publicado_en_portal?: string | null; publicado_precision?: string | null }) | null;
   const patch = upsertAnuncio(previo, entrante, ahoraIso, null, { parserVersion: PARSER_VERSION });
-  void registro;
+  const filtro = filtroDeListado(typeof registro.listing_url === "string" ? registro.listing_url : null);
+  const fechaListado = filtro ? fechaDeFiltro(filtro, new Date(ahoraIso)) : null;
+  const fechaFusion = fechaListado
+    ? fusionarFechaPortal(
+        {
+          publicado_en_portal: previo?.publicado_en_portal ?? null,
+          publicado_precision: previo?.publicado_precision ?? null,
+        },
+        fechaListado
+      )
+    : null;
+  if (fechaFusion?.escrito) {
+    Object.assign(patch.row, {
+      publicado_en_portal: fechaFusion.publicado_en_portal,
+      publicado_precision: fechaFusion.publicado_precision,
+    });
+  }
   let anuncioId = previo?.id ?? null;
   let nuevo = false;
   let actualizado = false;

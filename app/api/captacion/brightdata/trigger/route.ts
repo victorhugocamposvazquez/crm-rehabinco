@@ -1,5 +1,6 @@
 import { configBrightDataIdealista, urlWebhookPublica } from "@/lib/captacion/brightdata/config";
 import { dispararIdealista } from "@/lib/captacion/brightdata/disparar";
+import { esFiltroFecha, urlConFiltroFecha, type FiltroFecha } from "@/lib/captacion/brightdata/fecha-portal";
 import { abrirRecogida, zonasBloqueadas } from "@/lib/captacion/brightdata/recogidas";
 import { idsZonasActivas, urlsZonasActivas } from "@/lib/captacion/brightdata/zonas-guardadas";
 import { cronAutorizado } from "@/lib/alertas/config";
@@ -15,27 +16,45 @@ export async function POST(request: Request) {
     if (!sesion.ok) return Response.json({ ok: false, error: sesion.error }, { status: sesion.status });
   }
 
+  let filtro: FiltroFecha | null = null;
+  try {
+    const cuerpo = (await request.json()) as { filtro_fecha?: unknown };
+    if (typeof cuerpo.filtro_fecha === "string" && cuerpo.filtro_fecha) {
+      if (!esFiltroFecha(cuerpo.filtro_fecha)) {
+        return Response.json({ ok: false, error: "Filtro de fecha no válido." }, { status: 400 });
+      }
+      filtro = cuerpo.filtro_fecha;
+    }
+  } catch {
+    filtro = null;
+  }
+
   const config = configBrightDataIdealista();
   if ("error" in config) return Response.json({ ok: false, error: config.error }, { status: 503 });
 
   try {
     const zonas = await idsZonasActivas();
-    const urls = await urlsZonasActivas();
+    const completas = await urlsZonasActivas();
+    const urls = filtro
+      ? completas.map((url) => urlConFiltroFecha(url, filtro))
+      : [...completas, ...completas.map((url) => urlConFiltroFecha(url, "24h"))];
     if (urls.length === 0) {
       return Response.json(
         { ok: false, error: "No hay zonas marcadas. Elige alguna en Ajustes → Captación." },
         { status: 400 }
       );
     }
-    const bloqueadas = await zonasBloqueadas(zonas);
-    if (bloqueadas.length > 0) {
-      return Response.json(
-        { ok: false, error: `Hay una recogida abierta (menos de 6 h) en: ${bloqueadas.join(", ")}.` },
-        { status: 409 }
-      );
+    if (!filtro) {
+      const bloqueadas = await zonasBloqueadas(zonas);
+      if (bloqueadas.length > 0) {
+        return Response.json(
+          { ok: false, error: `Hay una recogida abierta (menos de 6 h) en: ${bloqueadas.join(", ")}.` },
+          { status: 409 }
+        );
+      }
     }
     const { snapshotId } = await dispararIdealista(config, urlWebhookPublica(request), urls);
-    await abrirRecogida(snapshotId, zonas);
+    if (!filtro) await abrirRecogida(snapshotId, zonas);
     return Response.json({ ok: true, snapshotId, zonas: urls.length });
   } catch (error) {
     return Response.json(

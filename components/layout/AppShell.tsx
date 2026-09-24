@@ -14,6 +14,7 @@ import { FichaPeekProvider } from "@/components/crm/FichaPeek";
 import { AlertasPwaHost } from "@/components/pwa/AvisosPwa";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
+import { esNuevoHoy } from "@/lib/captacion/brightdata/fecha-portal";
 import { bandejaDeTarea } from "@/lib/tareas/tareas";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -30,16 +31,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     void Promise.all([
       supabase.from("tareas").select("vence, estado"),
       supabase.from("partes_visita").select("id", { count: "exact", head: true }).eq("estado", "pendiente_firma"),
-      supabase.from("captacion_anuncios").select("publicado_en, fase").eq("fase", "novedad"),
+      supabase.from("captacion_anuncios").select("publicado_en_portal, publicado_precision, fase").eq("fase", "novedad"),
     ]).then(([tareas, partes, anuncios]) => {
       const pendientes = (tareas.data ?? []).filter((row) => {
         const bandeja = bandejaDeTarea(row.vence, hoy, row.estado);
         return bandeja === "VENCIDAS" || bandeja === "HOY";
       }).length;
-      const nuevosHoy = ((anuncios.data ?? []) as Array<{ publicado_en: string | null }>).filter((row) => {
-        const dia = row.publicado_en?.slice(0, 10);
-        return dia === hoy;
-      }).length;
+      const nuevosHoy = ((anuncios.data ?? []) as Array<{ publicado_en_portal: string | null; publicado_precision: string | null }>).filter((row) =>
+        esNuevoHoy(row.publicado_precision, row.publicado_en_portal)
+      ).length;
       setBadges({
         "/tareas": pendientes,
         "/herramientas": partes.count ?? 0,

@@ -22,22 +22,31 @@ function telefonoVisible() {
   return texto ? texto.textContent.trim() : "";
 }
 
+function actualizadoVisible() {
+  const nodo = document.body?.innerText || "";
+  const match = nodo.match(/Anuncio actualizado el\s+([^\n]+)/i);
+  return match ? match[1].trim() : "";
+}
+
 function guardarTelefono() {
   const externoId = idDeFicha();
   const telefono = telefonoVisible();
-  if (!externoId || !telefono || enviados.has(externoId)) return;
-  enviados.add(externoId);
+  const actualizado = actualizadoVisible();
+  if (!externoId || (!telefono && !actualizado)) return;
+  const clave = `${externoId}|${telefono}|${actualizado}`;
+  if (enviados.has(clave)) return;
+  enviados.add(clave);
   chrome.runtime.sendMessage(
     {
       tipo: "crm",
       method: "POST",
       ruta: "/api/captacion/telefono",
-      body: { externo_id: externoId, portal_id: "idealista", telefono, url: location.href },
+      body: { externo_id: externoId, portal_id: "idealista", telefono, actualizado, url: location.href },
     },
     (respuesta) => {
       if (respuesta?.ok && respuesta.json?.ok) aviso("guardado en CRM");
       else {
-        enviados.delete(externoId);
+        enviados.delete(clave);
         aviso(respuesta?.json?.error || respuesta?.error || "no se ha guardado");
       }
     }

@@ -154,6 +154,8 @@ export type AnuncioCaptacion = {
   visto_primera_vez: string | null;
   telefono_capturado_por: string | null;
   telefono_capturado_en: string | null;
+  publicado_en_portal: string | null;
+  publicado_precision: string | null;
   desaparecido_en: string | null;
   created_at: string;
 };

@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { SettingsAdminNav } from "@/components/settings/SettingsAdminNav";
 import { ComoFuncionaCaptacion } from "@/components/settings/ComoFuncionaCaptacion";
 import { SaldoBrightDataCard } from "@/components/settings/SaldoBrightDataCard";
+import { ClasificarFechasCard } from "@/components/settings/ClasificarFechasCard";
 import { ZonasIdealistaCard } from "@/components/settings/ZonasIdealistaCard";
 
 export default function SettingsPortalesPage() {
@@ -47,6 +48,7 @@ export default function SettingsPortalesPage() {
       <div className="mt-6 space-y-4 min-[820px]:overflow-hidden">
         <ComoFuncionaCaptacion />
         <SaldoBrightDataCard />
+        <ClasificarFechasCard />
         <ZonasIdealistaCard />
       </div>
     </div>
