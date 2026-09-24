@@ -27,13 +27,14 @@ export function ZonasIdealistaCard() {
   const [estimados, setEstimados] = useState<Record<string, number | null>>({});
   const [sospechosas, setSospechosas] = useState<Record<string, string>>({});
   const [ultima, setUltima] = useState<UltimaRecogida | null>(null);
+  const [fichasPendientes, setFichasPendientes] = useState(0);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
     void (async () => {
       const res = await fetch("/api/captacion/brightdata/zonas");
-      const json = (await res.json()) as { ok?: boolean; error?: string; zonas?: ZonaIdealista[]; activas?: string[]; estimados?: Record<string, number | null>; sospechosas?: Record<string, string>; ultima?: UltimaRecogida | null };
+      const json = (await res.json()) as { ok?: boolean; error?: string; zonas?: ZonaIdealista[]; activas?: string[]; estimados?: Record<string, number | null>; sospechosas?: Record<string, string>; ultima?: UltimaRecogida | null; fichasPendientes?: number };
       if (!res.ok || !json.ok || !json.zonas) {
         toast.error(json.error || "No se han podido leer las zonas.");
         setCargando(false);
@@ -44,6 +45,7 @@ export function ZonasIdealistaCard() {
       setEstimados(json.estimados ?? {});
       setSospechosas(json.sospechosas ?? {});
       setUltima(json.ultima ?? null);
+      setFichasPendientes(json.fichasPendientes ?? 0);
       setCargando(false);
     })();
   }, []);
@@ -91,6 +93,18 @@ export function ZonasIdealistaCard() {
           {ultima && fecha
             ? `${fecha}, ${ultima.zonas.length} zonas, ${ultima.vistos} vistos / ${ultima.nuevos} nuevos / ${ultima.retirados} retirados, ${ultima.estado}`
             : "ninguna"}
+        </p>
+        <p>
+          Fichas pendientes: {fichasPendientes}
+          <button
+            type="button"
+            className="ml-2 underline"
+            onClick={() => {
+              void fetch("/api/captacion/brightdata/completar-fichas", { method: "POST" }).then(() => toast.success("Fichas encoladas. Se leen en las pasadas de cada 5 minutos."));
+            }}
+          >
+            Completar fichas
+          </button>
         </p>
         <p>
           Zonas con problema:{" "}

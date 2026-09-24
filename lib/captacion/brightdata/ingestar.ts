@@ -1,3 +1,4 @@
+import { encolarFicha } from "@/lib/captacion/brightdata/fichas";
 import { mapearBrightDataIdealista } from "@/lib/captacion/brightdata/idealista";
 import { guardarAnuncioPipeline } from "@/lib/captacion/pipeline/guardar";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -27,6 +28,9 @@ export async function ingestarIdealistaBrightData(
         const entrante = mapearBrightDataIdealista(registro);
         if (!entrante) return { nuevos: 0, actualizados: 0, omitidos: 1, conTelefono: 0, conFecha: 0, errores: [] as string[] };
         const guardado = await guardarAnuncioPipeline(supabase, entrante, ahoraIso, registro);
+        if (guardado.nuevo && registro.items_en_pagina != null) {
+          await encolarFicha(entrante.externo_id, entrante.anunciante).catch(() => undefined);
+        }
         return {
           nuevos: guardado.nuevo ? 1 : 0,
           actualizados: guardado.actualizado ? 1 : 0,

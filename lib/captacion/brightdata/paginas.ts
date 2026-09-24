@@ -1,3 +1,4 @@
+import { aplicarFicha, marcarFichaPendiente } from "@/lib/captacion/brightdata/fichas";
 import { ingestarIdealistaBrightData } from "@/lib/captacion/brightdata/ingestar";
 import { parsearListadoIdealista } from "@/lib/captacion/brightdata/parse-listado";
 import { anotarLote, cerrarRecogidaLocal, sumarVistos } from "@/lib/captacion/brightdata/recogidas";
@@ -7,7 +8,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 const TOPE = 60;
 
-type Pagina = { id: string; recogida_id: string; url: string; zona_id: string; page: number };
+type Pagina = {
+  id: string;
+  recogida_id: string | null;
+  url: string;
+  zona_id: string;
+  page: number;
+  tipo?: string | null;
+};
 
 export async function encolarPaginas(
   recogidaId: string,
@@ -36,15 +44,31 @@ export async function procesarPaginasPendientes(limite = 20): Promise<{ paginas:
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("captacion_paginas_pendientes")
-    .select("id, recogida_id, url, zona_id, page")
+    .select("id, recogida_id, url, zona_id, page, tipo")
     .eq("estado", "pendiente")
+    .or(`reintentar_en.is.null,reintentar_en.lte.${new Date().toISOString()}`)
+    .order("prioridad", { ascending: true })
     .order("page", { ascending: true })
     .limit(limite);
   if (error) throw new Error(error.message);
   const paginas = (data ?? []) as Pagina[];
   const tocadas = new Set<string>();
   for (const pagina of paginas) {
-    tocadas.add(pagina.recogida_id);
+    if (pagina.tipo === "ficha") {
+      try {
+        const html = await pedirHtmlUnlocker(config, pagina.url);
+        const resultado = await aplicarFicha(html, pagina.url);
+        await supabase
+          .from("captacion_paginas_pendientes")
+          .update({ estado: resultado === "ok" ? "hecha" : "pendiente" })
+          .eq("id", pagina.id);
+        if (resultado !== "ok") await marcarFichaPendiente((pagina.url.match(/\/inmueble\/(\d+)/) || [])[1] ?? "");
+      } catch {
+        await marcarFichaPendiente((pagina.url.match(/\/inmueble\/(\d+)/) || [])[1] ?? "");
+      }
+      continue;
+    }
+    if (pagina.recogida_id) tocadas.add(pagina.recogida_id);
     try {
       const html = await pedirHtmlUnlocker(config, pagina.url);
       const listado = parsearListadoIdealista(html, pagina.url);
@@ -60,13 +84,13 @@ export async function procesarPaginasPendientes(limite = 20): Promise<{ paginas:
         items_en_pagina: n,
       }));
       await ingestarIdealistaBrightData(registros);
-      if (pagina.zona_id !== ZONA_PROVINCIA_48H) {
+      if (pagina.recogida_id && pagina.zona_id !== ZONA_PROVINCIA_48H) {
         await anotarLote(pagina.recogida_id, registros);
         await sumarVistos(pagina.recogida_id, pagina.zona_id, listado.items.map((item) => item.externo_id), sinListado);
       }
-      if (listado.next_url && pagina.page < TOPE) {
+      if (pagina.recogida_id && listado.next_url && pagina.page < TOPE) {
         await encolarPaginas(pagina.recogida_id, [{ url: listado.next_url, zona_id: pagina.zona_id, page: pagina.page + 1 }]);
-      } else if (listado.next_url && pagina.page >= TOPE) {
+      } else if (pagina.recogida_id && listado.next_url && pagina.page >= TOPE) {
         await supabase.from("captacion_recogidas").update({ incompleta: true }).eq("collection_id", pagina.recogida_id);
       }
       await supabase.from("captacion_paginas_pendientes").update({ estado: "hecha" }).eq("id", pagina.id);

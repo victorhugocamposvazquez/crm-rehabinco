@@ -61,6 +61,14 @@ export async function GET() {
     zonas: ZONAS_IDEALISTA,
     sospechosas,
     ultima,
+    fichasPendientes: (
+      await admin
+        .from("captacion_anuncios")
+        .select("id", { count: "exact", head: true })
+        .eq("portal_id", "idealista")
+        .eq("enriquecido_ficha", false)
+        .is("desaparecido_en", null)
+    ).count ?? 0,
   });
 }
 
