@@ -298,7 +298,11 @@ export function CaptacionPortales() {
   );
 
   const filtraNov = useCallback(
-    (a: AnuncioCaptacion, chipActivo: ChipNov = chip) => {
+    (
+      a: AnuncioCaptacion,
+      chipActivo: ChipNov = chip,
+      opts?: { portalFijo?: FuentePortal; ignorarPortalActivo?: boolean }
+    ) => {
       const query = q.trim().toLowerCase();
       if (chipActivo === "retirados") {
         if (!a.desaparecido_en || a.fase === "descartado") return false;
@@ -306,7 +310,9 @@ export function CaptacionPortales() {
       if (query && ![a.titulo, a.zona, a.municipio, a.contacto_nombre, a.externo_id].filter(Boolean).join(" ").toLowerCase().includes(query)) return false;
       if (fAlerta !== "todas" && a.alerta_id !== fAlerta) return false;
       if (fCiudad !== "todas" && !(a.municipio ?? "").startsWith(fCiudad)) return false;
-      if (filtros.portal !== "todos" && a.fuente !== filtros.portal) return false;
+      if (opts?.portalFijo) {
+        if (a.fuente !== opts.portalFijo) return false;
+      } else if (!opts?.ignorarPortalActivo && filtros.portal !== "todos" && a.fuente !== filtros.portal) return false;
       if (filtros.tipo !== "todos" && a.tipo !== filtros.tipo) return false;
       if (filtros.anunciante === "particular" && a.anunciante !== "particular") return false;
       const pmin = Number(filtros.precioMin);
@@ -512,23 +518,29 @@ export function CaptacionPortales() {
     ["edif", "Edificios y casas", nov.filter((a) => filtraNov(a, "edif")).length],
     ["retirados", "Retirados", anuncios.filter((a) => filtraNov(a, "retirados")).length],
   ];
-  const portalChips = useMemo(() => {
-    let base = nov;
-    if (fAlerta !== "todas") base = base.filter((a) => a.alerta_id === fAlerta);
-    if (fCiudad !== "todas") base = base.filter((a) => (a.municipio ?? "").startsWith(fCiudad));
-    return FUENTES_PORTAL.map((p) => ({
-      id: p,
-      label: PORTAL_LABEL[p] ?? p,
-      n: base.filter((a) => a.fuente === p).length,
-    })).filter((c) => c.n > 0);
-  }, [nov, fAlerta, fCiudad]);
+  const portalChips = useMemo(
+    () =>
+      FUENTES_PORTAL.map((p) => ({
+        id: p,
+        label: PORTAL_LABEL[p] ?? p,
+        n: nov.filter((a) => filtraNov(a, chip, { portalFijo: p, ignorarPortalActivo: true })).length,
+      })).filter((c) => c.n > 0),
+    [nov, chip, filtraNov]
+  );
+  const novEnLista = useMemo(() => nov.filter((a) => filtraNov(a, "todas")).length, [nov, filtraNov]);
   const tabs: Array<[Tab, string, number]> = [
-    ["nov", "Novedades", nov.length],
+    ["nov", "Novedades", novEnLista],
     ["seg", "Seguimiento", seg.length],
     ["ale", "Alertas", alertas.filter((a) => a.activa).length],
     ["not", "Notificaciones", notifs.filter((n) => !n.leida).length],
   ];
-  const nFiltros = (fAlerta !== "todas" ? 1 : 0) + (fCiudad !== "todas" ? 1 : 0);
+  const nFiltros =
+    (fAlerta !== "todas" ? 1 : 0) +
+    (fCiudad !== "todas" ? 1 : 0) +
+    (filtros.anunciante !== "todos" ? 1 : 0) +
+    (filtros.portal !== "todos" ? 1 : 0) +
+    (filtros.tipo !== "todos" ? 1 : 0) +
+    (filtros.precioMin || filtros.precioMax || filtros.m2Min || filtros.m2Max ? 1 : 0);
   const comercialDe = (id: string | null) => comerciales.find((c) => c.id === id);
   const cols = wide
     ? "16px minmax(0,2.6fr) 104px 60px 72px 130px 140px 132px"
@@ -671,6 +683,12 @@ export function CaptacionPortales() {
               </div>
             ) : null}
             <div className="flex flex-wrap items-center gap-1.5 border-b border-[var(--border-soft)] px-3.5 py-2.5">
+              {filtros.anunciante === "particular" ? (
+                <span className="mr-1 text-[11.5px] text-[var(--text-2)]">
+                  Solo particulares{filtros.portal !== "todos" ? ` · ${PORTAL_LABEL[filtros.portal as FuentePortal] ?? filtros.portal}` : ""}.
+                  {nov.length > novEnLista ? ` ${nov.length - novEnLista} de agencia ocultos.` : ""}
+                </span>
+              ) : null}
               {chips.map(([id, label, n]) => (
                 <button key={id} type="button" onClick={() => { setChip(id); setPag(1); }} className={cn("h-[30px] rounded-full border px-2.5 text-[12.5px] font-medium", chip === id ? "border-accent bg-accent-soft text-accent-dark" : "border-[var(--border)] bg-white text-[var(--text-2)]")}>
                   {label} <span className="opacity-60">{n}</span>
