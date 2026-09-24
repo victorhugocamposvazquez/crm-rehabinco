@@ -42,7 +42,7 @@ export async function guardarAnuncioPipeline(
     visto_primera_vez?: string | null;
   }) | null;
   const patch = upsertAnuncio(previo, entrante, ahoraIso, null, { parserVersion: PARSER_VERSION });
-  const listingUrl = typeof registro.listing_url === "string" ? registro.listing_url : null;
+  const listingUrl = typeof registro.zona_url === "string" ? registro.zona_url : null;
   const filtro = filtroDeListado(listingUrl);
   const fechaListado = filtro
     ? fechaDeListadoDiario(filtro, new Date(ahoraIso), {

@@ -268,7 +268,12 @@ export function urlFichaIdealista(externoId: string, url?: string | null): strin
   if (!/^\d{5,}$/.test(externoId)) return null;
   return `https://www.idealista.com/inmueble/${externoId}/`;
 }
+export function esMarcadorListado(raw: Registro): boolean {
+  return Number(raw.items_en_pagina) === 0;
+}
+
 export function mapearBrightDataIdealista(raw: Registro): AnuncioEntrante | null {
+  if (esMarcadorListado(raw)) return null;
   const url = normalizarTexto(texto(campo(raw, ["url", "listing_url", "link", "property_url"])));
   const crudoId = texto(
     campo(raw, ["property_code", "propertyCode", "listing_id", "ad_id", "externo_id", "id", "reference"])
@@ -286,7 +291,7 @@ export function mapearBrightDataIdealista(raw: Registro): AnuncioEntrante | null
   const tituloPortal = normalizarTexto(texto(campo(raw, ["title", "property_title", "titulo", "name"])));
   const fotos = fotosDe(raw);
   const precio = normalizarPrecio(campo(raw, ["price", "precio", "amount"]));
-  const esListado = raw.listing_position != null;
+  const esListado = raw.listing_position != null || raw.items_en_pagina != null;
   // Una ficha que no cargó llega solo con la URL. Un listado sin teléfono sí es válido.
   if (!esListado && !tituloPortal && precio == null && fotos.length === 0) return null;
   const titulo =
@@ -317,7 +322,7 @@ export function mapearBrightDataIdealista(raw: Registro): AnuncioEntrante | null
     superficie: normalizarM2(campo(raw, ["size", "surface", "superficie", "sqm", "m2", "area_m2"])),
     habitaciones: normalizarPrecio(campo(raw, ["rooms", "habitaciones", "bedrooms", "num_rooms"])),
     banos: normalizarPrecio(campo(raw, ["bathrooms", "banos", "baths", "num_baths"])),
-    planta: normalizarTexto(texto(campo(raw, ["floor", "planta"]))),
+    planta: normalizarTexto(texto(campo(raw, ["floor_text", "floor", "planta"]))),
     direccion,
     zona: zona ?? municipio,
     municipio,

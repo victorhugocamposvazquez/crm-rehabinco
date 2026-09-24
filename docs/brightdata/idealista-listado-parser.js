@@ -1,100 +1,105 @@
-// Collector de LISTADO. Un objeto { items, has_next_page }.
-// El Interaction code hace collect() de cada item: un registro por anuncio, sin ficha.
+// Idealista — LISTADO. Devuelve { items, next_url, final_url, sin_resultados }.
+// El interaction hace collect() de cada item.
 
-const extractNumber = (text) => {
-  if (!text) return null;
-  const match = String(text).replace(/\./g, '').replace(/,/g, '.').match(/[\d.]+/);
-  return match ? parseFloat(match[0]) : null;
+const num = (t) => {
+  if (!t) return null;
+  const m = String(t).replace(/\./g, '').replace(/,/g, '.').match(/\d+(\.\d+)?/);
+  return m ? parseFloat(m[0]) : null;
 };
 
-const municipio =
-  $('.breadcrumb-navigation-current, .listing-title, h1').first().text_sane() || null;
+const BASE = 'https://www.idealista.com';
+const abs = (href) => {
+  try { return new URL(href, BASE).href; } catch (e) { return null; }
+};
 
-const pagina = Number((input.url || input.listing_url || '').match(/pagina-(\d+)/)?.[1] || 1);
-const scraped_at = new Date().toISOString();
+const final_url = $('link[rel="canonical"]').attr('href') || input.url || null;
+
 const items = [];
 
 $('article.item').each((i, el) => {
-  const nodo = $(el);
-  const href = nodo.find('a.item-link').first().attr('href') || '';
+  const $el = $(el);
+  const link = $el.find('a.item-link').first();
+  const href = link.attr('href');
   if (!href) return;
-  const url = new URL(href, 'https://www.idealista.com').href;
-  const externo_id = (url.match(/\/inmueble\/(\d+)/) || [])[1] || null;
+
+  const url = abs(href);
+  const externo_id =
+    (url && (url.match(/\/inmueble\/(\d+)/) || [])[1]) ||
+    $el.attr('data-adid') ||
+    $el.attr('data-element-id') ||
+    null;
   if (!externo_id) return;
 
-  const title = nodo.find('a.item-link').first().attr('title') || nodo.find('.item-link').first().text_sane();
-  const price = extractNumber(nodo.find('.item-price').first().text_sane());
-  const detalles = nodo.find('.item-detail').text_sane();
-  const size = extractNumber((detalles.match(/([\d.]+)\s*m/) || [])[1]);
-  const rooms = extractNumber((detalles.match(/(\d+)\s*hab/) || [])[1]);
-  const bathrooms = extractNumber((detalles.match(/(\d+)\s*bañ/) || [])[1]);
+  const title = link.attr('title') || link.text_sane() || null;
+
+  // "Piso en Rúa X, Monte Alto, A Coruña" -> barrio y municipio son los dos últimos tramos
+  const tramos = title ? title.split(',').map((s) => s.trim()).filter(Boolean) : [];
+  const municipality = tramos.length ? tramos[tramos.length - 1] : null;
+  const neighborhood = tramos.length > 2 ? tramos[tramos.length - 2] : null;
 
   let property_type = null;
-  const tipo = String(title || '').match(/^(Piso|Casa|Chalet|Ático|Dúplex|Estudio|Loft)/i);
+  const tipo = title && title.match(/^(Piso|Casa|Chalet|Ático|Dúplex|Estudio|Loft|Casa rústica|Casa de pueblo|Casa adosada|Casa o chalet|Finca rústica|Planta baja)/i);
   if (tipo) property_type = tipo[1];
 
-  const neighborhood = nodo.find('.item-link').first().text_sane() || null;
-  const latRaw = nodo.attr('data-latitude') || nodo.attr('data-lat');
-  const lngRaw = nodo.attr('data-longitude') || nodo.attr('data-lng') || nodo.attr('data-lon');
-  const latitude = latRaw ? Number(latRaw) : null;
-  const longitude = lngRaw ? Number(lngRaw) : null;
+  const price = num($el.find('.item-price').first().text_sane());
 
-  const photos = [];
-  nodo.find('img').each((k, img) => {
-    const src = $(img).attr('src') || $(img).attr('data-src') || '';
-    if (/idealista\.com/i.test(src) && !/video\.master/i.test(src)) photos.push(src.split(' ')[0]);
+  let rooms = null;
+  let size = null;
+  let floor_text = null;
+  $el.find('.item-detail-char .item-detail').each((j, d) => {
+    const t = $(d).text_sane();
+    if (/hab\b|hab\./i.test(t)) rooms = num(t);
+    else if (/m²|m2/i.test(t)) size = num(t);
+    else if (t) floor_text = t;
   });
 
-  const description_snippet = (nodo.find('.ellipsis, .item-description').first().text_sane() || '').slice(0, 280) || null;
+  const description_snippet = $el.find('.item-description').first().text_sane() || null;
+
+  const branding = $el.find('.logo-branding');
   const agency_name =
-    nodo.find('.hightop-agent .name, .logo-branding img, .item-multimedia-agency').first().attr('alt') ||
-    nodo.find('.hightop-agent .name, .item-toolbar-contact').first().text_sane() ||
+    branding.find('a').first().attr('title') ||
+    branding.find('img').first().attr('alt') ||
     null;
-  const agency = agency_name && !/particular/i.test(agency_name) ? agency_name : null;
+  const seller_type = agency_name ? 'professional' : 'private';
+
+  const vistas = new Set();
+  const photos = [];
+  $el.find('img').each((j, im) => {
+    const src = $(im).attr('src') || $(im).attr('data-src') || $(im).attr('data-ondemand-img') || '';
+    if (/img\d\.idealista\.com/i.test(src) && !vistas.has(src)) {
+      vistas.add(src);
+      photos.push(src);
+    }
+  });
+
+  const tags = $el.find('.listing-tags').text_sane() || null;
 
   items.push({
-    url,
     externo_id,
-    title: title || null,
+    url,
+    title,
     price,
     size,
     rooms,
-    bathrooms,
+    bathrooms: null,
+    floor_text,
     property_type,
-    municipality: municipio,
+    municipality,
     neighborhood,
-    latitude: Number.isFinite(latitude) ? latitude : null,
-    longitude: Number.isFinite(longitude) ? longitude : null,
-    photos,
+    latitude: null,
+    longitude: null,
     description_snippet,
-    agency_name: agency,
-    seller_type: agency ? 'professional' : 'particular',
-    listing_position: (pagina - 1) * 30 + i + 1,
-    listing_url: input.url || input.listing_url || null,
-    page: pagina,
-    scraped_at,
+    agency_name,
+    seller_type,
+    tags,
+    photos
   });
 });
 
-const has_next_page = $('.pagination li.next a').length > 0 && pagina < 60;
-const sin_listado = $('article.item').length === 0 && $('.items-container').length === 0;
-const final_url = input.final_url || input.url || input.listing_url || null;
-if (items.length === 0) {
-  items.push({
-    listing_url: input.url || input.listing_url || null,
-    final_url,
-    sin_listado,
-    page: pagina,
-    page_items: 0,
-    has_next_page: false,
-    scraped_at,
-  });
-}
-for (const item of items) {
-  item.page_items = items.length === 1 && item.page_items === 0 ? 0 : items.length;
-  item.has_next_page = has_next_page;
-  item.final_url = final_url;
-  item.sin_listado = sin_listado;
-}
+const nextHref = $('.pagination li.next a').first().attr('href');
+const next_url = nextHref ? abs(nextHref) : null;
 
-return { items, has_next_page, sin_listado, final_url };
+const cuerpo = $('body').text_sane() || '';
+const sin_resultados = items.length === 0 && /no hay resultados|sin resultados|no hemos encontrado|no se han encontrado/i.test(cuerpo);
+
+return { items, next_url, final_url, sin_resultados };

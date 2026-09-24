@@ -1,32 +1,50 @@
-// Collector de LISTADO. No abre fichas y no pide teléfono.
-// Paginación: la página siguiente solo si hay «siguiente», tope de seguridad 60.
-// El schedule del panel de Bright Data debe estar desactivado: el CRM dispara una vez al día, a las 04:30 UTC.
+// Idealista — LISTADO. Un registro por anuncio. No abre fichas.
+// Input: { url: "https://www.idealista.com/venta-viviendas/oleiros/con-particulares/", page?: 1 }
 
 country('es');
 
-let url;
-if (input.listing_url) url = new URL(input.listing_url);
-else if (input.url) url = new URL(input.url);
-else url = new URL('https://www.idealista.com/venta-viviendas/a-coruna-a-coruna/con-particulares/');
+const MAX_PAGINAS = 60;
+const pagina = Number(input.page || 1);
+const urlZona = String(input.zona_url || input.url);
 
-navigate(url.href, { allow_status: [403], timeout: 45000 });
+navigate(input.url, { allow_status: [403, 404], timeout: 60000 });
 close_popup('#didomi-notice', '#didomi-notice-agree-button');
 
-if (status_code() === 403 || el_exists('#cmsg, iframe[src*="captcha-delivery"]', 2000)) {
-  solve_captcha();
-  wait_timeout(4000);
+const hayDesafio = status_code() === 403 || el_exists('#cmsg, iframe[src*="captcha-delivery"]', 2000);
+if (hayDesafio) {
+  blocked('Idealista: desafío anti-bot en el listado');
 }
 
-el_exists('article.item', 20000);
-const page = parse();
-for (const item of page.items || []) collect({ ...item, final_url: url.href });
-if (page.sin_listado) return;
+// Espera a que aparezcan los anuncios, sin abortar si no los hay
+el_exists('article.item', 15000);
 
-const pagina = Number((url.href.match(/pagina-(\d+)/) || [])[1] || 1);
-if (page.has_next_page && pagina < 60) {
-  const base = url.href.replace(/\/pagina-\d+\.htm/, '').replace(/\/$/, '');
-  rerun_stage({
-    url: input.url,
-    listing_url: `${base}/pagina-${pagina + 1}.htm`,
+const data = parse();
+const scraped_at = new Date().toISOString();
+
+if (!data.items.length) {
+  // Página sin anuncios: la ingesta decide si es "sin resultados" o "página inválida"
+  collect({
+    zona_url: urlZona,
+    page: pagina,
+    final_url: data.final_url,
+    sin_listado: !data.sin_resultados,
+    items_en_pagina: 0,
+    scraped_at
   });
+} else {
+  data.items.forEach((item, i) => {
+    collect(Object.assign({}, item, {
+      zona_url: urlZona,
+      page: pagina,
+      final_url: data.final_url,
+      sin_listado: false,
+      items_en_pagina: data.items.length,
+      listing_position: (pagina - 1) * 30 + i + 1,
+      scraped_at
+    }));
+  });
+
+  if (data.next_url && pagina < MAX_PAGINAS) {
+    rerun_stage({ url: data.next_url, zona_url: urlZona, page: pagina + 1 });
+  }
 }

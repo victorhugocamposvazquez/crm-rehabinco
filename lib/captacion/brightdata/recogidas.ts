@@ -24,9 +24,9 @@ export function listadoIncompleto(filas: Record<string, unknown>[]): boolean {
   for (const row of filas) {
     const pagina = Number(row.page);
     if (!Number.isFinite(pagina)) continue;
-    const clave = `${String(row.listing_url ?? "zona")}|${pagina}`;
-    const medido = Number(row.page_items);
-    const sigue = row.has_next_page === true;
+    const clave = `${String(row.zona_url ?? "zona")}|${pagina}`;
+    const medido = Number(row.items_en_pagina);
+    const sigue = pagina >= 60;
     const previo = paginas.get(clave);
     paginas.set(clave, {
       n: Number.isFinite(medido) ? medido : (previo?.n ?? 0) + 1,
@@ -50,7 +50,7 @@ export function evaluarZonas(
   const invalidas = new Set<string>();
   const vistas = new Map<string, Set<string>>();
   for (const row of filas) {
-    const listing = String(row.listing_url ?? "");
+    const listing = String(row.zona_url ?? "");
     if (/publicado_/i.test(listing)) continue;
     const zona = zonaIdDeListado(listing);
     if (!zona) continue;
@@ -60,11 +60,12 @@ export function evaluarZonas(
       conteos[zona] = conteos[zona] ?? 0;
       continue;
     }
-    const id = String(row.externo_id ?? "");
-    if (!/^\d{5,}$/.test(id)) {
+    if (Number(row.items_en_pagina) === 0) {
       conteos[zona] = conteos[zona] ?? 0;
       continue;
     }
+    const id = String(row.externo_id ?? "");
+    if (!/^\d{5,}$/.test(id)) continue;
     const ids = vistas.get(zona) ?? new Set<string>();
     ids.add(id);
     vistas.set(zona, ids);
