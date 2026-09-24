@@ -93,6 +93,9 @@ export function ZonasIdealistaCard() {
                     {zonaSuperaCorte(estimados[zona.id] ?? null) ? (
                       <span className="mt-0.5 block text-[12px] text-[#8A3030]">Supera 1.500 anuncios. Hay que partir esta zona.</span>
                     ) : null}
+                    {zona.slugVerificado === false ? (
+                      <span className="mt-0.5 block text-[12px] text-[#8A5A20]">slug sin verificar</span>
+                    ) : null}
                     {sospechosas[zona.id] ? (
                       <span className="mt-0.5 block text-[12px] text-[#8A3030]">Sospechosa: {MOTIVO[sospechosas[zona.id]] ?? sospechosas[zona.id]}. No entra en retirados.</span>
                     ) : null}

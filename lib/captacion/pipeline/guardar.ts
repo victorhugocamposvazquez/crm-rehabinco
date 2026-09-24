@@ -68,7 +68,8 @@ export async function guardarAnuncioPipeline(
       publicado_precision: fechaFusion.publicado_precision,
     });
   }
-  const zonaVista = zonaIdDeListado(listingUrl);
+  const zonaExplicita = typeof registro.zona_id === "string" ? registro.zona_id : null;
+  const zonaVista = zonaExplicita ?? zonaIdDeListado(listingUrl);
   if (zonaVista) patch.row.zona_id = zonaVista;
   let anuncioId = previo?.id ?? null;
   let nuevo = false;

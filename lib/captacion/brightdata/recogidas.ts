@@ -1,6 +1,5 @@
-import { descargarSnapshot } from "@/lib/captacion/brightdata/disparar";
-import { mapearBrightDataIdealista, registrosBrightData } from "@/lib/captacion/brightdata/idealista";
-import { entraEnRetirados, zonaIdDeListado } from "@/lib/captacion/brightdata/zonas";
+import { mapearBrightDataIdealista } from "@/lib/captacion/brightdata/idealista";
+import { entraEnRetirados, ZONA_PROVINCIA_48H, zonaIdDeListado } from "@/lib/captacion/brightdata/zonas";
 import { desaparecidosTrasSync, type AnuncioGuardado } from "@/lib/captacion/pipeline/upsert";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -16,6 +15,7 @@ type Recogida = {
   externos: string[];
   conteos?: Record<string, number> | null;
   sospechosas?: Record<string, MotivoSospecha> | null;
+  vistos?: Record<string, string[]> | null;
 };
 
 /** Última página llena y con «siguiente»: la zona no se leyó entera. */
@@ -127,32 +127,36 @@ export async function anotarLote(collectionId: string, registros: Record<string,
   await supabase.from("captacion_recogidas").update({ externos: unidos, registros: unidos.length }).eq("collection_id", collectionId);
 }
 
-/** Cierra la recogida solo si el dataset entero ya responde 200. Entonces retira. */
-export async function intentarCerrarRecogida(token: string, collectionId: string): Promise<boolean> {
+export async function sumarVistos(collectionId: string, zonaId: string, ids: string[], invalida: boolean): Promise<void> {
+  if (zonaId === ZONA_PROVINCIA_48H) return;
+  const supabase = admin();
+  const { data } = await supabase.from("captacion_recogidas").select("vistos, sospechosas").eq("collection_id", collectionId).maybeSingle();
+  if (!data) return;
+  const vistos = { ...((data.vistos ?? {}) as Record<string, string[]>) };
+  const unidos = new Set([...(vistos[zonaId] ?? []), ...ids]);
+  vistos[zonaId] = [...unidos];
+  const conteos = Object.fromEntries(Object.entries(vistos).map(([zona, lista]) => [zona, lista.length]));
+  const sospechosas = { ...((data.sospechosas ?? {}) as Record<string, MotivoSospecha>) };
+  if (invalida) sospechosas[zonaId] = "pagina_invalida";
+  await supabase.from("captacion_recogidas").update({ vistos, conteos, sospechosas }).eq("collection_id", collectionId);
+}
+
+/** Cierra cuando la cola de páginas está vacía. La provincia a 48 h no entra en retirados. */
+export async function cerrarRecogidaLocal(collectionId: string): Promise<boolean> {
   const supabase = admin();
   const { data } = await supabase.from("captacion_recogidas").select("*").eq("collection_id", collectionId).maybeSingle();
   const recogida = data as Recogida | null;
   if (!recogida || recogida.completada) return false;
 
-  const log = await fetch(`https://api.brightdata.com/dca/log/${encodeURIComponent(collectionId)}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  const meta = (await log.json().catch(() => ({}))) as { Status?: string; status?: string };
-  const estado = String(meta.Status ?? meta.status ?? "");
-  if (log.ok && estado && !/done|ready|finished|success/i.test(estado)) return false;
+  if ((recogida.zonas ?? []).length === 0) {
+    await supabase.from("captacion_recogidas").update({ completada: new Date().toISOString() }).eq("collection_id", collectionId);
+    return true;
+  }
 
-  const snapshot = await descargarSnapshot(token, collectionId);
-  if (snapshot && typeof snapshot === "object" && "pendiente" in (snapshot as object)) return false;
-  const filas = registrosBrightData(snapshot);
-  if (!Array.isArray(filas) || filas.length === 0) return false;
-
-  const externos = [
-    ...new Set(
-      filas.map((row) => mapearBrightDataIdealista(row)?.externo_id).filter((id): id is string => Boolean(id))
-    ),
-  ];
+  const vistos = recogida.vistos ?? {};
+  const conteos = Object.fromEntries(Object.entries(vistos).map(([zona, lista]) => [zona, lista.length]));
+  const externos = [...new Set(Object.values(vistos).flat())];
   const ahora = new Date().toISOString();
-  const incompleta = listadoIncompleto(filas);
   const { data: previas } = await supabase
     .from("captacion_recogidas")
     .select("zonas, conteos, completada, incompleta")
@@ -167,7 +171,17 @@ export async function intentarCerrarRecogida(token: string, collectionId: string
     );
     if (previa?.conteos) conteosAnteriores[zona] = previa.conteos[zona];
   }
-  const { conteos, sospechosas } = evaluarZonas(filas, conteosAnteriores);
+  for (const zona of recogida.zonas ?? []) {
+    if (!(zona in conteos)) conteos[zona] = 0;
+  }
+  const sospechosas: Record<string, MotivoSospecha> = { ...(recogida.sospechosas ?? {}) };
+  for (const [zona, n] of Object.entries(conteos)) {
+    if (zona === ZONA_PROVINCIA_48H || sospechosas[zona] === "pagina_invalida") continue;
+    const antes = conteosAnteriores[zona];
+    if (n === 0) sospechosas[zona] = "vacia";
+    else if (typeof antes === "number" && antes > 0 && n < antes * 0.5) sospechosas[zona] = "caida";
+  }
+  const incompleta = Boolean(recogida.incompleta);
   await supabase
     .from("captacion_recogidas")
     .update({ completada: ahora, incompleta, registros: externos.length, externos, conteos, sospechosas })

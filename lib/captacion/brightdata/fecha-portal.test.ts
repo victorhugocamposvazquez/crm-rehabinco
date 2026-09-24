@@ -18,11 +18,11 @@ const AHORA = new Date("2026-09-24T04:30:00.000Z");
 describe("filtro de fecha de Idealista", () => {
   it("añade el segmento comprobado junto a particulares", () => {
     const url = urlConFiltroFecha("https://www.idealista.com/venta-viviendas/oleiros-a-coruna/", "24h");
-    assert.equal(url, "https://www.idealista.com/venta-viviendas/oleiros-a-coruna/con-particulares,publicado_ultimas-24-horas/");
+    assert.equal(url, "https://www.idealista.com/venta-viviendas/oleiros-a-coruna/con-publicado_ultimas-24-horas/");
     assert.equal(filtroDeListado(url), "24h");
     assert.equal(
       urlConFiltroFecha("https://www.idealista.com/venta-viviendas/madrid-madrid/con-particulares/", "7d"),
-      "https://www.idealista.com/venta-viviendas/madrid-madrid/con-particulares,publicado_ultima-semana/"
+      "https://www.idealista.com/venta-viviendas/madrid-madrid/con-publicado_ultima-semana/"
     );
   });
 

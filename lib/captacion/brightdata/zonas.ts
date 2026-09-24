@@ -1,6 +1,9 @@
 export type OperacionZona = "venta" | "alquiler";
 
 export const ZONA_DESCONOCIDA = "desconocida";
+/** Listado de provincia a 48 h. Fecha sí; retirados no. */
+export const ZONA_PROVINCIA_48H = "provincia-48h";
+export const URL_PROVINCIA_48H = "https://www.idealista.com/venta-viviendas/a-coruna-provincia/con-publicado_ultimas-48-horas/";
 
 export type ZonaIdealista = {
   id: string;
@@ -13,6 +16,8 @@ export type ZonaIdealista = {
   /** Por ahora el catálogo activo es venta. Alquiler se genera al activar la fila. */
   operacion: OperacionZona;
   url: string;
+  /** Santiago y Ferrol siguen en el catálogo hasta confirmar el slug de Idealista. */
+  slugVerificado: boolean;
 };
 
 /** Idealista corta el listado al pasar de este número de anuncios. Hay que partir la zona. */
@@ -41,11 +46,11 @@ function municipio(nombre: string, anuncios = 0, porDefecto = false, url?: strin
     porDefecto,
     operacion: "venta",
     url: url ?? `https://www.idealista.com/venta-viviendas/${id}-a-coruna/`,
+    slugVerificado: true,
   };
 }
 
-function distrito(grupo: string, ciudadBase: string, nombre: string, anuncios = 0): ZonaIdealista {
-  const trozo = slug(nombre);
+function distrito(grupo: string, ciudadBase: string, nombre: string, anuncios = 0, trozo = slug(nombre), slugVerificado = true): ZonaIdealista {
   return {
     id: `${slug(grupo)}-${trozo}`,
     grupo,
@@ -54,25 +59,26 @@ function distrito(grupo: string, ciudadBase: string, nombre: string, anuncios = 
     porDefecto: false,
     operacion: "venta",
     url: `https://www.idealista.com/venta-viviendas/${ciudadBase}/${trozo}/`,
+    slugVerificado,
   };
 }
 
-const DISTRITOS_CORUNA: Array<[string, number]> = [
-  ["Agra del Orzán - Ventorrillo", 68],
-  ["Ciudad Vieja - Centro", 63],
-  ["Cuatro Caminos - Plaza de la Cubela", 50],
-  ["Eirís", 53],
-  ["Elviña - A Zapateira", 26],
-  ["Ensanche - Juan Flórez", 172],
-  ["Los Castros - Castrillón", 70],
-  ["Los Rosales", 33],
-  ["Mesoiro", 29],
-  ["Monte Alto - Zalaeta - Atocha", 109],
-  ["Os Mallos", 44],
-  ["Riazor - Visma", 58],
-  ["Sagrada Familia", 35],
-  ["Someso - Matogrande", 87],
-  ["Vioño", 5],
+const DISTRITOS_CORUNA: Array<[string, string, number]> = [
+  ["Agra del Orzán - Ventorrillo", "agra-del-orzan-ventorrillo", 68],
+  ["Ciudad Vieja - Centro", "ciudad-vieja-centro", 63],
+  ["Cuatro Caminos - Plaza de la Cubela", "cuatro-caminos-plaza-de-la-cubela", 50],
+  ["Eirís", "eiris", 53],
+  ["Elviña - A Zapateira", "elvina-a-zapateira", 26],
+  ["Ensanche - Juan Flórez", "ensanche-juan-florez", 172],
+  ["Los Castros - Castrillón", "los-castros-castrillon", 70],
+  ["Los Rosales", "los-rosales", 33],
+  ["Mesoiro", "mesoiro", 29],
+  ["Monte Alto - Zalaeta - Atocha", "monte-alto-zalaeta-atocha", 109],
+  ["Os Mallos", "os-mallos", 44],
+  ["Riazor - Visma", "riazor-visma", 58],
+  ["Sagrada Familia", "sagrada-familia", 35],
+  ["Someso - Matogrande", "someso-matogrande", 87],
+  ["Vioño", "viono", 5],
 ];
 
 const DISTRITOS_SANTIAGO = [
@@ -119,9 +125,9 @@ const MUNICIPIOS_NUEVOS = [
 ];
 
 export const ZONAS_IDEALISTA: ZonaIdealista[] = [
-  ...DISTRITOS_CORUNA.map(([nombre, anuncios]) => distrito("A Coruña", "a-coruna", nombre, anuncios)),
-  ...DISTRITOS_SANTIAGO.map((nombre) => distrito("Santiago", "a-coruna/santiago", nombre)),
-  ...DISTRITOS_FERROL.map((nombre) => distrito("Ferrol", "ferrol-a-coruna", nombre)),
+  ...DISTRITOS_CORUNA.map(([nombre, trozo, anuncios]) => distrito("A Coruña", "a-coruna", nombre, anuncios, trozo, true)),
+  ...DISTRITOS_SANTIAGO.map((nombre) => distrito("Santiago", "santiago-de-compostela", nombre, 0, slug(nombre), false)),
+  ...DISTRITOS_FERROL.map((nombre) => distrito("Ferrol", "ferrol", nombre, 0, slug(nombre), false)),
   ...MUNICIPIOS_DEFECTO.map(([nombre, anuncios, url]) => municipio(nombre, anuncios, true, url)),
   ...MUNICIPIOS_NUEVOS.map((nombre) => municipio(nombre)),
 ];
@@ -148,24 +154,27 @@ export function esZonaIdealista(id: string): boolean {
   return POR_ID.has(id);
 }
 
-export function urlsDeZonas(ids: string[], operacion: Record<string, OperacionZona> = {}): string[] {
+export function paresDeZonas(ids: string[], operacion: Record<string, OperacionZona> = {}): Array<{ zona_id: string; url: string }> {
   const elegidas = ids.length > 0 ? ids : ZONAS_IDEALISTA.filter((zona) => zona.porDefecto).map((zona) => zona.id);
-  const urls: string[] = [];
+  const pares: Array<{ zona_id: string; url: string }> = [];
   const vistas = new Set<string>();
   for (const id of elegidas) {
     const zona = POR_ID.get(id);
     if (!zona) continue;
-    const url = urlParticularesIdealista(urlSegunOperacion(zona.url, operacion[id] ?? zona.operacion));
+    const url = urlSegunOperacion(zona.url, operacion[id] ?? zona.operacion);
     if (vistas.has(url)) continue;
     vistas.add(url);
-    urls.push(url);
+    pares.push({ zona_id: zona.id, url });
   }
-  return urls;
+  return pares;
+}
+
+export function urlsDeZonas(ids: string[], operacion: Record<string, OperacionZona> = {}): string[] {
+  return paresDeZonas(ids, operacion).map((par) => par.url);
 }
 
 export function urlParticularesIdealista(url: string): string {
-  if (url.includes("/con-particulares/")) return url;
-  return `${url.replace(/\/$/, "")}/con-particulares/`;
+  return url.replace(/\/con-particulares\/?/, "/");
 }
 
 export function anunciosDeZonas(ids: string[]): number {
@@ -194,7 +203,7 @@ export function zonaIdDeListado(url: string | null | undefined): string | null {
 }
 
 export function entraEnRetirados(zonaId: string | null | undefined, zonas: string[]): boolean {
-  return typeof zonaId === "string" && zonaId !== ZONA_DESCONOCIDA && zonas.includes(zonaId);
+  return typeof zonaId === "string" && zonaId !== ZONA_DESCONOCIDA && zonaId !== ZONA_PROVINCIA_48H && zonas.includes(zonaId);
 }
 
 /** Puntos aproximados para partir una sola vez coruna/santiago/ferrol. La recogida siguiente los sustituye. */

@@ -15,7 +15,7 @@ El catálogo vive en `lib/captacion/brightdata/zonas.ts` (`ZONAS_IDEALISTA`). No
 
 Marcados de salida (`porDefecto: true`): Oleiros, Arteixo, Culleredo, Sada, Bergondo, Cambre, Carral, Abegondo, Narón, Ribeira y Boiro.
 
-Cada URL de listado lleva `/con-particulares/` (`urlParticularesIdealista`). La pasada diaria añade además el filtro de fecha: `publicado_ultimas-48-horas` en venta.
+Las URLs no llevan `/con-particulares/`. Municipios: `{slug}-a-coruna/`. Ciudad: `a-coruna-a-coruna/`. Distritos de A Coruña: `/a-coruna/{distrito}/`. Santiago y Ferrol muestran «slug sin verificar». La pasada añade una sola URL de provincia a 48 h (`provincia-48h`), fuera de retirados.
 
 ## Pantalla
 
@@ -38,7 +38,7 @@ ZonasIdealistaCard
 
 Pasada (cron o disparo)
   → urlsZonasActivas()
-  → urlsDeZonas()  añade /con-particulares/
+  → urlsDeZonas()  sin /con-particulares/
   → filtroDiario() añade la franja de 48 h en venta
 ```
 

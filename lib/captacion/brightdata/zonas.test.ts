@@ -14,7 +14,7 @@ describe("zonas Idealista", () => {
     assert.ok(ZONAS_IDEALISTA.some((zona) => zona.id === "carballo" && zona.porDefecto === false));
     assert.ok(zonasPorDefecto().includes("oleiros"));
     assert.equal(zonasPorDefecto().some((id) => id.startsWith("a-coruna-")), false);
-    assert.ok(urlsDeZonas(["oleiros"])[0]?.endsWith("/con-particulares/"));
+    assert.equal(urlsDeZonas(["oleiros"])[0]?.includes("/con-particulares/"), false);
     assert.equal(zonaSuperaCorte(1500), false);
     assert.equal(zonaSuperaCorte(1501), true);
     assert.equal(zonaSuperaCorte(null), false);
@@ -25,7 +25,10 @@ describe("zonas Idealista", () => {
       urlSegunOperacion(ensanche?.url ?? "", "alquiler"),
       "https://www.idealista.com/alquiler-viviendas/a-coruna/ensanche-juan-florez/"
     );
-    assert.equal(zonaIdDeListado("https://www.idealista.com/venta-viviendas/a-coruna/ensanche-juan-florez/con-particulares/"), "a-coruna-ensanche-juan-florez");
+    assert.equal(zonaIdDeListado("https://www.idealista.com/venta-viviendas/a-coruna/ensanche-juan-florez/"), "a-coruna-ensanche-juan-florez");
+    assert.equal(ZONAS_IDEALISTA.find((zona) => zona.id === "a-coruna-viono")?.url.endsWith("/viono/"), true);
+    assert.equal(ZONAS_IDEALISTA.find((zona) => zona.grupo === "Santiago")?.slugVerificado, false);
+    assert.equal(entraEnRetirados("provincia-48h", ["oleiros", "provincia-48h"]), false);
     assert.equal(distritoPorCoordenadas("coruna", 43.3672, -8.4068), "a-coruna-ensanche-juan-florez");
     assert.equal(distritoPorCoordenadas("coruna", null, null), ZONA_DESCONOCIDA);
     assert.equal(entraEnRetirados(ZONA_DESCONOCIDA, ["a-coruna-ensanche-juan-florez"]), false);

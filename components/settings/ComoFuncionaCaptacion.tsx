@@ -4,8 +4,8 @@ const PASOS = [
   {
     kicker: "Cada día",
     titulo: "Una pasada a las 04:30 UTC",
-    texto: "Supabase llama al CRM y Bright Data lee las zonas marcadas. En verano son las 06:30; en invierno, las 05:30.",
-    nota: "En el panel de Bright Data el schedule tiene que estar apagado. Si no, la misma pasada se lanza dos veces.",
+    texto: "A las 04:30 UTC se abre la recogida. Cada 5 minutos el CRM pide las páginas al Web Unlocker.",
+    nota: "Scraper Studio no interviene. La provincia a 48 h solo sirve para la fecha.",
   },
   {
     kicker: "Listado",
@@ -22,7 +22,7 @@ const PASOS = [
   {
     kicker: "Zonas",
     titulo: "La provincia, partida",
-    texto: "A Coruña, Santiago y Ferrol van por distritos. El resto, por municipio. Solo entran las zonas marcadas, con el filtro de particulares. Las nuevas salen desmarcadas.",
+    texto: "A Coruña, Santiago y Ferrol van por distritos. El resto, por municipio. Solo entran las zonas marcadas. Santiago y Ferrol avisan si el slug no está verificado.",
     nota: "Si el estimado pasa de 1.500, Idealista corta el listado y hay que partir esa zona.",
   },
   {

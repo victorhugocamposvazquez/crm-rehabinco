@@ -11,9 +11,8 @@ import type { AnuncioEntrante, AnunciantePortal } from "@/lib/captacion/portales
 
 export const PARSER_VERSION = "brightdata-idealista-listado-2026-09-23";
 
-/** Listado de venta de particulares en A Coruña. Se puede sustituir con BRIGHTDATA_IDEALISTA_URL. */
-export const URL_PARTICULARES_CORUNA =
-  "https://www.idealista.com/venta-viviendas/a-coruna-a-coruna/con-particulares/";
+/** Listado de venta de la ciudad de A Coruña. */
+export const URL_PARTICULARES_CORUNA = "https://www.idealista.com/venta-viviendas/a-coruna-a-coruna/";
 
 type Registro = Record<string, unknown>;
 

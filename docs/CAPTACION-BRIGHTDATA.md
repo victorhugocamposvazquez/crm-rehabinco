@@ -1,18 +1,18 @@
 # Captación Idealista — estado a 24 sep 2026
 
-Idealista entra solo por el listado de Bright Data. El teléfono lo guarda la extensión de Chrome cuando un usuario lo revela en la ficha. No hay collector de ficha.
+Idealista entra por el Web Unlocker, pedido desde el CRM. El teléfono lo guarda la extensión de Chrome. No hay Scraper Studio ni webhook.
 
 ## Producción
 
 | Qué | Valor |
 |-----|--------|
 | App | https://crm.rehabinco.es/ |
-| Collector de listado | `BRIGHTDATA_IDEALISTA_DATASET_ID` = `c_mud4tozqvl4iiruh1` |
-| Webhook | `https://crm.rehabinco.es/api/captacion/brightdata?token=<BRIGHTDATA_WEBHOOK_SECRET>` |
-| Disparo | `POST /api/captacion/brightdata/trigger` con `Authorization: Bearer <CRON_SECRET>`, o un admin |
+| Unlocker | `UNLOCKER_ZONE` + `BRIGHTDATA_API_TOKEN` |
+| Apertura | `POST /api/captacion/brightdata/trigger` a las 04:30 UTC, o un admin |
+| Páginas | `POST /api/captacion/brightdata/procesar` cada 5 minutos |
 | Extensión | `POST /api/captacion/telefono` y `GET /api/captacion/existen` con el token del perfil |
 
-El schedule del panel de Bright Data tiene que estar desactivado. `pg_cron` llama al trigger una vez al día, a las 04:30 UTC.
+`pg_cron` abre la recogida a las 04:30 UTC y procesa la cola cada 5 minutos.
 
 ## Qué guarda el listado
 
@@ -26,7 +26,7 @@ Catálogo de la provincia en `lib/captacion/brightdata/zonas.ts`. A Coruña, San
 
 ## Retirados
 
-`captacion_recogidas`. Se cierra cuando el dataset entero está listo. Si una zona acaba en página llena (múltiplo de 30) y aún había siguiente, `incompleta = true` y no se retira. La primera recogida completa tampoco retira. Hace falta una anterior completa de las mismas zonas.
+`captacion_recogidas` y `captacion_paginas_pendientes`. Se cierra cuando no quedan páginas pendientes. Si una zona llega a la página 60 y aún hay siguiente, `incompleta = true` y no se retira. La URL de provincia a 48 h no entra en retirados. La primera recogida completa tampoco retira.
 
 ## Pendiente de ejecutar
 

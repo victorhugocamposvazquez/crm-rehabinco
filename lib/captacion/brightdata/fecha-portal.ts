@@ -1,4 +1,3 @@
-import { urlParticularesIdealista } from "@/lib/captacion/brightdata/zonas";
 
 /**
  * Segmentos comprobados en idealista.com (24 sep 2026):
@@ -6,7 +5,7 @@ import { urlParticularesIdealista } from "@/lib/captacion/brightdata/zonas";
  * - 48 h: `con-publicado_ultimas-48-horas` (filtro más fino de venta)
  * - semana: `con-publicado_ultima-semana`
  * - mes: `con-publicado_ultimo-mes`
- * Con particulares: `con-particulares,publicado_…`
+ * El segmento va como `/con-publicado_…/`, sin particulares.
  */
 export const FILTROS_FECHA = {
   "24h": "publicado_ultimas-24-horas",
@@ -43,8 +42,8 @@ export function esFiltroFecha(valor: string): valor is FiltroFecha {
 }
 
 export function urlConFiltroFecha(url: string, filtro: FiltroFecha): string {
-  const base = urlParticularesIdealista(url);
-  return base.replace(/\/con-particulares\/?$/, `/con-particulares,${FILTROS_FECHA[filtro]}/`);
+  const base = url.replace(/\/con-particulares\/?/, "/").replace(/\/$/, "");
+  return `${base}/con-${FILTROS_FECHA[filtro]}/`;
 }
 
 /** Venta usa 48 h; alquiler, 24 h. El resto de URLs se trata como venta. */
