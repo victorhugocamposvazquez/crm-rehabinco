@@ -13,25 +13,21 @@ export type FichaIdealista = {
 };
 
 const FOTO = /https?:\/\/img\d\.idealista\.com\/[^\s"'<>]+/gi;
+const ID_FOTO = /id\.pro\.es\.image\.master\/([a-z0-9]{2}\/[a-z0-9]{2}\/[a-z0-9]{2}\/\d+)/i;
 
-/** Una URL por id de imagen. Gana WEB_DETAIL-XL-L y se conserva /blur/. */
+/** Una URL XL-L .jpg por id. WEB_DETAIL_TOP es de anuncios relacionados. */
 export function fotosDeGaleria(urls: string[]): string[] {
-  const mejor = new Map<string, string>();
+  const vistos = new Set<string>();
+  const fotos: string[] = [];
   for (const cruda of urls) {
     const url = cruda.replace(/&amp;/g, "&").split("?")[0];
-    if (!/img\d\.idealista\.com/i.test(url) || !/\/blur\//i.test(url)) continue;
-    const id = (url.match(/\/(\d{6,})\.(?:jpe?g|webp|png)$/i) || [])[1];
-    if (!id) continue;
-    const previa = mejor.get(id);
-    if (!previa || rango(url) > rango(previa)) mejor.set(id, url);
+    if (!/img\d\.idealista\.com/i.test(url) || !/\/blur\//i.test(url) || /WEB_DETAIL_TOP/i.test(url)) continue;
+    const id = (url.match(ID_FOTO) || [])[1];
+    if (!id || vistos.has(id)) continue;
+    vistos.add(id);
+    fotos.push(`https://img4.idealista.com/blur/WEB_DETAIL-XL-L/0/id.pro.es.image.master/${id}.jpg`);
   }
-  return [...mejor.values()].map((url) => url.replace(/\/blur\/[^/]+\//i, "/blur/WEB_DETAIL-XL-L/"));
-}
-
-function rango(url: string): number {
-  if (/WEB_DETAIL-XL-L/i.test(url)) return 3;
-  if (/WEB_DETAIL/i.test(url)) return 2;
-  return 1;
+  return fotos;
 }
 
 function sano(valor: string | null | undefined): string {
