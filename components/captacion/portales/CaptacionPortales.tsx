@@ -1213,6 +1213,9 @@ function PeekAnuncio({
         {a.fuente === "idealista" ? (
           <button type="button" onClick={() => { void fetch("/api/captacion/brightdata/ficha", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: a.id }) }); }} className="h-[38px] min-w-[140px] flex-1 rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold">Actualizar ficha</button>
         ) : null}
+        {a.fuente === "idealista" && !a.contacto_telefono ? (
+          <button type="button" onClick={() => { void fetch("/api/captacion/brightdata/telefono", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: a.id }) }); }} className="h-[38px] min-w-[140px] flex-1 rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold">Pedir teléfono</button>
+        ) : null}
         {!a.contacto_telefono && a.url && a.fuente !== "idealista" && onPedirDetalle ? (
           <button type="button" onClick={onPedirDetalle} className="h-[38px] min-w-[120px] flex-1 rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold">Pedir detalle</button>
         ) : null}

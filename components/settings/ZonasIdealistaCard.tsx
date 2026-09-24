@@ -28,13 +28,28 @@ export function ZonasIdealistaCard() {
   const [sospechosas, setSospechosas] = useState<Record<string, string>>({});
   const [ultima, setUltima] = useState<UltimaRecogida | null>(null);
   const [fichasPendientes, setFichasPendientes] = useState(0);
+  const [telefonos, setTelefonos] = useState<{
+    hoy: { pedidos: number; obtenidos: number; fallidos: number; tasa: number | null };
+    sieteDias: { tasa: number | null };
+    pausado: boolean;
+  } | null>(null);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
     void (async () => {
       const res = await fetch("/api/captacion/brightdata/zonas");
-      const json = (await res.json()) as { ok?: boolean; error?: string; zonas?: ZonaIdealista[]; activas?: string[]; estimados?: Record<string, number | null>; sospechosas?: Record<string, string>; ultima?: UltimaRecogida | null; fichasPendientes?: number };
+      const json = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        zonas?: ZonaIdealista[];
+        activas?: string[];
+        estimados?: Record<string, number | null>;
+        sospechosas?: Record<string, string>;
+        ultima?: UltimaRecogida | null;
+        fichasPendientes?: number;
+        telefonos?: { hoy: { pedidos: number; obtenidos: number; fallidos: number; tasa: number | null }; sieteDias: { tasa: number | null }; pausado: boolean };
+      };
       if (!res.ok || !json.ok || !json.zonas) {
         toast.error(json.error || "No se han podido leer las zonas.");
         setCargando(false);
@@ -46,6 +61,7 @@ export function ZonasIdealistaCard() {
       setSospechosas(json.sospechosas ?? {});
       setUltima(json.ultima ?? null);
       setFichasPendientes(json.fichasPendientes ?? 0);
+      setTelefonos(json.telefonos ?? null);
       setCargando(false);
     })();
   }, []);
@@ -105,6 +121,11 @@ export function ZonasIdealistaCard() {
           >
             Completar fichas
           </button>
+        </p>
+        <p>
+          Teléfonos hoy: {telefonos ? `${telefonos.hoy.pedidos} pedidos, ${telefonos.hoy.obtenidos} obtenidos, ${telefonos.hoy.fallidos} fallidos` : "—"}
+          {telefonos?.sieteDias.tasa != null ? ` · éxito 7 días ${Math.round(telefonos.sieteDias.tasa * 100)} %` : ""}
+          {telefonos?.pausado ? " · cola pausada" : ""}
         </p>
         <p>
           Zonas con problema:{" "}

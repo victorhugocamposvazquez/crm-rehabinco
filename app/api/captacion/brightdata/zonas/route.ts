@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { estimadosZonas, guardarZonasActivas, idsZonasActivas } from "@/lib/captacion/brightdata/zonas-guardadas";
 import { ZONAS_IDEALISTA, anunciosDeZonas } from "@/lib/captacion/brightdata/zonas";
+import { metricasTelefonos } from "@/lib/captacion/brightdata/telefonos-metricas";
 import { sesionSuperadminCaptacion } from "@/lib/captacion/portales/sesion";
 
 export const runtime = "nodejs";
@@ -69,6 +70,7 @@ export async function GET() {
         .eq("enriquecido_ficha", false)
         .is("desaparecido_en", null)
     ).count ?? 0,
+    telefonos: await metricasTelefonos(),
   });
 }
 

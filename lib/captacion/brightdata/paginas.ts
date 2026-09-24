@@ -1,4 +1,11 @@
 import { aplicarFicha, marcarFichaPendiente } from "@/lib/captacion/brightdata/fichas";
+import {
+  aplicarTelefono,
+  encolarTelefono,
+  externoIdDeUrlTelefono,
+  marcarTelefonoPendiente,
+} from "@/lib/captacion/brightdata/telefonos";
+import { registrarPedidoTelefono, registrarResultadoTelefono, telefonosColaPausada } from "@/lib/captacion/brightdata/telefonos-metricas";
 import { ingestarIdealistaBrightData } from "@/lib/captacion/brightdata/ingestar";
 import { parsearListadoIdealista } from "@/lib/captacion/brightdata/parse-listado";
 import { anotarLote, cerrarRecogidaLocal, sumarVistos } from "@/lib/captacion/brightdata/recogidas";
@@ -15,7 +22,15 @@ type Pagina = {
   zona_id: string;
   page: number;
   tipo?: string | null;
+  intentos?: number | null;
 };
+
+const ESPERA_TELEFONO_MS = 2000;
+const TOPE_TELEFONO = 30;
+
+function dormir(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export async function encolarPaginas(
   recogidaId: string,
@@ -44,8 +59,9 @@ export async function procesarPaginasPendientes(limite = 20): Promise<{ paginas:
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("captacion_paginas_pendientes")
-    .select("id, recogida_id, url, zona_id, page, tipo")
+    .select("id, recogida_id, url, zona_id, page, tipo, intentos")
     .eq("estado", "pendiente")
+    .neq("tipo", "telefono")
     .or(`reintentar_en.is.null,reintentar_en.lte.${new Date().toISOString()}`)
     .order("prioridad", { ascending: true })
     .order("page", { ascending: true })
@@ -62,6 +78,10 @@ export async function procesarPaginasPendientes(limite = 20): Promise<{ paginas:
           .from("captacion_paginas_pendientes")
           .update({ estado: resultado === "ok" ? "hecha" : "pendiente" })
           .eq("id", pagina.id);
+        if (resultado === "ok") {
+          const externoId = (pagina.url.match(/\/inmueble\/(\d+)/) || [])[1] ?? "";
+          if (externoId) await encolarTelefono(externoId).catch(() => undefined);
+        }
         if (resultado !== "ok") await marcarFichaPendiente((pagina.url.match(/\/inmueble\/(\d+)/) || [])[1] ?? "");
       } catch {
         await marcarFichaPendiente((pagina.url.match(/\/inmueble\/(\d+)/) || [])[1] ?? "");
@@ -109,5 +129,35 @@ export async function procesarPaginasPendientes(limite = 20): Promise<{ paginas:
       .eq("estado", "pendiente");
     if ((count ?? 0) === 0 && (await cerrarRecogidaLocal(recogidaId))) cerradas.push(recogidaId);
   }
-  return { paginas: paginas.length, cerradas };
+  let telefonos = 0;
+  if (!(await telefonosColaPausada())) {
+    const { data: colaTel } = await supabase
+      .from("captacion_paginas_pendientes")
+      .select("id, url, intentos")
+      .eq("estado", "pendiente")
+      .eq("tipo", "telefono")
+      .or(`reintentar_en.is.null,reintentar_en.lte.${new Date().toISOString()}`)
+      .order("prioridad", { ascending: true })
+      .limit(TOPE_TELEFONO);
+    for (const pagina of (colaTel ?? []) as Pagina[]) {
+      if (telefonos > 0) await dormir(ESPERA_TELEFONO_MS);
+      telefonos += 1;
+      const externoId = externoIdDeUrlTelefono(pagina.url);
+      const intentos = pagina.intentos ?? 0;
+      try {
+        await registrarPedidoTelefono();
+        const cuerpo = await pedirHtmlUnlocker(config, pagina.url);
+        const resultado = await aplicarTelefono(cuerpo, pagina.url);
+        if (resultado === "ok" || resultado === "sin_numero") {
+          await supabase.from("captacion_paginas_pendientes").update({ estado: "hecha" }).eq("id", pagina.id);
+        } else {
+          await marcarTelefonoPendiente(externoId, pagina.id, intentos);
+        }
+      } catch {
+        await registrarResultadoTelefono(false);
+        await marcarTelefonoPendiente(externoId, pagina.id, intentos);
+      }
+    }
+  }
+  return { paginas: paginas.length + telefonos, cerradas };
 }
