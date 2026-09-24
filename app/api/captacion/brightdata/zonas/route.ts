@@ -14,12 +14,43 @@ export async function GET() {
   const admin = createAdminClient();
   const { data } = await admin
     .from("captacion_recogidas")
-    .select("iniciada, completada, incompleta, zonas, registros, externos, sospechosas")
+    .select("collection_id, iniciada, completada, incompleta, zonas, registros, externos, sospechosas")
     .order("iniciada", { ascending: false })
     .limit(1)
     .maybeSingle();
   const sospechosas =
-    data?.sospechosas && typeof data.sospechosas === "object" ? data.sospechosas : {};
+    data?.sospechosas && typeof data.sospechosas === "object" ? (data.sospechosas as Record<string, string>) : {};
+  const idsSospechosas = Object.keys(sospechosas);
+  const diagnosticos: Record<
+    string,
+    {
+      unlocker_zone: string | null;
+      unlocker_url: string | null;
+      http_status: number | null;
+      content_type: string | null;
+      bytes: number | null;
+      cuerpo_muestra: string | null;
+    }
+  > = {};
+  if (idsSospechosas.length > 0 && typeof data?.collection_id === "string") {
+    const { data: paginas } = await admin
+      .from("captacion_paginas_pendientes")
+      .select("zona_id, unlocker_zone, unlocker_url, http_status, content_type, bytes, cuerpo_muestra")
+      .eq("recogida_id", data.collection_id)
+      .in("zona_id", idsSospechosas)
+      .not("cuerpo_muestra", "is", null);
+    for (const fila of (paginas ?? []) as Array<{
+      zona_id: string;
+      unlocker_zone: string | null;
+      unlocker_url: string | null;
+      http_status: number | null;
+      content_type: string | null;
+      bytes: number | null;
+      cuerpo_muestra: string | null;
+    }>) {
+      if (!diagnosticos[fila.zona_id]) diagnosticos[fila.zona_id] = fila;
+    }
+  }
   let ultima: {
     fecha: string;
     zonas: string[];
@@ -61,6 +92,7 @@ export async function GET() {
     anuncios: anunciosDeZonas(activas),
     zonas: ZONAS_IDEALISTA,
     sospechosas,
+    diagnosticos,
     ultima,
     fichasPendientes: (
       await admin

@@ -9,7 +9,8 @@ import { registrarPedidoTelefono, registrarResultadoTelefono, telefonosColaPausa
 import { ingestarIdealistaBrightData } from "@/lib/captacion/brightdata/ingestar";
 import { parsearListadoIdealista } from "@/lib/captacion/brightdata/parse-listado";
 import { anotarLote, cerrarRecogidaLocal, sumarVistos } from "@/lib/captacion/brightdata/recogidas";
-import { configUnlocker, pedirHtmlUnlocker } from "@/lib/captacion/brightdata/unlocker";
+import { guardarDiagnosticoUnlocker } from "@/lib/captacion/brightdata/unlocker-diagnostico";
+import { configUnlocker, pedirHtmlUnlocker, pedirUnlocker } from "@/lib/captacion/brightdata/unlocker";
 import { ZONA_PROVINCIA_48H } from "@/lib/captacion/brightdata/zonas";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -90,10 +91,18 @@ export async function procesarPaginasPendientes(limite = 20): Promise<{ paginas:
     }
     if (pagina.recogida_id) tocadas.add(pagina.recogida_id);
     try {
-      const html = await pedirHtmlUnlocker(config, pagina.url);
+      const resp = await pedirUnlocker(config, pagina.url);
+      if (!resp.ok) {
+        await guardarDiagnosticoUnlocker(supabase, pagina.id, config, pagina.url, resp);
+        await supabase.from("captacion_paginas_pendientes").update({ estado: "error" }).eq("id", pagina.id);
+        if (pagina.recogida_id && pagina.zona_id !== ZONA_PROVINCIA_48H) await sumarVistos(pagina.recogida_id, pagina.zona_id, [], true);
+        continue;
+      }
+      const html = resp.cuerpo;
       const listado = parsearListadoIdealista(html, pagina.url);
       const n = listado.items.length;
       const sinListado = n === 0 && !listado.sin_resultados;
+      if (sinListado) await guardarDiagnosticoUnlocker(supabase, pagina.id, config, pagina.url, resp);
       const registros = (n === 0 ? [{}] : listado.items).map((item) => ({
         ...item,
         zona_url: pagina.url,
@@ -115,6 +124,13 @@ export async function procesarPaginasPendientes(limite = 20): Promise<{ paginas:
       }
       await supabase.from("captacion_paginas_pendientes").update({ estado: "hecha" }).eq("id", pagina.id);
     } catch (error) {
+      await guardarDiagnosticoUnlocker(supabase, pagina.id, config, pagina.url, {
+        ok: false,
+        http_status: 0,
+        content_type: null,
+        cuerpo: error instanceof Error ? error.message : "Página de listado fallida",
+        bytes: 0,
+      });
       await supabase.from("captacion_paginas_pendientes").update({ estado: "error" }).eq("id", pagina.id);
       if (pagina.recogida_id && pagina.zona_id !== ZONA_PROVINCIA_48H) await sumarVistos(pagina.recogida_id, pagina.zona_id, [], true);
       console.error(error instanceof Error ? error.message : "Página de listado fallida");

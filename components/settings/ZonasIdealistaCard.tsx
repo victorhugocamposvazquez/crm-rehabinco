@@ -21,11 +21,34 @@ const MOTIVO: Record<string, string> = {
   pagina_invalida: "la página no trae el bloque de anuncios",
 };
 
+type DiagnosticoUnlocker = {
+  unlocker_zone: string | null;
+  unlocker_url: string | null;
+  http_status: number | null;
+  content_type: string | null;
+  bytes: number | null;
+  cuerpo_muestra: string | null;
+};
+
+function BloqueDiagnostico({ diag }: { diag: DiagnosticoUnlocker }) {
+  return (
+    <div className="mt-2 space-y-1 rounded border border-[#E8D4D4] bg-[#FBF7F7] p-2 text-[11.5px] font-mono text-neutral-800">
+      <div>zone: {diag.unlocker_zone ?? "—"}</div>
+      <div className="break-all">url: {diag.unlocker_url ?? "—"}</div>
+      <div>
+        HTTP {diag.http_status ?? "—"} · {diag.content_type ?? "—"} · {diag.bytes ?? 0} bytes
+      </div>
+      <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-all text-[10.5px]">{diag.cuerpo_muestra ?? ""}</pre>
+    </div>
+  );
+}
+
 export function ZonasIdealistaCard() {
   const [zonas, setZonas] = useState<ZonaIdealista[]>([]);
   const [activas, setActivas] = useState<string[]>([]);
   const [estimados, setEstimados] = useState<Record<string, number | null>>({});
   const [sospechosas, setSospechosas] = useState<Record<string, string>>({});
+  const [diagnosticos, setDiagnosticos] = useState<Record<string, DiagnosticoUnlocker>>({});
   const [ultima, setUltima] = useState<UltimaRecogida | null>(null);
   const [fichasPendientes, setFichasPendientes] = useState(0);
   const [telefonos, setTelefonos] = useState<{
@@ -46,6 +69,7 @@ export function ZonasIdealistaCard() {
         activas?: string[];
         estimados?: Record<string, number | null>;
         sospechosas?: Record<string, string>;
+        diagnosticos?: Record<string, DiagnosticoUnlocker>;
         ultima?: UltimaRecogida | null;
         fichasPendientes?: number;
         telefonos?: { hoy: { pedidos: number; obtenidos: number; fallidos: number; tasa: number | null }; sieteDias: { tasa: number | null }; pausado: boolean };
@@ -59,6 +83,7 @@ export function ZonasIdealistaCard() {
       setActivas(json.activas ?? json.zonas.filter((zona) => zona.porDefecto).map((zona) => zona.id));
       setEstimados(json.estimados ?? {});
       setSospechosas(json.sospechosas ?? {});
+      setDiagnosticos(json.diagnosticos ?? {});
       setUltima(json.ultima ?? null);
       setFichasPendientes(json.fichasPendientes ?? 0);
       setTelefonos(json.telefonos ?? null);
@@ -163,7 +188,12 @@ export function ZonasIdealistaCard() {
                       <span className="mt-0.5 block text-[12px] text-[#8A3030]">Supera 1.500 anuncios. Hay que partir esta zona.</span>
                     ) : null}
                     {sospechosas[zona.id] ? (
-                      <span className="mt-0.5 block text-[12px] text-[#8A3030]">Sospechosa: {MOTIVO[sospechosas[zona.id]] ?? sospechosas[zona.id]}. No entra en retirados.</span>
+                      <details className="mt-0.5 text-[12px] text-[#8A3030]">
+                        <summary className="cursor-pointer">
+                          Sospechosa: {MOTIVO[sospechosas[zona.id]] ?? sospechosas[zona.id]}. Ver respuesta Unlocker
+                        </summary>
+                        {diagnosticos[zona.id] ? <BloqueDiagnostico diag={diagnosticos[zona.id]} /> : <p className="mt-1 text-[11px]">Sin muestra guardada en esta recogida.</p>}
+                      </details>
                     ) : null}
                   </span>
                   <input
