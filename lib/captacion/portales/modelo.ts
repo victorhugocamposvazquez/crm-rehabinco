@@ -74,6 +74,7 @@ export const TAG_ESTILO: Record<string, { bg: string; fg: string; label: string 
   Urge: { bg: "#FBEAE5", fg: "#A33B2A", label: "Urge" },
   Reforma: { bg: "#E9EEF8", fg: "#2B4A8A", label: "Reforma" },
   Bajada: { bg: "#E8F3EF", fg: "#0B7461", label: "Bajada de precio" },
+  Subida: { bg: "#FBF0D8", fg: "#7A5A10", label: "Subida de precio" },
   Edificio: { bg: "#F1EFF8", fg: "#4B3F8A", label: "Edificio" },
 };
 

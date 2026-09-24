@@ -104,6 +104,14 @@ export function upsertAnuncio(
       valor_anterior: String(previo.precio),
       valor_nuevo: String(entrante.precio),
     });
+  } else if (previo?.precio != null && entrante.precio != null && entrante.precio > previo.precio) {
+    tags.add("Subida");
+    precioAnterior = previo.precio;
+    historial.push({
+      campo: "precio",
+      valor_anterior: String(previo.precio),
+      valor_nuevo: String(entrante.precio),
+    });
   }
 
   const esNuevo = !previo;

@@ -62,8 +62,8 @@ type ChipCaptacion =
   | "sin_telefono"
   | "telefono_cola"
   | "retirados"
-  | "part_sin_tel"
-  | "bajada";
+  | "bajada"
+  | "subida";
 type Actividad = { id: string; cuando: string; texto: string; tipo: string };
 type Notif = { id: string; tipo: string; titulo: string; detalle: string | null; leida: boolean; created_at: string };
 type Prefs = { nuevos: boolean; bajada: boolean; retirado: boolean; telefono_repite: boolean; sin_mover: boolean };
@@ -336,10 +336,10 @@ export function CaptacionPortales() {
           return !a.contacto_telefono;
         case "telefono_cola":
           return enColaTelefono(a, telefonosEnCola);
-        case "part_sin_tel":
-          return a.anunciante === "particular" && !a.contacto_telefono;
         case "bajada":
           return a.tags.includes("Bajada");
+        case "subida":
+          return a.tags.includes("Subida");
         case "retirados":
         case "todos":
         default:
@@ -557,7 +557,7 @@ export function CaptacionPortales() {
 
   const kpis: Array<{ valor: number; label: string; chip: ChipCaptacion | "seg"; fg: string }> = [
     { valor: cuentaChip("hoy"), label: "Nuevos hoy", chip: "hoy", fg: "#131C1A" },
-    { valor: cuentaChip("part_sin_tel"), label: "Particulares sin teléfono", chip: "part_sin_tel", fg: "#7A5A10" },
+    { valor: cuentaChip("subida"), label: "Subidas de precio", chip: "subida", fg: "#7A5A10" },
     { valor: cuentaChip("bajada"), label: "Bajadas de precio", chip: "bajada", fg: "#0B7461" },
     { valor: seg.filter((a) => a.fase !== "captado" && a.fase !== "perdido").length, label: "En seguimiento", chip: "seg", fg: "#131C1A" },
   ];
