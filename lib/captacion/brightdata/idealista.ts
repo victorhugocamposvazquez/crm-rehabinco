@@ -328,6 +328,7 @@ export function mapearBrightDataIdealista(raw: Registro): AnuncioEntrante | null
     codigo_postal: normalizarTexto(texto(campo(raw, ["postal_code", "codigo_postal", "zip"]))),
     lat: numero(campo(raw, ["latitude", "lat"])),
     lng: numero(campo(raw, ["longitude", "lng", "lon"])),
+    geo_aproximada: esListado && numero(campo(raw, ["latitude", "lat"])) != null,
     thumb: fotos[0] ?? null,
     n_fotos: fotos.length || normalizarPrecio(campo(raw, ["num_photos", "n_fotos", "photos_count"])),
     fotos,

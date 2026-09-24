@@ -49,6 +49,7 @@ import {
 } from "@/lib/captacion/portales/modelo";
 import { AccionesContactoAnuncio } from "@/components/captacion/portales/AccionesContactoAnuncio";
 import { esActivoCaptacion, esAgencia, esRetirado } from "@/lib/captacion/captacion-activos";
+import { coordsMapaAnuncio, latLngDeFila } from "@/lib/captacion/portales/geo-mapa";
 import { esNuevoHoyCaptacion, textoFechaPortal } from "@/lib/captacion/brightdata/fecha-portal";
 import { anuncioIdealistaVacio } from "@/lib/captacion/brightdata/idealista";
 import { cn } from "@/lib/utils";
@@ -99,8 +100,7 @@ function filaAnuncio(row: Record<string, unknown>): AnuncioCaptacion {
     zona: typeof row.zona === "string" ? normalizarTexto(row.zona) : null,
     municipio: typeof row.municipio === "string" ? normalizarTexto(row.municipio) : null,
     codigo_postal: typeof row.codigo_postal === "string" ? row.codigo_postal : null,
-    lat: typeof row.lat === "number" ? row.lat : null,
-    lng: typeof row.lng === "number" ? row.lng : null,
+    ...latLngDeFila(row),
     thumb: typeof row.thumb === "string" ? row.thumb : null,
     n_fotos: row.n_fotos == null ? null : Number(row.n_fotos),
     fotos: fotosAnuncio(row.fotos),
@@ -594,21 +594,27 @@ export function CaptacionPortales() {
       : "16px minmax(0,1fr) 100px 72px 104px";
 
   const pins = (() => {
-    const conGeo = listado.filter((a) => a.lat != null && a.lng != null);
-    if (conGeo.length === 0) return [];
-    const lats = conGeo.map((a) => a.lat as number);
-    const lngs = conGeo.map((a) => a.lng as number);
+    const puntos = listado
+      .map((a) => {
+        const geo = coordsMapaAnuncio(a);
+        return geo ? { id: a.id, lat: geo.lat, lng: geo.lng, aprox: geo.aprox, precio: a.precio, operacion: a.operacion } : null;
+      })
+      .filter((p): p is NonNullable<typeof p> => Boolean(p));
+    if (puntos.length === 0) return [];
+    const lats = puntos.map((p) => p.lat);
+    const lngs = puntos.map((p) => p.lng);
     const minLa = Math.min(...lats);
     const maxLa = Math.max(...lats);
     const minLo = Math.min(...lngs);
     const maxLo = Math.max(...lngs);
-    return conGeo.map((a) => ({
-      id: a.id,
-      lat: a.lat as number,
-      lng: a.lng as number,
-      x: maxLo === minLo ? 50 : (((a.lng as number) - minLo) / (maxLo - minLo)) * 80 + 10,
-      y: maxLa === minLa ? 50 : (1 - ((a.lat as number) - minLa) / (maxLa - minLa)) * 70 + 12,
-      precio: a.operacion === "alquiler" ? `${Math.round((a.precio ?? 0) / 100) / 10}k/m` : `${Math.round((a.precio ?? 0) / 1000)}k`,
+    return puntos.map((p) => ({
+      id: p.id,
+      lat: p.lat,
+      lng: p.lng,
+      aprox: p.aprox,
+      x: maxLo === minLo ? 50 : ((p.lng - minLo) / (maxLo - minLo)) * 80 + 10,
+      y: maxLa === minLa ? 50 : (1 - (p.lat - minLa) / (maxLa - minLa)) * 70 + 12,
+      precio: p.operacion === "alquiler" ? `${Math.round((p.precio ?? 0) / 100) / 10}k/m` : `${Math.round((p.precio ?? 0) / 1000)}k`,
     }));
   })();
 
@@ -782,16 +788,39 @@ export function CaptacionPortales() {
                 ) : null}
                 {pins.length === 0 ? (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-4 text-center">
-                    <p className="text-[13px] font-medium text-[var(--text-1)]">Sin ubicación en la lista filtrada</p>
-                    <p className="text-[12px] text-[var(--text-2)]">Las coordenadas se guardan al procesar listados de Idealista. Tras la próxima pasada verás los pins aquí.</p>
+                    <p className="text-[13px] font-medium text-[var(--text-1)]">Sin municipio reconocido</p>
+                    <p className="text-[12px] text-[var(--text-2)]">No podemos situar estos anuncios (Oleiros, A Coruña, Cambre…). Con la pasada de Idealista se afinará la posición.</p>
                   </div>
                 ) : (
                   pins.map((p) => (
-                    <button key={p.id} type="button" onClick={() => { setSel(p.id); setPanel(true); }} className="absolute z-10 -translate-x-1/2 -translate-y-full rounded-full border px-2 text-[11.5px] font-semibold shadow" style={{ left: `${p.x}%`, top: `${p.y}%`, background: sel === p.id ? "#0B7461" : "#fff", color: sel === p.id ? "#fff" : "#131C1A", borderColor: sel === p.id ? "#0B7461" : "#DAD6CE" }}>{p.precio}</button>
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        setSel(p.id);
+                        setPanel(true);
+                      }}
+                      className={cn(
+                        "absolute z-10 -translate-x-1/2 -translate-y-full rounded-full border px-2 text-[11.5px] font-semibold shadow",
+                        p.aprox && sel !== p.id ? "border-dashed" : ""
+                      )}
+                      style={{
+                        left: `${p.x}%`,
+                        top: `${p.y}%`,
+                        background: sel === p.id ? "#0B7461" : p.aprox ? "#F4F3EF" : "#fff",
+                        color: sel === p.id ? "#fff" : "#131C1A",
+                        borderColor: sel === p.id ? "#0B7461" : "#DAD6CE",
+                      }}
+                    >
+                      {p.precio}
+                    </button>
                   ))
                 )}
                 <div className="absolute bottom-2.5 left-3 z-10 rounded-md bg-white/90 px-2 py-0.5 text-[11px] text-[var(--text-2)]">
-                  {pins.length ? `${pins.length} con ubicación` : "Mapa de anuncios"} · © OpenStreetMap
+                  {pins.length
+                    ? `${pins.filter((p) => !p.aprox).length} exactos · ${pins.filter((p) => p.aprox).length} aprox.`
+                    : "Mapa de anuncios"}{" "}
+                  · © OpenStreetMap
                 </div>
               </div>
             ) : null}
