@@ -6,6 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { anunciosDeZonas, zonaSuperaCorte, type ZonaIdealista } from "@/lib/captacion/brightdata/zonas";
 
+type UltimaRecogida = {
+  fecha: string;
+  zonas: string[];
+  vistos: number;
+  nuevos: number;
+  retirados: number;
+  estado: "abierta" | "completa" | "incompleta";
+};
+
 const MOTIVO: Record<string, string> = {
   vacia: "el listado llegó vacío",
   caida: "llegó menos del 50 % de la recogida anterior",
@@ -17,13 +26,14 @@ export function ZonasIdealistaCard() {
   const [activas, setActivas] = useState<string[]>([]);
   const [estimados, setEstimados] = useState<Record<string, number | null>>({});
   const [sospechosas, setSospechosas] = useState<Record<string, string>>({});
+  const [ultima, setUltima] = useState<UltimaRecogida | null>(null);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
     void (async () => {
       const res = await fetch("/api/captacion/brightdata/zonas");
-      const json = (await res.json()) as { ok?: boolean; error?: string; zonas?: ZonaIdealista[]; activas?: string[]; estimados?: Record<string, number | null>; sospechosas?: Record<string, string> };
+      const json = (await res.json()) as { ok?: boolean; error?: string; zonas?: ZonaIdealista[]; activas?: string[]; estimados?: Record<string, number | null>; sospechosas?: Record<string, string>; ultima?: UltimaRecogida | null };
       if (!res.ok || !json.ok || !json.zonas) {
         toast.error(json.error || "No se han podido leer las zonas.");
         setCargando(false);
@@ -33,6 +43,7 @@ export function ZonasIdealistaCard() {
       setActivas(json.activas ?? json.zonas.filter((zona) => zona.porDefecto).map((zona) => zona.id));
       setEstimados(json.estimados ?? {});
       setSospechosas(json.sospechosas ?? {});
+      setUltima(json.ultima ?? null);
       setCargando(false);
     })();
   }, []);
@@ -65,7 +76,30 @@ export function ZonasIdealistaCard() {
     toast.success("Zonas guardadas. El listado usará solo estas.");
   };
 
+  const nombres = new Map(zonas.map((zona) => [zona.id, zona.nombre]));
+  const problemas = Object.entries(sospechosas);
+  const fecha = ultima
+    ? new Intl.DateTimeFormat("es-ES", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Madrid" }).format(new Date(ultima.fecha))
+    : null;
+
   return (
+    <>
+    <Card className="md:col-span-2">
+      <CardContent className="space-y-1 py-4 text-[13.5px] text-neutral-800">
+        <p>
+          Última recogida:{" "}
+          {ultima && fecha
+            ? `${fecha}, ${ultima.zonas.length} zonas, ${ultima.vistos} vistos / ${ultima.nuevos} nuevos / ${ultima.retirados} retirados, ${ultima.estado}`
+            : "ninguna"}
+        </p>
+        <p>
+          Zonas con problema:{" "}
+          {problemas.length === 0
+            ? "ninguna"
+            : problemas.map(([id, motivo]) => `${nombres.get(id) ?? id} (${MOTIVO[motivo] ?? motivo})`).join(". ")}
+        </p>
+      </CardContent>
+    </Card>
     <Card className="md:col-span-2">
       <CardHeader>
         <CardTitle>Zonas de Idealista</CardTitle>
@@ -118,5 +152,6 @@ export function ZonasIdealistaCard() {
         </Button>
       </CardContent>
     </Card>
+    </>
   );
 }

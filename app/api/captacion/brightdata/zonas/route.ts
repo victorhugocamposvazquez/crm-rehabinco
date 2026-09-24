@@ -10,15 +10,49 @@ export async function GET() {
   const sesion = await sesionSuperadminCaptacion();
   if (!sesion.ok) return Response.json({ ok: false, error: sesion.error }, { status: sesion.status });
   const activas = await idsZonasActivas();
-  const { data } = await createAdminClient()
+  const admin = createAdminClient();
+  const { data } = await admin
     .from("captacion_recogidas")
-    .select("sospechosas, completada")
-    .not("completada", "is", null)
-    .order("completada", { ascending: false })
+    .select("iniciada, completada, incompleta, zonas, registros, externos, sospechosas")
+    .order("iniciada", { ascending: false })
     .limit(1)
     .maybeSingle();
   const sospechosas =
     data?.sospechosas && typeof data.sospechosas === "object" ? data.sospechosas : {};
+  let ultima: {
+    fecha: string;
+    zonas: string[];
+    vistos: number;
+    nuevos: number;
+    retirados: number;
+    estado: "abierta" | "completa" | "incompleta";
+  } | null = null;
+  if (data?.iniciada) {
+    const fin = typeof data.completada === "string" ? data.completada : new Date().toISOString();
+    const [nuevos, retirados] = await Promise.all([
+      admin
+        .from("captacion_anuncios")
+        .select("id", { count: "exact", head: true })
+        .eq("portal_id", "idealista")
+        .gte("visto_primera_vez", data.iniciada)
+        .lte("visto_primera_vez", fin),
+      admin
+        .from("captacion_anuncios")
+        .select("id", { count: "exact", head: true })
+        .eq("portal_id", "idealista")
+        .gte("desaparecido_en", data.iniciada)
+        .lte("desaparecido_en", fin),
+    ]);
+    const externos = Array.isArray(data.externos) ? data.externos.length : 0;
+    ultima = {
+      fecha: typeof data.completada === "string" ? data.completada : data.iniciada,
+      zonas: Array.isArray(data.zonas) ? data.zonas.filter((id): id is string => typeof id === "string") : [],
+      vistos: typeof data.registros === "number" ? data.registros : externos,
+      nuevos: nuevos.count ?? 0,
+      retirados: retirados.count ?? 0,
+      estado: !data.completada ? "abierta" : data.incompleta ? "incompleta" : "completa",
+    };
+  }
   return Response.json({
     ok: true,
     activas,
@@ -26,6 +60,7 @@ export async function GET() {
     anuncios: anunciosDeZonas(activas),
     zonas: ZONAS_IDEALISTA,
     sospechosas,
+    ultima,
   });
 }
 
