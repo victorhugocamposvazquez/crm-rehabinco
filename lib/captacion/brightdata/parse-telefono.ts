@@ -12,8 +12,9 @@ function numeroDe(bloque: PhoneBlock | null | undefined): string | null {
   if (!bloque || typeof bloque !== "object") return null;
   const number = typeof bloque.number === "string" ? bloque.number.trim() : "";
   if (!number) return null;
+  if (number.startsWith("+")) return telefonoE164(number);
   const prefix = typeof bloque.prefix === "string" ? bloque.prefix.trim() : "";
-  const crudo = prefix && !number.startsWith("+") ? `${prefix}${number.replace(/^0+/, "")}` : number;
+  const crudo = prefix ? `${prefix}${number.replace(/^0+/, "")}` : number;
   return telefonoE164(crudo);
 }
 

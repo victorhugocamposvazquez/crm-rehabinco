@@ -1,15 +1,1 @@
-{
-  "adId": 112637603,
-  "phone1": {
-    "prefix": "+34",
-    "number": "881 35 09 92",
-    "formatted": "881 35 09 92",
-    "phoneType": "LANDLINE"
-  },
-  "phone2": {
-    "prefix": "+34",
-    "number": "665 548 144",
-    "formatted": "665 548 144",
-    "phoneType": "MOBILE"
-  }
-}
+{"phone1":{"formatted":"881 35 09 81","number":"+34881350981","type":null},"phone2":null}

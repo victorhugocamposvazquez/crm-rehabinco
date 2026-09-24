@@ -9,7 +9,7 @@ describe("teléfono Idealista", () => {
     const parsed = parsearTelefonoIdealista(cuerpo, "112637603");
     assert.equal(parsed.transporte_ok, true);
     assert.equal(parsed.externo_id, "112637603");
-    assert.deepEqual(parsed.telefonos, ["+34881350992", "+34665548144"]);
+    assert.deepEqual(parsed.telefonos, ["+34881350981"]);
   });
 
   it("HTML o captcha es fallo de transporte", () => {
