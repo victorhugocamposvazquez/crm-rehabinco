@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { coordsListadoIdealista } from "@/lib/captacion/brightdata/geo-idealista";
 
 const BASE = "https://www.idealista.com";
 
@@ -14,8 +15,8 @@ export type ItemListado = {
   property_type: string | null;
   municipality: string | null;
   neighborhood: string | null;
-  latitude: null;
-  longitude: null;
+  latitude: number | null;
+  longitude: number | null;
   description_snippet: string | null;
   agency_name: string | null;
   seller_type: "professional" | "private";
@@ -53,6 +54,7 @@ function abs(href: string | undefined): string | null {
 export function parsearListadoIdealista(html: string, urlEntrada?: string | null): ListadoParseado {
   const $ = cheerio.load(html);
   const final_url = $('link[rel="canonical"]').attr("href") || urlEntrada || null;
+  const geoPorId = coordsListadoIdealista(html);
   const items: ItemListado[] = [];
 
   $("article.item[data-element-id]").each((_, el) => {
@@ -89,6 +91,7 @@ export function parsearListadoIdealista(html: string, urlEntrada?: string | null
         photos.push(src);
       }
     });
+    const geo = geoPorId.get(externo_id);
     items.push({
       externo_id,
       url: url ?? href ?? "",
@@ -101,8 +104,8 @@ export function parsearListadoIdealista(html: string, urlEntrada?: string | null
       property_type: tipo?.[1] ?? null,
       municipality,
       neighborhood,
-      latitude: null,
-      longitude: null,
+      latitude: geo?.latitude ?? null,
+      longitude: geo?.longitude ?? null,
       description_snippet: sano($el.find(".item-description p").first().text()) || null,
       agency_name,
       seller_type,

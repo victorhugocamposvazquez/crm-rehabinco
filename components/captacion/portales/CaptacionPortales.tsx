@@ -604,10 +604,23 @@ export function CaptacionPortales() {
     const maxLo = Math.max(...lngs);
     return conGeo.map((a) => ({
       id: a.id,
+      lat: a.lat as number,
+      lng: a.lng as number,
       x: maxLo === minLo ? 50 : (((a.lng as number) - minLo) / (maxLo - minLo)) * 80 + 10,
       y: maxLa === minLa ? 50 : (1 - ((a.lat as number) - minLa) / (maxLa - minLa)) * 70 + 12,
       precio: a.operacion === "alquiler" ? `${Math.round((a.precio ?? 0) / 100) / 10}k/m` : `${Math.round((a.precio ?? 0) / 1000)}k`,
     }));
+  })();
+
+  const mapaOsmFondo = (() => {
+    if (pins.length === 0) return null;
+    const lats = pins.map((p) => p.lat);
+    const lngs = pins.map((p) => p.lng);
+    const lat = (Math.min(...lats) + Math.max(...lats)) / 2;
+    const lng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+    const span = Math.max(Math.max(...lats) - Math.min(...lats), Math.max(...lngs) - Math.min(...lngs), 0.02);
+    const zoom = span > 0.25 ? 10 : span > 0.12 ? 11 : span > 0.06 ? 12 : 13;
+    return `https://staticmap.openstreetmap.de/staticmap.php?center=${lat.toFixed(5)},${lng.toFixed(5)}&zoom=${zoom}&size=640x260&maptype=mapnik`;
   })();
 
   return (
@@ -763,10 +776,23 @@ export function CaptacionPortales() {
             </div>
             {mapa ? (
               <div className="relative h-[260px] overflow-hidden border-b border-[var(--border-soft)] bg-[#E9ECE8]">
-                {pins.map((p) => (
-                  <button key={p.id} type="button" onClick={() => { setSel(p.id); setPanel(true); }} className="absolute -translate-x-1/2 -translate-y-full rounded-full border px-2 text-[11.5px] font-semibold shadow" style={{ left: `${p.x}%`, top: `${p.y}%`, background: sel === p.id ? "#0B7461" : "#fff", color: sel === p.id ? "#fff" : "#131C1A", borderColor: sel === p.id ? "#0B7461" : "#DAD6CE" }}>{p.precio}</button>
-                ))}
-                <div className="absolute bottom-2.5 left-3 rounded-md bg-white/90 px-2 py-0.5 text-[11px] text-[var(--text-2)]">Mapa de anuncios</div>
+                {mapaOsmFondo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={mapaOsmFondo} alt="" className="absolute inset-0 h-full w-full object-cover opacity-90" />
+                ) : null}
+                {pins.length === 0 ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-4 text-center">
+                    <p className="text-[13px] font-medium text-[var(--text-1)]">Sin ubicación en la lista filtrada</p>
+                    <p className="text-[12px] text-[var(--text-2)]">Las coordenadas se guardan al procesar listados de Idealista. Tras la próxima pasada verás los pins aquí.</p>
+                  </div>
+                ) : (
+                  pins.map((p) => (
+                    <button key={p.id} type="button" onClick={() => { setSel(p.id); setPanel(true); }} className="absolute z-10 -translate-x-1/2 -translate-y-full rounded-full border px-2 text-[11.5px] font-semibold shadow" style={{ left: `${p.x}%`, top: `${p.y}%`, background: sel === p.id ? "#0B7461" : "#fff", color: sel === p.id ? "#fff" : "#131C1A", borderColor: sel === p.id ? "#0B7461" : "#DAD6CE" }}>{p.precio}</button>
+                  ))
+                )}
+                <div className="absolute bottom-2.5 left-3 z-10 rounded-md bg-white/90 px-2 py-0.5 text-[11px] text-[var(--text-2)]">
+                  {pins.length ? `${pins.length} con ubicación` : "Mapa de anuncios"} · © OpenStreetMap
+                </div>
               </div>
             ) : null}
             {checks.length > 0 ? (

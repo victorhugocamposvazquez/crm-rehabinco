@@ -21,6 +21,8 @@ export type AnuncioGuardado = {
   contacto_telefono?: string | null;
   contacto_nombre?: string | null;
   municipio?: string | null;
+  lat?: number | null;
+  lng?: number | null;
   publicado_en?: string | null;
   created_at?: string | null;
 };
@@ -143,8 +145,8 @@ export function upsertAnuncio(
       zona: entrante.zona,
       municipio: entrante.municipio,
       codigo_postal: entrante.codigo_postal,
-      lat: entrante.lat,
-      lng: entrante.lng,
+      lat: entrante.lat ?? previo?.lat ?? null,
+      lng: entrante.lng ?? previo?.lng ?? null,
       geo_aproximada: entrante.geo_aproximada ?? false,
       thumb: entrante.thumb,
       n_fotos: entrante.n_fotos,

@@ -8,7 +8,7 @@ import type { AnuncioEntrante } from "@/lib/captacion/portales/modelo";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const SELECT_PREVIO =
-  "id, portal_id, externo_id, precio, precio_anterior, tags, fase, alerta_id, desaparecido_en, hash_contenido, raw_path, parser_version, titulo, descripcion, contacto_telefono, contacto_nombre, municipio, anunciante, publicado_en, publicado_en_portal, publicado_precision, visto_primera_vez, created_at";
+  "id, portal_id, externo_id, precio, precio_anterior, tags, fase, alerta_id, desaparecido_en, hash_contenido, raw_path, parser_version, titulo, descripcion, contacto_telefono, contacto_nombre, municipio, lat, lng, anunciante, publicado_en, publicado_en_portal, publicado_precision, visto_primera_vez, created_at";
 
 type Admin = ReturnType<typeof createAdminClient>;
 

@@ -12,5 +12,7 @@ describe("parsearListadoIdealista", () => {
     assert.equal(ids.size, 30);
     assert.ok(listado.items.every((item) => item.price != null && item.size != null));
     assert.equal(listado.next_url, "https://www.idealista.com/venta-viviendas/oleiros-a-coruna/pagina-2.htm");
+    const conGeo = listado.items.filter((item) => item.latitude != null && item.longitude != null);
+    assert.ok(conGeo.length >= 20);
   });
 });

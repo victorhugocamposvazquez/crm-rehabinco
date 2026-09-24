@@ -1,3 +1,4 @@
+import { coordsFichaIdealista } from "@/lib/captacion/brightdata/geo-idealista";
 import { fusionarFechaPortal } from "@/lib/captacion/brightdata/fecha-portal";
 import { parsearFichaIdealista } from "@/lib/captacion/brightdata/parse-ficha";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -75,6 +76,12 @@ export async function aplicarFicha(html: string, url: string): Promise<"ok" | "i
   if (fecha?.escrito) {
     patch.publicado_en_portal = fecha.publicado_en_portal;
     patch.publicado_precision = fecha.publicado_precision;
+  }
+  const geo = coordsFichaIdealista(html);
+  if (geo) {
+    patch.lat = geo.latitude;
+    patch.lng = geo.longitude;
+    patch.geo_aproximada = true;
   }
   const { error } = await supabase.from("captacion_anuncios").update(patch).eq("id", data.id);
   if (error) throw new Error(error.message);
