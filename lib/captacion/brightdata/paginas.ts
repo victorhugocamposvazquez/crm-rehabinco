@@ -16,6 +16,7 @@ import {
 } from "@/lib/captacion/brightdata/unlocker-transporte";
 import type { RespuestaUnlocker } from "@/lib/captacion/brightdata/unlocker";
 import { guardarDiagnosticoUnlocker } from "@/lib/captacion/brightdata/unlocker-diagnostico";
+import { esRespuestaTelefonoUnlockerValida } from "@/lib/captacion/brightdata/unlocker-telefono";
 import { configUnlocker, pedirHtmlUnlocker, pedirUnlocker } from "@/lib/captacion/brightdata/unlocker";
 import { ZONA_PROVINCIA_48H } from "@/lib/captacion/brightdata/zonas";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -187,15 +188,31 @@ export async function procesarPaginasPendientes(limite = 20): Promise<{ paginas:
       const intentos = pagina.intentos ?? 0;
       try {
         await registrarPedidoTelefono();
-        const cuerpo = await pedirHtmlUnlocker(config, pagina.url);
-        const resultado = await aplicarTelefono(cuerpo, pagina.url);
+        const resp = await pedirUnlocker(config, pagina.url);
+        if (!esRespuestaTelefonoUnlockerValida(resp)) {
+          errores += 1;
+          await guardarDiagnosticoUnlocker(supabase, pagina.id, config, pagina.url, resp);
+          await registrarResultadoTelefono(false);
+          await marcarTelefonoPendiente(externoId, pagina.id, intentos);
+          continue;
+        }
+        const resultado = await aplicarTelefono(resp.cuerpo, pagina.url);
         if (resultado === "ok" || resultado === "sin_numero") {
           await supabase.from("captacion_paginas_pendientes").update({ estado: "hecha" }).eq("id", pagina.id);
         } else {
+          await guardarDiagnosticoUnlocker(supabase, pagina.id, config, pagina.url, resp);
           await marcarTelefonoPendiente(externoId, pagina.id, intentos);
         }
-      } catch {
+      } catch (error) {
         errores += 1;
+        const cuerpo = error instanceof Error ? error.message : "Teléfono fallido";
+        await guardarDiagnosticoUnlocker(supabase, pagina.id, config, pagina.url, {
+          ok: false,
+          http_status: 0,
+          content_type: null,
+          cuerpo,
+          bytes: new TextEncoder().encode(cuerpo).length,
+        });
         await registrarResultadoTelefono(false);
         await marcarTelefonoPendiente(externoId, pagina.id, intentos);
       }

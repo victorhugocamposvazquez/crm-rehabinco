@@ -49,6 +49,9 @@ export function ZonasIdealistaCard() {
   const [estimados, setEstimados] = useState<Record<string, number | null>>({});
   const [sospechosas, setSospechosas] = useState<Record<string, string>>({});
   const [diagnosticos, setDiagnosticos] = useState<Record<string, DiagnosticoUnlocker>>({});
+  const [diagnosticosTelefono, setDiagnosticosTelefono] = useState<
+    Array<DiagnosticoUnlocker & { id: string; url: string | null; intentos: number | null; estado: string | null }>
+  >([]);
   const [ultima, setUltima] = useState<UltimaRecogida | null>(null);
   const [fichasPendientes, setFichasPendientes] = useState(0);
   const [telefonos, setTelefonos] = useState<{
@@ -70,6 +73,9 @@ export function ZonasIdealistaCard() {
         estimados?: Record<string, number | null>;
         sospechosas?: Record<string, string>;
         diagnosticos?: Record<string, DiagnosticoUnlocker>;
+        diagnosticosTelefono?: Array<
+          DiagnosticoUnlocker & { id: string; url: string | null; intentos: number | null; estado: string | null }
+        >;
         ultima?: UltimaRecogida | null;
         fichasPendientes?: number;
         telefonos?: { hoy: { pedidos: number; obtenidos: number; fallidos: number; tasa: number | null }; sieteDias: { tasa: number | null }; pausado: boolean };
@@ -84,6 +90,7 @@ export function ZonasIdealistaCard() {
       setEstimados(json.estimados ?? {});
       setSospechosas(json.sospechosas ?? {});
       setDiagnosticos(json.diagnosticos ?? {});
+      setDiagnosticosTelefono(json.diagnosticosTelefono ?? []);
       setUltima(json.ultima ?? null);
       setFichasPendientes(json.fichasPendientes ?? 0);
       setTelefonos(json.telefonos ?? null);
@@ -152,6 +159,21 @@ export function ZonasIdealistaCard() {
           {telefonos?.sieteDias.tasa != null ? ` · éxito 7 días ${Math.round(telefonos.sieteDias.tasa * 100)} %` : ""}
           {telefonos?.pausado ? " · cola pausada" : ""}
         </p>
+        {diagnosticosTelefono.length > 0 ? (
+          <details className="text-[12.5px] text-[#8A3030]">
+            <summary className="cursor-pointer">Últimos fallos de teléfono (Unlocker)</summary>
+            <ul className="mt-2 space-y-2">
+              {diagnosticosTelefono.map((diag) => (
+                <li key={diag.id}>
+                  <p className="font-medium text-neutral-800">
+                    {diag.url ?? diag.id} · {diag.estado ?? "—"} · intentos {diag.intentos ?? 0}
+                  </p>
+                  <BloqueDiagnostico diag={diag} />
+                </li>
+              ))}
+            </ul>
+          </details>
+        ) : null}
         <p>
           Zonas con problema:{" "}
           {problemas.length === 0

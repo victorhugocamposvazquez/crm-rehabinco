@@ -85,6 +85,37 @@ export async function GET() {
       estado: !data.completada ? "abierta" : data.incompleta ? "incompleta" : "completa",
     };
   }
+  const { data: telDiag } = await admin
+    .from("captacion_paginas_pendientes")
+    .select("id, url, unlocker_zone, unlocker_url, http_status, content_type, bytes, cuerpo_muestra, intentos, estado")
+    .eq("tipo", "telefono")
+    .not("cuerpo_muestra", "is", null)
+    .order("updated_at", { ascending: false })
+    .limit(5);
+  const diagnosticosTelefono = ((telDiag ?? []) as Array<{
+    id: string;
+    url: string | null;
+    unlocker_zone: string | null;
+    unlocker_url: string | null;
+    http_status: number | null;
+    content_type: string | null;
+    bytes: number | null;
+    cuerpo_muestra: string | null;
+    intentos: number | null;
+    estado: string | null;
+  }>).map((fila) => ({
+    id: fila.id,
+    url: fila.url,
+    unlocker_zone: fila.unlocker_zone,
+    unlocker_url: fila.unlocker_url,
+    http_status: fila.http_status,
+    content_type: fila.content_type,
+    bytes: fila.bytes,
+    cuerpo_muestra: fila.cuerpo_muestra,
+    intentos: fila.intentos,
+    estado: fila.estado,
+  }));
+
   return Response.json({
     ok: true,
     activas,
@@ -93,6 +124,7 @@ export async function GET() {
     zonas: ZONAS_IDEALISTA,
     sospechosas,
     diagnosticos,
+    diagnosticosTelefono,
     ultima,
     fichasPendientes: (
       await admin

@@ -30,10 +30,13 @@ export function parsearTelefonoIdealista(cuerpo: string, externoId?: string | nu
   } catch {
     return { externo_id: externoId ?? null, telefonos: [], transporte_ok: false };
   }
-  if (!json || typeof json !== "object") {
-    return { externo_id: externoId ?? null, telefonos: [], transporte_ok: true };
+  if (!json || typeof json !== "object" || Array.isArray(json)) {
+    return { externo_id: externoId ?? null, telefonos: [], transporte_ok: false };
   }
   const raiz = json as Record<string, unknown>;
+  if (!("phone1" in raiz)) {
+    return { externo_id: externoId ?? null, telefonos: [], transporte_ok: false };
+  }
   const id =
     externoId ??
     (typeof raiz.adId === "string" || typeof raiz.adId === "number" ? String(raiz.adId) : null);
