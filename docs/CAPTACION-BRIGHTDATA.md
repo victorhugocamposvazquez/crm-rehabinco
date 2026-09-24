@@ -22,7 +22,7 @@ La extensión está en `extension/`. Nivel 1: al revelar el teléfono en una fic
 
 ## Zonas
 
-Catálogo de la provincia en `lib/captacion/brightdata/zonas.ts`. A Coruña, Santiago y Ferrol van por distritos. El resto, por municipio. Solo las zonas que ya se usaban (sin esas tres ciudades enteras) entran marcadas; las nuevas salen desmarcadas. En Ajustes el estimado es editable. Si pasa de 1.500, la UI avisa de que hay que partir la zona.
+Catálogo de la provincia en `lib/captacion/brightdata/zonas.ts`: una URL por municipio. A Coruña, Santiago y Ferrol entran enteras. En Ajustes el estimado es editable. Si pasa de 1.500, la UI avisa de que hay que partir la zona; los slugs de distrito están en `docs/CAPTACION-ZONAS.md`.
 
 ## Retirados
 

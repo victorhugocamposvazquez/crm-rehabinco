@@ -6,16 +6,11 @@ La pasada diaria de Idealista solo lee las zonas con la casilla marcada en Ajust
 
 El catálogo vive en `lib/captacion/brightdata/zonas.ts` (`ZONAS_IDEALISTA`). No sale de la base de datos.
 
-| Grupo | Cómo se parte | Al entrar |
-| --- | --- | --- |
-| A Coruña | Distritos (`a-coruna/{slug}/`) | Desmarcado |
-| Santiago | Distritos (`a-coruna/santiago/{slug}/`) | Desmarcado |
-| Ferrol | Distritos (`ferrol-a-coruna/{slug}/`) | Desmarcado |
-| Resto de la provincia | Un municipio (`{slug}-a-coruna/`) | Desmarcado, salvo los que ya se usaban |
+Una URL por municipio, sin distritos. Ninguna ciudad pasa de 1.500 (24 sep 2026): A Coruña `a-coruna-a-coruna` (968), Santiago `santiago-de-compostela-a-coruna` (502), Ferrol `ferrol-a-coruna` (655). El resto sigue `{slug}-a-coruna`.
 
-Marcados de salida (`porDefecto: true`): Oleiros, Arteixo, Culleredo, Sada, Bergondo, Cambre, Carral, Abegondo, Narón, Ribeira y Boiro.
+Marcados de salida: esas tres ciudades más Oleiros, Arteixo, Culleredo, Sada, Bergondo, Cambre, Carral, Abegondo, Narón, Ribeira y Boiro.
 
-Las URLs no llevan `/con-particulares/`. Municipios: `{slug}-a-coruna/`. Ciudad: `a-coruna-a-coruna/`. Distritos de A Coruña: `/a-coruna/{distrito}/`. Santiago y Ferrol muestran «slug sin verificar». La pasada añade una sola URL de provincia a 48 h (`provincia-48h`), fuera de retirados.
+La pasada añade una sola URL de provincia a 48 h (`provincia-48h`), fuera de retirados.
 
 ## Pantalla
 
@@ -42,16 +37,22 @@ Pasada (cron o disparo)
   → filtroDiario() añade la franja de 48 h en venta
 ```
 
-`idsZonasActivas` lee `id, activa`. Se queda con las filas activas cuyo id sigue en el catálogo (`esZonaIdealista`). Si la tabla falla o está vacía, usa solo `zonasPorDefecto()` (los once municipios de arriba, sin distritos).
+`idsZonasActivas` lee `id, activa`. Se queda con las filas activas cuyo id sigue en el catálogo (`esZonaIdealista`). Si la tabla falla o está vacía, usa solo `zonasPorDefecto()`.
 
 `guardarZonasActivas` hace upsert de **todo** el catálogo: `activa` según la casilla, `estimado` el número escrito o, si no hay, la cifra del catálogo.
 
 `estimadosZonas` parte de la cifra del catálogo y la sustituye solo donde la tabla tiene un `estimado` numérico. Ese valor sirve para el aviso de 1.500. No cambia la URL.
 
-Los ids viejos `coruna`, `santiago` y `ferrol` ya no están en el catálogo. Si siguen en la tabla de zonas, se ignoran. En los anuncios, la zona para retirados es `zona_id`: la del listado en el que se vio por última vez. Esos tres ids se parten al distrito más cercano por coordenadas; sin coordenadas quedan en `desconocida` y no se retiran hasta que una recogida nueva los vea.
+Los ids de distrito (`a-coruna-…`, `santiago-…`, `ferrol-…`) ya no están en el catálogo. La migración `20260924190000` los pasa al municipio (`a-coruna`, `santiago-de-compostela`, `ferrol`). `desconocida` sigue fuera de retirados.
 
 Cada fila del catálogo y de `captacion_brightdata_zonas` tiene `operacion`. Hoy solo está activa la venta. Si una fila pasa a `alquiler`, la URL cambia `venta-viviendas` por `alquiler-viviendas` y el filtro diario es el de 24 h.
 
-## De dónde salen los slugs
+## Distritos, por si una ciudad pasa de 1.500
 
-Nombres de los distritos de A Coruña: el listado en vivo `idealista.com/venta-viviendas/a-coruna-a-coruna/` el 24 sep 2026. El slug es ese nombre en minúsculas, sin tildes y con guiones. El único path contrastado en una URL indexada es `/venta-viviendas/a-coruna/ensanche-juan-florez/` (barrio Juan Flórez-San Pablo). El resto de distritos de A Coruña usa el mismo patrón y no se contrastó enlace a enlace. Santiago y Ferrol: nombres habituales y el mismo slug; no aparecieron en URLs indexadas. Los centros usados para partir `coruna`/`santiago`/`ferrol` son puntos aproximados, no polígonos de Idealista.
+Comprobados en la web el 24 sep 2026. No se usan mientras el municipio quepa en un listado.
+
+A Coruña, `/a-coruna/{d}/`: agra-del-orzan-ventorrillo, ciudad-vieja-centro, cuatro-caminos-plaza-de-la-cubela, eiris, elvina-a-zapateira, ensanche-juan-florez, los-castros-castrillon, los-rosales, mesoiro, monte-alto-zalaeta-atocha, os-mallos, riazor-visma, sagrada-familia, someso-matogrande, viono.
+
+Santiago, `/santiago-de-compostela/{d}/`: arins, campus-norte-scaetano, campus-sur-santa-marta, casco-historico, castineirino-cruceiro-do-sar, concheiros-fontinas, conxo, ensanche-sar, marrozos-eixo, san-lazaro-meixonfrio.
+
+Ferrol, `/ferrol/{d}/`: a-malata-serantes-viladoniga, brion-san-felipe-la-grana, canido, caranza, catabois-santa-marina, centro, doninos-esmelle-san-jorge, esteiro, fajardo, ferrol-vello-puerto, la-cabana-valon, pazos-mandia, plaza-de-espana, porta-nova, san-juan, zona-ultramar.

@@ -22,7 +22,7 @@ const PASOS = [
   {
     kicker: "Zonas",
     titulo: "La provincia, partida",
-    texto: "A Coruña, Santiago y Ferrol van por distritos. El resto, por municipio. Solo entran las zonas marcadas. Santiago y Ferrol avisan si el slug no está verificado.",
+    texto: "Una URL por municipio. A Coruña, Santiago y Ferrol entran enteras: ninguna pasa de 1.500. Solo se leen las zonas marcadas.",
     nota: "Si el estimado pasa de 1.500, Idealista corta el listado y hay que partir esa zona.",
   },
   {
