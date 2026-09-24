@@ -194,7 +194,7 @@ export function zonaIdDeListado(url: string | null | undefined): string | null {
 }
 
 export function entraEnRetirados(zonaId: string | null | undefined, zonas: string[]): boolean {
-  return Boolean(zonaId) && zonaId !== ZONA_DESCONOCIDA && zonas.includes(zonaId);
+  return typeof zonaId === "string" && zonaId !== ZONA_DESCONOCIDA && zonas.includes(zonaId);
 }
 
 /** Puntos aproximados para partir una sola vez coruna/santiago/ferrol. La recogida siguiente los sustituye. */
