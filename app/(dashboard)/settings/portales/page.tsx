@@ -41,10 +41,10 @@ export default function SettingsPortalesPage() {
       <PageHeader
         breadcrumb={[{ label: "Ajustes", href: "/settings" }, { label: "Captación" }]}
         title="Captación"
-        description="Cómo entra Idealista, las zonas y el gasto de Bright Data. Solo el superadministrador."
+        description="La pasada diaria de Idealista, las zonas que entra y el gasto de Bright Data."
       />
       <SettingsAdminNav role={user?.role} />
-      <div className="mt-6 space-y-4">
+      <div className="mt-6 space-y-4 min-[820px]:overflow-hidden">
         <ComoFuncionaCaptacion />
         <SaldoBrightDataCard />
         <ZonasIdealistaCard />

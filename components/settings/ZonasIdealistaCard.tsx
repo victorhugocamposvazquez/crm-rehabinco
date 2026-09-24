@@ -62,9 +62,8 @@ export function ZonasIdealistaCard() {
       <CardHeader>
         <CardTitle>Zonas de Idealista</CardTitle>
         <CardDescription>
-          El listado entra solo por las zonas marcadas. El estimado es editable: si una zona pasa de 1.500
-          anuncios, Idealista corta el listado y hay que partirla. Hoy las marcadas suman{" "}
-          {anunciosDeZonas(activas).toLocaleString("es-ES")} anuncios en el catálogo.
+          Solo se leen las marcadas. El número es el estimado: por encima de 1.500 hay que partir la zona.
+          Las marcadas suman {anunciosDeZonas(activas).toLocaleString("es-ES")} anuncios en el catálogo.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

@@ -1,30 +1,35 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-const BLOQUES = [
+const PASOS = [
   {
-    titulo: "Una pasada al día",
-    texto:
-      "Cada día, a las 04:30 UTC (06:30 en verano y 05:30 en invierno), Supabase llama al CRM y Bright Data lee el listado de las zonas marcadas. En el panel de Bright Data el schedule tiene que estar apagado: si no, la misma pasada se lanza dos veces.",
+    kicker: "Cada día",
+    titulo: "Una pasada a las 04:30 UTC",
+    texto: "Supabase llama al CRM y Bright Data lee las zonas marcadas. En verano son las 06:30; en invierno, las 05:30.",
+    nota: "En el panel de Bright Data el schedule tiene que estar apagado. Si no, la misma pasada se lanza dos veces.",
   },
   {
-    titulo: "Qué entra del listado",
-    texto:
-      "Precio, metros, fotos del listado, zona y si es particular o agencia. No entra el teléfono ni, casi nunca, la fecha de publicación de Idealista. Si no hay fecha del portal, el anuncio dice «Detectado el…»: es el día en que el CRM lo vio por primera vez.",
+    kicker: "Listado",
+    titulo: "Qué se guarda",
+    texto: "Precio, metros, fotos, zona y si es particular o agencia. El teléfono no entra.",
+    nota: "Si Idealista no manda fecha, la ficha dice «Detectado el…»: el día en que el CRM lo vio por primera vez.",
   },
   {
-    titulo: "El teléfono",
-    texto:
-      "No se pide a Bright Data. Quien revela el teléfono en Idealista, con la extensión de Chrome y el token de Ajustes, lo guarda en el anuncio. Si ya había un teléfono válido, no se sustituye. En la ficha se ve «teléfono: falta» o «capturado por… el día…».",
+    kicker: "Teléfono",
+    titulo: "Lo guarda la extensión",
+    texto: "Quien lo revela en Idealista, con la extensión de Chrome y el token de Ajustes → Perfil, lo deja en el anuncio. Un teléfono válido no se sustituye.",
+    nota: "En la ficha se lee «teléfono: falta» o «capturado por… el día…».",
   },
   {
-    titulo: "Zonas",
-    texto:
-      "Solo se leen las zonas marcadas, con el filtro de particulares. A Coruña, Santiago y Ferrol están partidos por distritos; el resto de la provincia, por municipio. Las zonas nuevas entran desmarcadas. El número de al lado es un estimado: si pasa de 1.500, Idealista corta el listado y hay que partir esa zona.",
+    kicker: "Zonas",
+    titulo: "La provincia, partida",
+    texto: "A Coruña, Santiago y Ferrol van por distritos. El resto, por municipio. Solo entran las zonas marcadas, con el filtro de particulares. Las nuevas salen desmarcadas.",
+    nota: "Si el estimado pasa de 1.500, Idealista corta el listado y hay que partir esa zona.",
   },
   {
-    titulo: "Retirados",
-    texto:
-      "Un anuncio se marca retirado solo cuando hay dos pasadas completas de su zona y no salió en ninguna de las dos. Si la última página venía llena y aún había página siguiente, esa pasada queda incompleta y no retira nada.",
+    kicker: "Retirados",
+    titulo: "Hacen falta dos pasadas",
+    texto: "Un anuncio se marca retirado cuando no salió en dos pasadas completas de su zona.",
+    nota: "Si la última página venía llena y aún había siguiente, esa pasada queda incompleta y no retira nada.",
   },
 ];
 
@@ -33,14 +38,24 @@ export function ComoFuncionaCaptacion() {
     <Card>
       <CardHeader>
         <CardTitle>Cómo funciona</CardTitle>
+        <CardDescription>El listado entra por Bright Data. El teléfono, por la extensión.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {BLOQUES.map((bloque) => (
-          <section key={bloque.titulo}>
-            <h3 className="text-[13.5px] font-semibold text-neutral-800">{bloque.titulo}</h3>
-            <p className="mt-1 text-[13.5px] leading-relaxed text-[var(--text-2)]">{bloque.texto}</p>
-          </section>
-        ))}
+      <CardContent className="p-0">
+        <ol>
+          {PASOS.map((paso) => (
+            <li
+              key={paso.kicker}
+              className="grid gap-1 border-t border-[var(--border-soft)] px-4 py-3.5 sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:gap-6"
+            >
+              <p className="pt-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--accent-dark)]">{paso.kicker}</p>
+              <div className="min-w-0">
+                <h3 className="text-[14px] font-semibold leading-snug text-neutral-900">{paso.titulo}</h3>
+                <p className="mt-1 text-[13.5px] leading-relaxed text-neutral-800">{paso.texto}</p>
+                <p className="mt-1.5 border-l-2 border-[#9ecfc4] pl-2.5 text-[13px] leading-relaxed text-[var(--text-2)]">{paso.nota}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
       </CardContent>
     </Card>
   );
