@@ -17,13 +17,10 @@ if (status_code() === 403 || el_exists('#cmsg, iframe[src*="captcha-delivery"]',
   wait_timeout(4000);
 }
 
-if (!el_exists('article.item', 20000)) {
-  if (status_code() === 404 || status_code() === 410) dead_page('Listado no encontrado');
-  blocked('Idealista ha bloqueado el listado');
-}
-
+el_exists('article.item', 20000);
 const page = parse();
-for (const item of page.items || []) collect(item);
+for (const item of page.items || []) collect({ ...item, final_url: url.href });
+if (page.sin_listado) return;
 
 const pagina = Number((url.href.match(/pagina-(\d+)/) || [])[1] || 1);
 if (page.has_next_page && pagina < 60) {

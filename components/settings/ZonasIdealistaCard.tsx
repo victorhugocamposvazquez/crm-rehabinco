@@ -6,17 +6,24 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { anunciosDeZonas, zonaSuperaCorte, type ZonaIdealista } from "@/lib/captacion/brightdata/zonas";
 
+const MOTIVO: Record<string, string> = {
+  vacia: "el listado llegó vacío",
+  caida: "llegó menos del 50 % de la recogida anterior",
+  pagina_invalida: "la página no trae el bloque de anuncios",
+};
+
 export function ZonasIdealistaCard() {
   const [zonas, setZonas] = useState<ZonaIdealista[]>([]);
   const [activas, setActivas] = useState<string[]>([]);
   const [estimados, setEstimados] = useState<Record<string, number | null>>({});
+  const [sospechosas, setSospechosas] = useState<Record<string, string>>({});
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
     void (async () => {
       const res = await fetch("/api/captacion/brightdata/zonas");
-      const json = (await res.json()) as { ok?: boolean; error?: string; zonas?: ZonaIdealista[]; activas?: string[]; estimados?: Record<string, number | null> };
+      const json = (await res.json()) as { ok?: boolean; error?: string; zonas?: ZonaIdealista[]; activas?: string[]; estimados?: Record<string, number | null>; sospechosas?: Record<string, string> };
       if (!res.ok || !json.ok || !json.zonas) {
         toast.error(json.error || "No se han podido leer las zonas.");
         setCargando(false);
@@ -25,6 +32,7 @@ export function ZonasIdealistaCard() {
       setZonas(json.zonas);
       setActivas(json.activas ?? json.zonas.filter((zona) => zona.porDefecto).map((zona) => zona.id));
       setEstimados(json.estimados ?? {});
+      setSospechosas(json.sospechosas ?? {});
       setCargando(false);
     })();
   }, []);
@@ -84,6 +92,9 @@ export function ZonasIdealistaCard() {
                     {zona.nombre}
                     {zonaSuperaCorte(estimados[zona.id] ?? null) ? (
                       <span className="mt-0.5 block text-[12px] text-[#8A3030]">Supera 1.500 anuncios. Hay que partir esta zona.</span>
+                    ) : null}
+                    {sospechosas[zona.id] ? (
+                      <span className="mt-0.5 block text-[12px] text-[#8A3030]">Sospechosa: {MOTIVO[sospechosas[zona.id]] ?? sospechosas[zona.id]}. No entra en retirados.</span>
                     ) : null}
                   </span>
                   <input

@@ -21,6 +21,8 @@
     { "name": "page", "type": "number" },
     { "name": "page_items", "type": "number" },
     { "name": "has_next_page", "type": "text" },
+    { "name": "final_url", "type": "text" },
+    { "name": "sin_listado", "type": "text" },
     { "name": "scraped_at", "type": "text" }
   ]
 }

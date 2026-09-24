@@ -77,9 +77,24 @@ $('article.item').each((i, el) => {
 });
 
 const has_next_page = $('.pagination li.next a').length > 0 && pagina < 60;
+const sin_listado = $('article.item').length === 0 && $('.items-container').length === 0;
+const final_url = input.final_url || input.url || input.listing_url || null;
+if (items.length === 0) {
+  items.push({
+    listing_url: input.url || input.listing_url || null,
+    final_url,
+    sin_listado,
+    page: pagina,
+    page_items: 0,
+    has_next_page: false,
+    scraped_at,
+  });
+}
 for (const item of items) {
-  item.page_items = items.length;
+  item.page_items = items.length === 1 && item.page_items === 0 ? 0 : items.length;
   item.has_next_page = has_next_page;
+  item.final_url = final_url;
+  item.sin_listado = sin_listado;
 }
 
-return { items, has_next_page };
+return { items, has_next_page, sin_listado, final_url };

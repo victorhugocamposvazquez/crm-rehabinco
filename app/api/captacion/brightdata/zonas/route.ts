@@ -1,3 +1,4 @@
+import { createAdminClient } from "@/lib/supabase/admin";
 import { estimadosZonas, guardarZonasActivas, idsZonasActivas } from "@/lib/captacion/brightdata/zonas-guardadas";
 import { ZONAS_IDEALISTA, anunciosDeZonas } from "@/lib/captacion/brightdata/zonas";
 import { sesionSuperadminCaptacion } from "@/lib/captacion/portales/sesion";
@@ -9,12 +10,22 @@ export async function GET() {
   const sesion = await sesionSuperadminCaptacion();
   if (!sesion.ok) return Response.json({ ok: false, error: sesion.error }, { status: sesion.status });
   const activas = await idsZonasActivas();
+  const { data } = await createAdminClient()
+    .from("captacion_recogidas")
+    .select("sospechosas, completada")
+    .not("completada", "is", null)
+    .order("completada", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const sospechosas =
+    data?.sospechosas && typeof data.sospechosas === "object" ? data.sospechosas : {};
   return Response.json({
     ok: true,
     activas,
     estimados: await estimadosZonas(),
     anuncios: anunciosDeZonas(activas),
     zonas: ZONAS_IDEALISTA,
+    sospechosas,
   });
 }
 

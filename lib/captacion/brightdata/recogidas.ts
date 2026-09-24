@@ -1,6 +1,6 @@
 import { descargarSnapshot } from "@/lib/captacion/brightdata/disparar";
 import { mapearBrightDataIdealista, registrosBrightData } from "@/lib/captacion/brightdata/idealista";
-import { entraEnRetirados } from "@/lib/captacion/brightdata/zonas";
+import { entraEnRetirados, zonaIdDeListado } from "@/lib/captacion/brightdata/zonas";
 import { desaparecidosTrasSync, type AnuncioGuardado } from "@/lib/captacion/pipeline/upsert";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -14,6 +14,8 @@ type Recogida = {
   incompleta?: boolean | null;
   registros: number;
   externos: string[];
+  conteos?: Record<string, number> | null;
+  sospechosas?: Record<string, MotivoSospecha> | null;
 };
 
 /** Última página llena y con «siguiente»: la zona no se leyó entera. */
@@ -35,6 +37,48 @@ export function listadoIncompleto(filas: Record<string, unknown>[]): boolean {
     if (grupo.sigue && grupo.n > 0 && grupo.n % 30 === 0) return true;
   }
   return false;
+}
+
+export type MotivoSospecha = "vacia" | "caida" | "pagina_invalida";
+
+/** 0 anuncios, menos del 50 % de la recogida anterior, o página sin bloque de listado. */
+export function evaluarZonas(
+  filas: Record<string, unknown>[],
+  conteosAnteriores: Record<string, number>
+): { conteos: Record<string, number>; sospechosas: Record<string, MotivoSospecha> } {
+  const conteos: Record<string, number> = {};
+  const invalidas = new Set<string>();
+  const vistas = new Map<string, Set<string>>();
+  for (const row of filas) {
+    const listing = String(row.listing_url ?? "");
+    if (/publicado_/i.test(listing)) continue;
+    const zona = zonaIdDeListado(listing);
+    if (!zona) continue;
+    const sinListado = row.sin_listado === true || row.sin_listado === "true";
+    if (sinListado) {
+      invalidas.add(zona);
+      conteos[zona] = conteos[zona] ?? 0;
+      continue;
+    }
+    const id = String(row.externo_id ?? "");
+    if (!/^\d{5,}$/.test(id)) {
+      conteos[zona] = conteos[zona] ?? 0;
+      continue;
+    }
+    const ids = vistas.get(zona) ?? new Set<string>();
+    ids.add(id);
+    vistas.set(zona, ids);
+    conteos[zona] = ids.size;
+  }
+  const sospechosas: Record<string, MotivoSospecha> = {};
+  for (const zona of invalidas) sospechosas[zona] = "pagina_invalida";
+  for (const [zona, n] of Object.entries(conteos)) {
+    if (sospechosas[zona]) continue;
+    const antes = conteosAnteriores[zona];
+    if (n === 0) sospechosas[zona] = "vacia";
+    else if (typeof antes === "number" && antes > 0 && n < antes * 0.5) sospechosas[zona] = "caida";
+  }
+  return { conteos, sospechosas };
 }
 
 function admin() {
@@ -108,12 +152,55 @@ export async function intentarCerrarRecogida(token: string, collectionId: string
   ];
   const ahora = new Date().toISOString();
   const incompleta = listadoIncompleto(filas);
+  const { data: previas } = await supabase
+    .from("captacion_recogidas")
+    .select("zonas, conteos, completada, incompleta")
+    .not("completada", "is", null)
+    .eq("incompleta", false)
+    .order("completada", { ascending: false })
+    .limit(12);
+  const conteosAnteriores: Record<string, number> = {};
+  for (const zona of recogida.zonas ?? []) {
+    const previa = ((previas ?? []) as Recogida[]).find(
+      (fila) => fila.completada !== ahora && (fila.zonas ?? []).includes(zona) && typeof fila.conteos?.[zona] === "number"
+    );
+    if (previa?.conteos) conteosAnteriores[zona] = previa.conteos[zona];
+  }
+  const { conteos, sospechosas } = evaluarZonas(filas, conteosAnteriores);
   await supabase
     .from("captacion_recogidas")
-    .update({ completada: ahora, incompleta, registros: externos.length, externos })
+    .update({ completada: ahora, incompleta, registros: externos.length, externos, conteos, sospechosas })
     .eq("collection_id", collectionId);
-  if (!incompleta) await retirarZonas(recogida.zonas ?? [], externos, ahora);
+  const zonasLimpias = (recogida.zonas ?? []).filter((zona) => !sospechosas[zona]);
+  if (!incompleta) await retirarZonas(zonasLimpias, externos, ahora);
+  if (Object.keys(sospechosas).length > 0) await avisarSospechosas(supabase, sospechosas);
   return true;
+}
+
+const MOTIVO: Record<MotivoSospecha, string> = {
+  vacia: "el listado llegó vacío",
+  caida: "llegó menos del 50 % de la recogida anterior",
+  pagina_invalida: "la página no trae el bloque de anuncios",
+};
+
+async function avisarSospechosas(
+  supabase: ReturnType<typeof admin>,
+  sospechosas: Record<string, MotivoSospecha>
+): Promise<void> {
+  const { data } = await supabase.from("profiles").select("id").eq("role", "superadmin");
+  const detalle = Object.entries(sospechosas)
+    .map(([zona, motivo]) => `${zona}: ${MOTIVO[motivo]}`)
+    .join(". ");
+  const filas = ((data ?? []) as Array<{ id?: string }>)
+    .filter((fila) => fila.id)
+    .map((fila) => ({
+      user_id: fila.id,
+      tipo: "zona_sospechosa",
+      titulo: "Zona de Idealista sospechosa",
+      detalle,
+    }));
+  if (filas.length === 0) return;
+  await supabase.from("captacion_notificaciones").insert(filas);
 }
 
 async function retirarZonas(zonas: string[], externosActuales: string[], ahora: string) {
