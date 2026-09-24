@@ -8,7 +8,13 @@ import {
 import { registrarPedidoTelefono, registrarResultadoTelefono, telefonosColaPausada } from "@/lib/captacion/brightdata/telefonos-metricas";
 import { ingestarIdealistaBrightData } from "@/lib/captacion/brightdata/ingestar";
 import { parsearListadoIdealista } from "@/lib/captacion/brightdata/parse-listado";
-import { anotarLote, cerrarRecogidaLocal, sumarVistos } from "@/lib/captacion/brightdata/recogidas";
+import { anotarLote, cerrarRecogidaLocal, marcarSospechosaTransporte, sumarVistos } from "@/lib/captacion/brightdata/recogidas";
+import {
+  esErrorTransporteUnlocker,
+  MAX_INTENTOS_TRANSPORTE_LISTADO,
+  motivoTransporteUnlocker,
+} from "@/lib/captacion/brightdata/unlocker-transporte";
+import type { RespuestaUnlocker } from "@/lib/captacion/brightdata/unlocker";
 import { guardarDiagnosticoUnlocker } from "@/lib/captacion/brightdata/unlocker-diagnostico";
 import { configUnlocker, pedirHtmlUnlocker, pedirUnlocker } from "@/lib/captacion/brightdata/unlocker";
 import { ZONA_PROVINCIA_48H } from "@/lib/captacion/brightdata/zonas";
@@ -31,6 +37,24 @@ const TOPE_TELEFONO = 30;
 
 function dormir(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function manejarTransporteListado(
+  supabase: ReturnType<typeof createAdminClient>,
+  pagina: Pagina,
+  config: { zone: string; token: string },
+  resp: RespuestaUnlocker
+): Promise<void> {
+  await guardarDiagnosticoUnlocker(supabase, pagina.id, config, pagina.url, resp);
+  const intentos = pagina.intentos ?? 0;
+  const siguiente = intentos + 1;
+  const motivo = motivoTransporteUnlocker(resp);
+  if (siguiente >= MAX_INTENTOS_TRANSPORTE_LISTADO && pagina.recogida_id && pagina.zona_id !== ZONA_PROVINCIA_48H) {
+    await supabase.from("captacion_paginas_pendientes").update({ estado: "error", intentos: siguiente }).eq("id", pagina.id);
+    await marcarSospechosaTransporte(pagina.recogida_id, pagina.zona_id, motivo);
+    return;
+  }
+  await supabase.from("captacion_paginas_pendientes").update({ estado: "pendiente", intentos: siguiente }).eq("id", pagina.id);
 }
 
 export async function encolarPaginas(
@@ -92,10 +116,8 @@ export async function procesarPaginasPendientes(limite = 20): Promise<{ paginas:
     if (pagina.recogida_id) tocadas.add(pagina.recogida_id);
     try {
       const resp = await pedirUnlocker(config, pagina.url);
-      if (!resp.ok) {
-        await guardarDiagnosticoUnlocker(supabase, pagina.id, config, pagina.url, resp);
-        await supabase.from("captacion_paginas_pendientes").update({ estado: "error" }).eq("id", pagina.id);
-        if (pagina.recogida_id && pagina.zona_id !== ZONA_PROVINCIA_48H) await sumarVistos(pagina.recogida_id, pagina.zona_id, [], true);
+      if (esErrorTransporteUnlocker(resp)) {
+        await manejarTransporteListado(supabase, pagina, config, resp);
         continue;
       }
       const html = resp.cuerpo;
@@ -124,16 +146,15 @@ export async function procesarPaginasPendientes(limite = 20): Promise<{ paginas:
       }
       await supabase.from("captacion_paginas_pendientes").update({ estado: "hecha" }).eq("id", pagina.id);
     } catch (error) {
-      await guardarDiagnosticoUnlocker(supabase, pagina.id, config, pagina.url, {
+      const cuerpo = error instanceof Error ? error.message : "Página de listado fallida";
+      await manejarTransporteListado(supabase, pagina, config, {
         ok: false,
         http_status: 0,
         content_type: null,
-        cuerpo: error instanceof Error ? error.message : "Página de listado fallida",
-        bytes: 0,
+        cuerpo,
+        bytes: new TextEncoder().encode(cuerpo).length,
       });
-      await supabase.from("captacion_paginas_pendientes").update({ estado: "error" }).eq("id", pagina.id);
-      if (pagina.recogida_id && pagina.zona_id !== ZONA_PROVINCIA_48H) await sumarVistos(pagina.recogida_id, pagina.zona_id, [], true);
-      console.error(error instanceof Error ? error.message : "Página de listado fallida");
+      console.error(cuerpo);
     }
   }
   const cerradas: string[] = [];

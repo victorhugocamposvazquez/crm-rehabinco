@@ -39,7 +39,7 @@ export function listadoIncompleto(filas: Record<string, unknown>[]): boolean {
   return false;
 }
 
-export type MotivoSospecha = "vacia" | "caida" | "pagina_invalida";
+export type MotivoSospecha = "vacia" | "caida" | "pagina_invalida" | string;
 
 /** 0 anuncios, menos del 50 % de la recogida anterior, o página sin bloque de listado. */
 export function evaluarZonas(
@@ -127,6 +127,14 @@ export async function anotarLote(collectionId: string, registros: Record<string,
   await supabase.from("captacion_recogidas").update({ externos: unidos, registros: unidos.length }).eq("collection_id", collectionId);
 }
 
+export async function marcarSospechosaTransporte(collectionId: string, zonaId: string, motivo: string): Promise<void> {
+  if (zonaId === ZONA_PROVINCIA_48H) return;
+  const supabase = admin();
+  const { data } = await supabase.from("captacion_recogidas").select("sospechosas").eq("collection_id", collectionId).maybeSingle();
+  const sospechosas = { ...((data?.sospechosas ?? {}) as Record<string, string>), [zonaId]: motivo };
+  await supabase.from("captacion_recogidas").update({ sospechosas }).eq("collection_id", collectionId);
+}
+
 export async function sumarVistos(collectionId: string, zonaId: string, ids: string[], invalida: boolean): Promise<void> {
   if (zonaId === ZONA_PROVINCIA_48H) return;
   const supabase = admin();
@@ -176,7 +184,7 @@ export async function cerrarRecogidaLocal(collectionId: string): Promise<boolean
   }
   const sospechosas: Record<string, MotivoSospecha> = { ...(recogida.sospechosas ?? {}) };
   for (const [zona, n] of Object.entries(conteos)) {
-    if (zona === ZONA_PROVINCIA_48H || sospechosas[zona] === "pagina_invalida") continue;
+    if (zona === ZONA_PROVINCIA_48H || sospechosas[zona] === "pagina_invalida" || String(sospechosas[zona] ?? "").startsWith("transporte:")) continue;
     const antes = conteosAnteriores[zona];
     if (n === 0) sospechosas[zona] = "vacia";
     else if (typeof antes === "number" && antes > 0 && n < antes * 0.5) sospechosas[zona] = "caida";
