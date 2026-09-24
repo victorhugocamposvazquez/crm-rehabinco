@@ -1,4 +1,4 @@
-import { fechaDeFiltro, filtroDeListado, fusionarFechaPortal } from "@/lib/captacion/brightdata/fecha-portal";
+import { existiaAntesDePasada, fechaDeListadoDiario, filtroDeListado, fusionarFechaPortal } from "@/lib/captacion/brightdata/fecha-portal";
 import { calcularScore } from "@/lib/captacion/score";
 import { PARSER_VERSION } from "@/lib/captacion/brightdata/idealista";
 import { buscarInmuebleDuplicado } from "@/lib/captacion/pipeline/dedup";
@@ -7,7 +7,7 @@ import type { AnuncioEntrante } from "@/lib/captacion/portales/modelo";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const SELECT_PREVIO =
-  "id, portal_id, externo_id, precio, precio_anterior, tags, fase, alerta_id, desaparecido_en, hash_contenido, raw_path, parser_version, titulo, descripcion, contacto_telefono, contacto_nombre, municipio, anunciante, publicado_en, publicado_en_portal, publicado_precision, created_at";
+  "id, portal_id, externo_id, precio, precio_anterior, tags, fase, alerta_id, desaparecido_en, hash_contenido, raw_path, parser_version, titulo, descripcion, contacto_telefono, contacto_nombre, municipio, anunciante, publicado_en, publicado_en_portal, publicado_precision, visto_primera_vez, created_at";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -35,10 +35,23 @@ export async function guardarAnuncioPipeline(
     .maybeSingle();
   if (selErr) return { nuevo: false, actualizado: false, anuncioId: null, errores: [`${entrante.externo_id}: ${selErr.message}`] };
 
-  const previo = prev as (AnuncioGuardado & { publicado_en_portal?: string | null; publicado_precision?: string | null }) | null;
+  const previo = prev as (AnuncioGuardado & {
+    publicado_en_portal?: string | null;
+    publicado_precision?: string | null;
+    visto_primera_vez?: string | null;
+  }) | null;
   const patch = upsertAnuncio(previo, entrante, ahoraIso, null, { parserVersion: PARSER_VERSION });
-  const filtro = filtroDeListado(typeof registro.listing_url === "string" ? registro.listing_url : null);
-  const fechaListado = filtro ? fechaDeFiltro(filtro, new Date(ahoraIso)) : null;
+  const listingUrl = typeof registro.listing_url === "string" ? registro.listing_url : null;
+  const filtro = filtroDeListado(listingUrl);
+  const fechaListado = filtro
+    ? fechaDeListadoDiario(filtro, new Date(ahoraIso), {
+        venta: !/alquiler-/i.test(listingUrl ?? ""),
+        existiaAntes: existiaAntesDePasada(
+          previo?.visto_primera_vez ?? previo?.created_at ?? null,
+          await pasadaCompletaAnterior(supabase)
+        ),
+      })
+    : null;
   const fechaFusion = fechaListado
     ? fusionarFechaPortal(
         {
@@ -85,6 +98,18 @@ export async function guardarAnuncioPipeline(
   }
 
   return { nuevo, actualizado, anuncioId, errores };
+}
+
+async function pasadaCompletaAnterior(supabase: Admin): Promise<string | null> {
+  const { data } = await supabase
+    .from("captacion_recogidas")
+    .select("iniciada")
+    .not("completada", "is", null)
+    .eq("incompleta", false)
+    .order("completada", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.iniciada == null ? null : String(data.iniciada);
 }
 
 async function aplicarDedup(supabase: Admin, anuncioId: string, entrante: AnuncioEntrante, errores: string[]) {

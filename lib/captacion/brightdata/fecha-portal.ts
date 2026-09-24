@@ -47,6 +47,30 @@ export function urlConFiltroFecha(url: string, filtro: FiltroFecha): string {
   return base.replace(/\/con-particulares\/?$/, `/con-particulares,${FILTROS_FECHA[filtro]}/`);
 }
 
+/** Venta usa 48 h; alquiler, 24 h. El resto de URLs se trata como venta. */
+export function filtroDiario(url: string): FiltroFecha {
+  return /alquiler-/i.test(url) ? "24h" : "48h";
+}
+
+/**
+ * En la URL de 48 h de venta: si no estaba en el CRM antes de la pasada completa de ayer,
+ * la franja es 24 h (now()-12h). Si ya estaba, 48 h.
+ */
+export function fechaDeListadoDiario(
+  filtro: FiltroFecha,
+  ahora: Date,
+  opts: { venta: boolean; existiaAntes: boolean }
+): { publicado_en_portal: string; publicado_precision: FiltroFecha } {
+  if (opts.venta && filtro === "48h") return fechaDeFiltro(opts.existiaAntes ? "48h" : "24h", ahora);
+  return fechaDeFiltro(filtro, ahora);
+}
+
+export function existiaAntesDePasada(vistoPrimeraVez: string | null | undefined, iniciadaAyer: string | null): boolean {
+  if (!vistoPrimeraVez) return false;
+  if (!iniciadaAyer) return true;
+  return new Date(vistoPrimeraVez).getTime() < new Date(iniciadaAyer).getTime();
+}
+
 export function filtroDeListado(url: string | null | undefined): FiltroFecha | null {
   if (!url) return null;
   for (const filtro of Object.keys(FILTROS_FECHA) as FiltroFecha[]) {
@@ -92,10 +116,10 @@ export function esNuevoHoy(
   ahora = new Date()
 ): boolean {
   if (precision !== "24h" || !publicadoEnPortal) return false;
-  const fecha = new Date(publicadoEnPortal);
-  if (Number.isNaN(fecha.getTime())) return false;
-  const edadH = (ahora.getTime() - fecha.getTime()) / 3600_000;
-  return edadH >= 0 && edadH <= 36;
+  const asignada = new Date(new Date(publicadoEnPortal).getTime() + 12 * 3600_000);
+  if (Number.isNaN(asignada.getTime())) return false;
+  const dia = (fecha: Date) => fecha.toLocaleDateString("en-CA", { timeZone: "Europe/Madrid" });
+  return dia(asignada) === dia(ahora);
 }
 
 export function textoFechaPortal(

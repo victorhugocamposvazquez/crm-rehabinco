@@ -1,6 +1,6 @@
 import { configBrightDataIdealista, urlWebhookPublica } from "@/lib/captacion/brightdata/config";
 import { dispararIdealista } from "@/lib/captacion/brightdata/disparar";
-import { esFiltroFecha, urlConFiltroFecha, type FiltroFecha } from "@/lib/captacion/brightdata/fecha-portal";
+import { esFiltroFecha, filtroDiario, urlConFiltroFecha, type FiltroFecha } from "@/lib/captacion/brightdata/fecha-portal";
 import { abrirRecogida, zonasBloqueadas } from "@/lib/captacion/brightdata/recogidas";
 import { idsZonasActivas, urlsZonasActivas } from "@/lib/captacion/brightdata/zonas-guardadas";
 import { cronAutorizado } from "@/lib/alertas/config";
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     const completas = await urlsZonasActivas();
     const urls = filtro
       ? completas.map((url) => urlConFiltroFecha(url, filtro))
-      : [...completas, ...completas.map((url) => urlConFiltroFecha(url, "24h"))];
+      : [...completas, ...completas.map((url) => urlConFiltroFecha(url, filtroDiario(url)))];
     if (urls.length === 0) {
       return Response.json(
         { ok: false, error: "No hay zonas marcadas. Elige alguna en Ajustes → Captación." },

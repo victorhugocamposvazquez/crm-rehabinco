@@ -2,8 +2,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   esNuevoHoy,
+  existiaAntesDePasada,
   fechaDeFiltro,
+  fechaDeListadoDiario,
   filtroDeListado,
+  filtroDiario,
   fusionarFechaPortal,
   parsearActualizadoIdealista,
   textoFechaPortal,
@@ -38,6 +41,28 @@ describe("filtro de fecha de Idealista", () => {
     );
     assert.equal(exacta.escrito, true);
     assert.equal(exacta.publicado_precision, "exacta");
+  });
+
+  it("en venta distingue 24 h y 48 h; en alquiler el filtro diario es 24 h", () => {
+    const venta = "https://www.idealista.com/venta-viviendas/oleiros-a-coruna/con-particulares/";
+    const alquiler = "https://www.idealista.com/alquiler-viviendas/oleiros-a-coruna/con-particulares/";
+    assert.equal(filtroDiario(venta), "48h");
+    assert.equal(filtroDiario(alquiler), "24h");
+    const pasadaAyer = "2026-09-23T04:30:00.000Z";
+    const nuevo = fechaDeListadoDiario("48h", AHORA, { venta: true, existiaAntes: existiaAntesDePasada(null, pasadaAyer) });
+    assert.equal(nuevo.publicado_precision, "24h");
+    assert.equal(nuevo.publicado_en_portal, "2026-09-23T16:30:00.000Z");
+    const viejo = fechaDeListadoDiario("48h", AHORA, {
+      venta: true,
+      existiaAntes: existiaAntesDePasada("2026-09-22T04:30:00.000Z", pasadaAyer),
+    });
+    assert.equal(viejo.publicado_precision, "48h");
+    assert.equal(viejo.publicado_en_portal, "2026-09-23T04:30:00.000Z");
+    const alq = fechaDeListadoDiario("24h", AHORA, { venta: false, existiaAntes: true });
+    assert.equal(alq.publicado_precision, "24h");
+    assert.equal(esNuevoHoy(nuevo.publicado_precision, nuevo.publicado_en_portal, AHORA), true);
+    assert.equal(esNuevoHoy(alq.publicado_precision, alq.publicado_en_portal, AHORA), true);
+    assert.equal(esNuevoHoy(viejo.publicado_precision, viejo.publicado_en_portal, AHORA), false);
   });
 
   it("escribe la franja y marca nuevos de hoy solo con precisión 24h reciente", () => {

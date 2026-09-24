@@ -15,7 +15,7 @@ El schedule del panel de Bright Data debe quedar **desactivado**. El listado lo 
 
 La paginación sigue mientras haya página siguiente, con tope de seguridad de 60. El filtro de particulares es `/con-particulares/` en la ruta.
 
-Fecha de publicación, sin abrir la ficha. Segmentos comprobados el 24 sep 2026: `publicado_ultimas-24-horas` (alquiler; en venta el menú empieza en 48 h), `publicado_ultimas-48-horas`, `publicado_ultima-semana`, `publicado_ultimo-mes`. Junto a particulares: `/con-particulares,publicado_ultimas-24-horas/`. La pasada diaria manda la URL completa y la de 24 h.
+Fecha de publicación, sin abrir la ficha. Segmentos comprobados el 24 sep 2026: `publicado_ultimas-24-horas` (alquiler; en venta el menú empieza en 48 h), `publicado_ultimas-48-horas`, `publicado_ultima-semana`, `publicado_ultimo-mes`. Junto a particulares: `/con-particulares,publicado_ultimas-24-horas/`. La pasada diaria manda la URL completa y, además, 48 h en venta o 24 h en alquiler.
 
 ## Checklist
 
