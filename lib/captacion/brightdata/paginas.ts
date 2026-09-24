@@ -96,7 +96,7 @@ export async function procesarPaginasPendientes(limite = 20): Promise<{ paginas:
       await supabase.from("captacion_paginas_pendientes").update({ estado: "hecha" }).eq("id", pagina.id);
     } catch (error) {
       await supabase.from("captacion_paginas_pendientes").update({ estado: "error" }).eq("id", pagina.id);
-      if (pagina.zona_id !== ZONA_PROVINCIA_48H) await sumarVistos(pagina.recogida_id, pagina.zona_id, [], true);
+      if (pagina.recogida_id && pagina.zona_id !== ZONA_PROVINCIA_48H) await sumarVistos(pagina.recogida_id, pagina.zona_id, [], true);
       console.error(error instanceof Error ? error.message : "Página de listado fallida");
     }
   }
