@@ -49,28 +49,25 @@ function abs(href: string | undefined): string | null {
   }
 }
 
-/** Un registro por `article.item`. Profesional si hay enlace `/pro/`. */
+/** Un anuncio por `article.item[data-element-id]`. Los `article.adv` no entran. */
 export function parsearListadoIdealista(html: string, urlEntrada?: string | null): ListadoParseado {
   const $ = cheerio.load(html);
   const final_url = $('link[rel="canonical"]').attr("href") || urlEntrada || null;
   const items: ItemListado[] = [];
 
-  $("article.item").each((_, el) => {
+  $("article.item[data-element-id]").each((_, el) => {
     const $el = $(el);
+    const externo_id = $el.attr("data-element-id")?.trim() || null;
+    if (!externo_id) return;
     const link = $el.find("a.item-link").first();
     const href = link.attr("href");
-    if (!href) return;
     const url = abs(href);
-    const externo_id =
-      (url && (url.match(/\/inmueble\/(\d+)/) || [])[1]) || $el.attr("data-adid") || $el.attr("data-element-id") || null;
-    if (!externo_id) return;
-
     const title = link.attr("title") || sano(link.text()) || null;
     const tramos = title ? title.split(",").map((s) => s.trim()).filter(Boolean) : [];
     const municipality = tramos.length ? tramos[tramos.length - 1] : null;
     const neighborhood = tramos.length > 2 ? tramos[tramos.length - 2] : null;
     const tipo = title?.match(/^(Piso|Casa|Chalet|Ático|Dúplex|Estudio|Loft|Casa rústica|Casa de pueblo|Casa adosada|Casa o chalet|Finca rústica|Planta baja)/i);
-    const price = num(sano($el.find(".item-price").first().text()));
+    const price = num(sano($el.find(".item-price").not(".item-price-by-area").first().text()));
     let rooms: number | null = null;
     let size: number | null = null;
     let floor_text: string | null = null;
@@ -80,8 +77,9 @@ export function parsearListadoIdealista(html: string, urlEntrada?: string | null
       else if (/m²|m2/i.test(t)) size = num(t);
       else if (t) floor_text = t;
     });
-    const pro = $el.find('a[href^="/pro/"]').first();
-    const agency_name = pro.length ? pro.attr("title") || sano(pro.text()) || null : null;
+    const branding = $el.find(".logo-branding").first();
+    const agency_name = branding.find("a[title]").first().attr("title") || branding.find("img[alt]").first().attr("alt") || null;
+    const seller_type = $el.attr("data-is-professional-ad") === "true" ? "professional" : "private";
     const photos: string[] = [];
     const vistas = new Set<string>();
     $el.find("img").each((__, im) => {
@@ -93,7 +91,7 @@ export function parsearListadoIdealista(html: string, urlEntrada?: string | null
     });
     items.push({
       externo_id,
-      url: url ?? href,
+      url: url ?? href ?? "",
       title,
       price,
       size,
@@ -105,9 +103,9 @@ export function parsearListadoIdealista(html: string, urlEntrada?: string | null
       neighborhood,
       latitude: null,
       longitude: null,
-      description_snippet: sano($el.find(".item-description").first().text()) || null,
+      description_snippet: sano($el.find(".item-description p").first().text()) || null,
       agency_name,
-      seller_type: pro.length ? "professional" : "private",
+      seller_type,
       tags: sano($el.find(".listing-tags").text()) || null,
       photos,
     });
