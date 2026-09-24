@@ -1,3 +1,7 @@
+export type OperacionZona = "venta" | "alquiler";
+
+export const ZONA_DESCONOCIDA = "desconocida";
+
 export type ZonaIdealista = {
   id: string;
   grupo: string;
@@ -6,6 +10,8 @@ export type ZonaIdealista = {
   anuncios: number;
   /** Marcada al instalar. Las zonas nuevas de la provincia entran desmarcadas. */
   porDefecto: boolean;
+  /** Por ahora el catálogo activo es venta. Alquiler se genera al activar la fila. */
+  operacion: OperacionZona;
   url: string;
 };
 
@@ -33,6 +39,7 @@ function municipio(nombre: string, anuncios = 0, porDefecto = false, url?: strin
     nombre,
     anuncios,
     porDefecto,
+    operacion: "venta",
     url: url ?? `https://www.idealista.com/venta-viviendas/${id}-a-coruna/`,
   };
 }
@@ -45,6 +52,7 @@ function distrito(grupo: string, ciudadBase: string, nombre: string, anuncios = 
     nombre,
     anuncios,
     porDefecto: false,
+    operacion: "venta",
     url: `https://www.idealista.com/venta-viviendas/${ciudadBase}/${trozo}/`,
   };
 }
@@ -111,7 +119,7 @@ const MUNICIPIOS_NUEVOS = [
 ];
 
 export const ZONAS_IDEALISTA: ZonaIdealista[] = [
-  ...DISTRITOS_CORUNA.map(([nombre, anuncios]) => distrito("A Coruña", "a-coruna-a-coruna", nombre, anuncios)),
+  ...DISTRITOS_CORUNA.map(([nombre, anuncios]) => distrito("A Coruña", "a-coruna", nombre, anuncios)),
   ...DISTRITOS_SANTIAGO.map((nombre) => distrito("Santiago", "a-coruna/santiago", nombre)),
   ...DISTRITOS_FERROL.map((nombre) => distrito("Ferrol", "ferrol-a-coruna", nombre)),
   ...MUNICIPIOS_DEFECTO.map(([nombre, anuncios, url]) => municipio(nombre, anuncios, true, url)),
@@ -140,14 +148,14 @@ export function esZonaIdealista(id: string): boolean {
   return POR_ID.has(id);
 }
 
-export function urlsDeZonas(ids: string[]): string[] {
+export function urlsDeZonas(ids: string[], operacion: Record<string, OperacionZona> = {}): string[] {
   const elegidas = ids.length > 0 ? ids : ZONAS_IDEALISTA.filter((zona) => zona.porDefecto).map((zona) => zona.id);
   const urls: string[] = [];
   const vistas = new Set<string>();
   for (const id of elegidas) {
     const zona = POR_ID.get(id);
     if (!zona) continue;
-    const url = urlParticularesIdealista(zona.url);
+    const url = urlParticularesIdealista(urlSegunOperacion(zona.url, operacion[id] ?? zona.operacion));
     if (vistas.has(url)) continue;
     vistas.add(url);
     urls.push(url);
@@ -166,4 +174,94 @@ export function anunciosDeZonas(ids: string[]): number {
 
 export function zonasPorDefecto(): string[] {
   return ZONAS_IDEALISTA.filter((zona) => zona.porDefecto).map((zona) => zona.id);
+}
+
+export function urlSegunOperacion(url: string, operacion: OperacionZona): string {
+  if (operacion === "alquiler") return url.replace("/venta-viviendas/", "/alquiler-viviendas/");
+  return url;
+}
+
+/** Zona del listado en el que se vio el anuncio. La más específica gana. */
+export function zonaIdDeListado(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const path = url.replace(/^https?:\/\/(www\.)?idealista\.com/i, "").replace(/\/con-[^/]*\/?$/, "/");
+  let mejor: { id: string; n: number } | null = null;
+  for (const zona of ZONAS_IDEALISTA) {
+    const base = zona.url.replace(/^https?:\/\/(www\.)?idealista\.com/i, "");
+    if (path.includes(base.replace(/\/$/, "")) && (!mejor || base.length > mejor.n)) mejor = { id: zona.id, n: base.length };
+  }
+  return mejor?.id ?? null;
+}
+
+export function entraEnRetirados(zonaId: string | null | undefined, zonas: string[]): boolean {
+  return Boolean(zonaId) && zonaId !== ZONA_DESCONOCIDA && zonas.includes(zonaId);
+}
+
+/** Puntos aproximados para partir una sola vez coruna/santiago/ferrol. La recogida siguiente los sustituye. */
+const CENTROS: Record<"coruna" | "santiago" | "ferrol", Array<{ id: string; lat: number; lng: number }>> = {
+  coruna: [
+    ["a-coruna-ciudad-vieja-centro", 43.3705, -8.3958],
+    ["a-coruna-ensanche-juan-florez", 43.3672, -8.4068],
+    ["a-coruna-riazor-visma", 43.3692, -8.4125],
+    ["a-coruna-monte-alto-zalaeta-atocha", 43.374, -8.397],
+    ["a-coruna-los-castros-castrillon", 43.353, -8.41],
+    ["a-coruna-agra-del-orzan-ventorrillo", 43.356, -8.419],
+    ["a-coruna-someso-matogrande", 43.347, -8.404],
+    ["a-coruna-eiris", 43.348, -8.39],
+    ["a-coruna-cuatro-caminos-plaza-de-la-cubela", 43.36, -8.401],
+    ["a-coruna-os-mallos", 43.347, -8.418],
+    ["a-coruna-sagrada-familia", 43.358, -8.397],
+    ["a-coruna-los-rosales", 43.344, -8.4],
+    ["a-coruna-mesoiro", 43.339, -8.412],
+    ["a-coruna-elvina-a-zapateira", 43.333, -8.41],
+    ["a-coruna-viono", 43.363, -8.422],
+  ].map(([id, lat, lng]) => ({ id: String(id), lat: Number(lat), lng: Number(lng) })),
+  santiago: [
+    ["santiago-centro", 42.8805, -8.544],
+    ["santiago-ensanche", 42.876, -8.54],
+    ["santiago-campus-norte", 42.886, -8.555],
+    ["santiago-campus-sur", 42.874, -8.555],
+    ["santiago-san-pedro", 42.883, -8.535],
+    ["santiago-santa-marta", 42.887, -8.545],
+    ["santiago-conxo", 42.868, -8.54],
+    ["santiago-vite", 42.865, -8.53],
+    ["santiago-castineirino", 42.862, -8.52],
+    ["santiago-fontinas", 42.89, -8.52],
+    ["santiago-salgueirinos", 42.892, -8.51],
+  ].map(([id, lat, lng]) => ({ id: String(id), lat: Number(lat), lng: Number(lng) })),
+  ferrol: [
+    ["ferrol-centro", 43.483, -8.232],
+    ["ferrol-recimil", 43.49, -8.225],
+    ["ferrol-caranza", 43.478, -8.22],
+    ["ferrol-esteiro", 43.486, -8.24],
+    ["ferrol-canido", 43.478, -8.245],
+    ["ferrol-o-pilar", 43.492, -8.235],
+    ["ferrol-san-juan", 43.488, -8.218],
+  ].map(([id, lat, lng]) => ({ id: String(id), lat: Number(lat), lng: Number(lng) })),
+};
+
+export function ciudadAntigua(municipio: string | null | undefined, zona: string | null | undefined): "coruna" | "santiago" | "ferrol" | null {
+  const blob = `${municipio ?? ""} ${zona ?? ""}`.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (/santiago/.test(blob)) return "santiago";
+  if (/ferrol/.test(blob)) return "ferrol";
+  if (/coruna/.test(blob) && !/oleiros|arteixo|sada|cambre|culleredo/.test(blob)) return "coruna";
+  return null;
+}
+
+export function distritoPorCoordenadas(
+  ciudad: "coruna" | "santiago" | "ferrol",
+  lat: number | null | undefined,
+  lng: number | null | undefined
+): string {
+  if (lat == null || lng == null || !Number.isFinite(lat) || !Number.isFinite(lng)) return ZONA_DESCONOCIDA;
+  let mejor = CENTROS[ciudad][0];
+  let dist = Infinity;
+  for (const centro of CENTROS[ciudad]) {
+    const d = (centro.lat - lat) ** 2 + (centro.lng - lng) ** 2;
+    if (d < dist) {
+      dist = d;
+      mejor = centro;
+    }
+  }
+  return mejor.id;
 }

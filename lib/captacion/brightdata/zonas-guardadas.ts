@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ZONAS_IDEALISTA, esZonaIdealista, urlsDeZonas, zonasPorDefecto } from "@/lib/captacion/brightdata/zonas";
+import { ZONAS_IDEALISTA, esZonaIdealista, urlsDeZonas, zonasPorDefecto, type OperacionZona } from "@/lib/captacion/brightdata/zonas";
 
 export async function idsZonasActivas(): Promise<string[]> {
   try {
@@ -30,7 +30,18 @@ export async function estimadosZonas(): Promise<Record<string, number | null>> {
 }
 
 export async function urlsZonasActivas(): Promise<string[]> {
-  return urlsDeZonas(await idsZonasActivas());
+  const ids = await idsZonasActivas();
+  const operacion: Record<string, OperacionZona> = {};
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin.from("captacion_brightdata_zonas").select("id, operacion").in("id", ids);
+    for (const fila of (data ?? []) as Array<{ id?: string; operacion?: string }>) {
+      if (fila.id && (fila.operacion === "venta" || fila.operacion === "alquiler")) operacion[fila.id] = fila.operacion;
+    }
+  } catch {
+    return urlsDeZonas(ids);
+  }
+  return urlsDeZonas(ids, operacion);
 }
 
 export async function guardarZonasActivas(
@@ -47,6 +58,7 @@ export async function guardarZonasActivas(
       ZONAS_IDEALISTA.map((zona) => ({
         id: zona.id,
         activa: unicas.includes(zona.id),
+        operacion: zona.operacion,
         estimado: typeof estimados[zona.id] === "number" ? estimados[zona.id] : zona.anuncios > 0 ? zona.anuncios : null,
         updated_at: ahora,
       }))

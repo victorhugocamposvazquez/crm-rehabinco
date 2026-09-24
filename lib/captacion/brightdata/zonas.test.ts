@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { ZONAS_IDEALISTA, zonaSuperaCorte, zonasPorDefecto, urlsDeZonas } from "./zonas";
+import { ZONAS_IDEALISTA, ZONA_DESCONOCIDA, distritoPorCoordenadas, entraEnRetirados, urlSegunOperacion, zonaIdDeListado, zonaSuperaCorte, zonasPorDefecto, urlsDeZonas } from "./zonas";
 
 describe("zonas Idealista", () => {
   it("parte A Coruña, Santiago y Ferrol y deja el resto de la provincia desmarcado", () => {
@@ -18,5 +18,17 @@ describe("zonas Idealista", () => {
     assert.equal(zonaSuperaCorte(1500), false);
     assert.equal(zonaSuperaCorte(1501), true);
     assert.equal(zonaSuperaCorte(null), false);
+    const ensanche = ZONAS_IDEALISTA.find((zona) => zona.id === "a-coruna-ensanche-juan-florez");
+    assert.equal(ensanche?.url, "https://www.idealista.com/venta-viviendas/a-coruna/ensanche-juan-florez/");
+    assert.equal(ensanche?.operacion, "venta");
+    assert.equal(
+      urlSegunOperacion(ensanche?.url ?? "", "alquiler"),
+      "https://www.idealista.com/alquiler-viviendas/a-coruna/ensanche-juan-florez/"
+    );
+    assert.equal(zonaIdDeListado("https://www.idealista.com/venta-viviendas/a-coruna/ensanche-juan-florez/con-particulares/"), "a-coruna-ensanche-juan-florez");
+    assert.equal(distritoPorCoordenadas("coruna", 43.3672, -8.4068), "a-coruna-ensanche-juan-florez");
+    assert.equal(distritoPorCoordenadas("coruna", null, null), ZONA_DESCONOCIDA);
+    assert.equal(entraEnRetirados(ZONA_DESCONOCIDA, ["a-coruna-ensanche-juan-florez"]), false);
+    assert.equal(entraEnRetirados("oleiros", ["oleiros"]), true);
   });
 });

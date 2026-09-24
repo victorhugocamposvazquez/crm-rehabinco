@@ -1,4 +1,5 @@
 import { existiaAntesDePasada, fechaDeListadoDiario, filtroDeListado, fusionarFechaPortal } from "@/lib/captacion/brightdata/fecha-portal";
+import { zonaIdDeListado } from "@/lib/captacion/brightdata/zonas";
 import { calcularScore } from "@/lib/captacion/score";
 import { PARSER_VERSION } from "@/lib/captacion/brightdata/idealista";
 import { buscarInmuebleDuplicado } from "@/lib/captacion/pipeline/dedup";
@@ -67,6 +68,8 @@ export async function guardarAnuncioPipeline(
       publicado_precision: fechaFusion.publicado_precision,
     });
   }
+  const zonaVista = zonaIdDeListado(listingUrl);
+  if (zonaVista) patch.row.zona_id = zonaVista;
   let anuncioId = previo?.id ?? null;
   let nuevo = false;
   let actualizado = false;

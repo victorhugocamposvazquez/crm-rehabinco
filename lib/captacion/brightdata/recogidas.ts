@@ -1,6 +1,6 @@
 import { descargarSnapshot } from "@/lib/captacion/brightdata/disparar";
 import { mapearBrightDataIdealista, registrosBrightData } from "@/lib/captacion/brightdata/idealista";
-import { idsZonaDeAnuncio } from "@/lib/captacion/brightdata/zonas";
+import { entraEnRetirados } from "@/lib/captacion/brightdata/zonas";
 import { desaparecidosTrasSync, type AnuncioGuardado } from "@/lib/captacion/pipeline/upsert";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -135,12 +135,12 @@ async function retirarZonas(zonas: string[], externosActuales: string[], ahora: 
   const vistos = new Set([...externosActuales, ...(anterior.externos ?? [])]);
   const { data } = await supabase
     .from("captacion_anuncios")
-    .select("id, portal_id, externo_id, precio, tags, fase, alerta_id, desaparecido_en, municipio, zona")
+    .select("id, portal_id, externo_id, precio, tags, fase, alerta_id, desaparecido_en, zona_id")
     .eq("portal_id", "idealista")
     .is("desaparecido_en", null)
     .in("fase", ["novedad", "contacto", "visita", "negociando"]);
-  const deLaZona = ((data ?? []) as Array<AnuncioGuardado & { municipio?: string | null; zona?: string | null }>).filter((row) =>
-    idsZonaDeAnuncio(row.municipio, row.zona).some((id) => zonas.includes(id))
+  const deLaZona = ((data ?? []) as Array<AnuncioGuardado & { zona_id?: string | null }>).filter((row) =>
+    entraEnRetirados(row.zona_id, zonas)
   );
   const fuera = desaparecidosTrasSync(deLaZona, [...vistos].map((externo_id) => ({ portal_id: "idealista", externo_id })), ahora);
   if (fuera.length === 0) return;
