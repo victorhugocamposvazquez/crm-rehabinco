@@ -1,6 +1,6 @@
 // Collector de LISTADO. No abre fichas y no pide teléfono.
 // Paginación: la página siguiente solo si hay «siguiente», tope de seguridad 60.
-// El schedule del panel de Bright Data debe estar desactivado: el CRM dispara a las 07:00 y 15:00.
+// El schedule del panel de Bright Data debe estar desactivado: el CRM dispara una vez al día, a las 04:30 UTC.
 
 country('es');
 

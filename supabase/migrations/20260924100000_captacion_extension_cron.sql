@@ -18,8 +18,7 @@ alter table public.captacion_recogidas
   add column if not exists incompleta boolean not null default false;
 
 -- El listado lo dispara el CRM, no el panel de Bright Data.
--- pg_cron en Supabase corre en UTC. 05:00 y 13:00 UTC son las 07:00 y 15:00 en horario de verano (CEST).
--- En invierno (CET) cámbialo a '0 6,14 * * *'.
+-- Una pasada al día: 04:30 UTC (06:30 en verano, 05:30 en invierno).
 -- Secretos en vault, antes de que el job tenga efecto:
 --   select vault.create_secret('https://crm.rehabinco.es/api/captacion/brightdata/trigger', 'captacion_trigger_url');
 --   select vault.create_secret('<el mismo CRON_SECRET de Vercel>', 'captacion_cron_secret');
@@ -36,7 +35,7 @@ end $$;
 
 select cron.schedule(
   'captacion-idealista-listado',
-  '0 5,13 * * *',
+  '30 4 * * *',
   $cron$
   select net.http_post(
     url := (select decrypted_secret from vault.decrypted_secrets where name = 'captacion_trigger_url' limit 1),

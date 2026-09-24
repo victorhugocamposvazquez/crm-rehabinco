@@ -12,7 +12,7 @@ Idealista entra solo por el listado de Bright Data. El teléfono lo guarda la ex
 | Disparo | `POST /api/captacion/brightdata/trigger` con `Authorization: Bearer <CRON_SECRET>`, o un admin |
 | Extensión | `POST /api/captacion/telefono` y `GET /api/captacion/existen` con el token del perfil |
 
-El schedule del panel de Bright Data tiene que estar desactivado. `pg_cron` llama al trigger a las 07:00 y 15:00 hora de Madrid (en verano, 05:00 y 13:00 UTC).
+El schedule del panel de Bright Data tiene que estar desactivado. `pg_cron` llama al trigger una vez al día, a las 04:30 UTC.
 
 ## Qué guarda el listado
 

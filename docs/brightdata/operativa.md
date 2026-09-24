@@ -2,7 +2,7 @@
 
 El teléfono no se pide a Bright Data. Se captura con la extensión de Chrome (`extension/README.md`) cuando alguien lo revela en el navegador.
 
-El schedule del panel de Bright Data debe quedar **desactivado**. El listado lo dispara el CRM a las 07:00 y 15:00 (Europe/Madrid) con `pg_cron`.
+El schedule del panel de Bright Data debe quedar **desactivado**. El listado lo dispara el CRM una vez al día, a las 04:30 UTC.
 
 ## Scraper de listado
 
