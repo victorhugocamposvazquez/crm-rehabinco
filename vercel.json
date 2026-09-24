@@ -21,9 +21,6 @@
     },
     "app/api/captacion/brightdata/route.ts": {
       "maxDuration": 60
-    },
-    "app/api/captacion/brightdata/importar/route.ts": {
-      "maxDuration": 60
     }
   },
   "crons": [

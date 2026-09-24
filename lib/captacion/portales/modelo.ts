@@ -152,6 +152,8 @@ export type AnuncioCaptacion = {
   publicado_en: string | null;
   visto_en: string;
   visto_primera_vez: string | null;
+  telefono_capturado_por: string | null;
+  telefono_capturado_en: string | null;
   desaparecido_en: string | null;
   created_at: string;
 };
@@ -286,14 +288,6 @@ export function detectadoEl(iso: string | null | undefined): string {
   return `Detectado el ${fechaCorta(fecha)}`;
 }
 
-export function estadoTelefonoIdealista(a: { fuente: string; contacto_telefono: string | null; tags: string[] }): "pendiente" | "recibido" | "no disponible" | null {
-  if (a.fuente !== "idealista") return null;
-  if (a.contacto_telefono) return "recibido";
-  if (a.tags.includes("tel_pendiente")) return "pendiente";
-  if (a.tags.includes("tel_no_disponible")) return "no disponible";
-  return null;
-}
-
 export function fechaCorta(fecha: Date): string {
   return `${String(fecha.getDate()).padStart(2, "0")}/${String(fecha.getMonth() + 1).padStart(2, "0")}/${fecha.getFullYear()}`;
 }
@@ -336,13 +330,21 @@ export function publicadoHoy(
 
 /** Fecha de Idealista, o un aviso si el listado no la trajo. */
 export function textoPublicado(
-  a: { publicado_en: string | null; created_at: string | null; desaparecido_en?: string | null },
+  a: {
+    publicado_en: string | null;
+    created_at: string | null;
+    desaparecido_en?: string | null;
+    visto_primera_vez?: string | null;
+  },
   ahora = new Date()
 ): string {
   if (a.desaparecido_en) return `Retirado el ${fechaCorta(new Date(a.desaparecido_en))}`;
   const portal = fechaPublicacionPortal(a.publicado_en, a.created_at);
-  return portal ? cuandoPublicado(portal, ahora) : "Sin fecha del portal";
+  if (portal) return cuandoPublicado(portal, ahora);
+  return detectadoEl(a.visto_primera_vez || a.created_at);
 }
+
+export const AYUDA_DETECTADO = "fecha en que el CRM lo vio por primera vez";
 
 export function tagsConEstilo(tags: string[]) {
   return tags

@@ -19,6 +19,7 @@ export interface Database {
           foto_url: string | null;
           color: string;
           zona: string | null;
+          token_extension: string | null;
           activo: boolean;
           created_at: string;
           updated_at: string;
@@ -42,6 +43,7 @@ export interface Database {
           foto_url?: string | null;
           color?: string;
           zona?: string | null;
+          token_extension?: string | null;
           activo?: boolean;
           updated_at?: string;
         };

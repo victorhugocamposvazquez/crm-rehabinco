@@ -2,39 +2,126 @@ export type ZonaIdealista = {
   id: string;
   grupo: string;
   nombre: string;
+  /** Cifra de Idealista. En Ajustes se puede sustituir por un estimado. */
   anuncios: number;
+  /** Marcada al instalar. Las zonas nuevas de la provincia entran desmarcadas. */
+  porDefecto: boolean;
   url: string;
 };
 
-/** Viviendas en venta que entran en los 5.000 créditos de la primera pasada. Cifras de Idealista, 23 sep 2026. */
-export const ZONAS_IDEALISTA: ZonaIdealista[] = [
-  { id: "coruna", grupo: "Área de A Coruña", nombre: "A Coruña", anuncios: 902, url: "https://www.idealista.com/venta-viviendas/a-coruna-a-coruna/" },
-  { id: "oleiros", grupo: "Área de A Coruña", nombre: "Oleiros", anuncios: 392, url: "https://www.idealista.com/venta-viviendas/oleiros-a-coruna/" },
-  { id: "arteixo", grupo: "Área de A Coruña", nombre: "Arteixo", anuncios: 159, url: "https://www.idealista.com/venta-viviendas/arteixo-a-coruna/" },
-  { id: "culleredo", grupo: "Área de A Coruña", nombre: "Culleredo", anuncios: 145, url: "https://www.idealista.com/venta-viviendas/culleredo-a-coruna/" },
-  { id: "sada", grupo: "Área de A Coruña", nombre: "Sada", anuncios: 145, url: "https://www.idealista.com/venta-viviendas/sada-a-coruna/" },
-  { id: "bergondo", grupo: "Área de A Coruña", nombre: "Bergondo", anuncios: 128, url: "https://www.idealista.com/venta-viviendas/bergondo-a-coruna/" },
-  { id: "cambre", grupo: "Área de A Coruña", nombre: "Cambre", anuncios: 101, url: "https://www.idealista.com/venta-viviendas/cambre-a-coruna/" },
-  { id: "carral", grupo: "Área de A Coruña", nombre: "Carral", anuncios: 62, url: "https://www.idealista.com/venta-viviendas/carral-a-coruna/" },
-  { id: "abegondo", grupo: "Área de A Coruña", nombre: "Abegondo", anuncios: 56, url: "https://www.idealista.com/venta-viviendas/abegondo-a-coruna/" },
-  { id: "santiago", grupo: "Santiago", nombre: "Santiago y alrededores", anuncios: 1069, url: "https://www.idealista.com/venta-viviendas/a-coruna/santiago/" },
-  { id: "ferrol", grupo: "Ferrol", nombre: "Ferrol", anuncios: 667, url: "https://www.idealista.com/venta-viviendas/ferrol-a-coruna/" },
-  { id: "naron", grupo: "Ferrol", nombre: "Narón", anuncios: 377, url: "https://www.idealista.com/venta-viviendas/naron-a-coruna/" },
-  { id: "ribeira", grupo: "Barbanza", nombre: "Ribeira", anuncios: 252, url: "https://www.idealista.com/venta-viviendas/ribeira-a-coruna/" },
-  { id: "boiro", grupo: "Barbanza", nombre: "Boiro", anuncios: 134, url: "https://www.idealista.com/venta-viviendas/boiro-a-coruna/" },
+/** Idealista corta el listado al pasar de este número de anuncios. Hay que partir la zona. */
+export const CORTE_IDEALISTA = 1500;
+
+export function zonaSuperaCorte(estimado: number | null | undefined): boolean {
+  return estimado != null && Number.isFinite(estimado) && estimado > CORTE_IDEALISTA;
+}
+
+function slug(nombre: string): string {
+  return nombre
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function municipio(nombre: string, anuncios = 0, porDefecto = false, url?: string): ZonaIdealista {
+  const id = slug(nombre);
+  return {
+    id,
+    grupo: "Provincia de A Coruña",
+    nombre,
+    anuncios,
+    porDefecto,
+    url: url ?? `https://www.idealista.com/venta-viviendas/${id}-a-coruna/`,
+  };
+}
+
+function distrito(grupo: string, ciudadBase: string, nombre: string, anuncios = 0): ZonaIdealista {
+  const trozo = slug(nombre);
+  return {
+    id: `${slug(grupo)}-${trozo}`,
+    grupo,
+    nombre,
+    anuncios,
+    porDefecto: false,
+    url: `https://www.idealista.com/venta-viviendas/${ciudadBase}/${trozo}/`,
+  };
+}
+
+const DISTRITOS_CORUNA: Array<[string, number]> = [
+  ["Agra del Orzán - Ventorrillo", 68],
+  ["Ciudad Vieja - Centro", 63],
+  ["Cuatro Caminos - Plaza de la Cubela", 50],
+  ["Eirís", 53],
+  ["Elviña - A Zapateira", 26],
+  ["Ensanche - Juan Flórez", 172],
+  ["Los Castros - Castrillón", 70],
+  ["Los Rosales", 33],
+  ["Mesoiro", 29],
+  ["Monte Alto - Zalaeta - Atocha", 109],
+  ["Os Mallos", 44],
+  ["Riazor - Visma", 58],
+  ["Sagrada Familia", 35],
+  ["Someso - Matogrande", 87],
+  ["Vioño", 5],
 ];
 
-/** Filtro de particulares de Idealista: segmento de ruta `/con-particulares/`, no un query param. */
-export function urlParticularesIdealista(url: string): string {
-  if (url.includes("/con-particulares/")) return url;
-  return `${url.replace(/\/$/, "")}/con-particulares/`;
-}
+const DISTRITOS_SANTIAGO = [
+  "Centro",
+  "Ensanche",
+  "Campus Norte",
+  "Campus Sur",
+  "San Pedro",
+  "Santa Marta",
+  "Conxo",
+  "Vite",
+  "Castiñeiriño",
+  "Fontiñas",
+  "Salgueiriños",
+];
+
+const DISTRITOS_FERROL = ["Centro", "Recimil", "Caranza", "Esteiro", "Canido", "O Pilar", "San Juan"];
+
+const MUNICIPIOS_DEFECTO: Array<[string, number, string]> = [
+  ["Oleiros", 392, "https://www.idealista.com/venta-viviendas/oleiros-a-coruna/"],
+  ["Arteixo", 159, "https://www.idealista.com/venta-viviendas/arteixo-a-coruna/"],
+  ["Culleredo", 145, "https://www.idealista.com/venta-viviendas/culleredo-a-coruna/"],
+  ["Sada", 145, "https://www.idealista.com/venta-viviendas/sada-a-coruna/"],
+  ["Bergondo", 128, "https://www.idealista.com/venta-viviendas/bergondo-a-coruna/"],
+  ["Cambre", 101, "https://www.idealista.com/venta-viviendas/cambre-a-coruna/"],
+  ["Carral", 62, "https://www.idealista.com/venta-viviendas/carral-a-coruna/"],
+  ["Abegondo", 56, "https://www.idealista.com/venta-viviendas/abegondo-a-coruna/"],
+  ["Narón", 377, "https://www.idealista.com/venta-viviendas/naron-a-coruna/"],
+  ["Ribeira", 252, "https://www.idealista.com/venta-viviendas/ribeira-a-coruna/"],
+  ["Boiro", 134, "https://www.idealista.com/venta-viviendas/boiro-a-coruna/"],
+];
+
+const MUNICIPIOS_NUEVOS = [
+  "Ames", "Aranga", "Ares", "Arzúa", "A Baña", "Betanzos", "Boimorto", "Boqueixón", "Brión",
+  "Cabana de Bergantiños", "Cabanas", "Camariñas", "A Capela", "Carballo", "Cariño", "Carnota",
+  "Cedeira", "Cee", "Cerceda", "Cerdido", "Coirós", "Corcubión", "Coristanco", "Curtis", "Dodro",
+  "Dumbría", "Fene", "Fisterra", "Frades", "Irixoa", "A Laracha", "Laxe", "Lousame",
+  "Malpica de Bergantiños", "Mañón", "Mazaricos", "Melide", "Mesía", "Miño", "Moeche", "Monfero",
+  "Mugardos", "Muros", "Muxía", "Neda", "Negreira", "Noia", "Ordes", "Oroso", "Ortigueira", "Outes",
+  "Oza-Cesuras", "Paderne", "Padrón", "O Pino", "A Pobra do Caramiñal", "Ponteceso", "Pontedeume",
+  "As Pontes de García Rodríguez", "Porto do Son", "Rianxo", "Rois", "San Sadurniño", "Santa Comba",
+  "Santiso", "Sobrado", "As Somozas", "Teo", "Toques", "Tordoia", "Touro", "Trazo", "Val do Dubra",
+  "Valdoviño", "Vedra", "Vilarmaior", "Vilasantar", "Vimianzo", "Zas",
+];
+
+export const ZONAS_IDEALISTA: ZonaIdealista[] = [
+  ...DISTRITOS_CORUNA.map(([nombre, anuncios]) => distrito("A Coruña", "a-coruna-a-coruna", nombre, anuncios)),
+  ...DISTRITOS_SANTIAGO.map((nombre) => distrito("Santiago", "a-coruna/santiago", nombre)),
+  ...DISTRITOS_FERROL.map((nombre) => distrito("Ferrol", "ferrol-a-coruna", nombre)),
+  ...MUNICIPIOS_DEFECTO.map(([nombre, anuncios, url]) => municipio(nombre, anuncios, true, url)),
+  ...MUNICIPIOS_NUEVOS.map((nombre) => municipio(nombre)),
+];
 
 const POR_ID = new Map(ZONAS_IDEALISTA.map((zona) => [zona.id, zona]));
 
-/** Compara municipio/zona del anuncio con el catálogo (A Coruña, Santiago, …). */
-export function idsZonaDeAnuncio(municipio: string | null | undefined, zona: string | null | undefined): string[] {
-  const blob = `${municipio ?? ""} ${zona ?? ""}`
+export function idsZonaDeAnuncio(municipioNombre: string | null | undefined, zona: string | null | undefined): string[] {
+  const blob = `${municipioNombre ?? ""} ${zona ?? ""}`
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
@@ -53,9 +140,8 @@ export function esZonaIdealista(id: string): boolean {
   return POR_ID.has(id);
 }
 
-/** URLs de listado que se envían a Bright Data. Sin ids, usa el catálogo entero. */
 export function urlsDeZonas(ids: string[]): string[] {
-  const elegidas = ids.length > 0 ? ids : ZONAS_IDEALISTA.map((zona) => zona.id);
+  const elegidas = ids.length > 0 ? ids : ZONAS_IDEALISTA.filter((zona) => zona.porDefecto).map((zona) => zona.id);
   const urls: string[] = [];
   const vistas = new Set<string>();
   for (const id of elegidas) {
@@ -69,6 +155,15 @@ export function urlsDeZonas(ids: string[]): string[] {
   return urls;
 }
 
+export function urlParticularesIdealista(url: string): string {
+  if (url.includes("/con-particulares/")) return url;
+  return `${url.replace(/\/$/, "")}/con-particulares/`;
+}
+
 export function anunciosDeZonas(ids: string[]): number {
   return ids.reduce((suma, id) => suma + (POR_ID.get(id)?.anuncios ?? 0), 0);
+}
+
+export function zonasPorDefecto(): string[] {
+  return ZONAS_IDEALISTA.filter((zona) => zona.porDefecto).map((zona) => zona.id);
 }

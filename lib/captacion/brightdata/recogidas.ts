@@ -11,9 +11,31 @@ type Recogida = {
   zonas: string[];
   iniciada: string;
   completada: string | null;
+  incompleta?: boolean | null;
   registros: number;
   externos: string[];
 };
+
+/** Última página llena y con «siguiente»: la zona no se leyó entera. */
+export function listadoIncompleto(filas: Record<string, unknown>[]): boolean {
+  const paginas = new Map<string, { n: number; sigue: boolean }>();
+  for (const row of filas) {
+    const pagina = Number(row.page);
+    if (!Number.isFinite(pagina)) continue;
+    const clave = `${String(row.listing_url ?? "zona")}|${pagina}`;
+    const medido = Number(row.page_items);
+    const sigue = row.has_next_page === true;
+    const previo = paginas.get(clave);
+    paginas.set(clave, {
+      n: Number.isFinite(medido) ? medido : (previo?.n ?? 0) + 1,
+      sigue: sigue || previo?.sigue === true,
+    });
+  }
+  for (const grupo of paginas.values()) {
+    if (grupo.sigue && grupo.n > 0 && grupo.n % 30 === 0) return true;
+  }
+  return false;
+}
 
 function admin() {
   return createAdminClient();
@@ -85,11 +107,12 @@ export async function intentarCerrarRecogida(token: string, collectionId: string
     ),
   ];
   const ahora = new Date().toISOString();
+  const incompleta = listadoIncompleto(filas);
   await supabase
     .from("captacion_recogidas")
-    .update({ completada: ahora, registros: externos.length, externos })
+    .update({ completada: ahora, incompleta, registros: externos.length, externos })
     .eq("collection_id", collectionId);
-  await retirarZonas(recogida.zonas ?? [], externos, ahora);
+  if (!incompleta) await retirarZonas(recogida.zonas ?? [], externos, ahora);
   return true;
 }
 
@@ -103,7 +126,10 @@ async function retirarZonas(zonas: string[], externosActuales: string[], ahora: 
     .order("completada", { ascending: false })
     .limit(8);
   const anterior = ((previas ?? []) as Recogida[]).find(
-    (fila) => fila.completada !== ahora && (fila.zonas ?? []).some((zona) => zonas.includes(zona))
+    (fila) =>
+      fila.completada !== ahora &&
+      !fila.incompleta &&
+      (fila.zonas ?? []).some((zona) => zonas.includes(zona))
   );
   if (!anterior) return;
   const vistos = new Set([...externosActuales, ...(anterior.externos ?? [])]);

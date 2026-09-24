@@ -17,6 +17,10 @@
     { "name": "agency_name", "type": "text" },
     { "name": "seller_type", "type": "text" },
     { "name": "listing_position", "type": "number" },
+    { "name": "listing_url", "type": "text" },
+    { "name": "page", "type": "number" },
+    { "name": "page_items", "type": "number" },
+    { "name": "has_next_page", "type": "text" },
     { "name": "scraped_at", "type": "text" }
   ]
 }

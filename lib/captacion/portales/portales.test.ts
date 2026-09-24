@@ -161,8 +161,12 @@ describe("captación portales", () => {
     assert.equal(publicadoHoy("2026-09-23T14:08:00.000Z", "2026-09-23T14:08:20.000Z", new Date("2026-09-23T18:00:00.000Z")), false);
     assert.equal(publicadoHoy("2026-09-23T12:00:00.000Z", "2026-09-23T18:00:00.000Z", new Date("2026-09-23T18:00:00.000Z")), true);
     assert.equal(
-      textoPublicado({ publicado_en: "2026-09-23T14:08:00.000Z", created_at: "2026-09-23T14:08:20.000Z" }),
-      "Sin fecha del portal"
+      textoPublicado({
+        publicado_en: "2026-09-23T14:08:00.000Z",
+        created_at: "2026-09-23T14:08:20.000Z",
+        visto_primera_vez: "2026-09-23T14:08:20.000Z",
+      }),
+      "Detectado el 23/09/2026"
     );
     assert.equal(
       textoPublicado(

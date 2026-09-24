@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Rehabinco Captación",
+  "version": "1.0.0",
+  "description": "Guarda en el CRM el teléfono que revelas en Idealista y marca los anuncios que ya están.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://*/*", "http://localhost/*"],
+  "background": { "service_worker": "background.js" },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": ["https://www.idealista.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

@@ -38,7 +38,8 @@ import {
   labelFuentePortal,
   parseFuentePortal,
   pctBajada,
-  estadoTelefonoIdealista,
+  AYUDA_DETECTADO,
+  fechaCorta,
   publicadoHoy,
   textoPublicado,
   tagsConEstilo,
@@ -106,6 +107,8 @@ function filaAnuncio(row: Record<string, unknown>): AnuncioCaptacion {
     publicado_en: typeof row.publicado_en === "string" ? row.publicado_en : null,
     visto_en: String(row.visto_en ?? row.created_at ?? ""),
     visto_primera_vez: typeof row.visto_primera_vez === "string" ? row.visto_primera_vez : null,
+    telefono_capturado_por: typeof row.telefono_capturado_por === "string" ? row.telefono_capturado_por : null,
+    telefono_capturado_en: typeof row.telefono_capturado_en === "string" ? row.telefono_capturado_en : null,
     desaparecido_en: typeof row.desaparecido_en === "string" ? row.desaparecido_en : null,
     created_at: String(row.created_at ?? ""),
   };
@@ -794,7 +797,7 @@ export function CaptacionPortales() {
                         <span className="flex shrink-0 items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ background: PORTAL_COLOR[a.fuente] }} />{labelFuentePortal(a.fuente)}</span>
                         <span className="font-mono text-[11px]">{a.fuente.slice(0, 2)}.{a.externo_id}</span>
                         <span className="whitespace-nowrap">{a.tipo ? TIPO_ANUNCIO_LABEL[a.tipo as keyof typeof TIPO_ANUNCIO_LABEL] ?? a.tipo : "—"}{a.habitaciones ? ` · ${a.habitaciones} hab` : ""}{!wide && a.superficie ? ` · ${a.superficie} m²` : ""}</span>
-                        <span className="whitespace-nowrap">{textoPublicado(a)}</span>
+                        <span className="whitespace-nowrap" title={fechaPublicacionPortal(a.publicado_en, a.created_at) ? undefined : AYUDA_DETECTADO}>{textoPublicado(a)}</span>
                       </div>
                     </div>
                   </div>
@@ -995,24 +998,6 @@ export function CaptacionPortales() {
             onNota={(nota) => void anotar(seleccionado.id, nota)}
             onAbrir={(id) => setSel(id)}
             onAsignar={(id) => void patchAnuncio([seleccionado.id], { comercial_id: id }, `Asignado a ${comercialDe(id)?.nombre.split(" ")[0] ?? ""}`, "asignacion")}
-            onPedirTelefono={() => {
-              void (async () => {
-                const res = await fetch("/api/captacion/brightdata/completar", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ externo_ids: [seleccionado.externo_id] }),
-                });
-                const json = (await res.json()) as { ok?: boolean; error?: string };
-                if (!res.ok || !json.ok) {
-                  toast.error(json.error || "No se ha podido pedir el teléfono.");
-                  return;
-                }
-                const tags = seleccionado.tags.filter((tag) => tag !== "tel_no_disponible");
-                if (!tags.includes("tel_pendiente")) tags.push("tel_pendiente");
-                await patchAnuncio([seleccionado.id], { tags });
-                toast.success("Ficha pedida.");
-              })();
-            }}
             onPedirDetalle={() => {
               if (!seleccionado.url) return;
               void fetch("/api/captacion/crawl/detalle", {
@@ -1161,7 +1146,6 @@ function PeekAnuncio({
   onAbrir,
   onAsignar,
   onPedirDetalle,
-  onPedirTelefono,
   onClasificar,
 }: {
   anuncio: AnuncioCaptacion;
@@ -1180,7 +1164,6 @@ function PeekAnuncio({
   onAbrir: (id: string) => void;
   onAsignar: (id: string) => void;
   onPedirDetalle?: () => void;
-  onPedirTelefono?: () => void;
   onClasificar?: (tipo: "particular" | "profesional") => void;
 }) {
   const [nota, setNota] = useState("");
@@ -1222,9 +1205,10 @@ function PeekAnuncio({
         ) : null}
         {a.cliente_id ? <a href={`/clientes/${a.cliente_id}`} className="flex h-[38px] min-w-[90px] flex-1 items-center justify-center rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold no-underline">Ver cliente</a> : null}
         {a.url ? <a href={a.url} target="_blank" rel="noopener noreferrer" className="flex h-[38px] min-w-[120px] flex-1 items-center justify-center rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold no-underline">Ver en {labelFuentePortal(a.fuente)}</a> : null}
-        {!a.contacto_telefono && a.fuente === "idealista" && onPedirTelefono ? (
-          <button type="button" disabled={estadoTelefonoIdealista(a) === "pendiente"} onClick={onPedirTelefono} className="h-[38px] min-w-[120px] flex-1 rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold disabled:opacity-60">Pedir teléfono</button>
-        ) : !a.contacto_telefono && a.url && onPedirDetalle ? (
+        {a.fuente === "idealista" && a.url ? (
+          <a href={a.url} target="_blank" rel="noopener noreferrer" className="flex h-[38px] min-w-[140px] flex-1 items-center justify-center rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold no-underline">Abrir en Idealista</a>
+        ) : null}
+        {!a.contacto_telefono && a.url && a.fuente !== "idealista" && onPedirDetalle ? (
           <button type="button" onClick={onPedirDetalle} className="h-[38px] min-w-[120px] flex-1 rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold">Pedir detalle</button>
         ) : null}
         {onClasificar ? (
@@ -1239,8 +1223,8 @@ function PeekAnuncio({
         <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Superficie</div>{a.superficie ? `${a.superficie} m²` : "—"}</div>
         <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Hab.</div>{a.habitaciones ?? "—"}</div>
         <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Contacto</div>{a.contacto_nombre || "—"}</div>
-        <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Teléfono</div><span className="font-mono text-[12.5px]">{a.contacto_telefono || "Sin teléfono"}</span>{estadoTelefonoIdealista(a) ? <div className="text-[11px] text-[var(--text-2)]">{estadoTelefonoIdealista(a)}</div> : null}</div>
-        <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Publicado</div>{textoPublicado(a)}</div>
+        <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Teléfono</div><span className="font-mono text-[12.5px]">{a.contacto_telefono || "Sin teléfono"}</span><div className="text-[11px] text-[var(--text-2)]">{a.contacto_telefono && a.telefono_capturado_en ? `teléfono: capturado por ${comerciales.find((c) => c.id === a.telefono_capturado_por)?.nombre ?? "el equipo"} el ${fechaCorta(new Date(a.telefono_capturado_en))}` : "teléfono: falta"}</div></div>
+        <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Publicado</div><span title={fechaPublicacionPortal(a.publicado_en, a.created_at) ? undefined : AYUDA_DETECTADO}>{textoPublicado(a)}</span></div>
       </div>
       <div className="border-b border-[var(--border-soft)] px-4 py-3">
         <div className="mb-2 text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Asignar a</div>

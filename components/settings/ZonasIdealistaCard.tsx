@@ -4,25 +4,27 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { anunciosDeZonas, type ZonaIdealista } from "@/lib/captacion/brightdata/zonas";
+import { anunciosDeZonas, zonaSuperaCorte, type ZonaIdealista } from "@/lib/captacion/brightdata/zonas";
 
 export function ZonasIdealistaCard() {
   const [zonas, setZonas] = useState<ZonaIdealista[]>([]);
   const [activas, setActivas] = useState<string[]>([]);
+  const [estimados, setEstimados] = useState<Record<string, number | null>>({});
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
     void (async () => {
       const res = await fetch("/api/captacion/brightdata/zonas");
-      const json = (await res.json()) as { ok?: boolean; error?: string; zonas?: ZonaIdealista[]; activas?: string[] };
+      const json = (await res.json()) as { ok?: boolean; error?: string; zonas?: ZonaIdealista[]; activas?: string[]; estimados?: Record<string, number | null> };
       if (!res.ok || !json.ok || !json.zonas) {
         toast.error(json.error || "No se han podido leer las zonas.");
         setCargando(false);
         return;
       }
       setZonas(json.zonas);
-      setActivas(json.activas ?? json.zonas.map((zona) => zona.id));
+      setActivas(json.activas ?? json.zonas.filter((zona) => zona.porDefecto).map((zona) => zona.id));
+      setEstimados(json.estimados ?? {});
       setCargando(false);
     })();
   }, []);
@@ -43,7 +45,7 @@ export function ZonasIdealistaCard() {
     const res = await fetch("/api/captacion/brightdata/zonas", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ activas }),
+      body: JSON.stringify({ activas, estimados }),
     });
     const json = (await res.json()) as { ok?: boolean; error?: string; activas?: string[] };
     setGuardando(false);
@@ -60,9 +62,9 @@ export function ZonasIdealistaCard() {
       <CardHeader>
         <CardTitle>Zonas de Idealista</CardTitle>
         <CardDescription>
-          El listado de Idealista entra solo por las zonas marcadas. Hoy son{" "}
-          {anunciosDeZonas(activas).toLocaleString("es-ES")} anuncios en Idealista. Cada pasada lee hasta 10 páginas de
-          cada zona.
+          El listado entra solo por las zonas marcadas. El estimado es editable: si una zona pasa de 1.500
+          anuncios, Idealista corta el listado y hay que partirla. Hoy las marcadas suman{" "}
+          {anunciosDeZonas(activas).toLocaleString("es-ES")} anuncios en el catálogo.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -79,10 +81,23 @@ export function ZonasIdealistaCard() {
                     onChange={() => alternar(zona.id)}
                     className="h-4 w-4 accent-[var(--accent)]"
                   />
-                  <span>
-                    {zona.nombre}{" "}
-                    <span className="text-[var(--text-3)]">({zona.anuncios.toLocaleString("es-ES")})</span>
+                  <span className="min-w-0 flex-1">
+                    {zona.nombre}
+                    {zonaSuperaCorte(estimados[zona.id] ?? null) ? (
+                      <span className="mt-0.5 block text-[12px] text-[#8A3030]">Supera 1.500 anuncios. Hay que partir esta zona.</span>
+                    ) : null}
                   </span>
+                  <input
+                    type="number"
+                    min={0}
+                    aria-label={`Estimado de ${zona.nombre}`}
+                    value={estimados[zona.id] ?? ""}
+                    onChange={(e) => {
+                      const valor = e.target.value === "" ? null : Number(e.target.value);
+                      setEstimados((prev) => ({ ...prev, [zona.id]: valor != null && Number.isFinite(valor) ? valor : null }));
+                    }}
+                    className="w-20 rounded border border-[var(--input)] px-1.5 py-1 text-right text-[12.5px]"
+                  />
                 </label>
               ))}
             </div>

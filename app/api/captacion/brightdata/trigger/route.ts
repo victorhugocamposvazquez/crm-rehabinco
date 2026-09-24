@@ -2,6 +2,7 @@ import { configBrightDataIdealista, urlWebhookPublica } from "@/lib/captacion/br
 import { dispararIdealista } from "@/lib/captacion/brightdata/disparar";
 import { abrirRecogida, zonasBloqueadas } from "@/lib/captacion/brightdata/recogidas";
 import { idsZonasActivas, urlsZonasActivas } from "@/lib/captacion/brightdata/zonas-guardadas";
+import { cronAutorizado } from "@/lib/alertas/config";
 import { sesionAdminCaptacion } from "@/lib/captacion/portales/sesion";
 
 export const runtime = "nodejs";
@@ -9,8 +10,10 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
 export async function POST(request: Request) {
-  const sesion = await sesionAdminCaptacion();
-  if (!sesion.ok) return Response.json({ ok: false, error: sesion.error }, { status: sesion.status });
+  if (!cronAutorizado(request)) {
+    const sesion = await sesionAdminCaptacion();
+    if (!sesion.ok) return Response.json({ ok: false, error: sesion.error }, { status: sesion.status });
+  }
 
   const config = configBrightDataIdealista();
   if ("error" in config) return Response.json({ ok: false, error: config.error }, { status: 503 });

@@ -36,17 +36,7 @@ export async function guardarAnuncioPipeline(
 
   const previo = prev as AnuncioGuardado | null;
   const patch = upsertAnuncio(previo, entrante, ahoraIso, null, { parserVersion: PARSER_VERSION });
-  const tags = new Set((patch.row.tags as string[]) ?? []);
-  const esFicha = registro.listing_position == null;
-  if (entrante.contacto_telefono) {
-    tags.delete("tel_pendiente");
-    tags.delete("tel_no_disponible");
-  } else if (esFicha && tags.has("tel_pendiente")) {
-    tags.delete("tel_pendiente");
-    tags.add("tel_no_disponible");
-  }
-  patch.row.tags = [...tags];
-
+  void registro;
   let anuncioId = previo?.id ?? null;
   let nuevo = false;
   let actualizado = false;
@@ -123,7 +113,7 @@ async function aplicarDedup(supabase: Admin, anuncioId: string, entrante: Anunci
   if (updErr) errores.push(`${entrante.externo_id} dedup: ${updErr.message}`);
 }
 
-async function aplicarScore(supabase: Admin, anuncioId: string, entrante: AnuncioEntrante, ahoraIso: string, errores: string[]) {
+export async function aplicarScore(supabase: Admin, anuncioId: string, entrante: AnuncioEntrante, ahoraIso: string, errores: string[]) {
   const clave = (await supabase.from("captacion_anuncios").select("contacto_clave").eq("id", anuncioId).maybeSingle()).data?.contacto_clave;
   if (!clave || typeof clave !== "string") return;
   const { data, error } = await supabase

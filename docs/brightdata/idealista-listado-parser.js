@@ -70,10 +70,16 @@ $('article.item').each((i, el) => {
     agency_name: agency,
     seller_type: agency ? 'professional' : 'particular',
     listing_position: (pagina - 1) * 30 + i + 1,
+    listing_url: input.url || input.listing_url || null,
+    page: pagina,
     scraped_at,
   });
 });
 
-const has_next_page = $('.pagination li.next a').length > 0 && pagina < 10;
+const has_next_page = $('.pagination li.next a').length > 0 && pagina < 60;
+for (const item of items) {
+  item.page_items = items.length;
+  item.has_next_page = has_next_page;
+}
 
 return { items, has_next_page };
