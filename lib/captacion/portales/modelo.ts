@@ -157,6 +157,8 @@ export type AnuncioCaptacion = {
   publicado_en_portal: string | null;
   publicado_precision: string | null;
   desaparecido_en: string | null;
+  telefono_pendiente?: boolean;
+  ficha_pendiente?: boolean;
   created_at: string;
 };
 

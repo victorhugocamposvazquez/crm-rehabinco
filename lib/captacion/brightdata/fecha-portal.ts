@@ -129,16 +129,18 @@ export function esDetectadoHoy(vistoPrimeraVez: string | null | undefined, ahora
   return dia(visto) === dia(ahora);
 }
 
-/** Publicación 24h de hoy o primera vez visto por el CRM hoy (Idealista, crawlers). */
-export function esEntradaHoy(
+/** Sin recogida completa previa: detectados hoy. Con recogida: precisión 24h de hoy. */
+export function esNuevoHoyCaptacion(
   a: {
     publicado_precision?: string | null;
     publicado_en_portal?: string | null;
     visto_primera_vez?: string | null;
   },
+  hayRecogidaCompleta: boolean,
   ahora = new Date()
 ): boolean {
-  return esNuevoHoy(a.publicado_precision, a.publicado_en_portal, ahora) || esDetectadoHoy(a.visto_primera_vez, ahora);
+  if (!hayRecogidaCompleta) return esDetectadoHoy(a.visto_primera_vez, ahora);
+  return esNuevoHoy(a.publicado_precision, a.publicado_en_portal, ahora);
 }
 
 export function textoFechaPortal(

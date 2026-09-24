@@ -48,12 +48,22 @@ import {
   type FuentePortal,
 } from "@/lib/captacion/portales/modelo";
 import { AccionesContactoAnuncio } from "@/components/captacion/portales/AccionesContactoAnuncio";
-import { esEntradaHoy, textoFechaPortal } from "@/lib/captacion/brightdata/fecha-portal";
+import { esAgencia, esRetirado } from "@/lib/captacion/captacion-activos";
+import { esNuevoHoyCaptacion, textoFechaPortal } from "@/lib/captacion/brightdata/fecha-portal";
 import { anuncioIdealistaVacio } from "@/lib/captacion/brightdata/idealista";
 import { cn } from "@/lib/utils";
 
 type Tab = "nov" | "seg" | "ale" | "not";
-type ChipNov = "todas" | "hoy" | "sinasig" | "mias" | "bajada" | "edif" | "retirados";
+type ChipCaptacion =
+  | "todos"
+  | "particulares"
+  | "agencias"
+  | "hoy"
+  | "sin_telefono"
+  | "telefono_cola"
+  | "retirados"
+  | "part_sin_tel"
+  | "bajada";
 type Actividad = { id: string; cuando: string; texto: string; tipo: string };
 type Notif = { id: string; tipo: string; titulo: string; detalle: string | null; leida: boolean; created_at: string };
 type Prefs = { nuevos: boolean; bajada: boolean; retirado: boolean; telefono_repite: boolean; sin_mover: boolean };
@@ -112,8 +122,14 @@ function filaAnuncio(row: Record<string, unknown>): AnuncioCaptacion {
     publicado_en_portal: typeof row.publicado_en_portal === "string" ? row.publicado_en_portal : null,
     publicado_precision: typeof row.publicado_precision === "string" ? row.publicado_precision : null,
     desaparecido_en: typeof row.desaparecido_en === "string" ? row.desaparecido_en : null,
+    telefono_pendiente: row.telefono_pendiente === true,
+    ficha_pendiente: row.ficha_pendiente === true,
     created_at: String(row.created_at ?? ""),
   };
+}
+
+function enColaTelefono(a: AnuncioCaptacion, ids: Set<string>): boolean {
+  return a.telefono_pendiente === true || ids.has(a.externo_id);
 }
 
 function portadaDe(a: { thumb: string | null; fotos?: string[] }): string | null {
@@ -171,7 +187,9 @@ export function CaptacionPortales() {
   const [q, setQ] = useState("");
   const [fAlerta, setFAlerta] = useState("todas");
   const [fCiudad, setFCiudad] = useState("todas");
-  const [chip, setChip] = useState<ChipNov>("todas");
+  const [chip, setChip] = useState<ChipCaptacion>("todos");
+  const [hayRecogidaCompleta, setHayRecogidaCompleta] = useState(false);
+  const [telefonosEnCola, setTelefonosEnCola] = useState<Set<string>>(() => new Set());
   const [orden, setOrden] = useState("anadido");
   const [pag, setPag] = useState(1);
   const [mas, setMas] = useState(false);
@@ -197,7 +215,7 @@ export function CaptacionPortales() {
     m2Max: "",
     portal: "todos",
     tipo: "todos",
-    anunciante: "particular",
+    anunciante: "todos",
   });
   const [draftAlerta, setDraftAlerta] = useState({
     nombre: "",
@@ -220,11 +238,15 @@ export function CaptacionPortales() {
       supabase.from("captacion_notificaciones").select("*").eq("user_id", user?.id ?? "").order("created_at", { ascending: false }).limit(40),
       supabase.from("captacion_notif_prefs").select("*").eq("user_id", user?.id ?? "").maybeSingle(),
       supabase.from("profiles").select("id, nombre_completo, color, email, role").eq("activo", true),
-    ]).then(([a, al, n, p, c]) => {
+      fetch("/api/captacion/contexto").then((r) => r.json()),
+    ]).then(([a, al, n, p, c, ctx]) => {
       const filas = ((a.data ?? []) as Record<string, unknown>[]).map(filaAnuncio);
-      // Las fichas de Idealista que llegaron sin datos se apartan hasta que se completen.
-      const vacios = filas.filter((f) => f.fuente === "idealista" && f.fase === "novedad" && anuncioIdealistaVacio(f));
-      setAnuncios(filas.filter((f) => !vacios.includes(f)));
+      setAnuncios(filas);
+      if (ctx && typeof ctx === "object" && (ctx as { ok?: boolean }).ok) {
+        const meta = ctx as { hayRecogidaCompleta?: boolean; telefonosEnCola?: string[] };
+        setHayRecogidaCompleta(Boolean(meta.hayRecogidaCompleta));
+        setTelefonosEnCola(new Set(meta.telefonosEnCola ?? []));
+      }
       setAlertas(((al.data ?? []) as Record<string, unknown>[]).map(filaAlerta));
       setNotifs((n.data ?? []) as Notif[]);
       if (p.data) {
@@ -292,29 +314,53 @@ export function CaptacionPortales() {
 
   const recuentoClave = useMemo(() => recuentoPorClave(anuncios), [anuncios]);
 
-  const nov = anuncios.filter((a) => a.fase === "novedad");
+  const baseNov = useMemo(
+    () => anuncios.filter((a) => a.fase === "novedad" && !a.desaparecido_en && a.fase !== "descartado"),
+    [anuncios]
+  );
+  const baseRetirados = useMemo(() => anuncios.filter((a) => esRetirado(a)), [anuncios]);
   const seg = anuncios.filter(
     (a) => !["novedad", "descartado"].includes(a.fase) && (!filtroCom || a.comercial_id === filtroCom)
   );
 
-  const filtraNov = useCallback(
-    (
-      a: AnuncioCaptacion,
-      chipActivo: ChipNov = chip,
-      opts?: { portalFijo?: FuentePortal; ignorarPortalActivo?: boolean }
-    ) => {
+  const matchChip = useCallback(
+    (a: AnuncioCaptacion, chipActivo: ChipCaptacion) => {
+      switch (chipActivo) {
+        case "particulares":
+          return a.anunciante === "particular";
+        case "agencias":
+          return esAgencia(a);
+        case "hoy":
+          return esNuevoHoyCaptacion(a, hayRecogidaCompleta);
+        case "sin_telefono":
+          return !a.contacto_telefono;
+        case "telefono_cola":
+          return enColaTelefono(a, telefonosEnCola);
+        case "part_sin_tel":
+          return a.anunciante === "particular" && !a.contacto_telefono;
+        case "bajada":
+          return a.tags.includes("Bajada");
+        case "retirados":
+        case "todos":
+        default:
+          return true;
+      }
+    },
+    [hayRecogidaCompleta, telefonosEnCola]
+  );
+
+  const filtraListado = useCallback(
+    (a: AnuncioCaptacion, chipActivo: ChipCaptacion = chip) => {
       const query = q.trim().toLowerCase();
       if (chipActivo === "retirados") {
-        if (!a.desaparecido_en || a.fase === "descartado") return false;
-      } else if (a.desaparecido_en || a.fase !== "novedad") return false;
+        if (!esRetirado(a)) return false;
+      } else if (a.fase !== "novedad" || a.desaparecido_en) return false;
+      if (!matchChip(a, chipActivo)) return false;
       if (query && ![a.titulo, a.zona, a.municipio, a.contacto_nombre, a.externo_id].filter(Boolean).join(" ").toLowerCase().includes(query)) return false;
       if (fAlerta !== "todas" && a.alerta_id !== fAlerta) return false;
       if (fCiudad !== "todas" && !(a.municipio ?? "").startsWith(fCiudad)) return false;
-      if (opts?.portalFijo) {
-        if (a.fuente !== opts.portalFijo) return false;
-      } else if (!opts?.ignorarPortalActivo && filtros.portal !== "todos" && a.fuente !== filtros.portal) return false;
+      if (filtros.portal !== "todos" && a.fuente !== filtros.portal) return false;
       if (filtros.tipo !== "todos" && a.tipo !== filtros.tipo) return false;
-      if (filtros.anunciante === "particular" && a.anunciante !== "particular") return false;
       const pmin = Number(filtros.precioMin);
       const pmax = Number(filtros.precioMax);
       if (filtros.precioMin && (a.precio == null || a.precio < pmin)) return false;
@@ -323,20 +369,26 @@ export function CaptacionPortales() {
       const smax = Number(filtros.m2Max);
       if (filtros.m2Min && (a.superficie == null || a.superficie < smin)) return false;
       if (filtros.m2Max && (a.superficie == null || a.superficie > smax)) return false;
-      if (chipActivo === "hoy" && !esEntradaHoy(a)) return false;
-      if (chipActivo === "sinasig" && a.comercial_id) return false;
-      if (chipActivo === "mias" && (admin ? !a.comercial_id : a.comercial_id !== user?.id)) return false;
-      if (chipActivo === "bajada" && !a.tags.includes("Bajada")) return false;
-      if (chipActivo === "edif" && a.tipo !== "edificio" && a.tipo !== "casa") return false;
       return true;
     },
-    [chip, q, fAlerta, fCiudad, filtros, admin, user?.id]
+    [chip, q, fAlerta, fCiudad, filtros, matchChip]
+  );
+
+  const cuentaChip = useCallback(
+    (chipActivo: ChipCaptacion, portal?: FuentePortal) => {
+      const pool = chipActivo === "retirados" ? baseRetirados : baseNov;
+      return pool.filter((a) => {
+        if (portal && a.fuente !== portal) return false;
+        return matchChip(a, chipActivo);
+      }).length;
+    },
+    [baseNov, baseRetirados, matchChip]
   );
 
   const listado = useMemo(() => {
-    const base = chip === "retirados" ? anuncios : nov;
+    const base = chip === "retirados" ? baseRetirados : baseNov;
     return base
-      .filter((a) => filtraNov(a))
+      .filter((a) => filtraListado(a))
       .slice()
       .sort((a, b) => {
         if (orden === "precio") return (a.precio ?? 0) - (b.precio ?? 0);
@@ -348,7 +400,7 @@ export function CaptacionPortales() {
         };
         return dias(a) - dias(b);
       });
-  }, [nov, anuncios, chip, filtraNov, orden]);
+  }, [baseNov, baseRetirados, chip, filtraListado, orden]);
 
   const nPag = Math.max(1, Math.ceil(listado.length / PAGE_NOVEDADES));
   const pagina = Math.min(pag, nPag);
@@ -503,33 +555,27 @@ export function CaptacionPortales() {
     await supabase.from("captacion_notif_prefs").upsert({ user_id: user.id, ...next, updated_at: new Date().toISOString() });
   };
 
-  const kpis = [
-    { valor: nov.filter((a) => filtraNov(a, "hoy")).length, label: "Nuevos hoy", chip: "hoy" as ChipNov, fg: "#131C1A" },
-    { valor: nov.filter((a) => filtraNov(a, "sinasig")).length, label: "Sin asignar", chip: "sinasig" as ChipNov, fg: nov.some((a) => !a.comercial_id) ? "#7A5A10" : "#131C1A" },
-    { valor: nov.filter((a) => filtraNov(a, "bajada")).length, label: "Bajadas de precio", chip: "bajada" as ChipNov, fg: "#0B7461" },
-    { valor: seg.filter((a) => a.fase !== "captado" && a.fase !== "perdido").length, label: "En seguimiento", chip: "todas" as ChipNov, fg: "#131C1A" },
+  const kpis: Array<{ valor: number; label: string; chip: ChipCaptacion | "seg"; fg: string }> = [
+    { valor: cuentaChip("hoy"), label: "Nuevos hoy", chip: "hoy", fg: "#131C1A" },
+    { valor: cuentaChip("part_sin_tel"), label: "Particulares sin teléfono", chip: "part_sin_tel", fg: "#7A5A10" },
+    { valor: cuentaChip("bajada"), label: "Bajadas de precio", chip: "bajada", fg: "#0B7461" },
+    { valor: seg.filter((a) => a.fase !== "captado" && a.fase !== "perdido").length, label: "En seguimiento", chip: "seg", fg: "#131C1A" },
   ];
-  const chips: Array<[ChipNov, string, number]> = [
-    ["todas", "Todas", nov.filter((a) => filtraNov(a, "todas")).length],
-    ["hoy", "Hoy", nov.filter((a) => filtraNov(a, "hoy")).length],
-    ["sinasig", "Sin asignar", nov.filter((a) => filtraNov(a, "sinasig")).length],
-    ["mias", admin ? "Asignadas" : "Mías", nov.filter((a) => filtraNov(a, "mias")).length],
-    ["bajada", "Bajadas", nov.filter((a) => filtraNov(a, "bajada")).length],
-    ["edif", "Edificios y casas", nov.filter((a) => filtraNov(a, "edif")).length],
-    ["retirados", "Retirados", anuncios.filter((a) => filtraNov(a, "retirados")).length],
+  const chips: Array<[ChipCaptacion, string, number]> = [
+    ["todos", "Todos", cuentaChip("todos")],
+    ["particulares", "Particulares", cuentaChip("particulares")],
+    ["agencias", "Agencias", cuentaChip("agencias")],
+    ["hoy", "Nuevos hoy", cuentaChip("hoy")],
+    ["sin_telefono", "Sin teléfono", cuentaChip("sin_telefono")],
+    ["telefono_cola", "Teléfono en cola", cuentaChip("telefono_cola")],
+    ["retirados", "Retirados", cuentaChip("retirados")],
   ];
-  const portalChips = useMemo(
-    () =>
-      FUENTES_PORTAL.map((p) => ({
-        id: p,
-        label: PORTAL_LABEL[p] ?? p,
-        n: nov.filter((a) => filtraNov(a, chip, { portalFijo: p, ignorarPortalActivo: true })).length,
-      })).filter((c) => c.n > 0),
-    [nov, chip, filtraNov]
+  const portalesActivos = useMemo(
+    () => FUENTES_PORTAL.map((p) => ({ id: p, label: PORTAL_LABEL[p] ?? p, n: baseNov.filter((a) => a.fuente === p).length })).filter((c) => c.n > 0),
+    [baseNov]
   );
-  const novEnLista = useMemo(() => nov.filter((a) => filtraNov(a, "todas")).length, [nov, filtraNov]);
   const tabs: Array<[Tab, string, number]> = [
-    ["nov", "Novedades", novEnLista],
+    ["nov", "Novedades", baseNov.length],
     ["seg", "Seguimiento", seg.length],
     ["ale", "Alertas", alertas.filter((a) => a.activa).length],
     ["not", "Notificaciones", notifs.filter((n) => !n.leida).length],
@@ -537,7 +583,6 @@ export function CaptacionPortales() {
   const nFiltros =
     (fAlerta !== "todas" ? 1 : 0) +
     (fCiudad !== "todas" ? 1 : 0) +
-    (filtros.anunciante !== "todos" ? 1 : 0) +
     (filtros.portal !== "todos" ? 1 : 0) +
     (filtros.tipo !== "todos" ? 1 : 0) +
     (filtros.precioMin || filtros.precioMax || filtros.m2Min || filtros.m2Max ? 1 : 0);
@@ -619,9 +664,13 @@ export function CaptacionPortales() {
                 key={k.label}
                 type="button"
                 onClick={() => {
-                  setChip(k.chip);
-                  setPag(1);
-                  if (k.label === "En seguimiento") setTab("seg");
+                  if (k.chip === "seg") {
+                    setTab("seg");
+                    setPanel(false);
+                  } else {
+                    setChip(k.chip);
+                    setPag(1);
+                  }
                 }}
                 className="rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-left hover:border-accent"
               >
@@ -677,23 +726,33 @@ export function CaptacionPortales() {
                 <label className="block text-[11px] uppercase tracking-[0.06em] text-[var(--label)]">Tipo
                   <select value={filtros.tipo} onChange={(e) => setFiltros((f) => ({ ...f, tipo: e.target.value }))} className="mt-1 h-[34px] w-full rounded-lg border border-[var(--input)] bg-white px-2 text-[13px]"><option value="todos">Todos</option>{TIPOS_ANUNCIO.map((t) => <option key={t} value={t}>{TIPO_ANUNCIO_LABEL[t]}</option>)}</select>
                 </label>
-                <label className="block text-[11px] uppercase tracking-[0.06em] text-[var(--label)]">Anuncio
-                  <select value={filtros.anunciante} onChange={(e) => setFiltros((f) => ({ ...f, anunciante: e.target.value }))} className="mt-1 h-[34px] w-full rounded-lg border border-[var(--input)] bg-white px-2 text-[13px]"><option value="particular">Particular</option><option value="todos">Todos</option></select>
-                </label>
               </div>
             ) : null}
             <div className="flex flex-wrap items-center gap-1.5 border-b border-[var(--border-soft)] px-3.5 py-2.5">
-              {filtros.anunciante === "particular" ? (
-                <span className="mr-1 text-[11.5px] text-[var(--text-2)]">
-                  Solo particulares{filtros.portal !== "todos" ? ` · ${PORTAL_LABEL[filtros.portal as FuentePortal] ?? filtros.portal}` : ""}.
-                  {nov.length > novEnLista ? ` ${nov.length - novEnLista} de agencia ocultos.` : ""}
-                </span>
-              ) : null}
+              <span className="mr-1 text-[11.5px] text-[var(--text-2)]">{baseNov.length} en novedad</span>
               {chips.map(([id, label, n]) => (
-                <button key={id} type="button" onClick={() => { setChip(id); setPag(1); }} className={cn("h-[30px] rounded-full border px-2.5 text-[12.5px] font-medium", chip === id ? "border-accent bg-accent-soft text-accent-dark" : "border-[var(--border)] bg-white text-[var(--text-2)]")}>
+                <button key={id} type="button" onClick={() => { setChip(id); setPag(1); setFiltros((f) => ({ ...f, portal: "todos" })); }} className={cn("h-[30px] rounded-full border px-2.5 text-[12.5px] font-medium", chip === id && filtros.portal === "todos" ? "border-accent bg-accent-soft text-accent-dark" : "border-[var(--border)] bg-white text-[var(--text-2)]")}>
                   {label} <span className="opacity-60">{n}</span>
                 </button>
               ))}
+              {portalesActivos.length > 1
+                ? portalesActivos.map(({ id, label, n }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => {
+                        setFiltros((f) => ({ ...f, portal: f.portal === id ? "todos" : id }));
+                        setPag(1);
+                      }}
+                      className={cn(
+                        "h-[30px] rounded-full border px-2.5 text-[12.5px] font-medium",
+                        filtros.portal === id ? "border-accent bg-accent-soft text-accent-dark" : "border-[var(--border)] bg-white text-[var(--text-2)]"
+                      )}
+                    >
+                      {label} <span className="opacity-60">{n}</span>
+                    </button>
+                  ))
+                : null}
               <div className="flex-1" />
               <select value={orden} onChange={(e) => setOrden(e.target.value)} className="h-[30px] rounded-lg bg-[#F4F3EF] px-2 text-[12.5px] text-[var(--text-2)]">
                 <option value="anadido">Más recientes</option>
@@ -702,28 +761,6 @@ export function CaptacionPortales() {
                 <option value="m2">m² ↓</option>
               </select>
             </div>
-            {portalChips.length > 0 ? (
-              <div className="flex flex-wrap items-center gap-1.5 border-b border-[var(--border-soft)] px-3.5 py-2">
-                {portalChips.map(({ id, label, n }) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => {
-                      setFiltros((f) => ({ ...f, portal: f.portal === id ? "todos" : id }));
-                      setPag(1);
-                    }}
-                    className={cn(
-                      "h-[30px] rounded-full border px-2.5 text-[12.5px] font-medium",
-                      filtros.portal === id
-                        ? "border-accent bg-accent-soft text-accent-dark"
-                        : "border-[var(--border)] bg-white text-[var(--text-2)]"
-                    )}
-                  >
-                    {label} <span className="opacity-60">{n}</span>
-                  </button>
-                ))}
-              </div>
-            ) : null}
             {mapa ? (
               <div className="relative h-[260px] overflow-hidden border-b border-[var(--border-soft)] bg-[#E9ECE8]">
                 {pins.map((p) => (
@@ -779,7 +816,7 @@ export function CaptacionPortales() {
                     </button>
                     <div className="relative h-[72px] w-[88px] shrink-0 overflow-hidden rounded-[8px] bg-[#E8E4DC]">
                       <FotoPortal src={portadaDe(a)} />
-                      {esEntradaHoy(a) ? <span className="absolute left-0 top-0 rounded-br bg-accent px-1 py-px text-[9px] font-bold tracking-wide text-white">NUEVO</span> : null}
+                      {esNuevoHoyCaptacion(a, hayRecogidaCompleta) ? <span className="absolute left-0 top-0 rounded-br bg-accent px-1 py-px text-[9px] font-bold tracking-wide text-white">NUEVO</span> : null}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
@@ -791,6 +828,7 @@ export function CaptacionPortales() {
                       </div>
                       <p className="mt-1 truncate text-[12px] text-[var(--text-2)]">
                         {labelFuentePortal(a.fuente)}
+                        {a.fuente === "idealista" && anuncioIdealistaVacio(a) ? " · sin datos" : ""}
                         {a.habitaciones ? ` · ${a.habitaciones} hab` : ""}
                         {a.superficie ? ` · ${a.superficie} m²` : ""}
                         {a.municipio ? ` · ${a.municipio}` : ""}
@@ -813,12 +851,13 @@ export function CaptacionPortales() {
                   <div className="flex min-w-0 items-center gap-2.5">
                     <div className="relative h-11 w-[60px] shrink-0 overflow-hidden rounded-[7px] bg-[#E8E4DC]">
                       <FotoPortal src={portadaDe(a)} />
-                      {esEntradaHoy(a) ? <span className="absolute left-0 top-0 rounded-br bg-accent px-1 py-px text-[9px] font-bold tracking-wide text-white">NUEVO</span> : null}
+                      {esNuevoHoyCaptacion(a, hayRecogidaCompleta) ? <span className="absolute left-0 top-0 rounded-br bg-accent px-1 py-px text-[9px] font-bold tracking-wide text-white">NUEVO</span> : null}
                     </div>
                     <div className="min-w-0">
                       <div className="flex min-w-0 items-center gap-1.5">
                         <span className="truncate text-[14px] font-semibold">{a.titulo}</span>
                         {tagsConEstilo(a.tags).map((t) => <span key={t.label} className="whitespace-nowrap rounded px-1.5 py-px text-[10.5px] font-semibold" style={{ background: t.bg, color: t.fg }}>{t.label}</span>)}
+                        {a.fuente === "idealista" && anuncioIdealistaVacio(a) ? <span className="whitespace-nowrap rounded bg-[#F4F3EF] px-1.5 py-px text-[10.5px] font-semibold text-[var(--text-2)]">sin datos</span> : null}
                         {!wide && nRep > 1 ? <span className="shrink-0 rounded border border-[#CDE9E1] px-1 text-[10.5px] font-semibold text-accent" title="Este contacto tiene más anuncios">×{nRep}</span> : null}
                       </div>
                       <div className="mt-0.5 flex gap-2 overflow-hidden text-[12px] text-[var(--text-2)]">
@@ -942,7 +981,7 @@ export function CaptacionPortales() {
           <div className="grid grid-cols-1 gap-3 min-[720px]:grid-cols-2 min-[1100px]:grid-cols-3">
             {alertas.map((a) => {
               const com = comercialDe(a.comercial_id) ?? comercialDe(a.created_by);
-              const hoy = nov.filter((n) => n.alerta_id === a.id && esEntradaHoy(n)).length;
+              const hoy = baseNov.filter((n) => n.alerta_id === a.id && esNuevoHoyCaptacion(n, hayRecogidaCompleta)).length;
               return (
                 <div key={a.id} className="rounded-[13px] border border-[var(--border)] bg-white p-4" style={{ opacity: a.activa ? 1 : 0.6 }}>
                   <div className="flex items-start justify-between gap-2.5">

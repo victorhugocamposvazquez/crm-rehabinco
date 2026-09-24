@@ -14,7 +14,7 @@ import { FichaPeekProvider } from "@/components/crm/FichaPeek";
 import { AlertasPwaHost } from "@/components/pwa/AvisosPwa";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
-import { esEntradaHoy } from "@/lib/captacion/brightdata/fecha-portal";
+import { esNuevoHoyCaptacion } from "@/lib/captacion/brightdata/fecha-portal";
 import { bandejaDeTarea } from "@/lib/tareas/tareas";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -31,15 +31,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     void Promise.all([
       supabase.from("tareas").select("vence, estado"),
       supabase.from("partes_visita").select("id", { count: "exact", head: true }).eq("estado", "pendiente_firma"),
-      supabase.from("captacion_anuncios").select("publicado_en_portal, publicado_precision, visto_primera_vez, fase").eq("fase", "novedad"),
-    ]).then(([tareas, partes, anuncios]) => {
+      supabase.from("captacion_anuncios").select("publicado_en_portal, publicado_precision, visto_primera_vez, fase, desaparecido_en").eq("fase", "novedad"),
+      fetch("/api/captacion/contexto").then((r) => r.json()),
+    ]).then(([tareas, partes, anuncios, ctx]) => {
       const pendientes = (tareas.data ?? []).filter((row) => {
         const bandeja = bandejaDeTarea(row.vence, hoy, row.estado);
         return bandeja === "VENCIDAS" || bandeja === "HOY";
       }).length;
-      const nuevosHoy = ((anuncios.data ?? []) as Array<{ publicado_en_portal: string | null; publicado_precision: string | null; visto_primera_vez: string | null }>).filter((row) =>
-        esEntradaHoy(row)
-      ).length;
+      const hayRecogidaCompleta = Boolean((ctx as { hayRecogidaCompleta?: boolean })?.hayRecogidaCompleta);
+      const nuevosHoy = ((anuncios.data ?? []) as Array<{ publicado_en_portal: string | null; publicado_precision: string | null; visto_primera_vez: string | null; desaparecido_en: string | null }>)
+        .filter((row) => !row.desaparecido_en)
+        .filter((row) => esNuevoHoyCaptacion(row, hayRecogidaCompleta)).length;
       setBadges({
         "/tareas": pendientes,
         "/herramientas": partes.count ?? 0,
