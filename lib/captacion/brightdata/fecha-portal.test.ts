@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  esEntradaHoy,
   esNuevoHoy,
   existiaAntesDePasada,
   fechaDeFiltro,
@@ -73,6 +74,10 @@ describe("filtro de fecha de Idealista", () => {
     assert.equal(esNuevoHoy("24h", "2026-09-23T16:30:00.000Z", AHORA), true);
     assert.equal(esNuevoHoy("48h", "2026-09-23T16:30:00.000Z", AHORA), false);
     assert.equal(esNuevoHoy("24h", "2026-09-20T04:30:00.000Z", AHORA), false);
+    assert.equal(
+      esEntradaHoy({ publicado_precision: "48h", publicado_en_portal: "2026-09-23T04:30:00.000Z", visto_primera_vez: "2026-09-24T08:00:00.000Z" }, AHORA),
+      true
+    );
   });
 
   it("lee Anuncio actualizado el …", () => {

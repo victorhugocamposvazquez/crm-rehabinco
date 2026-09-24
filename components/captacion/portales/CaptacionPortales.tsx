@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -48,7 +48,7 @@ import {
   type FuentePortal,
 } from "@/lib/captacion/portales/modelo";
 import { AccionesContactoAnuncio } from "@/components/captacion/portales/AccionesContactoAnuncio";
-import { esNuevoHoy, textoFechaPortal } from "@/lib/captacion/brightdata/fecha-portal";
+import { esEntradaHoy, textoFechaPortal } from "@/lib/captacion/brightdata/fecha-portal";
 import { anuncioIdealistaVacio } from "@/lib/captacion/brightdata/idealista";
 import { cn } from "@/lib/utils";
 
@@ -297,10 +297,12 @@ export function CaptacionPortales() {
     (a) => !["novedad", "descartado"].includes(a.fase) && (!filtroCom || a.comercial_id === filtroCom)
   );
 
-  const listado = useMemo(() => {
-    const query = q.trim().toLowerCase();
-    const base = chip === "retirados" ? anuncios.filter((a) => a.desaparecido_en && a.fase !== "descartado") : nov.filter((a) => !a.desaparecido_en);
-    let list = base.filter((a) => {
+  const filtraNov = useCallback(
+    (a: AnuncioCaptacion, chipActivo: ChipNov = chip) => {
+      const query = q.trim().toLowerCase();
+      if (chipActivo === "retirados") {
+        if (!a.desaparecido_en || a.fase === "descartado") return false;
+      } else if (a.desaparecido_en || a.fase !== "novedad") return false;
       if (query && ![a.titulo, a.zona, a.municipio, a.contacto_nombre, a.externo_id].filter(Boolean).join(" ").toLowerCase().includes(query)) return false;
       if (fAlerta !== "todas" && a.alerta_id !== fAlerta) return false;
       if (fCiudad !== "todas" && !(a.municipio ?? "").startsWith(fCiudad)) return false;
@@ -315,26 +317,32 @@ export function CaptacionPortales() {
       const smax = Number(filtros.m2Max);
       if (filtros.m2Min && (a.superficie == null || a.superficie < smin)) return false;
       if (filtros.m2Max && (a.superficie == null || a.superficie > smax)) return false;
-      if (chip === "hoy" && !esNuevoHoy(a.publicado_precision, a.publicado_en_portal)) return false;
-      if (chip === "sinasig" && a.comercial_id) return false;
-      if (chip === "mias" && (admin ? !a.comercial_id : a.comercial_id !== user?.id)) return false;
-      if (chip === "bajada" && !a.tags.includes("Bajada")) return false;
-      if (chip === "edif" && a.tipo !== "edificio" && a.tipo !== "casa") return false;
-      if (chip === "retirados" && !a.desaparecido_en) return false;
+      if (chipActivo === "hoy" && !esEntradaHoy(a)) return false;
+      if (chipActivo === "sinasig" && a.comercial_id) return false;
+      if (chipActivo === "mias" && (admin ? !a.comercial_id : a.comercial_id !== user?.id)) return false;
+      if (chipActivo === "bajada" && !a.tags.includes("Bajada")) return false;
+      if (chipActivo === "edif" && a.tipo !== "edificio" && a.tipo !== "casa") return false;
       return true;
-    });
-    list = list.slice().sort((a, b) => {
-      if (orden === "precio") return (a.precio ?? 0) - (b.precio ?? 0);
-      if (orden === "pm2") return (a.precio ?? 0) / Math.max(a.superficie ?? 1, 1) - (b.precio ?? 0) / Math.max(b.superficie ?? 1, 1);
-      if (orden === "m2") return (b.superficie ?? 0) - (a.superficie ?? 0);
-      const dias = (row: { publicado_en: string | null; created_at: string | null }) => {
-        const portal = fechaPublicacionPortal(row.publicado_en, row.created_at);
-        return portal ? diasEnPortal(portal) : Number.MAX_SAFE_INTEGER;
-      };
-      return dias(a) - dias(b);
-    });
-    return list;
-  }, [nov, anuncios, q, fAlerta, fCiudad, filtros, chip, orden, admin, user?.id]);
+    },
+    [chip, q, fAlerta, fCiudad, filtros, admin, user?.id]
+  );
+
+  const listado = useMemo(() => {
+    const base = chip === "retirados" ? anuncios : nov;
+    return base
+      .filter((a) => filtraNov(a))
+      .slice()
+      .sort((a, b) => {
+        if (orden === "precio") return (a.precio ?? 0) - (b.precio ?? 0);
+        if (orden === "pm2") return (a.precio ?? 0) / Math.max(a.superficie ?? 1, 1) - (b.precio ?? 0) / Math.max(b.superficie ?? 1, 1);
+        if (orden === "m2") return (b.superficie ?? 0) - (a.superficie ?? 0);
+        const dias = (row: { publicado_en: string | null; created_at: string | null }) => {
+          const portal = fechaPublicacionPortal(row.publicado_en, row.created_at);
+          return portal ? diasEnPortal(portal) : Number.MAX_SAFE_INTEGER;
+        };
+        return dias(a) - dias(b);
+      });
+  }, [nov, anuncios, chip, filtraNov, orden]);
 
   const nPag = Math.max(1, Math.ceil(listado.length / PAGE_NOVEDADES));
   const pagina = Math.min(pag, nPag);
@@ -490,19 +498,19 @@ export function CaptacionPortales() {
   };
 
   const kpis = [
-    { valor: nov.filter((a) => esNuevoHoy(a.publicado_precision, a.publicado_en_portal)).length, label: "Nuevos hoy", chip: "hoy" as ChipNov, fg: "#131C1A" },
-    { valor: nov.filter((a) => !a.comercial_id).length, label: "Sin asignar", chip: "sinasig" as ChipNov, fg: nov.some((a) => !a.comercial_id) ? "#7A5A10" : "#131C1A" },
-    { valor: nov.filter((a) => a.tags.includes("Bajada")).length, label: "Bajadas de precio", chip: "bajada" as ChipNov, fg: "#0B7461" },
+    { valor: nov.filter((a) => filtraNov(a, "hoy")).length, label: "Nuevos hoy", chip: "hoy" as ChipNov, fg: "#131C1A" },
+    { valor: nov.filter((a) => filtraNov(a, "sinasig")).length, label: "Sin asignar", chip: "sinasig" as ChipNov, fg: nov.some((a) => !a.comercial_id) ? "#7A5A10" : "#131C1A" },
+    { valor: nov.filter((a) => filtraNov(a, "bajada")).length, label: "Bajadas de precio", chip: "bajada" as ChipNov, fg: "#0B7461" },
     { valor: seg.filter((a) => a.fase !== "captado" && a.fase !== "perdido").length, label: "En seguimiento", chip: "todas" as ChipNov, fg: "#131C1A" },
   ];
   const chips: Array<[ChipNov, string, number]> = [
-    ["todas", "Todas", nov.length],
-    ["hoy", "Hoy", nov.filter((a) => esNuevoHoy(a.publicado_precision, a.publicado_en_portal)).length],
-    ["sinasig", "Sin asignar", nov.filter((a) => !a.comercial_id).length],
-    ["mias", admin ? "Asignadas" : "Mías", nov.filter((a) => (admin ? Boolean(a.comercial_id) : a.comercial_id === user?.id)).length],
-    ["bajada", "Bajadas", nov.filter((a) => a.tags.includes("Bajada")).length],
-    ["edif", "Edificios y casas", nov.filter((a) => a.tipo === "edificio" || a.tipo === "casa").length],
-    ["retirados", "Retirados", anuncios.filter((a) => a.desaparecido_en && a.fase !== "descartado").length],
+    ["todas", "Todas", nov.filter((a) => filtraNov(a, "todas")).length],
+    ["hoy", "Hoy", nov.filter((a) => filtraNov(a, "hoy")).length],
+    ["sinasig", "Sin asignar", nov.filter((a) => filtraNov(a, "sinasig")).length],
+    ["mias", admin ? "Asignadas" : "Mías", nov.filter((a) => filtraNov(a, "mias")).length],
+    ["bajada", "Bajadas", nov.filter((a) => filtraNov(a, "bajada")).length],
+    ["edif", "Edificios y casas", nov.filter((a) => filtraNov(a, "edif")).length],
+    ["retirados", "Retirados", anuncios.filter((a) => filtraNov(a, "retirados")).length],
   ];
   const portalChips = useMemo(() => {
     let base = nov;
@@ -753,7 +761,7 @@ export function CaptacionPortales() {
                     </button>
                     <div className="relative h-[72px] w-[88px] shrink-0 overflow-hidden rounded-[8px] bg-[#E8E4DC]">
                       <FotoPortal src={portadaDe(a)} />
-                      {esNuevoHoy(a.publicado_precision, a.publicado_en_portal) ? <span className="absolute left-0 top-0 rounded-br bg-accent px-1 py-px text-[9px] font-bold tracking-wide text-white">NUEVO</span> : null}
+                      {esEntradaHoy(a) ? <span className="absolute left-0 top-0 rounded-br bg-accent px-1 py-px text-[9px] font-bold tracking-wide text-white">NUEVO</span> : null}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
@@ -787,7 +795,7 @@ export function CaptacionPortales() {
                   <div className="flex min-w-0 items-center gap-2.5">
                     <div className="relative h-11 w-[60px] shrink-0 overflow-hidden rounded-[7px] bg-[#E8E4DC]">
                       <FotoPortal src={portadaDe(a)} />
-                      {esNuevoHoy(a.publicado_precision, a.publicado_en_portal) ? <span className="absolute left-0 top-0 rounded-br bg-accent px-1 py-px text-[9px] font-bold tracking-wide text-white">NUEVO</span> : null}
+                      {esEntradaHoy(a) ? <span className="absolute left-0 top-0 rounded-br bg-accent px-1 py-px text-[9px] font-bold tracking-wide text-white">NUEVO</span> : null}
                     </div>
                     <div className="min-w-0">
                       <div className="flex min-w-0 items-center gap-1.5">
@@ -916,7 +924,7 @@ export function CaptacionPortales() {
           <div className="grid grid-cols-1 gap-3 min-[720px]:grid-cols-2 min-[1100px]:grid-cols-3">
             {alertas.map((a) => {
               const com = comercialDe(a.comercial_id) ?? comercialDe(a.created_by);
-              const hoy = nov.filter((n) => n.alerta_id === a.id && esNuevoHoy(n.publicado_precision, n.publicado_en_portal)).length;
+              const hoy = nov.filter((n) => n.alerta_id === a.id && esEntradaHoy(n)).length;
               return (
                 <div key={a.id} className="rounded-[13px] border border-[var(--border)] bg-white p-4" style={{ opacity: a.activa ? 1 : 0.6 }}>
                   <div className="flex items-start justify-between gap-2.5">

@@ -121,6 +121,26 @@ export function esNuevoHoy(
   return dia(asignada) === dia(ahora);
 }
 
+export function esDetectadoHoy(vistoPrimeraVez: string | null | undefined, ahora = new Date()): boolean {
+  if (!vistoPrimeraVez) return false;
+  const visto = new Date(vistoPrimeraVez);
+  if (Number.isNaN(visto.getTime())) return false;
+  const dia = (fecha: Date) => fecha.toLocaleDateString("en-CA", { timeZone: "Europe/Madrid" });
+  return dia(visto) === dia(ahora);
+}
+
+/** Publicación 24h de hoy o primera vez visto por el CRM hoy (Idealista, crawlers). */
+export function esEntradaHoy(
+  a: {
+    publicado_precision?: string | null;
+    publicado_en_portal?: string | null;
+    visto_primera_vez?: string | null;
+  },
+  ahora = new Date()
+): boolean {
+  return esNuevoHoy(a.publicado_precision, a.publicado_en_portal, ahora) || esDetectadoHoy(a.visto_primera_vez, ahora);
+}
+
 export function textoFechaPortal(
   a: { publicado_en_portal?: string | null; publicado_precision?: string | null; desaparecido_en?: string | null },
   ahora = new Date()
