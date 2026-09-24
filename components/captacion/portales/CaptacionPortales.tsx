@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
@@ -53,6 +54,12 @@ import { coordsMapaAnuncio, latLngDeFila } from "@/lib/captacion/portales/geo-ma
 import { esNuevoHoyCaptacion, textoFechaPortal } from "@/lib/captacion/brightdata/fecha-portal";
 import { anuncioIdealistaVacio } from "@/lib/captacion/brightdata/idealista";
 import { cn } from "@/lib/utils";
+import type { PinMapaCaptacion } from "@/components/captacion/portales/CaptacionMapaLeaflet";
+
+const CaptacionMapaLeaflet = dynamic(
+  () => import("@/components/captacion/portales/CaptacionMapaLeaflet").then((m) => m.CaptacionMapaLeaflet),
+  { ssr: false, loading: () => <div className="h-[340px] w-full animate-pulse bg-[#E9ECE8]" /> }
+);
 
 type Tab = "nov" | "seg" | "ale" | "not";
 type ChipCaptacion =
@@ -593,41 +600,24 @@ export function CaptacionPortales() {
       ? undefined
       : "16px minmax(0,1fr) 100px 72px 104px";
 
-  const pins = (() => {
-    const puntos = listado
+  const pinsMapa = useMemo((): PinMapaCaptacion[] => {
+    return listado
       .map((a) => {
         const geo = coordsMapaAnuncio(a);
-        return geo ? { id: a.id, lat: geo.lat, lng: geo.lng, aprox: geo.aprox, precio: a.precio, operacion: a.operacion } : null;
+        if (!geo) return null;
+        const precio =
+          a.operacion === "alquiler"
+            ? `${Math.round((a.precio ?? 0) / 100) / 10}k/m`
+            : `${Math.round((a.precio ?? 0) / 1000)}k`;
+        return { id: a.id, lat: geo.lat, lng: geo.lng, aprox: geo.aprox, precio };
       })
-      .filter((p): p is NonNullable<typeof p> => Boolean(p));
-    if (puntos.length === 0) return [];
-    const lats = puntos.map((p) => p.lat);
-    const lngs = puntos.map((p) => p.lng);
-    const minLa = Math.min(...lats);
-    const maxLa = Math.max(...lats);
-    const minLo = Math.min(...lngs);
-    const maxLo = Math.max(...lngs);
-    return puntos.map((p) => ({
-      id: p.id,
-      lat: p.lat,
-      lng: p.lng,
-      aprox: p.aprox,
-      x: maxLo === minLo ? 50 : ((p.lng - minLo) / (maxLo - minLo)) * 80 + 10,
-      y: maxLa === minLa ? 50 : (1 - (p.lat - minLa) / (maxLa - minLa)) * 70 + 12,
-      precio: p.operacion === "alquiler" ? `${Math.round((p.precio ?? 0) / 100) / 10}k/m` : `${Math.round((p.precio ?? 0) / 1000)}k`,
-    }));
-  })();
+      .filter((p): p is PinMapaCaptacion => Boolean(p));
+  }, [listado]);
 
-  const mapaOsmFondo = (() => {
-    if (pins.length === 0) return null;
-    const lats = pins.map((p) => p.lat);
-    const lngs = pins.map((p) => p.lng);
-    const lat = (Math.min(...lats) + Math.max(...lats)) / 2;
-    const lng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
-    const span = Math.max(Math.max(...lats) - Math.min(...lats), Math.max(...lngs) - Math.min(...lngs), 0.02);
-    const zoom = span > 0.25 ? 10 : span > 0.12 ? 11 : span > 0.06 ? 12 : 13;
-    return `https://staticmap.openstreetmap.de/staticmap.php?center=${lat.toFixed(5)},${lng.toFixed(5)}&zoom=${zoom}&size=640x260&maptype=mapnik`;
-  })();
+  const onPinMapa = useCallback((id: string) => {
+    setSel(id);
+    setPanel(true);
+  }, []);
 
   return (
     <div className="min-w-0 max-w-full">
@@ -781,44 +771,19 @@ export function CaptacionPortales() {
               </select>
             </div>
             {mapa ? (
-              <div className="relative h-[260px] overflow-hidden border-b border-[var(--border-soft)] bg-[#E9ECE8]">
-                {mapaOsmFondo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={mapaOsmFondo} alt="" className="absolute inset-0 h-full w-full object-cover opacity-90" />
-                ) : null}
-                {pins.length === 0 ? (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-4 text-center">
-                    <p className="text-[13px] font-medium text-[var(--text-1)]">Sin municipio reconocido</p>
-                    <p className="text-[12px] text-[var(--text-2)]">No podemos situar estos anuncios (Oleiros, A Coruña, Cambre…). Con la pasada de Idealista se afinará la posición.</p>
+              <div className="relative border-b border-[var(--border-soft)] bg-[#E9ECE8]">
+                <CaptacionMapaLeaflet pins={pinsMapa} selectedId={sel} onSelect={onPinMapa} className="h-[340px] w-full z-0" />
+                {pinsMapa.length === 0 ? (
+                  <div className="pointer-events-none absolute inset-0 z-[400] flex flex-col items-center justify-center gap-1 bg-white/55 px-4 text-center">
+                    <p className="text-[13px] font-medium text-[var(--text-1)]">Sin coordenadas en el listado</p>
+                    <p className="max-w-md text-[12px] text-[var(--text-2)]">
+                      Puedes mover y hacer zoom en el mapa. Los pins aparecen cuando Idealista devuelve ubicación (exacta o municipio).
+                    </p>
                   </div>
-                ) : (
-                  pins.map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => {
-                        setSel(p.id);
-                        setPanel(true);
-                      }}
-                      className={cn(
-                        "absolute z-10 -translate-x-1/2 -translate-y-full rounded-full border px-2 text-[11.5px] font-semibold shadow",
-                        p.aprox && sel !== p.id ? "border-dashed" : ""
-                      )}
-                      style={{
-                        left: `${p.x}%`,
-                        top: `${p.y}%`,
-                        background: sel === p.id ? "#0B7461" : p.aprox ? "#F4F3EF" : "#fff",
-                        color: sel === p.id ? "#fff" : "#131C1A",
-                        borderColor: sel === p.id ? "#0B7461" : "#DAD6CE",
-                      }}
-                    >
-                      {p.precio}
-                    </button>
-                  ))
-                )}
-                <div className="absolute bottom-2.5 left-3 z-10 rounded-md bg-white/90 px-2 py-0.5 text-[11px] text-[var(--text-2)]">
-                  {pins.length
-                    ? `${pins.filter((p) => !p.aprox).length} exactos · ${pins.filter((p) => p.aprox).length} aprox.`
+                ) : null}
+                <div className="pointer-events-none absolute bottom-2.5 left-3 z-[400] rounded-md bg-white/90 px-2 py-0.5 text-[11px] text-[var(--text-2)]">
+                  {pinsMapa.length
+                    ? `${pinsMapa.filter((p) => !p.aprox).length} exactos · ${pinsMapa.filter((p) => p.aprox).length} aprox.`
                     : "Mapa de anuncios"}{" "}
                   · © OpenStreetMap
                 </div>
