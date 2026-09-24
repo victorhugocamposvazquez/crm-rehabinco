@@ -78,7 +78,7 @@ export async function encolarPaginas(
 }
 
 /** Hasta 20 páginas pendientes. Cierra la recogida cuando no queda ninguna. */
-export async function procesarPaginasPendientes(limite = 20): Promise<{ paginas: number; cerradas: string[] }> {
+export async function procesarPaginasPendientes(limite = 20): Promise<{ paginas: number; cerradas: string[]; errores: number }> {
   const config = configUnlocker();
   if ("error" in config) throw new Error(config.error);
   const supabase = createAdminClient();
@@ -94,6 +94,7 @@ export async function procesarPaginasPendientes(limite = 20): Promise<{ paginas:
   if (error) throw new Error(error.message);
   const paginas = (data ?? []) as Pagina[];
   const tocadas = new Set<string>();
+  let errores = 0;
   for (const pagina of paginas) {
     if (pagina.tipo === "ficha") {
       try {
@@ -109,6 +110,7 @@ export async function procesarPaginasPendientes(limite = 20): Promise<{ paginas:
         }
         if (resultado !== "ok") await marcarFichaPendiente((pagina.url.match(/\/inmueble\/(\d+)/) || [])[1] ?? "");
       } catch {
+        errores += 1;
         await marcarFichaPendiente((pagina.url.match(/\/inmueble\/(\d+)/) || [])[1] ?? "");
       }
       continue;
@@ -118,6 +120,7 @@ export async function procesarPaginasPendientes(limite = 20): Promise<{ paginas:
       const resp = await pedirUnlocker(config, pagina.url);
       if (esErrorTransporteUnlocker(resp)) {
         await manejarTransporteListado(supabase, pagina, config, resp);
+        if ((pagina.intentos ?? 0) + 1 >= MAX_INTENTOS_TRANSPORTE_LISTADO) errores += 1;
         continue;
       }
       const html = resp.cuerpo;
@@ -146,6 +149,7 @@ export async function procesarPaginasPendientes(limite = 20): Promise<{ paginas:
       }
       await supabase.from("captacion_paginas_pendientes").update({ estado: "hecha" }).eq("id", pagina.id);
     } catch (error) {
+      errores += 1;
       const cuerpo = error instanceof Error ? error.message : "Página de listado fallida";
       await manejarTransporteListado(supabase, pagina, config, {
         ok: false,
@@ -191,10 +195,11 @@ export async function procesarPaginasPendientes(limite = 20): Promise<{ paginas:
           await marcarTelefonoPendiente(externoId, pagina.id, intentos);
         }
       } catch {
+        errores += 1;
         await registrarResultadoTelefono(false);
         await marcarTelefonoPendiente(externoId, pagina.id, intentos);
       }
     }
   }
-  return { paginas: paginas.length + telefonos, cerradas };
+  return { paginas: paginas.length + telefonos, cerradas, errores };
 }

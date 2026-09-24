@@ -7,6 +7,7 @@ import { isSuperAdmin } from "@/lib/auth/roles";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SettingsAdminNav } from "@/components/settings/SettingsAdminNav";
 import { ComoFuncionaCaptacion } from "@/components/settings/ComoFuncionaCaptacion";
+import { CaptacionSaludCard } from "@/components/settings/CaptacionSaludCard";
 import { SaldoBrightDataCard } from "@/components/settings/SaldoBrightDataCard";
 import { ClasificarFechasCard } from "@/components/settings/ClasificarFechasCard";
 import { ZonasIdealistaCard } from "@/components/settings/ZonasIdealistaCard";
@@ -47,6 +48,7 @@ export default function SettingsPortalesPage() {
       <SettingsAdminNav role={user?.role} />
       <div className="mt-6 space-y-4 min-[820px]:overflow-hidden">
         <ComoFuncionaCaptacion />
+        <CaptacionSaludCard />
         <SaldoBrightDataCard />
         <ClasificarFechasCard />
         <ZonasIdealistaCard />
