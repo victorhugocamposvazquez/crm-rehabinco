@@ -48,7 +48,7 @@ import {
   type FuentePortal,
 } from "@/lib/captacion/portales/modelo";
 import { AccionesContactoAnuncio } from "@/components/captacion/portales/AccionesContactoAnuncio";
-import { esAgencia, esRetirado } from "@/lib/captacion/captacion-activos";
+import { esActivoCaptacion, esAgencia, esRetirado } from "@/lib/captacion/captacion-activos";
 import { esNuevoHoyCaptacion, textoFechaPortal } from "@/lib/captacion/brightdata/fecha-portal";
 import { anuncioIdealistaVacio } from "@/lib/captacion/brightdata/idealista";
 import { cn } from "@/lib/utils";
@@ -315,7 +315,7 @@ export function CaptacionPortales() {
   const recuentoClave = useMemo(() => recuentoPorClave(anuncios), [anuncios]);
 
   const baseNov = useMemo(
-    () => anuncios.filter((a) => a.fase === "novedad" && !a.desaparecido_en && a.fase !== "descartado"),
+    () => anuncios.filter((a) => a.fase === "novedad" && esActivoCaptacion(a)),
     [anuncios]
   );
   const baseRetirados = useMemo(() => anuncios.filter((a) => esRetirado(a)), [anuncios]);
