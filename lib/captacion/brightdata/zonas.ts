@@ -131,8 +131,36 @@ export function anunciosDeZonas(ids: string[]): number {
   return ids.reduce((suma, id) => suma + (POR_ID.get(id)?.anuncios ?? 0), 0);
 }
 
+/** Cifra del catálogo o el estimado editado en Ajustes. */
+export function anunciosEfectivosZona(id: string, estimados: Record<string, number | null | undefined> = {}): number {
+  const valor = estimados[id];
+  if (valor != null && Number.isFinite(valor)) return valor;
+  return POR_ID.get(id)?.anuncios ?? 0;
+}
+
+export function paginasListadoDiaZona(id: string, estimados: Record<string, number | null | undefined> = {}): number {
+  const n = anunciosEfectivosZona(id, estimados);
+  return n > 0 ? Math.ceil(n / 30) : 1;
+}
+
+export function paginasListadoEstimadasConEstimados(
+  ids: string[],
+  estimados: Record<string, number | null | undefined> = {}
+): number {
+  return ids.reduce((suma, id) => suma + paginasListadoDiaZona(id, estimados), 0);
+}
+
+/** Los 14 municipios grandes: recogida diaria acordada (A Coruña, Santiago, Ferrol, Oleiros…). */
 export function zonasPorDefecto(): string[] {
   return ZONAS_IDEALISTA.filter((zona) => zona.porDefecto).map((zona) => zona.id);
+}
+
+/** Peticiones Unlocker/día de listado si se pagina entero cada municipio (~30 anuncios/página). */
+export function paginasListadoEstimadas(ids: string[]): number {
+  return ids.reduce((suma, id) => {
+    const n = POR_ID.get(id)?.anuncios ?? 0;
+    return suma + (n > 0 ? Math.ceil(n / 30) : 1);
+  }, 0);
 }
 
 export function urlSegunOperacion(url: string, operacion: OperacionZona): string {

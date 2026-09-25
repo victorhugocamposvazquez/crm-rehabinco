@@ -1,3 +1,4 @@
+import { cupoPaginasRafagaPresupuesto } from "@/lib/captacion/brightdata/presupuesto-unlocker";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { procesarPaginasPendientes } from "@/lib/captacion/brightdata/paginas";
 import { adquirirLockProcesar, liberarLockProcesar } from "@/lib/captacion/brightdata/procesar-lock";
@@ -69,9 +70,15 @@ export async function ejecutarRafagaProcesar(): Promise<ResultadoRafagaProcesar>
     await registrarRafagaOmitida("lock_ocupado");
     return { paginas: 0, errores: 0, cerradas: [], omitida: true, motivo: "lock_ocupado" };
   }
+  const presupuesto = await cupoPaginasRafagaPresupuesto();
+  if (presupuesto.omitir) {
+    await registrarRafagaOmitida(presupuesto.omitir);
+    await liberarLockProcesar();
+    return { paginas: 0, errores: 0, cerradas: [], omitida: true, motivo: presupuesto.omitir };
+  }
   const id = await iniciarRafaga();
   try {
-    const resultado = await procesarPaginasPendientes();
+    const resultado = await procesarPaginasPendientes({ limitePaginas: presupuesto.cupo });
     await cerrarRafaga(id, {
       paginas: resultado.paginas,
       errores: resultado.errores,

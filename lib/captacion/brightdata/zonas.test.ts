@@ -1,6 +1,16 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { ZONAS_IDEALISTA, ZONA_DESCONOCIDA, entraEnRetirados, urlSegunOperacion, zonaIdDeListado, zonaSuperaCorte, zonasPorDefecto, urlsDeZonas } from "./zonas";
+import {
+  ZONAS_IDEALISTA,
+  ZONA_DESCONOCIDA,
+  entraEnRetirados,
+  paginasListadoEstimadas,
+  urlSegunOperacion,
+  zonaIdDeListado,
+  zonaSuperaCorte,
+  zonasPorDefecto,
+  urlsDeZonas,
+} from "./zonas";
 
 describe("zonas Idealista", () => {
   it("usa un municipio por URL y deja las ciudades por debajo de 1.500", () => {
@@ -16,6 +26,8 @@ describe("zonas Idealista", () => {
     assert.equal(ZONAS_IDEALISTA.some((zona) => zona.id.includes("ensanche")), false);
     assert.ok(zonasPorDefecto().includes("a-coruna"));
     assert.ok(zonasPorDefecto().includes("oleiros"));
+    assert.equal(zonasPorDefecto().length, 14);
+    assert.equal(paginasListadoEstimadas(zonasPorDefecto()), 143);
     assert.ok(ZONAS_IDEALISTA.some((zona) => zona.id === "carballo" && zona.porDefecto === false));
     assert.equal(urlsDeZonas(["oleiros"])[0], "https://www.idealista.com/venta-viviendas/oleiros-a-coruna/");
     assert.equal(zonaSuperaCorte(1500), false);

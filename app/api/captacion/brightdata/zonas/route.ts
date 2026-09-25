@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { estimadosZonas, guardarZonasActivas, idsZonasActivas } from "@/lib/captacion/brightdata/zonas-guardadas";
+import { resumenPresupuestoUnlocker } from "@/lib/captacion/brightdata/presupuesto-unlocker";
 import { ZONAS_IDEALISTA, anunciosDeZonas } from "@/lib/captacion/brightdata/zonas";
 import { contarFichasEnCola } from "@/lib/captacion/brightdata/fichas";
 import { metricasTelefonos } from "@/lib/captacion/brightdata/telefonos-metricas";
@@ -117,11 +118,19 @@ export async function GET() {
     estado: fila.estado,
   }));
 
+  const pres = await resumenPresupuestoUnlocker();
   return Response.json({
     ok: true,
     activas,
     estimados: await estimadosZonas(),
     anuncios: anunciosDeZonas(activas),
+    presupuestoUnlocker: {
+      topeMes: pres.topeMes,
+      creditosGratis: pres.creditosGratis,
+      usdMes: pres.usdMes,
+      usadasMes: pres.usadasMes,
+      restantesMes: pres.restantesMes,
+    },
     zonas: ZONAS_IDEALISTA,
     sospechosas,
     diagnosticos,

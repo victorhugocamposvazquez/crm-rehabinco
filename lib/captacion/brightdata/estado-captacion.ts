@@ -6,6 +6,11 @@ import {
   textoEstimacionCola,
 } from "@/lib/captacion/brightdata/rafaga-config";
 import { ultimaRafaga, type RafagaCaptacion } from "@/lib/captacion/brightdata/rafagas";
+import {
+  resumenPresupuestoUnlocker,
+  textoPresupuestoUnlocker,
+  type ResumenPresupuestoUnlocker,
+} from "@/lib/captacion/brightdata/presupuesto-unlocker";
 import { leerGastoBrightData } from "@/lib/captacion/brightdata/saldo";
 import { hayRecogidaAbiertaReciente } from "@/lib/captacion/brightdata/recogidas";
 import { metricasTelefonos, telefonosColaPausada } from "@/lib/captacion/brightdata/telefonos-metricas";
@@ -28,6 +33,7 @@ export type EstadoCaptacion = {
   paginasPorMinutoUltimaRafaga: number | null;
   estimacionVaciarCola: string | null;
   gasto: { saldo: number | null; pendiente: number | null; aviso: string | null; mes: string | null };
+  presupuestoUnlocker: ResumenPresupuestoUnlocker;
 };
 
 const MS_CRON_PROCESAR = 12 * 60 * 1000;
@@ -171,6 +177,38 @@ export async function evaluarEstadoCaptacion(): Promise<EstadoCaptacion> {
     checks.push({ id: "cron_secret", label: "CRON_SECRET", nivel: "ok", detalle: "Presente en el entorno." });
   }
 
+  const presupuestoUnlocker = await resumenPresupuestoUnlocker();
+  const pctMes = presupuestoUnlocker.usadasMes / presupuestoUnlocker.topeMes;
+  if (presupuestoUnlocker.restantesMes <= 0) {
+    checks.push({
+      id: "presupuesto_unlocker",
+      label: "Presupuesto Unlocker",
+      nivel: "error",
+      detalle: `${textoPresupuestoUnlocker(presupuestoUnlocker)} Ráfagas pausadas hasta el próximo mes (UTC).`,
+    });
+  } else if (presupuestoUnlocker.restantesDia <= 0) {
+    checks.push({
+      id: "presupuesto_unlocker",
+      label: "Presupuesto Unlocker",
+      nivel: "aviso",
+      detalle: `${textoPresupuestoUnlocker(presupuestoUnlocker)} Tope diario alcanzado; mañana (UTC) sigue el reparto.`,
+    });
+  } else if (pctMes >= 0.9) {
+    checks.push({
+      id: "presupuesto_unlocker",
+      label: "Presupuesto Unlocker",
+      nivel: "aviso",
+      detalle: textoPresupuestoUnlocker(presupuestoUnlocker),
+    });
+  } else {
+    checks.push({
+      id: "presupuesto_unlocker",
+      label: "Presupuesto Unlocker",
+      nivel: "ok",
+      detalle: textoPresupuestoUnlocker(presupuestoUnlocker),
+    });
+  }
+
   const ppm =
     ultima && ultima.motivo !== "lock_ocupado"
       ? paginasPorMinutoRafaga(ultima.paginas, ultima.duracion_ms)
@@ -187,5 +225,6 @@ export async function evaluarEstadoCaptacion(): Promise<EstadoCaptacion> {
     paginasPorMinutoUltimaRafaga: ppm,
     estimacionVaciarCola,
     gasto,
+    presupuestoUnlocker,
   };
 }

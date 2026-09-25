@@ -1,10 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { anunciosDeZonas, zonaSuperaCorte, type ZonaIdealista } from "@/lib/captacion/brightdata/zonas";
+import {
+  anunciosDeZonas,
+  paginasListadoDiaZona,
+  paginasListadoEstimadas,
+  zonaSuperaCorte,
+  zonasPorDefecto,
+  type ZonaIdealista,
+} from "@/lib/captacion/brightdata/zonas";
+import {
+  presupuestoUnlockerPorDefecto,
+  simularListadoZonas,
+  type PresupuestoUnlockerCliente,
+} from "@/lib/captacion/brightdata/simulacion-zonas";
 
 type UltimaRecogida = {
   fecha: string;
@@ -63,6 +75,12 @@ export function ZonasIdealistaCard() {
   } | null>(null);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
+  const [presupuestoUnlocker, setPresupuestoUnlocker] = useState<PresupuestoUnlockerCliente | null>(null);
+
+  const sim = useMemo(
+    () => simularListadoZonas(activas, estimados, presupuestoUnlocker ?? presupuestoUnlockerPorDefecto()),
+    [activas, estimados, presupuestoUnlocker]
+  );
 
   useEffect(() => {
     void (async () => {
@@ -82,6 +100,7 @@ export function ZonasIdealistaCard() {
         fichasPendientes?: number;
         fichasEnCola?: number;
         telefonos?: { hoy: { pedidos: number; obtenidos: number; fallidos: number; tasa: number | null }; sieteDias: { tasa: number | null }; pausado: boolean };
+        presupuestoUnlocker?: PresupuestoUnlockerCliente;
       };
       if (!res.ok || !json.ok || !json.zonas) {
         toast.error(json.error || "No se han podido leer las zonas.");
@@ -98,6 +117,7 @@ export function ZonasIdealistaCard() {
       setFichasPendientes(json.fichasPendientes ?? 0);
       setFichasEnCola(json.fichasEnCola ?? 0);
       setTelefonos(json.telefonos ?? null);
+      if (json.presupuestoUnlocker) setPresupuestoUnlocker(json.presupuestoUnlocker);
       setCargando(false);
     })();
   }, []);
@@ -231,11 +251,53 @@ export function ZonasIdealistaCard() {
         <CardTitle>Zonas de Idealista</CardTitle>
         <CardDescription>
           Solo se leen las marcadas. El número es el estimado: por encima de 1.500 hay que partir la zona.
-          Las marcadas suman {anunciosDeZonas(activas).toLocaleString("es-ES")} anuncios en el catálogo.
+          Las marcadas suman {anunciosDeZonas(activas).toLocaleString("es-ES")} anuncios (~
+          {paginasListadoEstimadas(activas)} pág. listado/día si la recogida termina entera) + provincia 48 h.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {cargando ? <p className="text-sm text-neutral-500">Cargando zonas…</p> : null}
+        <div
+          className={`rounded-md border px-3 py-3 text-[13px] ${
+            sim.dentroTope ? "border-[var(--border)] bg-[var(--surface-2)]" : "border-[#E8A4A4] bg-[#FBF3F3]"
+          }`}
+        >
+          <p className="font-medium text-[var(--text-1)]">Simulación Unlocker (listado diario)</p>
+          <p className="mt-1 text-[var(--text-2)]">
+            {sim.zonasActivas === 0
+              ? "Marca al menos un municipio para estimar peticiones."
+              : `${sim.paginasDia.toLocaleString("es-ES")} pet./día (${sim.paginasMunicipiosDia} municipios + ${sim.paginasProvinciaDia} provincia 48 h) → ~${sim.paginasMes.toLocaleString("es-ES")} pet./mes (${sim.diasMes} días).`}
+          </p>
+          {sim.zonasActivas > 0 ? (
+            <>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-200">
+                <div
+                  className={`h-full transition-all ${sim.dentroTope ? "bg-emerald-500" : "bg-red-500"}`}
+                  style={{ width: `${Math.min(100, Math.round(sim.pctDelTope * 100))}%` }}
+                />
+              </div>
+              <p className="mt-1.5 text-[12.5px] text-[var(--text-2)]">
+                {Math.round(sim.pctDelTope * 100)} % del tope mensual ({sim.topeMes.toLocaleString("es-ES")} pet. ={" "}
+                {sim.creditosGratis.toLocaleString("es-ES")} créditos + {sim.usdMes.toFixed(0)} USD).
+                {sim.usdEstimadoListado > 0
+                  ? ` Solo listado: ~${sim.usdEstimadoListado.toFixed(2)} USD de bolsillo (tras créditos).`
+                  : " Solo listado: cubierto por créditos gratis."}
+                {sim.margenPeticiones > 0
+                  ? ` Margen ~${sim.margenPeticiones.toLocaleString("es-ES")} pet./mes para fichas y teléfonos.`
+                  : sim.dentroTope
+                    ? ""
+                    : ` Te pasas ~${Math.abs(sim.margenPeticiones).toLocaleString("es-ES")} pet./mes solo con listado.`}
+              </p>
+            </>
+          ) : null}
+          {presupuestoUnlocker ? (
+            <p className="mt-2 border-t border-[var(--border)] pt-2 text-[12px] text-[var(--text-3)]">
+              Gasto real este mes (todas las ráfagas): {presupuestoUnlocker.usadasMes.toLocaleString("es-ES")} /{" "}
+              {presupuestoUnlocker.topeMes.toLocaleString("es-ES")} pet. · quedan{" "}
+              {presupuestoUnlocker.restantesMes.toLocaleString("es-ES")}. Fichas/teléfonos no entran en la barra verde.
+            </p>
+          ) : null}
+        </div>
         {grupos.map((grupo) => (
           <fieldset key={grupo.nombre} className="space-y-2">
             <legend className="text-[13px] font-semibold text-neutral-800">{grupo.nombre}</legend>
@@ -250,6 +312,11 @@ export function ZonasIdealistaCard() {
                   />
                   <span className="min-w-0 flex-1">
                     {zona.nombre}
+                    {activas.includes(zona.id) ? (
+                      <span className="ml-1 text-[12px] text-[var(--text-3)]">
+                        ~{paginasListadoDiaZona(zona.id, estimados)} pet./día
+                      </span>
+                    ) : null}
                     {zonaSuperaCorte(estimados[zona.id] ?? null) ? (
                       <span className="mt-0.5 block text-[12px] text-[#8A3030]">Supera 1.500 anuncios. Hay que partir esta zona.</span>
                     ) : null}
@@ -278,9 +345,19 @@ export function ZonasIdealistaCard() {
             </div>
           </fieldset>
         ))}
-        <Button type="button" disabled={guardando || cargando} onClick={() => void guardar()}>
-          {guardando ? "Guardando…" : "Guardar zonas"}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={guardando || cargando}
+            onClick={() => setActivas(zonasPorDefecto())}
+          >
+            14 grandes (diario)
+          </Button>
+          <Button type="button" disabled={guardando || cargando} onClick={() => void guardar()}>
+            {guardando ? "Guardando…" : "Guardar zonas"}
+          </Button>
+        </div>
       </CardContent>
     </Card>
     </>

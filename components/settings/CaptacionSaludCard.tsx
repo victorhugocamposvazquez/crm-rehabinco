@@ -112,7 +112,14 @@ export function CaptacionSaludCard() {
       return;
     }
     if (json.omitida) {
-      setAccionLinea("Ráfaga omitida: lock ocupado.");
+      const m = json.motivo;
+      setAccionLinea(
+        m === "tope_mes"
+          ? "Ráfaga omitida: tope mensual Unlocker (5.000 créditos + 10 USD)."
+          : m === "tope_dia"
+            ? "Ráfaga omitida: tope diario del reparto mensual."
+            : "Ráfaga omitida: lock ocupado."
+      );
     } else {
       const cerr = json.cerradas?.length ?? 0;
       setAccionLinea(
@@ -163,6 +170,8 @@ export function CaptacionSaludCard() {
               {` · ${rafaga.paginas} pág.`}
               {rafaga.errores ? ` · ${rafaga.errores} error(es)` : ""}
               {rafaga.motivo === "lock_ocupado" ? " · omitida (lock)" : ""}
+              {rafaga.motivo === "tope_mes" ? " · omitida (tope mes)" : ""}
+              {rafaga.motivo === "tope_dia" ? " · omitida (tope día)" : ""}
               {rafaga.ok === false && rafaga.motivo && rafaga.motivo !== "lock_ocupado" ? ` · ${rafaga.motivo}` : ""}
             </p>
           ) : (
