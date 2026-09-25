@@ -1,6 +1,10 @@
+import { claveAgrupacionAnuncio } from "@/lib/captacion/contacto";
+
 export type AnuncioRelacionable = {
   id: string;
   contacto_clave: string | null;
+  contacto_telefono?: string | null;
+  contacto_nombre?: string | null;
   municipio: string | null;
   tipo: string | null;
   operacion: "venta" | "alquiler";
@@ -22,18 +26,20 @@ export type IndiciosEncubierta = {
 const JERGA_AGENCIA =
   /disponemos de|oportunidad de inversi[oó]n|honorarios|sin comisi[oó]n|ideal inversores|ofrecemos|nuestro equipo|contamos con|llame a nuestra/i;
 
-export function recuentoPorClave(anuncios: Array<{ contacto_clave: string | null }>): Map<string, number> {
+export function recuentoPorClave(anuncios: Array<Pick<AnuncioRelacionable, "contacto_clave" | "contacto_telefono" | "contacto_nombre" | "municipio">>): Map<string, number> {
   const map = new Map<string, number>();
   for (const a of anuncios) {
-    if (!a.contacto_clave) continue;
-    map.set(a.contacto_clave, (map.get(a.contacto_clave) ?? 0) + 1);
+    const clave = claveAgrupacionAnuncio(a);
+    if (!clave) continue;
+    map.set(clave, (map.get(clave) ?? 0) + 1);
   }
   return map;
 }
 
 export function relacionadosDe<T extends AnuncioRelacionable>(anuncio: T, todos: T[]): T[] {
-  if (!anuncio.contacto_clave) return [];
-  return todos.filter((a) => a.id !== anuncio.id && a.contacto_clave === anuncio.contacto_clave);
+  const clave = claveAgrupacionAnuncio(anuncio);
+  if (!clave) return [];
+  return todos.filter((a) => a.id !== anuncio.id && claveAgrupacionAnuncio(a) === clave);
 }
 
 export function textoPareceAgencia(descripcion: string | null | undefined): boolean {

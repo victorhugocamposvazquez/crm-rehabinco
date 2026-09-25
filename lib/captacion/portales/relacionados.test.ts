@@ -33,9 +33,22 @@ describe("relacionados e indicios de encubierta", () => {
     assert.equal(textoAvisoEncubierta(indicios), null);
   });
 
+  it("legacy t: y tel: cuentan como el mismo contacto", () => {
+    const todos = [
+      anuncio({ id: "1", contacto_clave: "t:600111222", contacto_telefono: "+34600111222" }),
+      anuncio({ id: "2", contacto_clave: "tel:+34600111222", contacto_telefono: "+34600111222" }),
+    ];
+    const recuento = recuentoPorClave(todos);
+    assert.equal(recuento.get("tel:+34600111222"), 2);
+    assert.equal(relacionadosDe(todos[0], todos).length, 1);
+  });
+
   it("dos anuncios marcan recuento pero no avisan", () => {
-    const todos = [anuncio({ id: "1" }), anuncio({ id: "2" })];
-    assert.equal(recuentoPorClave(todos).get("t:600111222"), 2);
+    const todos = [
+      anuncio({ id: "1", contacto_clave: "tel:+34600111222", contacto_telefono: "+34600111222" }),
+      anuncio({ id: "2", contacto_clave: "tel:+34600111222", contacto_telefono: "+34600111222" }),
+    ];
+    assert.equal(recuentoPorClave(todos).get("tel:+34600111222"), 2);
     const indicios = indiciosEncubierta(todos);
     assert.equal(indicios.aviso, "ninguno");
     assert.equal(relacionadosDe(todos[0], todos).length, 1);
@@ -49,9 +62,13 @@ describe("relacionados e indicios de encubierta", () => {
   });
 
   it("tres teléfonos iguales avisan", () => {
-    const todos = [anuncio({ id: "1" }), anuncio({ id: "2" }), anuncio({ id: "3" })];
+    const todos = [
+      anuncio({ id: "1", contacto_clave: "tel:+34600111222", contacto_telefono: "+34600111222" }),
+      anuncio({ id: "2", contacto_clave: "tel:+34600111222", contacto_telefono: "+34600111222" }),
+      anuncio({ id: "3", contacto_clave: "tel:+34600111222", contacto_telefono: "+34600111222" }),
+    ];
     const recuento = recuentoPorClave(todos);
-    assert.equal(recuento.get("t:600111222"), 3);
+    assert.equal(recuento.get("tel:+34600111222"), 3);
     const indicios = indiciosEncubierta(todos);
     assert.equal(indicios.aviso, "posible");
     assert.match(textoAvisoEncubierta(indicios) ?? "", /3 anuncios/);

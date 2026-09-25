@@ -19,6 +19,7 @@ import {
   textoAvisoEncubierta,
   type IndiciosEncubierta,
 } from "@/lib/captacion/portales/relacionados";
+import { claveAgrupacionAnuncio } from "@/lib/captacion/contacto";
 import {
   FASE_KANBAN_META,
   FUENTES_PORTAL,
@@ -854,7 +855,8 @@ export function CaptacionPortales() {
             </div>
             {page.map((a) => {
               const com = comercialDe(a.comercial_id);
-              const nRep = a.contacto_clave ? recuentoClave.get(a.contacto_clave) ?? 1 : 1;
+              const claveGrupo = claveAgrupacionAnuncio(a);
+              const nRep = claveGrupo ? recuentoClave.get(claveGrupo) ?? 1 : 1;
               const on = sel === a.id;
               const ck = checks.includes(a.id);
               const bajada = pctBajada(a.precio_anterior, a.precio);
@@ -1117,11 +1119,15 @@ export function CaptacionPortales() {
             key={seleccionado.id}
             anuncio={seleccionado}
             alertaNombre={alertas.find((x) => x.id === seleccionado.alerta_id)?.nombre}
-            nRepite={seleccionado.contacto_clave ? recuentoClave.get(seleccionado.contacto_clave) ?? 1 : 1}
+            nRepite={
+              claveAgrupacionAnuncio(seleccionado)
+                ? recuentoClave.get(claveAgrupacionAnuncio(seleccionado)!) ?? 1
+                : 1
+            }
             relacionados={relacionadosDe(seleccionado, anuncios)}
             indicios={indiciosEncubierta(
-              seleccionado.contacto_clave
-                ? anuncios.filter((a) => a.contacto_clave === seleccionado.contacto_clave)
+              claveAgrupacionAnuncio(seleccionado)
+                ? anuncios.filter((a) => claveAgrupacionAnuncio(a) === claveAgrupacionAnuncio(seleccionado))
                 : [seleccionado]
             )}
             historial={actividad}

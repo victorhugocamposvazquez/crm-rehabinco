@@ -49,13 +49,45 @@ export function claveContacto(
   return null;
 }
 
-/** Compat lectura de claves legacy (`t:` / `n:`). */
+/** Compat lectura de claves legacy (`t:` / `n:`) y normaliza `nom:` guardadas a mano. */
 export function claveContactoCanonica(clave: string | null | undefined): string | null {
   if (!clave) return null;
   if (clave.startsWith("t:")) {
     const e164 = telefonoE164(clave.slice(2));
-    return e164 ? `tel:${e164}` : clave;
+    return e164 && !esTelefonoVirtualIdealista(e164) ? `tel:${e164}` : null;
   }
-  if (clave.startsWith("n:")) return `nom:${clave.slice(2)}`;
+  if (clave.startsWith("tel:")) {
+    const e164 = telefonoE164(clave.slice(4));
+    return e164 && !esTelefonoVirtualIdealista(e164) ? `tel:${e164}` : null;
+  }
+  if (clave.startsWith("n:")) {
+    const rest = clave.slice(2);
+    const pipe = rest.lastIndexOf("|");
+    if (pipe <= 0) return null;
+    const n = normalizarNombreContacto(rest.slice(0, pipe));
+    const m = normalizarNombreContacto(rest.slice(pipe + 1));
+    return n.length >= 2 && m ? `nom:${n}|${m}` : null;
+  }
+  if (clave.startsWith("nom:")) {
+    const rest = clave.slice(4);
+    const pipe = rest.lastIndexOf("|");
+    if (pipe <= 0) return null;
+    const n = normalizarNombreContacto(rest.slice(0, pipe));
+    const m = normalizarNombreContacto(rest.slice(pipe + 1));
+    return n.length >= 2 && m ? `nom:${n}|${m}` : null;
+  }
   return clave;
+}
+
+/** Clave usada para agrupar anuncios del mismo contacto (UI y avisos). */
+export function claveAgrupacionAnuncio(a: {
+  contacto_clave?: string | null;
+  contacto_telefono?: string | null;
+  contacto_nombre?: string | null;
+  municipio?: string | null;
+}): string | null {
+  const desdeCampos = claveContacto(a.contacto_telefono, a.contacto_nombre, a.municipio);
+  const desdeGuardada = claveContactoCanonica(a.contacto_clave);
+  if (desdeCampos?.startsWith("tel:")) return desdeCampos;
+  return desdeCampos ?? desdeGuardada;
 }

@@ -225,7 +225,7 @@ export function parseFaseAnuncio(value: unknown): FaseAnuncio {
   return FASES_ANUNCIO.includes(value as FaseAnuncio) ? (value as FaseAnuncio) : "novedad";
 }
 
-export { claveContacto, claveContactoCanonica, telefonoE164 } from "@/lib/captacion/contacto";
+export { claveAgrupacionAnuncio, claveContacto, claveContactoCanonica, telefonoE164 } from "@/lib/captacion/contacto";
 
 export function euros(n: number | null | undefined, alquiler = false): string {
   if (n == null || Number.isNaN(n)) return "—";
