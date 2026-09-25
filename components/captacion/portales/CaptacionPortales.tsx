@@ -29,8 +29,6 @@ import {
   TIPO_ANUNCIO_LABEL,
   TIPOS_ANUNCIO,
   cuandoPublicado,
-  diasEnPortal,
-  fechaPublicacionPortal,
   euros,
   eurosM2,
   fotosAnuncio,
@@ -394,11 +392,12 @@ export function CaptacionPortales() {
 
   const listado = useMemo(() => {
     const base = chip === "retirados" ? baseRetirados : baseNov;
-    const diasPortal = (row: { publicado_en: string | null; created_at: string | null }) => {
-      const portal = fechaPublicacionPortal(row.publicado_en, row.created_at);
-      return portal ? diasEnPortal(portal) : Number.MAX_SAFE_INTEGER;
-    };
     const esNuevoListado = (row: AnuncioCaptacion) => esNuevoHoyCaptacion(row, hayRecogidaCompleta);
+    const traidoAlCrm = (row: AnuncioCaptacion) => {
+      const iso = row.visto_primera_vez ?? row.created_at ?? row.visto_en;
+      const t = iso ? new Date(iso).getTime() : 0;
+      return Number.isNaN(t) ? 0 : t;
+    };
     return base
       .filter((a) => filtraListado(a))
       .slice()
@@ -406,10 +405,10 @@ export function CaptacionPortales() {
         if (orden === "precio") return (a.precio ?? 0) - (b.precio ?? 0);
         if (orden === "pm2") return (a.precio ?? 0) / Math.max(a.superficie ?? 1, 1) - (b.precio ?? 0) / Math.max(b.superficie ?? 1, 1);
         if (orden === "m2") return (b.superficie ?? 0) - (a.superficie ?? 0);
-        const na = esNuevoListado(a) ? 1 : 0;
-        const nb = esNuevoListado(b) ? 1 : 0;
+        const na = esNuevoListado(a) ? 0 : 1;
+        const nb = esNuevoListado(b) ? 0 : 1;
         if (na !== nb) return na - nb;
-        return diasPortal(a) - diasPortal(b);
+        return traidoAlCrm(b) - traidoAlCrm(a);
       });
   }, [baseNov, baseRetirados, chip, filtraListado, orden, hayRecogidaCompleta]);
 
