@@ -12,6 +12,7 @@ import {
   zonasPorDefecto,
   type ZonaIdealista,
 } from "@/lib/captacion/brightdata/zonas";
+import { usdEstimadoTrasCreditos, usdValorMercadoPeticiones } from "@/lib/captacion/brightdata/presupuesto-unlocker-math";
 import {
   presupuestoUnlockerPorDefecto,
   simularListadoZonas,
@@ -88,6 +89,16 @@ export function ZonasIdealistaCard() {
     () => simularListadoZonas(activas, estimados, presupuestoUnlocker ?? presupuestoUnlockerPorDefecto()),
     [activas, estimados, presupuestoUnlocker]
   );
+
+  const usdCaptacionCrm = useMemo(() => {
+    if (!presupuestoUnlocker) return null;
+    const pet = presupuestoUnlocker.usadasMes;
+    return {
+      pet,
+      tarifa: usdValorMercadoPeticiones(pet),
+      bolsillo: usdEstimadoTrasCreditos(pet, presupuestoUnlocker.creditosGratis),
+    };
+  }, [presupuestoUnlocker]);
 
   useEffect(() => {
     void (async () => {
@@ -271,7 +282,10 @@ export function ZonasIdealistaCard() {
             sim.dentroTope ? "border-[var(--border)] bg-[var(--surface-2)]" : "border-[#E8A4A4] bg-[#FBF3F3]"
           }`}
         >
-          <p className="font-medium text-[var(--text-1)]">Simulación Unlocker (listado diario)</p>
+          <p className="font-medium text-[var(--text-1)]">Si guardas esta selección (simulación)</p>
+          <p className="text-[12px] text-[var(--text-3)]">
+            Las casillas no cambian el gasto ya hecho ni el cron hasta pulsar «Guardar zonas».
+          </p>
           {sim.zonasActivas === 0 ? (
             <p className="mt-1 text-[var(--text-2)]">Marca al menos un municipio para estimar peticiones y USD.</p>
           ) : (
@@ -334,36 +348,75 @@ export function ZonasIdealistaCard() {
               </p>
             </>
           )}
+        </div>
+        <div className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-3 text-[13px]">
+          <p className="font-medium text-[var(--text-1)]">Ya ejecutado este mes (no depende de las casillas)</p>
+          {usdCaptacionCrm ? (
+            <p className="mt-1 text-[var(--text-2)]">
+              Captación CRM: {usdCaptacionCrm.pet.toLocaleString("es-ES")} peticiones Unlocker registradas · tarifa ~
+              {usd(usdCaptacionCrm.tarifa)} · de bolsillo estimado ~{usd(usdCaptacionCrm.bolsillo)} (tras{" "}
+              {presupuestoUnlocker?.creditosGratis.toLocaleString("es-ES")} créditos).
+            </p>
+          ) : null}
           {gastoBrightData?.gastoMes != null ? (
-            <div className="mt-3 border-t border-[var(--border)] pt-3">
-              <p className="text-[12px] font-medium text-[var(--text-1)]">
-                Gasto real Bright Data ({gastoBrightData.mes ?? "mes"}):{" "}
-                <span className="tabular-nums">{usd(gastoBrightData.gastoMes)}</span>
-                {gastoBrightData.usdProyectadoFinMes != null ? (
-                  <span className="font-normal text-[var(--text-2)]">
-                    {" "}
-                    · proyectado fin de mes ~{usd(gastoBrightData.usdProyectadoFinMes)}
-                  </span>
-                ) : null}
+            <div className="mt-2 space-y-2 border-t border-[var(--border)] pt-2">
+              <p className="text-[12px] text-[var(--text-2)]">
+                <span className="font-medium text-[var(--text-1)]">Cuenta Bright Data ({gastoBrightData.mes})</span> — suma{" "}
+                <strong>todos</strong> los productos de la cuenta, no solo Oleiros ni el listado simulado arriba.
               </p>
-              <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-neutral-200">
-                <div
-                  className={`h-full ${gastoBrightData.gastoMes <= (presupuestoUnlocker?.usdMes ?? sim.usdMes) ? "bg-violet-500" : "bg-red-500"}`}
-                  style={{
-                    width: `${Math.min(100, Math.round((gastoBrightData.gastoMes / (presupuestoUnlocker?.usdMes ?? sim.usdMes)) * 100))}%`,
-                  }}
-                />
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div>
+                  <p className="text-[11px] uppercase text-[var(--text-3)]">Total cuenta</p>
+                  <p className="text-base font-semibold tabular-nums">{usd(gastoBrightData.gastoMes)}</p>
+                  {gastoBrightData.usdProyectadoFinMes != null ? (
+                    <p className="text-[11.5px] text-[var(--text-3)]">Proyectado ~{usd(gastoBrightData.usdProyectadoFinMes)}</p>
+                  ) : null}
+                </div>
+                <div>
+                  <p className="text-[11px] uppercase text-[var(--text-3)]">Solo Web Unlocker</p>
+                  <p className="text-base font-semibold tabular-nums">
+                    {gastoBrightData.gastoUnlockerMes != null ? usd(gastoBrightData.gastoUnlockerMes) : "—"}
+                  </p>
+                  {gastoBrightData.usdProyectadoUnlockerFinMes != null ? (
+                    <p className="text-[11.5px] text-[var(--text-3)]">
+                      Proyectado ~{usd(gastoBrightData.usdProyectadoUnlockerFinMes)} · tope captación{" "}
+                      {presupuestoUnlocker?.usdMes ?? sim.usdMes} USD
+                    </p>
+                  ) : null}
+                </div>
               </div>
+              {gastoBrightData.gastoUnlockerMes != null ? (
+                <div>
+                  <div className="flex justify-between text-[12px] text-[var(--text-2)]">
+                    <span>Unlocker vs tope {presupuestoUnlocker?.usdMes ?? sim.usdMes} USD</span>
+                    <span className="tabular-nums">{usd(gastoBrightData.gastoUnlockerMes)}</span>
+                  </div>
+                  <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-neutral-200">
+                    <div
+                      className={`h-full ${gastoBrightData.gastoUnlockerMes <= (presupuestoUnlocker?.usdMes ?? sim.usdMes) ? "bg-violet-500" : "bg-red-500"}`}
+                      style={{
+                        width: `${Math.min(100, Math.round((gastoBrightData.gastoUnlockerMes / (presupuestoUnlocker?.usdMes ?? sim.usdMes)) * 100))}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : null}
+              {gastoBrightData.productos.length > 0 ? (
+                <details className="text-[12px] text-[var(--text-2)]">
+                  <summary className="cursor-pointer">Desglose por producto (cuenta entera)</summary>
+                  <ul className="mt-1 space-y-0.5 pl-1">
+                    {gastoBrightData.productos.map((p) => (
+                      <li key={p.id} className="flex justify-between gap-2 tabular-nums">
+                        <span className="font-mono text-[11px]">{p.id}</span>
+                        <span>{usd(p.usd)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              ) : null}
             </div>
           ) : gastoBrightData?.aviso ? (
-            <p className="mt-2 border-t border-[var(--border)] pt-2 text-[12px] text-[var(--text-3)]">
-              Gasto Bright Data: {gastoBrightData.aviso}
-            </p>
-          ) : presupuestoUnlocker ? (
-            <p className="mt-2 border-t border-[var(--border)] pt-2 text-[12px] text-[var(--text-3)]">
-              Peticiones reales este mes: {presupuestoUnlocker.usadasMes.toLocaleString("es-ES")} /{" "}
-              {presupuestoUnlocker.topeMes.toLocaleString("es-ES")} · quedan {presupuestoUnlocker.restantesMes.toLocaleString("es-ES")}.
-            </p>
+            <p className="mt-2 text-[12px] text-[var(--text-3)]">Bright Data: {gastoBrightData.aviso}</p>
           ) : null}
         </div>
         {grupos.map((grupo) => (

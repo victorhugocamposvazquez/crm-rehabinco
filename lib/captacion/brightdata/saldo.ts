@@ -1,7 +1,11 @@
 export type GastoBrightData = {
   saldo: number | null;
   pendiente: number | null;
+  /** Suma de todos los productos de la cuenta (Cost Explorer). */
   gastoMes: number | null;
+  /** Solo líneas Unlocker / Web Unlocker en el desglose. */
+  gastoUnlockerMes: number | null;
+  productos: Array<{ id: string; usd: number }>;
   mes: string;
   aviso: string | null;
 };
@@ -27,15 +31,46 @@ function fechaUtc(ano: number, mes: number, dia: number): string {
 
 /** Suma el JSON del Cost Explorer: un objeto por día y, dentro, el importe de cada producto. */
 export function sumarCoste(cuerpo: unknown): number {
-  if (!cuerpo || typeof cuerpo !== "object" || Array.isArray(cuerpo)) return 0;
-  let total = 0;
+  const porProducto = desgloseCostePorProducto(cuerpo);
+  return Math.round(Object.values(porProducto).reduce((a, b) => a + b, 0) * 100) / 100;
+}
+
+export function desgloseCostePorProducto(cuerpo: unknown): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!cuerpo || typeof cuerpo !== "object" || Array.isArray(cuerpo)) return out;
   for (const dia of Object.values(cuerpo as Record<string, unknown>)) {
     if (!dia || typeof dia !== "object" || Array.isArray(dia)) continue;
-    for (const valor of Object.values(dia as Record<string, unknown>)) {
-      if (typeof valor === "number" && Number.isFinite(valor)) total += valor;
+    for (const [producto, valor] of Object.entries(dia as Record<string, unknown>)) {
+      if (typeof valor === "number" && Number.isFinite(valor)) {
+        out[producto] = (out[producto] ?? 0) + valor;
+      }
     }
   }
-  return Math.round(total * 100) / 100;
+  for (const k of Object.keys(out)) {
+    out[k] = Math.round(out[k] * 100) / 100;
+  }
+  return out;
+}
+
+/** Productos que usa la captación Idealista en este CRM. */
+export function esProductoWebUnlocker(idProducto: string): boolean {
+  const n = idProducto.toLowerCase().replace(/-/g, "_");
+  return n.includes("unlocker");
+}
+
+export function sumarCosteUnlocker(cuerpo: unknown): number {
+  const porProducto = desgloseCostePorProducto(cuerpo);
+  return Math.round(
+    Object.entries(porProducto)
+      .filter(([id]) => esProductoWebUnlocker(id))
+      .reduce((a, [, usd]) => a + usd, 0) * 100
+  ) / 100;
+}
+
+export function listaProductosCoste(cuerpo: unknown): Array<{ id: string; usd: number }> {
+  return Object.entries(desgloseCostePorProducto(cuerpo))
+    .map(([id, usd]) => ({ id, usd }))
+    .sort((a, b) => b.usd - a.usd);
 }
 
 export async function leerGastoBrightData(token: string, ahora = new Date()): Promise<GastoBrightData> {
@@ -60,8 +95,12 @@ export async function leerGastoBrightData(token: string, ahora = new Date()): Pr
   }
 
   let gastoMes: number | null = null;
+  let gastoUnlockerMes: number | null = null;
+  let productos: GastoBrightData["productos"] = [];
   if (coste.status >= 200 && coste.status < 300) {
     gastoMes = sumarCoste(coste.json);
+    gastoUnlockerMes = sumarCosteUnlocker(coste.json);
+    productos = listaProductosCoste(coste.json);
   } else {
     avisos.push(mensaje(coste.status, coste.json));
   }
@@ -70,6 +109,8 @@ export async function leerGastoBrightData(token: string, ahora = new Date()): Pr
     saldo,
     pendiente,
     gastoMes,
+    gastoUnlockerMes,
+    productos,
     mes: rango.etiqueta,
     aviso: [...new Set(avisos)].join(" ") || null,
   };

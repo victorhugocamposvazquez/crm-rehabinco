@@ -41,9 +41,12 @@ export type SimulacionListadoZonas = {
 
 export type GastoBrightDataCliente = {
   gastoMes: number | null;
+  gastoUnlockerMes: number | null;
+  productos: Array<{ id: string; usd: number }>;
   mes: string | null;
   aviso: string | null;
   usdProyectadoFinMes: number | null;
+  usdProyectadoUnlockerFinMes: number | null;
 };
 
 export function diasMesNatural(ahora = new Date()): number {
@@ -112,13 +115,25 @@ export function usdListadoMesZona(id: string, estimados: Record<string, number |
 }
 
 export function enriquecerGastoBrightData(
-  gasto: { gastoMes: number | null; mes: string | null; aviso: string | null },
+  gasto: {
+    gastoMes: number | null;
+    gastoUnlockerMes?: number | null;
+    productos?: Array<{ id: string; usd: number }>;
+    mes: string | null;
+    aviso: string | null;
+  },
   ahora = new Date()
 ): GastoBrightDataCliente {
   const g = gasto.gastoMes;
+  const u = gasto.gastoUnlockerMes ?? null;
   return {
-    ...gasto,
+    gastoMes: g,
+    gastoUnlockerMes: u,
+    productos: gasto.productos ?? [],
+    mes: gasto.mes,
+    aviso: gasto.aviso,
     usdProyectadoFinMes: g != null ? usdProyectadoFinMesDesdeGastoAcumulado(g, ahora) : null,
+    usdProyectadoUnlockerFinMes: u != null ? usdProyectadoFinMesDesdeGastoAcumulado(u, ahora) : null,
   };
 }
 

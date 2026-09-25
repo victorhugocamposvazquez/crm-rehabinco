@@ -123,10 +123,22 @@ export async function GET() {
 
   const pres = await resumenPresupuestoUnlocker();
   const config = configBrightDataIdealista();
-  let gastoBrightData = enriquecerGastoBrightData({ gastoMes: null, mes: null, aviso: null });
+  let gastoBrightData = enriquecerGastoBrightData({
+    gastoMes: null,
+    gastoUnlockerMes: null,
+    productos: [],
+    mes: null,
+    aviso: null,
+  });
   if (!("error" in config)) {
     const g = await leerGastoBrightData(config.token);
-    gastoBrightData = enriquecerGastoBrightData({ gastoMes: g.gastoMes, mes: g.mes, aviso: g.aviso });
+    gastoBrightData = enriquecerGastoBrightData({
+      gastoMes: g.gastoMes,
+      gastoUnlockerMes: g.gastoUnlockerMes,
+      productos: g.productos,
+      mes: g.mes,
+      aviso: g.aviso,
+    });
   }
   return Response.json({
     ok: true,

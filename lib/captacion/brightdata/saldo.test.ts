@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { rangoMesUtc, sumarCoste } from "./saldo";
+import { desgloseCostePorProducto, rangoMesUtc, sumarCoste, sumarCosteUnlocker } from "./saldo";
 
 describe("gasto Bright Data", () => {
   it("cierra el mes en UTC y deja el día final fuera", () => {
@@ -21,5 +21,14 @@ describe("gasto Bright Data", () => {
     );
     assert.equal(sumarCoste(null), 0);
     assert.equal(sumarCoste([]), 0);
+  });
+
+  it("separa Unlocker del resto de productos", () => {
+    const cuerpo = {
+      "2026-09-01": { web_unlocker: 2.5, scraper_studio: 20, browser: 1 },
+    };
+    assert.equal(desgloseCostePorProducto(cuerpo).web_unlocker, 2.5);
+    assert.equal(sumarCosteUnlocker(cuerpo), 2.5);
+    assert.equal(sumarCoste(cuerpo), 23.5);
   });
 });
