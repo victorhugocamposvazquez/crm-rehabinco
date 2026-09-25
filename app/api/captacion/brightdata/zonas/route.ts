@@ -1,6 +1,9 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { estimadosZonas, guardarZonasActivas, idsZonasActivas } from "@/lib/captacion/brightdata/zonas-guardadas";
+import { configBrightDataIdealista } from "@/lib/captacion/brightdata/config";
 import { resumenPresupuestoUnlocker } from "@/lib/captacion/brightdata/presupuesto-unlocker";
+import { enriquecerGastoBrightData } from "@/lib/captacion/brightdata/simulacion-zonas";
+import { leerGastoBrightData } from "@/lib/captacion/brightdata/saldo";
 import { ZONAS_IDEALISTA, anunciosDeZonas } from "@/lib/captacion/brightdata/zonas";
 import { contarFichasEnCola } from "@/lib/captacion/brightdata/fichas";
 import { metricasTelefonos } from "@/lib/captacion/brightdata/telefonos-metricas";
@@ -119,6 +122,12 @@ export async function GET() {
   }));
 
   const pres = await resumenPresupuestoUnlocker();
+  const config = configBrightDataIdealista();
+  let gastoBrightData = enriquecerGastoBrightData({ gastoMes: null, mes: null, aviso: null });
+  if (!("error" in config)) {
+    const g = await leerGastoBrightData(config.token);
+    gastoBrightData = enriquecerGastoBrightData({ gastoMes: g.gastoMes, mes: g.mes, aviso: g.aviso });
+  }
   return Response.json({
     ok: true,
     activas,
@@ -131,6 +140,7 @@ export async function GET() {
       usadasMes: pres.usadasMes,
       restantesMes: pres.restantesMes,
     },
+    gastoBrightData,
     zonas: ZONAS_IDEALISTA,
     sospechosas,
     diagnosticos,

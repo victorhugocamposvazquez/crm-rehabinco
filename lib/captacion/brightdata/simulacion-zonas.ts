@@ -3,6 +3,8 @@ import {
   topePeticionesMensual,
   usdEstimadoTrasCreditos,
   usdPresupuestoMes,
+  usdProyectadoFinMesDesdeGastoAcumulado,
+  usdValorMercadoPeticiones,
 } from "@/lib/captacion/brightdata/presupuesto-unlocker-math";
 import { paginasListadoEstimadasConEstimados, paginasListadoDiaZona } from "@/lib/captacion/brightdata/zonas";
 
@@ -28,6 +30,20 @@ export type SimulacionListadoZonas = {
   dentroTope: boolean;
   margenPeticiones: number;
   usdEstimadoListado: number;
+  usdTarifaListadoMes: number;
+  usdBolsilloListadoMes: number;
+  /** Listado simulado descontando créditos aún no consumidos este mes. */
+  usdBolsilloListadoTrasUsoReal: number;
+  creditosRestantesMes: number;
+  usdMesOrientativoPeticiones: number;
+  pctPresupuestoUsdListado: number;
+};
+
+export type GastoBrightDataCliente = {
+  gastoMes: number | null;
+  mes: string | null;
+  aviso: string | null;
+  usdProyectadoFinMes: number | null;
 };
 
 export function diasMesNatural(ahora = new Date()): number {
@@ -60,6 +76,13 @@ export function simularListadoZonas(
   const diasMes = diasMesNatural(ahora);
   const paginasMes = paginasDia * diasMes;
   const pctDelTope = topeMes > 0 ? paginasMes / topeMes : 0;
+  const usadasMes = presupuesto?.usadasMes ?? 0;
+  const creditosRestantesMes = Math.max(0, creditosGratis - usadasMes);
+  const usdTarifaListadoMes = usdValorMercadoPeticiones(paginasMes);
+  const usdBolsilloListadoMes = usdEstimadoTrasCreditos(paginasMes, creditosGratis);
+  const usdBolsilloListadoTrasUsoReal = usdEstimadoTrasCreditos(paginasMes, creditosRestantesMes);
+  const peticionesMesOrientativo = usadasMes + paginasMes;
+  const usdMesOrientativoPeticiones = usdEstimadoTrasCreditos(peticionesMesOrientativo, creditosGratis);
   return {
     zonasActivas: activas.length,
     paginasMunicipiosDia,
@@ -73,7 +96,29 @@ export function simularListadoZonas(
     pctDelTope,
     dentroTope: paginasMes <= topeMes,
     margenPeticiones: topeMes - paginasMes,
-    usdEstimadoListado: usdEstimadoTrasCreditos(paginasMes, creditosGratis),
+    usdEstimadoListado: usdBolsilloListadoMes,
+    usdTarifaListadoMes,
+    usdBolsilloListadoMes,
+    usdBolsilloListadoTrasUsoReal,
+    creditosRestantesMes,
+    usdMesOrientativoPeticiones,
+    pctPresupuestoUsdListado: usdMes > 0 ? usdBolsilloListadoTrasUsoReal / usdMes : 0,
+  };
+}
+
+export function usdListadoMesZona(id: string, estimados: Record<string, number | null | undefined>, diasMes: number): number {
+  const pet = paginasListadoDiaZona(id, estimados) * diasMes;
+  return usdValorMercadoPeticiones(pet);
+}
+
+export function enriquecerGastoBrightData(
+  gasto: { gastoMes: number | null; mes: string | null; aviso: string | null },
+  ahora = new Date()
+): GastoBrightDataCliente {
+  const g = gasto.gastoMes;
+  return {
+    ...gasto,
+    usdProyectadoFinMes: g != null ? usdProyectadoFinMesDesdeGastoAcumulado(g, ahora) : null,
   };
 }
 

@@ -9,5 +9,6 @@ describe("simulación listado zonas", () => {
     assert.equal(s.paginasMunicipiosDia, 143);
     assert.equal(s.paginasDia, 144);
     assert.ok(s.dentroTope);
+    assert.equal(s.usdTarifaListadoMes, 6.48);
   });
 });

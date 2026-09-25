@@ -25,5 +25,23 @@ export function topePeticionesMensual(): number {
 /** USD de bolsillo si estas peticiones fueran lo único del mes (tras créditos gratis). */
 export function usdEstimadoTrasCreditos(peticiones: number, creditosGratis = creditosGratisMes()): number {
   const pagadas = Math.max(0, peticiones - creditosGratis);
-  return Math.round((pagadas / 1000) * UNLOCKER_USD_POR_MIL * 100) / 100;
+  return usdBolsilloPeticionesPagadas(pagadas);
+}
+
+/** Importe a tarifa Bright Data (1,50 USD / 1.000), sin créditos. */
+export function usdValorMercadoPeticiones(peticiones: number): number {
+  return usdBolsilloPeticionesPagadas(peticiones);
+}
+
+export function usdBolsilloPeticionesPagadas(peticionesPagadas: number): number {
+  return Math.round((Math.max(0, peticionesPagadas) / 1000) * UNLOCKER_USD_POR_MIL * 100) / 100;
+}
+
+/** Extrapola el gasto acumulado del mes natural UTC al cierre del mes. */
+export function usdProyectadoFinMesDesdeGastoAcumulado(gastoAcumulado: number, ahora = new Date()): number {
+  if (!Number.isFinite(gastoAcumulado) || gastoAcumulado <= 0) return 0;
+  const dia = ahora.getUTCDate();
+  const dias = new Date(Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth() + 1, 0)).getUTCDate();
+  if (dia <= 0) return gastoAcumulado;
+  return Math.round((gastoAcumulado / dia) * dias * 100) / 100;
 }

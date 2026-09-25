@@ -15,8 +15,14 @@ import {
 import {
   presupuestoUnlockerPorDefecto,
   simularListadoZonas,
+  usdListadoMesZona,
+  type GastoBrightDataCliente,
   type PresupuestoUnlockerCliente,
 } from "@/lib/captacion/brightdata/simulacion-zonas";
+
+function usd(n: number): string {
+  return `${n.toFixed(2)} USD`;
+}
 
 type UltimaRecogida = {
   fecha: string;
@@ -76,6 +82,7 @@ export function ZonasIdealistaCard() {
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [presupuestoUnlocker, setPresupuestoUnlocker] = useState<PresupuestoUnlockerCliente | null>(null);
+  const [gastoBrightData, setGastoBrightData] = useState<GastoBrightDataCliente | null>(null);
 
   const sim = useMemo(
     () => simularListadoZonas(activas, estimados, presupuestoUnlocker ?? presupuestoUnlockerPorDefecto()),
@@ -101,6 +108,7 @@ export function ZonasIdealistaCard() {
         fichasEnCola?: number;
         telefonos?: { hoy: { pedidos: number; obtenidos: number; fallidos: number; tasa: number | null }; sieteDias: { tasa: number | null }; pausado: boolean };
         presupuestoUnlocker?: PresupuestoUnlockerCliente;
+        gastoBrightData?: GastoBrightDataCliente;
       };
       if (!res.ok || !json.ok || !json.zonas) {
         toast.error(json.error || "No se han podido leer las zonas.");
@@ -118,6 +126,7 @@ export function ZonasIdealistaCard() {
       setFichasEnCola(json.fichasEnCola ?? 0);
       setTelefonos(json.telefonos ?? null);
       if (json.presupuestoUnlocker) setPresupuestoUnlocker(json.presupuestoUnlocker);
+      if (json.gastoBrightData) setGastoBrightData(json.gastoBrightData);
       setCargando(false);
     })();
   }, []);
@@ -263,38 +272,97 @@ export function ZonasIdealistaCard() {
           }`}
         >
           <p className="font-medium text-[var(--text-1)]">Simulación Unlocker (listado diario)</p>
-          <p className="mt-1 text-[var(--text-2)]">
-            {sim.zonasActivas === 0
-              ? "Marca al menos un municipio para estimar peticiones."
-              : `${sim.paginasDia.toLocaleString("es-ES")} pet./día (${sim.paginasMunicipiosDia} municipios + ${sim.paginasProvinciaDia} provincia 48 h) → ~${sim.paginasMes.toLocaleString("es-ES")} pet./mes (${sim.diasMes} días).`}
-          </p>
-          {sim.zonasActivas > 0 ? (
+          {sim.zonasActivas === 0 ? (
+            <p className="mt-1 text-[var(--text-2)]">Marca al menos un municipio para estimar peticiones y USD.</p>
+          ) : (
             <>
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-200">
-                <div
-                  className={`h-full transition-all ${sim.dentroTope ? "bg-emerald-500" : "bg-red-500"}`}
-                  style={{ width: `${Math.min(100, Math.round(sim.pctDelTope * 100))}%` }}
-                />
+              <p className="mt-1 text-[var(--text-2)]">
+                {sim.paginasDia.toLocaleString("es-ES")} pet./día ({sim.zonasActivas} zonas ·{" "}
+                {sim.paginasMunicipiosDia.toLocaleString("es-ES")} pág. listado + {sim.paginasProvinciaDia} provincia 48 h) → ~
+                {sim.paginasMes.toLocaleString("es-ES")} pet./mes.
+              </p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <div className="rounded border border-[var(--border)] bg-[var(--surface-1)] px-2.5 py-2">
+                  <p className="text-[11px] uppercase tracking-wide text-[var(--text-3)]">Tarifa listado (1,50 / 1.000)</p>
+                  <p className="text-lg font-semibold tabular-nums text-[var(--text-1)]">~{usd(sim.usdTarifaListadoMes)}</p>
+                  <p className="text-[11.5px] text-[var(--text-3)]">/ mes · sube y baja al marcar zonas</p>
+                </div>
+                <div className="rounded border border-[var(--border)] bg-[var(--surface-1)] px-2.5 py-2">
+                  <p className="text-[11px] uppercase tracking-wide text-[var(--text-3)]">De bolsillo (listado sim.)</p>
+                  <p className="text-lg font-semibold tabular-nums text-[var(--text-1)]">
+                    ~{usd(sim.usdBolsilloListadoTrasUsoReal)}
+                  </p>
+                  <p className="text-[11.5px] text-[var(--text-3)]">
+                    Tras {sim.creditosRestantesMes.toLocaleString("es-ES")} créditos restantes (≈{" "}
+                    {presupuestoUnlocker?.usadasMes.toLocaleString("es-ES") ?? "0"} pet. ya hechas).
+                  </p>
+                </div>
               </div>
-              <p className="mt-1.5 text-[12.5px] text-[var(--text-2)]">
-                {Math.round(sim.pctDelTope * 100)} % del tope mensual ({sim.topeMes.toLocaleString("es-ES")} pet. ={" "}
-                {sim.creditosGratis.toLocaleString("es-ES")} créditos + {sim.usdMes.toFixed(0)} USD).
-                {sim.usdEstimadoListado > 0
-                  ? ` Solo listado: ~${sim.usdEstimadoListado.toFixed(2)} USD de bolsillo (tras créditos).`
-                  : " Solo listado: cubierto por créditos gratis."}
-                {sim.margenPeticiones > 0
-                  ? ` Margen ~${sim.margenPeticiones.toLocaleString("es-ES")} pet./mes para fichas y teléfonos.`
-                  : sim.dentroTope
-                    ? ""
-                    : ` Te pasas ~${Math.abs(sim.margenPeticiones).toLocaleString("es-ES")} pet./mes solo con listado.`}
+              <div className="mt-3">
+                <div className="flex justify-between text-[12px] text-[var(--text-2)]">
+                  <span>Tope bolsillo captación</span>
+                  <span className="tabular-nums">
+                    ~{usd(sim.usdBolsilloListadoTrasUsoReal)} / {sim.usdMes.toFixed(0)} USD (solo listado sim.)
+                  </span>
+                </div>
+                <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-neutral-200">
+                  <div
+                    className={`h-full transition-all ${sim.usdBolsilloListadoTrasUsoReal <= sim.usdMes ? "bg-emerald-500" : "bg-red-500"}`}
+                    style={{
+                      width: `${Math.min(100, Math.round((sim.usdBolsilloListadoTrasUsoReal / sim.usdMes) * 100))}%`,
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="mt-2">
+                <div className="flex justify-between text-[12px] text-[var(--text-2)]">
+                  <span>Tope peticiones (créditos + USD)</span>
+                  <span className="tabular-nums">
+                    {sim.paginasMes.toLocaleString("es-ES")} / {sim.topeMes.toLocaleString("es-ES")} pet.
+                  </span>
+                </div>
+                <div className="mt-1 h-2 overflow-hidden rounded-full bg-neutral-200">
+                  <div
+                    className={`h-full transition-all ${sim.dentroTope ? "bg-sky-500" : "bg-red-500"}`}
+                    style={{ width: `${Math.min(100, Math.round(sim.pctDelTope * 100))}%` }}
+                  />
+                </div>
+              </div>
+              <p className="mt-2 text-[12px] text-[var(--text-3)]">
+                Mes orientativo (pet. reales + listado sim.): ~{usd(sim.usdMesOrientativoPeticiones)} de bolsillo · margen ~
+                {sim.margenPeticiones.toLocaleString("es-ES")} pet. para fichas/teléfonos.
               </p>
             </>
-          ) : null}
-          {presupuestoUnlocker ? (
+          )}
+          {gastoBrightData?.gastoMes != null ? (
+            <div className="mt-3 border-t border-[var(--border)] pt-3">
+              <p className="text-[12px] font-medium text-[var(--text-1)]">
+                Gasto real Bright Data ({gastoBrightData.mes ?? "mes"}):{" "}
+                <span className="tabular-nums">{usd(gastoBrightData.gastoMes)}</span>
+                {gastoBrightData.usdProyectadoFinMes != null ? (
+                  <span className="font-normal text-[var(--text-2)]">
+                    {" "}
+                    · proyectado fin de mes ~{usd(gastoBrightData.usdProyectadoFinMes)}
+                  </span>
+                ) : null}
+              </p>
+              <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-neutral-200">
+                <div
+                  className={`h-full ${gastoBrightData.gastoMes <= (presupuestoUnlocker?.usdMes ?? sim.usdMes) ? "bg-violet-500" : "bg-red-500"}`}
+                  style={{
+                    width: `${Math.min(100, Math.round((gastoBrightData.gastoMes / (presupuestoUnlocker?.usdMes ?? sim.usdMes)) * 100))}%`,
+                  }}
+                />
+              </div>
+            </div>
+          ) : gastoBrightData?.aviso ? (
             <p className="mt-2 border-t border-[var(--border)] pt-2 text-[12px] text-[var(--text-3)]">
-              Gasto real este mes (todas las ráfagas): {presupuestoUnlocker.usadasMes.toLocaleString("es-ES")} /{" "}
-              {presupuestoUnlocker.topeMes.toLocaleString("es-ES")} pet. · quedan{" "}
-              {presupuestoUnlocker.restantesMes.toLocaleString("es-ES")}. Fichas/teléfonos no entran en la barra verde.
+              Gasto Bright Data: {gastoBrightData.aviso}
+            </p>
+          ) : presupuestoUnlocker ? (
+            <p className="mt-2 border-t border-[var(--border)] pt-2 text-[12px] text-[var(--text-3)]">
+              Peticiones reales este mes: {presupuestoUnlocker.usadasMes.toLocaleString("es-ES")} /{" "}
+              {presupuestoUnlocker.topeMes.toLocaleString("es-ES")} · quedan {presupuestoUnlocker.restantesMes.toLocaleString("es-ES")}.
             </p>
           ) : null}
         </div>
@@ -313,8 +381,9 @@ export function ZonasIdealistaCard() {
                   <span className="min-w-0 flex-1">
                     {zona.nombre}
                     {activas.includes(zona.id) ? (
-                      <span className="ml-1 text-[12px] text-[var(--text-3)]">
-                        ~{paginasListadoDiaZona(zona.id, estimados)} pet./día
+                      <span className="ml-1 text-[12px] tabular-nums text-[var(--text-3)]">
+                        ~{paginasListadoDiaZona(zona.id, estimados)} pet./día · ~
+                        {usd(usdListadoMesZona(zona.id, estimados, sim.diasMes))}/mes
                       </span>
                     ) : null}
                     {zonaSuperaCorte(estimados[zona.id] ?? null) ? (
