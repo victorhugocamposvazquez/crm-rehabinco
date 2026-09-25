@@ -3,7 +3,7 @@ import { lockProcesarActivo } from "@/lib/captacion/brightdata/procesar-lock";
 import { ultimaRafaga, type RafagaCaptacion } from "@/lib/captacion/brightdata/rafagas";
 import { leerGastoBrightData } from "@/lib/captacion/brightdata/saldo";
 import { hayRecogidaAbiertaReciente } from "@/lib/captacion/brightdata/recogidas";
-import { telefonosColaPausada } from "@/lib/captacion/brightdata/telefonos-metricas";
+import { metricasTelefonos, telefonosColaPausada } from "@/lib/captacion/brightdata/telefonos-metricas";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type EstadoCheckCaptacion = {
@@ -142,13 +142,17 @@ export async function evaluarEstadoCaptacion(): Promise<EstadoCaptacion> {
 
   if (await telefonosColaPausada()) {
     const { data: telCfg } = await supabase.from("captacion_telefono_config").select("pausado_en").eq("id", 1).maybeSingle();
+    const tel = await metricasTelefonos();
+    const pct =
+      tel.hoy.tasa != null ? `${Math.round(tel.hoy.tasa * 100)} %` : "—";
+    const cuenta = `${tel.hoy.obtenidos} ok · ${tel.hoy.fallidos} fallo(s) hoy (${pct})`;
     checks.push({
       id: "telefonos",
       label: "Cola de teléfonos",
       nivel: "aviso",
       detalle: telCfg?.pausado_en
-        ? `Pausada desde ${new Date(telCfg.pausado_en as string).toLocaleString("es-ES")} (tasa < 60 %).`
-        : "Pausada por baja tasa de éxito.",
+        ? `Pausada desde ${new Date(telCfg.pausado_en as string).toLocaleString("es-ES")} · ${cuenta}. Tras 5 intentos, si ok/(ok+fallos) < 60 % se pausa (cuerpo vacío ya no cuenta como fallo).`
+        : `Pausada · ${cuenta}.`,
     });
   } else {
     checks.push({ id: "telefonos", label: "Cola de teléfonos", nivel: "ok", detalle: "Activa." });
