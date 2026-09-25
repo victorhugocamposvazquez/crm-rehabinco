@@ -5,6 +5,7 @@ import { CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { TimeInput } from "@/components/ui/time-input";
 import { Sheet } from "@/components/ui/sheet";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { CampoComentario, TextoConMenciones } from "@/components/tareas/CampoComentario";
@@ -395,10 +396,9 @@ export function TareaPanel({
               {tarea.hora ? (
                 <label className="flex items-center gap-2 text-[12.5px] text-[var(--text-2)]">
                   Programada · {venceLargo(tarea.vence)}
-                  <input
-                    type="time"
+                  <TimeInput
                     value={tarea.hora.slice(0, 5)}
-                    onChange={(e) => void onPatch(tarea.id, { hora: e.target.value || null })}
+                    onChange={(v) => void onPatch(tarea.id, { hora: v || null })}
                     className="h-8 rounded-lg border border-[var(--input)] bg-white px-2 text-[13px]"
                   />
                 </label>

@@ -1,5 +1,10 @@
 import { configBrightDataIdealista } from "@/lib/captacion/brightdata/config";
 import { lockProcesarActivo } from "@/lib/captacion/brightdata/procesar-lock";
+import {
+  estimarMinutosVaciarCola,
+  paginasPorMinutoRafaga,
+  textoEstimacionCola,
+} from "@/lib/captacion/brightdata/rafaga-config";
 import { ultimaRafaga, type RafagaCaptacion } from "@/lib/captacion/brightdata/rafagas";
 import { leerGastoBrightData } from "@/lib/captacion/brightdata/saldo";
 import { hayRecogidaAbiertaReciente } from "@/lib/captacion/brightdata/recogidas";
@@ -20,6 +25,8 @@ export type EstadoCaptacion = {
   rafagaEnCurso: boolean;
   recogidaAbiertaReciente: boolean;
   paginasPendientes: number;
+  paginasPorMinutoUltimaRafaga: number | null;
+  estimacionVaciarCola: string | null;
   gasto: { saldo: number | null; pendiente: number | null; aviso: string | null; mes: string | null };
 };
 
@@ -164,6 +171,12 @@ export async function evaluarEstadoCaptacion(): Promise<EstadoCaptacion> {
     checks.push({ id: "cron_secret", label: "CRON_SECRET", nivel: "ok", detalle: "Presente en el entorno." });
   }
 
+  const ppm =
+    ultima && ultima.motivo !== "lock_ocupado"
+      ? paginasPorMinutoRafaga(ultima.paginas, ultima.duracion_ms)
+      : null;
+  const estimacionVaciarCola = textoEstimacionCola(estimarMinutosVaciarCola(nPend, ppm));
+
   return {
     nivel: nivelGlobal(checks),
     checks,
@@ -171,6 +184,8 @@ export async function evaluarEstadoCaptacion(): Promise<EstadoCaptacion> {
     rafagaEnCurso,
     recogidaAbiertaReciente: await hayRecogidaAbiertaReciente(),
     paginasPendientes: nPend,
+    paginasPorMinutoUltimaRafaga: ppm,
+    estimacionVaciarCola,
     gasto,
   };
 }

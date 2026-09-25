@@ -63,7 +63,7 @@ export type ResultadoRafagaProcesar = {
 };
 
 /** Una ráfaga completa (lock + procesar + historial). */
-export async function ejecutarRafagaProcesar(limite = 20): Promise<ResultadoRafagaProcesar> {
+export async function ejecutarRafagaProcesar(): Promise<ResultadoRafagaProcesar> {
   const t0 = Date.now();
   if (!(await adquirirLockProcesar())) {
     await registrarRafagaOmitida("lock_ocupado");
@@ -71,11 +71,12 @@ export async function ejecutarRafagaProcesar(limite = 20): Promise<ResultadoRafa
   }
   const id = await iniciarRafaga();
   try {
-    const resultado = await procesarPaginasPendientes(limite);
+    const resultado = await procesarPaginasPendientes();
     await cerrarRafaga(id, {
       paginas: resultado.paginas,
       errores: resultado.errores,
       ok: true,
+      motivo: resultado.paradaPorTiempo ? "tope_tiempo" : null,
       duracionMs: Date.now() - t0,
     });
     return { paginas: resultado.paginas, errores: resultado.errores, cerradas: resultado.cerradas };

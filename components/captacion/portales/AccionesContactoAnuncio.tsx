@@ -9,6 +9,7 @@ import { nombreYApellido } from "@/lib/ui/tokens";
 import { syncTareaDesdeCita } from "@/lib/tareas/sync-cita";
 import { euros } from "@/lib/captacion/portales/modelo";
 import type { AnuncioCaptacion } from "@/lib/captacion/portales/modelo";
+import { TimeInput } from "@/components/ui/time-input";
 import {
   PLANTILLAS_WHATSAPP,
   notasRecordatorioCaptacion,
@@ -212,10 +213,9 @@ export function AccionesContactoAnuncio({
               onChange={(event) => setDia(event.target.value)}
               className="h-9 flex-1 rounded-lg border border-[var(--input)] bg-white px-2 text-[13px]"
             />
-            <input
-              type="time"
+            <TimeInput
               value={hora}
-              onChange={(event) => setHora(event.target.value)}
+              onChange={setHora}
               className="h-9 w-[108px] rounded-lg border border-[var(--input)] bg-white px-2 text-[13px]"
             />
           </div>

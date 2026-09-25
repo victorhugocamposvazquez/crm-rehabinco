@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { TimeInput } from "@/components/ui/time-input";
 import { Label } from "@/components/ui/label";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { DocumentoSplit, PdfFrame } from "@/components/documentos/DocumentoSplit";
@@ -473,11 +474,11 @@ export function ParteVisitaEditor({
                 </div>
                 <div>
                   <Label htmlFor="hora">Desde</Label>
-                  <Input id="hora" type="time" className="mt-1.5" value={horaVisita} onChange={(e) => setHoraVisita(e.target.value)} />
+                  <TimeInput id="hora" className="mt-1.5 flex h-9 w-full rounded-[9px] border border-[var(--input)] bg-white px-3 py-2 text-[13.5px]" value={horaVisita} onChange={setHoraVisita} />
                 </div>
                 <div>
                   <Label htmlFor="hora-fin">Hasta</Label>
-                  <Input id="hora-fin" type="time" className="mt-1.5" value={horaFin} onChange={(e) => setHoraFin(e.target.value)} />
+                  <TimeInput id="hora-fin" className="mt-1.5 flex h-9 w-full rounded-[9px] border border-[var(--input)] bg-white px-3 py-2 text-[13.5px]" value={horaFin} onChange={setHoraFin} />
                 </div>
               </div>
             </section>

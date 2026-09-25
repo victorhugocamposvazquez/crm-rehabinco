@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { AltaField, AltaPersona, AltaSection, AltaShell, altaControl, type PersonaOpcion } from "@/components/ui/alta-form";
+import { TimeInput } from "@/components/ui/time-input";
 import { NuevoClientePanel } from "@/components/clientes/NuevoClientePanel";
 import { BuscadorInmuebleCalendario } from "@/components/citas/BuscadorInmuebleCalendario";
 import { EnlaceMaps } from "@/components/citas/InmueblePreviewCita";
@@ -236,7 +237,7 @@ export function NuevaEntradaCalendario({
               <input type="date" value={dia} onChange={(e) => onDia(e.target.value)} className={altaControl} />
             </AltaField>
             <AltaField label="Hora">
-              <input type="time" value={hora} onChange={(e) => onHora(e.target.value)} className={altaControl} />
+              <TimeInput value={hora} onChange={onHora} className={altaControl} />
             </AltaField>
           </div>
         </AltaSection>

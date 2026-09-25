@@ -10,7 +10,7 @@ export const maxDuration = 300;
 
 export async function POST(request: Request) {
   if (cronAutorizado(request)) {
-    waitUntil(ejecutarRafagaProcesar(20));
+    waitUntil(ejecutarRafagaProcesar());
     return Response.json({ ok: true, encolado: true }, { status: 202 });
   }
   const sesion = await sesionSuperadminCaptacion();
@@ -18,6 +18,6 @@ export async function POST(request: Request) {
   if (await lockProcesarActivo()) {
     return Response.json({ ok: false, error: "Hay una ráfaga en curso." }, { status: 409 });
   }
-  const resultado = await ejecutarRafagaProcesar(20);
+  const resultado = await ejecutarRafagaProcesar();
   return Response.json({ ok: true, ...resultado });
 }

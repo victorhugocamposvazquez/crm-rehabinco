@@ -6,6 +6,7 @@ import { CitaAcciones } from "@/components/citas/CitaAcciones";
 import { EnlaceMaps } from "@/components/citas/InmueblePreviewCita";
 import { EventoCalendarioChip, GuiaHoraCalendario } from "@/components/citas/CalendarioSemana";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
+import { TimeInput } from "@/components/ui/time-input";
 import { FichaLink } from "@/components/crm/FichaPeek";
 import {
   CAL_HORA_FIN,
@@ -328,11 +329,10 @@ export function CalendarioMovil({
                   {editable ? (
                     <label className="mt-2 flex items-center gap-2 text-[12.5px] text-[var(--text-2)]">
                       Hora
-                      <input
-                        type="time"
+                      <TimeInput
                         value={horaCita(cita.empieza)}
-                        onChange={(e) => {
-                          if (e.target.value) onCambiarHora(cita.id, e.target.value);
+                        onChange={(v) => {
+                          if (v) onCambiarHora(cita.id, v);
                         }}
                         className="h-10 rounded-[9px] border border-[var(--input)] bg-white px-2 text-[14px]"
                       />

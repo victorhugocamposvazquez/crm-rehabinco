@@ -38,6 +38,8 @@ export function CaptacionSaludCard() {
   const [rafaga, setRafaga] = useState<Rafaga | null>(null);
   const [rafagaEnCurso, setRafagaEnCurso] = useState(false);
   const [pendientes, setPendientes] = useState(0);
+  const [ppm, setPpm] = useState<number | null>(null);
+  const [estimacionCola, setEstimacionCola] = useState<string | null>(null);
   const [recogidaAbierta, setRecogidaAbierta] = useState(false);
   const [accionLinea, setAccionLinea] = useState<string | null>(null);
   const [lanzandoRecogida, setLanzandoRecogida] = useState(false);
@@ -56,6 +58,8 @@ export function CaptacionSaludCard() {
       rafagaEnCurso?: boolean;
       recogidaAbiertaReciente?: boolean;
       paginasPendientes?: number;
+      paginasPorMinutoUltimaRafaga?: number | null;
+      estimacionVaciarCola?: string | null;
     };
     setCargando(false);
     if (!res.ok || !json.ok) {
@@ -68,6 +72,8 @@ export function CaptacionSaludCard() {
     setRafagaEnCurso(Boolean(json.rafagaEnCurso));
     setRecogidaAbierta(Boolean(json.recogidaAbiertaReciente));
     setPendientes(json.paginasPendientes ?? 0);
+    setPpm(json.paginasPorMinutoUltimaRafaga ?? null);
+    setEstimacionCola(json.estimacionVaciarCola ?? null);
   }, []);
 
   const lanzarRecogida = async () => {
@@ -162,7 +168,11 @@ export function CaptacionSaludCard() {
           ) : (
             <p className="text-[var(--text-2)]">Sin registros (aplica la migración captacion_rafagas).</p>
           )}
-          <p className="mt-1 text-[12px] text-[var(--text-3)]">{pendientes} páginas pendientes en cola</p>
+          <p className="mt-1 text-[12px] text-[var(--text-3)]">
+            {pendientes} páginas pendientes en cola
+            {ppm != null ? ` · última ráfaga: ${Math.round(ppm)} pág/min` : ""}
+            {estimacionCola && pendientes > 0 ? ` · vaciar cola: ${estimacionCola}` : ""}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button

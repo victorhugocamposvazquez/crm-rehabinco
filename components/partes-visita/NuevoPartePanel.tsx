@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { AltaField, AltaSection, AltaShell, altaControl } from "@/components/ui/alta-form";
+import { TimeInput } from "@/components/ui/time-input";
 import { VisitContextoCatastro } from "@/components/partes-visita/VisitContextoCatastro";
 import {
   contextoCatastralDesdeProperty,
@@ -339,7 +340,7 @@ export function NuevoPartePanel({
               <input type="date" value={fechaVisita} onChange={(e) => setFechaVisita(e.target.value)} className={altaControl} />
             </AltaField>
             <AltaField label="Hora" optional>
-              <input type="time" value={horaVisita} onChange={(e) => setHoraVisita(e.target.value)} className={altaControl} />
+              <TimeInput value={horaVisita} onChange={setHoraVisita} className={altaControl} />
             </AltaField>
           </div>
           <AltaField label="Agente">
