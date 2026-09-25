@@ -477,8 +477,18 @@ export default function CalendarioPage() {
         /* la cita ya cambió; el tablero se refrescará en la próxima visita */
       }
     }
-    toast.success(estado === "hecha" ? "Cita marcada como hecha." : "Cita cancelada.");
+    toast.success(estado === "hecha" ? "Entrada marcada como hecha." : "Entrada cancelada.");
+    if (estado === "cancelada") {
+      setSheetOpen(false);
+      setEditando(null);
+    }
     cargar();
+  };
+
+  const cancelarEntrada = () => {
+    if (!editando || editando.estado !== "prevista") return;
+    if (!window.confirm("¿Cancelar esta entrada? Dejará de aparecer en el calendario.")) return;
+    void cambiarEstado(editando.id, "cancelada");
   };
 
   const visibles = filtroComercial ? citas.filter((item) => item.comercial_id === filtroComercial) : citas;
@@ -615,10 +625,17 @@ export default function CalendarioPage() {
         saving={saving}
         edicion={
           editando
-            ? { id: editando.id, tipo: editando.tipo, titulo: editando.titulo, notas: editando.notas }
+            ? {
+                id: editando.id,
+                tipo: editando.tipo,
+                titulo: editando.titulo,
+                estado: editando.estado,
+                notas: editando.notas,
+              }
             : null
         }
         onGuardar={(tipo, titulo) => void guardar(tipo, titulo)}
+        onCancelar={cancelarEntrada}
       />
 
       <h2 className="mt-8 hidden text-[15px] font-semibold capitalize min-[820px]:block">

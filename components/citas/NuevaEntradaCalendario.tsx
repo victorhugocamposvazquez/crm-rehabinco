@@ -22,6 +22,7 @@ export type EdicionCalendario = {
   id: string;
   tipo: string;
   titulo: string;
+  estado?: string;
   notas?: string | null;
 };
 
@@ -47,6 +48,7 @@ export function NuevaEntradaCalendario({
   saving,
   edicion,
   onGuardar,
+  onCancelar,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -69,6 +71,7 @@ export function NuevaEntradaCalendario({
   saving: boolean;
   edicion?: EdicionCalendario | null;
   onGuardar: (tipo: TipoAltaCalendario, titulo: string) => void;
+  onCancelar?: () => void;
 }) {
   const [tipo, setTipo] = useState<TipoAltaCalendario>("evento");
   const [titulo, setTitulo] = useState("");
@@ -196,6 +199,15 @@ export function NuevaEntradaCalendario({
             : "Cerrar no crea nada. La hora sale del hueco que has pulsado y se puede cambiar aquí."
         }
         onSubmit={() => onGuardar(tipo, titulo)}
+        dangerAction={
+          edicion && edicion.estado === "prevista" && onCancelar
+            ? {
+                label: "Cancelar entrada (desaparece del calendario)",
+                onClick: onCancelar,
+                disabled: saving,
+              }
+            : undefined
+        }
       >
         <AltaSection title="Qué" hint="Evento, recordatorio, tarea o visita. El título es lo que verás en la rejilla.">
           <div className="flex flex-col gap-5">

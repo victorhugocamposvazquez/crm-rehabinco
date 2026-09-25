@@ -36,7 +36,7 @@ export function CitaAcciones({
         Hecha
       </Button>
       <Button type="button" size="sm" variant="ghost" onClick={() => onEstado(cita.id, "cancelada")}>
-        Cancelar
+        Cancelar entrada
       </Button>
       {onEditar ? (
         <Button type="button" size="sm" variant="ghost" onClick={() => onEditar(cita.id)}>

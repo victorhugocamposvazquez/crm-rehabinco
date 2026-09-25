@@ -20,6 +20,7 @@ export function AltaShell({
   disablePrimary,
   onSubmit,
   footerHint = "Cerrar guarda un borrador en este navegador. Crear lo pasa al listado.",
+  dangerAction,
   borrador,
   elevated = false,
 }: {
@@ -33,6 +34,7 @@ export function AltaShell({
   disablePrimary?: boolean;
   onSubmit: () => void | Promise<void>;
   footerHint?: string;
+  dangerAction?: { label: string; onClick: () => void; disabled?: boolean };
   elevated?: boolean;
   borrador?: {
     activo: boolean;
@@ -118,6 +120,16 @@ export function AltaShell({
               Cerrar
             </button>
           </div>
+          {dangerAction ? (
+            <button
+              type="button"
+              disabled={dangerAction.disabled || saving}
+              onClick={dangerAction.onClick}
+              className="mt-3 text-[13px] font-semibold text-[#8A3030] underline-offset-2 hover:underline disabled:opacity-45"
+            >
+              {dangerAction.label}
+            </button>
+          ) : null}
           <p className="mt-2.5 text-[12px] text-[var(--text-3)]">{footerHint}</p>
         </footer>
       </form>
