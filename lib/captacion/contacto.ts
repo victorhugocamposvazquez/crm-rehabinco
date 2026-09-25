@@ -1,6 +1,14 @@
 import { parsePhoneNumberFromString } from "libphonenumber-js";
 
 /** Normaliza teléfono a E.164 (región ES). */
+/** Máscara Idealista (+34 881 35 xx xx). No pasa validación libphonenumber estándar. */
+export function esTelefonoVirtualIdealista(raw: string | null | undefined): boolean {
+  if (!raw?.trim()) return false;
+  const digits = raw.replace(/\D/g, "");
+  const con34 = digits.startsWith("34") ? digits : `34${digits}`;
+  return /^3488135\d{4,}$/.test(con34);
+}
+
 export function telefonoE164(raw: string | null | undefined): string | null {
   const t = raw?.trim();
   if (!t) return null;
@@ -34,7 +42,7 @@ export function claveContacto(
   municipio?: string | null
 ): string | null {
   const e164 = telefonoE164(telefono);
-  if (e164) return `tel:${e164}`;
+  if (e164 && !esTelefonoVirtualIdealista(e164)) return `tel:${e164}`;
   const n = normalizarNombreContacto(nombre);
   const m = normalizarNombreContacto(municipio);
   if (n.length >= 2 && m) return `nom:${n}|${m}`;

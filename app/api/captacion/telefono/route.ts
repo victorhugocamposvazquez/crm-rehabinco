@@ -73,6 +73,10 @@ export async function POST(request: Request) {
         ? {
             contacto_telefono: fusion.telefono,
             contacto_clave: claveContacto(fusion.telefono, nombre, municipio),
+            telefono_tipo: null,
+            telefono_estado: "real",
+            telefono_pendiente: false,
+            contacto_telefono_fuente: "extension",
             telefono_capturado_por: usuario.id,
             telefono_capturado_en: ahora,
           }

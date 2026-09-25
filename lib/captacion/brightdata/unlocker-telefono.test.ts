@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
-import { esRespuestaTelefonoUnlockerValida } from "./unlocker-telefono";
+import { esRespuestaTelefonoUnlockerValida, esSoloMensajeTelefonoUnlocker } from "./unlocker-telefono";
 
 describe("esRespuestaTelefonoUnlockerValida", () => {
   it("acepta JSON pequeño con phone1", () => {
@@ -11,6 +11,17 @@ describe("esRespuestaTelefonoUnlockerValida", () => {
     assert.equal(
       esRespuestaTelefonoUnlockerValida({ ok: true, http_status: 200, content_type: "application/json", cuerpo, bytes }),
       true
+    );
+  });
+
+  it("cuerpo vacío 2xx → solo_mensaje, no JSON válido", () => {
+    assert.equal(
+      esSoloMensajeTelefonoUnlocker({ ok: true, http_status: 200, content_type: "application/json", cuerpo: "", bytes: 0 }),
+      true
+    );
+    assert.equal(
+      esRespuestaTelefonoUnlockerValida({ ok: true, http_status: 200, content_type: "application/json", cuerpo: "", bytes: 0 }),
+      false
     );
   });
 

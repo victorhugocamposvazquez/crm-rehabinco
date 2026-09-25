@@ -1,0 +1,31 @@
+---
+description: Aplicar migraciones Supabase en Mac abriendo Terminal.app (contraseña interactiva)
+alwaysApply: true
+---
+
+# Migraciones Supabase en Mac (Hugo)
+
+**No** ejecutar `psql` desde el sandbox del agente pidiendo contraseña (falla DNS IPv6, no hay TTY, riesgo de filtrar secretos con `bash -x` u `osascript` dialog).
+
+**Sí:** abrir **Terminal.app** del Mac con `osascript` y un `psql` ya montado; Hugo escribe la contraseña de **Supabase → Database → postgres** ahí (no se ve al teclear).
+
+## Conexión que funciona en este proyecto
+
+- **Host:** `aws-1-eu-central-1.pooler.supabase.com` (pooler IPv4; `db.*.supabase.co` suele no resolver)
+- **Puerto:** `5432`
+- **Usuario:** `postgres.ohwcnfigexzgqpmwmbib` (ref del `SUPABASE_URL` en `crawler/.env`)
+- **SSL:** `sslmode=require`
+- **Cliente:** `/usr/local/opt/libpq/bin/psql` (o `/opt/homebrew/opt/libpq/bin/psql`)
+
+## Comando tipo (una o varias `-f`)
+
+```bash
+osascript -e 'tell application "Terminal" to activate' \
+  -e 'tell application "Terminal" to do script "cd \"/Users/hugocamposvazquez/PROYECTOS EXTERNOS/REHABINCO/CRM INTERNO\" && /usr/local/opt/libpq/bin/psql \"host=aws-1-eu-central-1.pooler.supabase.com port=5432 dbname=postgres user=postgres.ohwcnfigexzgqpmwmbib sslmode=require\" -v ON_ERROR_STOP=1 -f supabase/migrations/ARCHIVO.sql"'
+```
+
+Varios ficheros: encadenar `-f ruta1.sql -f ruta2.sql` en la misma línea de `psql`.
+
+Atajo del repo: `./scripts/open-terminal-migrations.sh` (lista de migraciones como argumentos o las pendientes de captación).
+
+Tras abrir Terminal, decirle a Hugo que escriba la contraseña en esa ventana y que pegue aquí solo la salida (sin secretos).

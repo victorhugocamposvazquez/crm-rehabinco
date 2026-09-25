@@ -1,5 +1,6 @@
 import { aplicarFicha, marcarFichaPendiente } from "@/lib/captacion/brightdata/fichas";
 import {
+  aplicarSoloMensaje,
   aplicarTelefono,
   encolarTelefono,
   externoIdDeUrlTelefono,
@@ -8,7 +9,12 @@ import {
 import { registrarPedidoTelefono, registrarResultadoTelefono, telefonosColaPausada } from "@/lib/captacion/brightdata/telefonos-metricas";
 import { ingestarIdealistaBrightData } from "@/lib/captacion/brightdata/ingestar";
 import { parsearListadoIdealista } from "@/lib/captacion/brightdata/parse-listado";
-import { anotarLote, cerrarRecogidaLocal, marcarSospechosaTransporte, sumarVistos } from "@/lib/captacion/brightdata/recogidas";
+import {
+  anotarLote,
+  intentarCerrarRecogidasAbiertas,
+  marcarSospechosaTransporte,
+  sumarVistos,
+} from "@/lib/captacion/brightdata/recogidas";
 import {
   esErrorTransporteUnlocker,
   MAX_INTENTOS_TRANSPORTE_LISTADO,
@@ -16,7 +22,10 @@ import {
 } from "@/lib/captacion/brightdata/unlocker-transporte";
 import type { RespuestaUnlocker } from "@/lib/captacion/brightdata/unlocker";
 import { guardarDiagnosticoUnlocker } from "@/lib/captacion/brightdata/unlocker-diagnostico";
-import { esRespuestaTelefonoUnlockerValida } from "@/lib/captacion/brightdata/unlocker-telefono";
+import {
+  esRespuestaTelefonoUnlockerValida,
+  esSoloMensajeTelefonoUnlocker,
+} from "@/lib/captacion/brightdata/unlocker-telefono";
 import { configUnlocker, pedirHtmlUnlocker, pedirUnlocker } from "@/lib/captacion/brightdata/unlocker";
 import { ZONA_PROVINCIA_48H } from "@/lib/captacion/brightdata/zonas";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -71,6 +80,7 @@ export async function encolarPaginas(
         url: pagina.url,
         zona_id: pagina.zona_id,
         page: pagina.page,
+        tipo: "listado",
         estado: "pendiente",
       })),
       { onConflict: "recogida_id,url", ignoreDuplicates: true }
@@ -94,7 +104,6 @@ export async function procesarPaginasPendientes(limite = 20): Promise<{ paginas:
     .limit(limite);
   if (error) throw new Error(error.message);
   const paginas = (data ?? []) as Pagina[];
-  const tocadas = new Set<string>();
   let errores = 0;
   for (const pagina of paginas) {
     if (pagina.tipo === "ficha") {
@@ -116,7 +125,6 @@ export async function procesarPaginasPendientes(limite = 20): Promise<{ paginas:
       }
       continue;
     }
-    if (pagina.recogida_id) tocadas.add(pagina.recogida_id);
     try {
       const resp = await pedirUnlocker(config, pagina.url);
       if (esErrorTransporteUnlocker(resp)) {
@@ -162,15 +170,7 @@ export async function procesarPaginasPendientes(limite = 20): Promise<{ paginas:
       console.error(cuerpo);
     }
   }
-  const cerradas: string[] = [];
-  for (const recogidaId of tocadas) {
-    const { count } = await supabase
-      .from("captacion_paginas_pendientes")
-      .select("id", { count: "exact", head: true })
-      .eq("recogida_id", recogidaId)
-      .eq("estado", "pendiente");
-    if ((count ?? 0) === 0 && (await cerrarRecogidaLocal(recogidaId))) cerradas.push(recogidaId);
-  }
+  const cerradas = await intentarCerrarRecogidasAbiertas();
   let telefonos = 0;
   if (!(await telefonosColaPausada())) {
     const { data: colaTel } = await supabase
@@ -189,10 +189,14 @@ export async function procesarPaginasPendientes(limite = 20): Promise<{ paginas:
       try {
         await registrarPedidoTelefono();
         const resp = await pedirUnlocker(config, pagina.url);
+        if (esSoloMensajeTelefonoUnlocker(resp)) {
+          await aplicarSoloMensaje(externoId, pagina.id);
+          continue;
+        }
         if (!esRespuestaTelefonoUnlockerValida(resp)) {
           errores += 1;
           await guardarDiagnosticoUnlocker(supabase, pagina.id, config, pagina.url, resp);
-          await registrarResultadoTelefono(false);
+          await registrarResultadoTelefono("fallo");
           await marcarTelefonoPendiente(externoId, pagina.id, intentos);
           continue;
         }
@@ -213,7 +217,7 @@ export async function procesarPaginasPendientes(limite = 20): Promise<{ paginas:
           cuerpo,
           bytes: new TextEncoder().encode(cuerpo).length,
         });
-        await registrarResultadoTelefono(false);
+        await registrarResultadoTelefono("fallo");
         await marcarTelefonoPendiente(externoId, pagina.id, intentos);
       }
     }

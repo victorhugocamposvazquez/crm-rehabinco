@@ -52,6 +52,8 @@ import { coordsMapaAnuncio, latLngDeFila } from "@/lib/captacion/portales/geo-ma
 import { esNuevoHoyCaptacion, textoFechaPortal } from "@/lib/captacion/brightdata/fecha-portal";
 import { anuncioIdealistaVacio } from "@/lib/captacion/brightdata/idealista";
 import { cn } from "@/lib/utils";
+import { cuentaSinTelefonoChip, cuentaSoloMensajeChip } from "@/lib/captacion/telefono-estado";
+import { IconoEstadoTelefono, TelefonoAnuncio } from "@/components/captacion/portales/TelefonoAnuncio";
 import type { PinMapaCaptacion } from "@/components/captacion/portales/CaptacionMapaLeaflet";
 
 const CaptacionMapaLeaflet = dynamic(
@@ -66,6 +68,7 @@ type ChipCaptacion =
   | "agencias"
   | "hoy"
   | "sin_telefono"
+  | "solo_mensaje"
   | "telefono_cola"
   | "retirados"
   | "bajada"
@@ -129,6 +132,10 @@ function filaAnuncio(row: Record<string, unknown>): AnuncioCaptacion {
     desaparecido_en: typeof row.desaparecido_en === "string" ? row.desaparecido_en : null,
     telefono_pendiente: row.telefono_pendiente === true,
     ficha_pendiente: row.ficha_pendiente === true,
+    telefono_estado: typeof row.telefono_estado === "string" ? row.telefono_estado : null,
+    telefono_tipo: typeof row.telefono_tipo === "string" ? row.telefono_tipo : null,
+    telefono_reintentar_en: typeof row.telefono_reintentar_en === "string" ? row.telefono_reintentar_en : null,
+    contacto_telefono_fuente: typeof row.contacto_telefono_fuente === "string" ? row.contacto_telefono_fuente : null,
     created_at: String(row.created_at ?? ""),
   };
 }
@@ -338,7 +345,9 @@ export function CaptacionPortales() {
         case "hoy":
           return esNuevoHoyCaptacion(a, hayRecogidaCompleta);
         case "sin_telefono":
-          return !a.contacto_telefono;
+          return cuentaSinTelefonoChip(a, enColaTelefono(a, telefonosEnCola));
+        case "solo_mensaje":
+          return cuentaSoloMensajeChip(a);
         case "telefono_cola":
           return enColaTelefono(a, telefonosEnCola);
         case "bajada":
@@ -417,8 +426,43 @@ export function CaptacionPortales() {
   const page = listado.slice((pagina - 1) * PAGE_NOVEDADES, pagina * PAGE_NOVEDADES);
   const seleccionado = anuncios.find((a) => a.id === sel) ?? page[0] ?? null;
   const sinTelefonoPortal = anuncios.filter(
-    (a) => a.fuente === "idealista" && !a.contacto_telefono && !a.desaparecido_en && a.fase !== "captado" && a.fase !== "descartado"
+    (a) =>
+      a.fuente === "idealista" &&
+      !a.desaparecido_en &&
+      a.fase !== "captado" &&
+      a.fase !== "descartado" &&
+      cuentaSinTelefonoChip(a, enColaTelefono(a, telefonosEnCola))
   ).length;
+
+  const anadirTelefonoManual = useCallback(
+    async (id: string) => {
+      const raw = window.prompt("Teléfono del anunciante (móvil o fijo español):");
+      if (!raw?.trim()) return;
+      const res = await fetch(`/api/captacion/anuncios/${id}/telefono`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ telefono: raw.trim() }),
+      });
+      const json = (await res.json()) as { ok?: boolean; error?: string };
+      if (!json.ok) toast.error(json.error ?? "No se guardó el teléfono");
+      else {
+        toast.success("Teléfono guardado");
+        void cargar();
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  const reintentarTelefono = useCallback(async (id: string) => {
+    const res = await fetch("/api/captacion/brightdata/telefono", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    if (res.ok) toast.success("Teléfono encolado");
+    else toast.error("No se pudo encolar");
+  }, []);
 
   const patchAnuncio = async (ids: string[], patch: Record<string, unknown>, detalle?: string, tipo = "fase") => {
     const supabase = createClient();
@@ -577,6 +621,7 @@ export function CaptacionPortales() {
     ["agencias", "Agencias", cuentaChip("agencias")],
     ["hoy", "Nuevos hoy", cuentaChip("hoy")],
     ["sin_telefono", "Sin teléfono", cuentaChip("sin_telefono")],
+    ["solo_mensaje", "Solo mensaje", cuentaChip("solo_mensaje")],
     ["telefono_cola", "Teléfono en cola", cuentaChip("telefono_cola")],
     ["retirados", "Retirados", cuentaChip("retirados")],
   ];
@@ -898,7 +943,8 @@ export function CaptacionPortales() {
                     <div className="min-w-0">
                       <div className="truncate text-[13.5px]">{a.contacto_nombre || "—"}</div>
                       <div className="mt-px flex items-center gap-1 text-[11.5px] text-[var(--text-2)]">
-                        {a.contacto_telefono ? <span className="font-mono">{a.contacto_telefono}</span> : null}
+                        <IconoEstadoTelefono anuncio={a} enCola={enColaTelefono(a, telefonosEnCola)} />
+                        {a.contacto_telefono ? <span className="truncate font-mono">{a.contacto_telefono}</span> : null}
                         {nRep > 1 ? <span className="rounded border border-[#CDE9E1] px-1 text-[10.5px] font-semibold text-accent" title="Este contacto tiene más anuncios">×{nRep}</span> : null}
                       </div>
                     </div>
@@ -1104,6 +1150,10 @@ export function CaptacionPortales() {
                 .then((j) => toast.success(j.ok ? "Detalle encolado" : j.error ?? "Error"))
                 .catch(() => toast.error("No se pudo encolar el detalle"));
             }}
+            enColaTelefono={enColaTelefono(seleccionado, telefonosEnCola)}
+            onAnadirTelefono={anadirTelefonoManual}
+            onReintentarTelefono={reintentarTelefono}
+            onPedirTelefono={reintentarTelefono}
             onClasificar={(tipo) => {
               if (!seleccionado.contacto_clave) {
                 toast.error("Sin clave de contacto");
@@ -1237,6 +1287,10 @@ function PeekAnuncio({
   onAsignar,
   onPedirDetalle,
   onClasificar,
+  enColaTelefono,
+  onAnadirTelefono,
+  onReintentarTelefono,
+  onPedirTelefono,
 }: {
   anuncio: AnuncioCaptacion;
   alertaNombre?: string;
@@ -1255,6 +1309,10 @@ function PeekAnuncio({
   onAsignar: (id: string) => void;
   onPedirDetalle?: () => void;
   onClasificar?: (tipo: "particular" | "profesional") => void;
+  enColaTelefono?: boolean;
+  onAnadirTelefono?: (id: string) => void;
+  onReintentarTelefono?: (id: string) => void;
+  onPedirTelefono?: (id: string) => void;
 }) {
   const [nota, setNota] = useState("");
   const a = anuncio;
@@ -1301,9 +1359,6 @@ function PeekAnuncio({
         {a.fuente === "idealista" ? (
           <button type="button" onClick={() => { void fetch("/api/captacion/brightdata/ficha", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: a.id }) }); }} className="h-[38px] min-w-[140px] flex-1 rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold">Actualizar ficha</button>
         ) : null}
-        {a.fuente === "idealista" && !a.contacto_telefono ? (
-          <button type="button" onClick={() => { void fetch("/api/captacion/brightdata/telefono", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: a.id }) }); }} className="h-[38px] min-w-[140px] flex-1 rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold">Pedir teléfono</button>
-        ) : null}
         {!a.contacto_telefono && a.url && a.fuente !== "idealista" && onPedirDetalle ? (
           <button type="button" onClick={onPedirDetalle} className="h-[38px] min-w-[120px] flex-1 rounded-[9px] border border-[var(--input)] bg-white text-[13px] font-semibold">Pedir detalle</button>
         ) : null}
@@ -1319,7 +1374,18 @@ function PeekAnuncio({
         <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Superficie</div>{a.superficie ? `${a.superficie} m²` : "—"}</div>
         <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Hab.</div>{a.habitaciones ?? "—"}</div>
         <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Contacto</div>{a.contacto_nombre || "—"}</div>
-        <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Teléfono</div><span className="font-mono text-[12.5px]">{a.contacto_telefono || "Sin teléfono"}</span><div className="text-[11px] text-[var(--text-2)]">{a.contacto_telefono && a.telefono_capturado_en ? `teléfono: capturado por ${comerciales.find((c) => c.id === a.telefono_capturado_por)?.nombre ?? "el equipo"} el ${fechaCorta(new Date(a.telefono_capturado_en))}` : "teléfono: falta"}</div></div>
+        <div className="col-span-3">
+          <div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Teléfono</div>
+          <TelefonoAnuncio
+            anuncio={a}
+            enCola={enColaTelefono}
+            comercialNombre={(id) => comerciales.find((c) => c.id === id)?.nombre}
+            portalLabel={labelFuentePortal(a.fuente)}
+            onAnadirTelefono={onAnadirTelefono}
+            onReintentar={onReintentarTelefono}
+            onPedirTelefono={onPedirTelefono}
+          />
+        </div>
         <div><div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Publicado</div><span title={textoFechaPortal(a) ? undefined : AYUDA_DETECTADO}>{textoFechaPortal(a) ?? textoPublicado(a)}</span></div>
       </div>
       <div className="border-b border-[var(--border-soft)] px-4 py-3">

@@ -1,4 +1,5 @@
-import { claveContacto } from "@/lib/captacion/contacto";
+import { esAgencia } from "@/lib/captacion/captacion-activos";
+import { claveContacto, esTelefonoVirtualIdealista } from "@/lib/captacion/contacto";
 import { publicadoEsCarga } from "@/lib/captacion/portales/modelo";
 import { urlsDeFotosPortal } from "@/lib/inmuebles/media";
 import type { AnuncioEntrante, FaseAnuncio } from "@/lib/captacion/portales/modelo";
@@ -80,7 +81,21 @@ export function upsertAnuncio(
   // Si esta pasada no trajo el teléfono, no se borra el que ya teníamos.
   const telefono = entrante.contacto_telefono ?? previo?.contacto_telefono ?? null;
   const nombreContacto = entrante.contacto_nombre ?? previo?.contacto_nombre ?? null;
-  const clave = claveContacto(telefono, nombreContacto, entrante.municipio);
+  const clave = claveContacto(telefono, nombreContacto, entrante.municipio ?? previo?.municipio ?? null);
+  const virtual = telefono != null && esTelefonoVirtualIdealista(telefono);
+  const telefonoEstado =
+    previo && "telefono_estado" in previo && (previo as { telefono_estado?: string }).telefono_estado
+      ? (previo as { telefono_estado?: string }).telefono_estado
+      : telefono && virtual
+        ? "virtual"
+        : telefono
+          ? "real"
+          : portalId === "idealista" && esAgencia({ anunciante: entrante.anunciante })
+            ? "no_solicitado"
+            : portalId === "idealista" && entrante.anunciante === "particular"
+              ? "pendiente"
+              : null;
+  const telefonoTipo = virtual ? "virtual_idealista" : null;
   const tags = new Set(previo?.tags ?? []);
   if (entrante.tipo === "edificio") tags.add("Edificio");
 
@@ -162,6 +177,7 @@ export function upsertAnuncio(
       contacto_nombre: nombreContacto,
       contacto_telefono: telefono,
       contacto_clave: clave,
+      ...(telefonoEstado && !previo ? { telefono_estado: telefonoEstado, telefono_tipo: telefonoTipo } : {}),
       nombre_comercial: entrante.nombre_comercial ?? null,
       tags: [...tags],
       alerta_id: previo?.alerta_id ?? alertaId,

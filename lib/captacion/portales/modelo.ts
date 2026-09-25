@@ -160,6 +160,10 @@ export type AnuncioCaptacion = {
   desaparecido_en: string | null;
   telefono_pendiente?: boolean;
   ficha_pendiente?: boolean;
+  telefono_estado?: string | null;
+  telefono_tipo?: string | null;
+  telefono_reintentar_en?: string | null;
+  contacto_telefono_fuente?: string | null;
   created_at: string;
 };
 

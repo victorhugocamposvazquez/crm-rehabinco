@@ -21,17 +21,25 @@ export async function registrarPedidoTelefono(): Promise<void> {
   await supabase.from("captacion_telefono_diario").upsert({ dia, pedidos: prev.pedidos + 1, obtenidos: prev.obtenidos, fallidos: prev.fallidos });
 }
 
-export async function registrarResultadoTelefono(obtenido: boolean): Promise<void> {
+export type ResultadoTelefonoMetrica = "ok" | "fallo" | "solo_mensaje";
+
+export async function registrarResultadoTelefono(resultado: ResultadoTelefonoMetrica): Promise<void> {
   const supabase = createAdminClient();
   const dia = diaUtc();
   const prev = await filaDia(dia);
-  const obtenidos = prev.obtenidos + (obtenido ? 1 : 0);
-  const fallidos = prev.fallidos + (obtenido ? 0 : 1);
+  const obtenidos = prev.obtenidos + (resultado === "ok" ? 1 : 0);
+  const fallidos = prev.fallidos + (resultado === "fallo" ? 1 : 0);
   await supabase.from("captacion_telefono_diario").upsert({ dia, pedidos: prev.pedidos, obtenidos, fallidos });
   if (obtenidos + fallidos >= 5) {
     const tasa = obtenidos / (obtenidos + fallidos);
     if (tasa < 0.6) await pausarColaTelefonos("La tasa de éxito de teléfonos de hoy está por debajo del 60 %.");
   }
+}
+
+export async function despausarColaTelefonos(): Promise<void> {
+  await createAdminClient()
+    .from("captacion_telefono_config")
+    .upsert({ id: 1, pausado: false, pausado_en: null });
 }
 
 export async function telefonosColaPausada(): Promise<boolean> {

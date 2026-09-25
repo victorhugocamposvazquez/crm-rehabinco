@@ -149,7 +149,32 @@ export async function sumarVistos(collectionId: string, zonaId: string, ids: str
   await supabase.from("captacion_recogidas").update({ vistos, conteos, sospechosas }).eq("collection_id", collectionId);
 }
 
-/** Cierra cuando la cola de páginas está vacía. La provincia a 48 h no entra en retirados. */
+export function hayListadosPendientesRecogida(
+  filas: Array<{ recogida_id: string | null; tipo: string; estado: string }>,
+  recogidaId: string
+): boolean {
+  return filas.some((p) => p.recogida_id === recogidaId && p.tipo === "listado" && p.estado === "pendiente");
+}
+
+/** Cierra recogidas abiertas sin listados pendientes (fichas/teléfonos no bloquean). */
+export async function intentarCerrarRecogidasAbiertas(): Promise<string[]> {
+  const supabase = admin();
+  const { data: abiertas } = await supabase.from("captacion_recogidas").select("collection_id").is("completada", null);
+  const cerradas: string[] = [];
+  for (const fila of abiertas ?? []) {
+    const id = String(fila.collection_id);
+    const { count } = await supabase
+      .from("captacion_paginas_pendientes")
+      .select("id", { count: "exact", head: true })
+      .eq("recogida_id", id)
+      .eq("tipo", "listado")
+      .eq("estado", "pendiente");
+    if ((count ?? 0) === 0 && (await cerrarRecogidaLocal(id))) cerradas.push(id);
+  }
+  return cerradas;
+}
+
+/** Cierra cuando la cola de listado está vacía. La provincia a 48 h no entra en retirados. */
 export async function cerrarRecogidaLocal(collectionId: string): Promise<boolean> {
   const supabase = admin();
   const { data } = await supabase.from("captacion_recogidas").select("*").eq("collection_id", collectionId).maybeSingle();
