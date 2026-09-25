@@ -108,6 +108,17 @@ export async function zonasBloqueadas(zonas: string[]): Promise<string[]> {
   return [...bloqueadas];
 }
 
+/** Alguna recogida sin cerrar iniciada hace menos de 6 h (bloquea nuevo trigger). */
+export async function hayRecogidaAbiertaReciente(): Promise<boolean> {
+  const { data } = await admin().from("captacion_recogidas").select("iniciada").is("completada", null);
+  const limite = Date.now() - SEIS_HORAS;
+  for (const fila of (data ?? []) as Array<{ iniciada?: string }>) {
+    const t = fila.iniciada ? new Date(fila.iniciada).getTime() : 0;
+    if (t >= limite) return true;
+  }
+  return false;
+}
+
 export async function recogidaAbiertaSiUnica(): Promise<string | null> {
   const { data } = await admin().from("captacion_recogidas").select("collection_id").is("completada", null);
   const filas = (data ?? []) as Array<{ collection_id?: string }>;

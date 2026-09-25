@@ -38,6 +38,10 @@ export function CaptacionSaludCard() {
   const [rafaga, setRafaga] = useState<Rafaga | null>(null);
   const [rafagaEnCurso, setRafagaEnCurso] = useState(false);
   const [pendientes, setPendientes] = useState(0);
+  const [recogidaAbierta, setRecogidaAbierta] = useState(false);
+  const [accionLinea, setAccionLinea] = useState<string | null>(null);
+  const [lanzandoRecogida, setLanzandoRecogida] = useState(false);
+  const [procesandoRafaga, setProcesandoRafaga] = useState(false);
   const [cargando, setCargando] = useState(true);
 
   const cargar = useCallback(async () => {
@@ -50,6 +54,7 @@ export function CaptacionSaludCard() {
       checks?: Check[];
       ultimaRafaga?: Rafaga | null;
       rafagaEnCurso?: boolean;
+      recogidaAbiertaReciente?: boolean;
       paginasPendientes?: number;
     };
     setCargando(false);
@@ -61,8 +66,55 @@ export function CaptacionSaludCard() {
     setChecks(json.checks ?? []);
     setRafaga(json.ultimaRafaga ?? null);
     setRafagaEnCurso(Boolean(json.rafagaEnCurso));
+    setRecogidaAbierta(Boolean(json.recogidaAbiertaReciente));
     setPendientes(json.paginasPendientes ?? 0);
   }, []);
+
+  const lanzarRecogida = async () => {
+    setLanzandoRecogida(true);
+    setAccionLinea(null);
+    const res = await fetch("/api/captacion/brightdata/trigger", { method: "POST" });
+    const json = (await res.json()) as { ok?: boolean; error?: string; recogidaId?: string; zonas?: number };
+    setLanzandoRecogida(false);
+    if (!res.ok || !json.ok) {
+      setAccionLinea(json.error ?? "No se pudo abrir la recogida.");
+      return;
+    }
+    setAccionLinea(
+      `Recogida abierta · ${json.zonas ?? 0} zonas${json.recogidaId ? ` · ${json.recogidaId.slice(0, 8)}…` : ""}.`
+    );
+    void cargar();
+  };
+
+  const procesarRafaga = async () => {
+    setProcesandoRafaga(true);
+    setAccionLinea(null);
+    const res = await fetch("/api/captacion/brightdata/procesar", { method: "POST" });
+    const json = (await res.json()) as {
+      ok?: boolean;
+      error?: string;
+      paginas?: number;
+      errores?: number;
+      cerradas?: string[];
+      omitida?: boolean;
+      motivo?: string | null;
+    };
+    setProcesandoRafaga(false);
+    if (!res.ok || !json.ok) {
+      setAccionLinea(json.error ?? "No se pudo procesar.");
+      void cargar();
+      return;
+    }
+    if (json.omitida) {
+      setAccionLinea("Ráfaga omitida: lock ocupado.");
+    } else {
+      const cerr = json.cerradas?.length ?? 0;
+      setAccionLinea(
+        `Ráfaga hecha · ${json.paginas ?? 0} pág.${json.errores ? ` · ${json.errores} error(es)` : ""}${cerr ? ` · ${cerr} recogida(s) cerrada(s)` : ""}.`
+      );
+    }
+    void cargar();
+  };
 
   useEffect(() => {
     void cargar();
@@ -112,9 +164,30 @@ export function CaptacionSaludCard() {
           )}
           <p className="mt-1 text-[12px] text-[var(--text-3)]">{pendientes} páginas pendientes en cola</p>
         </div>
-        <Button type="button" variant="secondary" disabled={cargando} onClick={() => void cargar()}>
-          {cargando ? "Actualizando…" : "Actualizar"}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="default"
+            disabled={cargando || lanzandoRecogida || recogidaAbierta}
+            title={recogidaAbierta ? "Hay una recogida abierta de menos de 6 h." : undefined}
+            onClick={() => void lanzarRecogida()}
+          >
+            {lanzandoRecogida ? "Abriendo…" : "Lanzar recogida ahora"}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={cargando || procesandoRafaga || rafagaEnCurso}
+            title={rafagaEnCurso ? "Hay una ráfaga en curso." : undefined}
+            onClick={() => void procesarRafaga()}
+          >
+            {procesandoRafaga ? "Procesando…" : "Procesar ráfaga ahora"}
+          </Button>
+          <Button type="button" variant="secondary" disabled={cargando} onClick={() => void cargar()}>
+            {cargando ? "Actualizando…" : "Actualizar"}
+          </Button>
+        </div>
+        {accionLinea ? <p className="text-[13px] text-[var(--text-2)]">{accionLinea}</p> : null}
       </CardContent>
     </Card>
   );

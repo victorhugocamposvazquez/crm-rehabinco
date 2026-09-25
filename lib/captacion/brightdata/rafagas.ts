@@ -54,12 +54,20 @@ async function cerrarRafaga(
     .eq("id", id);
 }
 
+export type ResultadoRafagaProcesar = {
+  paginas: number;
+  errores: number;
+  cerradas: string[];
+  omitida?: boolean;
+  motivo?: string | null;
+};
+
 /** Una ráfaga completa (lock + procesar + historial). */
-export async function ejecutarRafagaProcesar(limite = 20): Promise<void> {
+export async function ejecutarRafagaProcesar(limite = 20): Promise<ResultadoRafagaProcesar> {
   const t0 = Date.now();
   if (!(await adquirirLockProcesar())) {
     await registrarRafagaOmitida("lock_ocupado");
-    return;
+    return { paginas: 0, errores: 0, cerradas: [], omitida: true, motivo: "lock_ocupado" };
   }
   const id = await iniciarRafaga();
   try {
@@ -70,6 +78,7 @@ export async function ejecutarRafagaProcesar(limite = 20): Promise<void> {
       ok: true,
       duracionMs: Date.now() - t0,
     });
+    return { paginas: resultado.paginas, errores: resultado.errores, cerradas: resultado.cerradas };
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Ráfaga fallida";
     await cerrarRafaga(id, {
@@ -79,6 +88,7 @@ export async function ejecutarRafagaProcesar(limite = 20): Promise<void> {
       motivo: msg,
       duracionMs: Date.now() - t0,
     });
+    return { paginas: 0, errores: 1, cerradas: [], motivo: msg };
   } finally {
     await liberarLockProcesar();
   }

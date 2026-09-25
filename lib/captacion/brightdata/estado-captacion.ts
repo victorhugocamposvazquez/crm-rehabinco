@@ -2,6 +2,7 @@ import { configBrightDataIdealista } from "@/lib/captacion/brightdata/config";
 import { lockProcesarActivo } from "@/lib/captacion/brightdata/procesar-lock";
 import { ultimaRafaga, type RafagaCaptacion } from "@/lib/captacion/brightdata/rafagas";
 import { leerGastoBrightData } from "@/lib/captacion/brightdata/saldo";
+import { hayRecogidaAbiertaReciente } from "@/lib/captacion/brightdata/recogidas";
 import { telefonosColaPausada } from "@/lib/captacion/brightdata/telefonos-metricas";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -17,6 +18,7 @@ export type EstadoCaptacion = {
   checks: EstadoCheckCaptacion[];
   ultimaRafaga: RafagaCaptacion | null;
   rafagaEnCurso: boolean;
+  recogidaAbiertaReciente: boolean;
   paginasPendientes: number;
   gasto: { saldo: number | null; pendiente: number | null; aviso: string | null; mes: string | null };
 };
@@ -163,6 +165,7 @@ export async function evaluarEstadoCaptacion(): Promise<EstadoCaptacion> {
     checks,
     ultimaRafaga: ultima,
     rafagaEnCurso,
+    recogidaAbiertaReciente: await hayRecogidaAbiertaReciente(),
     paginasPendientes: nPend,
     gasto,
   };
