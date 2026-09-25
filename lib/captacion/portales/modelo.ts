@@ -78,7 +78,7 @@ export const TAG_ESTILO: Record<string, { bg: string; fg: string; label: string 
   Edificio: { bg: "#F1EFF8", fg: "#4B3F8A", label: "Edificio" },
 };
 
-export const PAGE_NOVEDADES = 8;
+export const PAGE_NOVEDADES = 20;
 
 /** Primera, última y las de alrededor. El hueco se marca con «…». */
 export function paginasVisibles(actual: number, total: number): Array<number | "…"> {
