@@ -394,6 +394,11 @@ export function CaptacionPortales() {
 
   const listado = useMemo(() => {
     const base = chip === "retirados" ? baseRetirados : baseNov;
+    const diasPortal = (row: { publicado_en: string | null; created_at: string | null }) => {
+      const portal = fechaPublicacionPortal(row.publicado_en, row.created_at);
+      return portal ? diasEnPortal(portal) : Number.MAX_SAFE_INTEGER;
+    };
+    const esNuevoListado = (row: AnuncioCaptacion) => esNuevoHoyCaptacion(row, hayRecogidaCompleta);
     return base
       .filter((a) => filtraListado(a))
       .slice()
@@ -401,13 +406,12 @@ export function CaptacionPortales() {
         if (orden === "precio") return (a.precio ?? 0) - (b.precio ?? 0);
         if (orden === "pm2") return (a.precio ?? 0) / Math.max(a.superficie ?? 1, 1) - (b.precio ?? 0) / Math.max(b.superficie ?? 1, 1);
         if (orden === "m2") return (b.superficie ?? 0) - (a.superficie ?? 0);
-        const dias = (row: { publicado_en: string | null; created_at: string | null }) => {
-          const portal = fechaPublicacionPortal(row.publicado_en, row.created_at);
-          return portal ? diasEnPortal(portal) : Number.MAX_SAFE_INTEGER;
-        };
-        return dias(a) - dias(b);
+        const na = esNuevoListado(a) ? 1 : 0;
+        const nb = esNuevoListado(b) ? 1 : 0;
+        if (na !== nb) return na - nb;
+        return diasPortal(a) - diasPortal(b);
       });
-  }, [baseNov, baseRetirados, chip, filtraListado, orden]);
+  }, [baseNov, baseRetirados, chip, filtraListado, orden, hayRecogidaCompleta]);
 
   const nPag = Math.max(1, Math.ceil(listado.length / PAGE_NOVEDADES));
   const pagina = Math.min(pag, nPag);
