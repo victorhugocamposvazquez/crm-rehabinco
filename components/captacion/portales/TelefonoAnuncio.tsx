@@ -63,7 +63,13 @@ export function TelefonoAnuncio({
         <IconoEstadoTelefono anuncio={anuncio} enCola={enCola} />
         <div className="min-w-0 text-[13px]">
           {estado === "pendiente" ? (
-            <p className="text-[var(--text-2)]">Pendiente · se obtendrá en la próxima ráfaga</p>
+            <p className="text-[var(--text-2)]">
+              {enCola
+                ? "En cola Unlocker · hasta 30 teléfonos por ráfaga (después de listados y fichas)"
+                : anuncio.ficha_pendiente || !anuncio.contacto_telefono
+                  ? "Espera ficha en cola · luego entra la petición de teléfono (particulares)"
+                  : "Pendiente de desbloqueo · se encola al procesar la ficha o con «Pedir teléfono»"}
+            </p>
           ) : null}
           {estado === "solo_mensaje" ? (
             <p className="text-[var(--text-2)]">Solo contacto por mensaje en Idealista</p>
