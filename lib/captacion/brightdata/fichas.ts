@@ -13,18 +13,47 @@ export function prioridadFicha(anunciante: string | null | undefined): number {
   return anunciante === "particular" ? 1 : 2;
 }
 
-export async function encolarFicha(externoId: string, anunciante: string | null | undefined): Promise<void> {
-  if (!/^\d{5,}$/.test(externoId)) return;
+export type ResultadoEncolarFicha = "nueva" | "ya_cola" | "reactivada" | "omitida";
+
+export async function encolarFicha(
+  externoId: string,
+  anunciante: string | null | undefined
+): Promise<ResultadoEncolarFicha> {
+  if (!/^\d{5,}$/.test(externoId)) return "omitida";
   const supabase = createAdminClient();
   const url = urlFicha(externoId);
-  const { data } = await supabase
+  const { data: filas } = await supabase
     .from("captacion_paginas_pendientes")
-    .select("id")
+    .select("id, estado, reintentar_en")
     .eq("url", url)
     .eq("tipo", "ficha")
-    .eq("estado", "pendiente")
-    .limit(1);
-  if ((data ?? []).length > 0) return;
+    .order("estado", { ascending: true })
+    .limit(5);
+  const pendiente = (filas ?? []).find((f) => f.estado === "pendiente");
+  if (pendiente) {
+    const re = pendiente.reintentar_en as string | null;
+    if (re && new Date(re).getTime() > Date.now()) {
+      await supabase
+        .from("captacion_paginas_pendientes")
+        .update({ reintentar_en: null, prioridad: prioridadFicha(anunciante) })
+        .eq("id", pendiente.id);
+      return "reactivada";
+    }
+    return "ya_cola";
+  }
+  const previa = (filas ?? []).find((f) => f.estado === "hecha" || f.estado === "error");
+  if (previa) {
+    await supabase
+      .from("captacion_paginas_pendientes")
+      .update({
+        estado: "pendiente",
+        reintentar_en: null,
+        prioridad: prioridadFicha(anunciante),
+        intentos: 0,
+      })
+      .eq("id", previa.id);
+    return "reactivada";
+  }
   const { error } = await supabase.from("captacion_paginas_pendientes").insert({
     recogida_id: null,
     url,
@@ -36,6 +65,7 @@ export async function encolarFicha(externoId: string, anunciante: string | null 
     reintentar_en: null,
   });
   if (error) throw new Error(error.message);
+  return "nueva";
 }
 
 export async function aplicarFicha(html: string, url: string): Promise<"ok" | "invalida"> {
@@ -104,9 +134,24 @@ export async function marcarFichaPendiente(externoId: string): Promise<void> {
     .eq("tipo", "ficha");
 }
 
+export type ResultadoEncolarFichas = {
+  intentadas: number;
+  nuevas: number;
+  yaEnCola: number;
+  reactivadas: number;
+  elegibles: number;
+};
+
 /** Activos sin ficha enriquecida. Particulares primero. Tope 300. No llama al Unlocker. */
-export async function encolarFichasPendientes(tope = 300): Promise<number> {
+export async function encolarFichasPendientes(tope = 300): Promise<ResultadoEncolarFichas> {
   const supabase = createAdminClient();
+  const { count: elegibles } = await supabase
+    .from("captacion_anuncios")
+    .select("id", { count: "exact", head: true })
+    .eq("portal_id", "idealista")
+    .eq("enriquecido_ficha", false)
+    .is("desaparecido_en", null)
+    .in("fase", ["novedad", "contacto", "visita", "negociando"]);
   const { data } = await supabase
     .from("captacion_anuncios")
     .select("externo_id, anunciante")
@@ -118,6 +163,29 @@ export async function encolarFichasPendientes(tope = 300): Promise<number> {
   const filas = ((data ?? []) as Array<{ externo_id?: string; anunciante?: string }>).filter((f) => f.externo_id);
   filas.sort((a, b) => prioridadFicha(a.anunciante) - prioridadFicha(b.anunciante));
   const elegidas = filas.slice(0, tope);
-  for (const fila of elegidas) await encolarFicha(fila.externo_id as string, fila.anunciante);
-  return elegidas.length;
+  const res: ResultadoEncolarFichas = {
+    intentadas: elegidas.length,
+    nuevas: 0,
+    yaEnCola: 0,
+    reactivadas: 0,
+    elegibles: elegibles ?? 0,
+  };
+  for (const fila of elegidas) {
+    const r = await encolarFicha(fila.externo_id as string, fila.anunciante);
+    if (r === "nueva") res.nuevas += 1;
+    else if (r === "ya_cola") res.yaEnCola += 1;
+    else if (r === "reactivada") res.reactivadas += 1;
+  }
+  return res;
+}
+
+export async function contarFichasEnCola(): Promise<number> {
+  const supabase = createAdminClient();
+  const { count } = await supabase
+    .from("captacion_paginas_pendientes")
+    .select("id", { count: "exact", head: true })
+    .eq("tipo", "ficha")
+    .eq("estado", "pendiente")
+    .or(`reintentar_en.is.null,reintentar_en.lte.${new Date().toISOString()}`);
+  return count ?? 0;
 }

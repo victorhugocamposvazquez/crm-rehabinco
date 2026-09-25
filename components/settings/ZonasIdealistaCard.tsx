@@ -54,6 +54,8 @@ export function ZonasIdealistaCard() {
   >([]);
   const [ultima, setUltima] = useState<UltimaRecogida | null>(null);
   const [fichasPendientes, setFichasPendientes] = useState(0);
+  const [fichasEnCola, setFichasEnCola] = useState(0);
+  const [encolandoFichas, setEncolandoFichas] = useState(false);
   const [telefonos, setTelefonos] = useState<{
     hoy: { pedidos: number; obtenidos: number; fallidos: number; tasa: number | null };
     sieteDias: { tasa: number | null };
@@ -78,6 +80,7 @@ export function ZonasIdealistaCard() {
         >;
         ultima?: UltimaRecogida | null;
         fichasPendientes?: number;
+        fichasEnCola?: number;
         telefonos?: { hoy: { pedidos: number; obtenidos: number; fallidos: number; tasa: number | null }; sieteDias: { tasa: number | null }; pausado: boolean };
       };
       if (!res.ok || !json.ok || !json.zonas) {
@@ -93,6 +96,7 @@ export function ZonasIdealistaCard() {
       setDiagnosticosTelefono(json.diagnosticosTelefono ?? []);
       setUltima(json.ultima ?? null);
       setFichasPendientes(json.fichasPendientes ?? 0);
+      setFichasEnCola(json.fichasEnCola ?? 0);
       setTelefonos(json.telefonos ?? null);
       setCargando(false);
     })();
@@ -143,15 +147,55 @@ export function ZonasIdealistaCard() {
             : "ninguna"}
         </p>
         <p>
-          Fichas pendientes: {fichasPendientes}
+          Sin ficha enriquecida: {fichasPendientes}
+          {fichasEnCola > 0 ? ` · ${fichasEnCola} en cola Unlocker` : ""}
           <button
             type="button"
-            className="ml-2 underline"
+            className="ml-2 underline disabled:opacity-50"
+            disabled={encolandoFichas}
             onClick={() => {
-              void fetch("/api/captacion/brightdata/completar-fichas", { method: "POST" }).then(() => toast.success("Fichas encoladas. Se leen en las pasadas de cada 5 minutos."));
+              void (async () => {
+                setEncolandoFichas(true);
+                try {
+                  const res = await fetch("/api/captacion/brightdata/completar-fichas", { method: "POST" });
+                  const json = (await res.json()) as {
+                    ok?: boolean;
+                    error?: string;
+                    intentadas?: number;
+                    nuevas?: number;
+                    yaEnCola?: number;
+                    reactivadas?: number;
+                    elegibles?: number;
+                    fichasEnCola?: number;
+                  };
+                  if (!res.ok || !json.ok) {
+                    toast.error(json.error ?? "No se pudieron encolar fichas.");
+                    return;
+                  }
+                  setFichasEnCola(json.fichasEnCola ?? fichasEnCola);
+                  const movidas = (json.nuevas ?? 0) + (json.reactivadas ?? 0);
+                  if ((json.intentadas ?? 0) === 0) {
+                    toast.message(
+                      json.elegibles === 0
+                        ? "Ningún anuncio activo (novedad/contacto/visita/negociando) necesita ficha."
+                        : `Hay ${json.elegibles ?? 0} elegibles, pero ninguno en este lote de 300.`
+                    );
+                  } else if (movidas === 0) {
+                    toast.message(
+                      `${json.yaEnCola ?? 0} ya estaban en cola. Usa «Procesar ráfaga ahora» en Captación (cada 5 min el cron).`
+                    );
+                  } else {
+                    toast.success(
+                      `${movidas} fichas listas para ráfaga (${json.nuevas ?? 0} nuevas, ${json.reactivadas ?? 0} reactivadas). Cola total: ${json.fichasEnCola ?? "—"}.`
+                    );
+                  }
+                } finally {
+                  setEncolandoFichas(false);
+                }
+              })();
             }}
           >
-            Completar fichas
+            {encolandoFichas ? "Encolando…" : "Completar fichas"}
           </button>
         </p>
         <p>
