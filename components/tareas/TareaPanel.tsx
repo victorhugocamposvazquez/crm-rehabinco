@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { TimeInput } from "@/components/ui/time-input";
 import { Sheet } from "@/components/ui/sheet";
@@ -63,6 +64,7 @@ export function TareaPanel({
   onPatch,
   onToggle,
   onMover,
+  onEliminar,
 }: {
   tarea: TareaDetalle | null;
   hoy: string;
@@ -72,6 +74,7 @@ export function TareaPanel({
   onPatch: (id: string, patch: Record<string, unknown>) => Promise<void>;
   onToggle: (id: string) => void;
   onMover: (id: string, col: ColumnaTarea) => void;
+  onEliminar?: (id: string) => Promise<void>;
 }) {
   const [titulo, setTitulo] = useState("");
   const [finca, setFinca] = useState("");
@@ -80,11 +83,15 @@ export function TareaPanel({
   const [cliOpts, setCliOpts] = useState<Array<{ id: string; label: string }>>([]);
   const [demOpts, setDemOpts] = useState<Array<{ id: string; label: string }>>([]);
   const [parteOpts, setParteOpts] = useState<Array<{ id: string; label: string; propiedadId: string | null }>>([]);
+  const [confirmEliminar, setConfirmEliminar] = useState(false);
+  const [eliminando, setEliminando] = useState(false);
   const { abrir: abrirFicha } = useFichaPeek();
 
   useEffect(() => {
     setTitulo(tarea?.titulo ?? "");
     setFinca(tarea?.finca_reference ?? "");
+    setConfirmEliminar(false);
+    setEliminando(false);
   }, [tarea?.id, tarea?.titulo]);
 
   useEffect(() => {
@@ -556,7 +563,7 @@ export function TareaPanel({
           </div>
         </div>
 
-        <div className="flex shrink-0 flex-wrap gap-2 border-t border-[var(--border-soft)] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-[var(--border-soft)] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           {COLUMNAS_TAREA.filter((c) => c.id !== col).map((item) => (
             <button
               key={item.id}
@@ -568,8 +575,43 @@ export function TareaPanel({
               Mover a {item.label}
             </button>
           ))}
+          {onEliminar ? (
+            <button
+              type="button"
+              onClick={() => setConfirmEliminar(true)}
+              className="ml-auto inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 text-[12.5px] font-medium text-red-600 hover:bg-red-50"
+              aria-label="Eliminar tarea"
+            >
+              <Trash2 size={14} strokeWidth={2.2} />
+              Eliminar
+            </button>
+          ) : null}
         </div>
       </div>
+
+      <AlertDialog
+        open={confirmEliminar}
+        onOpenChange={setConfirmEliminar}
+        title="¿Eliminar esta tarea?"
+        description={
+          tarea.hora
+            ? "También se quitará del calendario. Esta acción no se puede deshacer."
+            : "Esta acción no se puede deshacer."
+        }
+        confirmLabel={eliminando ? "Eliminando…" : "Eliminar"}
+        loading={eliminando}
+        variant="destructive"
+        onConfirm={async () => {
+          if (!onEliminar || eliminando) return;
+          setEliminando(true);
+          try {
+            await onEliminar(tarea.id);
+            setConfirmEliminar(false);
+          } finally {
+            setEliminando(false);
+          }
+        }}
+      />
     </Sheet>
   );
 }

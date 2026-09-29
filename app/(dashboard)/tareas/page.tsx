@@ -266,6 +266,27 @@ export default function TareasPage() {
     }
   };
 
+  const eliminar = async (id: string) => {
+    const actual = tareas.find((t) => t.id === id);
+    if (!actual) return;
+    const supabase = createClient();
+    if (actual.cita_id) {
+      const { error: errCita } = await supabase.from("citas").delete().eq("id", actual.cita_id);
+      if (errCita) {
+        toast.error("No se ha podido quitar la cita del calendario.");
+        return;
+      }
+    }
+    const { error } = await supabase.from("tareas").delete().eq("id", id);
+    if (error) {
+      toast.error("No se ha podido eliminar la tarea.");
+      return;
+    }
+    setTareas((prev) => prev.filter((item) => item.id !== id));
+    setSel(null);
+    toast.success(actual.hora ? "Tarea y cita eliminadas." : "Tarea eliminada.");
+  };
+
   const seleccionada = tareas.find((t) => t.id === sel) ?? null;
 
   return (
@@ -371,6 +392,7 @@ export default function TareasPage() {
         onMover={(id, col) => {
           void mover(id, col);
         }}
+        onEliminar={eliminar}
       />
     </div>
   );
