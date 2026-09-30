@@ -86,7 +86,8 @@ export function fechaDeFiltro(filtro: FiltroFecha, ahora: Date): { publicado_en_
   };
 }
 
-/** Nunca sustituye una precisión mejor. A igual precisión se queda la fecha que ya había. */
+/** Nunca sustituye una precisión mejor. A igual precisión se queda la fecha que ya había,
+ * salvo exacta con hora (p. ej. /configuration) que mejora una exacta solo-día o refresca la hora. */
 export function fusionarFechaPortal(
   previa: { publicado_en_portal: string | null; publicado_precision: string | null },
   entrante: { publicado_en_portal: string; publicado_precision: PrecisionFecha }
@@ -100,6 +101,9 @@ export function fusionarFechaPortal(
     };
   }
   if (rangoPrevio === RANGO[entrante.publicado_precision] && previa.publicado_en_portal) {
+    if (entrante.publicado_precision === "exacta" && !soloDiaPortal(entrante.publicado_en_portal)) {
+      return { ...entrante, escrito: true };
+    }
     return {
       publicado_en_portal: previa.publicado_en_portal,
       publicado_precision: entrante.publicado_precision,
@@ -144,12 +148,19 @@ export function esNuevoHoyCaptacion(
 }
 
 /** Idealista en ficha solo da el día; lo guardamos a las 12:00 UTC (ver parsearActualizadoIdealista). */
-function soloDiaPortal(iso: string): boolean {
-  return /T12:00:00(\.000)?Z$/.test(iso);
+export function soloDiaPortal(iso: string): boolean {
+  const fecha = new Date(iso);
+  if (Number.isNaN(fecha.getTime())) return false;
+  return fecha.getUTCHours() === 12 && fecha.getUTCMinutes() === 0 && fecha.getUTCSeconds() === 0 && fecha.getUTCMilliseconds() === 0;
 }
 
 function diaMadrid(fecha: Date): string {
   return fecha.toLocaleDateString("en-CA", { timeZone: "Europe/Madrid" });
+}
+
+function ayerMadrid(ahora: Date): string {
+  const d = new Date(ahora.getTime() - 86400000);
+  return diaMadrid(d);
 }
 
 export function textoFechaPortal(
@@ -164,9 +175,11 @@ export function textoFechaPortal(
   if (precision === ">30d") return "Publicado en Idealista: hace más de 30 días";
   const fecha = new Date(a.publicado_en_portal);
   if (Number.isNaN(fecha.getTime())) return null;
-  // Fecha exacta de ficha = solo el día. No inventar "hace X minutos" (12:00 UTC aún puede ser futuro por la mañana).
+  // Fecha exacta de ficha = solo el día. No inventar "hace X horas" (Idealista tiene hora; nosotros no).
   if (precision === "exacta" && soloDiaPortal(a.publicado_en_portal)) {
-    if (diaMadrid(fecha) === diaMadrid(ahora)) return "Actualizado en Idealista: hoy";
+    const dia = diaMadrid(fecha);
+    if (dia === diaMadrid(ahora)) return "Actualizado en Idealista: hoy";
+    if (dia === ayerMadrid(ahora)) return "Actualizado en Idealista: ayer";
     return `Actualizado en Idealista: ${fecha.toLocaleDateString("es-ES", { day: "numeric", month: "long", timeZone: "UTC" })}`;
   }
   const relativo = hace(fecha, ahora);
@@ -197,6 +210,53 @@ export function parsearActualizadoIdealista(texto: string, ahora = new Date()): 
   const candidata = new Date(Date.UTC(ano, mes, Number(escrita[1]), 12));
   if (candidata.getTime() > ahora.getTime() + 86400000) ano -= 1;
   return iso(ano, mes + 1, Number(escrita[1]));
+}
+
+/**
+ * Mensaje de `/es/detail/{id}/configuration` → `timeSinceLastModificationDateConfiguration.message`.
+ * Devuelve ISO con hora (no mediodía), para poder mostrar «hace X horas» como Idealista.
+ */
+export function parsearMensajeActualizadoRelativo(texto: string, ahora = new Date()): string | null {
+  const t = texto
+    .replace(/^anuncio actualizado\s+/i, "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  if (!t) return null;
+  if (/^hoy\b/.test(t)) return ahora.toISOString();
+  if (/^ayer\b/.test(t)) return new Date(ahora.getTime() - 86400000).toISOString();
+  const m = t.match(/^hace\s+(un|una|\d+)\s+(minuto|minutos|hora|horas|dia|dias)\b/);
+  if (!m) return parsearActualizadoIdealista(texto, ahora);
+  const n = m[1] === "un" || m[1] === "una" ? 1 : Number(m[1]);
+  if (!Number.isFinite(n) || n < 1) return null;
+  const unidad = m[2];
+  const ms =
+    unidad.startsWith("minuto") ? n * 60_000 : unidad.startsWith("hora") ? n * 3600_000 : n * 86400000;
+  return new Date(ahora.getTime() - ms).toISOString();
+}
+
+/** JSON de `GET /es/detail/{adId}/configuration`. */
+export function fechaDesdeConfigDetalle(
+  cuerpo: string,
+  ahora = new Date()
+): { publicado_en_portal: string; publicado_precision: "exacta" } | null {
+  try {
+    const json = JSON.parse(cuerpo) as {
+      timeSinceLastModificationDateConfiguration?: { message?: string | null } | null;
+    };
+    const mensaje = json.timeSinceLastModificationDateConfiguration?.message;
+    if (typeof mensaje !== "string" || !mensaje.trim()) return null;
+    const isoFecha = parsearMensajeActualizadoRelativo(mensaje, ahora);
+    if (!isoFecha) return null;
+    return { publicado_en_portal: isoFecha, publicado_precision: "exacta" };
+  } catch {
+    return null;
+  }
+}
+
+export function urlConfigDetalleIdealista(externoId: string): string {
+  return `https://www.idealista.com/es/detail/${externoId}/configuration`;
 }
 
 function iso(ano: number, mes: number, dia: number): string | null {

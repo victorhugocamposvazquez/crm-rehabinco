@@ -1,5 +1,9 @@
 import { coordsFichaIdealista } from "@/lib/captacion/brightdata/geo-idealista";
-import { fusionarFechaPortal } from "@/lib/captacion/brightdata/fecha-portal";
+import {
+  fechaDesdeConfigDetalle,
+  fusionarFechaPortal,
+  urlConfigDetalleIdealista,
+} from "@/lib/captacion/brightdata/fecha-portal";
 import { parsearFichaIdealista } from "@/lib/captacion/brightdata/parse-ficha";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -8,6 +12,8 @@ const SIETE_DIAS = 7 * 24 * 60 * 60 * 1000;
 export function urlFicha(externoId: string): string {
   return `https://www.idealista.com/inmueble/${externoId}/`;
 }
+
+export { urlConfigDetalleIdealista };
 
 export function prioridadFicha(anunciante: string | null | undefined): number {
   return anunciante === "particular" ? 1 : 2;
@@ -68,7 +74,11 @@ export async function encolarFicha(
   return "nueva";
 }
 
-export async function aplicarFicha(html: string, url: string): Promise<"ok" | "invalida"> {
+export async function aplicarFicha(
+  html: string,
+  url: string,
+  opts?: { configJson?: string | null; ahora?: Date }
+): Promise<"ok" | "invalida"> {
   const ficha = parsearFichaIdealista(html, url);
   if (!ficha?.valida) {
     await marcarFichaPendiente(ficha?.externo_id ?? (url.match(/\/inmueble\/(\d+)/) || [])[1] ?? "");
@@ -82,30 +92,57 @@ export async function aplicarFicha(html: string, url: string): Promise<"ok" | "i
     .eq("externo_id", ficha.externo_id)
     .maybeSingle();
   if (!data?.id) return "invalida";
-  const fecha = ficha.actualizado
-    ? fusionarFechaPortal(
-        {
-          publicado_en_portal: (data.publicado_en_portal as string | null) ?? null,
-          publicado_precision: (data.publicado_precision as string | null) ?? null,
-        },
-        { publicado_en_portal: ficha.actualizado, publicado_precision: "exacta" }
-      )
-    : null;
+
+  const ahora = opts?.ahora ?? new Date();
+  let previaFecha = {
+    publicado_en_portal: (data.publicado_en_portal as string | null) ?? null,
+    publicado_precision: (data.publicado_precision as string | null) ?? null,
+  };
+  let fechaEscrita: { publicado_en_portal: string; publicado_precision: string } | null = null;
+
+  if (ficha.actualizado) {
+    const fusion = fusionarFechaPortal(previaFecha, {
+      publicado_en_portal: ficha.actualizado,
+      publicado_precision: "exacta",
+    });
+    if (fusion.escrito) {
+      fechaEscrita = {
+        publicado_en_portal: fusion.publicado_en_portal,
+        publicado_precision: fusion.publicado_precision,
+      };
+      previaFecha = {
+        publicado_en_portal: fusion.publicado_en_portal,
+        publicado_precision: fusion.publicado_precision,
+      };
+    }
+  }
+
+  const relativa = opts?.configJson ? fechaDesdeConfigDetalle(opts.configJson, ahora) : null;
+  if (relativa) {
+    const fusion = fusionarFechaPortal(previaFecha, relativa);
+    if (fusion.escrito) {
+      fechaEscrita = {
+        publicado_en_portal: fusion.publicado_en_portal,
+        publicado_precision: fusion.publicado_precision,
+      };
+    }
+  }
+
   const patch: Record<string, unknown> = {
     fotos: ficha.fotos,
     n_fotos: ficha.fotos.length,
     thumb: ficha.fotos[0] ?? null,
     enriquecido_ficha: true,
     ficha_pendiente: false,
-    updated_at: new Date().toISOString(),
+    updated_at: ahora.toISOString(),
   };
   if (ficha.descripcion) patch.descripcion = ficha.descripcion;
   if (ficha.banos != null) patch.banos = ficha.banos;
   if (ficha.planta) patch.planta = ficha.planta;
   if (ficha.contact_name) patch.contacto_nombre = ficha.contact_name;
-  if (fecha?.escrito) {
-    patch.publicado_en_portal = fecha.publicado_en_portal;
-    patch.publicado_precision = fecha.publicado_precision;
+  if (fechaEscrita) {
+    patch.publicado_en_portal = fechaEscrita.publicado_en_portal;
+    patch.publicado_precision = fechaEscrita.publicado_precision;
   }
   const geo = coordsFichaIdealista(html);
   if (geo) {

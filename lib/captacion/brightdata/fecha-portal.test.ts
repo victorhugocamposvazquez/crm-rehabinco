@@ -6,11 +6,14 @@ import {
   existiaAntesDePasada,
   fechaDeFiltro,
   fechaDeListadoDiario,
+  fechaDesdeConfigDetalle,
   filtroDeListado,
   filtroDiario,
   fusionarFechaPortal,
   parsearActualizadoIdealista,
+  parsearMensajeActualizadoRelativo,
   textoFechaPortal,
+  urlConfigDetalleIdealista,
   urlConFiltroFecha,
 } from "./fecha-portal";
 
@@ -104,8 +107,47 @@ describe("filtro de fecha de Idealista", () => {
       "Actualizado en Idealista: hoy"
     );
     assert.equal(
+      textoFechaPortal({ publicado_en_portal: "2026-09-29T12:00:00+00:00", publicado_precision: "exacta" }, manana),
+      "Actualizado en Idealista: ayer"
+    );
+    assert.equal(
       textoFechaPortal({ publicado_en_portal: "2026-09-20T12:00:00.000Z", publicado_precision: "exacta" }, manana),
       "Actualizado en Idealista: 20 de septiembre"
     );
+  });
+
+  it("lee el mensaje relativo del /configuration y mejora la exacta solo-día", () => {
+    const ahora = new Date("2026-09-30T08:00:00.000Z");
+    assert.equal(urlConfigDetalleIdealista("112687916"), "https://www.idealista.com/es/detail/112687916/configuration");
+    assert.equal(
+      parsearMensajeActualizadoRelativo("Anuncio actualizado hace 14 horas", ahora),
+      "2026-09-29T18:00:00.000Z"
+    );
+    assert.equal(parsearMensajeActualizadoRelativo("hace una hora", ahora), "2026-09-30T07:00:00.000Z");
+    assert.equal(parsearMensajeActualizadoRelativo("hace 45 minutos", ahora), "2026-09-30T07:15:00.000Z");
+    const desdeCfg = fechaDesdeConfigDetalle(
+      JSON.stringify({
+        timeSinceLastModificationDateConfiguration: {
+          isExpired: false,
+          message: "Anuncio actualizado hace 14 horas",
+        },
+      }),
+      ahora
+    );
+    assert.deepEqual(desdeCfg, {
+      publicado_en_portal: "2026-09-29T18:00:00.000Z",
+      publicado_precision: "exacta",
+    });
+    const mejora = fusionarFechaPortal(
+      { publicado_en_portal: "2026-09-29T12:00:00.000Z", publicado_precision: "exacta" },
+      desdeCfg!
+    );
+    assert.equal(mejora.escrito, true);
+    assert.equal(mejora.publicado_en_portal, "2026-09-29T18:00:00.000Z");
+    assert.equal(
+      textoFechaPortal({ publicado_en_portal: mejora.publicado_en_portal, publicado_precision: "exacta" }, ahora),
+      "Actualizado en Idealista: hace 14 horas"
+    );
+    assert.equal(fechaDesdeConfigDetalle("<html>datadome</html>", ahora), null);
   });
 });

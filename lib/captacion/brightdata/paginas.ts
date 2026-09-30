@@ -1,4 +1,4 @@
-import { aplicarFicha, marcarFichaPendiente } from "@/lib/captacion/brightdata/fichas";
+import { aplicarFicha, marcarFichaPendiente, urlConfigDetalleIdealista } from "@/lib/captacion/brightdata/fichas";
 import {
   RAFAGA_ESPERA_TELEFONO_MS,
   RAFAGA_MAX_PAGINAS,
@@ -91,21 +91,29 @@ async function procesarFichaPagina(
   config: ConfigUnlocker,
   pagina: Pagina
 ): Promise<number> {
+  const externoId = externoIdFicha(pagina.url);
   try {
-    const html = await pedirHtmlUnlocker(config, pagina.url);
-    const resultado = await aplicarFicha(html, pagina.url);
+    const configUrl = externoId ? urlConfigDetalleIdealista(externoId) : null;
+    const [html, cfg] = await Promise.all([
+      pedirHtmlUnlocker(config, pagina.url),
+      configUrl
+        ? pedirUnlocker(config, configUrl)
+            .then((r) => (r.ok ? r.cuerpo : null))
+            .catch(() => null)
+        : Promise.resolve(null),
+    ]);
+    const resultado = await aplicarFicha(html, pagina.url, { configJson: cfg });
     await supabase
       .from("captacion_paginas_pendientes")
       .update({ estado: resultado === "ok" ? "hecha" : "pendiente" })
       .eq("id", pagina.id);
     if (resultado === "ok") {
-      const externoId = externoIdFicha(pagina.url);
       if (externoId) await encolarTelefono(externoId).catch(() => undefined);
     }
-    if (resultado !== "ok") await marcarFichaPendiente(externoIdFicha(pagina.url));
+    if (resultado !== "ok") await marcarFichaPendiente(externoId);
     return 0;
   } catch {
-    await marcarFichaPendiente(externoIdFicha(pagina.url));
+    await marcarFichaPendiente(externoId);
     return 1;
   }
 }
