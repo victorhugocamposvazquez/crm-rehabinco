@@ -143,6 +143,15 @@ export function esNuevoHoyCaptacion(
   return esNuevoHoy(a.publicado_precision, a.publicado_en_portal, ahora);
 }
 
+/** Idealista en ficha solo da el día; lo guardamos a las 12:00 UTC (ver parsearActualizadoIdealista). */
+function soloDiaPortal(iso: string): boolean {
+  return /T12:00:00(\.000)?Z$/.test(iso);
+}
+
+function diaMadrid(fecha: Date): string {
+  return fecha.toLocaleDateString("en-CA", { timeZone: "Europe/Madrid" });
+}
+
 export function textoFechaPortal(
   a: { publicado_en_portal?: string | null; publicado_precision?: string | null; desaparecido_en?: string | null },
   ahora = new Date()
@@ -153,9 +162,17 @@ export function textoFechaPortal(
     return precision === ">30d" ? "Publicado en Idealista: hace más de 30 días" : null;
   }
   if (precision === ">30d") return "Publicado en Idealista: hace más de 30 días";
-  const relativo = hace(new Date(a.publicado_en_portal), ahora);
+  const fecha = new Date(a.publicado_en_portal);
+  if (Number.isNaN(fecha.getTime())) return null;
+  // Fecha exacta de ficha = solo el día. No inventar "hace X minutos" (12:00 UTC aún puede ser futuro por la mañana).
+  if (precision === "exacta" && soloDiaPortal(a.publicado_en_portal)) {
+    if (diaMadrid(fecha) === diaMadrid(ahora)) return "Actualizado en Idealista: hoy";
+    return `Actualizado en Idealista: ${fecha.toLocaleDateString("es-ES", { day: "numeric", month: "long", timeZone: "UTC" })}`;
+  }
+  const relativo = hace(fecha, ahora);
   const margen = MARGEN[precision];
-  return margen ? `Publicado en Idealista: ${relativo} (${margen})` : `Publicado en Idealista: ${relativo}`;
+  const etiqueta = precision === "exacta" ? "Actualizado en Idealista" : "Publicado en Idealista";
+  return margen ? `${etiqueta}: ${relativo} (${margen})` : `${etiqueta}: ${relativo}`;
 }
 
 function hace(fecha: Date, ahora: Date): string {

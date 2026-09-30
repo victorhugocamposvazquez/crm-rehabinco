@@ -96,4 +96,16 @@ describe("filtro de fecha de Idealista", () => {
     assert.equal(parsearActualizadoIdealista("Anuncio actualizado el 3 de marzo", AHORA), "2026-03-03T12:00:00.000Z");
     assert.equal(parsearActualizadoIdealista("23/09/2026", AHORA), "2026-09-23T12:00:00.000Z");
   });
+
+  it("fecha exacta de ficha (solo día) no inventa hace X minutos por la mañana", () => {
+    const manana = new Date("2026-09-30T07:57:00.000Z");
+    assert.equal(
+      textoFechaPortal({ publicado_en_portal: "2026-09-30T12:00:00.000Z", publicado_precision: "exacta" }, manana),
+      "Actualizado en Idealista: hoy"
+    );
+    assert.equal(
+      textoFechaPortal({ publicado_en_portal: "2026-09-20T12:00:00.000Z", publicado_precision: "exacta" }, manana),
+      "Actualizado en Idealista: 20 de septiembre"
+    );
+  });
 });
