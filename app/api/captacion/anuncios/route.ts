@@ -16,7 +16,10 @@ export async function GET(request: Request) {
   const faseRaw = url.searchParams.get("fase") ?? url.searchParams.get("estado");
   const comercial = url.searchParams.get("comercial");
 
-  let query = sesion.supabase.from("captacion_anuncios").select("*").order("visto_en", { ascending: false });
+  let query = sesion.supabase
+    .from("captacion_anuncios")
+    .select("*")
+    .order("publicado_en_portal", { ascending: false, nullsFirst: false });
   if (fuente) query = query.eq("fuente", fuente);
   if (anunciante === "particular" || anunciante === "empresa" || anunciante === "banco" || anunciante === "desconocido") {
     query = query.eq("anunciante", anunciante);

@@ -203,7 +203,7 @@ export function CaptacionPortales() {
   const [chip, setChip] = useState<ChipCaptacion>("todos");
   const [hayRecogidaCompleta, setHayRecogidaCompleta] = useState(false);
   const [telefonosEnCola, setTelefonosEnCola] = useState<Set<string>>(() => new Set());
-  const [orden, setOrden] = useState("anadido");
+  const [orden, setOrden] = useState("publicado");
   const [pag, setPag] = useState(1);
   const [mas, setMas] = useState(false);
   const [mapa, setMapa] = useState(false);
@@ -246,7 +246,7 @@ export function CaptacionPortales() {
   const cargar = () => {
     const supabase = createClient();
     void Promise.all([
-      supabase.from("captacion_anuncios").select("*").order("visto_en", { ascending: false }),
+      supabase.from("captacion_anuncios").select("*").order("publicado_en_portal", { ascending: false, nullsFirst: false }),
       supabase.from("captacion_alertas").select("*").order("created_at", { ascending: false }),
       supabase.from("captacion_notificaciones").select("*").eq("user_id", user?.id ?? "").order("created_at", { ascending: false }).limit(40),
       supabase.from("captacion_notif_prefs").select("*").eq("user_id", user?.id ?? "").maybeSingle(),
@@ -402,12 +402,15 @@ export function CaptacionPortales() {
 
   const listado = useMemo(() => {
     const base = chip === "retirados" ? baseRetirados : baseNov;
-    const esNuevoListado = (row: AnuncioCaptacion) => esNuevoHoyCaptacion(row, hayRecogidaCompleta);
-    const traidoAlCrm = (row: AnuncioCaptacion) => {
-      const iso = row.visto_primera_vez ?? row.created_at ?? row.visto_en;
-      const t = iso ? new Date(iso).getTime() : 0;
+    const ms = (iso: string | null | undefined) => {
+      if (!iso) return 0;
+      const t = new Date(iso).getTime();
       return Number.isNaN(t) ? 0 : t;
     };
+    const publicadoIdealista = (row: AnuncioCaptacion) =>
+      ms(row.publicado_en_portal) || ms(row.publicado_en) || ms(row.visto_primera_vez) || ms(row.created_at) || ms(row.visto_en);
+    const traidoAlCrm = (row: AnuncioCaptacion) =>
+      ms(row.visto_primera_vez) || ms(row.created_at) || ms(row.visto_en);
     return base
       .filter((a) => filtraListado(a))
       .slice()
@@ -415,12 +418,10 @@ export function CaptacionPortales() {
         if (orden === "precio") return (a.precio ?? 0) - (b.precio ?? 0);
         if (orden === "pm2") return (a.precio ?? 0) / Math.max(a.superficie ?? 1, 1) - (b.precio ?? 0) / Math.max(b.superficie ?? 1, 1);
         if (orden === "m2") return (b.superficie ?? 0) - (a.superficie ?? 0);
-        const na = esNuevoListado(a) ? 0 : 1;
-        const nb = esNuevoListado(b) ? 0 : 1;
-        if (na !== nb) return na - nb;
-        return traidoAlCrm(b) - traidoAlCrm(a);
+        if (orden === "anadido") return traidoAlCrm(b) - traidoAlCrm(a);
+        return publicadoIdealista(b) - publicadoIdealista(a);
       });
-  }, [baseNov, baseRetirados, chip, filtraListado, orden, hayRecogidaCompleta]);
+  }, [baseNov, baseRetirados, chip, filtraListado, orden]);
 
   const nPag = Math.max(1, Math.ceil(listado.length / PAGE_NOVEDADES));
   const pagina = Math.min(pag, nPag);
@@ -813,7 +814,8 @@ export function CaptacionPortales() {
                 : null}
               <div className="flex-1" />
               <select value={orden} onChange={(e) => setOrden(e.target.value)} className="h-[30px] rounded-lg bg-[#F4F3EF] px-2 text-[12.5px] text-[var(--text-2)]">
-                <option value="anadido">Más recientes</option>
+                <option value="publicado">Últimos en Idealista</option>
+                <option value="anadido">Añadidos al CRM</option>
                 <option value="precio">Precio ↑</option>
                 <option value="pm2">€/m² ↑</option>
                 <option value="m2">m² ↓</option>
