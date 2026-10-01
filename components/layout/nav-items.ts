@@ -66,6 +66,9 @@ export function esRutaHerramientas(pathname: string): boolean {
     pathname.startsWith("/herramientas/") ||
     pathname.startsWith("/partes-visita") ||
     pathname.startsWith("/contratos-arras") ||
+    pathname.startsWith("/hojas-encargo-honorarios") ||
+    pathname.startsWith("/contratos-pago-aplazado") ||
+    pathname.startsWith("/contratos-arrendamiento") ||
     pathname.startsWith("/visitas")
   );
 }
@@ -80,6 +83,9 @@ export function navItemActivo(pathname: string, href: string): boolean {
       pathname === "/herramientas" ||
       pathname.startsWith("/partes-visita") ||
       pathname.startsWith("/contratos-arras") ||
+      pathname.startsWith("/hojas-encargo-honorarios") ||
+      pathname.startsWith("/contratos-pago-aplazado") ||
+      pathname.startsWith("/contratos-arrendamiento") ||
       pathname.startsWith("/visitas")
     );
   }

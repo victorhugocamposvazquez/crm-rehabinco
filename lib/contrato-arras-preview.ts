@@ -43,16 +43,15 @@ export function normalizarTextoClausula(texto: string): string {
   return texto.replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
 }
 
-export function clausulasPersonalizadasDesdeEdicion(
-  editadas: ClausulasPersonalizadasArras,
-  generadas: Record<ClausulaArrasKey, string>
-): ClausulasPersonalizadasArras {
-  const out: ClausulasPersonalizadasArras = {};
-  for (const [key, texto] of Object.entries(editadas)) {
-    const k = key as ClausulaArrasKey;
+export function clausulasPersonalizadasDesdeEdicion<K extends string>(
+  editadas: Partial<Record<K, string>>,
+  generadas: Record<K, string>
+): Partial<Record<K, string>> {
+  const out: Partial<Record<K, string>> = {};
+  for (const [key, texto] of Object.entries(editadas) as Array<[K, string]>) {
     const editado = normalizarTextoClausula(texto);
-    const auto = normalizarTextoClausula(generadas[k] ?? "");
-    if (editado && editado !== auto) out[k] = editado;
+    const auto = normalizarTextoClausula(generadas[key] ?? "");
+    if (editado && editado !== auto) out[key] = editado;
   }
   return out;
 }

@@ -1,4 +1,11 @@
-export const TIPOS_PAPELERA = ["parte_visita", "contrato_arras", "usuario"] as const;
+export const TIPOS_PAPELERA = [
+  "parte_visita",
+  "contrato_arras",
+  "hoja_encargo_honorarios",
+  "contrato_pago_aplazado",
+  "contrato_arrendamiento",
+  "usuario",
+] as const;
 export type TipoPapelera = (typeof TIPOS_PAPELERA)[number];
 
 export const ACCIONES_PAPELERA = ["eliminar", "crear"] as const;
@@ -7,6 +14,9 @@ export type AccionPapelera = (typeof ACCIONES_PAPELERA)[number];
 export const TIPO_PAPELERA_LABEL: Record<TipoPapelera, string> = {
   parte_visita: "Parte de visita",
   contrato_arras: "Contrato de arras",
+  hoja_encargo_honorarios: "Hoja de encargo",
+  contrato_pago_aplazado: "Compraventa aplazada",
+  contrato_arrendamiento: "Arrendamiento",
   usuario: "Usuario",
 };
 
@@ -42,9 +52,42 @@ export type SnapshotUsuarioEliminar = {
   role: string | null;
 };
 
-export type TipoDocumentoPapelera = Extract<TipoPapelera, "parte_visita" | "contrato_arras">;
+export type TipoDocumentoPapelera = Extract<
+  TipoPapelera,
+  | "parte_visita"
+  | "contrato_arras"
+  | "hoja_encargo_honorarios"
+  | "contrato_pago_aplazado"
+  | "contrato_arrendamiento"
+>;
+
+export const TIPOS_DOCUMENTO_PAPELERA: TipoDocumentoPapelera[] = [
+  "parte_visita",
+  "contrato_arras",
+  "hoja_encargo_honorarios",
+  "contrato_pago_aplazado",
+  "contrato_arrendamiento",
+];
 
 /** Nombre real en Postgres (el tipo en papelera_items usa clave lógica). */
-export function tablaDocumentoPapelera(tipo: TipoDocumentoPapelera): "partes_visita" | "contratos_arras" {
-  return tipo === "parte_visita" ? "partes_visita" : "contratos_arras";
+export function tablaDocumentoPapelera(
+  tipo: TipoDocumentoPapelera
+):
+  | "partes_visita"
+  | "contratos_arras"
+  | "hojas_encargo_honorarios"
+  | "contratos_pago_aplazado"
+  | "contratos_arrendamiento" {
+  switch (tipo) {
+    case "parte_visita":
+      return "partes_visita";
+    case "contrato_arras":
+      return "contratos_arras";
+    case "hoja_encargo_honorarios":
+      return "hojas_encargo_honorarios";
+    case "contrato_pago_aplazado":
+      return "contratos_pago_aplazado";
+    case "contrato_arrendamiento":
+      return "contratos_arrendamiento";
+  }
 }

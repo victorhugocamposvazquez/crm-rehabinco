@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createUser, deleteUserAccess } from "@/lib/actions/usuarios";
 import { isAdmin, isSuperAdmin, parseRole, type Role } from "@/lib/auth/roles";
 import type { AccionPapelera, PapeleraItem, TipoDocumentoPapelera, TipoPapelera } from "@/lib/papelera/papelera";
-import { tablaDocumentoPapelera } from "@/lib/papelera/papelera";
+import { TIPOS_DOCUMENTO_PAPELERA, tablaDocumentoPapelera } from "@/lib/papelera/papelera";
 
 type Result = { ok: true; message?: string } | { ok: false; error: string };
 
@@ -51,17 +51,25 @@ function etiquetaDocumento(tipo: TipoDocumentoPapelera, fila: Record<string, unk
   if (tipo === "parte_visita") {
     return (fila.visitante_nombre as string | null) || (fila.inmueble_direccion as string | null) || "Parte de visita";
   }
+  if (tipo === "hoja_encargo_honorarios") {
+    return (fila.cliente_nombre as string | null) || (fila.inmueble_descripcion as string | null) || "Hoja de encargo";
+  }
+  if (tipo === "contrato_arrendamiento") {
+    return (fila.vivienda_direccion as string | null) || "Contrato de arrendamiento";
+  }
+  if (tipo === "contrato_pago_aplazado") {
+    return (fila.finca_descripcion as string | null) || "Compraventa aplazada";
+  }
   return (fila.finca_descripcion as string | null) || "Contrato de arras";
 }
 
 /** Recupera soft deletes que no llegaron a papelera_items (p. ej. fallo previo al encolar). */
 async function sincronizarDocumentosHuerfanos(admin: ReturnType<typeof createAdminClient>) {
-  const tipos: TipoDocumentoPapelera[] = ["parte_visita", "contrato_arras"];
-  for (const tipo of tipos) {
+  for (const tipo of TIPOS_DOCUMENTO_PAPELERA) {
     const tabla = tablaDocumentoPapelera(tipo);
     const { data: borrados } = await admin
       .from(tabla)
-      .select("id, visitante_nombre, inmueble_direccion, finca_descripcion, compradores, vendedores, deleted_at, deleted_by")
+      .select("*")
       .not("deleted_at", "is", null);
     if (!borrados?.length) continue;
 
@@ -107,10 +115,7 @@ export async function eliminarDocumentos(tipo: TipoDocumentoPapelera, ids: strin
   }
   const tabla = tablaDocumentoPapelera(tipo);
 
-  const { data: filas, error: readErr } = await admin
-    .from(tabla)
-    .select("id, visitante_nombre, inmueble_direccion, finca_descripcion, compradores, vendedores, deleted_at")
-    .in("id", ids);
+  const { data: filas, error: readErr } = await admin.from(tabla).select("*").in("id", ids);
   if (readErr) return { ok: false, error: readErr.message };
   const vivas = (filas ?? []).filter((f) => !f.deleted_at);
   if (vivas.length === 0) return { ok: false, error: "Ya están en la papelera." };
@@ -251,7 +256,7 @@ async function listarPapeleraPorTipos(tipos: TipoPapelera[]): Promise<PapeleraIt
 export async function listarPapeleraDocumentos(
   tipo?: TipoDocumentoPapelera
 ): Promise<PapeleraItem[] | { error: string }> {
-  return listarPapeleraPorTipos(tipo ? [tipo] : ["parte_visita", "contrato_arras"]);
+  return listarPapeleraPorTipos(tipo ? [tipo] : TIPOS_DOCUMENTO_PAPELERA);
 }
 
 export async function listarPapeleraUsuarios(): Promise<PapeleraItem[] | { error: string }> {

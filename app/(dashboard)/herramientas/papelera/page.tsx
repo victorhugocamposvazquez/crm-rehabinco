@@ -28,7 +28,7 @@ export default function PapeleraHerramientasPage() {
       <PageHeader
         breadcrumb={[{ label: "Herramientas", href: "/herramientas" }, { label: "Papelera" }]}
         title="Papelera"
-        description="Partes de visita y contratos de arras enviados a borrar. Restaura o confirma el borrado definitivo."
+        description="Partes y contratos de Herramientas enviados a borrar. Restaura o confirma el borrado definitivo."
         actions={
           <Button asChild size="sm" variant="secondary">
             <Link href="/herramientas" className="gap-2">

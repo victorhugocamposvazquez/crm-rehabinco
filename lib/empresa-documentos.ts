@@ -83,6 +83,23 @@ Usted podrá ejercer los derechos de acceso, rectificación, cancelación, supre
 En caso de que no haya obtenido satisfacción en el ejercicio de sus derechos, puede presentar una reclamación ante la Autoridad de Control en materia de Protección de Datos competente.`;
 }
 
+/** Cláusula completa de protección de datos (misma redacción que el contrato de arras). */
+export function clausulaProteccionDatosContrato(opts?: { prefijo?: string }): string {
+  const e = EMPRESA_DOCUMENTOS;
+  const prefijo = opts?.prefijo?.trim() ? `${opts.prefijo.trim()} ` : "";
+  return `${prefijo}PROTECCIÓN DE DATOS. Responsable: ${e.razonSocial} CIF: ${e.cif}. Dirección: ${e.direccionCompleta}. Teléfono ${e.telefono}. Correo electrónico: ${e.email}.
+
+De conformidad con lo establecido en la normativa vigente en materia de protección de datos de carácter personal, los datos y documentos facilitados por usted son necesarios para un correcto asesoramiento y mediación inmobiliaria. Dichos datos de carácter personal serán tratados por ${e.razonSocial} con la debida discreción y confidencialidad con el fin de llevar a cabo dicha gestión inmobiliaria.
+
+Los datos proporcionados se conservarán durante el tiempo necesario para la finalidad en base a la cual han sido recabados, o para el cumplimiento con las obligaciones legales.
+
+${e.razonSocial} no elaborará ningún tipo de “perfil” en base a la información facilitada. No se tomarán decisiones automatizadas en base a perfiles.
+
+Igualmente, podrá ejercer los derechos de acceso, rectificación, cancelación, supresión, oposición, limitación del tratamiento, portabilidad de datos y a no ser objeto de decisiones individualizadas, automatizadas, en relación con los datos objeto del tratamiento, ante el responsable del tratamiento a la dirección arriba indicada.
+
+En caso de que no haya obtenido satisfacción en el ejercicio de sus derechos, puede presentar una reclamación ante la Autoridad de Control en materia de Protección de Datos competente.`;
+}
+
 export function pieContactoEmpresa(): string {
   const e = EMPRESA_DOCUMENTOS;
   return `(${e.direccion}, ${e.codigoPostal}\n${e.localidad}\nTeléfono ${e.telefono}\n${e.email}\n${e.web})`;

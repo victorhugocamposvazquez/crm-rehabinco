@@ -1,4 +1,4 @@
-import { EMPRESA_DOCUMENTOS, htmlEsc } from "./empresa-documentos";
+import { EMPRESA_DOCUMENTOS, clausulaProteccionDatosContrato, htmlEsc } from "./empresa-documentos";
 import { cssExportContratoArras, cssPreviewEditableArras } from "./contrato-arras-preview";
 import { envolverFlujoDocumento } from "./documentos-paginacion";
 import { envolverDocumentoHtml, slugArchivo } from "./documentos-pdf";
@@ -54,18 +54,7 @@ function bloqueEstatico(innerHtml: string, extraStyle = "") {
 }
 
 function clausulaNovenaLopd(): string {
-  const e = EMPRESA_DOCUMENTOS;
-  return `NOVENA.- PROTECCIÓN DE DATOS. Responsable: ${e.razonSocial} CIF: ${e.cif}. Dirección: ${e.direccionCompleta}. Teléfono ${e.telefono}. Correo electrónico: ${e.email}.
-
-De conformidad con lo establecido en la normativa vigente en materia de protección de datos de carácter personal, los datos y documentos facilitados por usted son necesarios para un correcto asesoramiento y mediación inmobiliaria. Dichos datos de carácter personal serán tratados por ${e.razonSocial} con la debida discreción y confidencialidad con el fin de llevar a cabo dicha gestión inmobiliaria.
-
-Los datos proporcionados se conservarán durante el tiempo necesario para la finalidad en base a la cual han sido recabados, o para el cumplimiento con las obligaciones legales.
-
-${e.razonSocial} no elaborará ningún tipo de “perfil” en base a la información facilitada. No se tomarán decisiones automatizadas en base a perfiles.
-
-Igualmente, podrá ejercer los derechos de acceso, rectificación, cancelación, supresión, oposición, limitación del tratamiento, portabilidad de datos y a no ser objeto de decisiones individualizadas, automatizadas, en relación con los datos objeto del tratamiento, ante el responsable del tratamiento a la dirección arriba indicada.
-
-En caso de que no haya obtenido satisfacción en el ejercicio de sus derechos, puede presentar una reclamación ante la Autoridad de Control en materia de Protección de Datos competente.`;
+  return clausulaProteccionDatosContrato({ prefijo: "NOVENA.-" });
 }
 
 function aplicarPersonalizacion(

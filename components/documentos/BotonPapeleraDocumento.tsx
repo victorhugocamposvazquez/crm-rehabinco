@@ -9,7 +9,8 @@ import { isAdmin } from "@/lib/auth/roles";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
-type TipoDocumentoPapelera = "parte_visita" | "contrato_arras";
+import type { TipoDocumentoPapelera } from "@/lib/papelera/papelera";
+import { TIPO_PAPELERA_LABEL } from "@/lib/papelera/papelera";
 
 export function BotonPapeleraDocumento({
   id,
@@ -26,8 +27,7 @@ export function BotonPapeleraDocumento({
   const puedeEliminar = isAdmin(user?.role);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const etiqueta = tipo === "parte_visita" ? "parte de visita" : "contrato de arras";
-
+  const etiqueta = TIPO_PAPELERA_LABEL[tipo].toLowerCase();
   const confirmar = async () => {
     setLoading(true);
     const result = await eliminarDocumentos(tipo, [id]);

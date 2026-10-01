@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { listarPapeleraDocumentos, resolverPapelera } from "@/lib/actions/papelera";
 import {
   ACCION_PAPELERA_LABEL,
+  TIPOS_DOCUMENTO_PAPELERA,
   TIPO_PAPELERA_LABEL,
   type PapeleraItem,
   type TipoDocumentoPapelera,
@@ -47,12 +48,10 @@ export function PapeleraDocumentosPanel({ tipo }: { tipo?: TipoDocumentoPapelera
 
   const grupos = useMemo(() => {
     if (tipo) return [{ tipo, items }];
-    const partes = items.filter((item) => item.tipo === "parte_visita");
-    const arras = items.filter((item) => item.tipo === "contrato_arras");
-    return [
-      { tipo: "parte_visita" as const, items: partes },
-      { tipo: "contrato_arras" as const, items: arras },
-    ].filter((grupo) => grupo.items.length > 0);
+    return TIPOS_DOCUMENTO_PAPELERA.map((t) => ({
+      tipo: t,
+      items: items.filter((item) => item.tipo === t),
+    })).filter((grupo) => grupo.items.length > 0);
   }, [items, tipo]);
 
   if (loading) {

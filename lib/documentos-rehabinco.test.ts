@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   ANIO_DOCUMENTO,
   EMPRESA_DOCUMENTOS,
+  clausulaProteccionDatosContrato,
   formatFechaDocumento,
   formatFechaEncabezado,
 } from "./empresa-documentos";
@@ -18,6 +19,12 @@ import {
 } from "./contrato-arras";
 import { clausulasPersonalizadasDesdeEdicion, normalizarTextoClausula } from "./contrato-arras-preview";
 import { htmlContratoArras, htmlContratoArrasExport, textosContratoArras } from "./contrato-arras-pdf";
+import { hojaEncargoHonorariosVacia } from "./hoja-encargo-honorarios";
+import { htmlHojaEncargoHonorarios } from "./hoja-encargo-honorarios-pdf";
+import { contratoPagoAplazadoVacio } from "./contrato-pago-aplazado";
+import { htmlContratoPagoAplazado } from "./contrato-pago-aplazado-pdf";
+import { contratoArrendamientoVacio } from "./contrato-arrendamiento";
+import { htmlContratoArrendamiento } from "./contrato-arrendamiento-pdf";
 
 describe("documentos Rehabinco 2026", () => {
   it("no usa datos de Conchado y sí los de Rehabinco", () => {
@@ -32,13 +39,18 @@ describe("documentos Rehabinco 2026", () => {
       agente_nombre: "Hugo",
     });
     const arras = htmlContratoArras(contratoArrasVacio());
-    for (const html of [visita, arras]) {
+    const honorarios = htmlHojaEncargoHonorarios(hojaEncargoHonorariosVacia());
+    const aplazado = htmlContratoPagoAplazado(contratoPagoAplazadoVacio());
+    const arrendamiento = htmlContratoArrendamiento(contratoArrendamientoVacio());
+    const lopd = clausulaProteccionDatosContrato({ prefijo: "NOVENA.-" });
+    for (const html of [visita, arras, honorarios, aplazado, arrendamiento, lopd]) {
       assert.equal(/conchado|conchadopuente|B70101449/i.test(html), false);
       assert.match(html, /REHABINCO/);
       assert.match(html, /B22834005/);
       assert.match(html, /oficina@rehabinco\.com/);
     }
     assert.equal(EMPRESA_DOCUMENTOS.razonSocial.includes("CONCHADO"), false);
+    assert.match(lopd, /^NOVENA\.- PROTECCIÓN DE DATOS/);
   });
 
   it("el encabezado vacío y las fechas usan 2026", () => {

@@ -9,8 +9,10 @@ import {
   ClipboardPen,
   FileSignature,
   FileText,
+  Home,
   ListTodo,
   Plus,
+  ScrollText,
   User,
   Users,
   type LucideIcon,
@@ -45,6 +47,9 @@ export function NuevoMenu() {
         { href: "/demandas?nueva=1", label: "Demanda", icon: Users },
         { href: "/partes-visita/nuevo", label: "Parte de visita", icon: ClipboardPen },
         { href: "/contratos-arras/nuevo", label: "Contrato de arras", icon: FileSignature },
+        { href: "/hojas-encargo-honorarios/nuevo", label: "Hoja de encargo", icon: ScrollText },
+        { href: "/contratos-pago-aplazado/nuevo", label: "Compraventa aplazada", icon: FileText },
+        { href: "/contratos-arrendamiento/nuevo", label: "Arrendamiento", icon: Home },
         ...(admin
           ? [
               { href: "/presupuestos/nuevo", label: "Presupuesto", icon: ClipboardList },
