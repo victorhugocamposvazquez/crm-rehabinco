@@ -10,11 +10,13 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { isAdmin, navHrefsForRole, roleLabel } from "@/lib/auth/roles";
 import { Sheet } from "@/components/ui/sheet";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
+import { useMenuPerfil } from "./MenuPerfil";
 import { itemsDesdeHrefs, NAV_MOBILE_LABEL, navItemActivo } from "./nav-items";
 
 export function MobileNav() {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { abrir: abrirPerfil } = useMenuPerfil();
   const [mas, setMas] = useState(false);
   const [mounted, setMounted] = useState(false);
   const items = itemsDesdeHrefs(navHrefsForRole(user?.role, "mobile"));
@@ -56,6 +58,22 @@ export function MobileNav() {
                 </button>
               );
             }
+            if (href === "/settings") {
+              return (
+                <button
+                  key={href}
+                  type="button"
+                  onClick={abrirPerfil}
+                  className={cn(
+                    "flex min-h-10 min-w-0 flex-1 basis-0 flex-col items-center justify-center gap-0.5 rounded-lg py-1 text-[10.5px] font-semibold leading-none",
+                    "text-[var(--text-2)]"
+                  )}
+                >
+                  <Icon className="h-4 w-4 shrink-0" strokeWidth={1.9} aria-hidden />
+                  <span className="truncate px-0.5">{texto}</span>
+                </button>
+              );
+            }
             return (
               <Link
                 key={href}
@@ -78,35 +96,52 @@ export function MobileNav() {
           aria-label="Más destinos"
         >
           {user ? (
-            <Link
-              href="/settings"
-              onClick={() => setMas(false)}
-              className="mb-5 flex items-center gap-3 rounded-[12px] bg-[var(--surface-soft)] px-3 py-3"
+            <button
+              type="button"
+              onClick={() => {
+                setMas(false);
+                abrirPerfil();
+              }}
+              className="mb-5 flex w-full items-center gap-3 rounded-[12px] bg-[var(--surface-soft)] px-3 py-3 text-left"
             >
               <AvatarComercial nombre={user.nombre} email={user.email} color={user.color} size={40} />
               <span className="min-w-0 leading-tight">
                 <span className="block truncate text-[15px] font-semibold">{user.nombre || user.email}</span>
                 <span className="block text-[12.5px] text-[var(--text-2)]">{roleLabel(user.role)}</span>
               </span>
-            </Link>
+            </button>
           ) : null}
           <h2 className="mb-3 px-2 text-xl font-semibold">Más</h2>
           <ul className="space-y-1">
             {resto.map(({ href, label, icon: Icon }) => (
               <li key={href}>
-                <Link
-                  href={href}
-                  onClick={() => setMas(false)}
-                  className={cn(
-                    "flex min-h-11 items-center gap-3 rounded-[9px] px-3 py-3 text-[15px] font-medium",
-                    navItemActivo(pathname, href)
-                      ? "bg-accent-soft text-accent"
-                      : "text-foreground hover:bg-[var(--surface-soft)]"
-                  )}
-                >
-                  <Icon size={17} strokeWidth={1.9} />
-                  {label}
-                </Link>
+                {href === "/settings" ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMas(false);
+                      abrirPerfil();
+                    }}
+                    className="flex min-h-11 w-full items-center gap-3 rounded-[9px] px-3 py-3 text-left text-[15px] font-medium text-foreground hover:bg-[var(--surface-soft)]"
+                  >
+                    <Icon size={17} strokeWidth={1.9} />
+                    {label}
+                  </button>
+                ) : (
+                  <Link
+                    href={href}
+                    onClick={() => setMas(false)}
+                    className={cn(
+                      "flex min-h-11 items-center gap-3 rounded-[9px] px-3 py-3 text-[15px] font-medium",
+                      navItemActivo(pathname, href)
+                        ? "bg-accent-soft text-accent"
+                        : "text-foreground hover:bg-[var(--surface-soft)]"
+                    )}
+                  >
+                    <Icon size={17} strokeWidth={1.9} />
+                    {label}
+                  </Link>
+                )}
               </li>
             ))}
           </ul>

@@ -11,6 +11,7 @@ import { esRutaHerramientas } from "./nav-items";
 import { cn } from "@/lib/utils";
 import { FiltroComercialProvider } from "@/lib/ui/filtro-comercial";
 import { FichaPeekProvider } from "@/components/crm/FichaPeek";
+import { MenuPerfilProvider } from "@/components/layout/MenuPerfil";
 import { AlertasPwaHost } from "@/components/pwa/AvisosPwa";
 import { PullToRefresh } from "@/components/pwa/PullToRefresh";
 import { createClient } from "@/lib/supabase/client";
@@ -66,6 +67,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <FiltroComercialProvider>
       <FichaPeekProvider>
+      <MenuPerfilProvider>
       <div className="flex min-h-dvh bg-[var(--background)]">
         <a
           href="#main-content"
@@ -95,6 +97,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
       {!wizard ? <PullToRefresh /> : null}
       <AlertasPwaHost />
+      </MenuPerfilProvider>
       </FichaPeekProvider>
     </FiltroComercialProvider>
   );

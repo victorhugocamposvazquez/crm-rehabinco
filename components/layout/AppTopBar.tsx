@@ -10,10 +10,12 @@ import { editorHomePath, isEditor } from "@/lib/auth/roles";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { InterruptorTema } from "@/components/ui/InterruptorTema";
 import { AvisosBarra } from "./AvisosBarra";
+import { useMenuPerfil } from "./MenuPerfil";
 
 export function AppTopBar() {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { abrir: abrirPerfil } = useMenuPerfil();
   const { seccion, detalle } = breadcrumbDeRuta(pathname);
   const inicio = isEditor(user?.role) ? editorHomePath() : "/";
 
@@ -44,14 +46,15 @@ export function AppTopBar() {
         <NuevoMenu />
       </span>
       {user ? (
-        <Link
-          href="/settings"
+        <button
+          type="button"
+          onClick={abrirPerfil}
           className="ml-1.5 shrink-0 min-[820px]:hidden"
           title={`${user.nombre || user.email} · ${user.role}`}
           aria-label={user.nombre || user.email || "Perfil"}
         >
           <AvatarComercial nombre={user.nombre} email={user.email} color={user.color} size={30} />
-        </Link>
+        </button>
       ) : null}
     </header>
   );

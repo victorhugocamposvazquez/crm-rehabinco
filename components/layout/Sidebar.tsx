@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth/auth-context";
 import { editorHomePath, isEditor, navHrefsForRole, roleLabel } from "@/lib/auth/roles";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
+import { useMenuPerfil } from "./MenuPerfil";
 import { gruposNavParaRol, navItemActivo } from "./nav-items";
 
 const STORAGE = "crm-sidebar-collapsed";
@@ -15,6 +16,7 @@ const STORAGE = "crm-sidebar-collapsed";
 export function Sidebar({ badges }: { badges?: Record<string, number> }) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { abrir: abrirPerfil } = useMenuPerfil();
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
@@ -100,12 +102,11 @@ export function Sidebar({ badges }: { badges?: Record<string, number> }) {
         ))}
       </nav>
       <div className="flex items-center gap-2.5 border-t border-[var(--border-soft)] px-2 py-2.5">
-        <Link
-          href="/settings"
-          className={cn(
-            "flex min-h-9 min-w-0 flex-1 items-center gap-2.5 rounded-[9px] px-1.5",
-            navItemActivo(pathname, "/settings") ? "bg-accent-soft text-accent" : "hover:bg-[var(--surface-soft)]"
-          )}
+        <button
+          type="button"
+          onClick={abrirPerfil}
+          className="flex min-h-9 min-w-0 flex-1 items-center gap-2.5 rounded-[9px] px-1.5 text-left hover:bg-[var(--surface-soft)]"
+          aria-label="Abrir perfil y sesión"
         >
           {collapsed ? (
             <Settings size={17} strokeWidth={1.9} />
@@ -123,7 +124,7 @@ export function Sidebar({ badges }: { badges?: Record<string, number> }) {
               </span>
             </>
           )}
-        </Link>
+        </button>
         <button
           type="button"
           onClick={toggle}
