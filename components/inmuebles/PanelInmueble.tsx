@@ -276,8 +276,8 @@ export function PanelInmueble({
           </div>
           <p className="mt-2 text-[13.5px] text-[var(--text-2)]">{[inmueble.direccion, inmueble.localidad].filter(Boolean).join(", ")}</p>
           <div className="mt-5 flex items-center gap-3">
-            <div className="h-1 flex-1 overflow-hidden rounded-full bg-[var(--border-soft)]">
-              <div className="h-full bg-foreground" style={{ width: `${completar.porcentaje}%` }} />
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--input)]">
+              <div className="h-full rounded-full bg-[var(--green)]" style={{ width: `${completar.porcentaje}%` }} />
             </div>
             <span className="whitespace-nowrap text-[12px] tabular-nums text-[var(--text-3)]">Ficha {completar.porcentaje}%</span>
           </div>

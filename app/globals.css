@@ -29,6 +29,9 @@
   --violet-ink: #4b3f8a;
   --red: #a33b2a;
   --red-bg: #fbeae5;
+  --green: #1f7a4d;
+  --on-green: #ffffff;
+  --green-bg: #e7f5ec;
   --muted: #5C5C5C;
   --ring: #111111;
   --field: #ffffff;
@@ -70,6 +73,9 @@
   --violet-ink: #ddd6f7;
   --red: #ef8d7c;
   --red-bg: #3d221c;
+  --green: #3ecf8e;
+  --on-green: #06210f;
+  --green-bg: #143024;
 }
 
 * {
@@ -419,3 +425,9 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
 .dark .bg-\[\#F1EFF8\] {
   background-color: var(--violet-bg);
 }
+.dark .avatar-comercial[data-gris="0"] { background: #f2f2f2 !important; color: #141414 !important; }
+.dark .avatar-comercial[data-gris="1"] { background: #d9d9d9 !important; color: #141414 !important; }
+.dark .avatar-comercial[data-gris="2"] { background: #c4c4c4 !important; color: #141414 !important; }
+.dark .avatar-comercial[data-gris="3"] { background: #b0b0b0 !important; color: #141414 !important; }
+.dark .avatar-comercial[data-gris="4"] { background: #9c9c9c !important; color: #141414 !important; }
+.dark .avatar-comercial[data-gris="5"] { background: #8a8a8a !important; color: #141414 !important; }

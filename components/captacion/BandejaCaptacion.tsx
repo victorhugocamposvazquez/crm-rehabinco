@@ -68,18 +68,18 @@ export function BandejaCaptacion({
                     {dias != null ? ` · ${textoAging(dias)}` : ""}
                   </p>
                   {item.proximaAccion ? (
-                    <p className="mt-0.5 text-[12px] text-[#111111]">
+                    <p className="mt-0.5 text-[12px] text-foreground">
                       {item.proximaAccion}
                       {item.proximaAccionEn ? ` · ${item.proximaAccionEn}` : ""}
                     </p>
                   ) : null}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-[#F6F5F1] px-2.5 py-1 text-[11px] font-semibold text-[#111111]">
+                  <span className="rounded-full bg-[var(--surface-soft)] px-2.5 py-1 text-[11px] font-semibold text-foreground">
                     {ESTADO_CAPTACION_LABEL[item.estado]}
                   </span>
                   {item.propertyId ? (
-                    <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-800">
+                    <span className="rounded-full bg-[var(--green-bg)] px-2.5 py-1 text-[11px] font-semibold text-[var(--green)]">
                       Propiedad
                     </span>
                   ) : null}
@@ -87,7 +87,7 @@ export function BandejaCaptacion({
               </Link>
               {item.propertyId ? (
                 <div className="px-4 pb-3">
-                  <Link href={rutaPropiedadCrm(item.propertyId)} className="text-[12px] font-medium text-[#111111] hover:underline">
+                  <Link href={rutaPropiedadCrm(item.propertyId)} className="text-[12px] font-medium text-foreground hover:underline">
                     Ver inmueble
                   </Link>
                 </div>
@@ -96,7 +96,7 @@ export function BandejaCaptacion({
           );
         })}
         {visibles.length === 0 ? (
-          <li className="px-4 py-10 text-center text-sm text-[#5C5C5C]">No hay fincas en este filtro.</li>
+          <li className="px-4 py-10 text-center text-sm text-[var(--text-3)]">No hay fincas en este filtro.</li>
         ) : null}
       </ul>
     </div>

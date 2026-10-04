@@ -196,7 +196,7 @@ export function AccionesContactoAnuncio({
           onClick={() => setModo(modo === "whatsapp" ? null : "whatsapp")}
           className={cn(
             "h-9 rounded-lg border text-[13px] font-medium",
-            modo === "whatsapp" ? "border-foreground bg-foreground text-background" : "border-[var(--input)] bg-[var(--field)] text-foreground"
+            modo === "whatsapp" ? "border-[var(--green)] bg-[var(--green)] text-[var(--on-green)]" : "border-[var(--input)] bg-[var(--field)] text-foreground"
           )}
         >
           WhatsApp
@@ -213,19 +213,19 @@ export function AccionesContactoAnuncio({
               type="date"
               value={dia}
               onChange={(event) => setDia(event.target.value)}
-              className="h-9 flex-1 rounded-lg border border-[var(--input)] bg-white px-2 text-[13px]"
+              className="h-9 flex-1 rounded-lg border border-[var(--input)] bg-[var(--field)] px-2 text-[13px] text-foreground"
             />
             <TimeInput
               value={hora}
               onChange={setHora}
-              className="h-9 w-[108px] rounded-lg border border-[var(--input)] bg-white px-2 text-[13px]"
+              className="h-9 w-[108px] rounded-lg border border-[var(--input)] bg-[var(--field)] px-2 text-[13px] text-foreground"
             />
           </div>
           <button
             type="button"
             disabled={guardando}
             onClick={() => void crearRecordatorio()}
-            className="mt-2 h-9 w-full rounded-lg bg-accent text-[13px] font-semibold text-white disabled:opacity-60"
+            className="mt-2 h-9 w-full rounded-lg bg-[var(--green)] text-[13px] font-semibold text-[var(--on-green)] disabled:opacity-60"
           >
             {guardando ? "Creando…" : "Crear recordatorio de llamada"}
           </button>
@@ -253,7 +253,7 @@ export function AccionesContactoAnuncio({
           <button
             type="button"
             onClick={abrirWhatsapp}
-            className="mt-2 h-9 w-full rounded-lg bg-accent text-[13px] font-medium text-accent-foreground"
+            className="mt-2 h-9 w-full rounded-lg bg-[var(--green)] text-[13px] font-medium text-[var(--on-green)]"
           >
             Abrir WhatsApp
           </button>
@@ -284,7 +284,7 @@ export function AccionesContactoAnuncio({
               {hechosOrdenados.map((item, indice) => (
                 <li key={item.id} className="grid grid-cols-[16px_1fr] gap-2">
                   <span className="flex flex-col items-center">
-                    <span className="mt-1.5 h-2 w-2 rounded-full bg-accent" />
+                    <span className="mt-1.5 h-2 w-2 rounded-full bg-[var(--green)]" />
                     {indice < hechosOrdenados.length - 1 ? <span className="w-px flex-1 bg-[var(--border)]" /> : null}
                   </span>
                   <div className="pb-3">

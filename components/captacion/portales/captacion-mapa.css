@@ -10,26 +10,34 @@
   display: inline-block;
   padding: 2px 8px;
   border-radius: 9999px;
-  border: 1px solid #D4D4D4;
-  background: #fff;
-  color: #111111;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--foreground);
   font-size: 11.5px;
   font-weight: 600;
   line-height: 1.35;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 12%);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 18%);
   cursor: pointer;
   white-space: nowrap;
 }
 
 .captacion-map-pin-aprox {
   border-style: dashed;
-  background: #F5F5F5;
+  background: var(--surface-soft);
+  color: var(--text-2);
 }
 
 .captacion-map-pin-sel {
-  background: #111111;
-  border-color: #111111;
-  color: #fff;
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--on-green);
+}
+
+.leaflet-bar a,
+.leaflet-control-attribution {
+  background: var(--surface) !important;
+  color: var(--text-2) !important;
+  border-color: var(--border) !important;
 }
 
 .leaflet-container {

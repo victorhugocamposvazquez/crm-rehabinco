@@ -39,6 +39,20 @@ export function CaptacionMapaLeaflet({ pins, selectedId, onSelect, className }: 
   const contenedor = useRef<HTMLDivElement>(null);
   const mapa = useRef<L.Map | null>(null);
   const capa = useRef<L.LayerGroup | null>(null);
+  const teselas = useRef<L.TileLayer | null>(null);
+
+  const ponerTeselas = (instancia: L.Map, oscuro: boolean) => {
+    if (teselas.current) instancia.removeLayer(teselas.current);
+    teselas.current = L.tileLayer(
+      oscuro
+        ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+        : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      {
+        attribution: oscuro ? "&copy; OpenStreetMap &copy; CARTO" : "&copy; OpenStreetMap",
+        maxZoom: 19,
+      }
+    ).addTo(instancia);
+  };
 
   useEffect(() => {
     if (!contenedor.current || mapa.current) return;
@@ -46,17 +60,20 @@ export function CaptacionMapaLeaflet({ pins, selectedId, onSelect, className }: 
       scrollWheelZoom: true,
       zoomControl: true,
     }).setView(VISTA_CORUNA, ZOOM_INICIAL);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap",
-      maxZoom: 19,
-    }).addTo(instancia);
+    ponerTeselas(instancia, document.documentElement.classList.contains("dark"));
     mapa.current = instancia;
     capa.current = L.layerGroup().addTo(instancia);
+    const observar = new MutationObserver(() => {
+      if (mapa.current) ponerTeselas(mapa.current, document.documentElement.classList.contains("dark"));
+    });
+    observar.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     requestAnimationFrame(() => instancia.invalidateSize());
     return () => {
+      observar.disconnect();
       instancia.remove();
       mapa.current = null;
       capa.current = null;
+      teselas.current = null;
     };
   }, []);
 

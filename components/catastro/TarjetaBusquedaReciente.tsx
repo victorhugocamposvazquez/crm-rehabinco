@@ -84,7 +84,7 @@ export function TarjetaBusquedaReciente({
               {ESTADO_BUSQUEDA_UI[item.status]}
             </p>
           </div>
-          <p className="mt-0.5 text-[13px] text-neutral-500">{lineaMetaListaBusqueda(item)}</p>
+          <p className="mt-0.5 text-[12.5px] text-[var(--text-3)]">{lineaMetaListaBusqueda(item)}</p>
           <div className="mt-2 min-[780px]:hidden">
             <BarraProgreso etiqueta={progreso.etiqueta} ancho={anchoBarra} />
           </div>
@@ -119,7 +119,7 @@ export function TarjetaBusquedaReciente({
                 <Link
                   role="menuitem"
                   href={urlReanudarBusqueda(item.id)}
-                  className="block rounded-lg px-3 py-2 text-sm text-foreground hover:bg-neutral-50"
+                  className="block rounded-lg px-3 py-2 text-sm text-foreground hover:bg-[var(--surface-soft)]"
                   onClick={() => setMenu(false)}
                 >
                   {TEXTO_REANUDAR_BUSQUEDA}
@@ -128,7 +128,7 @@ export function TarjetaBusquedaReciente({
               <button
                 type="button"
                 role="menuitem"
-                className="w-full rounded-lg px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50"
+                className="w-full rounded-lg px-3 py-2 text-left text-sm text-[var(--red)] hover:bg-[var(--red-bg)]"
                 onClick={() => {
                   setMenu(false);
                   setConfirmar(true);
@@ -156,16 +156,16 @@ function BarraProgreso({ etiqueta, ancho }: { etiqueta: string; ancho: string })
   return (
     <div className="flex flex-col items-end gap-1">
       <div
-        className="h-1.5 w-full overflow-hidden rounded-full bg-[#E5E5E5]"
+        className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--input)]"
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={Number.parseInt(ancho, 10)}
         aria-label={etiqueta}
       >
-        <div className="h-full rounded-full bg-[#111111]" style={{ width: ancho }} />
+        <div className="h-full rounded-full bg-[var(--green)]" style={{ width: ancho }} />
       </div>
-      {etiqueta ? <p className="text-[11px] leading-none text-neutral-500">{etiqueta}</p> : null}
+      {etiqueta ? <p className="text-[11px] leading-none text-[var(--text-3)]">{etiqueta}</p> : null}
     </div>
   );
 }

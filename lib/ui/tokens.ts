@@ -27,12 +27,12 @@ export const c = {
 } as const;
 
 export const COMERCIAL_COLORS = [
-  "#111111",
-  "#2A2A2A",
-  "#404040",
-  "#525252",
-  "#666666",
-  "#7A7A7A",
+  "#1F7A4D",
+  "#2B4A8A",
+  "#B98A16",
+  "#6B5AA8",
+  "#A33B2A",
+  "#3A6A82",
 ] as const;
 
 /** Color de ficha del comercial: el guardado, o uno estable según el id. */

@@ -6,10 +6,10 @@ import { cn } from "@/lib/utils";
 
 const ICONO: Record<TelefonoEstado, { glyph: string; title: string; className: string }> = {
   pendiente: { glyph: "⏳", title: "Teléfono pendiente", className: "text-[var(--text-2)]" },
-  solo_mensaje: { glyph: "✉", title: "Solo contacto por mensaje", className: "text-[#7A5A10]" },
-  virtual: { glyph: "↪", title: "Teléfono virtual de Idealista", className: "text-[#3A6A82]" },
-  real: { glyph: "☎", title: "Teléfono real", className: "text-accent" },
-  fallo: { glyph: "!", title: "No se pudo obtener el teléfono", className: "text-[#8A3030]" },
+  solo_mensaje: { glyph: "✉", title: "Solo contacto por mensaje", className: "bg-[var(--amber-bg)] text-[var(--amber-ink)]" },
+  virtual: { glyph: "↪", title: "Teléfono virtual de Idealista", className: "bg-[var(--blue-bg)] text-[var(--blue)]" },
+  real: { glyph: "☎", title: "Teléfono real", className: "bg-[var(--green-bg)] text-[var(--green)]" },
+  fallo: { glyph: "!", title: "No se pudo obtener el teléfono", className: "bg-[var(--red-bg)] text-[var(--red)]" },
   no_solicitado: { glyph: "—", title: "Agencia: teléfono no solicitado", className: "text-[var(--text-2)]" },
 };
 
@@ -28,7 +28,7 @@ export function IconoEstadoTelefono({ anuncio, enCola }: { anuncio: TelefonoAnun
   const e = resolverEstadoTelefono(anuncio, enCola);
   const meta = ICONO[e];
   return (
-    <span className={cn("inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#F5F5F5] text-[11px] font-bold", meta.className)} title={meta.title}>
+    <span className={cn("inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[11px] font-bold text-[var(--text-2)]", meta.className)} title={meta.title}>
       {meta.glyph}
     </span>
   );

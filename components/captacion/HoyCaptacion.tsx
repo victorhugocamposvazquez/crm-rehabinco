@@ -209,7 +209,7 @@ export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFactu
                       onClick={() => void marcarTarea(tarea.id)}
                       className="grid h-11 w-11 shrink-0 place-items-center rounded-[8px]"
                     >
-                      <span className="h-[17px] w-[17px] rounded-[5px] border-[1.5px] border-[#D4D4D4] bg-white" />
+                      <span className="h-[17px] w-[17px] rounded-[5px] border-[1.5px] border-[var(--input)] bg-[var(--field)]" />
                     </button>
                     <div className="min-w-0 flex-1">
                       <p className="text-[13.5px] font-medium leading-snug">{tarea.titulo}</p>
@@ -321,7 +321,7 @@ export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFactu
                       className="w-full rounded-t-[6px]"
                       style={{
                         height: `${Math.max(8, (total / maxFact) * 70)}px`,
-                        background: i === facturacionMeses.length - 1 ? "var(--foreground)" : "var(--text-3)",
+                        background: i === facturacionMeses.length - 1 ? "var(--green)" : "var(--text-3)",
                       }}
                       title={total.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
                     />

@@ -15,10 +15,10 @@ export type BandejaTarea = (typeof BANDEJAS_TAREA)[number]["value"];
 export type ColumnaTarea = "hoy" | "curso" | "espera" | "hecha";
 
 export const COLUMNAS_TAREA: { id: ColumnaTarea; label: string; dot: string; hint?: string }[] = [
-  { id: "hoy", label: "Hoy", dot: "#C0644F", hint: "vencidas + hoy" },
-  { id: "curso", label: "Esta semana", dot: "#B98A16" },
-  { id: "espera", label: "Esperando", dot: "#8579C4", hint: "terceros" },
-  { id: "hecha", label: "Hechas", dot: "#111111", hint: "últimos 7 días" },
+  { id: "hoy", label: "Hoy", dot: "var(--red)", hint: "vencidas + hoy" },
+  { id: "curso", label: "Esta semana", dot: "var(--amber)" },
+  { id: "espera", label: "Esperando", dot: "var(--violet)", hint: "terceros" },
+  { id: "hecha", label: "Hechas", dot: "var(--green)", hint: "últimos 7 días" },
 ];
 
 export type TareaOrganizador = {

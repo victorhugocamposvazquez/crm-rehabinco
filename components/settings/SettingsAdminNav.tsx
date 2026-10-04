@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,13 @@ const ITEMS = [
 
 export function SettingsAdminNav({ role }: { role?: Role | null }) {
   const pathname = usePathname();
+  const [hash, setHash] = useState("");
+  useEffect(() => {
+    const leer = () => setHash(window.location.hash);
+    leer();
+    window.addEventListener("hashchange", leer);
+    return () => window.removeEventListener("hashchange", leer);
+  }, [pathname]);
   const items = ITEMS.filter((item) => {
     if (item.portales && !puedeVerApisPortales(role)) return false;
     if (item.papelera && !puedeVerPapelera(role)) return false;
@@ -24,14 +32,17 @@ export function SettingsAdminNav({ role }: { role?: Role | null }) {
   return (
     <nav className="mt-4 flex flex-wrap gap-1 min-[820px]:w-52 min-[820px]:flex-col min-[820px]:float-left min-[820px]:mr-6">
       {items.map((item) => {
-        const activo =
-          item.href === "/settings" || item.href === "/settings#equipo"
-            ? pathname === "/settings"
+        const ancla = item.href.includes("#") ? item.href.slice(item.href.indexOf("#")) : "";
+        const activo = ancla
+          ? pathname === "/settings" && hash === ancla
+          : item.href === "/settings"
+            ? pathname === "/settings" && hash !== "#equipo"
             : pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (
           <Link
             key={item.href}
             href={item.href}
+            onClick={() => setHash(ancla)}
             className={cn(
               "rounded-[9px] px-3 py-2 text-[13.5px] font-medium",
               activo

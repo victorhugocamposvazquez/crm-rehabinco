@@ -43,24 +43,41 @@ function opcionesDe(nodo: ReactNode): Opcion[] {
 export function Selector({
   value,
   onChange,
+  onBlur,
   children,
   className,
   disabled,
   id,
   name,
+  required,
+  ref,
   "aria-label": ariaLabel,
 }: {
-  value?: string;
+  value?: string | number;
   onChange?: (evento: ChangeEvent<HTMLSelectElement>) => void;
+  onBlur?: (evento: { target: { value: string; name?: string }; type?: string }) => void;
   children?: ReactNode;
   className?: string;
   disabled?: boolean;
   id?: string;
   name?: string;
+  required?: boolean;
+  ref?: (instance: HTMLSelectElement | null) => void;
+  min?: string | number;
+  max?: string | number;
+  maxLength?: number;
+  minLength?: number;
+  pattern?: string;
   "aria-label"?: string;
 }) {
   const opciones = opcionesDe(children);
-  const actual = opciones.find((opcion) => opcion.value === (value ?? "")) ?? opciones.find((opcion) => opcion.value === value);
+  const texto = value == null || value === "" ? "" : String(value);
+  const [interno, setInterno] = useState(texto);
+  useEffect(() => {
+    if (value !== undefined) setInterno(value == null || value === "" ? "" : String(value));
+  }, [value]);
+  const valor = value !== undefined ? texto : interno;
+  const actual = opciones.find((opcion) => opcion.value === valor);
   const etiqueta = actual?.label || opciones[0]?.label || "Elegir";
   const [abierto, setAbierto] = useState(false);
   const [marco, setMarco] = useState<{ top: number; left: number; width: number; arriba: boolean } | null>(null);
@@ -71,7 +88,8 @@ export function Selector({
   const cerrar = () => setAbierto(false);
 
   const elegir = (siguiente: string) => {
-    onChange?.({ target: { value: siguiente } } as ChangeEvent<HTMLSelectElement>);
+    setInterno(siguiente);
+    onChange?.({ target: { value: siguiente, name } } as ChangeEvent<HTMLSelectElement>);
     cerrar();
     botonRef.current?.focus();
   };
@@ -165,7 +183,19 @@ export function Selector({
 
   return (
     <>
-      {name ? <input type="hidden" name={name} value={value ?? ""} /> : null}
+      <select
+        ref={ref}
+        name={name}
+        required={required}
+        disabled={disabled}
+        value={valor}
+        tabIndex={-1}
+        aria-hidden
+        className="sr-only"
+        onChange={(evento) => onChange?.(evento)}
+      >
+        {children}
+      </select>
       <button
         ref={botonRef}
         id={id}
@@ -175,17 +205,19 @@ export function Selector({
         aria-haspopup="listbox"
         aria-expanded={abierto}
         aria-controls={listaId}
+        onBlur={() => onBlur?.({ target: { value: valor, name }, type: "blur" })}
         onClick={() => {
           if (disabled) return;
           setAbierto((v) => !v);
         }}
         className={cn(
-          "inline-flex h-9 min-w-0 max-w-full items-center justify-between gap-2 rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-2.5 text-left text-[13.5px] text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-50",
-          className
+          "relative inline-flex h-9 min-w-0 max-w-full items-center justify-between gap-2 rounded-[9px] border border-[var(--input)] bg-[var(--field)] pl-3 text-left text-[13.5px] text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-50",
+          className,
+          "pr-10"
         )}
       >
         <span className="min-w-0 flex-1 truncate">{etiqueta}</span>
-        <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 text-[var(--text-3)] transition-transform", abierto && "rotate-180")} strokeWidth={1.8} />
+        <ChevronDown className={cn("pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-2)] transition-transform", abierto && "rotate-180")} strokeWidth={1.8} />
       </button>
       {menu}
     </>

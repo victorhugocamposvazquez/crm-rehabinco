@@ -83,10 +83,10 @@ export function BusquedasRecientes({
   return (
     <section className={compact ? "mt-6" : "mt-2"}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold text-foreground">Búsquedas recientes</h2>
+        <h2 className="text-[13px] font-medium text-[var(--text-2)]">Búsquedas recientes</h2>
         <Link
           href={RUTA_HISTORICO}
-          className="text-sm font-medium text-[#111111] hover:underline"
+          className="text-[13px] font-medium text-[var(--text-3)] hover:text-foreground"
         >
           {TEXTO_VER_TODO}
         </Link>

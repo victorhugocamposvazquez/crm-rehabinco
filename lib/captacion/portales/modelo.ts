@@ -65,7 +65,7 @@ export const FASE_KANBAN_META: Array<{
   { id: "contacto", label: "Contactar", dot: "var(--amber)", hint: "primer toque", vacia: "Pasa aquí anuncios desde Novedades" },
   { id: "visita", label: "Visita", dot: "var(--blue)", hint: "", vacia: "Sin visitas pendientes" },
   { id: "negociando", label: "Negociando", dot: "var(--violet)", hint: "honorarios · mandato", vacia: "Nada en negociación" },
-  { id: "captado", label: "Captado", dot: "var(--foreground)", hint: "→ Inmuebles", vacia: "Aún nada captado" },
+  { id: "captado", label: "Captado", dot: "var(--green)", hint: "→ Inmuebles", vacia: "Aún nada captado" },
   { id: "perdido", label: "Perdido", dot: "var(--text-3)", hint: "últimos 30 días", vacia: "Ninguno perdido" },
 ];
 

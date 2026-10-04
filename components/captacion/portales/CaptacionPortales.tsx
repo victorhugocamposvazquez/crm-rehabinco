@@ -182,12 +182,12 @@ function Switch({ on, onClick }: { on: boolean; onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className={cn("relative h-[22px] w-[38px] shrink-0 rounded-full transition-colors", on ? "bg-foreground" : "bg-[var(--input)]")}
+      className={cn("relative h-[22px] w-[38px] shrink-0 rounded-full transition-colors", on ? "bg-[var(--green)]" : "bg-[var(--input)]")}
       aria-pressed={on}
     >
       <span
         className="absolute top-0.5 h-[18px] w-[18px] rounded-full shadow"
-        style={{ left: on ? 18 : 2, background: on ? "var(--background)" : "#fff" }}
+        style={{ left: on ? 18 : 2, background: "#fff" }}
       />
     </button>
   );
@@ -681,7 +681,7 @@ export function CaptacionPortales() {
           <button
             type="button"
             onClick={() => setAlertaOpen(true)}
-            className="inline-flex h-9 items-center gap-1.5 rounded-[9px] bg-accent px-3 text-[13.5px] font-semibold text-white hover:bg-accent-dark"
+            className="inline-flex h-9 items-center gap-1.5 rounded-[9px] bg-[var(--green)] px-3 text-[13.5px] font-semibold text-[var(--on-green)] hover:opacity-90"
           >
             + Nueva alerta
           </button>
@@ -706,7 +706,7 @@ export function CaptacionPortales() {
             >
               {label}
               {n > 0 ? (
-                <span className={cn("rounded-full px-1.5 py-px text-[11px] font-semibold", on ? "bg-accent text-white" : "bg-[#EBEBEB] text-[var(--text-2)]")}>
+                <span className={cn("rounded-full px-1.5 py-px text-[11px] font-semibold", on ? "bg-[var(--green)] text-[var(--on-green)]" : "bg-[var(--surface-soft)] text-[var(--text-2)]")}>
                   {n}
                 </span>
               ) : null}
@@ -741,7 +741,7 @@ export function CaptacionPortales() {
 
           <section className="min-w-0 max-w-full overflow-hidden rounded-[14px] border border-[var(--border)] bg-[var(--surface)]">
             <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border-soft)] px-3.5 py-3">
-              <div className="flex h-9 min-w-0 flex-[1_1_200px] items-center gap-2 rounded-[9px] border border-[var(--input)] px-2.5">
+              <div className="flex h-9 min-w-0 flex-[1_1_200px] items-center gap-2 rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-2.5">
                 <input
                   value={q}
                   onChange={(e) => {
@@ -765,7 +765,7 @@ export function CaptacionPortales() {
                 ))}
               </Selector>
               <button type="button" onClick={() => setMas((v) => !v)} className={cn("flex h-9 items-center gap-1.5 rounded-[9px] border px-2.5 text-[13px] font-medium", mas ? "border-accent bg-accent-soft text-accent-dark" : "border-[var(--input)] bg-[var(--field)]")}>
-                Más filtros{nFiltros ? <span className="rounded-full bg-accent px-1.5 text-[11px] font-semibold text-white">{nFiltros}</span> : null}
+                Más filtros{nFiltros ? <span className="rounded-full bg-[var(--green)] px-1.5 text-[11px] font-semibold text-[var(--on-green)]">{nFiltros}</span> : null}
               </button>
               <button type="button" onClick={() => setMapa((v) => !v)} className={cn("hidden h-9 items-center gap-1.5 rounded-[9px] border px-2.5 text-[13px] font-medium min-[820px]:flex", mapa ? "border-accent bg-accent-soft text-accent-dark" : "border-[var(--input)] bg-[var(--field)]")}>
                 Mapa
@@ -813,7 +813,7 @@ export function CaptacionPortales() {
                   ))
                 : null}
               <div className="flex-1" />
-              <Selector value={orden} onChange={(e) => setOrden(e.target.value)} className="h-[30px] rounded-lg bg-[#F5F5F5] px-2 text-[12.5px] text-[var(--text-2)]">
+              <Selector value={orden} onChange={(e) => setOrden(e.target.value)} className="h-[30px] rounded-lg bg-[var(--field)] text-[12.5px] text-[var(--text-2)]">
                 <option value="publicado">Últimos en Idealista</option>
                 <option value="anadido">Añadidos al CRM</option>
                 <option value="precio">Precio ↑</option>
@@ -822,7 +822,7 @@ export function CaptacionPortales() {
               </Selector>
             </div>
             {mapa ? (
-              <div className="relative border-b border-[var(--border-soft)] bg-[#E9ECE8]">
+              <div className="relative border-b border-[var(--border-soft)] bg-[var(--surface-soft)]">
                 <CaptacionMapaLeaflet pins={pinsMapa} selectedId={sel} onSelect={onPinMapa} className="h-[340px] w-full z-0" />
                 {pinsMapa.length === 0 ? (
                   <div className="pointer-events-none absolute inset-0 z-[400] flex flex-col items-center justify-center gap-1 bg-background/75 px-4 text-center">
@@ -847,12 +847,12 @@ export function CaptacionPortales() {
                 {comerciales.map((c) => (
                   <button key={c.id} type="button" title={`Asignar a ${c.nombre}`} onClick={() => void patchAnuncio(checks, { comercial_id: c.id }, `Asignado a ${c.nombre.split(" ")[0]}`, "asignacion")} className="grid h-7 w-7 place-items-center rounded-full text-[10px] font-semibold text-white" style={{ background: c.color ?? "#3A6A82" }}>{inicialesNombre(c.nombre)}</button>
                 ))}
-                <button type="button" onClick={() => seguir(checks)} className="h-[30px] rounded-lg bg-accent px-2.5 text-[12.5px] font-semibold text-white">Pasar a seguimiento</button>
+                <button type="button" onClick={() => seguir(checks)} className="h-[30px] rounded-lg bg-[var(--green)] px-2.5 text-[12.5px] font-semibold text-[var(--on-green)]">Pasar a seguimiento</button>
                 <button type="button" onClick={() => void patchAnuncio(checks, { fase: "descartado" }, "Descartado")} className="h-[30px] rounded-lg border border-[var(--input)] bg-[var(--field)] px-2.5 text-[12.5px] font-semibold">Descartar</button>
               </div>
             ) : null}
             <div className="hidden grid-cols-[16px_minmax(0,1fr)_100px_72px_104px] gap-3 border-b border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-[12px] text-[var(--text-3)] min-[820px]:grid" style={cols ? { gridTemplateColumns: cols } : undefined}>
-              <button type="button" onClick={() => setChecks(page.length && page.every((a) => checks.includes(a.id)) ? [] : page.map((a) => a.id))} className={cn("h-4 w-4 rounded border", page.length && page.every((a) => checks.includes(a.id)) ? "border-foreground bg-foreground" : "border-[var(--input)] bg-[var(--field)]")} />
+              <button type="button" onClick={() => setChecks(page.length && page.every((a) => checks.includes(a.id)) ? [] : page.map((a) => a.id))} className={cn("grid h-4 w-4 place-items-center rounded border text-[10px] font-bold leading-none text-[var(--on-green)]", page.length && page.every((a) => checks.includes(a.id)) ? "border-[var(--green)] bg-[var(--green)]" : "border-[var(--input)] bg-[var(--field)]")}>{page.length && page.every((a) => checks.includes(a.id)) ? "✓" : ""}</button>
               <div>Anuncio</div><div className="text-right">Precio</div>{wide ? <div className="text-right">m²</div> : null}<div className="text-right">€/m²</div>{wide ? <div>Contacto</div> : null}{wide ? <div>Zona</div> : null}<div />
             </div>
             {page.map((a) => {
@@ -883,11 +883,11 @@ export function CaptacionPortales() {
                       }}
                       className="mt-1 grid h-11 w-11 shrink-0 place-items-center"
                     >
-                      <span className={cn("grid h-4 w-4 place-items-center rounded border", ck ? "border-foreground bg-foreground" : "border-[var(--input)] bg-[var(--field)]")} />
+                      <span className={cn("grid h-4 w-4 place-items-center rounded border text-[10px] font-bold leading-none text-[var(--on-green)]", ck ? "border-[var(--green)] bg-[var(--green)]" : "border-[var(--input)] bg-[var(--field)]")}>{ck ? "✓" : ""}</span>
                     </button>
-                    <div className="relative h-[72px] w-[88px] shrink-0 overflow-hidden rounded-[8px] bg-[#E8E4DC]">
+                    <div className="relative h-[72px] w-[88px] shrink-0 overflow-hidden rounded-[8px] bg-[var(--surface-soft)]">
                       <FotoPortal src={portadaDe(a)} />
-                      {esNuevoHoyCaptacion(a, hayRecogidaCompleta) ? <span className="absolute left-0 top-0 rounded-br bg-accent px-1 py-px text-[9px] font-bold tracking-wide text-white">NUEVO</span> : null}
+                      {esNuevoHoyCaptacion(a, hayRecogidaCompleta) ? <span className="absolute left-0 top-0 rounded-br bg-[var(--green)] px-1 py-px text-[9px] font-bold tracking-wide text-[var(--on-green)]">NUEVO</span> : null}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
@@ -918,17 +918,17 @@ export function CaptacionPortales() {
               }
               return (
                 <div key={a.id} onClick={() => { setSel(a.id); setPanel(true); }} className={cn("grid cursor-pointer items-center gap-3 border-b border-[var(--border-row)] px-4 py-3.5 hover:bg-[var(--surface-soft)]", on ? "bg-[var(--row-active)] shadow-[inset_3px_0_0_var(--foreground)]" : "bg-[var(--surface)]")} style={{ gridTemplateColumns: cols }}>
-                  <button type="button" onClick={(e) => { e.stopPropagation(); setChecks((prev) => (ck ? prev.filter((x) => x !== a.id) : [...prev, a.id])); }} className={cn("grid h-4 w-4 place-items-center rounded border", ck ? "border-foreground bg-foreground" : "border-[var(--input)] bg-[var(--field)]")} />
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setChecks((prev) => (ck ? prev.filter((x) => x !== a.id) : [...prev, a.id])); }} className={cn("grid h-4 w-4 place-items-center rounded border text-[10px] font-bold leading-none text-[var(--on-green)]", ck ? "border-[var(--green)] bg-[var(--green)]" : "border-[var(--input)] bg-[var(--field)]")}>{ck ? "✓" : ""}</button>
                   <div className="flex min-w-0 items-center gap-2.5">
-                    <div className="relative h-11 w-[60px] shrink-0 overflow-hidden rounded-[7px] bg-[#E8E4DC]">
+                    <div className="relative h-11 w-[60px] shrink-0 overflow-hidden rounded-[7px] bg-[var(--surface-soft)]">
                       <FotoPortal src={portadaDe(a)} />
-                      {esNuevoHoyCaptacion(a, hayRecogidaCompleta) ? <span className="absolute left-0 top-0 rounded-br bg-accent px-1 py-px text-[9px] font-bold tracking-wide text-white">NUEVO</span> : null}
+                      {esNuevoHoyCaptacion(a, hayRecogidaCompleta) ? <span className="absolute left-0 top-0 rounded-br bg-[var(--green)] px-1 py-px text-[9px] font-bold tracking-wide text-[var(--on-green)]">NUEVO</span> : null}
                     </div>
                     <div className="min-w-0">
                       <div className="flex min-w-0 items-center gap-1.5">
                         <span className="truncate text-[14px] font-semibold">{a.titulo}</span>
                         {tagsConEstilo(a.tags).map((t) => <span key={t.label} className="whitespace-nowrap rounded px-1.5 py-px text-[10.5px] font-semibold" style={{ background: t.bg, color: t.fg }}>{t.label}</span>)}
-                        {a.fuente === "idealista" && anuncioIdealistaVacio(a) ? <span className="whitespace-nowrap rounded bg-[#F5F5F5] px-1.5 py-px text-[10.5px] font-semibold text-[var(--text-2)]">sin datos</span> : null}
+                        {a.fuente === "idealista" && anuncioIdealistaVacio(a) ? <span className="whitespace-nowrap rounded bg-[var(--surface-soft)] px-1.5 py-px text-[10.5px] font-semibold text-[var(--text-2)]">sin datos</span> : null}
                         {!wide && nRep > 1 ? <span className="shrink-0 rounded border border-[#D4D4D4] px-1 text-[10.5px] font-semibold text-accent" title="Este contacto tiene más anuncios">×{nRep}</span> : null}
                       </div>
                       <div className="mt-0.5 flex gap-2 overflow-hidden text-[12px] text-[var(--text-2)]">
@@ -972,7 +972,7 @@ export function CaptacionPortales() {
                     n === "…" ? (
                       <span key={`puntos-${i}`} className="px-0.5 text-[13px] text-[var(--text-2)]">…</span>
                     ) : (
-                      <button key={n} type="button" onClick={() => setPag(n)} className={cn("h-8 min-w-8 rounded-lg border px-2 text-[13px] font-semibold", n === pagina ? "border-foreground bg-foreground text-background" : "border-[var(--input)] bg-[var(--field)] text-foreground")}>{n}</button>
+                      <button key={n} type="button" onClick={() => setPag(n)} className={cn("h-8 min-w-8 rounded-lg border px-2 text-[13px] font-semibold", n === pagina ? "border-[var(--green)] bg-[var(--green)] text-[var(--on-green)]" : "border-[var(--input)] bg-[var(--field)] text-foreground")}>{n}</button>
                     )
                   )}
                   <button type="button" disabled={pagina >= nPag} onClick={() => setPag(pagina + 1)} className="h-8 rounded-lg border border-[var(--input)] bg-[var(--field)] px-2.5 text-[13px] font-semibold text-foreground disabled:opacity-40">Siguiente</button>
@@ -1014,7 +1014,7 @@ export function CaptacionPortales() {
                     return (
                       <div key={a.id} draggable onDragStart={(e) => e.dataTransfer.setData("text/plain", a.id)} onClick={() => { setSel(a.id); setPanel(true); }} className="mb-2 cursor-grab rounded-[11px] border border-[var(--border)] bg-[var(--field)] p-2.5 hover:border-accent">
                         <div className="flex gap-2.5">
-                          <div className="h-[34px] w-11 shrink-0 overflow-hidden rounded-md bg-[#E8E4DC]"><FotoPortal src={portadaDe(a)} /></div>
+                          <div className="h-[34px] w-11 shrink-0 overflow-hidden rounded-md bg-[var(--surface-soft)]"><FotoPortal src={portadaDe(a)} /></div>
                           <div className="min-w-0"><div className="text-[13.5px] font-semibold leading-snug">{a.titulo}</div><div className="mt-0.5 text-[11.5px] text-[var(--text-2)]">{a.zona} · {a.superficie ?? "—"} m²</div></div>
                         </div>
                         <div className="mt-2 flex items-center gap-2">
@@ -1064,9 +1064,9 @@ export function CaptacionPortales() {
                     <Switch on={a.activa} onClick={() => { const supabase = createClient(); void supabase.from("captacion_alertas").update({ activa: !a.activa }).eq("id", a.id); setAlertas((prev) => prev.map((x) => (x.id === a.id ? { ...x, activa: !x.activa } : x))); }} />
                   </div>
                   <div className="mt-2.5 flex flex-wrap gap-1.5">
-                    {a.zonas.map((z) => <span key={z} className="rounded-md bg-[#F5F5F5] px-2 py-0.5 text-[11.5px] text-[var(--text-2)]">{z}</span>)}
-                    {a.solo_particulares ? <span className="rounded-md bg-[#F5F5F5] px-2 py-0.5 text-[11.5px] text-[var(--text-2)]">particular</span> : null}
-                    {a.precio_max ? <span className="rounded-md bg-[#F5F5F5] px-2 py-0.5 text-[11.5px] text-[var(--text-2)]">hasta {euros(a.precio_max)}</span> : null}
+                    {a.zonas.map((z) => <span key={z} className="rounded-md bg-[var(--surface-soft)] px-2 py-0.5 text-[11.5px] text-[var(--text-2)]">{z}</span>)}
+                    {a.solo_particulares ? <span className="rounded-md bg-[var(--surface-soft)] px-2 py-0.5 text-[11.5px] text-[var(--text-2)]">particular</span> : null}
+                    {a.precio_max ? <span className="rounded-md bg-[var(--surface-soft)] px-2 py-0.5 text-[11.5px] text-[var(--text-2)]">hasta {euros(a.precio_max)}</span> : null}
                   </div>
                   <div className="mt-3 flex items-center justify-between border-t border-[var(--border-soft)] pt-2.5 text-[12.5px]">
                     <div className="flex items-center gap-1.5 text-[var(--text-2)]">{com ? <AvatarComercial nombre={com.nombre} color={com.color} size={18} /> : null}{com?.nombre.split(" ")[0] ?? "—"}</div>
@@ -1091,7 +1091,7 @@ export function CaptacionPortales() {
               {notifs.length === 0 ? <div className="p-6 text-[13.5px] text-[var(--text-2)]">Aún no hay avisos.</div> : null}
               {notifs.map((n) => (
                 <div key={n.id} className={cn("flex items-start gap-3 border-b border-[var(--border-row)] px-4 py-3.5", n.leida ? "bg-[var(--surface)]" : "bg-[var(--surface-soft)]")}>
-                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: n.leida ? "transparent" : "var(--foreground)" }} />
+                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: n.leida ? "transparent" : "var(--green)" }} />
                   <div className="min-w-0 flex-1">
                     <div className={cn("text-[14px]", n.leida ? "font-medium" : "font-semibold")}>{n.titulo}</div>
                     {n.detalle ? <div className="mt-0.5 text-[12.5px] text-[var(--text-2)]">{n.detalle}</div> : null}
@@ -1187,7 +1187,7 @@ export function CaptacionPortales() {
               <button type="button" onClick={() => setAlertaOpen(false)} className="grid h-[34px] w-[34px] place-items-center rounded-lg text-[var(--text-2)]">×</button>
             </div>
             <div className="flex flex-1 flex-col gap-3.5 overflow-y-auto p-4">
-              <label className="block text-[12px] font-semibold text-[var(--text-2)]">Nombre<input value={draftAlerta.nombre} onChange={(e) => setDraftAlerta((d) => ({ ...d, nombre: e.target.value }))} placeholder="p. ej. Edificios centro sin DH" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px]" /></label>
+              <label className="block text-[12px] font-semibold text-[var(--text-2)]">Nombre<input value={draftAlerta.nombre} onChange={(e) => setDraftAlerta((d) => ({ ...d, nombre: e.target.value }))} placeholder="p. ej. Edificios centro sin DH" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-3 text-[14px] text-foreground" /></label>
               <div>
                 <div className="mb-1.5 text-[12px] font-semibold text-[var(--text-2)]">Portales</div>
                 <div className="flex flex-wrap gap-1.5">
@@ -1202,12 +1202,12 @@ export function CaptacionPortales() {
                 </div>
                 <p className="mt-1.5 text-[12px] text-[var(--text-3)]">Captación activa por crawler: Habitaclia, pisos.com, Milanuncios y Fotocasa. Idealista requiere API aparte.</p>
               </div>
-              <label className="block text-[12px] font-semibold text-[var(--text-2)]">Zonas<input value={draftAlerta.zonas} onChange={(e) => setDraftAlerta((d) => ({ ...d, zonas: e.target.value }))} placeholder="A Coruña, Cambre, Oleiros…" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px]" /></label>
+              <label className="block text-[12px] font-semibold text-[var(--text-2)]">Zonas<input value={draftAlerta.zonas} onChange={(e) => setDraftAlerta((d) => ({ ...d, zonas: e.target.value }))} placeholder="A Coruña, Cambre, Oleiros…" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-3 text-[14px] text-foreground" /></label>
               <div className="grid grid-cols-2 gap-2.5">
                 <label className="block text-[12px] font-semibold text-[var(--text-2)]">Operación<Selector value={draftAlerta.operacion} onChange={(e) => setDraftAlerta((d) => ({ ...d, operacion: e.target.value as "venta" | "alquiler" }))} className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-2.5 text-[14px]"><option value="venta">Venta</option><option value="alquiler">Alquiler</option></Selector></label>
                 <label className="block text-[12px] font-semibold text-[var(--text-2)]">Tipo<Selector value={draftAlerta.tipo} onChange={(e) => setDraftAlerta((d) => ({ ...d, tipo: e.target.value }))} className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-2.5 text-[14px]"><option value="">Cualquiera</option>{TIPOS_ANUNCIO.map((t) => <option key={t} value={t}>{TIPO_ANUNCIO_LABEL[t]}</option>)}</Selector></label>
-                <label className="block text-[12px] font-semibold text-[var(--text-2)]">Precio máx.<input value={draftAlerta.precioMax} onChange={(e) => setDraftAlerta((d) => ({ ...d, precioMax: e.target.value }))} placeholder="€" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px]" /></label>
-                <label className="block text-[12px] font-semibold text-[var(--text-2)]">Metros mín.<input value={draftAlerta.m2Min} onChange={(e) => setDraftAlerta((d) => ({ ...d, m2Min: e.target.value }))} placeholder="m²" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px]" /></label>
+                <label className="block text-[12px] font-semibold text-[var(--text-2)]">Precio máx.<input value={draftAlerta.precioMax} onChange={(e) => setDraftAlerta((d) => ({ ...d, precioMax: e.target.value }))} placeholder="€" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-3 text-[14px] text-foreground" /></label>
+                <label className="block text-[12px] font-semibold text-[var(--text-2)]">Metros mín.<input value={draftAlerta.m2Min} onChange={(e) => setDraftAlerta((d) => ({ ...d, m2Min: e.target.value }))} placeholder="m²" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-3 text-[14px] text-foreground" /></label>
               </div>
               <div className="flex items-center justify-between gap-2.5 rounded-[10px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2.5">
                 <div><div className="text-[13.5px] font-semibold">Solo particulares</div><div className="text-[12px] text-[var(--text-2)]">Excluye agencias y profesionales detectados</div></div>
@@ -1231,12 +1231,50 @@ export function CaptacionPortales() {
               ) : null}
             </div>
             <div className="flex shrink-0 gap-2 border-t border-[var(--border-soft)] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-              <button type="button" onClick={() => void crearAlerta()} className="h-10 flex-1 rounded-[9px] bg-accent text-[13.5px] font-semibold text-white">Crear alerta</button>
+              <button type="button" onClick={() => void crearAlerta()} className="h-10 flex-1 rounded-[9px] bg-[var(--green)] text-[13.5px] font-semibold text-[var(--on-green)]">Crear alerta</button>
               <button type="button" onClick={() => setAlertaOpen(false)} className="h-10 rounded-[9px] border border-[var(--input)] px-3.5 text-[13.5px] font-semibold">Cancelar</button>
             </div>
           </div>
         </Sheet>
       ) : null}
+    </div>
+  );
+}
+
+const PASOS_FASE = [
+  { id: "novedad", label: "Novedad" },
+  { id: "contacto", label: "Contacto" },
+  { id: "visita", label: "Visita" },
+  { id: "negociando", label: "Negociación" },
+  { id: "captado", label: "Captado" },
+] as const;
+
+function ProgresoFase({ fase }: { fase: string }) {
+  const salida = fase === "perdido" || fase === "descartado";
+  const indice = PASOS_FASE.findIndex((paso) => paso.id === fase);
+  return (
+    <div className="mt-5">
+      <ol className="flex items-start gap-1.5">
+        {PASOS_FASE.map((paso, i) => {
+          const hecho = !salida && indice > i;
+          const actual = !salida && indice === i;
+          return (
+            <li key={paso.id} className="min-w-0 flex-1">
+              <span
+                className={cn(
+                  "block h-1.5 rounded-full",
+                  hecho || actual ? "bg-[var(--green)]" : "bg-[var(--input)]",
+                  actual && "shadow-[0_0_0_3px_var(--green-bg)]"
+                )}
+              />
+              <span className={cn("mt-1.5 block truncate text-[11px]", actual ? "font-medium text-foreground" : hecho ? "text-[var(--text-2)]" : "text-[var(--text-3)]")}>
+                {paso.label}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+      {salida ? <p className="mt-2 text-[12px] text-[var(--text-2)]">{fase === "perdido" ? "Marcado como perdido" : "Descartado"}</p> : null}
     </div>
   );
 }
@@ -1258,14 +1296,14 @@ function GaleriaAnuncio({ anuncio, onCerrar }: { anuncio: AnuncioCaptacion; onCe
   }, [anuncio.id]);
   const actual = fotos[indice] ?? fotos[0] ?? null;
   return (
-    <div className="border-b border-[var(--border-soft)] bg-[#E8E4DC]">
+    <div className="border-b border-[var(--border-soft)] bg-[var(--surface-soft)]">
       <div className="relative aspect-video">
         <FotoPortal src={actual} />
         <div className="absolute bottom-2.5 left-3 flex flex-wrap gap-1.5">
-          <span className="flex items-center gap-1 rounded-md bg-white/94 px-2 py-0.5 text-[11px] font-semibold text-black"><span className="h-1.5 w-1.5 rounded-full" style={{ background: PORTAL_COLOR[anuncio.fuente] }} />{labelFuentePortal(anuncio.fuente)} · {anuncio.anunciante === "particular" ? "Particular" : anuncio.anunciante}</span>
-          {fotos.length ? <span className="rounded-md bg-white/94 px-2 py-0.5 text-[11px] font-semibold text-black">{fotos.length} fotos</span> : null}
+          <span className="flex items-center gap-1 rounded-md bg-black/55 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur-sm"><span className="h-1.5 w-1.5 rounded-full" style={{ background: PORTAL_COLOR[anuncio.fuente] }} />{labelFuentePortal(anuncio.fuente)} · {anuncio.anunciante === "particular" ? "Particular" : anuncio.anunciante}</span>
+          {fotos.length ? <span className="rounded-md bg-black/55 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur-sm">{fotos.length} fotos</span> : null}
         </div>
-        <button type="button" onClick={onCerrar} className="absolute right-2.5 top-2.5 grid h-[34px] w-[34px] place-items-center rounded-[9px] bg-white/94 text-black">×</button>
+        <button type="button" onClick={onCerrar} className="absolute right-2.5 top-2.5 grid h-[34px] w-[34px] place-items-center rounded-[9px] bg-black/55 text-white backdrop-blur-sm">×</button>
       </div>
       {fotos.length > 1 ? (
         <div className="flex gap-1.5 overflow-x-auto px-3 py-2">
@@ -1336,7 +1374,7 @@ function PeekAnuncio({
   const aviso = textoAvisoEncubierta(indicios) ?? (nRepite >= 3 ? `Este teléfono aparece en ${nRepite} anuncios. Puede ser un profesional encubierto.` : null);
   const avisoFuerte = indicios.aviso === "probable";
   const secundaria = "inline-flex h-9 items-center justify-center rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-3 text-[13px] font-medium text-foreground no-underline";
-  const primaria = "inline-flex h-9 items-center justify-center rounded-[9px] bg-accent px-3.5 text-[13.5px] font-medium text-accent-foreground no-underline";
+  const primaria = "inline-flex h-9 items-center justify-center rounded-[9px] bg-[var(--green)] px-3.5 text-[13.5px] font-medium text-[var(--on-green)] no-underline";
   return (
     <div className="flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain bg-[var(--surface)]">
       <GaleriaAnuncio anuncio={a} onCerrar={onCerrar} />
@@ -1350,7 +1388,8 @@ function PeekAnuncio({
           </div>
         </div>
         <p className="mt-2 text-[13.5px] text-[var(--text-2)]">{[a.zona, a.municipio].filter(Boolean).join(" · ")}</p>
-        <div className="mt-4 flex flex-wrap gap-1.5">
+        <ProgresoFase fase={a.fase} />
+        <div className="mt-5 flex flex-wrap gap-1.5">
           {tagsConEstilo(a.tags).map((t) => <span key={t.label} className="rounded-md px-2 py-0.5 text-[11px] font-semibold" style={{ background: t.bg, color: t.fg }}>{t.label}</span>)}
           <span className="rounded-md bg-[var(--surface-soft)] px-2 py-0.5 text-[12px] text-[var(--text-2)]">Alerta: {alertaNombre ?? "—"}</span>
         </div>
@@ -1437,7 +1476,7 @@ function PeekAnuncio({
                   onClick={() => onAbrir(r.id)}
                   className="flex items-center gap-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 text-left hover:border-foreground"
                 >
-                  <span className="h-9 w-11 shrink-0 overflow-hidden rounded-md bg-[#E8E4DC]">
+                  <span className="h-9 w-11 shrink-0 overflow-hidden rounded-md bg-[var(--surface-soft)]">
                     <FotoPortal src={portadaDe(r)} />
                   </span>
                   <span className="min-w-0 flex-1">
@@ -1464,7 +1503,7 @@ function PeekAnuncio({
             placeholder="Añadir nota…"
             className="h-10 min-w-0 flex-1 rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-3 text-[14px] text-foreground outline-none"
           />
-          <button type="submit" className="h-10 rounded-[9px] bg-accent px-3.5 text-[13px] font-medium text-accent-foreground">Guardar</button>
+          <button type="submit" className="h-10 rounded-[9px] bg-[var(--green)] px-3.5 text-[13px] font-medium text-[var(--on-green)]">Guardar</button>
         </form>
       </div>
     </div>
