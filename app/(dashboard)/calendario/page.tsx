@@ -720,7 +720,14 @@ export default function CalendarioPage() {
             </li>
           );
         })}
-        {delDia.length === 0 ? <li className="text-sm text-[#5C5C5C]">No hay citas este día.</li> : null}
+        {delDia.length === 0 ? (
+          <li className="rounded-[14px] border border-dashed border-border px-4 py-6 text-center">
+            <p className="text-[13.5px] text-[var(--text-2)]">No hay citas este día.</p>
+            <Button type="button" size="sm" className="mt-3" onClick={() => abrirHueco(dia, minutosDesdeHora("10:00"))}>
+              Crear en este día
+            </Button>
+          </li>
+        ) : null}
       </ul>
     </div>
   );

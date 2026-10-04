@@ -6,6 +6,7 @@ import { CitaAcciones } from "@/components/citas/CitaAcciones";
 import { EnlaceMaps } from "@/components/citas/InmueblePreviewCita";
 import { EventoCalendarioChip, GuiaHoraCalendario } from "@/components/citas/CalendarioSemana";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
+import { Button } from "@/components/ui/button";
 import { TimeInput } from "@/components/ui/time-input";
 import { FichaLink } from "@/components/crm/FichaPeek";
 import { cn } from "@/lib/utils";
@@ -268,7 +269,14 @@ export function CalendarioMovil({
           {new Date(`${dia}T12:00:00`).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}
         </div>
         {citas.length === 0 ? (
-          <p className="px-3.5 py-6 text-center text-[13px] text-[var(--text-2)]">Sin citas este día.</p>
+          <div className="px-3.5 py-6 text-center">
+            <p className="text-[13px] text-[var(--text-2)]">Sin citas este día.</p>
+            {onCrearHueco ? (
+              <Button type="button" size="sm" className="mt-3" onClick={() => onCrearHueco(10 * 60)}>
+                Crear en este día
+              </Button>
+            ) : null}
+          </div>
         ) : (
           citas.map((cita) => {
             const prevista = cita.estado === "prevista";
