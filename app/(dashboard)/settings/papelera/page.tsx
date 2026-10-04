@@ -73,7 +73,7 @@ export default function PapeleraUsuariosPage() {
       />
       <SettingsAdminNav role={user?.role} />
 
-      <section className="mt-6 overflow-hidden rounded-[14px] border border-border bg-white">
+      <section className="mt-6 overflow-hidden rounded-[14px] border border-border bg-[var(--surface)]">
         {loading ? (
           <p className="px-4 py-8 text-center text-[13px] text-[var(--text-2)]">Cargando…</p>
         ) : items.length === 0 ? (

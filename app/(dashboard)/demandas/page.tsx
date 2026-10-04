@@ -141,7 +141,7 @@ export default function DemandasPage() {
             <li key={fila.id}>
               <Link
                 href={`/demandas/${fila.id}`}
-                className="block rounded-[13px] border border-border bg-white px-[15px] py-3.5 hover:border-accent"
+                className="block rounded-[13px] border border-border bg-[var(--surface)] px-[15px] py-3.5 hover:border-accent"
               >
                 <div className="flex items-start justify-between gap-2.5">
                   <div className="min-w-0">

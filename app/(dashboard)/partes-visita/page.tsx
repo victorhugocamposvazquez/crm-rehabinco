@@ -120,7 +120,7 @@ export default function PartesVisitaPage() {
       />
 
       <div className="mt-5 flex flex-wrap items-start gap-4">
-        <section className="min-w-0 flex-[1_1_380px] overflow-hidden rounded-[14px] border border-border bg-white">
+        <section className="min-w-0 flex-[1_1_380px] overflow-hidden rounded-[14px] border border-border bg-[var(--surface)]">
           <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-4 py-3">
             <h2 className="text-[15px] font-semibold">Próximas visitas</h2>
             <span className="text-[12px] text-[var(--text-2)]">Esta semana</span>
@@ -130,7 +130,7 @@ export default function PartesVisitaPage() {
           </div>
         </section>
 
-        <section className="min-w-0 flex-[1_1_420px] overflow-hidden rounded-[14px] border border-border bg-white">
+        <section className="min-w-0 flex-[1_1_420px] overflow-hidden rounded-[14px] border border-border bg-[var(--surface)]">
           <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border-soft)] px-4 py-3">
             <h2 className="flex-1 text-[15px] font-semibold">Partes</h2>
             {(["todos", "pendiente_firma", "firmado", "borrador"] as const).map((e) => (

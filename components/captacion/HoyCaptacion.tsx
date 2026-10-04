@@ -146,7 +146,7 @@ export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFactu
 
       <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-5">
         {kpis.map((kpi) => (
-          <Link key={kpi.label} href={kpi.href} className="rounded-[14px] border border-border bg-white px-4 py-3.5 hover:bg-[var(--surface-soft)]">
+          <Link key={kpi.label} href={kpi.href} className="rounded-[14px] border border-border bg-[var(--surface)] px-4 py-3.5 hover:bg-[var(--surface-soft)]">
             <p className="font-mono text-[22px] font-semibold tabular-nums" style={{ color: kpi.fg }}>
               {kpi.valor}
             </p>

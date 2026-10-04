@@ -92,7 +92,7 @@ export function CalendarioSemana({
   };
 
   return (
-    <div className="mt-4 hidden overflow-hidden rounded-[14px] border border-border bg-white min-[820px]:block">
+    <div className="mt-4 hidden overflow-hidden rounded-[14px] border border-border bg-[var(--surface)] min-[820px]:block">
       <div className="grid grid-cols-[52px_repeat(7,minmax(0,1fr))] border-b border-[var(--border-soft)]">
         <div />
         {semana.map((d) => {

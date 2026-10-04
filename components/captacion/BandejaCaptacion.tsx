@@ -41,28 +41,28 @@ export function BandejaCaptacion({
             type="button"
             onClick={() => setFiltro(item.value)}
             className={cn(
-              "rounded-full border px-2.5 py-1 text-[11.5px] font-semibold",
+              "h-8 rounded-full border px-3 text-[12.5px] font-medium",
               filtro === item.value
-                ? "border-[#111111] bg-[#F0F0F0] text-[#000000]"
-                : "border-[#E5E5E5] bg-white text-[#5C5C5C]"
+                ? "border-foreground bg-accent-soft text-foreground"
+                : "border-[var(--border)] bg-[var(--field)] text-[var(--text-2)]"
             )}
           >
             {item.label} ({recuento[item.value]})
           </button>
         ))}
       </div>
-      <ul className="mt-4 divide-y divide-[#F2F2F2] overflow-hidden rounded-2xl border border-[#E5E5E5] bg-white">
+      <ul className="mt-4 divide-y divide-[var(--border)] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
         {visibles.map((item) => {
           const dias = diasDesdeAsignacion(item.assignedAt, hoy);
           return (
             <li key={item.fincaReference}>
               <Link
                 href={rutaFincaPersistida(item.fincaReference)}
-                className="flex flex-col gap-1 px-4 py-3 hover:bg-[#FAFAFA] sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-1 px-4 py-3.5 hover:bg-[var(--surface-soft)] sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="min-w-0">
-                  <p className="truncate font-semibold text-[#111111]">{tituloDireccionFinca(item.finca)}</p>
-                  <p className="text-[12px] text-[#5C5C5C]">
+                  <p className="truncate font-medium text-foreground">{tituloDireccionFinca(item.finca)}</p>
+                  <p className="text-[12px] text-[var(--text-2)]">
                     {item.fincaReference}
                     {mostrarComercial ? ` · ${item.comercialNombre}` : ""}
                     {dias != null ? ` · ${textoAging(dias)}` : ""}

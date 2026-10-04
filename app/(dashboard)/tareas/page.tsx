@@ -362,7 +362,7 @@ export default function TareasPage() {
             onCrearEnColumna={(col, texto) => void crearCon(texto, col)}
           />
         ) : (
-          <ul className="overflow-hidden rounded-[14px] border border-border bg-white">
+          <ul className="overflow-hidden rounded-[14px] border border-border bg-[var(--surface)]">
             {tarjetas.map((t) => (
               <li key={t.id}>
                 <button

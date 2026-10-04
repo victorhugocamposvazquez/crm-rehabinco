@@ -51,13 +51,13 @@ export function InmuebleForm({
       className="space-y-8"
     >
       <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-neutral-400">Captación</h2>
+        <h2 className="text-[12px] font-medium text-[var(--text-3)]">Captación</h2>
         <div className="space-y-2">
           <Label>Propietario (ofertante, opcional)</Label>
           <select
             value={values.ofertante_id}
             onChange={(e) => set({ ofertante_id: e.target.value })}
-            className="flex h-10 w-full rounded-lg border border-border bg-white px-4 text-base"
+            className="flex h-10 w-full rounded-lg border border-border bg-[var(--surface)] px-4 text-base"
           >
             <option value="">Sin propietario aún</option>
             {clientes.map((c) => (
@@ -89,7 +89,7 @@ export function InmuebleForm({
             <select
               value={values.tipo_inmueble}
               onChange={(e) => set({ tipo_inmueble: e.target.value })}
-              className="flex h-10 w-full rounded-lg border border-border bg-white px-4 text-base"
+              className="flex h-10 w-full rounded-lg border border-border bg-[var(--surface)] px-4 text-base"
             >
               {TIPOS_INMUEBLE.map((t) => (
                 <option key={t} value={t}>
@@ -103,7 +103,7 @@ export function InmuebleForm({
             <select
               value={values.tipo_operacion}
               onChange={(e) => set({ tipo_operacion: e.target.value as InmuebleFormValues["tipo_operacion"] })}
-              className="flex h-10 w-full rounded-lg border border-border bg-white px-4 text-base"
+              className="flex h-10 w-full rounded-lg border border-border bg-[var(--surface)] px-4 text-base"
             >
               {TIPOS_OPERACION.map((t) => (
                 <option key={t} value={t}>
@@ -132,7 +132,7 @@ export function InmuebleForm({
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-neutral-400">Ubicación</h2>
+        <h2 className="text-[12px] font-medium text-[var(--text-3)]">Ubicación</h2>
         <div className="space-y-2">
           <Label>Dirección</Label>
           <Input
@@ -167,7 +167,7 @@ export function InmuebleForm({
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-neutral-400">Características</h2>
+        <h2 className="text-[12px] font-medium text-[var(--text-3)]">Características</h2>
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-2">
             <Label>Habitaciones</Label>
@@ -222,7 +222,7 @@ export function InmuebleForm({
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-neutral-400">Precio y estado</h2>
+        <h2 className="text-[12px] font-medium text-[var(--text-3)]">Precio y estado</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           {(values.tipo_operacion === "venta" || values.tipo_operacion === "ambos") && (
             <div className="space-y-2">
@@ -241,7 +241,7 @@ export function InmuebleForm({
             <select
               value={values.estado}
               onChange={(e) => set({ estado: e.target.value as InmuebleFormValues["estado"] })}
-              className="flex h-10 w-full rounded-lg border border-border bg-white px-4 text-base"
+              className="flex h-10 w-full rounded-lg border border-border bg-[var(--surface)] px-4 text-base"
             >
               {ESTADOS_INMUEBLE.map((e) => (
                 <option key={e} value={e}>
@@ -263,11 +263,11 @@ export function InmuebleForm({
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-neutral-400">Textos</h2>
+        <h2 className="text-[12px] font-medium text-[var(--text-3)]">Textos</h2>
         <div className="space-y-2">
           <Label>Descripción (ficha)</Label>
           <textarea
-            className="flex min-h-[100px] w-full rounded-lg border border-border bg-white px-4 py-2 text-base"
+            className="flex min-h-[100px] w-full rounded-lg border border-border bg-[var(--surface)] px-4 py-2 text-base"
             placeholder="Texto que verá el comercial al presentar el inmueble."
             value={values.descripcion}
             onChange={(e) => set({ descripcion: e.target.value })}
@@ -276,7 +276,7 @@ export function InmuebleForm({
         <div className="space-y-2">
           <Label>Notas internas</Label>
           <textarea
-            className="flex min-h-[72px] w-full rounded-lg border border-border bg-white px-4 py-2 text-base"
+            className="flex min-h-[72px] w-full rounded-lg border border-border bg-[var(--surface)] px-4 py-2 text-base"
             placeholder="Solo equipo"
             value={values.notas}
             onChange={(e) => set({ notas: e.target.value })}

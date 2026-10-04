@@ -22,7 +22,7 @@ export function Chip({
         "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[12.5px] font-medium",
         active
           ? "border-accent bg-accent-soft text-accent-dark"
-          : "border-border bg-white text-[var(--text-2)] hover:border-accent hover:text-accent",
+          : "border-border bg-[var(--field)] text-[var(--text-2)] hover:border-foreground hover:text-foreground",
         className
       )}
     >

@@ -132,7 +132,7 @@ export function BuscadorLocalidad({
         <p className="mt-1.5 text-[12px] text-[var(--text-3)]">Escribe al menos 3 letras para buscar en toda España.</p>
       ) : null}
       {abierto && items.length > 0 ? (
-        <ul className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-[10px] border border-border bg-white py-1 shadow-lg">
+        <ul className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-[10px] border border-border bg-[var(--surface)] py-1 shadow-lg">
           {items.map((item) => (
             <li key={`${item.nombre}-${item.provincia}`}>
               <button

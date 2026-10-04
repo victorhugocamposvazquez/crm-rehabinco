@@ -258,7 +258,7 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
       <p className="mt-3 text-sm text-neutral-600">{cobertura.estado}</p>
       {cobertura.corte ? <p className="mt-1 text-sm text-amber-800">{cobertura.corte}</p> : null}
 
-      <dl className="mt-6 grid grid-cols-1 gap-3 rounded-2xl border border-border bg-white p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-3">
+      <dl className="mt-6 grid grid-cols-1 gap-3 rounded-2xl border border-border bg-[var(--surface)] p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-3">
         {criterios.map((item) => (
           <div key={item.label}>
             <dt className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">

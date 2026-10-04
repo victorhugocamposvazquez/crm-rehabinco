@@ -772,16 +772,16 @@ export function CaptacionPortales() {
             </div>
             {mas ? (
               <div className="grid grid-cols-2 gap-2.5 border-b border-[var(--border-soft)] bg-[var(--surface-soft)] px-3.5 py-3 min-[820px]:grid-cols-6">
-                <label className="block text-[11px] uppercase tracking-[0.06em] text-[var(--label)]">Precio
+                <label className="block text-[12px] text-[var(--text-3)]">Precio
                   <span className="mt-1 flex gap-1.5"><input placeholder="mín" value={filtros.precioMin} onChange={(e) => setFiltros((f) => ({ ...f, precioMin: e.target.value }))} className="h-[34px] w-1/2 rounded-lg border border-[var(--input)] px-2 text-[13px]" /><input placeholder="máx" value={filtros.precioMax} onChange={(e) => setFiltros((f) => ({ ...f, precioMax: e.target.value }))} className="h-[34px] w-1/2 rounded-lg border border-[var(--input)] px-2 text-[13px]" /></span>
                 </label>
-                <label className="block text-[11px] uppercase tracking-[0.06em] text-[var(--label)]">Metros
+                <label className="block text-[12px] text-[var(--text-3)]">Metros
                   <span className="mt-1 flex gap-1.5"><input placeholder="mín" value={filtros.m2Min} onChange={(e) => setFiltros((f) => ({ ...f, m2Min: e.target.value }))} className="h-[34px] w-1/2 rounded-lg border border-[var(--input)] px-2 text-[13px]" /><input placeholder="máx" value={filtros.m2Max} onChange={(e) => setFiltros((f) => ({ ...f, m2Max: e.target.value }))} className="h-[34px] w-1/2 rounded-lg border border-[var(--input)] px-2 text-[13px]" /></span>
                 </label>
-                <label className="block text-[11px] uppercase tracking-[0.06em] text-[var(--label)]">Portal
+                <label className="block text-[12px] text-[var(--text-3)]">Portal
                   <select value={filtros.portal} onChange={(e) => setFiltros((f) => ({ ...f, portal: e.target.value }))} className="mt-1 h-[34px] w-full rounded-lg border border-[var(--input)] bg-[var(--field)] px-2 text-[13px]"><option value="todos">Todos</option>{FUENTES_PORTAL.map((p) => <option key={p} value={p}>{PORTAL_LABEL[p]}</option>)}</select>
                 </label>
-                <label className="block text-[11px] uppercase tracking-[0.06em] text-[var(--label)]">Tipo
+                <label className="block text-[12px] text-[var(--text-3)]">Tipo
                   <select value={filtros.tipo} onChange={(e) => setFiltros((f) => ({ ...f, tipo: e.target.value }))} className="mt-1 h-[34px] w-full rounded-lg border border-[var(--input)] bg-[var(--field)] px-2 text-[13px]"><option value="todos">Todos</option>{TIPOS_ANUNCIO.map((t) => <option key={t} value={t}>{TIPO_ANUNCIO_LABEL[t]}</option>)}</select>
                 </label>
               </div>
@@ -1182,7 +1182,7 @@ export function CaptacionPortales() {
         <Sheet open onOpenChange={(open) => !open && setAlertaOpen(false)} variant="side" side="right">
           <div className="flex h-full min-h-0 flex-col">
             <div className="flex items-center gap-2.5 border-b border-[var(--border-soft)] px-4 py-3.5">
-              <span className="flex-1 text-[11px] uppercase tracking-[0.08em] text-[var(--label)]">Nueva alerta</span>
+              <span className="flex-1 text-[12px] text-[var(--text-3)]">Nueva alerta</span>
               <button type="button" onClick={() => setAlertaOpen(false)} className="grid h-[34px] w-[34px] place-items-center rounded-lg text-[var(--text-2)]">×</button>
             </div>
             <div className="flex flex-1 flex-col gap-3.5 overflow-y-auto p-4">

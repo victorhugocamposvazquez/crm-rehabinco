@@ -210,7 +210,7 @@ export function HojaEncargoHonorariosEditor({ documentoId }: { documentoId?: str
 
   const form = (
     <div className="space-y-4">
-      <section className="rounded-[14px] border border-border bg-white p-4 min-[820px]:p-5">
+      <section className="rounded-[14px] border border-border bg-[var(--surface)] p-4 min-[820px]:p-5">
         <h2 className="text-[15px] font-semibold">Fecha y lugar</h2>
         <div className="mt-4 grid gap-4 min-[820px]:grid-cols-2">
           <div>
@@ -230,7 +230,7 @@ export function HojaEncargoHonorariosEditor({ documentoId }: { documentoId?: str
         </div>
       </section>
 
-      <section className="rounded-[14px] border border-border bg-white p-4 min-[820px]:p-5">
+      <section className="rounded-[14px] border border-border bg-[var(--surface)] p-4 min-[820px]:p-5">
         <h2 className="text-[15px] font-semibold">Cliente e inmueble</h2>
         <div className="mt-4 grid gap-4 min-[820px]:grid-cols-2">
           <div className="min-[820px]:col-span-2">
@@ -265,7 +265,7 @@ export function HojaEncargoHonorariosEditor({ documentoId }: { documentoId?: str
         </div>
       </section>
 
-      <section className="rounded-[14px] border border-border bg-white p-4 min-[820px]:p-5">
+      <section className="rounded-[14px] border border-border bg-[var(--surface)] p-4 min-[820px]:p-5">
         <h2 className="text-[15px] font-semibold">Honorarios</h2>
         <div className="mt-4 grid gap-4 min-[820px]:grid-cols-2">
           <div>

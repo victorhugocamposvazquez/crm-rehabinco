@@ -125,7 +125,7 @@ export default function PresupuestosPage() {
       {!loading && presupuestos.length > 0 ? (
         <div className="mt-4 grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-2.5">
           {kpis.map((k) => (
-            <div key={k.label} className="rounded-xl border border-border bg-white px-[15px] py-3">
+            <div key={k.label} className="rounded-xl border border-border bg-[var(--surface)] px-[15px] py-3">
               <div className="text-[22px] font-semibold tabular-nums tracking-tight" style={{ color: k.fg }}>
                 {k.valor}
               </div>
@@ -150,7 +150,7 @@ export default function PresupuestosPage() {
           </Button>
         </div>
       ) : (
-        <section className="mt-4 overflow-hidden rounded-[14px] border border-border bg-white">
+        <section className="mt-4 overflow-hidden rounded-[14px] border border-border bg-[var(--surface)]">
           <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border-soft)] px-3.5 py-3">
             <div className="relative min-w-0 flex-[1_1_180px]">
               <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-2)]" strokeWidth={2.2} />
@@ -173,7 +173,7 @@ export default function PresupuestosPage() {
               ))}
             </div>
           </div>
-          <div className="hidden grid-cols-[112px_minmax(0,2fr)_92px_110px_118px_34px] gap-3 border-b border-[var(--border-soft)] bg-[var(--surface-soft)] px-3.5 py-2 text-[11px] uppercase tracking-[.06em] text-[var(--label)] min-[820px]:grid">
+          <div className="hidden grid-cols-[112px_minmax(0,2fr)_92px_110px_118px_34px] gap-3 border-b border-[var(--border-soft)] bg-[var(--surface-soft)] px-3.5 py-2 text-[12px] text-[var(--text-3)] min-[820px]:grid">
             <div>Número</div>
             <div>Cliente</div>
             <div>Fecha</div>

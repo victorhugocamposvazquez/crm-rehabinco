@@ -138,7 +138,7 @@ export function BuscadorInmuebleCalendario({
         <ul
           id={listId}
           role="listbox"
-          className="absolute z-20 mt-2 max-h-64 w-full overflow-auto rounded-[12px] border border-[var(--border)] bg-white py-1 shadow-[0_8px_24px_rgba(28,25,23,0.1)]"
+          className="absolute z-20 mt-2 max-h-64 w-full overflow-auto rounded-[12px] border border-[var(--border)] bg-[var(--surface)] py-1 shadow-[0_8px_24px_rgba(28,25,23,0.1)]"
         >
           {resultados.length === 0 ? (
             <li className="px-4 py-3 text-[13px] text-[var(--text-2)]">No hay inmuebles con «{qTrim}».</li>

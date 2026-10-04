@@ -320,6 +320,11 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
 .dark .bg-\[\#F7F6F3\] {
   background-color: var(--surface-soft);
 }
+.dark .bg-neutral-900,
+.dark .bg-neutral-800 {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
 .dark .bg-neutral-50,
 .dark .bg-neutral-100,
 .dark .bg-neutral-50\/70,
@@ -340,5 +345,37 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
 }
 .dark .border-neutral-200,
 .dark .border-neutral-100 {
+  border-color: var(--border);
+}
+.dark .bg-\[\#111111\],
+.dark .bg-\[\#000000\],
+.dark .hover\:bg-\[\#000000\]:hover {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+.dark .border-\[\#111111\],
+.dark .hover\:border-\[\#111111\]:hover {
+  border-color: var(--foreground);
+}
+.dark .ring-\[\#111111\] {
+  --tw-ring-color: var(--foreground);
+}
+.dark .hover\:text-\[\#111111\]:hover,
+.dark .text-\[\#8A9692\] {
+  color: var(--foreground);
+}
+.dark .bg-\[\#d9d6cf\],
+.dark .bg-\[\#F6F5F1\],
+.dark .bg-\[\#f7f5f2\],
+.dark .bg-\[\#e8e5df\],
+.dark .bg-\[\#E5E5E5\],
+.dark .bg-\[\#EFEFEF\],
+.dark .bg-\[\#F2F2F2\],
+.dark .bg-\[\#f3f3f3\],
+.dark .hover\:bg-\[\#F6F5F1\]:hover,
+.dark .hover\:bg-\[\#FAFAFA\]:hover {
+  background-color: var(--surface-soft);
+}
+.dark .divide-\[\#F2F2F2\] > :not([hidden]) ~ :not([hidden]) {
   border-color: var(--border);
 }

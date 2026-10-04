@@ -79,7 +79,7 @@ export function PdfFrame({
   }, [html, pages]);
 
   return (
-    <section className="overflow-hidden rounded-[14px] border border-border bg-white">
+    <section className="overflow-hidden rounded-[14px] border border-border bg-[var(--surface)]">
       <div className="flex items-center justify-between gap-2 border-b border-[var(--border-soft)] px-4 py-3">
         <div>
           <h2 className="text-[15px] font-semibold">Previsualización</h2>

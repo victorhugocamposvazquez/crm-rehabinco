@@ -316,7 +316,7 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
                   <Label htmlFor="tipo_documento">Tipo de documento</Label>
                   <select
                     id="tipo_documento"
-                    className="flex h-10 w-full rounded-lg border border-border bg-white px-4 text-base"
+                    className="flex h-10 w-full rounded-lg border border-border bg-[var(--surface)] px-4 text-base"
                     {...formStep1.register("tipo_documento")}
                   >
                     {formStep1.watch("tipo_cliente") === "empresa" ? (
@@ -430,7 +430,7 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
                   <Label htmlFor="notas">Notas</Label>
                   <textarea
                     id="notas"
-                    className="flex min-h-[100px] w-full rounded-lg border border-border bg-white px-4 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="flex min-h-[100px] w-full rounded-lg border border-border bg-[var(--surface)] px-4 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     placeholder="Notas internas"
                     {...formStep2.register("notas")}
                   />
@@ -448,7 +448,7 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
                           plantilla_presupuesto: e.target.value === "deportivo" ? "deportivo" : null,
                         }))
                       }
-                      className="flex h-10 w-full rounded-lg border border-border bg-white px-4 text-base"
+                      className="flex h-10 w-full rounded-lg border border-border bg-[var(--surface)] px-4 text-base"
                     >
                       <option value="">Automática</option>
                       <option value="deportivo">Deportivo (Riazor)</option>

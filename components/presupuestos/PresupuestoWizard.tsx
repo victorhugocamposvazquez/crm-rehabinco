@@ -465,7 +465,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
               <select
                 value={clienteId}
                 onChange={(e) => setClienteId(e.target.value)}
-                className="flex h-10 w-full rounded-lg border border-border bg-white px-4 text-base"
+                className="flex h-10 w-full rounded-lg border border-border bg-[var(--surface)] px-4 text-base"
               >
                 <option value="">Selecciona un cliente</option>
                 {clientes.map((c) => (
@@ -514,7 +514,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
             <div className="space-y-2">
               <Label>Texto de portada</Label>
               <textarea
-                className="flex min-h-[88px] w-full rounded-lg border border-border bg-white px-4 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex min-h-[88px] w-full rounded-lg border border-border bg-[var(--surface)] px-4 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 placeholder="Resumen que aparece bajo el título en la portada"
                 value={propuesta.descripcion_portada}
                 onChange={(e) => setPropuesta((p) => ({ ...p, descripcion_portada: e.target.value }))}
@@ -530,7 +530,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
                 <select
                   value={estado}
                   onChange={(e) => setEstado(e.target.value)}
-                  className="flex h-10 w-full rounded-lg border border-border bg-white px-4 text-base"
+                  className="flex h-10 w-full rounded-lg border border-border bg-[var(--surface)] px-4 text-base"
                 >
                   <option value="borrador">Borrador</option>
                   <option value="enviado">Enviado</option>
@@ -749,7 +749,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
             <div className="space-y-2">
               <Label>2. Objeto y alcance</Label>
               <textarea
-                className="flex min-h-[120px] w-full rounded-lg border border-border bg-white px-4 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex min-h-[120px] w-full rounded-lg border border-border bg-[var(--surface)] px-4 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 placeholder="Texto de la sección objeto y alcance"
                 value={propuesta.objeto_alcance}
                 onChange={(e) => setPropuesta((p) => ({ ...p, objeto_alcance: e.target.value }))}
@@ -809,7 +809,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
                     />
                   </div>
                   <textarea
-                    className="flex min-h-[64px] w-full rounded-lg border border-border bg-white px-4 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="flex min-h-[64px] w-full rounded-lg border border-border bg-[var(--surface)] px-4 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     placeholder="Descripción de la zona"
                     value={z.descripcion}
                     onChange={(e) =>
@@ -908,7 +908,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
             <div className="space-y-2">
               <Label>6. Condiciones y garantías</Label>
               <textarea
-                className="flex min-h-[140px] w-full rounded-lg border border-border bg-white px-4 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex min-h-[140px] w-full rounded-lg border border-border bg-[var(--surface)] px-4 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={propuesta.condiciones}
                 onChange={(e) => setPropuesta((p) => ({ ...p, condiciones: e.target.value }))}
               />

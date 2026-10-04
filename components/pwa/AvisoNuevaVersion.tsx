@@ -123,7 +123,7 @@ export function AvisoNuevaVersion() {
         aria-modal="true"
         aria-labelledby="nueva-version-titulo"
         aria-describedby="nueva-version-desc"
-        className="w-full max-w-md rounded-2xl border border-border bg-white p-6 shadow-2xl"
+        className="w-full max-w-md rounded-2xl border border-border bg-[var(--surface)] p-6 shadow-2xl"
       >
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-accent">
           <RefreshCw className="h-6 w-6" strokeWidth={1.75} />

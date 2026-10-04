@@ -74,7 +74,7 @@ export function CampoComentario({
   return (
     <div className="relative mt-2">
       {menu && menu.items.length > 0 ? (
-        <ul className="absolute bottom-full mb-1 max-h-40 w-full overflow-auto rounded-[10px] border border-border bg-white p-1 shadow-[0_10px_24px_rgba(17, 17, 17,.12)]">
+        <ul className="absolute bottom-full mb-1 max-h-40 w-full overflow-auto rounded-[10px] border border-border bg-[var(--surface)] p-1 shadow-[0_10px_24px_rgba(17, 17, 17,.12)]">
           {menu.items.map((persona) => (
             <li key={persona.id}>
               <button

@@ -440,7 +440,7 @@ function Zona({
 }) {
   const hay = Boolean(children && Array.isArray(children) ? children.length : children);
   return (
-    <section className="overflow-hidden rounded-[14px] border border-border bg-white">
+    <section className="overflow-hidden rounded-[14px] border border-border bg-[var(--surface)]">
       <div className="border-b border-[var(--border-soft)] px-4 py-4">
         <div className="flex items-start gap-3">
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-accent-soft text-accent">

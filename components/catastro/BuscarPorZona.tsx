@@ -91,7 +91,7 @@ export function BuscarPorZona({
 
   if (estado.fase === "preparando") {
     return (
-      <div className="rounded-2xl border border-border bg-white px-5 py-8 text-center" role="status">
+      <div className="rounded-2xl border border-border bg-[var(--surface)] px-5 py-8 text-center" role="status">
         <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-neutral-200 border-t-accent" />
         <p className="mt-4 text-sm font-medium text-neutral-600">
           Preparando la búsqueda: consultando el callejero oficial del municipio…
@@ -116,7 +116,7 @@ export function BuscarPorZona({
     const continuar = esContinuacionZona(estado);
     const porBloques = zonaDemasiadoGrande(totalCalles) && offset === 0;
     return (
-      <div className="space-y-4 rounded-2xl border border-border bg-white p-5 sm:p-6" role="status">
+      <div className="space-y-4 rounded-2xl border border-border bg-[var(--surface)] p-5 sm:p-6" role="status">
         <div>
           <p className="text-base font-semibold text-foreground">
             {textoPreparacion(
@@ -314,7 +314,7 @@ export function BuscarPorZona({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <select
-              className="flex h-11 rounded-lg border border-border bg-white px-3 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex h-11 rounded-lg border border-border bg-[var(--surface)] px-3 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               value={filtroRevision}
               onChange={(event) => onFiltroRevision(event.target.value as FiltroRevisionComercial)}
               aria-label="Filtrar por revisión"

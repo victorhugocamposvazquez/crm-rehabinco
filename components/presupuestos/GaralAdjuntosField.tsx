@@ -70,7 +70,7 @@ export function GaralAdjuntosField({
       {adjuntos.length > 0 && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {adjuntos.map((a) => (
-            <div key={a.id} className="overflow-hidden rounded-lg border border-border bg-white">
+            <div key={a.id} className="overflow-hidden rounded-lg border border-border bg-[var(--surface)]">
               <img src={a.dataUrl} alt={a.nombre} className="h-28 w-full object-cover" />
               <div className="flex items-center justify-between gap-2 px-2 py-1.5">
                 <span className="truncate text-xs text-neutral-600">{a.nombre}</span>

@@ -85,7 +85,7 @@ export function ParteVisitaFirmaForm({ parte }: ParteVisitaFirmaFormProps) {
 
   return (
     <form onSubmit={onSubmit} className="mx-auto max-w-2xl space-y-8">
-      <header className="rounded-2xl border border-border bg-white px-5 py-6 text-center shadow-sm sm:px-8">
+      <header className="rounded-2xl border border-border bg-[var(--surface)] px-5 py-6 text-center shadow-sm sm:px-8">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
           Parte de visita
         </p>
@@ -100,7 +100,7 @@ export function ParteVisitaFirmaForm({ parte }: ParteVisitaFirmaFormProps) {
         </p>
       </header>
 
-      <section className="rounded-2xl border border-border bg-white p-5 shadow-sm sm:p-6">
+      <section className="rounded-2xl border border-border bg-[var(--surface)] p-5 shadow-sm sm:p-6">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
           Inmueble visitado
         </h2>
@@ -146,7 +146,7 @@ export function ParteVisitaFirmaForm({ parte }: ParteVisitaFirmaFormProps) {
         </dl>
       </section>
 
-      <section className="rounded-2xl border border-border bg-white p-5 shadow-sm sm:p-6">
+      <section className="rounded-2xl border border-border bg-[var(--surface)] p-5 shadow-sm sm:p-6">
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-neutral-500">
           Datos del visitante
         </h2>
@@ -193,7 +193,7 @@ export function ParteVisitaFirmaForm({ parte }: ParteVisitaFirmaFormProps) {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-border bg-white p-5 shadow-sm sm:p-6">
+      <section className="rounded-2xl border border-border bg-[var(--surface)] p-5 shadow-sm sm:p-6">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
           Confirmación de la visita
         </h2>
@@ -213,7 +213,7 @@ export function ParteVisitaFirmaForm({ parte }: ParteVisitaFirmaFormProps) {
         </p>
       </section>
 
-      <section className="rounded-2xl border border-border bg-white p-5 shadow-sm sm:p-6">
+      <section className="rounded-2xl border border-border bg-[var(--surface)] p-5 shadow-sm sm:p-6">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500">
           Observaciones
         </h2>
@@ -221,12 +221,12 @@ export function ParteVisitaFirmaForm({ parte }: ParteVisitaFirmaFormProps) {
           value={observaciones}
           onChange={(e) => setObservaciones(e.target.value)}
           rows={4}
-          className="flex w-full rounded-lg border border-border bg-white px-4 py-2 text-base"
+          className="flex w-full rounded-lg border border-border bg-[var(--surface)] px-4 py-2 text-base"
           placeholder="Opcional"
         />
       </section>
 
-      <section className="rounded-2xl border border-border bg-white p-5 shadow-sm sm:p-6">
+      <section className="rounded-2xl border border-border bg-[var(--surface)] p-5 shadow-sm sm:p-6">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
           Firmas
         </h2>

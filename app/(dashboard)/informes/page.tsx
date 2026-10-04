@@ -71,13 +71,13 @@ export default function InformesPage() {
           { valor: String(demandasActivas), label: "Demandas activas" },
           { valor: String(sinCruce), label: "Sin matching" },
         ].map((k) => (
-          <div key={k.label} className="rounded-xl border border-border bg-white px-[15px] py-3">
+          <div key={k.label} className="rounded-xl border border-border bg-[var(--surface)] px-[15px] py-3">
             <div className="text-[22px] font-semibold tabular-nums tracking-tight">{k.valor}</div>
             <div className="mt-0.5 text-[12.5px] text-[var(--text-2)]">{k.label}</div>
           </div>
         ))}
       </div>
-      <ul className="mt-4 overflow-hidden rounded-[14px] border border-border bg-white">
+      <ul className="mt-4 overflow-hidden rounded-[14px] border border-border bg-[var(--surface)]">
         {stock.map((item) => (
           <li key={item.nombre} className="flex items-center justify-between gap-3 border-b border-[var(--border-row)] px-4 py-2.5 last:border-0 text-[14px]">
             <span className="font-semibold">{item.nombre}</span>

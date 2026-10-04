@@ -112,7 +112,7 @@ export function InmuebleDocumentos({
           <select
             value={tipo}
             onChange={(e) => setTipo(e.target.value as TipoDocumentoInmueble)}
-            className="mt-1 flex h-10 rounded-lg border border-border bg-white px-3 text-sm"
+            className="mt-1 flex h-10 rounded-lg border border-border bg-[var(--surface)] px-3 text-sm"
           >
             {TIPOS_DOCUMENTO_INMUEBLE.map((item) => (
               <option key={item} value={item}>

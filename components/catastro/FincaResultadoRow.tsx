@@ -77,10 +77,10 @@ export function FincaResultadoRow({
         }
       }}
       className={cn(
-        "bg-white text-[#111111]",
-        "max-[779px]:overflow-hidden max-[779px]:rounded-[13px] max-[779px]:border max-[779px]:border-[#E5E5E5]",
-        "min-[780px]:flex min-[780px]:cursor-pointer min-[780px]:flex-nowrap min-[780px]:items-center min-[780px]:gap-3.5 min-[780px]:border-b min-[780px]:border-[#F2F2F2] min-[780px]:px-3.5 min-[780px]:py-2.5 min-[780px]:hover:bg-[#FAFAFA]",
-        selected && "min-[780px]:bg-[#F5F5F5] min-[780px]:shadow-[inset_3px_0_0_#111111]"
+        "bg-[var(--surface)] text-foreground",
+        "max-[779px]:overflow-hidden max-[779px]:rounded-[13px] max-[779px]:border max-[779px]:border-[var(--border)]",
+        "min-[780px]:flex min-[780px]:cursor-pointer min-[780px]:flex-nowrap min-[780px]:items-center min-[780px]:gap-4 min-[780px]:border-b min-[780px]:border-[var(--border-row)] min-[780px]:px-4 min-[780px]:py-3.5 min-[780px]:hover:bg-[var(--surface-soft)]",
+        selected && "min-[780px]:bg-[var(--row-active)] min-[780px]:shadow-[inset_3px_0_0_var(--foreground)]"
       )}
     >
       <div className="min-w-0 flex-[1_1_250px] px-3.5 pb-[11px] pt-[13px] min-[780px]:p-0">
@@ -103,7 +103,7 @@ export function FincaResultadoRow({
             <p className="text-[15px] font-semibold tracking-[-0.01em] text-pretty min-[780px]:truncate min-[780px]:text-[14.5px]">
               {titulo}
             </p>
-            <p className="mt-1 font-mono text-[11.5px] text-[#5C5C5C]">{finca.fincaReference}</p>
+            <p className="mt-1 font-mono text-[12px] text-[var(--text-3)]">{finca.fincaReference}</p>
             {vinculada ? (
               <p className="mt-1 text-[11px] font-semibold text-sky-800">Ya es propiedad del CRM</p>
             ) : asignacion ? (
@@ -153,7 +153,7 @@ export function FincaResultadoRow({
             type="button"
             onClick={irPropiedad}
             className={cn(
-              "h-[29px] rounded-lg border border-[#D4D4D4] bg-white px-2.5 text-xs font-semibold",
+              "h-[29px] rounded-lg border border-[#D4D4D4] bg-[var(--field)] px-2.5 text-xs font-semibold",
               vinculada ? "text-[#2B4A8A]" : "text-[#111111]"
             )}
           >
@@ -164,7 +164,7 @@ export function FincaResultadoRow({
           type="button"
           title="Copiar referencia"
           onClick={(evento) => void copiar(evento)}
-          className="flex h-[29px] w-[29px] items-center justify-center rounded-lg border border-[#E5E5E5] bg-white text-[#5C5C5C]"
+          className="flex h-[29px] w-[29px] items-center justify-center rounded-lg border border-[#E5E5E5] bg-[var(--field)] text-[#5C5C5C]"
         >
           <Copy className="h-3.5 w-3.5" aria-hidden />
         </button>
@@ -176,7 +176,7 @@ export function FincaResultadoRow({
             type="button"
             onClick={irPropiedad}
             className={cn(
-              "flex min-h-[46px] flex-[1.3] items-center justify-center gap-1.5 bg-white text-[12.5px] font-semibold",
+              "flex min-h-[46px] flex-[1.3] items-center justify-center gap-1.5 bg-[var(--field)] text-[12.5px] font-semibold",
               vinculada ? "text-[#2B4A8A]" : "text-[#111111]"
             )}
           >
@@ -187,7 +187,7 @@ export function FincaResultadoRow({
         <button
           type="button"
           onClick={irOportunidad}
-          className="flex min-h-[46px] flex-1 items-center justify-center bg-white text-[12.5px] font-semibold text-[#5C5C5C]"
+          className="flex min-h-[46px] flex-1 items-center justify-center bg-[var(--field)] text-[12.5px] font-semibold text-[#5C5C5C]"
         >
           Oportunidad
         </button>
@@ -197,7 +197,7 @@ export function FincaResultadoRow({
             evento.stopPropagation();
             onSelect?.();
           }}
-          className="min-h-[46px] w-[62px] shrink-0 bg-white text-[12.5px] font-semibold text-[#5C5C5C]"
+          className="min-h-[46px] w-[62px] shrink-0 bg-[var(--field)] text-[12.5px] font-semibold text-[#5C5C5C]"
         >
           Ficha
         </button>

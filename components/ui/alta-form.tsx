@@ -7,7 +7,7 @@ import { horaAltaBorrador } from "@/lib/ui/alta-borrador";
 import { cn } from "@/lib/utils";
 
 export const altaControl =
-  "mt-2 h-11 w-full rounded-[10px] border border-[var(--input)] bg-white px-3.5 text-[15px] outline-none transition-[border,box-shadow] placeholder:text-[var(--text-3)] focus:border-accent focus:ring-[3px] focus:ring-accent/15 disabled:bg-[var(--surface-soft)]";
+  "mt-2 h-11 w-full rounded-[10px] border border-[var(--input)] bg-[var(--field)] px-3.5 text-[15px] text-foreground outline-none transition-[border,box-shadow] placeholder:text-[var(--text-3)] focus:border-foreground focus:ring-[3px] focus:ring-foreground/10 disabled:bg-[var(--surface-soft)]";
 
 export function AltaShell({
   open,
@@ -68,7 +68,7 @@ export function AltaShell({
         <header className="shrink-0 border-b border-[var(--border-soft)] px-6 py-5 min-[820px]:px-8">
           <div className="flex items-start gap-3">
             <div className="min-w-0 flex-1">
-              <h2 className="text-[17px] font-semibold tracking-tight text-foreground">{title}</h2>
+              <h2 className="text-[22px] font-medium leading-tight tracking-[-0.03em] text-foreground">{title}</h2>
               <p className="mt-1 max-w-[40rem] text-[13px] leading-5 text-[var(--text-2)]">{hint}</p>
             </div>
             <button
@@ -108,7 +108,7 @@ export function AltaShell({
             <button
               type="submit"
               disabled={saving || disablePrimary}
-              className="h-11 flex-1 rounded-[10px] bg-accent text-[14px] font-semibold text-white disabled:opacity-45"
+              className="h-11 flex-1 rounded-[10px] bg-accent text-[14px] font-medium text-accent-foreground disabled:opacity-45"
             >
               {saving ? "Guardando…" : primaryLabel}
             </button>

@@ -57,7 +57,7 @@ export function CatastroPropertyFicha({
           onClick={() => !cargando && setAbierto(false)}
         >
           <div
-            className="w-full max-w-sm rounded-2xl border border-border bg-white p-6 shadow-xl"
+            className="w-full max-w-sm rounded-2xl border border-border bg-[var(--surface)] p-6 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <p className="text-sm text-neutral-600">

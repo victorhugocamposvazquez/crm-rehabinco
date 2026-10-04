@@ -136,7 +136,7 @@ export function SignaturePad({
       </div>
       <div
         className={cn(
-          "overflow-hidden rounded-xl border border-border bg-white touch-none",
+          "overflow-hidden rounded-xl border border-border bg-[var(--surface)] touch-none",
           disabled && "opacity-70"
         )}
       >

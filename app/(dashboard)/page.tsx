@@ -53,7 +53,7 @@ export default function DashboardPage() {
 
   return (
     <div className="animate-rise">
-      <p className="text-[11px] font-medium uppercase tracking-[0.07em] text-[var(--label)]">{fecha}</p>
+      <p className="text-[13px] text-[var(--text-3)]">{fecha}</p>
       <h1 className="mt-1">{saludo}</h1>
       <div className="mt-5">
         <HoyCaptacion facturacionMeses={mostrarFacturacion ? facturacionMeses : undefined} />

@@ -127,7 +127,7 @@ export function TopBar() {
             <div className="flex shrink-0 items-center gap-1">
             <Link
               href="/settings"
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-white text-neutral-600 transition-colors hover:bg-neutral-50 hover:text-accent min-[820px]:hidden"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-[var(--surface)] text-neutral-600 transition-colors hover:bg-neutral-50 hover:text-accent min-[820px]:hidden"
               aria-label="Ajustes"
             >
               <Settings className="h-5 w-5" strokeWidth={1.5} />
@@ -138,7 +138,7 @@ export function TopBar() {
                 setMenuOpen(false);
                 setSheetOpen(true);
               }}
-              className="flex shrink-0 items-center gap-2 rounded-full border border-border bg-white px-2 py-1.5 shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:bg-neutral-50 active:scale-[0.98]"
+              className="flex shrink-0 items-center gap-2 rounded-full border border-border bg-[var(--surface)] px-2 py-1.5 shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:bg-neutral-50 active:scale-[0.98]"
               aria-label="Abrir menú de sesión"
             >
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
@@ -187,7 +187,7 @@ export function TopBar() {
             </p>
           </div>
 
-          <div className="mb-8 rounded-2xl border border-border bg-white p-4">
+          <div className="mb-8 rounded-2xl border border-border bg-[var(--surface)] p-4">
             <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">
               <KeyRound className="h-4 w-4" strokeWidth={1.5} />
               Cambiar contraseña

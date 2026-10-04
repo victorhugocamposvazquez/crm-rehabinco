@@ -325,7 +325,7 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
 
   const form = (
     <div className="space-y-4">
-      <section className="rounded-[14px] border border-border bg-white p-4 min-[820px]:p-5">
+      <section className="rounded-[14px] border border-border bg-[var(--surface)] p-4 min-[820px]:p-5">
         <h2 className="text-[15px] font-semibold">Fecha y lugar</h2>
         <div className="mt-4 grid gap-4 min-[820px]:grid-cols-2">
           <div>
@@ -346,7 +346,7 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
       </section>
 
       {(["vendedores", "compradores"] as const).map((lado) => (
-        <section key={lado} className="rounded-[14px] border border-border bg-white p-4 min-[820px]:p-5">
+        <section key={lado} className="rounded-[14px] border border-border bg-[var(--surface)] p-4 min-[820px]:p-5">
           <h2 className="text-[15px] font-semibold">{lado === "vendedores" ? "Parte vendedora" : "Parte compradora"}</h2>
           <div className="mt-4 space-y-3">
             {datos[lado].map((persona, i) => (
@@ -377,7 +377,7 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
         </section>
       ))}
 
-      <section className="rounded-[14px] border border-border bg-white p-4 min-[820px]:p-5">
+      <section className="rounded-[14px] border border-border bg-[var(--surface)] p-4 min-[820px]:p-5">
         <h2 className="text-[15px] font-semibold">Finca</h2>
         <div className="mt-4 space-y-4">
           <div>
@@ -452,7 +452,7 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
         </div>
       </section>
 
-      <section className="rounded-[14px] border border-border bg-white p-4 min-[820px]:p-5">
+      <section className="rounded-[14px] border border-border bg-[var(--surface)] p-4 min-[820px]:p-5">
         <h2 className="text-[15px] font-semibold">Precio y arras</h2>
         <div className="mt-4 grid gap-4 min-[820px]:grid-cols-2">
           <div>

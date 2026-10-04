@@ -428,7 +428,7 @@ export function ParteVisitaEditor({
       <DocumentoSplit
         form={
           <div className="space-y-4">
-            <section className="rounded-[14px] border border-border bg-white p-4 min-[820px]:p-5">
+            <section className="rounded-[14px] border border-border bg-[var(--surface)] p-4 min-[820px]:p-5">
               <h2 className="text-[15px] font-semibold">Visitante</h2>
               <div className="mt-4 grid gap-4 min-[820px]:grid-cols-2">
                 <div className="min-[820px]:col-span-2">
@@ -461,7 +461,7 @@ export function ParteVisitaEditor({
               </div>
             </section>
 
-            <section className="rounded-[14px] border border-border bg-white p-4 min-[820px]:p-5">
+            <section className="rounded-[14px] border border-border bg-[var(--surface)] p-4 min-[820px]:p-5">
               <h2 className="text-[15px] font-semibold">Visita</h2>
               <div className="mt-4 grid gap-4 min-[820px]:grid-cols-2">
                 <div>
@@ -483,7 +483,7 @@ export function ParteVisitaEditor({
               </div>
             </section>
 
-            <section className="rounded-[14px] border border-border bg-white p-4 min-[820px]:p-5">
+            <section className="rounded-[14px] border border-border bg-[var(--surface)] p-4 min-[820px]:p-5">
               <h2 className="text-[15px] font-semibold">Inmuebles visitados</h2>
               <p className="mt-1 text-[12.5px] text-[var(--text-2)]">Puedes poner varias calles, como en la cuartilla.</p>
               {contextoCatastro ? (
@@ -526,7 +526,7 @@ export function ParteVisitaEditor({
               </div>
             </section>
 
-            <section className="rounded-[14px] border border-border bg-white p-4 min-[820px]:p-5">
+            <section className="rounded-[14px] border border-border bg-[var(--surface)] p-4 min-[820px]:p-5">
               <h2 className="text-[15px] font-semibold">Notas internas</h2>
               <textarea value={observaciones} onChange={(e) => setObservaciones(e.target.value)} className={cn(area, "mt-3")} />
               <div className="mt-4">

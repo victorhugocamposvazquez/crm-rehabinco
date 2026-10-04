@@ -39,7 +39,7 @@ export default function PapeleraHerramientasPage() {
         }
       />
 
-      <section className="mt-6 overflow-hidden rounded-[14px] border border-border bg-white">
+      <section className="mt-6 overflow-hidden rounded-[14px] border border-border bg-[var(--surface)]">
         <PapeleraDocumentosPanel />
       </section>
     </div>

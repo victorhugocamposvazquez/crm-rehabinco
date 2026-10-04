@@ -892,7 +892,7 @@ export function BuscarInmuebles() {
         ) : (
           <>
             {loading && !resultado ? (
-              <div className="rounded-2xl border border-border bg-white px-5 py-8 text-center">
+              <div className="rounded-2xl border border-border bg-[var(--surface)] px-5 py-8 text-center">
                 <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-neutral-200 border-t-accent" />
                 <p className="mt-4 text-sm font-medium text-neutral-600">Buscando en Catastro...</p>
               </div>

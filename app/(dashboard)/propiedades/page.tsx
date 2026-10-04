@@ -181,7 +181,7 @@ export default function PropiedadesPage() {
         </div>
       ) : (
         <div className="mt-5">
-          <section className="min-w-0 w-full overflow-hidden rounded-[14px] border border-border bg-white">
+          <section className="min-w-0 w-full overflow-hidden rounded-[14px] border border-border bg-[var(--surface)]">
             <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border-soft)] px-3.5 py-3">
               <div className="relative min-w-0 flex-[1_1_180px]">
                 <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-2)]" strokeWidth={2.2} />
@@ -253,7 +253,7 @@ export default function PropiedadesPage() {
               <p className="px-4 py-9 text-center text-[13.5px] text-[var(--text-2)]">Ningún inmueble con ese filtro.</p>
             ) : modo === "lista" ? (
               <>
-                <div className="grid grid-cols-[minmax(0,1fr)_70px_110px_120px_130px] gap-3 border-b border-[var(--border-soft)] bg-[var(--surface-soft)] px-3.5 py-2 text-[11px] uppercase tracking-[.06em] text-[var(--label)]">
+                <div className="grid grid-cols-[minmax(0,1fr)_70px_110px_120px_130px] gap-3 border-b border-[var(--border-soft)] bg-[var(--surface-soft)] px-3.5 py-2 text-[12px] text-[var(--text-3)]">
                   <div>Inmueble</div>
                   <div className="text-right">m²</div>
                   <div className="text-right">Precio</div>

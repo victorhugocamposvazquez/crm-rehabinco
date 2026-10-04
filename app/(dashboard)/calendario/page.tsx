@@ -511,7 +511,7 @@ export default function CalendarioPage() {
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex gap-1 rounded-full border border-[var(--border)] bg-white p-0.5">
+          <div className="flex gap-1 rounded-full border border-[var(--border)] bg-[var(--surface)] p-0.5">
             <ToggleChip on={vista === "semana"} onClick={() => setVista("semana")}>
               Semana
             </ToggleChip>

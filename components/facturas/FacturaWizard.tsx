@@ -490,7 +490,7 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
                   <Label>Cliente *</Label>
                   <select
                     className={cn(
-                      "flex h-11 w-full rounded-lg border border-border bg-white px-4 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      "flex h-11 w-full rounded-lg border border-border bg-[var(--surface)] px-4 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       esRectificativa && "cursor-not-allowed bg-neutral-50"
                     )}
                     {...formStep1.register("clienteId")}
@@ -701,7 +701,7 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
                     <div className="w-14 shrink-0 space-y-1">
                       <Label className="text-xs">IVA %</Label>
                       <select
-                        className="flex h-9 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="flex h-9 w-full rounded-lg border border-border bg-[var(--surface)] px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         value={l.ivaPorcentaje}
                         onChange={(e) =>
                           updateLinea(i, "ivaPorcentaje", Number(e.target.value))

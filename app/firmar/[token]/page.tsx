@@ -20,7 +20,7 @@ export default async function FirmarParteVisitaPage({
   if (!result.success) {
     return (
       <main className="min-h-dvh bg-neutral-100 px-4 py-10">
-        <div className="mx-auto max-w-md rounded-2xl border border-border bg-white px-6 py-10 text-center shadow-sm">
+        <div className="mx-auto max-w-md rounded-2xl border border-border bg-[var(--surface)] px-6 py-10 text-center shadow-sm">
           <p className="text-lg font-semibold text-foreground">Enlace no válido</p>
           <p className="mt-2 text-sm text-neutral-600">{result.error}</p>
         </div>
@@ -31,7 +31,7 @@ export default async function FirmarParteVisitaPage({
   if (result.parte.estado === "borrador") {
     return (
       <main className="min-h-dvh bg-neutral-100 px-4 py-10">
-        <div className="mx-auto max-w-md rounded-2xl border border-border bg-white px-6 py-10 text-center shadow-sm">
+        <div className="mx-auto max-w-md rounded-2xl border border-border bg-[var(--surface)] px-6 py-10 text-center shadow-sm">
           <p className="text-lg font-semibold text-foreground">
             Parte no disponible
           </p>

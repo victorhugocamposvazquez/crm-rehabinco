@@ -172,7 +172,7 @@ export function PipelineFinca({
             value={estado}
             disabled={guardando}
             onChange={(e) => void guardarEstado(parseEstadoCaptacion(e.target.value))}
-            className="flex h-10 w-full rounded-lg border border-border bg-white px-3 text-sm"
+            className="flex h-10 w-full rounded-lg border border-border bg-[var(--surface)] px-3 text-sm"
           >
             {ESTADOS_CAPTACION.map((item) => (
               <option key={item} value={item}>

@@ -168,7 +168,7 @@ export function PagosCard({
                   e.preventDefault();
                   handleAddPago();
                 }}
-                className="space-y-4 rounded-xl border border-border bg-white p-4"
+                className="space-y-4 rounded-xl border border-border bg-[var(--surface)] p-4"
               >
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
@@ -198,7 +198,7 @@ export function PagosCard({
                   <Label htmlFor="pago-metodo">Método de pago</Label>
                   <select
                     id="pago-metodo"
-                    className="flex h-10 w-full rounded-lg border border-border bg-white px-4 text-base"
+                    className="flex h-10 w-full rounded-lg border border-border bg-[var(--surface)] px-4 text-base"
                     value={metodoPago}
                     onChange={(e) => setMetodoPago(e.target.value)}
                   >

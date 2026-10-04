@@ -192,7 +192,7 @@ export function DestacadosPdfField({
               </Button>
             </div>
             <textarea
-              className="flex min-h-[64px] w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+              className="flex min-h-[64px] w-full rounded-lg border border-border bg-[var(--surface)] px-3 py-2 text-sm"
               placeholder="Texto de justificación…"
               value={r.texto}
               onChange={(e) =>

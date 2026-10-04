@@ -261,7 +261,7 @@ export function TareaPanel({
     <Sheet open onOpenChange={(open) => !open && onClose()} variant="side" side="right">
       <div className="flex h-full min-h-0 flex-col">
         <div className="flex items-center gap-2.5 px-5 pb-2 pt-5">
-          <span className="flex-1 text-[11px] uppercase tracking-[.08em] text-[var(--label)]">Tarea</span>
+          <span className="flex-1 text-[12px] text-[var(--text-3)]">Tarea</span>
           <button
             type="button"
             onClick={onClose}

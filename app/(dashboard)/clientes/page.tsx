@@ -292,7 +292,7 @@ export default function ClientesPage() {
         </div>
       ) : (
         <div className="mt-5 flex items-start gap-4">
-          <section className="min-w-0 flex-[1_1_480px] overflow-hidden rounded-[14px] border border-border bg-white">
+          <section className="min-w-0 flex-[1_1_480px] overflow-hidden rounded-[14px] border border-border bg-[var(--surface)]">
             <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border-soft)] px-3.5 py-3">
               <div className="relative min-w-0 flex-[1_1_180px]">
                 <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-2)]" strokeWidth={2.2} />
@@ -355,16 +355,16 @@ export default function ClientesPage() {
           {selected ? (
             <aside
               className={cn(
-                "overflow-hidden rounded-[14px] border border-border bg-white",
+                "overflow-hidden rounded-[14px] border border-border bg-[var(--surface)]",
                 narrow ? "fixed inset-0 z-[80] overflow-y-auto rounded-none pb-[var(--mobile-content-pb)]" : "sticky top-[72px] min-w-[300px] flex-[1_1_330px]"
               )}
             >
-              <div className="flex items-center gap-3 border-b border-[var(--border-soft)] px-4 py-4">
+              <div className="flex items-center gap-3 px-5 pt-5">
                 <span className="grid h-[46px] w-[46px] shrink-0 place-items-center rounded-full bg-accent-soft text-[15px] font-semibold text-accent-dark">
                   {inicialesNombre(selected.nombre)}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-[18px] font-semibold tracking-tight">{selected.nombre}</h2>
+                  <h2 className="text-[22px] font-medium leading-tight tracking-[-0.03em]">{selected.nombre}</h2>
                   <p className="mt-0.5 text-[12.5px] text-[var(--text-2)]">
                     {[selected.tipo_documento?.toUpperCase(), selected.documento_fiscal, selected.tipo_cliente]
                       .filter(Boolean)
@@ -377,7 +377,7 @@ export default function ClientesPage() {
                   </button>
                 ) : null}
               </div>
-              <div className="flex flex-wrap gap-2 border-b border-[var(--border-soft)] px-4 py-3">
+              <div className="mt-5 flex flex-wrap gap-2 px-5">
                 {selected.telefono ? (
                   <a href={`tel:${selected.telefono}`} className="flex h-[38px] flex-[1_1_90px] items-center justify-center rounded-[9px] border border-[var(--input)] text-[13px] font-semibold">
                     Llamar
@@ -396,22 +396,22 @@ export default function ClientesPage() {
                     WhatsApp
                   </span>
                 )}
-                <Link href="/tareas" className="flex h-[38px] flex-[1_1_90px] items-center justify-center rounded-[9px] bg-accent text-[13px] font-semibold text-white hover:bg-accent-dark">
+                <Link href="/tareas" className="flex h-9 flex-[1_1_90px] items-center justify-center rounded-[9px] bg-accent text-[13px] font-medium text-accent-foreground hover:bg-accent-dark">
                   Tarea
                 </Link>
               </div>
-              <div className="grid grid-cols-2 gap-2.5 border-b border-[var(--border-soft)] px-4 py-3">
+              <div className="mt-8 grid grid-cols-2 gap-x-8 gap-y-5 px-5">
                 <div>
-                  <div className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">Teléfono</div>
-                  <div className="mt-0.5 text-[13.5px]">{selected.telefono || "—"}</div>
+                  <div className="text-[12px] text-[var(--text-3)]">Teléfono</div>
+                  <div className="mt-1.5 text-[14px]">{selected.telefono || "—"}</div>
                 </div>
                 <div className="min-w-0">
-                  <div className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">Email</div>
-                  <div className="mt-0.5 truncate text-[13.5px]">{selected.email || "—"}</div>
+                  <div className="text-[12px] text-[var(--text-3)]">Email</div>
+                  <div className="mt-1.5 truncate text-[14px]">{selected.email || "—"}</div>
                 </div>
                 <div className="col-span-2">
-                  <div className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">Dirección</div>
-                  <div className="mt-0.5 text-[13.5px]">
+                  <div className="text-[12px] text-[var(--text-3)]">Dirección</div>
+                  <div className="mt-1.5 text-[14px]">
                     {[selected.direccion, selected.codigo_postal, selected.localidad].filter(Boolean).join(", ") || "—"}
                   </div>
                 </div>
@@ -453,9 +453,9 @@ export default function ClientesPage() {
                   items: selected.docs.map((d) => ({ id: d.id, a: d.a, b: d.b, href: d.href })),
                 },
               ].map((bloque) => (
-                <div key={bloque.label} className="border-b border-[var(--border-row)] px-4 py-2.5">
+                <div key={bloque.label} className="mt-8 px-5">
                   <div className="flex items-baseline justify-between">
-                    <h3 className="text-[13px] font-semibold">{bloque.label}</h3>
+                    <h3 className="text-[12px] font-medium text-[var(--text-3)]">{bloque.label}</h3>
                     <span className="text-[12px] text-[var(--text-2)]">{bloque.n}</span>
                   </div>
                   {bloque.items.length === 0 ? (

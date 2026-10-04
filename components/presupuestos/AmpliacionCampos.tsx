@@ -168,7 +168,7 @@ export function AmpliacionCampos({
       <div className="space-y-1.5">
         <Label>Condicionantes de ejecución</Label>
         <textarea
-          className="flex min-h-[88px] w-full rounded-lg border border-border bg-white px-4 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex min-h-[88px] w-full rounded-lg border border-border bg-[var(--surface)] px-4 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           placeholder="Turnos diurnos y nocturnos por la premura…"
           value={propuesta.condicionantes_ejecucion}
           onChange={(e) => onChange({ ...propuesta, condicionantes_ejecucion: e.target.value })}
@@ -184,7 +184,7 @@ export function AmpliacionCampos({
       </label>
       {propuesta.mostrar_observaciones && (
         <textarea
-          className="flex min-h-[72px] w-full rounded-lg border border-border bg-white px-4 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex min-h-[72px] w-full rounded-lg border border-border bg-[var(--surface)] px-4 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           placeholder="Mediciones definitivas en obra…"
           value={propuesta.observaciones}
           onChange={(e) => onChange({ ...propuesta, observaciones: e.target.value })}

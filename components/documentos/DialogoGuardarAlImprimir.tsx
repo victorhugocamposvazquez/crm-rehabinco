@@ -41,7 +41,7 @@ export function DialogoGuardarAlImprimir({
         role="dialog"
         aria-modal="true"
         aria-labelledby="dialogo-imprimir-titulo"
-        className="w-full max-w-sm rounded-2xl border border-border bg-white p-6 shadow-xl"
+        className="w-full max-w-sm rounded-2xl border border-border bg-[var(--surface)] p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <p className="font-medium text-foreground" id="dialogo-imprimir-titulo">

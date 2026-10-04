@@ -296,7 +296,7 @@ export default function SettingsPage() {
                     id="new-user-role"
                     value={newUserRole}
                     onChange={(e) => setNewUserRole(e.target.value as Role)}
-                    className="flex h-10 w-full rounded-lg border border-border bg-white px-4 py-2 text-base"
+                    className="flex h-10 w-full rounded-lg border border-border bg-[var(--surface)] px-4 py-2 text-base"
                   >
                     {ROLES_CREABLES.map((rol) => (
                       <option key={rol} value={rol}>

@@ -113,7 +113,7 @@ export function TarjetaBusquedaReciente({
           {menu ? (
             <div
               role="menu"
-              className="absolute right-0 z-20 mt-1 min-w-[11rem] rounded-xl border border-border bg-white p-1 shadow-lg"
+              className="absolute right-0 z-20 mt-1 min-w-[11rem] rounded-xl border border-border bg-[var(--surface)] p-1 shadow-lg"
             >
               {reanudable ? (
                 <Link

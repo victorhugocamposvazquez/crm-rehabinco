@@ -88,7 +88,7 @@ export function CatastroPropertyModal({
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-border bg-white p-6 shadow-xl"
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-border bg-[var(--surface)] p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-labelledby="catastro-property-modal-title"

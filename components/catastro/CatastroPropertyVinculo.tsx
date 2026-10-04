@@ -92,7 +92,7 @@ export function CatastroPropertyVinculo({
           onClick={() => !creando && setEligiendo(false)}
         >
           <div
-            className="w-full max-w-md rounded-2xl border border-border bg-white p-6 shadow-xl"
+            className="w-full max-w-md rounded-2xl border border-border bg-[var(--surface)] p-6 shadow-xl"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-labelledby="ofertante-catastro-title"
@@ -109,7 +109,7 @@ export function CatastroPropertyVinculo({
                 id="ofertante-catastro"
                 value={ofertanteId}
                 onChange={(e) => setOfertanteId(e.target.value)}
-                className="flex h-10 w-full rounded-lg border border-border bg-white px-4 text-base"
+                className="flex h-10 w-full rounded-lg border border-border bg-[var(--surface)] px-4 text-base"
               >
                 <option value="">Selecciona un cliente</option>
                 {clientes.map((c) => (
