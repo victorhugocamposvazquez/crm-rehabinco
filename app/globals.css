@@ -262,7 +262,12 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
 }
 
 /* El tema oscuro reutiliza las superficies aunque el componente lleve un blanco o un gris fijo. */
-.dark .bg-white {
+.dark .bg-white,
+.dark .bg-white\/95,
+.dark .bg-white\/90,
+.dark .bg-white\/80,
+.dark .bg-white\/70,
+.dark .bg-white\/55 {
   background-color: var(--surface);
 }
 .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not(.bg-transparent),
@@ -309,6 +314,31 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
 .dark .border-\[\#D4D4D4\] {
   border-color: var(--input);
 }
-.dark .bg-\[\#f3f1ed\] {
-  background-color: var(--background);
+.dark .bg-\[\#f3f1ed\],
+.dark .bg-\[\#E8E4DC\],
+.dark .bg-\[\#E9ECE8\],
+.dark .bg-\[\#F7F6F3\] {
+  background-color: var(--surface-soft);
+}
+.dark .bg-neutral-50,
+.dark .bg-neutral-100,
+.dark .bg-neutral-50\/70,
+.dark .hover\:bg-neutral-50:hover,
+.dark .hover\:bg-neutral-100:hover,
+.dark .hover\:bg-white:hover {
+  background-color: var(--surface-soft);
+}
+.dark .text-neutral-900,
+.dark .text-neutral-800,
+.dark .text-neutral-700 {
+  color: var(--foreground);
+}
+.dark .text-neutral-600,
+.dark .text-neutral-500,
+.dark .text-neutral-400 {
+  color: var(--text-2);
+}
+.dark .border-neutral-200,
+.dark .border-neutral-100 {
+  border-color: var(--border);
 }

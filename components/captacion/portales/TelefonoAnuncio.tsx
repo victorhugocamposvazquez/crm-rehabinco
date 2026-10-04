@@ -102,22 +102,22 @@ export function TelefonoAnuncio({
       </div>
       <div className="flex flex-wrap gap-2">
         {estado === "solo_mensaje" && anuncio.url ? (
-          <a href={anuncio.url} target="_blank" rel="noopener noreferrer" className="h-8 rounded-lg border border-[var(--input)] bg-white px-2.5 text-[12px] font-semibold no-underline">
+          <a href={anuncio.url} target="_blank" rel="noopener noreferrer" className="h-8 rounded-lg border border-[var(--input)] bg-[var(--field)] px-2.5 text-[12px] font-semibold no-underline">
             Escribir en Idealista
           </a>
         ) : null}
         {(estado === "solo_mensaje" || estado === "virtual") && onAnadirTelefono ? (
-          <button type="button" onClick={() => onAnadirTelefono(anuncio.id)} className="h-8 rounded-lg border border-[var(--input)] bg-white px-2.5 text-[12px] font-semibold">
+          <button type="button" onClick={() => onAnadirTelefono(anuncio.id)} className="h-8 rounded-lg border border-[var(--input)] bg-[var(--field)] px-2.5 text-[12px] font-semibold">
             Añadir teléfono
           </button>
         ) : null}
         {estado === "fallo" && onReintentar ? (
-          <button type="button" onClick={() => onReintentar(anuncio.id)} className="h-8 rounded-lg border border-[var(--input)] bg-white px-2.5 text-[12px] font-semibold">
+          <button type="button" onClick={() => onReintentar(anuncio.id)} className="h-8 rounded-lg border border-[var(--input)] bg-[var(--field)] px-2.5 text-[12px] font-semibold">
             Reintentar ahora
           </button>
         ) : null}
         {estado === "no_solicitado" && onPedirTelefono ? (
-          <button type="button" onClick={() => onPedirTelefono(anuncio.id)} className="h-8 rounded-lg border border-[var(--input)] bg-white px-2.5 text-[12px] font-semibold">
+          <button type="button" onClick={() => onPedirTelefono(anuncio.id)} className="h-8 rounded-lg border border-[var(--input)] bg-[var(--field)] px-2.5 text-[12px] font-semibold">
             Pedir teléfono
           </button>
         ) : null}

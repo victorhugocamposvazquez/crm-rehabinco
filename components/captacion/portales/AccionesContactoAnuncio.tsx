@@ -10,6 +10,7 @@ import { syncTareaDesdeCita } from "@/lib/tareas/sync-cita";
 import { euros } from "@/lib/captacion/portales/modelo";
 import type { AnuncioCaptacion } from "@/lib/captacion/portales/modelo";
 import { TimeInput } from "@/components/ui/time-input";
+import { cn } from "@/lib/utils";
 import {
   PLANTILLAS_WHATSAPP,
   notasRecordatorioCaptacion,
@@ -162,10 +163,10 @@ export function AccionesContactoAnuncio({
   const hechosOrdenados = [...hechos].reverse();
 
   return (
-    <div className="border-b border-[var(--border-soft)] px-4 py-3">
+    <div className="mt-8 px-5">
       {telefono ? (
       <>
-      <div className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Contacto</div>
+      <div className="text-[12px] text-[var(--text-3)]">Contacto</div>
       <div className="mt-1.5 flex items-baseline justify-between gap-3">
         <a href={`tel:${telefono.replace(/\s/g, "")}`} className="font-mono text-[18px] font-semibold tracking-tight text-[var(--text)] no-underline">
           {telefono}
@@ -176,33 +177,34 @@ export function AccionesContactoAnuncio({
         <a
           href={`tel:${telefono.replace(/\s/g, "")}`}
           onClick={() => void registrarLlamada()}
-          className="flex h-9 items-center justify-center rounded-lg border border-[var(--input)] bg-white text-[12.5px] font-semibold no-underline"
+          className="flex h-9 items-center justify-center rounded-lg border border-[var(--input)] bg-[var(--field)] text-[13px] font-medium text-foreground no-underline"
         >
           Llamar
         </a>
         <button
           type="button"
           onClick={() => setModo(modo === "recordatorio" ? null : "recordatorio")}
-          className="h-9 rounded-lg border text-[12.5px] font-semibold"
-          style={{
-            borderColor: modo === "recordatorio" ? "#111111" : "var(--input)",
-            background: modo === "recordatorio" ? "#E7F3EF" : "white",
-          }}
+          className={cn(
+            "h-9 rounded-lg border text-[13px] font-medium",
+            modo === "recordatorio" ? "border-foreground bg-accent-soft text-foreground" : "border-[var(--input)] bg-[var(--field)] text-foreground"
+          )}
         >
           Recordatorio
         </button>
         <button
           type="button"
           onClick={() => setModo(modo === "whatsapp" ? null : "whatsapp")}
-          className="h-9 rounded-lg text-[12.5px] font-semibold text-white"
-          style={{ background: modo === "whatsapp" ? "#075E54" : "#128C7E" }}
+          className={cn(
+            "h-9 rounded-lg border text-[13px] font-medium",
+            modo === "whatsapp" ? "border-foreground bg-foreground text-background" : "border-[var(--input)] bg-[var(--field)] text-foreground"
+          )}
         >
           WhatsApp
         </button>
       </div>
 
       {modo === "recordatorio" ? (
-        <div className="mt-3 rounded-[10px] border border-[var(--border)] bg-[#F7F6F3] p-3">
+        <div className="mt-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
           <p className="text-[12.5px] text-[var(--text-2)]">
             Se crea un recordatorio de captación en el calendario y una tarea, con el anuncio escrito en el inmueble. {anuncio.propiedad_id ? "El inmueble del CRM queda enlazado." : ""}
           </p>
@@ -231,18 +233,17 @@ export function AccionesContactoAnuncio({
       ) : null}
 
       {modo === "whatsapp" ? (
-        <div className="mt-3 rounded-[10px] border border-[var(--border)] bg-[#F7F6F3] p-3">
+        <div className="mt-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
           <div className="flex flex-wrap gap-1.5">
             {PLANTILLAS_WHATSAPP.map((item) => (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => setPlantillaId(item.id)}
-                className="h-8 rounded-full border px-2.5 text-[12px] font-semibold"
-                style={{
-                  borderColor: item.id === plantillaId ? "#128C7E" : "var(--border)",
-                  background: item.id === plantillaId ? "#E7F6F3" : "white",
-                }}
+                className={cn(
+                  "h-8 rounded-full border px-2.5 text-[12px] font-medium",
+                  item.id === plantillaId ? "border-foreground bg-accent-soft text-foreground" : "border-[var(--border)] bg-[var(--field)] text-[var(--text-2)]"
+                )}
               >
                 {item.nombre}
               </button>
@@ -252,7 +253,7 @@ export function AccionesContactoAnuncio({
           <button
             type="button"
             onClick={abrirWhatsapp}
-            className="mt-2 h-9 w-full rounded-lg bg-[#128C7E] text-[13px] font-semibold text-white"
+            className="mt-2 h-9 w-full rounded-lg bg-accent text-[13px] font-medium text-accent-foreground"
           >
             Abrir WhatsApp
           </button>
@@ -272,7 +273,7 @@ export function AccionesContactoAnuncio({
             className={`h-3.5 w-3.5 shrink-0 text-[var(--text-3)] transition-transform ${historialAbierto ? "rotate-180" : ""}`}
             aria-hidden
           />
-          <span className="text-[11px] uppercase tracking-[0.07em] text-[var(--label)]">Hecho</span>
+          <span className="text-[12px] text-[var(--text-3)]">Hecho</span>
           <span className="text-[11px] tabular-nums text-[var(--text-3)]">{hechosOrdenados.length}</span>
         </button>
         {historialAbierto ? (

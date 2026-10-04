@@ -322,11 +322,11 @@ function FichaPeekHost({
   return (
     <Sheet open={Boolean(destino)} onOpenChange={(open) => !open && onAtras()} variant="side" side="right" elevated>
       <div className="flex h-full flex-col">
-        <div className="flex items-center gap-2.5 border-b border-[var(--border-soft)] px-4 py-3.5">
+        <div className="flex items-center gap-3 px-5 pb-2 pt-5">
           <button type="button" onClick={onAtras} className="text-[12.5px] font-semibold text-accent">
             ← Atrás
           </button>
-          <span className="flex-1 text-[11px] uppercase tracking-[.08em] text-[var(--label)]">
+          <span className="flex-1 text-[12px] text-[var(--text-3)]">
             {destino ? tituloPeek(destino) : ""}
             {niveles > 1 ? ` · ${niveles}` : ""}
           </span>
@@ -375,16 +375,16 @@ function FichaCliente({ cliente }: { cliente: ClientePeek }) {
   const wa = telWhatsApp(cliente.telefono);
   return (
     <div>
-      <div className="flex items-center gap-3 border-b border-[var(--border-soft)] px-4 py-4">
+      <div className="flex items-center gap-3 px-5 pt-2">
         <span className="grid h-[46px] w-[46px] shrink-0 place-items-center rounded-full bg-accent-soft text-[15px] font-semibold text-accent-dark">
           {inicialesNombre(cliente.nombre)}
         </span>
         <div className="min-w-0">
-          <h2 className="text-[18px] font-semibold tracking-tight">{cliente.nombre}</h2>
+          <h2 className="text-[22px] font-medium leading-tight tracking-[-0.03em]">{cliente.nombre}</h2>
           <p className="mt-0.5 text-[12.5px] text-[var(--text-2)]">{cliente.tipo_cliente || "Cliente"}</p>
         </div>
       </div>
-      <div className="flex flex-wrap gap-2 border-b border-[var(--border-soft)] px-4 py-3">
+      <div className="mt-5 flex flex-wrap gap-2 px-5">
         {cliente.telefono ? (
           <a href={`tel:${cliente.telefono}`} className="flex h-[38px] flex-[1_1_90px] items-center justify-center rounded-[9px] border border-[var(--input)] text-[13px] font-semibold">
             Llamar
@@ -396,7 +396,7 @@ function FichaCliente({ cliente }: { cliente: ClientePeek }) {
           </a>
         ) : null}
       </div>
-      <div className="grid grid-cols-2 gap-2.5 border-b border-[var(--border-soft)] px-4 py-3">
+      <div className="mt-8 grid grid-cols-2 gap-x-8 gap-y-5 px-5">
         <Dato label="Teléfono" valor={cliente.telefono || "—"} />
         <Dato label="Email" valor={cliente.email || "—"} />
         <div className="col-span-2">
@@ -431,14 +431,14 @@ function FichaDemanda({ demanda }: { demanda: DemandaPeek }) {
       ? `${formatEuro(demanda.presupuesto_min)} – ${formatEuro(demanda.presupuesto_max)}`
       : "—";
   return (
-    <div className="px-4 py-4">
-      <FichaLink tipo="cliente" id={demanda.cliente_id} className="text-[18px] font-semibold tracking-tight text-foreground hover:text-accent">
+    <div className="px-5 py-6">
+      <FichaLink tipo="cliente" id={demanda.cliente_id} className="text-[22px] font-medium leading-tight tracking-[-0.03em] text-foreground hover:text-accent">
         {demanda.cliente}
       </FichaLink>
       <p className="mt-0.5 text-[12.5px] capitalize text-[var(--text-2)]">
         {demanda.tipo_operacion} · {demanda.estado}
       </p>
-      <div className="mt-4 grid grid-cols-2 gap-2.5">
+      <div className="mt-8 grid grid-cols-2 gap-x-8 gap-y-5">
         <Dato label="Zonas" valor={demanda.zonas?.join(", ") || "—"} />
         <Dato label="Presupuesto" valor={presupuesto} />
         <Dato
@@ -470,7 +470,7 @@ function FichaParte({ parte }: { parte: PartePeek }) {
       <p className="mt-0.5 text-[12.5px] text-[var(--text-2)]">{ESTADO_PARTE_LABELS[parte.estado] ?? parte.estado}</p>
       <div className="mt-4 grid gap-2.5">
         <div>
-          <div className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">Inmueble</div>
+          <div className="text-[12px] text-[var(--text-3)]">Inmueble</div>
           {parte.propiedad_id ? (
             <FichaLink tipo="propiedad" id={parte.propiedad_id} className="mt-0.5 text-[13.5px]">
               {parte.inmueble_direccion || "Ver inmueble"}
@@ -515,9 +515,9 @@ function ListaPeek({
   items: Array<{ id: string; tipo: DestinoFicha["tipo"]; texto: string }>;
 }) {
   return (
-    <div className="border-b border-[var(--border-row)] px-4 py-2.5">
+    <div className="mt-8 px-5 pb-2">
       <div className="flex items-baseline justify-between">
-        <h3 className="text-[13px] font-semibold">{titulo}</h3>
+        <h3 className="text-[12px] font-medium text-[var(--text-3)]">{titulo}</h3>
         <span className="text-[12px] text-[var(--text-2)]">{items.length}</span>
       </div>
       {items.length === 0 ? (
@@ -536,8 +536,8 @@ function ListaPeek({
 function Dato({ label, valor }: { label: string; valor: string }) {
   return (
     <div className="min-w-0">
-      <div className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">{label}</div>
-      <div className="mt-0.5 text-[13.5px]">{valor}</div>
+      <div className="text-[12px] text-[var(--text-3)]">{label}</div>
+      <div className="mt-1.5 text-[14px] leading-5">{valor}</div>
     </div>
   );
 }

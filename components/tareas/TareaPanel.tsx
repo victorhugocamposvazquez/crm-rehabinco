@@ -14,6 +14,7 @@ import { useFichaPeek } from "@/components/crm/FichaPeek";
 import { relacionUno } from "@/lib/citas/citas";
 import { inmuebleDesdeNotasCaptacion } from "@/lib/captacion/portales/contacto";
 import { nombreYApellido } from "@/lib/ui/tokens";
+import { cn } from "@/lib/utils";
 import {
   COLUMNAS_TAREA,
   columnaDeTarea,
@@ -280,11 +281,10 @@ export function TareaPanel({
               type="button"
               aria-label="Hecha"
               onClick={() => onToggle(tarea.id)}
-              className="mt-1 h-5 w-5 shrink-0 rounded-[6px] border-[1.5px]"
-              style={{
-                borderColor: hecha ? "#111111" : "#D4D4D4",
-                background: hecha ? "#111111" : "#fff",
-              }}
+              className={cn(
+                "mt-1 h-5 w-5 shrink-0 rounded-[6px] border-[1.5px]",
+                hecha ? "border-foreground bg-foreground" : "border-[var(--input)] bg-[var(--field)]"
+              )}
             />
             <textarea
               value={titulo}

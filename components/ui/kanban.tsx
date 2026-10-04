@@ -48,11 +48,10 @@ export function Kanban<C extends string, T extends { id: string }>({
               if (id) onMove(id, col.id);
               setOver(null);
             }}
-            className="min-h-[260px] w-[82vw] shrink-0 rounded-[14px] p-2.5 min-[820px]:w-[260px]"
-            style={{
-              background: hot ? "#F0F0F0" : "#F5F5F5",
-              border: `1px solid ${hot ? "#111111" : "transparent"}`,
-            }}
+            className={cn(
+              "min-h-[260px] w-[82vw] shrink-0 rounded-[14px] border p-3 min-[820px]:w-[260px]",
+              hot ? "border-foreground bg-accent-soft" : "border-transparent bg-[var(--surface-soft)]"
+            )}
           >
             <div className="mb-2.5 flex items-center gap-2 px-1 text-[13px]">
               <span className="h-2 w-2 rounded-full" style={{ background: col.dot }} />
@@ -124,7 +123,7 @@ export function KanbanCard({
       {children}
     </>
   );
-  const cls = cn("block rounded-[11px] border border-border bg-white px-3 py-2.5 hover:border-accent", className);
+  const cls = cn("block rounded-[12px] border border-border bg-[var(--surface)] px-3.5 py-3 hover:border-foreground", className);
   if (onClick) {
     return (
       <button

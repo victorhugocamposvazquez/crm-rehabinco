@@ -8,7 +8,7 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-[14px] border border-border bg-white",
+      "rounded-[14px] border border-border bg-[var(--surface)]",
       animate && "animate-rise",
       className
     )}

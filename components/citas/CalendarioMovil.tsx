@@ -8,6 +8,7 @@ import { EventoCalendarioChip, GuiaHoraCalendario } from "@/components/citas/Cal
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { TimeInput } from "@/components/ui/time-input";
 import { FichaLink } from "@/components/crm/FichaPeek";
+import { cn } from "@/lib/utils";
 import {
   CAL_HORA_FIN,
   CAL_HORA_INICIO,
@@ -168,19 +169,17 @@ export function CalendarioMovil({
               type="button"
               data-cal-dia={d}
               onClick={() => onPickDia(d)}
-              className="flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 rounded-[11px] border transition-[background,border,transform] duration-150"
-              style={{
-                borderColor: over || activo ? "#111111" : "#E5E5E5",
-                background: over ? "#F0F0F0" : activo ? "#F0F0F0" : "#fff",
-                color: esHoy && !activo ? "#111111" : undefined,
-                transform: over ? "scale(1.04)" : undefined,
-              }}
+              className={cn(
+                "flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 rounded-[11px] border transition-[background,border,transform] duration-150",
+                over || activo ? "scale-[1.04] border-foreground bg-accent-soft" : "border-[var(--border)] bg-[var(--surface)]",
+                esHoy && !activo && "text-foreground"
+              )}
             >
               <span className="text-[10.5px] uppercase tracking-[.05em] text-[var(--label)]">
                 {new Date(`${d}T12:00:00`).toLocaleDateString("es-ES", { weekday: "short" }).replace(".", "")}
               </span>
               <span className="text-[16px] font-semibold">{new Date(`${d}T12:00:00`).getDate()}</span>
-              <span className="h-[5px] w-[5px] rounded-full" style={{ background: hay ? "#111111" : "transparent" }} />
+              <span className="h-[5px] w-[5px] rounded-full" style={{ background: hay ? "var(--foreground)" : "transparent" }} />
             </button>
           );
         })}

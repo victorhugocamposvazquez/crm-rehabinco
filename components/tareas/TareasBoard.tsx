@@ -184,11 +184,10 @@ export function TareasBoard({
               if (id) onMover(id, col.id);
               setOver(null);
             }}
-            className="min-h-[260px] w-[82vw] shrink-0 rounded-[14px] p-2.5 min-[820px]:w-[290px]"
-            style={{
-              background: hot ? "#F0F0F0" : "#F5F5F5",
-              border: `1px solid ${hot ? "#111111" : "transparent"}`,
-            }}
+            className={cn(
+              "min-h-[260px] w-[82vw] shrink-0 rounded-[14px] border p-3 min-[820px]:w-[290px]",
+              hot ? "border-foreground bg-accent-soft" : "border-transparent bg-[var(--surface-soft)]"
+            )}
           >
             <div className="mb-2.5 flex items-center gap-2 px-1 text-[13px]">
               <span className="h-2 w-2 rounded-full" style={{ background: col.dot }} />
@@ -229,7 +228,7 @@ export function TareasBoard({
                     }
                     onAbrir(t.id);
                   }}
-                  className={cn("mb-2 cursor-grab rounded-[11px] border border-border bg-white px-3 py-2.5", t.hecha && "opacity-55")}
+                  className={cn("mb-2 cursor-grab rounded-[12px] border border-border bg-[var(--surface)] px-3.5 py-3", t.hecha && "opacity-55")}
                 >
                   <div className="flex items-start gap-2">
                     <button
@@ -239,11 +238,10 @@ export function TareasBoard({
                         e.stopPropagation();
                         onToggle(t.id);
                       }}
-                      className="mt-0.5 h-[17px] w-[17px] shrink-0 rounded-[5px] border-[1.5px]"
-                      style={{
-                        borderColor: t.hecha ? "#111111" : "#D4D4D4",
-                        background: t.hecha ? "#111111" : "#fff",
-                      }}
+                      className={cn(
+                        "mt-0.5 h-[17px] w-[17px] shrink-0 rounded-[5px] border-[1.5px]",
+                        t.hecha ? "border-foreground bg-foreground" : "border-[var(--input)] bg-[var(--field)]"
+                      )}
                     />
                     <p className={cn("min-w-0 flex-1 text-left text-[13.5px] font-medium leading-snug", t.hecha && "line-through")}>
                       {t.titulo}
@@ -256,11 +254,14 @@ export function TareasBoard({
                   ) : null}
                   <div className="ml-[25px] mt-2 flex flex-wrap items-center gap-2">
                     <span
-                      className="rounded-md px-1.5 py-0.5 font-mono text-[11.5px] font-medium tabular-nums"
-                      style={{
-                        color: t.hecha ? "#8A8A8A" : t.vencida ? "#A33B2A" : t.venceLabel === "Hoy" ? "#7A5A10" : "#5C5C5C",
-                        background: t.hecha ? "#F5F5F5" : t.vencida ? "#FBEAE5" : t.venceLabel === "Hoy" ? "#FBF0D8" : "#F5F5F5",
-                      }}
+                      className={cn(
+                        "rounded-md px-1.5 py-0.5 font-mono text-[11.5px] font-medium tabular-nums",
+                        t.vencida && !t.hecha
+                          ? "bg-[var(--red-bg)] text-[var(--red)]"
+                          : t.venceLabel === "Hoy" && !t.hecha
+                            ? "bg-[var(--amber-bg)] text-[var(--amber-ink)]"
+                            : "bg-[var(--surface-soft)] text-[var(--text-2)]"
+                      )}
                     >
                       {t.venceLabel}
                     </span>
