@@ -31,7 +31,7 @@ export function MapaCatastral({
   };
 
   return (
-    <figure className="overflow-hidden rounded-xl border border-[#E6E3DD] bg-[#F4F3EF]">
+    <figure className="overflow-hidden rounded-xl border border-[#E5E5E5] bg-[#F5F5F5]">
       {mostrar ? (
         <div className="relative aspect-[4/3] overflow-hidden min-[780px]:aspect-[16/10]">
           {estado !== "error" ? (
@@ -49,7 +49,7 @@ export function MapaCatastral({
                 }
               />
               {superficie && estado === "ok" ? (
-                <span className="absolute bottom-2 left-2 rounded-md bg-[#0B7461] px-2 py-0.5 text-[11px] font-semibold text-white shadow">
+                <span className="absolute bottom-2 left-2 rounded-md bg-[#111111] px-2 py-0.5 text-[11px] font-semibold text-white shadow">
                   {superficie}
                 </span>
               ) : null}
@@ -57,13 +57,13 @@ export function MapaCatastral({
           ) : null}
           {estado === "cargando" ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center">
-              <span className="h-6 w-6 animate-spin rounded-full border-2 border-[#DAD6CE] border-t-[#0B7461]" aria-hidden />
-              <p className="text-sm text-[#5D6B67]">Cargando cartografía…</p>
+              <span className="h-6 w-6 animate-spin rounded-full border-2 border-[#D4D4D4] border-t-[#111111]" aria-hidden />
+              <p className="text-sm text-[#5C5C5C]">Cargando cartografía…</p>
             </div>
           ) : null}
           {estado === "error" ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-4 text-center">
-              <p className="text-sm text-[#5D6B67]">Catastro no ha enviado el mapa esta vez.</p>
+              <p className="text-sm text-[#5C5C5C]">Catastro no ha enviado el mapa esta vez.</p>
               <div className="flex flex-wrap items-center justify-center gap-2">
                 <Button type="button" size="sm" onClick={reintentar}>
                   Reintentar
@@ -79,14 +79,14 @@ export function MapaCatastral({
         </div>
       ) : (
         <div className={`flex ${alto} flex-col items-center justify-center gap-3 px-4 text-center`}>
-          <p className="text-sm text-[#5D6B67]">Cartografía oficial del Catastro</p>
+          <p className="text-sm text-[#5C5C5C]">Cartografía oficial del Catastro</p>
           <Button type="button" size="sm" onClick={cargar}>
             Ver cartografía
           </Button>
         </div>
       )}
-      <figcaption className="flex items-center justify-between gap-2 border-t border-[#EFEDE7] bg-white px-3 py-2">
-        <span className="text-xs text-[#5D6B67]">Sede Electrónica del Catastro</span>
+      <figcaption className="flex items-center justify-between gap-2 border-t border-[#EFEFEF] bg-white px-3 py-2">
+        <span className="text-xs text-[#5C5C5C]">Sede Electrónica del Catastro</span>
         <a
           href={mapa}
           target="_blank"

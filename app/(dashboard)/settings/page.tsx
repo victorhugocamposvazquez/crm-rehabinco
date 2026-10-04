@@ -130,7 +130,7 @@ export default function SettingsPage() {
               />
             </div>
             {error && <p className="text-sm text-red-600">{error}</p>}
-            {message && <p className="text-sm text-emerald-700">{message}</p>}
+            {message && <p className="text-sm text-neutral-900">{message}</p>}
             <Button onClick={onUpdatePassword} disabled={saving}>
               {saving ? "Guardando..." : "Actualizar contraseña"}
             </Button>
@@ -312,7 +312,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-2 sm:col-span-2 lg:col-span-4">
                   {createUserError && <p className="text-sm text-red-600">{createUserError}</p>}
-                  {createUserMessage && <p className="text-sm text-emerald-700">{createUserMessage}</p>}
+                  {createUserMessage && <p className="text-sm text-neutral-900">{createUserMessage}</p>}
                   <Button type="submit" disabled={createUserSaving}>
                     {createUserSaving ? "Enviando…" : superadmin ? "Crear usuario" : "Solicitar alta"}
                   </Button>

@@ -65,15 +65,15 @@ export const FASE_KANBAN_META: Array<{
   { id: "contacto", label: "Contactar", dot: "#B98A16", hint: "primer toque", vacia: "Pasa aquí anuncios desde Novedades" },
   { id: "visita", label: "Visita", dot: "#3A6A82", hint: "", vacia: "Sin visitas pendientes" },
   { id: "negociando", label: "Negociando", dot: "#8579C4", hint: "honorarios · mandato", vacia: "Nada en negociación" },
-  { id: "captado", label: "Captado", dot: "#0B7461", hint: "→ Inmuebles", vacia: "Aún nada captado" },
-  { id: "perdido", label: "Perdido", dot: "#B3ADA3", hint: "últimos 30 días", vacia: "Ninguno perdido" },
+  { id: "captado", label: "Captado", dot: "#111111", hint: "→ Inmuebles", vacia: "Aún nada captado" },
+  { id: "perdido", label: "Perdido", dot: "#B3B3B3", hint: "últimos 30 días", vacia: "Ninguno perdido" },
 ];
 
 export const TAG_ESTILO: Record<string, { bg: string; fg: string; label: string }> = {
   Herencia: { bg: "#FBF0D8", fg: "#7A5A10", label: "Herencia" },
   Urge: { bg: "#FBEAE5", fg: "#A33B2A", label: "Urge" },
   Reforma: { bg: "#E9EEF8", fg: "#2B4A8A", label: "Reforma" },
-  Bajada: { bg: "#E8F3EF", fg: "#0B7461", label: "Bajada de precio" },
+  Bajada: { bg: "#F0F0F0", fg: "#111111", label: "Bajada de precio" },
   Subida: { bg: "#FBF0D8", fg: "#7A5A10", label: "Subida de precio" },
   Edificio: { bg: "#F1EFF8", fg: "#4B3F8A", label: "Edificio" },
 };

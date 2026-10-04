@@ -128,16 +128,16 @@ export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFactu
   };
 
   const kpis = [
-    { href: "/calendario", label: "Citas hoy", valor: String(citasHoy.length), fg: "#131C1A" },
+    { href: "/calendario", label: "Citas hoy", valor: String(citasHoy.length), fg: "#111111" },
     {
       href: "/tareas",
       label: "Tareas vencidas y de hoy",
       valor: String(recuento.VENCIDAS + recuento.HOY),
-      fg: hayVencidas ? "#A33B2A" : "#131C1A",
+      fg: hayVencidas ? "#A33B2A" : "#111111",
     },
-    { href: "/partes-visita", label: "Partes sin firmar", valor: String(partes.length), fg: partes.length ? "#7A5A10" : "#131C1A" },
-    { href: "/demandas", label: "Demandas activas", valor: String(demandasNuevas), fg: "#131C1A" },
-    { href: "/catastro", label: "Fincas a tocar", valor: String(pendientesFinca.length), fg: "#131C1A" },
+    { href: "/partes-visita", label: "Partes sin firmar", valor: String(partes.length), fg: partes.length ? "#7A5A10" : "#111111" },
+    { href: "/demandas", label: "Demandas activas", valor: String(demandasNuevas), fg: "#111111" },
+    { href: "/catastro", label: "Fincas a tocar", valor: String(pendientesFinca.length), fg: "#111111" },
   ];
 
   return (
@@ -208,7 +208,7 @@ export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFactu
                       onClick={() => void marcarTarea(tarea.id)}
                       className="grid h-11 w-11 shrink-0 place-items-center rounded-[8px]"
                     >
-                      <span className="h-[17px] w-[17px] rounded-[5px] border-[1.5px] border-[#CFCBC2] bg-white" />
+                      <span className="h-[17px] w-[17px] rounded-[5px] border-[1.5px] border-[#D4D4D4] bg-white" />
                     </button>
                     <div className="min-w-0 flex-1">
                       <p className="text-[13.5px] font-medium leading-snug">{tarea.titulo}</p>
@@ -320,7 +320,7 @@ export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFactu
                       className="w-full rounded-t-[6px]"
                       style={{
                         height: `${Math.max(8, (total / maxFact) * 70)}px`,
-                        background: i === facturacionMeses.length - 1 ? "#0B7461" : "#CDE9E1",
+                        background: i === facturacionMeses.length - 1 ? "#111111" : "#D4D4D4",
                       }}
                       title={total.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
                     />

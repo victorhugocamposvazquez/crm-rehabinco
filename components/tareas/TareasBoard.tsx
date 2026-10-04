@@ -186,8 +186,8 @@ export function TareasBoard({
             }}
             className="min-h-[260px] w-[82vw] shrink-0 rounded-[14px] p-2.5 min-[820px]:w-[290px]"
             style={{
-              background: hot ? "#E8F3EF" : "#F4F3EF",
-              border: `1px solid ${hot ? "#0B7461" : "transparent"}`,
+              background: hot ? "#F0F0F0" : "#F5F5F5",
+              border: `1px solid ${hot ? "#111111" : "transparent"}`,
             }}
           >
             <div className="mb-2.5 flex items-center gap-2 px-1 text-[13px]">
@@ -241,8 +241,8 @@ export function TareasBoard({
                       }}
                       className="mt-0.5 h-[17px] w-[17px] shrink-0 rounded-[5px] border-[1.5px]"
                       style={{
-                        borderColor: t.hecha ? "#0B7461" : "#CFCBC2",
-                        background: t.hecha ? "#0B7461" : "#fff",
+                        borderColor: t.hecha ? "#111111" : "#D4D4D4",
+                        background: t.hecha ? "#111111" : "#fff",
                       }}
                     />
                     <p className={cn("min-w-0 flex-1 text-left text-[13.5px] font-medium leading-snug", t.hecha && "line-through")}>
@@ -258,8 +258,8 @@ export function TareasBoard({
                     <span
                       className="rounded-md px-1.5 py-0.5 font-mono text-[11.5px] font-medium tabular-nums"
                       style={{
-                        color: t.hecha ? "#8A938F" : t.vencida ? "#A33B2A" : t.venceLabel === "Hoy" ? "#7A5A10" : "#5D6B67",
-                        background: t.hecha ? "#F4F3EF" : t.vencida ? "#FBEAE5" : t.venceLabel === "Hoy" ? "#FBF0D8" : "#F4F3EF",
+                        color: t.hecha ? "#8A8A8A" : t.vencida ? "#A33B2A" : t.venceLabel === "Hoy" ? "#7A5A10" : "#5C5C5C",
+                        background: t.hecha ? "#F5F5F5" : t.vencida ? "#FBEAE5" : t.venceLabel === "Hoy" ? "#FBF0D8" : "#F5F5F5",
                       }}
                     >
                       {t.venceLabel}

@@ -647,7 +647,7 @@ export default function CalendarioPage() {
           return (
             <li
               key={cita.id}
-              className={`flex flex-col gap-3 rounded-2xl border border-[#E6E3DD] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
+              className={`flex flex-col gap-3 rounded-2xl border border-[#E5E5E5] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
                 cita.estado !== "prevista" ? "opacity-60" : ""
               }`}
             >
@@ -661,7 +661,7 @@ export default function CalendarioPage() {
                 />
                 <div>
                   <p className="font-medium">{cita.titulo}</p>
-                  <p className="text-xs text-[#5D6B67]">
+                  <p className="text-xs text-[#5C5C5C]">
                     {horaCita(cita.empieza)}
                     {cita.profiles?.nombre_completo && cita.comercial_id !== user?.id
                       ? ` · ${cita.profiles.nombre_completo}`
@@ -684,7 +684,7 @@ export default function CalendarioPage() {
                   ) : null}
                   {cita.tipo === "evento" &&
                   (cita.clientes?.nombre || (cita.clientes_extra_ids?.length ?? 0) > 0) ? (
-                    <p className="mt-1 text-xs text-[#5D6B67]">
+                    <p className="mt-1 text-xs text-[#5C5C5C]">
                       {[
                         cita.clientes?.nombre,
                         ...(cita.clientes_extra_ids ?? []).map((id) => {
@@ -697,7 +697,7 @@ export default function CalendarioPage() {
                     </p>
                   ) : null}
                   {cita.notas?.trim() ? (
-                    <p className="mt-1 text-xs italic text-[#5D6B67]">{cita.notas.trim()}</p>
+                    <p className="mt-1 text-xs italic text-[#5C5C5C]">{cita.notas.trim()}</p>
                   ) : null}
                 </div>
               </div>
@@ -707,7 +707,7 @@ export default function CalendarioPage() {
             </li>
           );
         })}
-        {delDia.length === 0 ? <li className="text-sm text-[#5D6B67]">No hay citas este día.</li> : null}
+        {delDia.length === 0 ? <li className="text-sm text-[#5C5C5C]">No hay citas este día.</li> : null}
       </ul>
     </div>
   );

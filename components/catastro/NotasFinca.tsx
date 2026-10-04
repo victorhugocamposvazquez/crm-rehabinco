@@ -54,8 +54,8 @@ export function NotasFinca({ fincaReference }: Props) {
   return (
     <section className="mt-5">
       <div className="flex items-baseline justify-between gap-3">
-        <h3 className="text-[15px] font-semibold text-[#131C1A]">Notas</h3>
-        <p className="text-[11.5px] text-[#6B7A76]">
+        <h3 className="text-[15px] font-semibold text-[#111111]">Notas</h3>
+        <p className="text-[11.5px] text-[#6B6B6B]">
           {estado === "cargando"
             ? "Cargando…"
             : estado === "guardando"
@@ -82,7 +82,7 @@ export function NotasFinca({ fincaReference }: Props) {
         rows={5}
         maxLength={NOTAS_FINCA_MAX}
         placeholder="Anotaciones sobre esta finca: contacto, visita, impresión…"
-        className="mt-2 min-h-[120px] w-full resize-y rounded-[10px] border border-[#DAD6CE] bg-[#FDFDFC] px-3 py-2.5 text-[13.5px] leading-relaxed text-[#131C1A] placeholder:text-[#8A938F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B7461] disabled:opacity-60"
+        className="mt-2 min-h-[120px] w-full resize-y rounded-[10px] border border-[#D4D4D4] bg-[#FAFAFA] px-3 py-2.5 text-[13.5px] leading-relaxed text-[#111111] placeholder:text-[#8A8A8A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#111111] disabled:opacity-60"
       />
     </section>
   );

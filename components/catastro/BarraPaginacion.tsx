@@ -8,7 +8,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const BOTON =
-  "inline-flex h-9 shrink-0 items-center rounded-lg border border-[#DAD6CE] bg-white px-3 text-[13px] font-semibold text-[#131C1A] disabled:cursor-not-allowed disabled:opacity-40";
+  "inline-flex h-9 shrink-0 items-center rounded-lg border border-[#D4D4D4] bg-white px-3 text-[13px] font-semibold text-[#111111] disabled:cursor-not-allowed disabled:opacity-40";
 
 type Props = {
   viendo: number;
@@ -31,7 +31,7 @@ export function BarraPaginacion({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <p
-        className={cn("min-w-0 flex-1 text-[13px] tabular-nums text-[#5D6B67]", cargando && "text-[#8A9692]")}
+        className={cn("min-w-0 flex-1 text-[13px] tabular-nums text-[#5C5C5C]", cargando && "text-[#8A9692]")}
         aria-live="polite"
       >
         {textoListadoParcial(viendo, total, unidad)}

@@ -88,11 +88,11 @@ export default function InformesPage() {
         ))}
       </ul>
       <p className="mt-6 text-sm">
-        <Link href="/demandas" className="font-medium text-[#0B7461] hover:underline">
+        <Link href="/demandas" className="font-medium text-[#111111] hover:underline">
           Ir a demandas
         </Link>
         {" · "}
-        <Link href="/propiedades" className="font-medium text-[#0B7461] hover:underline">
+        <Link href="/propiedades" className="font-medium text-[#111111] hover:underline">
           Ir a inmuebles
         </Link>
       </p>

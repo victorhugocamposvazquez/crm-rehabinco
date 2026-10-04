@@ -69,12 +69,12 @@ export function AsignarComercial({
   return (
     <section className="mt-5">
       <div className="flex items-baseline justify-between gap-3">
-        <h3 className="text-[15px] font-semibold text-[#131C1A]">Comercial</h3>
-        <p className="text-[11.5px] text-[#6B7A76]">
+        <h3 className="text-[15px] font-semibold text-[#111111]">Comercial</h3>
+        <p className="text-[11.5px] text-[#6B6B6B]">
           {asignacion ? asignacion.nombre : "Sin asignar"}
         </p>
       </div>
-      <p className="mt-1 text-[12.5px] text-[#5D6B67]">
+      <p className="mt-1 text-[12.5px] text-[#5C5C5C]">
         {vinculada
           ? "Hará las visitas desde la propiedad. Aquí no se crea la visita."
           : "Así queda en su lista. La visita se crea cuando exista la propiedad."}

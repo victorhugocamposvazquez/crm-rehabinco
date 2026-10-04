@@ -1,7 +1,7 @@
 export function colorEstado(estado: string): string {
   const e = estado.toLowerCase();
   if (e === "disponible" || e === "aceptado" || e === "convertido" || e === "pagada" || e === "firmado" || e === "activa" || e === "hecha") {
-    return "#0B7461";
+    return "#111111";
   }
   if (e === "reservada" || e === "enviado" || e === "emitida" || e === "pendiente_firma" || e === "hoy") {
     return "#B98A16";
@@ -13,9 +13,9 @@ export function colorEstado(estado: string): string {
     return "#A33B2A";
   }
   if (e === "baja" || e === "inactivo" || e === "cerrada") {
-    return "#B3ADA3";
+    return "#B3B3B3";
   }
-  return "#8A938F";
+  return "#8A8A8A";
 }
 
 export function formatEuro(

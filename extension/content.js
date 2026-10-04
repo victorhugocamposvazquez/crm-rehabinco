@@ -6,7 +6,7 @@ function aviso(texto) {
   const nodo = document.createElement("div");
   nodo.id = "rehabinco-aviso";
   nodo.textContent = texto;
-  nodo.style.cssText = "position:fixed;right:16px;bottom:16px;z-index:2147483647;background:#0B7461;color:#fff;padding:8px 12px;border-radius:8px;font:13px/1.3 sans-serif;";
+  nodo.style.cssText = "position:fixed;right:16px;bottom:16px;z-index:2147483647;background:#111111;color:#fff;padding:8px 12px;border-radius:8px;font:13px/1.3 sans-serif;";
   document.documentElement.appendChild(nodo);
   setTimeout(() => nodo.remove(), 4000);
 }
@@ -78,7 +78,7 @@ function marcarListado() {
         if (!marca) {
           marca = document.createElement("span");
           marca.className = "rehabinco-marca";
-          marca.style.cssText = "display:inline-block;margin:4px 0;padding:2px 6px;border-radius:6px;background:#E7F5F1;color:#0B7461;font:12px/1.3 sans-serif;";
+          marca.style.cssText = "display:inline-block;margin:4px 0;padding:2px 6px;border-radius:6px;background:#E7F5F1;color:#111111;font:12px/1.3 sans-serif;";
           tarjeta.querySelector(".item-info-container, .item-link")?.prepend(marca);
         }
         marca.textContent = dato.telefono ? "En el CRM · con teléfono" : "En el CRM · sin teléfono";

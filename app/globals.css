@@ -3,21 +3,21 @@
 @tailwind utilities;
 
 :root {
-  --background: #f7f6f2;
+  --background: #F5F5F5;
   --surface: #ffffff;
-  --surface-soft: #fbfbf9;
-  --foreground: #131c1a;
-  --text-2: #5d6b67;
-  --label: #6b7a76;
-  --text-3: #8a938f;
-  --border: #e6e3dd;
-  --border-soft: #efede7;
-  --border-row: #f2f0eb;
-  --input: #dad6ce;
-  --accent: #0b7461;
-  --accent-dark: #08594b;
-  --accent-soft: #e8f3ef;
-  --row-active: #f4f8f6;
+  --surface-soft: #FAFAFA;
+  --foreground: #111111;
+  --text-2: #5C5C5C;
+  --label: #6B6B6B;
+  --text-3: #8A8A8A;
+  --border: #E5E5E5;
+  --border-soft: #EFEFEF;
+  --border-row: #F2F2F2;
+  --input: #D4D4D4;
+  --accent: #111111;
+  --accent-dark: #000000;
+  --accent-soft: #F0F0F0;
+  --row-active: #F5F5F5;
   --amber: #b98a16;
   --amber-bg: #fbf0d8;
   --amber-ink: #7a5a10;
@@ -28,8 +28,8 @@
   --violet-ink: #4b3f8a;
   --red: #a33b2a;
   --red-bg: #fbeae5;
-  --muted: #5d6b67;
-  --ring: #0b7461;
+  --muted: #5C5C5C;
+  --ring: #111111;
   --radius: 12px;
   --mobile-nav-h: calc(3.25rem + env(safe-area-inset-bottom, 0px));
   --mobile-fab-bottom: calc(var(--mobile-nav-h) + 0.5rem);
@@ -188,7 +188,7 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
 
 .cal-evento:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 14px rgba(19, 28, 26, 0.1);
+  box-shadow: 0 6px 14px rgba(17, 17, 17, 0.1);
 }
 
 .cal-evento--dragging {
@@ -201,11 +201,11 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
 .cal-ghost {
   pointer-events: none;
   transform: scale(1.05) rotate(1.6deg);
-  box-shadow: 0 14px 32px rgba(19, 28, 26, 0.2);
+  box-shadow: 0 14px 32px rgba(17, 17, 17, 0.2);
 }
 
 .cal-col--over {
-  background: #f4f8f6 !important;
+  background: #F5F5F5 !important;
 }
 
 .cal-snap {
@@ -215,8 +215,8 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
   z-index: 5;
   height: 2px;
   pointer-events: none;
-  background: #0b7461;
-  box-shadow: 0 0 0 3px rgba(11, 116, 97, 0.16);
+  background: #111111;
+  box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.16);
 }
 
 .cal-snap::after {
@@ -228,6 +228,6 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
   padding: 0 4px;
   font-size: 10px;
   font-weight: 700;
-  color: #0b7461;
+  color: #111111;
   content: attr(data-hora);
 }

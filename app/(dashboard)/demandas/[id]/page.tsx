@@ -97,7 +97,7 @@ export default function DemandaDetallePage() {
   };
 
   if (!demanda) {
-    return <p className="mt-8 text-sm text-[#5D6B67]">Cargando demanda…</p>;
+    return <p className="mt-8 text-sm text-[#5C5C5C]">Cargando demanda…</p>;
   }
 
   return (
@@ -126,16 +126,16 @@ export default function DemandaDetallePage() {
           </div>
         }
       />
-      {demanda.requisitos ? <p className="mt-4 text-sm text-[#5D6B67]">{demanda.requisitos}</p> : null}
+      {demanda.requisitos ? <p className="mt-4 text-sm text-[#5C5C5C]">{demanda.requisitos}</p> : null}
       <ul className="mt-6 space-y-2">
         {matches.map((item) => (
-          <li key={item.id} className="rounded-2xl border border-[#E6E3DD] bg-white px-4 py-3">
+          <li key={item.id} className="rounded-2xl border border-[#E5E5E5] bg-white px-4 py-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <FichaLink tipo="propiedad" id={item.propiedad_id} className="font-semibold text-foreground">
                   {item.propiedades?.titulo || item.propiedades?.direccion || "Inmueble"}
                 </FichaLink>
-                <p className="text-sm text-[#5D6B67]">
+                <p className="text-sm text-[#5C5C5C]">
                   {item.propiedades?.localidad} · {Math.round(Number(item.puntuacion))} pts ·{" "}
                   {ESTADO_MATCHING_LABEL[item.estado as keyof typeof ESTADO_MATCHING_LABEL] ?? item.estado}
                 </p>
@@ -155,7 +155,7 @@ export default function DemandaDetallePage() {
           </li>
         ))}
         {matches.length === 0 ? (
-          <li className="text-sm text-[#5D6B67]">Aún no hay inmuebles propuestos. Pulsa «Buscar en stock».</li>
+          <li className="text-sm text-[#5C5C5C]">Aún no hay inmuebles propuestos. Pulsa «Buscar en stock».</li>
         ) : null}
       </ul>
       <NuevaDemandaPanel

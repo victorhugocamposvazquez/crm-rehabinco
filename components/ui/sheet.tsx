@@ -113,8 +113,8 @@ export function Sheet({
           className={cn(
             "absolute inset-y-0 z-10 flex h-full w-full min-h-0 flex-col overflow-hidden bg-white pb-[env(safe-area-inset-bottom)] min-[820px]:w-[min(28rem,92vw)]",
             side === "left"
-              ? "left-0 shadow-[16px_0_40px_rgba(19,28,26,.16)] animate-[slideInFromLeft_0.28s_ease-out]"
-              : "right-0 shadow-[-16px_0_40px_rgba(19,28,26,.16)] animate-[slideInFromRight_0.28s_ease-out]",
+              ? "left-0 shadow-[16px_0_40px_rgba(17, 17, 17,.16)] animate-[slideInFromLeft_0.28s_ease-out]"
+              : "right-0 shadow-[-16px_0_40px_rgba(17, 17, 17,.16)] animate-[slideInFromRight_0.28s_ease-out]",
             className
           )}
           onTouchStart={(evento) => {

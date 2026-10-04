@@ -282,8 +282,8 @@ export function TareaPanel({
               onClick={() => onToggle(tarea.id)}
               className="mt-1 h-5 w-5 shrink-0 rounded-[6px] border-[1.5px]"
               style={{
-                borderColor: hecha ? "#0B7461" : "#CFCBC2",
-                background: hecha ? "#0B7461" : "#fff",
+                borderColor: hecha ? "#111111" : "#D4D4D4",
+                background: hecha ? "#111111" : "#fff",
               }}
             />
             <textarea
@@ -394,7 +394,7 @@ export function TareaPanel({
             </div>
           </div>
 
-          <div className="mt-[18px] rounded-[11px] border border-border bg-[#FBFBF9] px-3.5 py-3">
+          <div className="mt-[18px] rounded-[11px] border border-border bg-[#FAFAFA] px-3.5 py-3">
             <div className="flex flex-wrap items-center justify-between gap-2.5">
               <div className="flex items-center gap-2 text-[13.5px] font-semibold">
                 <CalendarDays size={15} className="text-accent" />

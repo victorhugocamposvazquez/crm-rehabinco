@@ -99,7 +99,7 @@ function Switch({ on, onClick, label }: { on: boolean; onClick: () => void; labe
       aria-label={label}
       onClick={onClick}
       className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
-      style={{ background: on ? "#0B7461" : "#CFCBC2" }}
+      style={{ background: on ? "#111111" : "#D4D4D4" }}
     >
       <span
         className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-[left] duration-150"

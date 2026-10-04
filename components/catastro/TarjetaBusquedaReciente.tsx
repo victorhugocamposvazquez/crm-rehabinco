@@ -156,14 +156,14 @@ function BarraProgreso({ etiqueta, ancho }: { etiqueta: string; ancho: string })
   return (
     <div className="flex flex-col items-end gap-1">
       <div
-        className="h-1.5 w-full overflow-hidden rounded-full bg-[#E6E3DD]"
+        className="h-1.5 w-full overflow-hidden rounded-full bg-[#E5E5E5]"
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={Number.parseInt(ancho, 10)}
         aria-label={etiqueta}
       >
-        <div className="h-full rounded-full bg-[#0B7461]" style={{ width: ancho }} />
+        <div className="h-full rounded-full bg-[#111111]" style={{ width: ancho }} />
       </div>
       {etiqueta ? <p className="text-[11px] leading-none text-neutral-500">{etiqueta}</p> : null}
     </div>

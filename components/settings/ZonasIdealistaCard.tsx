@@ -321,7 +321,7 @@ export function ZonasIdealistaCard() {
                 </div>
                 <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-neutral-200">
                   <div
-                    className={`h-full transition-all ${sim.usdBolsilloListadoTrasUsoReal <= sim.usdMes ? "bg-emerald-500" : "bg-red-500"}`}
+                    className={`h-full transition-all ${sim.usdBolsilloListadoTrasUsoReal <= sim.usdMes ? "bg-neutral-1000" : "bg-red-500"}`}
                     style={{
                       width: `${Math.min(100, Math.round((sim.usdBolsilloListadoTrasUsoReal / sim.usdMes) * 100))}%`,
                     }}

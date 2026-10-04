@@ -209,7 +209,7 @@ export default function DetallePropiedadPage() {
         }
       />
       {alta ? (
-        <p className="mb-4 rounded-xl border border-[#0B7461]/30 bg-[#E8F3EF] px-4 py-3 text-sm text-[#08594B]">
+        <p className="mb-4 rounded-xl border border-[#111111]/30 bg-[#F0F0F0] px-4 py-3 text-sm text-[#000000]">
           Inmueble creado. Sube fotos, planos o un tour 3D y marca «publicado» para matching.
         </p>
       ) : null}

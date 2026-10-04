@@ -213,7 +213,7 @@ function ListaGrupo({
           {citas.map((cita) => (
             <li
               key={cita.id}
-              className="flex flex-col gap-3 rounded-2xl border border-[#E6E3DD] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+              className="flex flex-col gap-3 rounded-2xl border border-[#E5E5E5] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="flex items-start gap-3">
                 <AvatarComercial
@@ -225,7 +225,7 @@ function ListaGrupo({
                 />
                 <div>
                   <p className="font-medium">{cita.titulo}</p>
-                  <p className="text-xs text-[#5D6B67]">
+                  <p className="text-xs text-[#5C5C5C]">
                     {new Date(`${cita.empieza.slice(0, 10)}T12:00:00`).toLocaleDateString("es-ES", {
                       weekday: "short",
                       day: "numeric",
@@ -237,7 +237,7 @@ function ListaGrupo({
                       : ""}
                     {` · ${ESTADO_CITA_LABEL[(cita.estado as EstadoCita) ?? "prevista"] ?? cita.estado}`}
                   </p>
-                  <p className="mt-1 text-xs text-[#5D6B67]">
+                  <p className="mt-1 text-xs text-[#5C5C5C]">
                     {cita.propiedad_id && cita.propiedades ? (
                       <FichaLink tipo="propiedad" id={cita.propiedad_id} className="text-inherit">
                         {[cita.propiedades.referencia, cita.propiedades.titulo || cita.propiedades.direccion]

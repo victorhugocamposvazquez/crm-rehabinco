@@ -77,10 +77,10 @@ export function FincaResultadoRow({
         }
       }}
       className={cn(
-        "bg-white text-[#131C1A]",
-        "max-[779px]:overflow-hidden max-[779px]:rounded-[13px] max-[779px]:border max-[779px]:border-[#E6E3DD]",
-        "min-[780px]:flex min-[780px]:cursor-pointer min-[780px]:flex-nowrap min-[780px]:items-center min-[780px]:gap-3.5 min-[780px]:border-b min-[780px]:border-[#F2F0EB] min-[780px]:px-3.5 min-[780px]:py-2.5 min-[780px]:hover:bg-[#FBFBF9]",
-        selected && "min-[780px]:bg-[#F4F8F6] min-[780px]:shadow-[inset_3px_0_0_#0B7461]"
+        "bg-white text-[#111111]",
+        "max-[779px]:overflow-hidden max-[779px]:rounded-[13px] max-[779px]:border max-[779px]:border-[#E5E5E5]",
+        "min-[780px]:flex min-[780px]:cursor-pointer min-[780px]:flex-nowrap min-[780px]:items-center min-[780px]:gap-3.5 min-[780px]:border-b min-[780px]:border-[#F2F2F2] min-[780px]:px-3.5 min-[780px]:py-2.5 min-[780px]:hover:bg-[#FAFAFA]",
+        selected && "min-[780px]:bg-[#F5F5F5] min-[780px]:shadow-[inset_3px_0_0_#111111]"
       )}
     >
       <div className="min-w-0 flex-[1_1_250px] px-3.5 pb-[11px] pt-[13px] min-[780px]:p-0">
@@ -94,7 +94,7 @@ export function FincaResultadoRow({
                 type="checkbox"
                 checked={checked}
                 aria-label={`Seleccionar ${titulo}`}
-                className="h-3.5 w-3.5 cursor-pointer rounded-[3px] border-[#CFCBC2] accent-[#0B7461]"
+                className="h-3.5 w-3.5 cursor-pointer rounded-[3px] border-[#D4D4D4] accent-[#111111]"
                 onChange={() => onToggle()}
               />
             </label>
@@ -103,11 +103,11 @@ export function FincaResultadoRow({
             <p className="text-[15px] font-semibold tracking-[-0.01em] text-pretty min-[780px]:truncate min-[780px]:text-[14.5px]">
               {titulo}
             </p>
-            <p className="mt-1 font-mono text-[11.5px] text-[#5D6B67]">{finca.fincaReference}</p>
+            <p className="mt-1 font-mono text-[11.5px] text-[#5C5C5C]">{finca.fincaReference}</p>
             {vinculada ? (
               <p className="mt-1 text-[11px] font-semibold text-sky-800">Ya es propiedad del CRM</p>
             ) : asignacion ? (
-              <p className="mt-1 text-[11px] font-semibold text-[#0B7461]">Asignada a {asignacion.nombre}</p>
+              <p className="mt-1 text-[11px] font-semibold text-[#111111]">Asignada a {asignacion.nombre}</p>
             ) : null}
             <span className={cn("mt-1 flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs font-medium min-[780px]:hidden", claseTextoDivision(status))}>
               <span className={cn("h-[7px] w-[7px] flex-none rounded-full", clasePuntoDivision(status))} aria-hidden />
@@ -141,7 +141,7 @@ export function FincaResultadoRow({
             onCambio={onAsignacion}
           />
         ) : (
-          <p className={cn("truncate text-[12px] font-medium", asignacion ? "text-[#0B7461]" : "text-[#6B7A76]")}>
+          <p className={cn("truncate text-[12px] font-medium", asignacion ? "text-[#111111]" : "text-[#6B6B6B]")}>
             {asignacion ? asignacion.nombre : "Sin asignar"}
           </p>
         )}
@@ -153,8 +153,8 @@ export function FincaResultadoRow({
             type="button"
             onClick={irPropiedad}
             className={cn(
-              "h-[29px] rounded-lg border border-[#DAD6CE] bg-white px-2.5 text-xs font-semibold",
-              vinculada ? "text-[#2B4A8A]" : "text-[#0B7461]"
+              "h-[29px] rounded-lg border border-[#D4D4D4] bg-white px-2.5 text-xs font-semibold",
+              vinculada ? "text-[#2B4A8A]" : "text-[#111111]"
             )}
           >
             {vinculada ? "Ver propiedad" : "Propiedad"}
@@ -164,20 +164,20 @@ export function FincaResultadoRow({
           type="button"
           title="Copiar referencia"
           onClick={(evento) => void copiar(evento)}
-          className="flex h-[29px] w-[29px] items-center justify-center rounded-lg border border-[#E6E3DD] bg-white text-[#5D6B67]"
+          className="flex h-[29px] w-[29px] items-center justify-center rounded-lg border border-[#E5E5E5] bg-white text-[#5C5C5C]"
         >
           <Copy className="h-3.5 w-3.5" aria-hidden />
         </button>
       </div>
 
-      <div className="flex gap-px border-t border-[#EFEDE7] bg-[#EFEDE7] min-[780px]:hidden">
+      <div className="flex gap-px border-t border-[#EFEFEF] bg-[#EFEFEF] min-[780px]:hidden">
         {onProperty ? (
           <button
             type="button"
             onClick={irPropiedad}
             className={cn(
               "flex min-h-[46px] flex-[1.3] items-center justify-center gap-1.5 bg-white text-[12.5px] font-semibold",
-              vinculada ? "text-[#2B4A8A]" : "text-[#0B7461]"
+              vinculada ? "text-[#2B4A8A]" : "text-[#111111]"
             )}
           >
             {vinculada ? null : <Plus className="h-3.5 w-3.5" strokeWidth={2.6} aria-hidden />}
@@ -187,7 +187,7 @@ export function FincaResultadoRow({
         <button
           type="button"
           onClick={irOportunidad}
-          className="flex min-h-[46px] flex-1 items-center justify-center bg-white text-[12.5px] font-semibold text-[#5D6B67]"
+          className="flex min-h-[46px] flex-1 items-center justify-center bg-white text-[12.5px] font-semibold text-[#5C5C5C]"
         >
           Oportunidad
         </button>
@@ -197,7 +197,7 @@ export function FincaResultadoRow({
             evento.stopPropagation();
             onSelect?.();
           }}
-          className="min-h-[46px] w-[62px] shrink-0 bg-white text-[12.5px] font-semibold text-[#5D6B67]"
+          className="min-h-[46px] w-[62px] shrink-0 bg-white text-[12.5px] font-semibold text-[#5C5C5C]"
         >
           Ficha
         </button>
@@ -209,7 +209,7 @@ export function FincaResultadoRow({
 function Dato({ label, value, ancho }: { label: string; value: string; ancho: string }) {
   return (
     <div className={cn(ancho, "min-w-0")}>
-      <p className="text-[11px] uppercase tracking-wider text-[#6B7A76] min-[780px]:hidden">{label}</p>
+      <p className="text-[11px] uppercase tracking-wider text-[#6B6B6B] min-[780px]:hidden">{label}</p>
       <p className="mt-0.5 truncate text-[13.5px] tabular-nums min-[780px]:mt-0" title={value}>
         {value}
       </p>

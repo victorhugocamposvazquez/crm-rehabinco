@@ -37,7 +37,7 @@ export function FiltroComercial({
               nombre={item.nombre}
               color={item.color}
               size={32}
-              className={on ? "ring-2 ring-accent ring-offset-2" : "shadow-[0_0_0_2px_#fff,0_0_0_3px_rgba(19,28,26,0.08)]"}
+              className={on ? "ring-2 ring-accent ring-offset-2" : "shadow-[0_0_0_2px_#fff,0_0_0_3px_rgba(17, 17, 17,0.08)]"}
             />
             <span className="max-w-[4.75rem] truncate text-[11px] font-semibold" style={{ color }}>
               {item.nombre.split(" ")[0]}

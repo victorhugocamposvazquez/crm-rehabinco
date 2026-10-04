@@ -211,7 +211,7 @@ function BarraSeleccion({
       aria-label="Fincas seleccionadas"
       className="pointer-events-none fixed inset-x-0 bottom-[var(--mobile-nav-h)] z-40 px-3 md:bottom-4 md:px-6"
     >
-      <div className="pointer-events-auto mx-auto flex max-w-4xl flex-col gap-3 rounded-[14px] bg-[#131C1A] px-4 py-3 text-white shadow-[0_12px_30px_rgba(19,28,26,.25)] sm:flex-row sm:items-center sm:justify-between">
+      <div className="pointer-events-auto mx-auto flex max-w-4xl flex-col gap-3 rounded-[14px] bg-[#111111] px-4 py-3 text-white shadow-[0_12px_30px_rgba(17, 17, 17,.25)] sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm font-semibold text-white" aria-live="polite">
           {textoBarraSeleccionYRevision(total, enRevision)}
         </p>

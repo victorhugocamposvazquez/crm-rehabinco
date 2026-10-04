@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Gestión de clientes, facturación y presupuestos",
     start_url: "/",
     display: "standalone",
-    background_color: "#fafaf9",
-    theme_color: "#0d9488",
+    background_color: "#F5F5F5",
+    theme_color: "#111111",
     orientation: "portrait-primary",
     scope: "/",
     share_target: {

@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { aliasMencion, candidatosMencion, extraerMenciones, insertarMencion, partesConMenciones } from "./menciones";
 
 const equipo = [
-  { id: "ml", nombre: "Marta López", color: "#0B7461" },
+  { id: "ml", nombre: "Marta López", color: "#111111" },
   { id: "jr", nombre: "Jorge Rey", color: "#B98A16" },
 ];
 

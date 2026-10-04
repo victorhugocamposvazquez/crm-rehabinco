@@ -168,7 +168,7 @@ export function BuscarPorZona({
       <div
         className={cn(
           "space-y-4 rounded-2xl border p-5 sm:p-6",
-          !enMarcha && !cerrada ? "border-[#F0DEB0] bg-[#FBF0D8] text-[#6A4F0C]" : "border-[#E6E3DD] bg-white"
+          !enMarcha && !cerrada ? "border-[#F0DEB0] bg-[#FBF0D8] text-[#6A4F0C]" : "border-[#E5E5E5] bg-white"
         )}
       >
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -201,7 +201,7 @@ export function BuscarPorZona({
             <p
               className={
                 completa
-                  ? "text-sm font-medium text-teal-800"
+                  ? "text-sm font-medium text-neutral-900"
                   : cerrada
                     ? "text-sm font-medium text-foreground"
                     : "rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950"

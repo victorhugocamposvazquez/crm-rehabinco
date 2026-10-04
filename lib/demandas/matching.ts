@@ -11,10 +11,10 @@ export const ESTADOS_DEMANDA = ["activa", "pausada", "cubierta", "cerrada"] as c
 export type EstadoDemanda = (typeof ESTADOS_DEMANDA)[number];
 
 export const ESTADO_DEMANDA_DOT: Record<EstadoDemanda, string> = {
-  activa: "#0B7461",
+  activa: "#111111",
   pausada: "#B98A16",
   cubierta: "#2B4A8A",
-  cerrada: "#B3ADA3",
+  cerrada: "#B3B3B3",
 };
 
 export const ESTADOS_MATCHING = ["propuesto", "presentado", "descartado", "visitado", "oferta"] as const;

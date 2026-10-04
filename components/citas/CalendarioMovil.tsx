@@ -170,9 +170,9 @@ export function CalendarioMovil({
               onClick={() => onPickDia(d)}
               className="flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 rounded-[11px] border transition-[background,border,transform] duration-150"
               style={{
-                borderColor: over || activo ? "#0B7461" : "#E6E3DD",
-                background: over ? "#E8F3EF" : activo ? "#E8F3EF" : "#fff",
-                color: esHoy && !activo ? "#0B7461" : undefined,
+                borderColor: over || activo ? "#111111" : "#E5E5E5",
+                background: over ? "#F0F0F0" : activo ? "#F0F0F0" : "#fff",
+                color: esHoy && !activo ? "#111111" : undefined,
                 transform: over ? "scale(1.04)" : undefined,
               }}
             >
@@ -180,7 +180,7 @@ export function CalendarioMovil({
                 {new Date(`${d}T12:00:00`).toLocaleDateString("es-ES", { weekday: "short" }).replace(".", "")}
               </span>
               <span className="text-[16px] font-semibold">{new Date(`${d}T12:00:00`).getDate()}</span>
-              <span className="h-[5px] w-[5px] rounded-full" style={{ background: hay ? "#0B7461" : "transparent" }} />
+              <span className="h-[5px] w-[5px] rounded-full" style={{ background: hay ? "#111111" : "transparent" }} />
             </button>
           );
         })}

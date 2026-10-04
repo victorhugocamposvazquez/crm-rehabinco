@@ -18,7 +18,7 @@ export const COLUMNAS_TAREA: { id: ColumnaTarea; label: string; dot: string; hin
   { id: "hoy", label: "Hoy", dot: "#C0644F", hint: "vencidas + hoy" },
   { id: "curso", label: "Esta semana", dot: "#B98A16" },
   { id: "espera", label: "Esperando", dot: "#8579C4", hint: "terceros" },
-  { id: "hecha", label: "Hechas", dot: "#0B7461", hint: "últimos 7 días" },
+  { id: "hecha", label: "Hechas", dot: "#111111", hint: "últimos 7 días" },
 ];
 
 export type TareaOrganizador = {

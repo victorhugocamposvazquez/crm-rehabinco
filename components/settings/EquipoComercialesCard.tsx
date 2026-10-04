@@ -89,7 +89,7 @@ export function EquipoComercialesCard({
         </p>
         <ul className="space-y-2">
           {filas.map((item) => (
-            <li key={item.id} className="flex items-center justify-between gap-3 rounded-xl border border-[#E6E3DD] px-3 py-2 text-sm">
+            <li key={item.id} className="flex items-center justify-between gap-3 rounded-xl border border-[#E5E5E5] px-3 py-2 text-sm">
               <div className="flex min-w-0 items-center gap-2">
                 <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: item.color || "#3A6A82" }} />
                 <div className="min-w-0">
@@ -106,7 +106,7 @@ export function EquipoComercialesCard({
                     <button
                       type="button"
                       disabled={busyId === item.id}
-                      className="text-xs font-semibold text-[#0B7461] hover:underline disabled:opacity-50"
+                      className="text-xs font-semibold text-[#111111] hover:underline disabled:opacity-50"
                       onClick={() => void desactivar(item)}
                     >
                       {item.activo ? "Desactivar" : "Activar"}

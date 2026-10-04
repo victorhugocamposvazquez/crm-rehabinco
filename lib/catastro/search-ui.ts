@@ -78,22 +78,22 @@ export const LEYENDA_FILTRO_TODAS =
 export const TEXTO_ATAJOS_LISTA = "↑ y ↓ cambian de finca · Intro abre la ficha · Esc cierra";
 
 export function clasePuntoDivision(status: string | undefined): string {
-  if (status === "NO") return "bg-[#0B7461]";
-  if (status === "YES") return "bg-[#B3ADA3]";
+  if (status === "NO") return "bg-[#111111]";
+  if (status === "YES") return "bg-[#B3B3B3]";
   if (status === "NOT_APPLICABLE") return "bg-[#8579C4]";
   return "bg-[#C79A22]";
 }
 
 export function claseTextoDivision(status: string | undefined): string {
-  if (status === "NO") return "text-[#0B7461]";
-  if (status === "YES") return "text-[#5D6B67]";
+  if (status === "NO") return "text-[#111111]";
+  if (status === "YES") return "text-[#5C5C5C]";
   if (status === "NOT_APPLICABLE") return "text-[#4B3F8A]";
   return "text-[#7A5A10]";
 }
 
 export function claseBadgeDivision(status: string | undefined): string {
-  if (status === "NO") return "border-[#0B7461]/20 bg-[#E8F3EF] text-[#0B7461]";
-  if (status === "YES") return "border-[#B3ADA3]/40 bg-[#F4F3EF] text-[#5D6B67]";
+  if (status === "NO") return "border-[#111111]/20 bg-[#F0F0F0] text-[#111111]";
+  if (status === "YES") return "border-[#B3B3B3]/40 bg-[#F5F5F5] text-[#5C5C5C]";
   if (status === "NOT_APPLICABLE") return "border-[#8579C4]/30 bg-[#F1EFF8] text-[#4B3F8A]";
   return "border-[#C79A22]/30 bg-[#FBF0D8] text-[#7A5A10]";
 }

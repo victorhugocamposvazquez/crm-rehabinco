@@ -142,13 +142,13 @@ export function AsignacionFincaSelect({
         onPointerDown={(evento) => evento.stopPropagation()}
         onKeyDown={(evento) => evento.stopPropagation()}
         className={cn(
-          "inline-flex w-full items-center justify-between gap-1 rounded-lg border font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B7461] disabled:opacity-60",
+          "inline-flex w-full items-center justify-between gap-1 rounded-lg border font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#111111] disabled:opacity-60",
           compacto ? "h-[29px] max-w-[168px] px-2 text-[11.5px]" : "mt-2 h-9 px-2.5 text-[13px]",
           tono === "oscuro"
             ? "h-8 max-w-[15rem] border-white/20 bg-white/10 text-white hover:bg-white/15"
             : !lote && asignacion
-              ? "border-[#DAD6CE] bg-white text-[#0B7461]"
-              : "border-[#DAD6CE] bg-white text-[#5D6B67]"
+              ? "border-[#D4D4D4] bg-white text-[#111111]"
+              : "border-[#D4D4D4] bg-white text-[#5C5C5C]"
         )}
       >
         <span className="min-w-0 truncate">{guardando ? "Guardando…" : etiqueta}</span>
@@ -158,7 +158,7 @@ export function AsignacionFincaSelect({
         <ul
           role="listbox"
           className={cn(
-            "absolute z-50 max-h-56 min-w-[11.5rem] overflow-auto rounded-xl border border-[#E6E3DD] bg-white p-1 shadow-lg",
+            "absolute z-50 max-h-56 min-w-[11.5rem] overflow-auto rounded-xl border border-[#E5E5E5] bg-white p-1 shadow-lg",
             menuArriba ? "bottom-full right-0 mb-1" : "right-0 mt-1"
           )}
         >
@@ -166,7 +166,7 @@ export function AsignacionFincaSelect({
             <button
               type="button"
               role="option"
-              className="w-full rounded-lg px-2.5 py-1.5 text-left text-[12px] text-[#5D6B67] hover:bg-[#F6F5F1]"
+              className="w-full rounded-lg px-2.5 py-1.5 text-left text-[12px] text-[#5C5C5C] hover:bg-[#F6F5F1]"
               onClick={(evento) => {
                 evento.stopPropagation();
                 void guardar("");
@@ -183,8 +183,8 @@ export function AsignacionFincaSelect({
                 className={cn(
                   "w-full rounded-lg px-2.5 py-1.5 text-left text-[12px] hover:bg-[#F6F5F1]",
                   !lote && asignacion?.comercialId === item.id
-                    ? "font-semibold text-[#0B7461]"
-                    : "text-[#131C1A]"
+                    ? "font-semibold text-[#111111]"
+                    : "text-[#111111]"
                 )}
                 onClick={(evento) => {
                   evento.stopPropagation();

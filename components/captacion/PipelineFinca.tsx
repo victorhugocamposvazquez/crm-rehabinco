@@ -162,8 +162,8 @@ export function PipelineFinca({
   };
 
   return (
-    <section className="rounded-2xl border border-[#E6E3DD] bg-white p-4">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-[#6B7A76]">Captación</h2>
+    <section className="rounded-2xl border border-[#E5E5E5] bg-white p-4">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-[#6B6B6B]">Captación</h2>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
           <Label htmlFor="estado-captacion">Estado</Label>
@@ -204,9 +204,9 @@ export function PipelineFinca({
           <a href={rutaNuevaVisitaDesdeProperty(propertyId)}>Hacer parte de visita</a>
         </Button>
       ) : (
-        <p className="mt-3 text-xs text-[#5D6B67]">
+        <p className="mt-3 text-xs text-[#5C5C5C]">
           Crea la propiedad cuando quieras documentar la visita.{" "}
-          <a className="font-medium text-[#0B7461] hover:underline" href={rutaFincaPersistida(fincaReference)}>
+          <a className="font-medium text-[#111111] hover:underline" href={rutaFincaPersistida(fincaReference)}>
             Ver ficha
           </a>
         </p>
@@ -239,14 +239,14 @@ export function PipelineFinca({
       <ol className="mt-5 space-y-2">
         {actividad.map((item) => (
           <li key={item.id} className="rounded-xl bg-[#F6F5F1] px-3 py-2 text-sm">
-            <p className="font-medium text-[#131C1A]">{item.detalle || item.tipo}</p>
-            <p className="text-[11px] text-[#5D6B67]">
+            <p className="font-medium text-[#111111]">{item.detalle || item.tipo}</p>
+            <p className="text-[11px] text-[#5C5C5C]">
               {new Date(item.createdAt).toLocaleString("es-ES")} · {item.tipo}
             </p>
           </li>
         ))}
         {actividad.length === 0 ? (
-          <li className="text-sm text-[#5D6B67]">Aún no hay actividad en esta finca.</li>
+          <li className="text-sm text-[#5C5C5C]">Aún no hay actividad en esta finca.</li>
         ) : null}
       </ol>
     </section>

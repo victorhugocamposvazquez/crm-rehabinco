@@ -17,7 +17,7 @@ type Rafaga = {
 };
 
 const DOT: Record<Check["nivel"], string> = {
-  ok: "bg-emerald-500",
+  ok: "bg-neutral-1000",
   aviso: "bg-amber-500",
   error: "bg-red-500",
 };

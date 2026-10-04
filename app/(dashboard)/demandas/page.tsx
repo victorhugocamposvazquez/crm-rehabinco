@@ -160,7 +160,7 @@ export default function DemandasPage() {
                 </div>
                 <div className="mt-2.5 flex flex-wrap gap-1.5">
                   {chips.map((chip) => (
-                    <span key={chip} className="rounded-md bg-[#F4F3EF] px-2 py-0.5 text-[11.5px] text-[var(--text-2)]">
+                    <span key={chip} className="rounded-md bg-[#F5F5F5] px-2 py-0.5 text-[11.5px] text-[var(--text-2)]">
                       {chip}
                     </span>
                   ))}
@@ -170,7 +170,7 @@ export default function DemandasPage() {
                     <AvatarComercial nombre={fila.profiles?.nombre_completo} color={fila.profiles?.color} size={18} />
                     {fila.profiles?.nombre_completo ?? "Sin comercial"}
                   </span>
-                  <span className="text-[12.5px] font-semibold" style={{ color: encajan ? "#0B7461" : "#8A938F" }}>
+                  <span className="text-[12.5px] font-semibold" style={{ color: encajan ? "#111111" : "#8A8A8A" }}>
                     {encajan} encajan{visitados ? ` · ${visitados} visitado${visitados === 1 ? "" : "s"}` : ""}
                   </span>
                 </div>

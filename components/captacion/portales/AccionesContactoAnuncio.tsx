@@ -185,7 +185,7 @@ export function AccionesContactoAnuncio({
           onClick={() => setModo(modo === "recordatorio" ? null : "recordatorio")}
           className="h-9 rounded-lg border text-[12.5px] font-semibold"
           style={{
-            borderColor: modo === "recordatorio" ? "#0B7461" : "var(--input)",
+            borderColor: modo === "recordatorio" ? "#111111" : "var(--input)",
             background: modo === "recordatorio" ? "#E7F3EF" : "white",
           }}
         >

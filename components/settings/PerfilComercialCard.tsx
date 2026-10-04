@@ -87,7 +87,7 @@ export function PerfilComercialCard({ userId }: { userId: string }) {
                 className="h-[30px] w-[30px] rounded-full"
                 style={{
                   background: hex,
-                  outline: color.toLowerCase() === hex.toLowerCase() ? "2px solid #131C1A" : "2px solid transparent",
+                  outline: color.toLowerCase() === hex.toLowerCase() ? "2px solid #111111" : "2px solid transparent",
                   outlineOffset: 2,
                 }}
                 aria-label={hex}

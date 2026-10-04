@@ -276,7 +276,7 @@ export default function DetalleParteVisitaPage() {
           />
         ) : null}
         {parte.firmado_en && (
-          <span className="inline-flex items-center gap-1 text-sm text-emerald-700">
+          <span className="inline-flex items-center gap-1 text-sm text-neutral-900">
             <CheckCircle2 className="h-4 w-4" strokeWidth={1.5} />
             Firmado el{" "}
             {new Date(parte.firmado_en).toLocaleString("es-ES", {

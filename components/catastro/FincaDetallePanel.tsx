@@ -67,25 +67,25 @@ export function FincaDetallePanel({
   };
 
   const accionPropiedad = onProperty ? (
-    <Button type="button" size="sm" onClick={onProperty} className="bg-[#0B7461] hover:bg-[#08594B]">
+    <Button type="button" size="sm" onClick={onProperty} className="bg-[#111111] hover:bg-[#000000]">
       {vinculada ? "Ver propiedad" : "Crear propiedad"}
     </Button>
   ) : href ? (
-    <Button asChild size="sm" className="bg-[#0B7461] hover:bg-[#08594B]">
+    <Button asChild size="sm" className="bg-[#111111] hover:bg-[#000000]">
       <a href={href}>{vinculada ? "Ver propiedad" : "Ver finca"}</a>
     </Button>
   ) : null;
 
   const cuerpo = (
     <>
-      <p className="text-sm text-[#5D6B67]">{resumenComercialFinca(finca)}</p>
+      <p className="text-sm text-[#5C5C5C]">{resumenComercialFinca(finca)}</p>
       {vinculada ? (
         <p className="mt-1 text-xs font-semibold text-sky-800">Esta referencia ya es una propiedad del CRM.</p>
       ) : asignacion ? (
-        <p className="mt-1 text-xs font-semibold text-[#0B7461]">Asignada a {asignacion.nombre}.</p>
+        <p className="mt-1 text-xs font-semibold text-[#111111]">Asignada a {asignacion.nombre}.</p>
       ) : null}
       {textoMotivoUnknownUi(finca.horizontalDivision) ? (
-        <p className="mt-1 text-xs text-[#5D6B67]">{textoMotivoUnknownUi(finca.horizontalDivision)}</p>
+        <p className="mt-1 text-xs text-[#5C5C5C]">{textoMotivoUnknownUi(finca.horizontalDivision)}</p>
       ) : null}
 
       <div className="mt-4">
@@ -95,7 +95,7 @@ export function FincaDetallePanel({
         />
       </div>
 
-      <dl className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-[#EFEDE7] bg-[#FDFDFC] p-3.5">
+      <dl className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-[#EFEFEF] bg-[#FAFAFA] p-3.5">
         {finca.superficieSolar != null ? (
           <Dato label="Superficie solar" value={`${finca.superficieSolar.toLocaleString("es-ES")} m²`} />
         ) : null}
@@ -103,10 +103,10 @@ export function FincaDetallePanel({
         {finca.address.municipio ? <Dato label="Municipio" value={finca.address.municipio} /> : null}
         {finca.portals[0] ? <Dato label="Portal" value={finca.portals.join(", ")} /> : null}
         <div className="col-span-2">
-          <dt className="text-[11px] font-semibold uppercase tracking-wide text-[#6B7A76]">Clasificación de Catastro</dt>
-          <dd className="mt-1 text-sm text-[#131C1A]">
+          <dt className="text-[11px] font-semibold uppercase tracking-wide text-[#6B6B6B]">Clasificación de Catastro</dt>
+          <dd className="mt-1 text-sm text-[#111111]">
             {leyenda?.filtro ?? etiquetaEstadoDivisionLista(status)}
-            {leyenda ? <span className="mt-1 block text-xs leading-snug text-[#5D6B67]">{leyenda.texto}</span> : null}
+            {leyenda ? <span className="mt-1 block text-xs leading-snug text-[#5C5C5C]">{leyenda.texto}</span> : null}
           </dd>
         </div>
       </dl>
@@ -154,8 +154,8 @@ export function FincaDetallePanel({
       <NotasFinca fincaReference={finca.fincaReference} />
 
       <div className="mt-5 flex flex-wrap items-baseline gap-2">
-        <h3 className="text-[15px] font-semibold text-[#131C1A]">Inmuebles</h3>
-        <span className="text-[12.5px] text-[#5D6B67]">{inmuebles.length}</span>
+        <h3 className="text-[15px] font-semibold text-[#111111]">Inmuebles</h3>
+        <span className="text-[12.5px] text-[#5C5C5C]">{inmuebles.length}</span>
       </div>
       {usos.length > 1 ? (
         <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label="Filtrar inmuebles por uso">
@@ -169,8 +169,8 @@ export function FincaDetallePanel({
               className={cn(
                 "min-h-9 shrink-0 rounded-full border px-3 text-xs font-medium",
                 uso === item
-                  ? "border-[#0B7461] bg-[#E8F3EF] text-[#08594B]"
-                  : "border-[#E6E3DD] bg-white text-[#5D6B67]"
+                  ? "border-[#111111] bg-[#F0F0F0] text-[#000000]"
+                  : "border-[#E5E5E5] bg-white text-[#5C5C5C]"
               )}
             >
               {item}
@@ -183,16 +183,16 @@ export function FincaDetallePanel({
         <ul className="mt-2 space-y-3">
           {agruparPorPlanta(visibles).map((grupo) => (
             <li key={grupo.planta}>
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-[#6B7A76]">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-[#6B6B6B]">
                 {grupo.planta === "—" ? "Sin planta" : `Planta ${grupo.planta}`}
               </p>
-              <ul className="mt-1 divide-y divide-[#F2F0EB]">
+              <ul className="mt-1 divide-y divide-[#F2F2F2]">
                 {grupo.items.map((item) => (
                   <li key={item.reference} className="flex flex-wrap items-center gap-2 py-2 text-[12.5px]">
-                    <span className="w-[66px] shrink-0 font-mono text-[#5D6B67]">{item.reference.slice(-6)}</span>
+                    <span className="w-[66px] shrink-0 font-mono text-[#5C5C5C]">{item.reference.slice(-6)}</span>
                     <span>{item.puerta || "—"}</span>
                     <span className="tabular-nums">{item.superficie != null ? `${item.superficie} m²` : ""}</span>
-                    <span className="text-[#5D6B67]">{item.uso ?? ""}</span>
+                    <span className="text-[#5C5C5C]">{item.uso ?? ""}</span>
                   </li>
                 ))}
               </ul>
@@ -200,7 +200,7 @@ export function FincaDetallePanel({
           ))}
         </ul>
       ) : (
-        <p className="mt-3 rounded-xl border border-dashed border-[#DAD6CE] px-3 py-3 text-[13px] text-[#5D6B67]">
+        <p className="mt-3 rounded-xl border border-dashed border-[#D4D4D4] px-3 py-3 text-[13px] text-[#5C5C5C]">
           {visibles.length === 0
             ? "Catastro no detalla más unidades en esta finca."
             : "Finca de una sola unidad."}
@@ -276,22 +276,22 @@ function PanelLateralFinca({
         role="dialog"
         aria-modal="true"
         aria-labelledby="ficha-finca-titulo"
-        className="absolute inset-y-0 right-0 z-10 flex w-full max-w-none flex-col bg-white pb-[env(safe-area-inset-bottom)] shadow-[-16px_0_40px_rgba(19,28,26,.16)] animate-[slideInFromRight_0.28s_ease-out] min-[780px]:w-[min(46rem,52vw)]"
+        className="absolute inset-y-0 right-0 z-10 flex w-full max-w-none flex-col bg-white pb-[env(safe-area-inset-bottom)] shadow-[-16px_0_40px_rgba(17, 17, 17,.16)] animate-[slideInFromRight_0.28s_ease-out] min-[780px]:w-[min(46rem,52vw)]"
         onTouchStart={(evento) => {
           toqueInicio.current = evento.changedTouches[0]?.clientX ?? null;
         }}
         onTouchEnd={(evento) => cerrarSiDesliza(evento.changedTouches[0]?.clientX ?? 0)}
       >
         <header
-          className="border-b border-[#EFEDE7] px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] min-[780px]:px-6 min-[780px]:pt-5"
+          className="border-b border-[#EFEFEF] px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] min-[780px]:px-6 min-[780px]:pt-5"
         >
           <div className="flex items-start gap-3">
             <div className="min-w-0 flex-1">
-              <h2 id="ficha-finca-titulo" className="text-[17px] font-semibold leading-snug tracking-tight text-[#131C1A] min-[780px]:text-[19px]">
+              <h2 id="ficha-finca-titulo" className="text-[17px] font-semibold leading-snug tracking-tight text-[#111111] min-[780px]:text-[19px]">
                 {titulo}
               </h2>
               <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                <p className="font-mono text-[11.5px] text-[#5D6B67]">{referencia}</p>
+                <p className="font-mono text-[11.5px] text-[#5C5C5C]">{referencia}</p>
                 <span className={cn("rounded-md px-2.5 py-1 text-[11px] font-semibold", claseBadgeDivision(status))}>
                   {etiquetaEstadoDivisionLista(status)}
                 </span>
@@ -301,7 +301,7 @@ function PanelLateralFinca({
               ref={cerrarRef}
               type="button"
               onClick={onCerrar}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] text-[#5D6B67] hover:bg-[#F4F3EF]"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] text-[#5C5C5C] hover:bg-[#F5F5F5]"
               aria-label="Cerrar ficha"
             >
               <X className="h-5 w-5" strokeWidth={2.2} aria-hidden />
@@ -315,7 +315,7 @@ function PanelLateralFinca({
           {children}
         </div>
         {accion ? (
-          <div className="border-t border-[#EFEDE7] bg-white px-4 py-3 shadow-[0_-6px_18px_rgba(19,28,26,.06)] min-[780px]:px-6">
+          <div className="border-t border-[#EFEFEF] bg-white px-4 py-3 shadow-[0_-6px_18px_rgba(17, 17, 17,.06)] min-[780px]:px-6">
             <div className="[&_button]:h-[50px] [&_button]:w-full [&_button]:text-[14.5px] [&_a]:flex [&_a]:h-[50px] [&_a]:w-full [&_a]:items-center [&_a]:justify-center [&_a]:text-[14.5px] min-[780px]:[&_a]:h-10 min-[780px]:[&_a]:w-auto min-[780px]:[&_button]:h-10 min-[780px]:[&_button]:w-auto">
               {accion}
             </div>
@@ -328,13 +328,13 @@ function PanelLateralFinca({
 }
 
 const CLASE_ACCION =
-  "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-[10px] border border-[#DAD6CE] bg-white px-3 text-[13px] font-medium text-[#131C1A]";
+  "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-[10px] border border-[#D4D4D4] bg-white px-3 text-[13px] font-medium text-[#111111]";
 
 function Dato({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-[11px] font-semibold uppercase tracking-wide text-[#6B7A76]">{label}</dt>
-      <dd className="mt-0.5 text-sm tabular-nums text-[#131C1A]">{value}</dd>
+      <dt className="text-[11px] font-semibold uppercase tracking-wide text-[#6B6B6B]">{label}</dt>
+      <dd className="mt-0.5 text-sm tabular-nums text-[#111111]">{value}</dd>
     </div>
   );
 }

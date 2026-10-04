@@ -156,7 +156,7 @@ export function PagosCard({
               </span>
               <span>
                 <span className="text-neutral-500">Pendiente:</span>{" "}
-                <span className={pendiente > 0 ? "font-semibold text-amber-600" : "font-semibold text-emerald-600"}>
+                <span className={pendiente > 0 ? "font-semibold text-amber-600" : "font-semibold text-neutral-900"}>
                   {formatCurrency(pendiente)}
                 </span>
               </span>

@@ -43,9 +43,9 @@ function contacto(c: ClienteLista) {
 }
 
 function estadoCliente(c: ClienteLista) {
-  if (c.etiqueta === "fallecido") return { label: "Fallecido", color: "#B3ADA3" };
-  if (!c.activo) return { label: "Inactivo", color: "#B3ADA3" };
-  return { label: "Activo", color: "#0B7461" };
+  if (c.etiqueta === "fallecido") return { label: "Fallecido", color: "#B3B3B3" };
+  if (!c.activo) return { label: "Inactivo", color: "#B3B3B3" };
+  return { label: "Activo", color: "#111111" };
 }
 
 export default function ClientesPage() {
@@ -255,7 +255,7 @@ export default function ClientesPage() {
 
   const rolesDe = (c: ClienteLista) => {
     const roles: Array<{ label: string; bg: string; fg: string }> = [];
-    if (c.ofrece.length) roles.push({ label: "Ofrece", bg: "#E8F3EF", fg: "#08594B" });
+    if (c.ofrece.length) roles.push({ label: "Ofrece", bg: "#F0F0F0", fg: "#000000" });
     if (c.busca.length) roles.push({ label: "Busca", bg: "#E9EEF8", fg: "#2B4A8A" });
     if (c.docs.length) roles.push({ label: "Obra", bg: "#F1EFF8", fg: "#4B3F8A" });
     return roles;

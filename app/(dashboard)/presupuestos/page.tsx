@@ -85,10 +85,10 @@ export default function PresupuestosPage() {
     const ganados = presupuestos.filter((p) => p.estado === "aceptado" || p.estado === "convertido").length;
     const tasa = decididos ? Math.round((ganados / decididos) * 100) : 0;
     return [
-      { valor: String(enviados), label: "Enviados", fg: "#131C1A" },
+      { valor: String(enviados), label: "Enviados", fg: "#111111" },
       { valor: String(negociacion), label: "En negociación", fg: "#B98A16" },
-      { valor: String(aceptadosSinFacturar), label: "Aceptados sin facturar", fg: "#0B7461" },
-      { valor: `${tasa} %`, label: "Tasa de aceptación", fg: "#131C1A" },
+      { valor: String(aceptadosSinFacturar), label: "Aceptados sin facturar", fg: "#111111" },
+      { valor: `${tasa} %`, label: "Tasa de aceptación", fg: "#111111" },
     ];
   }, [presupuestos]);
 

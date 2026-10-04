@@ -87,7 +87,7 @@ export function Sidebar({ badges }: { badges?: Record<string, number> }) {
                     <span
                       className={cn(
                         "rounded-full px-1.5 py-px text-[11px] font-semibold",
-                        on ? "bg-accent text-white" : "bg-[#F2F1EC] text-[var(--text-2)]"
+                        on ? "bg-accent text-white" : "bg-[#EBEBEB] text-[var(--text-2)]"
                       )}
                     >
                       {badge}

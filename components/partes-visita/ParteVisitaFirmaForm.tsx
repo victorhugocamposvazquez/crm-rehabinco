@@ -72,11 +72,11 @@ export function ParteVisitaFirmaForm({ parte }: ParteVisitaFirmaFormProps) {
 
   if (done || alreadySigned) {
     return (
-      <div className="mx-auto max-w-xl rounded-2xl border border-emerald-200 bg-emerald-50 px-6 py-10 text-center">
-        <p className="text-lg font-semibold text-emerald-900">
+      <div className="mx-auto max-w-xl rounded-2xl border border-neutral-200 bg-neutral-100 px-6 py-10 text-center">
+        <p className="text-lg font-semibold text-neutral-900">
           Parte de visita firmado
         </p>
-        <p className="mt-2 text-sm text-emerald-800">
+        <p className="mt-2 text-sm text-neutral-800">
           Gracias. La visita ha quedado registrada correctamente.
         </p>
       </div>

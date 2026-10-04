@@ -363,7 +363,7 @@ export function PanelInmueble({
             </p>
           ) : (
             matches.map((m) => (
-              <div key={m.demandaId} className="mb-1.5 flex items-center gap-2.5 rounded-[9px] border border-[var(--border-soft)] bg-[#FDFDFC] px-2.5 py-2">
+              <div key={m.demandaId} className="mb-1.5 flex items-center gap-2.5 rounded-[9px] border border-[var(--border-soft)] bg-[#FAFAFA] px-2.5 py-2">
                 <FichaLink tipo="demanda" id={m.demandaId} className="min-w-0 flex-1 text-foreground hover:text-accent">
                   <div className="text-[13px] font-semibold">{m.cliente}</div>
                   <div className="text-[11.5px] text-[var(--text-2)]">{m.criterios}</div>

@@ -28,7 +28,7 @@ export function IconoEstadoTelefono({ anuncio, enCola }: { anuncio: TelefonoAnun
   const e = resolverEstadoTelefono(anuncio, enCola);
   const meta = ICONO[e];
   return (
-    <span className={cn("inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#F4F3EF] text-[11px] font-bold", meta.className)} title={meta.title}>
+    <span className={cn("inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#F5F5F5] text-[11px] font-bold", meta.className)} title={meta.title}>
       {meta.glyph}
     </span>
   );

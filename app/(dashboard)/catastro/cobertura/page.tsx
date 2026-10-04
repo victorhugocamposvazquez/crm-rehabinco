@@ -31,9 +31,9 @@ export default function CoberturaCatastroPage() {
         description="CPs rastreados en Catastro Explorer. No es un mapa; es el archivo de territorio."
       />
       {error ? <p className="mt-6 text-sm text-red-700">{error}</p> : null}
-      <div className="mt-6 overflow-hidden rounded-2xl border border-[#E6E3DD] bg-white">
+      <div className="mt-6 overflow-hidden rounded-2xl border border-[#E5E5E5] bg-white">
         <table className="w-full text-left text-sm">
-          <thead className="bg-[#F6F5F1] text-[12px] uppercase tracking-wide text-[#5D6B67]">
+          <thead className="bg-[#F6F5F1] text-[12px] uppercase tracking-wide text-[#5C5C5C]">
             <tr>
               <th className="px-4 py-2">CP</th>
               <th className="px-4 py-2">Municipio</th>
@@ -43,7 +43,7 @@ export default function CoberturaCatastroPage() {
           </thead>
           <tbody>
             {filas.map((fila) => (
-              <tr key={fila.postalCode} className="border-t border-[#F2F0EB]">
+              <tr key={fila.postalCode} className="border-t border-[#F2F2F2]">
                 <td className="px-4 py-2 font-mono">{fila.postalCode}</td>
                 <td className="px-4 py-2">
                   {fila.municipio}
@@ -57,7 +57,7 @@ export default function CoberturaCatastroPage() {
             ))}
             {filas.length === 0 && !error ? (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-[#5D6B67]">
+                <td colSpan={4} className="px-4 py-8 text-center text-[#5C5C5C]">
                   {cargando ? "Cargando cobertura…" : "Aún no hay búsquedas por código postal."}
                 </td>
               </tr>

@@ -182,7 +182,7 @@ function Switch({ on, onClick }: { on: boolean; onClick: () => void }) {
       type="button"
       onClick={onClick}
       className="relative h-[22px] w-[38px] shrink-0 rounded-full transition-colors"
-      style={{ background: on ? "#0B7461" : "#CFCBC2" }}
+      style={{ background: on ? "#111111" : "#D4D4D4" }}
       aria-pressed={on}
     >
       <span
@@ -612,10 +612,10 @@ export function CaptacionPortales() {
   };
 
   const kpis: Array<{ valor: number; label: string; chip: ChipCaptacion | "seg"; fg: string }> = [
-    { valor: cuentaChip("hoy"), label: "Nuevos hoy", chip: "hoy", fg: "#131C1A" },
+    { valor: cuentaChip("hoy"), label: "Nuevos hoy", chip: "hoy", fg: "#111111" },
     { valor: cuentaChip("subida"), label: "Subidas de precio", chip: "subida", fg: "#7A5A10" },
-    { valor: cuentaChip("bajada"), label: "Bajadas de precio", chip: "bajada", fg: "#0B7461" },
-    { valor: seg.filter((a) => a.fase !== "captado" && a.fase !== "perdido").length, label: "En seguimiento", chip: "seg", fg: "#131C1A" },
+    { valor: cuentaChip("bajada"), label: "Bajadas de precio", chip: "bajada", fg: "#111111" },
+    { valor: seg.filter((a) => a.fase !== "captado" && a.fase !== "perdido").length, label: "En seguimiento", chip: "seg", fg: "#111111" },
   ];
   const chips: Array<[ChipCaptacion, string, number]> = [
     ["todos", "Todos", cuentaChip("todos")],
@@ -706,7 +706,7 @@ export function CaptacionPortales() {
             >
               {label}
               {n > 0 ? (
-                <span className={cn("rounded-full px-1.5 py-px text-[11px] font-semibold", on ? "bg-accent text-white" : "bg-[#F2F1EC] text-[var(--text-2)]")}>
+                <span className={cn("rounded-full px-1.5 py-px text-[11px] font-semibold", on ? "bg-accent text-white" : "bg-[#EBEBEB] text-[var(--text-2)]")}>
                   {n}
                 </span>
               ) : null}
@@ -813,7 +813,7 @@ export function CaptacionPortales() {
                   ))
                 : null}
               <div className="flex-1" />
-              <select value={orden} onChange={(e) => setOrden(e.target.value)} className="h-[30px] rounded-lg bg-[#F4F3EF] px-2 text-[12.5px] text-[var(--text-2)]">
+              <select value={orden} onChange={(e) => setOrden(e.target.value)} className="h-[30px] rounded-lg bg-[#F5F5F5] px-2 text-[12.5px] text-[var(--text-2)]">
                 <option value="publicado">Últimos en Idealista</option>
                 <option value="anadido">Añadidos al CRM</option>
                 <option value="precio">Precio ↑</option>
@@ -841,7 +841,7 @@ export function CaptacionPortales() {
               </div>
             ) : null}
             {checks.length > 0 ? (
-              <div className="flex flex-wrap items-center gap-2 border-b border-[#CDE9E1] bg-accent-soft px-3.5 py-2">
+              <div className="flex flex-wrap items-center gap-2 border-b border-[#D4D4D4] bg-accent-soft px-3.5 py-2">
                 <span className="text-[13px] font-semibold text-accent-dark">{checks.length} seleccionados</span>
                 <div className="flex-1" />
                 {comerciales.map((c) => (
@@ -852,7 +852,7 @@ export function CaptacionPortales() {
               </div>
             ) : null}
             <div className="hidden grid-cols-[16px_minmax(0,1fr)_100px_72px_104px] gap-3 border-b border-[var(--border-soft)] bg-[var(--surface-soft)] px-3.5 py-2 text-[11px] uppercase tracking-[0.06em] text-[var(--label)] min-[820px]:grid" style={cols ? { gridTemplateColumns: cols } : undefined}>
-              <button type="button" onClick={() => setChecks(page.length && page.every((a) => checks.includes(a.id)) ? [] : page.map((a) => a.id))} className="h-4 w-4 rounded border" style={{ borderColor: page.length && page.every((a) => checks.includes(a.id)) ? "#0B7461" : "#CFCBC2", background: page.length && page.every((a) => checks.includes(a.id)) ? "#0B7461" : "#fff" }} />
+              <button type="button" onClick={() => setChecks(page.length && page.every((a) => checks.includes(a.id)) ? [] : page.map((a) => a.id))} className="h-4 w-4 rounded border" style={{ borderColor: page.length && page.every((a) => checks.includes(a.id)) ? "#111111" : "#D4D4D4", background: page.length && page.every((a) => checks.includes(a.id)) ? "#111111" : "#fff" }} />
               <div>Anuncio</div><div className="text-right">Precio</div>{wide ? <div className="text-right">m²</div> : null}<div className="text-right">€/m²</div>{wide ? <div>Contacto</div> : null}{wide ? <div>Zona</div> : null}<div />
             </div>
             {page.map((a) => {
@@ -873,7 +873,7 @@ export function CaptacionPortales() {
                       setPanel(true);
                     }}
                     className="flex cursor-pointer gap-3 border-b border-[var(--border-row)] px-3.5 py-3"
-                    style={{ background: on ? "#F4F8F6" : "#fff", boxShadow: on ? "inset 3px 0 0 #0B7461" : undefined }}
+                    style={{ background: on ? "#F5F5F5" : "#fff", boxShadow: on ? "inset 3px 0 0 #111111" : undefined }}
                   >
                     <button
                       type="button"
@@ -884,7 +884,7 @@ export function CaptacionPortales() {
                       }}
                       className="mt-1 grid h-11 w-11 shrink-0 place-items-center"
                     >
-                      <span className="grid h-4 w-4 place-items-center rounded border" style={{ borderColor: ck ? "#0B7461" : "#CFCBC2", background: ck ? "#0B7461" : "#fff" }} />
+                      <span className="grid h-4 w-4 place-items-center rounded border" style={{ borderColor: ck ? "#111111" : "#D4D4D4", background: ck ? "#111111" : "#fff" }} />
                     </button>
                     <div className="relative h-[72px] w-[88px] shrink-0 overflow-hidden rounded-[8px] bg-[#E8E4DC]">
                       <FotoPortal src={portadaDe(a)} />
@@ -918,8 +918,8 @@ export function CaptacionPortales() {
                 );
               }
               return (
-                <div key={a.id} onClick={() => { setSel(a.id); setPanel(true); }} className="grid cursor-pointer items-center gap-3 border-b border-[var(--border-row)] px-3.5 py-2.5 hover:bg-[var(--surface-soft)]" style={{ gridTemplateColumns: cols, background: on ? "#F4F8F6" : "#fff", boxShadow: on ? "inset 3px 0 0 #0B7461" : undefined }}>
-                  <button type="button" onClick={(e) => { e.stopPropagation(); setChecks((prev) => (ck ? prev.filter((x) => x !== a.id) : [...prev, a.id])); }} className="grid h-4 w-4 place-items-center rounded border" style={{ borderColor: ck ? "#0B7461" : "#CFCBC2", background: ck ? "#0B7461" : "#fff" }} />
+                <div key={a.id} onClick={() => { setSel(a.id); setPanel(true); }} className="grid cursor-pointer items-center gap-3 border-b border-[var(--border-row)] px-3.5 py-2.5 hover:bg-[var(--surface-soft)]" style={{ gridTemplateColumns: cols, background: on ? "#F5F5F5" : "#fff", boxShadow: on ? "inset 3px 0 0 #111111" : undefined }}>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setChecks((prev) => (ck ? prev.filter((x) => x !== a.id) : [...prev, a.id])); }} className="grid h-4 w-4 place-items-center rounded border" style={{ borderColor: ck ? "#111111" : "#D4D4D4", background: ck ? "#111111" : "#fff" }} />
                   <div className="flex min-w-0 items-center gap-2.5">
                     <div className="relative h-11 w-[60px] shrink-0 overflow-hidden rounded-[7px] bg-[#E8E4DC]">
                       <FotoPortal src={portadaDe(a)} />
@@ -929,8 +929,8 @@ export function CaptacionPortales() {
                       <div className="flex min-w-0 items-center gap-1.5">
                         <span className="truncate text-[14px] font-semibold">{a.titulo}</span>
                         {tagsConEstilo(a.tags).map((t) => <span key={t.label} className="whitespace-nowrap rounded px-1.5 py-px text-[10.5px] font-semibold" style={{ background: t.bg, color: t.fg }}>{t.label}</span>)}
-                        {a.fuente === "idealista" && anuncioIdealistaVacio(a) ? <span className="whitespace-nowrap rounded bg-[#F4F3EF] px-1.5 py-px text-[10.5px] font-semibold text-[var(--text-2)]">sin datos</span> : null}
-                        {!wide && nRep > 1 ? <span className="shrink-0 rounded border border-[#CDE9E1] px-1 text-[10.5px] font-semibold text-accent" title="Este contacto tiene más anuncios">×{nRep}</span> : null}
+                        {a.fuente === "idealista" && anuncioIdealistaVacio(a) ? <span className="whitespace-nowrap rounded bg-[#F5F5F5] px-1.5 py-px text-[10.5px] font-semibold text-[var(--text-2)]">sin datos</span> : null}
+                        {!wide && nRep > 1 ? <span className="shrink-0 rounded border border-[#D4D4D4] px-1 text-[10.5px] font-semibold text-accent" title="Este contacto tiene más anuncios">×{nRep}</span> : null}
                       </div>
                       <div className="mt-0.5 flex gap-2 overflow-hidden text-[12px] text-[var(--text-2)]">
                         <span className="flex shrink-0 items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ background: PORTAL_COLOR[a.fuente] }} />{labelFuentePortal(a.fuente)}</span>
@@ -942,14 +942,14 @@ export function CaptacionPortales() {
                   </div>
                   <div className="text-right text-[14px] font-semibold tabular-nums">{euros(a.precio, a.operacion === "alquiler")}{bajada ? <div className="text-[11px] font-medium text-accent">{bajada}</div> : null}</div>
                   {wide ? <div className="text-right text-[13.5px] tabular-nums">{a.superficie?.toLocaleString("es-ES") ?? "—"}</div> : null}
-                  <div className="hidden text-right text-[13.5px] tabular-nums min-[820px]:block" style={{ color: barato ? "#0B7461" : undefined, fontWeight: barato ? 600 : 400 }}>{pm2}</div>
+                  <div className="hidden text-right text-[13.5px] tabular-nums min-[820px]:block" style={{ color: barato ? "#111111" : undefined, fontWeight: barato ? 600 : 400 }}>{pm2}</div>
                   {wide ? (
                     <div className="min-w-0">
                       <div className="truncate text-[13.5px]">{a.contacto_nombre || "—"}</div>
                       <div className="mt-px flex items-center gap-1 text-[11.5px] text-[var(--text-2)]">
                         <IconoEstadoTelefono anuncio={a} enCola={enColaTelefono(a, telefonosEnCola)} />
                         {a.contacto_telefono ? <span className="truncate font-mono">{a.contacto_telefono}</span> : null}
-                        {nRep > 1 ? <span className="rounded border border-[#CDE9E1] px-1 text-[10.5px] font-semibold text-accent" title="Este contacto tiene más anuncios">×{nRep}</span> : null}
+                        {nRep > 1 ? <span className="rounded border border-[#D4D4D4] px-1 text-[10.5px] font-semibold text-accent" title="Este contacto tiene más anuncios">×{nRep}</span> : null}
                       </div>
                     </div>
                   ) : null}
@@ -968,15 +968,15 @@ export function CaptacionPortales() {
               <span className="shrink-0">{listado.length ? `${(pagina - 1) * PAGE_NOVEDADES + 1}–${Math.min(pagina * PAGE_NOVEDADES, listado.length)} de ${listado.length} anuncios` : "Sin anuncios"}</span>
               {nPag > 1 ? (
                 <div className="flex min-w-0 max-w-full flex-wrap items-center justify-end gap-1">
-                  <button type="button" disabled={pagina <= 1} onClick={() => setPag(pagina - 1)} className="h-8 rounded-lg border border-[#DAD6CE] bg-white px-2.5 text-[13px] font-semibold text-[#131C1A] disabled:opacity-40">Anterior</button>
+                  <button type="button" disabled={pagina <= 1} onClick={() => setPag(pagina - 1)} className="h-8 rounded-lg border border-[#D4D4D4] bg-white px-2.5 text-[13px] font-semibold text-[#111111] disabled:opacity-40">Anterior</button>
                   {paginasVisibles(pagina, nPag).map((n, i) =>
                     n === "…" ? (
                       <span key={`puntos-${i}`} className="px-0.5 text-[13px] text-[var(--text-2)]">…</span>
                     ) : (
-                      <button key={n} type="button" onClick={() => setPag(n)} className="h-8 min-w-8 rounded-lg border px-2 text-[13px] font-semibold" style={{ borderColor: n === pagina ? "#0B7461" : "#DAD6CE", background: n === pagina ? "#0B7461" : "#fff", color: n === pagina ? "#fff" : "#131C1A" }}>{n}</button>
+                      <button key={n} type="button" onClick={() => setPag(n)} className="h-8 min-w-8 rounded-lg border px-2 text-[13px] font-semibold" style={{ borderColor: n === pagina ? "#111111" : "#D4D4D4", background: n === pagina ? "#111111" : "#fff", color: n === pagina ? "#fff" : "#111111" }}>{n}</button>
                     )
                   )}
-                  <button type="button" disabled={pagina >= nPag} onClick={() => setPag(pagina + 1)} className="h-8 rounded-lg border border-[#DAD6CE] bg-white px-2.5 text-[13px] font-semibold text-[#131C1A] disabled:opacity-40">Siguiente</button>
+                  <button type="button" disabled={pagina >= nPag} onClick={() => setPag(pagina + 1)} className="h-8 rounded-lg border border-[#D4D4D4] bg-white px-2.5 text-[13px] font-semibold text-[#111111] disabled:opacity-40">Siguiente</button>
                 </div>
               ) : null}
             </div>
@@ -1002,7 +1002,7 @@ export function CaptacionPortales() {
                     const id = e.dataTransfer.getData("text/plain");
                     if (id) void moverFase(id, f.id);
                   }}
-                  className="min-h-[240px] w-[82vw] shrink-0 rounded-[14px] bg-[#F4F3EF] p-2.5 min-[820px]:w-[280px]"
+                  className="min-h-[240px] w-[82vw] shrink-0 rounded-[14px] bg-[#F5F5F5] p-2.5 min-[820px]:w-[280px]"
                 >
                   <div className="mb-2.5 flex items-center gap-2 px-1">
                     <span className="h-2 w-2 rounded-full" style={{ background: f.dot }} />
@@ -1065,13 +1065,13 @@ export function CaptacionPortales() {
                     <Switch on={a.activa} onClick={() => { const supabase = createClient(); void supabase.from("captacion_alertas").update({ activa: !a.activa }).eq("id", a.id); setAlertas((prev) => prev.map((x) => (x.id === a.id ? { ...x, activa: !x.activa } : x))); }} />
                   </div>
                   <div className="mt-2.5 flex flex-wrap gap-1.5">
-                    {a.zonas.map((z) => <span key={z} className="rounded-md bg-[#F4F3EF] px-2 py-0.5 text-[11.5px] text-[var(--text-2)]">{z}</span>)}
-                    {a.solo_particulares ? <span className="rounded-md bg-[#F4F3EF] px-2 py-0.5 text-[11.5px] text-[var(--text-2)]">particular</span> : null}
-                    {a.precio_max ? <span className="rounded-md bg-[#F4F3EF] px-2 py-0.5 text-[11.5px] text-[var(--text-2)]">hasta {euros(a.precio_max)}</span> : null}
+                    {a.zonas.map((z) => <span key={z} className="rounded-md bg-[#F5F5F5] px-2 py-0.5 text-[11.5px] text-[var(--text-2)]">{z}</span>)}
+                    {a.solo_particulares ? <span className="rounded-md bg-[#F5F5F5] px-2 py-0.5 text-[11.5px] text-[var(--text-2)]">particular</span> : null}
+                    {a.precio_max ? <span className="rounded-md bg-[#F5F5F5] px-2 py-0.5 text-[11.5px] text-[var(--text-2)]">hasta {euros(a.precio_max)}</span> : null}
                   </div>
                   <div className="mt-3 flex items-center justify-between border-t border-[var(--border-soft)] pt-2.5 text-[12.5px]">
                     <div className="flex items-center gap-1.5 text-[var(--text-2)]">{com ? <AvatarComercial nombre={com.nombre} color={com.color} size={18} /> : null}{com?.nombre.split(" ")[0] ?? "—"}</div>
-                    <div className="font-semibold" style={{ color: a.activa ? "#0B7461" : "#8A938F" }}>{a.activa ? `${hoy} hoy` : "Pausada"}</div>
+                    <div className="font-semibold" style={{ color: a.activa ? "#111111" : "#8A8A8A" }}>{a.activa ? `${hoy} hoy` : "Pausada"}</div>
                   </div>
                 </div>
               );
@@ -1091,8 +1091,8 @@ export function CaptacionPortales() {
             <section className="min-w-0 flex-[1_1_480px] overflow-hidden rounded-[14px] border border-[var(--border)] bg-white">
               {notifs.length === 0 ? <div className="p-6 text-[13.5px] text-[var(--text-2)]">Aún no hay avisos.</div> : null}
               {notifs.map((n) => (
-                <div key={n.id} className="flex items-start gap-3 border-b border-[var(--border-row)] px-4 py-3" style={{ background: n.leida ? "#fff" : "#FBFBF9" }}>
-                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: n.leida ? "transparent" : "#0B7461" }} />
+                <div key={n.id} className="flex items-start gap-3 border-b border-[var(--border-row)] px-4 py-3" style={{ background: n.leida ? "#fff" : "#FAFAFA" }}>
+                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: n.leida ? "transparent" : "#111111" }} />
                   <div className="min-w-0 flex-1">
                     <div className={cn("text-[14px]", n.leida ? "font-medium" : "font-semibold")}>{n.titulo}</div>
                     {n.detalle ? <div className="mt-0.5 text-[12.5px] text-[var(--text-2)]">{n.detalle}</div> : null}
@@ -1344,7 +1344,7 @@ function PeekAnuncio({
         </div>
         <div className="mt-2.5 flex flex-wrap gap-1.5">
           {tagsConEstilo(a.tags).map((t) => <span key={t.label} className="rounded-md px-2 py-0.5 text-[11px] font-semibold" style={{ background: t.bg, color: t.fg }}>{t.label}</span>)}
-          <span className="rounded-md bg-[#F4F3EF] px-2 py-0.5 text-[11px] text-[var(--text-2)]">Alerta: {alertaNombre ?? "—"}</span>
+          <span className="rounded-md bg-[#F5F5F5] px-2 py-0.5 text-[11px] text-[var(--text-2)]">Alerta: {alertaNombre ?? "—"}</span>
         </div>
       </div>
       <AccionesContactoAnuncio anuncio={a} hechos={historial} onRegistrado={onRegistrado} />
@@ -1373,7 +1373,7 @@ function PeekAnuncio({
         {onClasificar ? (
           <>
             <button type="button" onClick={() => onClasificar("profesional")} className="h-[38px] min-w-[100px] flex-1 rounded-[9px] border border-[#E8D4D4] bg-[#FBF0F0] text-[13px] font-semibold text-[#8A3030]">Era agencia</button>
-            <button type="button" onClick={() => onClasificar("particular")} className="h-[38px] min-w-[100px] flex-1 rounded-[9px] border border-[#D4E8DE] bg-[#F0FBF4] text-[13px] font-semibold text-[#0B7461]">Era particular</button>
+            <button type="button" onClick={() => onClasificar("particular")} className="h-[38px] min-w-[100px] flex-1 rounded-[9px] border border-[#E5E5E5] bg-[#F5F5F5] text-[13px] font-semibold text-[#111111]">Era particular</button>
           </>
         ) : null}
       </div>

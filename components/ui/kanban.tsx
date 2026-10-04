@@ -50,8 +50,8 @@ export function Kanban<C extends string, T extends { id: string }>({
             }}
             className="min-h-[260px] w-[82vw] shrink-0 rounded-[14px] p-2.5 min-[820px]:w-[260px]"
             style={{
-              background: hot ? "#E8F3EF" : "#F4F3EF",
-              border: `1px solid ${hot ? "#0B7461" : "transparent"}`,
+              background: hot ? "#F0F0F0" : "#F5F5F5",
+              border: `1px solid ${hot ? "#111111" : "transparent"}`,
             }}
           >
             <div className="mb-2.5 flex items-center gap-2 px-1 text-[13px]">

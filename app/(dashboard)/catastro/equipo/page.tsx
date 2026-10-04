@@ -53,9 +53,9 @@ export default function EquipoCaptacionPage() {
       {porComercial.length > 0 ? (
         <ul className="mt-6 space-y-2">
           {porComercial.map((item) => (
-            <li key={item.comercialId} className="rounded-xl border border-[#E6E3DD] bg-white px-4 py-3 text-sm">
+            <li key={item.comercialId} className="rounded-xl border border-[#E5E5E5] bg-white px-4 py-3 text-sm">
               <span className="font-semibold">{item.nombre}</span>
-              <span className="text-[#5D6B67]">
+              <span className="text-[#5C5C5C]">
                 {" "}
                 · {item.asignadas} fincas · {item.conPropiedad} propiedades · {item.conversionPct} %
               </span>

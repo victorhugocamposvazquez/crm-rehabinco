@@ -144,7 +144,7 @@ export const FILTROS_LISTADO_HISTORICO = [
 export type FiltroListadoHistorico = (typeof FILTROS_LISTADO_HISTORICO)[number]["value"];
 
 export const CLASES_TARJETA_BUSQUEDA =
-  "flex flex-col gap-3 rounded-[13px] border border-[#E6E3DD] bg-white px-3.5 py-3 min-[780px]:flex-row min-[780px]:items-center min-[780px]:justify-between min-[780px]:gap-4 min-[780px]:rounded-none min-[780px]:border-0 min-[780px]:border-b min-[780px]:border-[#F2F0EB] min-[780px]:px-4 min-[780px]:py-3 min-[780px]:last:border-b-0";
+  "flex flex-col gap-3 rounded-[13px] border border-[#E5E5E5] bg-white px-3.5 py-3 min-[780px]:flex-row min-[780px]:items-center min-[780px]:justify-between min-[780px]:gap-4 min-[780px]:rounded-none min-[780px]:border-0 min-[780px]:border-b min-[780px]:border-[#F2F2F2] min-[780px]:px-4 min-[780px]:py-3 min-[780px]:last:border-b-0";
 
 export const CLASE_CHIP_ESTADO =
   "inline-flex shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold";
@@ -154,7 +154,7 @@ export const CLASES_CHIP_ESTADO: Record<CatastroExplorerSearchStatus, string> = 
   RUNNING: "bg-[#E9EEF8] text-[#2B4A8A]",
   PAUSED: "bg-[#FBF0D8] text-[#6A4F0C]",
   CANCELLED: "bg-[#FBF0D8] text-[#6A4F0C]",
-  COMPLETED: "bg-[#E8F3EF] text-[#0B7461]",
+  COMPLETED: "bg-[#F0F0F0] text-[#111111]",
   FAILED: "bg-red-50 text-red-800",
 };
 
@@ -163,7 +163,7 @@ export const CLASES_PUNTO_ESTADO: Record<CatastroExplorerSearchStatus, string> =
   RUNNING: "bg-[#3B6BC7]",
   PAUSED: "bg-[#C9A227]",
   CANCELLED: "bg-[#C9A227]",
-  COMPLETED: "bg-[#0B7461]",
+  COMPLETED: "bg-[#111111]",
   FAILED: "bg-red-600",
 };
 

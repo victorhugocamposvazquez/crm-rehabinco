@@ -35,8 +35,8 @@ import { AsignacionFincaSelect, EVENTO_ASIGNACION_FINCAS } from "./AsignacionFin
 
 const CHIP =
   "inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[11.5px] font-semibold min-h-[26px] leading-none";
-const CHIP_ACTIVA = "border-[#0B7461] bg-[#E8F3EF] text-[#08594B]";
-const CHIP_INACTIVA = "border-[#E6E3DD] bg-white text-[#5D6B67]";
+const CHIP_ACTIVA = "border-[#111111] bg-[#F0F0F0] text-[#000000]";
+const CHIP_INACTIVA = "border-[#E5E5E5] bg-white text-[#5C5C5C]";
 
 const TAM_PAGINA_LISTA = 80;
 const FILTROS_LISTA = [
@@ -304,8 +304,8 @@ export function ListaFincasCatastro({
 
   return (
     <div id="listado-fincas-catastro" className="space-y-4">
-      <p className="text-[13px] text-[#131C1A]">
-        <span className="font-semibold tabular-nums text-[#08594B]">
+      <p className="text-[13px] text-[#111111]">
+        <span className="font-semibold tabular-nums text-[#000000]">
           {(recuento.NO ?? 0).toLocaleString("es-ES")} candidatas
         </span>
         {" · "}
@@ -329,19 +329,19 @@ export function ListaFincasCatastro({
             className={cn(CHIP, filtro === item.value ? CHIP_ACTIVA : CHIP_INACTIVA)}
           >
             {item.label}
-            <span className="ml-1 tabular-nums text-[#6B7A76]">{(recuento[item.value] ?? 0).toLocaleString("es-ES")}</span>
+            <span className="ml-1 tabular-nums text-[#6B6B6B]">{(recuento[item.value] ?? 0).toLocaleString("es-ES")}</span>
           </button>
         ))}
       </div>
       {recuentoEstados && !soloMias ? (
-        <p className="text-[11px] text-[#6B7A76]">Los recuentos de arriba son de toda la búsqueda.</p>
+        <p className="text-[11px] text-[#6B6B6B]">Los recuentos de arriba son de toda la búsqueda.</p>
       ) : null}
 
       {soloMias ? (
-        <p className="text-[13px] text-[#5D6B67]">Solo ves las fincas que te han asignado.</p>
+        <p className="text-[13px] text-[#5C5C5C]">Solo ves las fincas que te han asignado.</p>
       ) : (
         <div>
-          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#6B7A76]">Comercial</p>
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#6B6B6B]">Comercial</p>
           <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 min-[780px]:flex-wrap min-[780px]:overflow-visible" role="tablist" aria-label="Filtrar por comercial">
             {[
               { value: FILTRO_ASIGNACION_TODAS, label: "Todas", n: recuentoAsignacion.todas },
@@ -362,7 +362,7 @@ export function ListaFincasCatastro({
                 className={cn(CHIP, filtroAsignacion === item.value ? CHIP_ACTIVA : CHIP_INACTIVA)}
               >
                 <span className="max-w-[11rem] truncate">{item.label}</span>
-                <span className="ml-1 tabular-nums text-[#6B7A76]">{item.n}</span>
+                <span className="ml-1 tabular-nums text-[#6B6B6B]">{item.n}</span>
               </button>
             ))}
           </div>
@@ -370,12 +370,12 @@ export function ListaFincasCatastro({
       )}
 
       <label className="relative block">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#5D6B67]" aria-hidden />
+        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#5C5C5C]" aria-hidden />
         <input
           value={q}
           onChange={(evento) => setQ(evento.target.value)}
           placeholder="Filtrar por calle o referencia"
-          className="h-8 w-full rounded-lg border border-[#DAD6CE] bg-white py-1 pl-8 pr-3 text-[13px] text-[#131C1A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B7461]"
+          className="h-8 w-full rounded-lg border border-[#D4D4D4] bg-white py-1 pl-8 pr-3 text-[13px] text-[#111111] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#111111]"
         />
       </label>
 
@@ -385,13 +385,13 @@ export function ListaFincasCatastro({
         className={cn(
           "min-w-0",
           "max-[779px]:flex max-[779px]:flex-col max-[779px]:gap-2.5",
-          "min-[780px]:overflow-x-auto min-[780px]:rounded-2xl min-[780px]:border min-[780px]:border-[#E6E3DD] min-[780px]:bg-white"
+          "min-[780px]:overflow-x-auto min-[780px]:rounded-2xl min-[780px]:border min-[780px]:border-[#E5E5E5] min-[780px]:bg-white"
         )}
       >
         {pagina.length === 0 ? (
           <>
             <CabeceraOrdenLista />
-            <p className="px-4 py-10 text-center text-sm text-[#5D6B67]">
+            <p className="px-4 py-10 text-center text-sm text-[#5C5C5C]">
               No hay fincas con ese filtro.
             </p>
           </>
@@ -431,7 +431,7 @@ export function ListaFincasCatastro({
               ))}
             </ul>
             {visibles.length > tope && !topeExterno ? (
-              <div className="border-t border-[#F2F0EB] px-4 py-3">
+              <div className="border-t border-[#F2F2F2] px-4 py-3">
                 <button
                   type="button"
                   className={cn(CHIP, CHIP_INACTIVA)}
@@ -439,7 +439,7 @@ export function ListaFincasCatastro({
                 >
                   Mostrar más
                 </button>
-                <p className="mt-1.5 text-[12px] tabular-nums text-[#6B7A76]">
+                <p className="mt-1.5 text-[12px] tabular-nums text-[#6B6B6B]">
                   Viendo {tope.toLocaleString("es-ES")} de {visibles.length.toLocaleString("es-ES")} fincas
                 </p>
               </div>
@@ -500,15 +500,15 @@ function BarraSeleccionLista({
   }, [algunasPagina]);
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-[#F2F0EB] bg-[#FBFBF9] px-3 py-2 max-[779px]:rounded-[13px] max-[779px]:border max-[779px]:border-[#E6E3DD] max-[779px]:bg-white">
-      <label className="flex items-center gap-2 text-[12px] font-medium text-[#5D6B67]">
+    <div className="flex flex-wrap items-center gap-2 border-b border-[#F2F2F2] bg-[#FAFAFA] px-3 py-2 max-[779px]:rounded-[13px] max-[779px]:border max-[779px]:border-[#E5E5E5] max-[779px]:bg-white">
+      <label className="flex items-center gap-2 text-[12px] font-medium text-[#5C5C5C]">
         <input
           ref={checkRef}
           type="checkbox"
           checked={todasPagina}
           disabled={!onMarcarPagina}
           aria-label="Seleccionar todas las fincas de esta página"
-          className="h-3.5 w-3.5 cursor-pointer rounded-[3px] border-[#CFCBC2] accent-[#0B7461]"
+          className="h-3.5 w-3.5 cursor-pointer rounded-[3px] border-[#D4D4D4] accent-[#111111]"
           onChange={() => onMarcarPagina?.(visibles, !todasPagina)}
         />
         {refsLote.length > 0
@@ -537,7 +537,7 @@ function ChipsOrdenLista({
 }) {
   return (
     <div>
-      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#6B7A76]">Ordenar</p>
+      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#6B6B6B]">Ordenar</p>
       <div className="flex flex-wrap gap-1.5" role="group" aria-label="Ordenar listado">
         {CAMPOS_ORDEN_LISTA.map((item) => {
           const indice = orden.findIndex((criterio) => criterio.campo === item.value);
@@ -574,7 +574,7 @@ function ChipsOrdenLista({
 
 function CabeceraOrdenLista() {
   return (
-    <div className="hidden items-center gap-3.5 border-b border-[#F2F0EB] bg-[#FBFBF9] px-3.5 py-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-[#6B7A76] min-[780px]:flex">
+    <div className="hidden items-center gap-3.5 border-b border-[#F2F2F2] bg-[#FAFAFA] px-3.5 py-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-[#6B6B6B] min-[780px]:flex">
       <span className="min-w-0 flex-[1_1_250px]">Dirección</span>
       {CAMPOS_ORDEN_LISTA.map((item) => (
         <span

@@ -185,7 +185,7 @@ export function ClienteCard({ id, nombre, email, telefono, activo, etiqueta, onD
                 <button
                   type="button"
                   onClick={handleCreateFactura}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-emerald-600 transition-colors hover:bg-emerald-50"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-neutral-900 transition-colors hover:bg-neutral-100"
                   aria-label="Crear factura"
                 >
                   <FileText className="h-4 w-4" strokeWidth={2} />

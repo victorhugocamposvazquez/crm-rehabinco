@@ -108,7 +108,7 @@ import {
 } from "@/lib/catastro/explorer/postal-codes-ui";
 
 const SELECT_CLASS =
-  "flex min-h-[46px] w-full rounded-[10px] border border-[#DAD6CE] bg-white px-3 py-2 text-[15px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B7461] disabled:cursor-not-allowed disabled:opacity-50";
+  "flex min-h-[46px] w-full rounded-[10px] border border-[#D4D4D4] bg-white px-3 py-2 text-[15px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#111111] disabled:cursor-not-allowed disabled:opacity-50";
 
 type PaginaCache = {
   cursor: string | null;
@@ -575,19 +575,19 @@ export function BuscarInmuebles() {
 
   return (
     <div className={cn((seleccion.fincas.length > 0 || revision.fincas.length > 0) && "pb-32 md:pb-24")}>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#5D6B67]">Catastro</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#5C5C5C]">Catastro</p>
       <PageHeader
         title="Buscar fincas"
         description="Rastreamos Catastro por bloques y nos quedamos las fincas sin división horizontal."
-        descriptionClassName="max-w-[58ch] text-[15px] text-[#5D6B67]"
+        descriptionClassName="max-w-[58ch] text-[15px] text-[#5C5C5C]"
       />
 
       <form
         onSubmit={onSubmit}
-        className="mt-8 rounded-2xl border border-[#E6E3DD] bg-white p-3.5 shadow-[0_1px_2px_rgba(19,28,26,.04)] min-[780px]:p-[22px]"
+        className="mt-8 rounded-2xl border border-[#E5E5E5] bg-white p-3.5 shadow-[0_1px_2px_rgba(17, 17, 17,.04)] min-[780px]:p-[22px]"
       >
         <fieldset className="mb-5">
-          <legend className="text-sm font-medium text-[#131C1A]">¿Qué quieres buscar?</legend>
+          <legend className="text-sm font-medium text-[#111111]">¿Qué quieres buscar?</legend>
           <div className="mt-3 grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Qué quieres buscar">
             {MODOS_BUSQUEDA.map((item) => (
               <label
@@ -595,8 +595,8 @@ export function BuscarInmuebles() {
                 className={cn(
                   "flex cursor-pointer flex-col gap-1 rounded-2xl border-[1.5px] px-4 py-3 transition-colors",
                   modo === item.value
-                    ? "border-[#0B7461] bg-[#E8F3EF] text-[#131C1A]"
-                    : "border-[#E6E3DD] bg-white text-[#5D6B67] hover:border-[#DAD6CE]"
+                    ? "border-[#111111] bg-[#F0F0F0] text-[#111111]"
+                    : "border-[#E5E5E5] bg-white text-[#5C5C5C] hover:border-[#D4D4D4]"
                 )}
               >
                 <span className="flex items-center gap-2 text-sm font-semibold">
@@ -606,7 +606,7 @@ export function BuscarInmuebles() {
                     value={item.value}
                     checked={modo === item.value}
                     onChange={() => onModo(item.value)}
-                    className="h-4 w-4 accent-[var(--accent,#0f766e)]"
+                    className="h-4 w-4 accent-[var(--accent,#111111)]"
                   />
                   {item.label}
                 </span>
@@ -771,8 +771,8 @@ export function BuscarInmuebles() {
                         className={cn(
                           "min-h-9 rounded-full border px-2.5 font-mono text-[13px] font-semibold",
                           activo
-                            ? "border-[#0B7461] bg-[#E8F3EF] text-[#08594B]"
-                            : "border-[#E6E3DD] bg-white text-[#5D6B67]"
+                            ? "border-[#111111] bg-[#F0F0F0] text-[#000000]"
+                            : "border-[#E5E5E5] bg-white text-[#5C5C5C]"
                         )}
                       >
                         {codigo}
@@ -795,7 +795,7 @@ export function BuscarInmuebles() {
           </div>
 
           <div className="space-y-2 md:col-span-2 xl:col-span-3">
-            <p className="text-sm font-medium text-[#131C1A]">Qué fincas quieres ver</p>
+            <p className="text-sm font-medium text-[#111111]">Qué fincas quieres ver</p>
             <div className="flex flex-col gap-1.5 min-[780px]:flex-row min-[780px]:flex-wrap" role="group" aria-label="Qué fincas quieres ver">
               {FILTROS_DIVISION_FORM.map((item) => (
                 <button
@@ -808,15 +808,15 @@ export function BuscarInmuebles() {
                   className={cn(
                     "min-h-11 rounded-[10px] border px-3.5 text-left text-[13.5px] font-medium min-[780px]:min-h-0 min-[780px]:rounded-full min-[780px]:px-3 min-[780px]:py-1.5 min-[780px]:text-[13px] min-[780px]:font-semibold",
                     horizontalDivision === item.value
-                      ? "border-[#0B7461] bg-[#E8F3EF] text-[#08594B]"
-                      : "border-[#E6E3DD] bg-white text-[#5D6B67]"
+                      ? "border-[#111111] bg-[#F0F0F0] text-[#000000]"
+                      : "border-[#E5E5E5] bg-white text-[#5C5C5C]"
                   )}
                 >
                   {item.label}
                 </button>
               ))}
             </div>
-            <p className="text-xs text-[#5D6B67]">{ayudaFiltroDivision(horizontalDivision)}</p>
+            <p className="text-xs text-[#5C5C5C]">{ayudaFiltroDivision(horizontalDivision)}</p>
           </div>
         </div>
 
@@ -838,7 +838,7 @@ export function BuscarInmuebles() {
                 zonaOcupada ||
                 cpAjenoAlMunicipio
               }
-              className="h-[50px] w-full bg-[#0B7461] text-[15px] hover:bg-[#08594B] min-[780px]:h-auto min-[780px]:w-auto min-[780px]:text-sm"
+              className="h-[50px] w-full bg-[#111111] text-[15px] hover:bg-[#000000] min-[780px]:h-auto min-[780px]:w-auto min-[780px]:text-sm"
             >
               <Search className="h-4 w-4" strokeWidth={1.5} aria-hidden />
               {zona.estado.fase === "preparando" ? "Preparando…" : "Rastrear fincas"}
@@ -847,13 +847,13 @@ export function BuscarInmuebles() {
             <Button
               type="submit"
               disabled={loading || !criterios || cpAjenoAlMunicipio}
-              className="h-[50px] w-full bg-[#0B7461] text-[15px] hover:bg-[#08594B] min-[780px]:h-auto min-[780px]:w-auto min-[780px]:text-sm"
+              className="h-[50px] w-full bg-[#111111] text-[15px] hover:bg-[#000000] min-[780px]:h-auto min-[780px]:w-auto min-[780px]:text-sm"
             >
               <Search className="h-4 w-4" strokeWidth={1.5} aria-hidden />
               {loading ? "Buscando en Catastro..." : "Rastrear fincas"}
             </Button>
           )}
-          <p className="text-center text-xs text-[#5D6B67] min-[780px]:text-left">Tarda unos minutos. Puedes pausar cuando quieras.</p>
+          <p className="text-center text-xs text-[#5C5C5C] min-[780px]:text-left">Tarda unos minutos. Puedes pausar cuando quieras.</p>
         </div>
       </form>
 
@@ -1027,7 +1027,7 @@ function ResultadosBusqueda({
             </Button>
           ) : null}
           {cobertura.completa ? (
-            <p className="text-sm font-medium text-teal-800">{cobertura.completa}</p>
+            <p className="text-sm font-medium text-neutral-900">{cobertura.completa}</p>
           ) : null}
         </div>
       </div>
@@ -1058,7 +1058,7 @@ function ResultadosBusqueda({
           onMarcarPagina={onMarcarPagina}
           fincasSeleccionadas={seleccion.fincas.map((finca) => finca.fincaReference)}
           topeExterno
-          pie={barraPaginas ? <div className="border-t border-[#F2F0EB] px-3.5 py-3">{barraPaginas}</div> : null}
+          pie={barraPaginas ? <div className="border-t border-[#F2F2F2] px-3.5 py-3">{barraPaginas}</div> : null}
         />
       )}
     </div>

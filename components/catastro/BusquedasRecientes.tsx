@@ -86,7 +86,7 @@ export function BusquedasRecientes({
         <h2 className="text-sm font-semibold text-foreground">Búsquedas recientes</h2>
         <Link
           href={RUTA_HISTORICO}
-          className="text-sm font-medium text-[#0B7461] hover:underline"
+          className="text-sm font-medium text-[#111111] hover:underline"
         >
           {TEXTO_VER_TODO}
         </Link>

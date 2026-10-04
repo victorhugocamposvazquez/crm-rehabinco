@@ -214,7 +214,7 @@ export function TopBar() {
                 />
               </div>
               {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
-              {passwordMessage && <p className="text-sm text-emerald-700">{passwordMessage}</p>}
+              {passwordMessage && <p className="text-sm text-neutral-900">{passwordMessage}</p>}
               <Button onClick={onUpdatePassword} disabled={passwordSaving} size="sm">
                 {passwordSaving ? "Guardando…" : "Actualizar contraseña"}
               </Button>

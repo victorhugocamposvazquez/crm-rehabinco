@@ -169,7 +169,7 @@ export function CalendarioSemana({
                 "relative cursor-pointer border-l border-[var(--border-soft)] transition-colors duration-150",
                 sobre && "cal-col--over"
               )}
-              style={{ height: altura, background: sobre ? undefined : esHoy ? "#FBFBF9" : "#fff" }}
+              style={{ height: altura, background: sobre ? undefined : esHoy ? "#FAFAFA" : "#fff" }}
             >
               {Array.from({ length: CAL_HORA_FIN - CAL_HORA_INICIO + 1 }).map((_, i) => (
                 <div key={i} className="absolute inset-x-0 border-t border-[var(--border-row)]" style={{ top: i * CAL_PX_HORA }} />

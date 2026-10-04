@@ -135,7 +135,7 @@ export function InmuebleMatching({ inmueble }: { inmueble: Inmueble }) {
       </div>
       <ul className="space-y-2">
         {matches.map((item) => (
-          <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#E6E3DD] px-3 py-2">
+          <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#E5E5E5] px-3 py-2">
             <FichaLink tipo="demanda" id={item.demanda_id} className="text-sm font-medium">
               {item.demandas?.clientes?.nombre ?? "Demanda"} · {Math.round(Number(item.puntuacion))} pts
             </FichaLink>

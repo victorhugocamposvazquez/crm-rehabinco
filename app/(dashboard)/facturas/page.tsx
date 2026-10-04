@@ -127,10 +127,10 @@ export default function FacturasPage() {
     const emitidasSinCobrar = facturas.filter((f) => f.estado === "emitida").length;
     const borradores = facturas.filter((f) => f.estado === "borrador").length;
     return [
-      { valor: formatEuro(facturadoMes, { fraction: 0 }), label: "Facturado este mes", fg: "#0B7461" },
+      { valor: formatEuro(facturadoMes, { fraction: 0 }), label: "Facturado este mes", fg: "#111111" },
       { valor: formatEuro(pendiente, { fraction: 0 }), label: "Pendiente de cobro", fg: "#B98A16" },
-      { valor: String(emitidasSinCobrar), label: "Emitidas sin cobrar", fg: "#131C1A" },
-      { valor: String(borradores), label: "Borradores", fg: "#8A938F" },
+      { valor: String(emitidasSinCobrar), label: "Emitidas sin cobrar", fg: "#111111" },
+      { valor: String(borradores), label: "Borradores", fg: "#8A8A8A" },
     ];
   }, [facturas]);
 

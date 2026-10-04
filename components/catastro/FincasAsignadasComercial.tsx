@@ -47,9 +47,9 @@ export function FincasAsignadasComercial() {
         <p className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>
       ) : null}
       {items == null ? (
-        <p className="mt-8 text-sm text-[#5D6B67]">Cargando tus fincas…</p>
+        <p className="mt-8 text-sm text-[#5C5C5C]">Cargando tus fincas…</p>
       ) : items.length === 0 && !error ? (
-        <p className="mt-8 rounded-2xl border border-[#E6E3DD] bg-white px-5 py-10 text-center text-sm text-[#5D6B67]">
+        <p className="mt-8 rounded-2xl border border-[#E5E5E5] bg-white px-5 py-10 text-center text-sm text-[#5C5C5C]">
           Aún no te han asignado fincas. Cuando dirección te asigne alguna, saldrá aquí.
         </p>
       ) : items.length > 0 ? (

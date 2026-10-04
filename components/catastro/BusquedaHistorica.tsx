@@ -329,7 +329,7 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
           topeExterno
           pie={
             totalListado > 0 ? (
-              <div className="border-t border-[#F2F0EB] px-3.5 py-3">{barraPaginas}</div>
+              <div className="border-t border-[#F2F2F2] px-3.5 py-3">{barraPaginas}</div>
             ) : null
           }
         />
