@@ -144,7 +144,7 @@ export const FILTROS_LISTADO_HISTORICO = [
 export type FiltroListadoHistorico = (typeof FILTROS_LISTADO_HISTORICO)[number]["value"];
 
 export const CLASES_TARJETA_BUSQUEDA =
-  "flex flex-col gap-3 rounded-[13px] border border-border bg-[var(--surface)] px-3.5 py-3.5 min-[780px]:flex-row min-[780px]:items-center min-[780px]:justify-between min-[780px]:gap-4 min-[780px]:rounded-none min-[780px]:border-0 min-[780px]:bg-transparent min-[780px]:px-4 min-[780px]:py-3.5";
+  "flex flex-col gap-3 rounded-[13px] border border-border bg-[var(--surface)] px-3.5 py-3.5 min-[780px]:flex-row min-[780px]:items-center min-[780px]:justify-between min-[780px]:gap-4 min-[780px]:px-4 min-[780px]:py-3.5";
 
 export const CLASE_CHIP_ESTADO =
   "inline-flex shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold";

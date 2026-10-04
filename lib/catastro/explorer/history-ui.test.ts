@@ -480,7 +480,8 @@ describe("Catastro Explorer — experiencia persistente", () => {
   it("16. la tarjeta de búsqueda es responsive", () => {
     assert.match(CLASES_TARJETA_BUSQUEDA, /flex-col/);
     assert.match(CLASES_TARJETA_BUSQUEDA, /min-\[780px\]:flex-row/);
-    assert.match(CLASES_TARJETA_BUSQUEDA, /border/);
+    assert.match(CLASES_TARJETA_BUSQUEDA, /border border-border/);
+    assert.doesNotMatch(CLASES_TARJETA_BUSQUEDA, /min-\[780px\]:border-0/);
   });
 
   it("la lista reciente resume fecha, fincas y progreso por bloques", () => {
