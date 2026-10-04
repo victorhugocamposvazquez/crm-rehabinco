@@ -43,7 +43,7 @@ export function Sidebar({ badges }: { badges?: Record<string, number> }) {
 
   return (
     <aside
-      className="sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-border bg-white transition-[width] duration-200 min-[820px]:flex"
+      className="sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-border bg-[var(--surface)] transition-[width] duration-200 min-[820px]:flex"
       style={{ width: collapsed ? 62 : 232 }}
     >
       <Link
@@ -57,12 +57,12 @@ export function Sidebar({ badges }: { badges?: Record<string, number> }) {
         {collapsed ? (
           <img src="/images/icono.png" alt="" className="h-8 w-8 shrink-0 object-contain" />
         ) : (
-          <img src="/images/logo-web.png" alt="" className="h-9 w-auto max-w-full shrink-0 object-contain" />
+          <img src="/images/logo-web.png" alt="" className="marca-rehabinco h-9 w-auto max-w-full shrink-0 object-contain" />
         )}
       </Link>
       <nav className="flex-1 overflow-y-auto px-2 py-2.5">
         {grupos.map((grupo) => (
-          <div key={grupo.label} className="mb-2.5">
+            <div key={grupo.label} className="mb-4">
             {!collapsed && (
               <div className="px-2.5 pb-1.5 pt-2 text-[10.5px] font-medium uppercase tracking-[0.09em] text-[var(--label)]">
                 {grupo.label}
@@ -77,8 +77,8 @@ export function Sidebar({ badges }: { badges?: Record<string, number> }) {
                   href={href}
                   title={label}
                   className={cn(
-                    "flex min-h-9 items-center gap-2.5 rounded-[9px] px-2.5 text-[13.5px] whitespace-nowrap",
-                    on ? "bg-accent-soft font-semibold text-accent" : "font-medium text-[#3B4744] hover:bg-[var(--surface-soft)]"
+                    "flex min-h-10 items-center gap-2.5 rounded-[9px] px-2.5 text-[13.5px] whitespace-nowrap",
+                    on ? "bg-accent-soft font-semibold text-foreground" : "font-medium text-[var(--text-2)] hover:bg-[var(--surface-soft)] hover:text-foreground"
                   )}
                 >
                   <Icon size={17} strokeWidth={1.9} className="shrink-0" />

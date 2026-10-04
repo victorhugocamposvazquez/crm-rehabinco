@@ -259,7 +259,7 @@ export function TareaPanel({
   return (
     <Sheet open onOpenChange={(open) => !open && onClose()} variant="side" side="right">
       <div className="flex h-full min-h-0 flex-col">
-        <div className="flex items-center gap-2.5 border-b border-[var(--border-soft)] px-4 py-3.5">
+        <div className="flex items-center gap-2.5 px-5 pb-2 pt-5">
           <span className="flex-1 text-[11px] uppercase tracking-[.08em] text-[var(--label)]">Tarea</span>
           <button
             type="button"
@@ -274,7 +274,7 @@ export function TareaPanel({
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-8">
           <div className="flex items-start gap-2.5">
             <button
               type="button"
@@ -297,20 +297,20 @@ export function TareaPanel({
                 }
               }}
               rows={2}
-              className="min-h-[52px] w-full resize-none bg-transparent text-[19px] font-semibold leading-snug tracking-[-.01em] outline-none"
+              className="min-h-[52px] w-full resize-none bg-transparent text-[22px] font-medium leading-tight tracking-[-0.03em] outline-none"
             />
           </div>
 
-          <div className="mt-[18px] grid grid-cols-2 gap-3">
+          <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-5">
             <div>
-              <div className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">Columna</div>
+              <div className="text-[12px] text-[var(--text-3)]">Columna</div>
               <div className="mt-1 flex items-center gap-1.5 text-[13.5px]">
                 <span className="h-2 w-2 rounded-full" style={{ background: colMeta?.dot }} />
                 {colMeta?.label}
               </div>
             </div>
             <div>
-              <div className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">Vence</div>
+              <div className="text-[12px] text-[var(--text-3)]">Vence</div>
               <input
                 type="date"
                 value={tarea.vence ?? ""}
@@ -324,7 +324,7 @@ export function TareaPanel({
               />
             </div>
             <div>
-              <div className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">Creada por</div>
+              <div className="text-[12px] text-[var(--text-3)]">Creada por</div>
               <div className="mt-1 flex items-center gap-1.5 text-[13.5px]">
                 <AvatarComercial
                   nombre={tarea.creador?.nombre_completo ?? nombreCreador}
@@ -336,7 +336,7 @@ export function TareaPanel({
               </div>
             </div>
             <div>
-              <div className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">Asignada a</div>
+              <div className="text-[12px] text-[var(--text-3)]">Asignada a</div>
               {comerciales.length > 0 ? (
                 <div className="mt-1 flex items-center gap-1.5">
                   <AvatarComercial
@@ -373,7 +373,7 @@ export function TareaPanel({
               )}
             </div>
             <div className="col-span-2">
-              <div className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">Vinculado a</div>
+              <div className="text-[12px] text-[var(--text-3)]">Vinculado a</div>
               {destinoPrincipal && vinculo !== "Sin vincular" ? (
                 <button
                   type="button"
@@ -394,7 +394,7 @@ export function TareaPanel({
             </div>
           </div>
 
-          <div className="mt-[18px] rounded-[11px] border border-border bg-[#FAFAFA] px-3.5 py-3">
+          <div className="mt-8 rounded-[12px] border border-border bg-[var(--surface-soft)] px-4 py-4">
             <div className="flex flex-wrap items-center justify-between gap-2.5">
               <div className="flex items-center gap-2 text-[13.5px] font-semibold">
                 <CalendarDays size={15} className="text-accent" />
@@ -406,7 +406,7 @@ export function TareaPanel({
                   <TimeInput
                     value={tarea.hora.slice(0, 5)}
                     onChange={(v) => void onPatch(tarea.id, { hora: v || null })}
-                    className="h-8 rounded-lg border border-[var(--input)] bg-white px-2 text-[13px]"
+                    className="h-8 rounded-lg border border-[var(--input)] bg-[var(--surface)] px-2 text-[13px]"
                   />
                 </label>
               ) : (
@@ -421,7 +421,7 @@ export function TareaPanel({
             </div>
           </div>
 
-          <div className="mt-[18px] grid gap-3">
+          <div className="mt-8 grid gap-5">
             <CampoVinculo
               label="Inmueble"
               valor={
@@ -442,7 +442,7 @@ export function TareaPanel({
                 onChange={(e) =>
                   void onPatch(tarea.id, { propiedad_id: e.target.value || null })
                 }
-                className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 text-[13.5px] text-foreground"
+                className="mt-2 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-[var(--surface)] px-2.5 text-[13.5px] text-foreground"
               >
                 <option value="">{inmuebleCaptacion ? "Sin inmueble del CRM" : "Sin inmueble"}</option>
                 {propsOpts.map((p) => (
@@ -462,7 +462,7 @@ export function TareaPanel({
                 onChange={(e) =>
                   void onPatch(tarea.id, { cliente_id: e.target.value || null })
                 }
-                className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 text-[13.5px] text-foreground"
+                className="mt-2 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-[var(--surface)] px-2.5 text-[13.5px] text-foreground"
               >
                 <option value="">Sin cliente</option>
                 {cliOpts.map((c) => (
@@ -482,7 +482,7 @@ export function TareaPanel({
                 onChange={(e) =>
                   void onPatch(tarea.id, { demanda_id: e.target.value || null })
                 }
-                className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 text-[13.5px] text-foreground"
+                className="mt-2 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-[var(--surface)] px-2.5 text-[13.5px] text-foreground"
               >
                 <option value="">Sin demanda</option>
                 {demOpts.map((d) => (
@@ -506,7 +506,7 @@ export function TareaPanel({
                     ...(parte?.propiedadId && !tarea.propiedad_id ? { propiedad_id: parte.propiedadId } : {}),
                   });
                 }}
-                className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 text-[13.5px] text-foreground"
+                className="mt-2 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-[var(--surface)] px-2.5 text-[13.5px] text-foreground"
               >
                 <option value="">Sin parte</option>
                 {parteOpts.map((p) => (
@@ -530,13 +530,13 @@ export function TareaPanel({
                   void onPatch(tarea.id, { finca_reference: valor });
                 }}
                 placeholder="Referencia catastral"
-                className="mt-1 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-white px-2.5 font-mono text-[12.5px] text-foreground"
+                className="mt-2 flex h-10 w-full rounded-[9px] border border-[var(--input)] bg-[var(--surface)] px-2.5 font-mono text-[12.5px] text-foreground"
               />
             </CampoVinculo>
           </div>
 
-          <div className="mt-[18px]">
-            <div className="mb-2 text-[11px] uppercase tracking-[.07em] text-[var(--label)]">Comentarios</div>
+          <div className="mt-8">
+            <div className="mb-2 text-[12px] text-[var(--text-3)]">Comentarios</div>
             {actividad.length === 0 ? (
               <p className="mb-3 text-[12.5px] text-[var(--text-3)]">Todavía no hay comentarios. Escribe el primero.</p>
             ) : (
@@ -563,13 +563,13 @@ export function TareaPanel({
           </div>
         </div>
 
-        <div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-[var(--border-soft)] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-[var(--border)] px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {COLUMNAS_TAREA.filter((c) => c.id !== col).map((item) => (
             <button
               key={item.id}
               type="button"
               onClick={() => onMover(tarea.id, item.id)}
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-[var(--input)] bg-white px-3 text-[12.5px] font-medium hover:border-accent hover:text-accent"
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-[var(--input)] bg-[var(--surface)] px-3 text-[12.5px] font-medium hover:border-accent hover:text-accent"
             >
               <span className="h-[7px] w-[7px] rounded-full" style={{ background: item.dot }} />
               Mover a {item.label}
@@ -579,7 +579,7 @@ export function TareaPanel({
             <button
               type="button"
               onClick={() => setConfirmEliminar(true)}
-              className="ml-auto inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 text-[12.5px] font-medium text-red-600 hover:bg-red-50"
+              className="ml-auto inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-red-200 bg-[var(--surface)] px-3 text-[12.5px] font-medium text-red-600 hover:bg-red-50"
               aria-label="Eliminar tarea"
             >
               <Trash2 size={14} strokeWidth={2.2} />
@@ -629,7 +629,7 @@ function CampoVinculo({
 }) {
   return (
     <div>
-      <div className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">{label}</div>
+      <div className="text-[12px] text-[var(--text-3)]">{label}</div>
       {valor && onVer ? (
         <button
           type="button"

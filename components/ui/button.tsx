@@ -7,12 +7,12 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-accent text-white hover:bg-accent-dark",
+        default: "bg-accent text-accent-foreground hover:bg-accent-dark",
         secondary:
-          "border border-[var(--input)] bg-white text-foreground hover:border-accent hover:text-accent",
+          "border border-[var(--input)] bg-[var(--surface)] text-foreground hover:border-accent hover:text-accent",
         ghost: "text-accent hover:bg-accent-soft",
         link: "text-accent underline-offset-4 hover:underline",
-        floating: "rounded-full bg-accent text-white hover:bg-accent-dark",
+        floating: "rounded-full bg-accent text-accent-foreground hover:bg-accent-dark",
       },
       size: {
         default: "h-9 rounded-[9px] px-3.5 text-[13.5px] min-[820px]:h-9 max-[819px]:h-10",

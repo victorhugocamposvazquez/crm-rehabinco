@@ -19,7 +19,7 @@ export default {
           DEFAULT: "var(--accent)",
           dark: "var(--accent-dark)",
           soft: "var(--accent-soft)",
-          foreground: "#ffffff",
+          foreground: "var(--accent-foreground)",
         },
         muted: {
           DEFAULT: "var(--muted)",
@@ -27,8 +27,8 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
-        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
+        sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
+        mono: ["var(--font-geist-mono)", "ui-monospace", "monospace"],
       },
       animation: {
         rise: "rise 0.2s ease",

@@ -79,7 +79,7 @@ export function HerramientasFooter() {
   return (
     <nav
       aria-label="Herramientas"
-      className="fixed inset-x-0 bottom-[var(--mobile-nav-h)] z-40 flex border-t border-border bg-white/95 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] backdrop-blur min-[820px]:bottom-0 min-[820px]:left-[232px] min-[820px]:right-0"
+      className="fixed inset-x-0 bottom-[var(--mobile-nav-h)] z-40 flex border-t border-border bg-[var(--surface)] shadow-[0_-4px_12px_rgba(0,0,0,0.06)] min-[820px]:bottom-0 min-[820px]:left-[232px] min-[820px]:right-0"
     >
       <div className="mx-auto flex w-full max-w-[1600px] overflow-x-auto px-2 min-[820px]:px-6">
         {items.map((item) => {

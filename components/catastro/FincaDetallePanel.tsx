@@ -276,22 +276,22 @@ function PanelLateralFinca({
         role="dialog"
         aria-modal="true"
         aria-labelledby="ficha-finca-titulo"
-        className="absolute inset-y-0 right-0 z-10 flex w-full max-w-none flex-col bg-white pb-[env(safe-area-inset-bottom)] shadow-[-16px_0_40px_rgba(17, 17, 17,.16)] animate-[slideInFromRight_0.28s_ease-out] min-[780px]:w-[min(46rem,52vw)]"
+        className="absolute inset-y-0 right-0 z-10 flex w-full max-w-none flex-col bg-[var(--surface)] pb-[env(safe-area-inset-bottom)] shadow-[-16px_0_40px_rgba(17, 17, 17,.16)] animate-[slideInFromRight_0.28s_ease-out] min-[780px]:w-[min(46rem,52vw)]"
         onTouchStart={(evento) => {
           toqueInicio.current = evento.changedTouches[0]?.clientX ?? null;
         }}
         onTouchEnd={(evento) => cerrarSiDesliza(evento.changedTouches[0]?.clientX ?? 0)}
       >
         <header
-          className="border-b border-[#EFEFEF] px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] min-[780px]:px-6 min-[780px]:pt-5"
+          className="px-5 pb-2 pt-[max(1.25rem,env(safe-area-inset-top))] min-[780px]:px-6 min-[780px]:pt-6"
         >
           <div className="flex items-start gap-3">
             <div className="min-w-0 flex-1">
-              <h2 id="ficha-finca-titulo" className="text-[17px] font-semibold leading-snug tracking-tight text-[#111111] min-[780px]:text-[19px]">
+              <h2 id="ficha-finca-titulo" className="text-[22px] font-medium leading-tight tracking-[-0.03em] text-foreground">
                 {titulo}
               </h2>
               <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                <p className="font-mono text-[11.5px] text-[#5C5C5C]">{referencia}</p>
+                <p className="font-mono text-[12px] text-[var(--text-3)]">{referencia}</p>
                 <span className={cn("rounded-md px-2.5 py-1 text-[11px] font-semibold", claseBadgeDivision(status))}>
                   {etiquetaEstadoDivisionLista(status)}
                 </span>
@@ -301,7 +301,7 @@ function PanelLateralFinca({
               ref={cerrarRef}
               type="button"
               onClick={onCerrar}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] text-[#5C5C5C] hover:bg-[#F5F5F5]"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] text-[var(--text-2)] hover:bg-[var(--surface-soft)]"
               aria-label="Cerrar ficha"
             >
               <X className="h-5 w-5" strokeWidth={2.2} aria-hidden />
@@ -309,13 +309,13 @@ function PanelLateralFinca({
           </div>
         </header>
         <div
-          className="min-h-0 flex-1 overflow-y-auto px-4 py-4 min-[780px]:px-6 min-[780px]:py-5"
+          className="min-h-0 flex-1 overflow-y-auto px-5 py-6 min-[780px]:px-6 min-[780px]:py-8"
           onTouchStart={(evento) => evento.stopPropagation()}
         >
           {children}
         </div>
         {accion ? (
-          <div className="border-t border-[#EFEFEF] bg-white px-4 py-3 shadow-[0_-6px_18px_rgba(17, 17, 17,.06)] min-[780px]:px-6">
+          <div className="border-t border-[var(--border)] bg-[var(--surface)] px-5 py-4 min-[780px]:px-6">
             <div className="[&_button]:h-[50px] [&_button]:w-full [&_button]:text-[14.5px] [&_a]:flex [&_a]:h-[50px] [&_a]:w-full [&_a]:items-center [&_a]:justify-center [&_a]:text-[14.5px] min-[780px]:[&_a]:h-10 min-[780px]:[&_a]:w-auto min-[780px]:[&_button]:h-10 min-[780px]:[&_button]:w-auto">
               {accion}
             </div>
@@ -333,8 +333,8 @@ const CLASE_ACCION =
 function Dato({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-[11px] font-semibold uppercase tracking-wide text-[#6B6B6B]">{label}</dt>
-      <dd className="mt-0.5 text-sm tabular-nums text-[#111111]">{value}</dd>
+      <dt className="text-[12px] text-[var(--text-3)]">{label}</dt>
+      <dd className="mt-1.5 text-sm tabular-nums text-foreground">{value}</dd>
     </div>
   );
 }

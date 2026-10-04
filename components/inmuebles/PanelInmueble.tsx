@@ -196,7 +196,7 @@ export function PanelInmueble({
     return (
       <aside
         className={cn(
-          "overflow-hidden bg-white",
+          "overflow-hidden bg-[var(--surface)]",
           overlay ? "fixed inset-0 z-50 rounded-none" : embedded ? "" : "sticky top-[72px] w-full max-w-[42rem] shrink-0 rounded-[14px] border border-border"
         )}
       >
@@ -232,7 +232,7 @@ export function PanelInmueble({
   return (
     <aside
       className={cn(
-        "bg-white",
+        "bg-[var(--surface)]",
         overlay
           ? "fixed inset-0 z-50 overflow-hidden rounded-none"
           : embedded
@@ -265,31 +265,33 @@ export function PanelInmueble({
             </button>
           ) : null}
         </div>
-        <div className="border-b border-[var(--border-soft)] px-4 py-3.5">
-          <div className="flex items-start justify-between gap-2.5">
-            <div className="min-w-0">
-              <span className="font-mono text-[12px] text-accent">{inmueble.referencia ?? "—"}</span>
-              <h2 className="mt-0.5 text-[17px] font-semibold tracking-tight">{inmueble.titulo || inmueble.direccion || "Inmueble"}</h2>
-              <p className="mt-0.5 text-[12.5px] text-[var(--text-2)]">{[inmueble.direccion, inmueble.localidad].filter(Boolean).join(", ")}</p>
+        <div className="px-5 pb-2 pt-5">
+          <span className="font-mono text-[12px] text-[var(--text-3)]">{inmueble.referencia ?? "—"}</span>
+          <div className="mt-2 flex items-start justify-between gap-4">
+            <h2 className="min-w-0 text-[22px] font-medium leading-tight tracking-[-0.03em]">
+              {inmueble.titulo || inmueble.direccion || "Inmueble"}
+            </h2>
+            <div className="shrink-0 text-[22px] font-medium tabular-nums tracking-[-0.03em]">
+              {formatPrecioInmueble(precioDeInmueble(inmueble))}
             </div>
-            <div className="shrink-0 text-[19px] font-semibold tabular-nums tracking-tight">{formatPrecioInmueble(precioDeInmueble(inmueble))}</div>
           </div>
-          <div className="mt-3 flex items-center gap-2">
-            <div className="h-[5px] flex-1 overflow-hidden rounded-[3px] bg-[var(--border-soft)]">
-              <div className="h-full bg-accent" style={{ width: `${completar.porcentaje}%` }} />
+          <p className="mt-2 text-[13.5px] text-[var(--text-2)]">{[inmueble.direccion, inmueble.localidad].filter(Boolean).join(", ")}</p>
+          <div className="mt-5 flex items-center gap-3">
+            <div className="h-1 flex-1 overflow-hidden rounded-full bg-[var(--border-soft)]">
+              <div className="h-full bg-foreground" style={{ width: `${completar.porcentaje}%` }} />
             </div>
-            <span className="whitespace-nowrap text-[12px] tabular-nums text-[var(--text-2)]">Ficha al {completar.porcentaje}%</span>
+            <span className="whitespace-nowrap text-[12px] tabular-nums text-[var(--text-3)]">Ficha {completar.porcentaje}%</span>
+          </div>
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <Button asChild>
+              <Link href={rutaNuevaCita({ propiedadId: inmueble.id, clienteId: inmueble.ofertante_id })}>Concertar visita</Link>
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => void compartir()}>
+              Compartir ficha
+            </Button>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2 border-b border-[var(--border-soft)] px-4 py-3">
-          <Button asChild className="h-[38px] flex-[1_1_120px]">
-            <Link href={rutaNuevaCita({ propiedadId: inmueble.id, clienteId: inmueble.ofertante_id })}>Concertar visita</Link>
-          </Button>
-          <Button type="button" variant="secondary" className="h-[38px] flex-[1_1_120px]" onClick={() => void compartir()}>
-            Compartir ficha
-          </Button>
-        </div>
-        <div className="grid grid-cols-3 gap-2.5 border-b border-[var(--border-soft)] px-4 py-3">
+        <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-4 px-5">
           {[
             ["Tipo", labelTipoInmueble(inmueble.tipo_inmueble)],
             ["Superficie", inmueble.superficie_m2 != null ? `${inmueble.superficie_m2} m²` : "—"],
@@ -301,33 +303,33 @@ export function PanelInmueble({
             ["Catastro", inmueble.referencia_catastral || inmueble.fincaReference || "—"],
           ].map(([label, value]) => (
             <div key={label} className={label === "Catastro" ? "min-w-0" : undefined}>
-              <div className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">{label}</div>
-              <div className={cn("mt-0.5 truncate text-[13.5px]", label === "Catastro" && "font-mono text-[11.5px]")}>
+              <div className="text-[12px] text-[var(--text-3)]">{label}</div>
+              <div className={cn("mt-1 truncate text-[14px]", label === "Catastro" && "font-mono text-[12px]")}>
                 {value}
               </div>
             </div>
           ))}
           <div>
-            <div className="text-[11px] uppercase tracking-[.07em] text-[var(--label)]">Propietario</div>
+            <div className="text-[12px] text-[var(--text-3)]">Propietario</div>
             {inmueble.ofertante_id ? (
-              <FichaLink tipo="cliente" id={inmueble.ofertante_id} className="mt-0.5 block truncate text-[13.5px]">
+              <FichaLink tipo="cliente" id={inmueble.ofertante_id} className="mt-1 block truncate text-[14px]">
                 {inmueble.ofertanteNombre}
               </FichaLink>
             ) : (
-              <div className="mt-0.5 truncate text-[13.5px]">{inmueble.ofertanteNombre}</div>
+              <div className="mt-1 truncate text-[14px]">{inmueble.ofertanteNombre}</div>
             )}
           </div>
         </div>
         {inmueble.descripcion ? (
-          <p className="border-b border-[var(--border-soft)] px-4 py-3 text-[13px] leading-relaxed text-[var(--text-2)]">{inmueble.descripcion}</p>
+          <p className="mt-8 px-5 text-[14px] leading-7 text-[var(--text-2)]">{inmueble.descripcion}</p>
         ) : null}
-        <div className="border-b border-[var(--border-soft)] px-4 py-3.5">
-          <h3 className="text-[13.5px] font-semibold">Notas internas</h3>
-          <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--text-2)]">{inmueble.notas?.trim() || "Sin notas internas."}</p>
+        <div className="mt-8 px-5">
+          <h3 className="text-[13px] font-medium text-[var(--text-3)]">Notas internas</h3>
+          <p className="mt-2 text-[14px] leading-7 text-foreground">{inmueble.notas?.trim() || "Sin notas internas."}</p>
         </div>
         {user?.id ? (
-          <div className="border-b border-[var(--border-soft)] px-4 py-3.5">
-            <h3 className="mb-3 text-[13.5px] font-semibold">Fotos, planos y visita virtual</h3>
+          <div className="mt-8 px-5">
+            <h3 className="mb-4 text-[13px] font-medium text-[var(--text-3)]">Fotos, planos y visita virtual</h3>
             <InmuebleMultimedia
               propiedadId={inmueble.id}
               userId={user.id}
@@ -352,10 +354,10 @@ export function PanelInmueble({
             />
           </div>
         ) : null}
-        <div className="px-4 pb-3.5 pt-3">
-          <div className="mb-2 flex items-baseline justify-between">
-            <h3 className="text-[13.5px] font-semibold">Demandas que encajan</h3>
-            <span className="text-[12px] text-[var(--text-2)]">{matches.length}</span>
+        <div className="mt-8 px-5 pb-8">
+          <div className="mb-3 flex items-baseline justify-between">
+            <h3 className="text-[13px] font-medium text-[var(--text-3)]">Demandas que encajan</h3>
+            <span className="text-[12px] tabular-nums text-[var(--text-3)]">{matches.length}</span>
           </div>
           {matches.length === 0 ? (
             <p className="rounded-[10px] border border-dashed border-[var(--input)] px-3 py-4 text-center text-[12.5px] text-[var(--text-2)]">
@@ -363,7 +365,7 @@ export function PanelInmueble({
             </p>
           ) : (
             matches.map((m) => (
-              <div key={m.demandaId} className="mb-1.5 flex items-center gap-2.5 rounded-[9px] border border-[var(--border-soft)] bg-[#FAFAFA] px-2.5 py-2">
+              <div key={m.demandaId} className="mb-2 flex items-center gap-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3">
                 <FichaLink tipo="demanda" id={m.demandaId} className="min-w-0 flex-1 text-foreground hover:text-accent">
                   <div className="text-[13px] font-semibold">{m.cliente}</div>
                   <div className="text-[11.5px] text-[var(--text-2)]">{m.criterios}</div>
@@ -374,7 +376,7 @@ export function PanelInmueble({
                     type="button"
                     title="Presentar"
                     onClick={() => void marcarMatch(m, "presentado")}
-                    className="grid h-7 w-7 place-items-center rounded-[7px] border border-border bg-white text-accent hover:bg-accent-soft"
+                    className="grid h-9 w-9 place-items-center rounded-[9px] border border-border bg-[var(--surface)] text-foreground hover:bg-accent-soft"
                   >
                     <ThumbsUp className="h-3 w-3" strokeWidth={2.4} />
                   </button>
@@ -382,7 +384,7 @@ export function PanelInmueble({
                     type="button"
                     title="Descartar"
                     onClick={() => void marcarMatch(m, "descartado")}
-                    className="grid h-7 w-7 place-items-center rounded-[7px] border border-border bg-white text-[var(--text-2)] hover:bg-[var(--red-bg)] hover:text-[var(--red)]"
+                    className="grid h-9 w-9 place-items-center rounded-[9px] border border-border bg-[var(--surface)] text-[var(--text-2)] hover:bg-[var(--red-bg)] hover:text-[var(--red)]"
                   >
                     <ThumbsDown className="h-3 w-3" strokeWidth={2.4} />
                   </button>

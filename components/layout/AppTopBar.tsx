@@ -7,6 +7,7 @@ import { BusquedaGlobal } from "./BusquedaGlobal";
 import { NuevoMenu } from "./NuevoMenu";
 import { useAuth } from "@/lib/auth/auth-context";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
+import { InterruptorTema } from "@/components/ui/InterruptorTema";
 
 export function AppTopBar() {
   const pathname = usePathname();
@@ -14,7 +15,7 @@ export function AppTopBar() {
   const { seccion, detalle } = breadcrumbDeRuta(pathname);
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border bg-white px-4 min-[820px]:px-6">
+    <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border bg-[var(--surface)] px-4 min-[820px]:px-6">
       {user ? (
         <Link
           href="/settings"
@@ -37,6 +38,7 @@ export function AppTopBar() {
         )}
       </nav>
       <BusquedaGlobal />
+      <InterruptorTema compacto />
       <NuevoMenu />
     </header>
   );

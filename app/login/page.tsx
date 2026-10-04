@@ -8,6 +8,7 @@ import { loginSchema, type LoginFormValues } from "@/lib/validations/auth";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { InterruptorTema } from "@/components/ui/InterruptorTema";
 import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
@@ -53,13 +54,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-[var(--background)] px-4 py-12">
-      <div className="w-full max-w-[400px] rounded-[14px] border border-border bg-white p-8">
+    <div className="relative flex min-h-dvh items-center justify-center bg-[var(--background)] px-4 py-12">
+      <div className="absolute right-4 top-4">
+        <InterruptorTema compacto />
+      </div>
+      <div className="w-full max-w-[400px] rounded-[14px] border border-border bg-[var(--surface)] p-8">
         <div className="mb-6 flex justify-center">
           <img
             src="/images/logo-login.png"
             alt="REHABINCO"
-            className="h-auto w-full max-w-[280px] object-contain"
+            className="marca-rehabinco h-auto w-full max-w-[280px] object-contain"
           />
         </div>
         <h1 className="mb-6 text-center text-[22px] font-semibold tracking-tight">Entrar</h1>

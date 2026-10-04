@@ -17,6 +17,7 @@
   --accent: #111111;
   --accent-dark: #000000;
   --accent-soft: #F0F0F0;
+  --accent-foreground: #ffffff;
   --row-active: #F5F5F5;
   --amber: #b98a16;
   --amber-bg: #fbf0d8;
@@ -30,11 +31,35 @@
   --red-bg: #fbeae5;
   --muted: #5C5C5C;
   --ring: #111111;
+  --field: #ffffff;
   --radius: 12px;
   --mobile-nav-h: calc(3.25rem + env(safe-area-inset-bottom, 0px));
   --mobile-fab-bottom: calc(var(--mobile-nav-h) + 0.5rem);
   --mobile-content-pb: calc(var(--mobile-nav-h) + 0.5rem);
   --herramientas-footer-h: calc(3.25rem + var(--mobile-nav-h));
+}
+
+.dark {
+  color-scheme: dark;
+  --background: #0c0c0c;
+  --surface: #141414;
+  --surface-soft: #1c1c1c;
+  --foreground: #f3f3f3;
+  --text-2: #a3a3a3;
+  --label: #8a8a8a;
+  --text-3: #737373;
+  --border: #2a2a2a;
+  --border-soft: #242424;
+  --border-row: #202020;
+  --input: #3a3a3a;
+  --accent: #f3f3f3;
+  --accent-dark: #d6d6d6;
+  --accent-soft: #262626;
+  --accent-foreground: #111111;
+  --row-active: #1c1c1c;
+  --muted: #a3a3a3;
+  --ring: #f3f3f3;
+  --field: #222222;
 }
 
 * {
@@ -49,7 +74,7 @@ body {
   min-height: 100dvh;
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
   letter-spacing: -0.01em;
   text-rendering: geometricPrecision;
 }
@@ -57,6 +82,10 @@ body {
 .font-mono,
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+.dark .marca-rehabinco {
+  filter: invert(1);
 }
 
 @keyframes crm-autofill-start {
@@ -90,9 +119,9 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
     font-size: 16px !important;
   }
 
-  /* El home indicator y overscroll deben verse del mismo blanco que la barra */
+  /* El home indicator y overscroll deben verse del mismo tono que la barra */
   html {
-    background-color: #ffffff;
+    background-color: var(--surface);
   }
 }
 
@@ -106,7 +135,7 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
   box-sizing: border-box;
   width: 100%;
   border-top: 1px solid var(--border);
-  background-color: #ffffff;
+  background-color: var(--surface);
   padding-bottom: env(safe-area-inset-bottom, 0px);
   -webkit-tap-highlight-color: transparent;
 }
@@ -215,8 +244,8 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
   z-index: 5;
   height: 2px;
   pointer-events: none;
-  background: #111111;
-  box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.16);
+  background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
 .cal-snap::after {
@@ -224,10 +253,62 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
   top: -9px;
   left: 4px;
   border-radius: 4px;
-  background: #fff;
+  background: var(--surface);
   padding: 0 4px;
   font-size: 10px;
   font-weight: 700;
-  color: #111111;
+  color: var(--accent);
   content: attr(data-hora);
+}
+
+/* El tema oscuro reutiliza las superficies aunque el componente lleve un blanco o un gris fijo. */
+.dark .bg-white {
+  background-color: var(--surface);
+}
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not(.bg-transparent),
+.dark textarea:not(.bg-transparent),
+.dark select:not(.bg-transparent) {
+  background-color: var(--field);
+  color: var(--foreground);
+}
+.dark input:-webkit-autofill,
+.dark textarea:-webkit-autofill,
+.dark select:-webkit-autofill {
+  -webkit-text-fill-color: var(--foreground);
+  caret-color: var(--foreground);
+  box-shadow: 0 0 0 1000px var(--field) inset;
+}
+.dark .bg-accent {
+  color: var(--accent-foreground);
+}
+.dark .text-\[\#111111\],
+.dark .text-\[\#000000\] {
+  color: var(--foreground);
+}
+.dark .text-\[\#5C5C5C\],
+.dark .text-\[\#6B6B6B\],
+.dark .text-\[\#3B4744\] {
+  color: var(--text-2);
+}
+.dark .text-\[\#8A8A8A\] {
+  color: var(--text-3);
+}
+.dark .bg-\[\#FAFAFA\],
+.dark .bg-\[\#F5F5F5\],
+.dark .bg-\[\#F0F0F0\],
+.dark .bg-\[\#EBEBEB\],
+.dark .hover\:bg-\[\#F5F5F5\]:hover,
+.dark .hover\:bg-white:hover {
+  background-color: var(--surface-soft);
+}
+.dark .border-\[\#E5E5E5\],
+.dark .border-\[\#EFEFEF\],
+.dark .border-\[\#F2F2F2\] {
+  border-color: var(--border);
+}
+.dark .border-\[\#D4D4D4\] {
+  border-color: var(--input);
+}
+.dark .bg-\[\#f3f1ed\] {
+  background-color: var(--background);
 }

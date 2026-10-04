@@ -82,7 +82,7 @@ export function Sheet({
     <button
       type="button"
       onClick={() => onOpenChange(false)}
-      className="absolute right-4 top-[max(0.75rem,env(safe-area-inset-top))] z-10 flex h-10 w-10 items-center justify-center rounded-full text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-foreground"
+      className="absolute right-4 top-[max(0.75rem,env(safe-area-inset-top))] z-10 flex h-10 w-10 items-center justify-center rounded-full text-[var(--text-2)] transition-colors hover:bg-[var(--surface-soft)] hover:text-foreground"
       aria-label="Cerrar"
     >
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -101,7 +101,7 @@ export function Sheet({
         aria-label="Cerrar"
       />
       {variant === "studio" ? (
-        <div className={cn("absolute inset-0 z-10 flex flex-col bg-[#f3f1ed] pb-[env(safe-area-inset-bottom)]", className)}>
+        <div className={cn("absolute inset-0 z-10 flex flex-col bg-[var(--background)] pb-[env(safe-area-inset-bottom)]", className)}>
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden pt-[env(safe-area-inset-top)]">
             {children}
           </div>
@@ -111,7 +111,7 @@ export function Sheet({
           role="dialog"
           aria-modal="true"
           className={cn(
-            "absolute inset-y-0 z-10 flex h-full w-full min-h-0 flex-col overflow-hidden bg-white pb-[env(safe-area-inset-bottom)] min-[820px]:w-[min(28rem,92vw)]",
+            "absolute inset-y-0 z-10 flex h-full w-full min-h-0 flex-col overflow-hidden bg-[var(--surface)] pb-[env(safe-area-inset-bottom)] min-[820px]:w-[min(32rem,92vw)]",
             side === "left"
               ? "left-0 shadow-[16px_0_40px_rgba(17, 17, 17,.16)] animate-[slideInFromLeft_0.28s_ease-out]"
               : "right-0 shadow-[-16px_0_40px_rgba(17, 17, 17,.16)] animate-[slideInFromRight_0.28s_ease-out]",
@@ -141,7 +141,7 @@ export function Sheet({
       <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center">
         <div
           className={cn(
-            "flex w-full flex-col overflow-hidden border-t border-border bg-white shadow-[0_-8px_30px_rgba(0,0,0,0.12)]",
+            "flex w-full flex-col overflow-hidden border-t border-border bg-[var(--surface)] shadow-[0_-8px_30px_rgba(0,0,0,0.12)]",
             "animate-[sheetUp_0.3s_ease-out]",
             "pb-[env(safe-area-inset-bottom)]",
             fullScreenOnMobile
@@ -152,7 +152,7 @@ export function Sheet({
         >
         <div className="relative flex shrink-0 items-center justify-center pt-[max(0.75rem,env(safe-area-inset-top))] pb-2">
           {showCloseButton ? cerrar : null}
-          <div className={cn("h-1 w-12 shrink-0 rounded-full bg-neutral-200", showCloseButton && "invisible")} aria-hidden />
+          <div className={cn("h-1 w-12 shrink-0 rounded-full bg-[var(--border)]", showCloseButton && "invisible")} aria-hidden />
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y">{children}</div>
         </div>

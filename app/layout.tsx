@@ -1,20 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Mono, Schibsted_Grotesk } from "next/font/google";
+import { GeistMono } from "geist/font/mono";
+import { GeistSans } from "geist/font/sans";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { AvisoNuevaVersion } from "@/components/pwa/AvisoNuevaVersion";
-import { Toaster } from "sonner";
+import { ToasterConTema } from "@/components/ui/InterruptorTema";
 
-const schibsted = Schibsted_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-sans",
-});
-
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-mono",
-});
+const scriptTema = `(function(){try{if(localStorage.getItem("crm-tema")==="dark")document.documentElement.classList.add("dark")}catch(e){}})();`;
 
 export const metadata: Metadata = {
   title: "CRM Inmobiliario",
@@ -38,13 +30,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className={`${schibsted.variable} ${plexMono.variable}`}>
+    <html lang="es" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: scriptTema }} />
+      </head>
       <body className="min-h-screen bg-background font-sans antialiased">
         <AuthProvider>
           {children}
           <AvisoNuevaVersion />
         </AuthProvider>
-        <Toaster position="top-center" richColors closeButton />
+        <ToasterConTema />
       </body>
     </html>
   );
