@@ -39,11 +39,11 @@ export function AlertDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="velo-flotante fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={handleBackdropClick}
     >
       <div
-        className="w-full max-w-sm rounded-2xl border border-border bg-[var(--surface)] p-6 shadow-xl"
+        className="caja-flotante w-full max-w-sm rounded-2xl p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <p className="font-medium text-foreground">{title}</p>

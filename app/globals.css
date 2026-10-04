@@ -434,3 +434,13 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
 .dark .avatar-comercial[data-gris="3"] { background: #b0b0b0 !important; color: #141414 !important; }
 .dark .avatar-comercial[data-gris="4"] { background: #9c9c9c !important; color: #141414 !important; }
 .dark .avatar-comercial[data-gris="5"] { background: #8a8a8a !important; color: #141414 !important; }
+
+/* Caja abierta encima del contenido: un tono por encima de las tarjetas, para que no se funda. */
+.caja-flotante {
+  background-color: var(--field);
+  border: 1px solid var(--input);
+  box-shadow: 0 16px 48px rgb(0 0 0 / 0.45);
+}
+.velo-flotante {
+  background-color: rgb(0 0 0 / 0.45);
+}

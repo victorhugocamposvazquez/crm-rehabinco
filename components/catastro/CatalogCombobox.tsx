@@ -111,7 +111,7 @@ export function CatalogCombobox<T>({
         <ul
           id={listId}
           role="listbox"
-          className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-xl border border-border bg-[var(--surface)] py-1 shadow-[0_8px_20px_rgba(28,25,23,0.08)]"
+          className="caja-flotante absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-xl py-1"
         >
           {visibles.length === 0 ? (
             <li className="px-3 py-2 text-sm text-neutral-500">{emptyText}</li>

@@ -84,11 +84,11 @@ export function CatastroPropertyModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="velo-flotante fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-border bg-[var(--surface)] p-6 shadow-xl"
+        className="caja-flotante max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl p-6"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-labelledby="catastro-property-modal-title"

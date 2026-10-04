@@ -79,13 +79,13 @@ export function AvisosBarra() {
     <button
       type="button"
       aria-label="Cerrar avisos"
-      className="fixed inset-0 z-[70] bg-black/45"
+      className="velo-flotante fixed inset-0 z-[70]"
       onClick={() => setAbierto(false)}
     />
     <div
       ref={panel}
       style={{ top: posicion.top, left: posicion.left, width: posicion.width }}
-      className="fixed z-[80] max-h-[min(24rem,calc(100dvh-5rem))] overflow-y-auto rounded-[12px] border border-[var(--input)] bg-[var(--field)] shadow-[0_16px_48px_rgba(0,0,0,0.45)]"
+      className="caja-flotante fixed z-[80] max-h-[min(24rem,calc(100dvh-5rem))] overflow-y-auto rounded-[12px]"
     >
       <p className="sticky top-0 border-b border-[var(--border)] bg-[var(--field)] px-3.5 py-2.5 text-[12px] text-[var(--text-3)]">Avisos</p>
       {avisos.length === 0 ? (

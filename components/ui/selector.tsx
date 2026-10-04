@@ -153,7 +153,7 @@ export function Selector({
               width: marco.width,
               zIndex: 12000,
             }}
-            className="max-h-64 overflow-y-auto rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-1 shadow-[0_12px_40px_rgba(0,0,0,0.18)]"
+            className="caja-flotante max-h-64 overflow-y-auto rounded-[12px] p-1"
           >
             {opciones.map((opcion, indice) => {
               const activa = opcion.value === (value ?? "");

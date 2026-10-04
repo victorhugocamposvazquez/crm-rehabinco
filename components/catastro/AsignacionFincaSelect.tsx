@@ -158,7 +158,7 @@ export function AsignacionFincaSelect({
         <ul
           role="listbox"
           className={cn(
-            "absolute z-50 max-h-56 min-w-[11.5rem] overflow-auto rounded-xl border border-[#E5E5E5] bg-white p-1 shadow-lg",
+            "caja-flotante absolute z-50 max-h-56 min-w-[11.5rem] overflow-auto rounded-xl p-1",
             menuArriba ? "bottom-full right-0 mb-1" : "right-0 mt-1"
           )}
         >

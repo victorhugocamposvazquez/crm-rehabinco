@@ -69,7 +69,7 @@ export function NuevoMenu() {
         Nuevo
       </button>
       {open && (
-        <div className="absolute right-0 z-50 mt-1.5 w-[250px] rounded-[12px] border border-border bg-[var(--surface)] p-1.5 shadow-[0_14px_34px_rgba(17, 17, 17,.14)]">
+        <div className="caja-flotante absolute right-0 z-50 mt-1.5 w-[250px] rounded-[12px] p-1.5">
           {items.map((item) => {
             const Icon = item.icon;
             return (

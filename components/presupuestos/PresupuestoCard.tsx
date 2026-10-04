@@ -126,7 +126,7 @@ export function PresupuestoCard({
         createPortal(
           <>
             <div
-              className="fixed inset-0 z-[9998] bg-black/[0.04]"
+              className="velo-flotante fixed inset-0 z-[9998]"
               onPointerDown={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -135,7 +135,7 @@ export function PresupuestoCard({
               aria-hidden
             />
             <div
-              className="fixed z-[9999] flex flex-row items-center gap-0.5 rounded-l-lg border-l border-y border-border bg-white px-1.5 py-1 shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
+              className="caja-flotante fixed z-[9999] flex flex-row items-center gap-0.5 rounded-l-lg px-1.5 py-1"
               style={{
                 top: cardRect.top + 4,
                 right: window.innerWidth - cardRect.right + 4,
