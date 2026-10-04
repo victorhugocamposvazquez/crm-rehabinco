@@ -1,6 +1,7 @@
 "use client";
 
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
+import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
 import { cn } from "@/lib/utils";
 import { colorComercial } from "@/lib/ui/tokens";
 
@@ -17,7 +18,7 @@ export function FiltroComercial({
 }) {
   if (comerciales.length === 0) return null;
   return (
-    <div className="flex flex-wrap items-end gap-1">
+    <CarrilHorizontal trackClassName="items-end gap-1 px-0.5 py-1" label="Comerciales">
       {comerciales.map((item) => {
         const on = valor === item.id;
         const color = colorComercial(item.id, item.color);
@@ -28,7 +29,7 @@ export function FiltroComercial({
             title={item.nombre}
             onClick={() => onChange(on ? "" : item.id)}
             className={cn(
-              "flex min-w-[3.25rem] flex-col items-center gap-1 rounded-[12px] px-1.5 py-1.5 transition-[opacity,background] duration-150",
+              "flex min-w-[3.25rem] shrink-0 flex-col items-center gap-1 rounded-[12px] px-1.5 py-1.5 transition-[opacity,background] duration-150",
               on ? "bg-accent-soft" : valor ? "opacity-40 hover:opacity-70" : "hover:bg-[var(--surface-soft)]"
             )}
           >
@@ -45,6 +46,6 @@ export function FiltroComercial({
           </button>
         );
       })}
-    </div>
+    </CarrilHorizontal>
   );
 }

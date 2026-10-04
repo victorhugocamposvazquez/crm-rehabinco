@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
 import { isAdmin } from "@/lib/auth/roles";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
+import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { AltaField, AltaPersona, AltaSection, AltaShell, altaControl, type PersonaOpcion } from "@/components/ui/alta-form";
 import { NuevoClientePanel } from "@/components/clientes/NuevoClientePanel";
@@ -385,7 +386,7 @@ export function NuevaDemandaPanel({
         </AltaSection>
         {admin ? (
           <AltaSection title="Comercial">
-            <div className="flex flex-wrap gap-2">
+            <CarrilHorizontal trackClassName="gap-2" label="Comercial">
               {comerciales.map((c) => {
                 const on = draft.comercialId === c.id;
                 return (
@@ -393,14 +394,14 @@ export function NuevaDemandaPanel({
                     key={c.id}
                     type="button"
                     onClick={() => set("comercialId", c.id)}
-                    className={cn("flex h-9 items-center gap-1.5 rounded-full border pr-3 pl-1 text-[13px] font-medium", on ? "border-accent bg-accent-soft" : "border-[var(--border)] bg-white text-[var(--text-2)]")}
+                    className={cn("flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border pr-3 pl-1 text-[13px] font-medium", on ? "border-accent bg-accent-soft" : "border-[var(--border)] bg-[var(--field)] text-[var(--text-2)]")}
                   >
                     <AvatarComercial nombre={c.nombre} color={c.color} size={24} />
                     {c.nombre.split(" ")[0]}
                   </button>
                 );
               })}
-            </div>
+            </CarrilHorizontal>
           </AltaSection>
         ) : null}
     </AltaShell>

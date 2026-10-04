@@ -842,14 +842,15 @@ export function CaptacionPortales() {
               </div>
             ) : null}
             {checks.length > 0 ? (
-              <div className="flex flex-wrap items-center gap-2 border-b border-[#D4D4D4] bg-accent-soft px-3.5 py-2">
-                <span className="text-[13px] font-semibold text-accent-dark">{checks.length} seleccionados</span>
-                <div className="flex-1" />
-                {comerciales.map((c) => (
-                  <button key={c.id} type="button" title={`Asignar a ${c.nombre}`} onClick={() => void patchAnuncio(checks, { comercial_id: c.id }, `Asignado a ${c.nombre.split(" ")[0]}`, "asignacion")} className="grid h-7 w-7 place-items-center rounded-full text-[10px] font-semibold text-white" style={{ background: c.color ?? "#3A6A82" }}>{inicialesNombre(c.nombre)}</button>
-                ))}
-                <button type="button" onClick={() => seguir(checks)} className="h-[30px] rounded-lg bg-[var(--green)] px-2.5 text-[12.5px] font-semibold text-[var(--on-green)]">Pasar a seguimiento</button>
-                <button type="button" onClick={() => void patchAnuncio(checks, { fase: "descartado" }, "Descartado")} className="h-[30px] rounded-lg border border-[var(--input)] bg-[var(--field)] px-2.5 text-[12.5px] font-semibold">Descartar</button>
+              <div className="flex items-center gap-2 border-b border-[var(--border)] bg-accent-soft px-3.5 py-2">
+                <span className="shrink-0 text-[13px] font-semibold text-accent-dark">{checks.length} seleccionados</span>
+                <CarrilHorizontal className="min-w-0 flex-1" trackClassName="items-center gap-1.5" label="Asignar a un comercial">
+                  {comerciales.map((c) => (
+                    <button key={c.id} type="button" title={`Asignar a ${c.nombre}`} onClick={() => void patchAnuncio(checks, { comercial_id: c.id }, `Asignado a ${c.nombre.split(" ")[0]}`, "asignacion")} className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[10px] font-semibold text-white" style={{ background: c.color ?? "#3A6A82" }}>{inicialesNombre(c.nombre)}</button>
+                  ))}
+                </CarrilHorizontal>
+                <button type="button" onClick={() => seguir(checks)} className="h-[30px] shrink-0 rounded-lg bg-[var(--green)] px-2.5 text-[12.5px] font-semibold text-[var(--on-green)]">Pasar a seguimiento</button>
+                <button type="button" onClick={() => void patchAnuncio(checks, { fase: "descartado" }, "Descartado")} className="h-[30px] shrink-0 rounded-lg border border-[var(--input)] bg-[var(--field)] px-2.5 text-[12.5px] font-semibold">Descartar</button>
               </div>
             ) : null}
             <div className="hidden grid-cols-[16px_minmax(0,1fr)_100px_72px_104px] gap-3 border-b border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-[12px] text-[var(--text-3)] min-[820px]:grid" style={cols ? { gridTemplateColumns: cols } : undefined}>
@@ -1218,16 +1219,16 @@ export function CaptacionPortales() {
               {admin ? (
                 <div>
                   <div className="mb-1.5 text-[12px] font-semibold text-[var(--text-2)]">Asignar novedades a</div>
-                  <div className="flex flex-wrap gap-1.5">
+                  <CarrilHorizontal trackClassName="gap-1.5" label="Asignar novedades a">
                     {comerciales.map((c) => {
                       const on = draftAlerta.comercialId === c.id;
                       return (
-                        <button key={c.id} type="button" onClick={() => setDraftAlerta((d) => ({ ...d, comercialId: on ? "" : c.id }))} className={cn("flex h-8 items-center gap-1.5 rounded-full border pr-2.5 pl-1 text-[12.5px] font-medium", on ? "border-accent bg-accent-soft" : "border-[var(--border)] bg-[var(--field)] text-[var(--text-2)]")}>
+                        <button key={c.id} type="button" onClick={() => setDraftAlerta((d) => ({ ...d, comercialId: on ? "" : c.id }))} className={cn("flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border pr-2.5 pl-1 text-[12.5px] font-medium", on ? "border-accent bg-accent-soft" : "border-[var(--border)] bg-[var(--field)] text-[var(--text-2)]")}>
                           <AvatarComercial nombre={c.nombre} color={c.color} size={24} />{c.nombre.split(" ")[0]}
                         </button>
                       );
                     })}
-                  </div>
+                  </CarrilHorizontal>
                 </div>
               ) : null}
             </div>
@@ -1446,16 +1447,16 @@ function PeekAnuncio({
       </div>
       <div className="mt-8 px-5">
         <div className="text-[12px] text-[var(--text-3)]">Asignar a</div>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <CarrilHorizontal className="mt-3" trackClassName="gap-2" label="Asignar a">
           {comerciales.map((c) => {
             const on = a.comercial_id === c.id;
             return (
-              <button key={c.id} type="button" onClick={() => onAsignar(c.id)} className={cn("flex h-9 items-center gap-2 rounded-full border pr-3 pl-1 text-[13px] font-medium", on ? "border-foreground bg-accent-soft text-foreground" : "border-[var(--border)] bg-[var(--field)] text-[var(--text-2)]")}>
+              <button key={c.id} type="button" onClick={() => onAsignar(c.id)} className={cn("flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-full border pr-3 pl-1 text-[13px] font-medium", on ? "border-foreground bg-accent-soft text-foreground" : "border-[var(--border)] bg-[var(--field)] text-[var(--text-2)]")}>
                 <AvatarComercial nombre={c.nombre} color={c.color} size={26} />{c.nombre.split(" ")[0]}
               </button>
             );
           })}
-        </div>
+        </CarrilHorizontal>
       </div>
       <div className="mt-8 px-5 pb-8">
         {aviso ? (
