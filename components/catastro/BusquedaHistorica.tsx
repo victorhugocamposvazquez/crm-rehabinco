@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
 import {
   ERROR_BUSQUEDA_404,
   ERROR_ELIMINAR,
@@ -284,19 +285,20 @@ export function BusquedaHistorica({ searchId }: { searchId: string }) {
               </Button>
             ))}
           </div>
-          <div className="flex flex-wrap gap-2" role="tablist" aria-label="Vinculación a Property">
+          <CarrilHorizontal trackClassName="gap-2" role="tablist" label="Vinculación a Property">
             {FILTROS_VINCULO_PROPERTY.map((item) => (
               <Button
                 key={item.value}
                 type="button"
                 size="sm"
+                className="shrink-0"
                 variant={filtroVinculo === item.value ? "default" : "secondary"}
                 onClick={() => setFiltroVinculo(item.value)}
               >
                 {item.label}
               </Button>
             ))}
-          </div>
+          </CarrilHorizontal>
         </div>
         <Button type="button" variant="secondary" size="sm" onClick={exportarPagina}>
           <Download className="h-4 w-4" aria-hidden />

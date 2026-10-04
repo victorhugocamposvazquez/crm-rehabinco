@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
 import {
   ERROR_HISTORICO,
   FILTROS_LISTADO_HISTORICO,
@@ -87,12 +88,13 @@ export function HistoricoBusquedas() {
         actions={<AccionNuevaBusqueda />}
       />
 
-      <div className="mt-6 flex flex-wrap gap-2" role="tablist" aria-label="Filtrar historial">
+      <CarrilHorizontal className="mt-6" trackClassName="gap-2" role="tablist" label="Filtrar historial">
         {FILTROS_LISTADO_HISTORICO.map((item) => (
           <Button
             key={item.value}
             type="button"
             size="sm"
+            className="shrink-0"
             variant={filtro === item.value ? "default" : "secondary"}
             onClick={() => {
               hayListado.current = false;
@@ -104,7 +106,7 @@ export function HistoricoBusquedas() {
             {item.label}
           </Button>
         ))}
-      </div>
+      </CarrilHorizontal>
 
       {error ? (
         <div className="mt-6">

@@ -16,6 +16,7 @@ import {
   type FiltroBandejaCaptacion,
 } from "@/lib/captacion/estados";
 import { cn } from "@/lib/utils";
+import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
 
 export function BandejaCaptacion({
   items,
@@ -34,14 +35,14 @@ export function BandejaCaptacion({
 
   return (
     <div>
-      <div className="flex flex-wrap gap-1.5">
+      <CarrilHorizontal trackClassName="gap-1.5" label="Filtro de bandeja">
         {FILTROS_BANDEJA_CAPTACION.map((item) => (
           <button
             key={item.value}
             type="button"
             onClick={() => setFiltro(item.value)}
             className={cn(
-              "h-8 rounded-full border px-3 text-[12.5px] font-medium",
+              "h-8 shrink-0 whitespace-nowrap rounded-full border px-3 text-[12.5px] font-medium",
               filtro === item.value
                 ? "border-foreground bg-accent-soft text-foreground"
                 : "border-[var(--border)] bg-[var(--field)] text-[var(--text-2)]"
@@ -50,7 +51,7 @@ export function BandejaCaptacion({
             {item.label} ({recuento[item.value]})
           </button>
         ))}
-      </div>
+      </CarrilHorizontal>
       <ul className="mt-4 divide-y divide-[var(--border)] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
         {visibles.map((item) => {
           const dias = diasDesdeAsignacion(item.assignedAt, hoy);

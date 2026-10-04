@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Clock3, List, Map, Search, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
 import { isAdmin, isComercial } from "@/lib/auth/roles";
 import { useAuth } from "@/lib/auth/auth-context";
 import {
@@ -93,10 +94,10 @@ export function CatastroSubnav() {
 
   return (
     <nav
-      className="sticky top-14 z-30 -mx-4 -mt-6 mb-6 border-b border-[#E5E5E5] bg-white/95 px-2 backdrop-blur sm:top-16 sm:-mx-6 sm:-mt-8 sm:px-6 lg:-mx-8 lg:px-8"
+      className="sticky top-14 z-30 -mx-3.5 -mt-5 mb-6 border-b border-[var(--border)] bg-[var(--surface)]/95 px-1 backdrop-blur min-[820px]:-mx-6 min-[820px]:-mt-6 min-[820px]:px-4"
       aria-label="Catastro"
     >
-      <div className="flex min-[780px]:gap-6">
+      <CarrilHorizontal trackClassName="min-[780px]:gap-6">
         {items.map((item) => {
           const Icono = item.icon;
           return (
@@ -104,17 +105,17 @@ export function CatastroSubnav() {
               key={item.label}
               href={item.href}
               className={cn(
-                "relative flex min-h-11 flex-1 items-center justify-center gap-1.5 py-3 text-[13.5px] font-medium min-[780px]:flex-none min-[780px]:justify-start min-[780px]:text-base",
-                item.activa ? "text-[#111111]" : "text-[#5C5C5C] hover:text-[#111111]"
+                "relative flex min-h-11 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap px-3 py-3 text-[13.5px] font-medium min-[780px]:justify-start min-[780px]:px-1 min-[780px]:text-base",
+                item.activa ? "text-foreground" : "text-[var(--text-2)] hover:text-foreground"
               )}
             >
               <Icono className="h-4 w-4" strokeWidth={1.9} aria-hidden />
               {item.label}
-              {item.activa ? <span className="absolute inset-x-0 -bottom-px h-[3px] bg-[#111111]" /> : null}
+              {item.activa ? <span className="absolute inset-x-2 -bottom-px h-[3px] bg-foreground min-[780px]:inset-x-0" /> : null}
             </Link>
           );
         })}
-      </div>
+      </CarrilHorizontal>
     </nav>
   );
 }

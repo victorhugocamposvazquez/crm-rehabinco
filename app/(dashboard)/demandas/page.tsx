@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ESTADOS_DEMANDA, TIPO_OPERACION_DEMANDA_LABEL, type TipoOperacionDemanda } from "@/lib/demandas/matching";
 import { relacionUno } from "@/lib/citas/citas";
 import { Chip } from "@/components/ui/chip";
+import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { colorEstado, formatEuro } from "@/lib/ui/estados-vista";
 import { NuevaDemandaPanel } from "@/components/demandas/NuevaDemandaPanel";
@@ -119,13 +120,13 @@ export default function DemandasPage() {
           </Button>
         }
       />
-      <div className="mt-4 flex flex-wrap gap-1.5">
+      <CarrilHorizontal className="mt-4" trackClassName="gap-1.5" label="Estado de la demanda">
         {ESTADOS_DEMANDA.map((item) => (
           <Chip key={item} active={estado === item} count={totales[item] ?? 0} onClick={() => setEstado(item)}>
             {item}
           </Chip>
         ))}
-      </div>
+      </CarrilHorizontal>
       <ul className="mt-4 grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(300px,1fr))]">
         {filas.map((fila) => {
           const matches = fila.demanda_inmuebles ?? [];

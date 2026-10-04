@@ -18,6 +18,7 @@ import { crearUrlMapaCatastral } from "@/lib/catastro/explorer/catastro-map";
 import { crearGoogleMapsUrl } from "@/lib/catastro/explorer/maps";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
 import { MapaCatastral } from "./MapaCatastral";
 import { AsignarComercial } from "./AsignarComercial";
 import { NotasFinca } from "./NotasFinca";
@@ -158,7 +159,7 @@ export function FincaDetallePanel({
         <span className="text-[12.5px] text-[#5C5C5C]">{inmuebles.length}</span>
       </div>
       {usos.length > 1 ? (
-        <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label="Filtrar inmuebles por uso">
+        <CarrilHorizontal className="mt-2" trackClassName="gap-1.5 pb-1" role="tablist" label="Filtrar inmuebles por uso">
           {["Todos", ...usos].map((item) => (
             <button
               key={item}
@@ -176,7 +177,7 @@ export function FincaDetallePanel({
               {item}
             </button>
           ))}
-        </div>
+        </CarrilHorizontal>
       ) : null}
 
       {visibles.length > 1 ? (

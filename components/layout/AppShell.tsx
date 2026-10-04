@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { FiltroComercialProvider } from "@/lib/ui/filtro-comercial";
 import { FichaPeekProvider } from "@/components/crm/FichaPeek";
 import { AlertasPwaHost } from "@/components/pwa/AvisosPwa";
+import { PullToRefresh } from "@/components/pwa/PullToRefresh";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
 import { esNuevoHoyCaptacion } from "@/lib/captacion/brightdata/fecha-portal";
@@ -80,6 +81,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
         {!wizard && <MobileNav />}
       </div>
+      {!wizard ? <PullToRefresh /> : null}
       <AlertasPwaHost />
       </FichaPeekProvider>
     </FiltroComercialProvider>

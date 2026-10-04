@@ -12,6 +12,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
 import { useAuth } from "@/lib/auth/auth-context";
 import { puedeVerPapelera } from "@/lib/auth/roles";
 
@@ -81,7 +82,7 @@ export function HerramientasFooter() {
       aria-label="Herramientas"
       className="fixed inset-x-0 bottom-[var(--mobile-nav-h)] z-40 flex border-t border-border bg-[var(--surface)] shadow-[0_-4px_12px_rgba(0,0,0,0.06)] min-[820px]:bottom-0 min-[820px]:left-[232px] min-[820px]:right-0"
     >
-      <div className="mx-auto flex w-full max-w-[1600px] overflow-x-auto px-2 min-[820px]:px-6">
+      <CarrilHorizontal className="mx-auto w-full max-w-[1600px]" trackClassName="px-2 min-[820px]:px-6">
         {items.map((item) => {
           const Icono = item.icon;
           const activa = item.activa(pathname ?? "");
@@ -90,7 +91,7 @@ export function HerramientasFooter() {
               key={item.href}
               href={item.href}
               className={cn(
-                "relative flex min-h-[52px] min-w-[4.5rem] flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[11px] font-medium min-[820px]:min-w-0 min-[820px]:flex-row min-[820px]:gap-2 min-[820px]:text-[13.5px]",
+                "relative flex min-h-[52px] min-w-[4.5rem] shrink-0 flex-col items-center justify-center gap-0.5 whitespace-nowrap px-2 text-[11px] font-medium min-[820px]:min-w-0 min-[820px]:flex-1 min-[820px]:flex-row min-[820px]:gap-2 min-[820px]:px-1 min-[820px]:text-[13.5px]",
                 activa ? "text-accent" : "text-[var(--text-2)] hover:text-accent"
               )}
             >
@@ -100,7 +101,7 @@ export function HerramientasFooter() {
             </Link>
           );
         })}
-      </div>
+      </CarrilHorizontal>
     </nav>
   );
 }

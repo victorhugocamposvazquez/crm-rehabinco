@@ -53,6 +53,7 @@ import { coordsMapaAnuncio, latLngDeFila } from "@/lib/captacion/portales/geo-ma
 import { esNuevoHoyCaptacion, textoFechaPortal } from "@/lib/captacion/brightdata/fecha-portal";
 import { anuncioIdealistaVacio } from "@/lib/captacion/brightdata/idealista";
 import { cn } from "@/lib/utils";
+import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
 import { cuentaSinTelefonoChip, cuentaSoloMensajeChip } from "@/lib/captacion/telefono-estado";
 import { IconoEstadoTelefono, TelefonoAnuncio } from "@/components/captacion/portales/TelefonoAnuncio";
 import type { PinMapaCaptacion } from "@/components/captacion/portales/CaptacionMapaLeaflet";
@@ -688,7 +689,7 @@ export function CaptacionPortales() {
         </div>
       </div>
 
-      <div className="mb-4 flex gap-1 overflow-x-auto border-b border-[var(--border)]">
+      <CarrilHorizontal className="mb-4 border-b border-[var(--border)]" trackClassName="gap-1" label="Vistas de captación">
         {tabs.map(([id, label, n]) => {
           const on = tab === id;
           return (
@@ -700,7 +701,7 @@ export function CaptacionPortales() {
                 setPanel(false);
               }}
               className={cn(
-                "mb-[-1px] flex h-10 items-center gap-1.5 whitespace-nowrap px-3 text-[13.5px]",
+                "mb-[-1px] flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap px-3 text-[13.5px]",
                 on ? "border-b-2 border-accent font-semibold text-accent" : "font-medium text-[var(--text-2)]"
               )}
             >
@@ -713,7 +714,7 @@ export function CaptacionPortales() {
             </button>
           );
         })}
-      </div>
+      </CarrilHorizontal>
 
       {tab === "nov" ? (
         <>
@@ -989,7 +990,7 @@ export function CaptacionPortales() {
             <p className="m-0 text-[13.5px] text-[var(--text-2)]">Anuncios en los que estás trabajando. Arrastra para cambiar de fase; al captar, se convierte en inmueble.</p>
             {admin ? <FiltroComercial comerciales={comerciales} valor={filtroCom} onChange={setFiltroCom} /> : null}
           </div>
-          <div className="flex items-start gap-3 overflow-x-auto pb-2.5">
+          <CarrilHorizontal trackClassName="items-start gap-3 pb-2.5" label="Fases de seguimiento">
             {FASE_KANBAN_META.map((f) => {
               const items = seg.filter((a) => a.fase === f.id);
               return (
@@ -1043,7 +1044,7 @@ export function CaptacionPortales() {
                 </div>
               );
             })}
-          </div>
+          </CarrilHorizontal>
         </div>
       ) : null}
 
@@ -1306,7 +1307,7 @@ function GaleriaAnuncio({ anuncio, onCerrar }: { anuncio: AnuncioCaptacion; onCe
         <button type="button" onClick={onCerrar} className="absolute right-2.5 top-2.5 grid h-[34px] w-[34px] place-items-center rounded-[9px] bg-black/55 text-white backdrop-blur-sm">×</button>
       </div>
       {fotos.length > 1 ? (
-        <div className="flex gap-1.5 overflow-x-auto px-3 py-2">
+        <CarrilHorizontal trackClassName="gap-1.5 px-3 py-2" label="Fotos">
           {fotos.map((url, i) => (
             <button
               key={`${anuncio.id}-${i}`}
@@ -1317,7 +1318,7 @@ function GaleriaAnuncio({ anuncio, onCerrar }: { anuncio: AnuncioCaptacion; onCe
               <FotoPortal src={url} />
             </button>
           ))}
-        </div>
+        </CarrilHorizontal>
       ) : null}
     </div>
   );

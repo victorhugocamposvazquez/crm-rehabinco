@@ -6,6 +6,7 @@ import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { COLUMNAS_TAREA, type ColumnaTarea } from "@/lib/tareas/tareas";
 import { nombreYApellido } from "@/lib/ui/tokens";
 import { cn } from "@/lib/utils";
+import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
 
 export type PersonaTarjeta = { id: string; nombre: string; color: string | null; email?: string | null };
 
@@ -166,7 +167,7 @@ export function TareasBoard({
   }, [nuevaCol]);
 
   return (
-    <div className="flex items-start gap-3 overflow-x-auto pb-2.5">
+    <CarrilHorizontal trackClassName="items-start gap-3 pb-2.5" label="Columnas de tareas">
       {COLUMNAS_TAREA.map((col) => {
         const items = tareas.filter((t) => t.col === col.id);
         const hot = over === col.id;
@@ -303,6 +304,6 @@ export function TareasBoard({
           </div>
         );
       })}
-    </div>
+    </CarrilHorizontal>
   );
 }

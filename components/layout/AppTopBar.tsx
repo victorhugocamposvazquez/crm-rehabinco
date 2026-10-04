@@ -6,6 +6,7 @@ import { breadcrumbDeRuta } from "./nav-items";
 import { BusquedaGlobal } from "./BusquedaGlobal";
 import { NuevoMenu } from "./NuevoMenu";
 import { useAuth } from "@/lib/auth/auth-context";
+import { editorHomePath, isEditor } from "@/lib/auth/roles";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { InterruptorTema } from "@/components/ui/InterruptorTema";
 import { AvisosBarra } from "./AvisosBarra";
@@ -14,21 +15,26 @@ export function AppTopBar() {
   const pathname = usePathname();
   const { user } = useAuth();
   const { seccion, detalle } = breadcrumbDeRuta(pathname);
+  const inicio = isEditor(user?.role) ? editorHomePath() : "/";
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border bg-[var(--surface)] px-4 min-[820px]:px-6">
+    <header className="sticky top-0 z-40 flex h-14 items-center gap-1.5 border-b border-border bg-[var(--surface)] px-3 min-[820px]:gap-3 min-[820px]:px-6">
+      <Link href={inicio} className="grid h-9 w-9 shrink-0 place-items-center min-[820px]:hidden" aria-label="Inicio">
+        <img src="/images/icono.png" alt="" className="h-7 w-7 rounded-[8px] object-contain dark:invert" />
+      </Link>
       {user ? (
         <Link
           href="/settings"
-          className="flex min-w-0 flex-1 items-center gap-2 min-[820px]:hidden"
+          className="shrink-0 min-[820px]:hidden"
           title={`${user.nombre || user.email} · ${user.role}`}
+          aria-label={user.nombre || user.email || "Perfil"}
         >
           <AvatarComercial nombre={user.nombre} email={user.email} color={user.color} size={30} />
-          <span className="min-w-0 leading-tight">
-            <span className="block truncate text-[13px] font-semibold">{user.nombre?.split(" ")[0] || user.email}</span>
-          </span>
         </Link>
       ) : null}
+      <span className="shrink-0 min-[820px]:order-2">
+        <AvisosBarra />
+      </span>
       <nav aria-label="Breadcrumb" className="hidden min-w-0 flex-1 truncate text-[13.5px] min-[820px]:block">
         <span className="text-[var(--text-2)]">{seccion}</span>
         {detalle && (
@@ -38,10 +44,15 @@ export function AppTopBar() {
           </>
         )}
       </nav>
-      <BusquedaGlobal />
-      <AvisosBarra />
-      <InterruptorTema compacto />
-      <NuevoMenu />
+      <span className="ml-auto shrink-0 min-[820px]:order-1 min-[820px]:ml-0">
+        <BusquedaGlobal />
+      </span>
+      <span className="shrink-0 min-[820px]:order-3">
+        <InterruptorTema compacto />
+      </span>
+      <span className="shrink-0 min-[820px]:order-4">
+        <NuevoMenu />
+      </span>
     </header>
   );
 }

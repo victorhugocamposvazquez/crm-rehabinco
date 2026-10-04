@@ -2,6 +2,7 @@
 
 import { useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
 
 export type KanbanColumna<C extends string> = {
   id: C;
@@ -30,7 +31,7 @@ export function Kanban<C extends string, T extends { id: string }>({
   const draggingRef = useRef(false);
 
   return (
-    <div className="flex items-start gap-3 overflow-x-auto pb-2.5">
+    <CarrilHorizontal trackClassName="items-start gap-3 pb-2.5" label="Columnas">
       {columns.map((col) => {
         const filas = items.filter((item) => colOf(item) === col.id);
         const hot = over === col.id;
@@ -94,7 +95,7 @@ export function Kanban<C extends string, T extends { id: string }>({
           </div>
         );
       })}
-    </div>
+    </CarrilHorizontal>
   );
 }
 

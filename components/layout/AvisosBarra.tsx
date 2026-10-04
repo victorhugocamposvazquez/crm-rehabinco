@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Bell } from "lucide-react";
+import { Lightbulb } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
 
@@ -57,11 +57,11 @@ export function AvisosBarra() {
         onClick={abrir}
         className="relative grid h-9 w-9 place-items-center rounded-[9px] text-[var(--text-2)] hover:bg-[var(--surface-soft)] hover:text-foreground"
       >
-        <Bell className="h-4 w-4" strokeWidth={1.75} />
+        <Lightbulb className="h-4 w-4" strokeWidth={1.75} />
         {avisos.length > 0 && !visto ? <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[var(--green)]" /> : null}
       </button>
       {abierto ? (
-        <div className="absolute right-0 top-11 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-[12px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_12px_40px_rgba(0,0,0,0.18)]">
+        <div className="fixed left-3 right-3 top-[3.75rem] z-50 overflow-hidden rounded-[12px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_12px_40px_rgba(0,0,0,0.18)] min-[820px]:absolute min-[820px]:left-auto min-[820px]:right-0 min-[820px]:top-11 min-[820px]:w-[min(22rem,calc(100vw-2rem))]">
           <p className="border-b border-[var(--border-soft)] px-3.5 py-2.5 text-[12px] text-[var(--text-3)]">Avisos</p>
           {avisos.length === 0 ? (
             <p className="px-3.5 py-4 text-[13px] text-[var(--text-2)]">Nada pendiente.</p>

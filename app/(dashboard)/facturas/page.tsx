@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Fab } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
+import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Plus, Search, Trash2, ListChecks, Download } from "lucide-react";
 import { toast } from "sonner";
@@ -263,7 +264,7 @@ export default function FacturasPage() {
                 className="h-9 w-full rounded-[9px] border border-[var(--input)] bg-transparent pl-9 pr-3 text-[13.5px] outline-none focus:border-accent"
               />
             </div>
-            <div className="flex flex-wrap gap-1.5">
+            <CarrilHorizontal className="min-w-0 flex-[1_1_16rem]" trackClassName="gap-1.5" label="Filtros de facturas">
               <Chip active={filterEstado === "todos"} count={counts.todos} onClick={() => setFilterEstado("todos")}>
                 Todas
               </Chip>
@@ -277,7 +278,7 @@ export default function FacturasPage() {
                   {t === "todas" ? "Tipo" : t.charAt(0).toUpperCase() + t.slice(1)}
                 </Chip>
               ))}
-            </div>
+            </CarrilHorizontal>
           </div>
           <div className="hidden grid-cols-[112px_minmax(0,2fr)_92px_110px_118px_34px] gap-3 border-b border-[var(--border-soft)] bg-[var(--surface-soft)] px-3.5 py-2 text-[12px] text-[var(--text-3)] min-[820px]:grid">
             <div>Número</div>

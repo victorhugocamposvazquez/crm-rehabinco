@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
 import { puedeVerApisPortales, puedeVerPapelera, type Role } from "@/lib/auth/roles";
 
 const ITEMS = [
@@ -30,7 +31,12 @@ export function SettingsAdminNav({ role }: { role?: Role | null }) {
     return true;
   });
   return (
-    <nav className="mt-4 flex flex-wrap gap-1 min-[820px]:w-52 min-[820px]:flex-col min-[820px]:float-left min-[820px]:mr-6">
+    <CarrilHorizontal
+      role="navigation"
+      label="Ajustes"
+      className="mt-4 min-[820px]:float-left min-[820px]:mr-6 min-[820px]:w-52"
+      trackClassName="gap-1 min-[820px]:flex-col"
+    >
       {items.map((item) => {
         const ancla = item.href.includes("#") ? item.href.slice(item.href.indexOf("#")) : "";
         const activo = ancla
@@ -44,7 +50,7 @@ export function SettingsAdminNav({ role }: { role?: Role | null }) {
             href={item.href}
             onClick={() => setHash(ancla)}
             className={cn(
-              "rounded-[9px] px-3 py-2 text-[13.5px] font-medium",
+              "shrink-0 whitespace-nowrap rounded-[9px] px-3 py-2 text-[13.5px] font-medium min-[820px]:w-full min-[820px]:whitespace-normal",
               activo
                 ? "border border-accent bg-accent-soft text-accent-dark"
                 : "text-[var(--text-2)] hover:bg-[var(--surface-soft)]"
@@ -54,6 +60,6 @@ export function SettingsAdminNav({ role }: { role?: Role | null }) {
           </Link>
         );
       })}
-    </nav>
+    </CarrilHorizontal>
   );
 }

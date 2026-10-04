@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Fab } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
+import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
 import { UserPlus, Search, X } from "lucide-react";
 import { inicialesNombre } from "@/lib/ui/tokens";
 import { telWhatsApp } from "@/lib/ui/estados-vista";
@@ -304,13 +305,13 @@ export default function ClientesPage() {
                   className="h-9 w-full rounded-[9px] border border-[var(--input)] bg-transparent pl-9 pr-3 text-[13.5px] outline-none focus:border-accent"
                 />
               </div>
-              <div className="flex flex-wrap gap-1.5">
+              <CarrilHorizontal className="min-w-0 flex-[1_1_16rem]" trackClassName="gap-1.5" label="Filtros de clientes">
                 {(["todos", "ofrecen", "buscan", "obra", "inactivos"] as const).map((f) => (
                   <Chip key={f} active={filtro === f} onClick={() => setFiltro(f)}>
                     {f === "todos" ? "Todos" : f === "ofrecen" ? "Ofrecen" : f === "buscan" ? "Buscan" : f === "obra" ? "Obra" : "Inactivos"}
                   </Chip>
                 ))}
-              </div>
+              </CarrilHorizontal>
             </div>
             {filtered.length === 0 ? (
               <p className="px-4 py-9 text-center text-[13.5px] text-[var(--text-2)]">No hay clientes con ese filtro.</p>

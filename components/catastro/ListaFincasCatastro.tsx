@@ -17,6 +17,7 @@ import { accionTecladoLista } from "@/lib/catastro/vista-movil";
 import { isAdmin, isComercial } from "@/lib/auth/roles";
 import { useAuth } from "@/lib/auth/auth-context";
 import { cn } from "@/lib/utils";
+import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
 import {
   FILTRO_ASIGNACION_MIAS,
   FILTRO_ASIGNACION_SIN,
@@ -315,7 +316,7 @@ export function ListaFincasCatastro({
 
       <LeyendaEstadosDivision compacta />
 
-      <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 min-[780px]:flex-wrap min-[780px]:overflow-visible" role="tablist" aria-label="Filtrar por estado">
+      <CarrilHorizontal className="-mx-1 px-1" trackClassName="gap-1.5 pb-1 min-[780px]:flex-wrap" role="tablist" label="Filtrar por estado">
         {FILTROS_LISTA.map((item) => (
           <button
             key={item.value}
@@ -332,7 +333,7 @@ export function ListaFincasCatastro({
             <span className="ml-1 tabular-nums text-[#6B6B6B]">{(recuento[item.value] ?? 0).toLocaleString("es-ES")}</span>
           </button>
         ))}
-      </div>
+      </CarrilHorizontal>
       {recuentoEstados && !soloMias ? (
         <p className="text-[11px] text-[#6B6B6B]">Los recuentos de arriba son de toda la búsqueda.</p>
       ) : null}
@@ -342,7 +343,7 @@ export function ListaFincasCatastro({
       ) : (
         <div>
           <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#6B6B6B]">Comercial</p>
-          <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 min-[780px]:flex-wrap min-[780px]:overflow-visible" role="tablist" aria-label="Filtrar por comercial">
+          <CarrilHorizontal className="-mx-1 px-1" trackClassName="gap-1.5 pb-1 min-[780px]:flex-wrap" role="tablist" label="Filtrar por comercial">
             {[
               { value: FILTRO_ASIGNACION_TODAS, label: "Todas", n: recuentoAsignacion.todas },
               { value: FILTRO_ASIGNACION_SIN, label: "Sin asignar", n: recuentoAsignacion.sinAsignar },
@@ -365,7 +366,7 @@ export function ListaFincasCatastro({
                 <span className="ml-1 tabular-nums text-[#6B6B6B]">{item.n}</span>
               </button>
             ))}
-          </div>
+          </CarrilHorizontal>
         </div>
       )}
 
@@ -538,7 +539,7 @@ function ChipsOrdenLista({
   return (
     <div>
       <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#6B6B6B]">Ordenar</p>
-      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Ordenar listado">
+      <CarrilHorizontal trackClassName="gap-1.5" role="group" label="Ordenar listado">
         {CAMPOS_ORDEN_LISTA.map((item) => {
           const indice = orden.findIndex((criterio) => criterio.campo === item.value);
           const criterio = indice >= 0 ? orden[indice] : null;
@@ -567,7 +568,7 @@ function ChipsOrdenLista({
             </button>
           );
         })}
-      </div>
+      </CarrilHorizontal>
     </div>
   );
 }
