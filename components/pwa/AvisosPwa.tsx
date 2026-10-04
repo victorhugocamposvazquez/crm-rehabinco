@@ -267,14 +267,9 @@ export function AlertasPwaHost() {
         .eq("estado", "prevista")
         .gte("empieza", `${hoy}T00:00:00`)
         .lte("empieza", `${hoy}T23:59:59`),
-      supabase.from("crm_avisos").select("id, titulo, cuerpo, url, leida").eq("user_id", user.id).eq("leida", false).limit(8),
       supabase.from("crm_aviso_prefs").select(SELECT_PREFS_AVISO).eq("user_id", user.id).maybeSingle(),
-    ]).then(([citas, avisos, prefsRow]) => {
+    ]).then(([citas, prefsRow]) => {
       const prefs = prefsCompletas(prefsRow.data);
-      for (const aviso of avisos.data ?? []) {
-        toast(aviso.titulo, { description: aviso.cuerpo ?? undefined });
-        void supabase.from("crm_avisos").update({ leida: true }).eq("id", aviso.id);
-      }
       const vistos = new Set<string>();
       for (const cita of citas.data ?? []) {
         if (!itemPermitido(cita.tipo, prefs)) continue;

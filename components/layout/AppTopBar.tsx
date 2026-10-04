@@ -8,6 +8,7 @@ import { NuevoMenu } from "./NuevoMenu";
 import { useAuth } from "@/lib/auth/auth-context";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { InterruptorTema } from "@/components/ui/InterruptorTema";
+import { AvisosBarra } from "./AvisosBarra";
 
 export function AppTopBar() {
   const pathname = usePathname();
@@ -38,6 +39,7 @@ export function AppTopBar() {
         )}
       </nav>
       <BusquedaGlobal />
+      <AvisosBarra />
       <InterruptorTema compacto />
       <NuevoMenu />
     </header>

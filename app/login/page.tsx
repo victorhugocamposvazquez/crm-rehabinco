@@ -66,7 +66,6 @@ export default function LoginPage() {
             className="marca-rehabinco h-auto w-full max-w-[280px] object-contain"
           />
         </div>
-        <h1 className="mb-6 text-center text-[22px] font-semibold tracking-tight">Entrar</h1>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {error && (
             <p className="rounded-[9px] bg-[var(--red-bg)] px-3 py-2 text-[13px] text-[var(--red)]">{error}</p>
