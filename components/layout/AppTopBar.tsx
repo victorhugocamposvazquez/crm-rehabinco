@@ -18,7 +18,7 @@ export function AppTopBar() {
   const inicio = isEditor(user?.role) ? editorHomePath() : "/";
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center gap-1.5 border-b border-border bg-[var(--surface)] px-3 min-[820px]:h-14 min-[820px]:gap-3 min-[820px]:px-6">
+    <header className="sticky top-0 z-40 flex h-16 items-center gap-2 border-b border-border bg-[var(--surface)] px-3 min-[820px]:h-14 min-[820px]:gap-3 min-[820px]:px-6">
       <Link href={inicio} className="grid h-11 w-11 shrink-0 place-items-center min-[820px]:hidden" aria-label="Inicio">
         <img src="/images/icono.png" alt="" className="h-9 w-9 rounded-[9px] object-contain dark:invert" />
       </Link>
@@ -46,7 +46,7 @@ export function AppTopBar() {
       {user ? (
         <Link
           href="/settings"
-          className="shrink-0 min-[820px]:hidden"
+          className="ml-1.5 shrink-0 min-[820px]:hidden"
           title={`${user.nombre || user.email} · ${user.role}`}
           aria-label={user.nombre || user.email || "Perfil"}
         >

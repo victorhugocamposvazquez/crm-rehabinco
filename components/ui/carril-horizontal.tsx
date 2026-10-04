@@ -40,6 +40,13 @@ export function CarrilHorizontal({
     };
   }, []);
 
+  const avanzar = () => {
+    const caja = pista.current;
+    if (!caja) return;
+    const paso = Math.max(120, Math.round(caja.clientWidth * 0.7));
+    caja.scrollBy({ left: paso, behavior: "smooth" });
+  };
+
   return (
     <div className={cn("relative min-w-0 max-w-full", className)} data-carril>
       <div
@@ -61,9 +68,14 @@ export function CarrilHorizontal({
         </div>
       </div>
       {mas ? (
-        <span className="pointer-events-none absolute inset-y-0 right-0 flex w-8 items-center justify-end" aria-hidden>
-          <ChevronRight className="h-4 w-4 text-[var(--text-2)]" strokeWidth={2.2} />
-        </span>
+        <button
+          type="button"
+          onClick={avanzar}
+          aria-label="Ver más a la derecha"
+          className="absolute inset-y-0 right-0 z-[1] flex w-9 items-center justify-end pr-0.5 text-[var(--text-2)] hover:text-foreground"
+        >
+          <ChevronRight className="h-4 w-4" strokeWidth={2.2} aria-hidden />
+        </button>
       ) : null}
     </div>
   );

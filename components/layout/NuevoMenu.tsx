@@ -63,9 +63,9 @@ export function NuevoMenu() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex h-9 items-center gap-1.5 rounded-[9px] bg-accent px-3 text-[13.5px] font-semibold text-white hover:bg-accent-dark max-[819px]:h-10"
+        className="inline-flex h-9 items-center gap-2 rounded-[9px] bg-accent px-3.5 text-[13.5px] font-semibold text-white hover:bg-accent-dark max-[819px]:h-10"
       >
-        <Plus size={14} strokeWidth={2.6} />
+        <Plus size={15} strokeWidth={2.4} />
         Nuevo
       </button>
       {open && (
