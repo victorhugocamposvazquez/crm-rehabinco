@@ -300,14 +300,14 @@ export default function TareasPage() {
             <button
               type="button"
               onClick={() => setVista("tablero")}
-              className={`h-8 px-3 text-[12.5px] font-semibold ${vista === "tablero" ? "bg-foreground text-white" : "bg-white text-[var(--text-2)]"}`}
+              className={`h-8 px-3 text-[12.5px] font-semibold ${vista === "tablero" ? "bg-accent text-accent-foreground" : "text-[var(--text-2)] hover:text-foreground"}`}
             >
               Tablero
             </button>
             <button
               type="button"
               onClick={() => setVista("lista")}
-              className={`h-8 px-3 text-[12.5px] font-semibold ${vista === "lista" ? "bg-foreground text-white" : "bg-white text-[var(--text-2)]"}`}
+              className={`h-8 px-3 text-[12.5px] font-semibold ${vista === "lista" ? "bg-accent text-accent-foreground" : "text-[var(--text-2)] hover:text-foreground"}`}
             >
               Lista
             </button>

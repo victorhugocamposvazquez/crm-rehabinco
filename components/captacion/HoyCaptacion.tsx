@@ -167,15 +167,20 @@ export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFactu
             </div>
             <ul>
               {citasHoy.map((cita) => (
-                <li key={cita.id} className="flex items-center gap-3 border-b border-[var(--border-row)] px-4 py-2.5 last:border-0">
-                  <span className="w-12 shrink-0 font-mono text-[12px] tabular-nums text-[var(--text-2)]">{horaCita(cita.empieza)}</span>
-                  <span className="h-8 w-[3px] shrink-0 rounded-full" style={{ background: cita.profiles?.color || "#3A6A82" }} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13.5px] font-medium">{cita.titulo}</p>
-                    <p className="text-[12px] capitalize text-[var(--text-2)]">{cita.tipo}</p>
-                  </div>
+                <li key={cita.id} className="flex items-center gap-2 border-b border-[var(--border-row)] px-2 py-1 last:border-0">
+                  <Link
+                    href={`/calendario?cita=${cita.id}`}
+                    className="flex min-w-0 flex-1 items-center gap-3 rounded-[10px] px-2 py-1.5 hover:bg-[var(--surface-soft)]"
+                  >
+                    <span className="w-12 shrink-0 font-mono text-[12px] tabular-nums text-[var(--text-2)]">{horaCita(cita.empieza)}</span>
+                    <span className="h-8 w-[3px] shrink-0 rounded-full" style={{ background: cita.profiles?.color || "#3A6A82" }} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[13.5px] font-medium">{cita.titulo}</span>
+                      <span className="block text-[12px] capitalize text-[var(--text-2)]">{cita.tipo}</span>
+                    </span>
+                  </Link>
                   {cita.tipo === "visita" ? (
-                    <Button asChild size="sm">
+                    <Button asChild size="sm" className="mr-1 shrink-0">
                       <Link href={rutaNuevaVisitaDesdeCita({ id: cita.id, propiedadId: cita.propiedad_id })}>Hacer parte</Link>
                     </Button>
                   ) : null}

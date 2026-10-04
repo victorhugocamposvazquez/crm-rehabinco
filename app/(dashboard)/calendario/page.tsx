@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
@@ -258,6 +258,19 @@ export default function CalendarioPage() {
     for (const id of cita.clientes_extra_ids ?? []) mezclarCliente(id);
     setSheetOpen(true);
   };
+
+  const citaQuery = searchParams.get("cita");
+  const citaAbierta = useRef<string | null>(null);
+  useEffect(() => {
+    if (!citaQuery || citaAbierta.current === citaQuery) return;
+    const cita = citas.find((item) => item.id === citaQuery);
+    if (!cita) return;
+    citaAbierta.current = citaQuery;
+    setDia(cita.empieza.slice(0, 10));
+    if (puedeGestionarCita(cita.comercial_id, user?.id, admin)) abrirEdicion(cita.id);
+    // abrirEdicion cambia de identidad en cada render; solo debe dispararse al llegar la cita.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [citaQuery, citas, user?.id, admin]);
 
   const guardar = async (tipo: TipoAltaCalendario, titulo: string) => {
     if (!user) return;
