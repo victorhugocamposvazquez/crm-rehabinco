@@ -86,7 +86,7 @@ export function PullToRefresh() {
 
   return (
     <div className="pointer-events-none fixed inset-x-0 top-14 z-50 flex justify-center">
-      <span className="mt-1 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-[12px] font-medium text-[var(--text-2)] shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+      <span className="caja-flotante mt-1 rounded-full px-3 py-1 text-[12px] font-medium text-[var(--text-2)]">
         {listo ? "Suelta para actualizar" : "Tira para actualizar"}
       </span>
     </div>

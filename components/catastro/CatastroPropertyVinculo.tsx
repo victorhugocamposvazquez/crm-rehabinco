@@ -89,11 +89,11 @@ export function CatastroPropertyVinculo({
 
       {eligiendo && !principal ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          className="velo-flotante fixed inset-0 z-50 flex items-center justify-center p-4"
           onClick={() => !creando && setEligiendo(false)}
         >
           <div
-            className="w-full max-w-md rounded-2xl border border-border bg-[var(--surface)] p-6 shadow-xl"
+            className="caja-flotante w-full max-w-md rounded-2xl p-6"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-labelledby="ofertante-catastro-title"

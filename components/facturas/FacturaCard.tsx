@@ -204,7 +204,7 @@ export function FacturaCard({
                   <button
                     type="button"
                     onClick={handleViewDetail}
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-blue-600 transition-colors hover:bg-blue-50"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-blue-600 transition-colors hover:bg-[var(--surface-soft)]"
                     aria-label="Ver detalle"
                   >
                     <Eye className="h-4 w-4" strokeWidth={2} />
@@ -220,7 +220,7 @@ export function FacturaCard({
                   <button
                     type="button"
                     onClick={handleDeleteClick}
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-red-600 transition-colors hover:bg-red-50"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-red-600 transition-colors hover:bg-[var(--surface-soft)]"
                     aria-label="Eliminar"
                   >
                     <Trash2 className="h-4 w-4" strokeWidth={2} />
