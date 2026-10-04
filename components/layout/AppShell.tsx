@@ -26,6 +26,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [badges, setBadges] = useState<Record<string, number>>({});
 
   useEffect(() => {
+    const ancla = window.location.hash.replace(/^#/, "");
+    if (ancla) {
+      const destino = document.getElementById(ancla);
+      if (destino) {
+        destino.scrollIntoView();
+        return;
+      }
+    }
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  useEffect(() => {
     if (!user) return;
     const supabase = createClient();
     const hoy = new Date().toISOString().slice(0, 10);

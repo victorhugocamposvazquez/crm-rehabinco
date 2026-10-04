@@ -129,7 +129,6 @@ export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFactu
   };
 
   const kpis = [
-    { href: "/calendario", label: "Citas hoy", valor: String(citasHoy.length), fg: "var(--foreground)" },
     {
       href: "/tareas",
       label: "Tareas vencidas y de hoy",
@@ -145,7 +144,7 @@ export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFactu
     <div className="space-y-5">
       {admin ? <FiltroComercial comerciales={comerciales} valor={comercialId} onChange={setComercialId} /> : null}
 
-      <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
         {kpis.map((kpi) => (
           <Link key={kpi.label} href={kpi.href} className="rounded-[14px] border border-border bg-[var(--surface)] px-4 py-3.5 hover:bg-[var(--surface-soft)]">
             <p className="font-mono text-[22px] font-semibold tabular-nums" style={{ color: kpi.fg }}>
