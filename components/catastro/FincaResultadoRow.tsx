@@ -77,9 +77,9 @@ export function FincaResultadoRow({
         }
       }}
       className={cn(
-        "bg-[var(--surface)] text-foreground",
+        "cursor-pointer bg-[var(--surface)] text-foreground",
         "max-[779px]:overflow-hidden max-[779px]:rounded-[13px] max-[779px]:border max-[779px]:border-[var(--border)]",
-        "min-[780px]:flex min-[780px]:cursor-pointer min-[780px]:flex-nowrap min-[780px]:items-center min-[780px]:gap-4 min-[780px]:border-b min-[780px]:border-[var(--border-row)] min-[780px]:px-4 min-[780px]:py-3.5 min-[780px]:hover:bg-[var(--surface-soft)]",
+        "min-[780px]:flex min-[780px]:flex-nowrap min-[780px]:items-center min-[780px]:gap-4 min-[780px]:border-b min-[780px]:border-[var(--border-row)] min-[780px]:px-4 min-[780px]:py-3.5 min-[780px]:hover:bg-[var(--surface-soft)]",
         selected && "min-[780px]:bg-[var(--row-active)] min-[780px]:shadow-[inset_3px_0_0_var(--foreground)]"
       )}
     >

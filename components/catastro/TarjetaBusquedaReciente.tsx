@@ -70,9 +70,13 @@ export function TarjetaBusquedaReciente({
     }
   };
 
+  const destino = rutaBusquedaHistorica(item.id);
+
   return (
-    <article className={CLASES_TARJETA_BUSQUEDA}>
-      <div className="flex min-w-0 flex-1 items-start gap-2.5">
+    <>
+    <article className={cn(CLASES_TARJETA_BUSQUEDA, "relative cursor-pointer hover:bg-[var(--surface-soft)]")}>
+      <Link href={destino} tabIndex={-1} aria-hidden className="absolute inset-0 z-0 rounded-[inherit]" />
+      <div className="pointer-events-none relative z-[1] flex min-w-0 flex-1 items-start gap-2.5">
         <span
           className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", CLASES_PUNTO_ESTADO[item.status])}
           aria-hidden
@@ -90,14 +94,14 @@ export function TarjetaBusquedaReciente({
           </div>
         </div>
       </div>
-      <div className="flex shrink-0 items-center gap-3 pl-[18px] min-[780px]:pl-0">
+      <div className="pointer-events-none relative z-[1] flex shrink-0 items-center gap-3 pl-[18px] min-[780px]:pl-0">
         <div className="hidden w-[7.25rem] min-[780px]:block">
           <BarraProgreso etiqueta={progreso.etiqueta} ancho={anchoBarra} />
         </div>
-        <Button asChild size="sm" variant="secondary" className="min-h-9 px-3.5">
-          <Link href={rutaBusquedaHistorica(item.id)}>Abrir</Link>
+        <Button asChild size="sm" variant="secondary" className="pointer-events-auto min-h-9 px-3.5">
+          <Link href={destino}>Abrir</Link>
         </Button>
-        <div ref={menuRef} className="relative">
+        <div ref={menuRef} className="pointer-events-auto relative">
           <Button
             type="button"
             size="sm"
@@ -140,15 +144,16 @@ export function TarjetaBusquedaReciente({
           ) : null}
         </div>
       </div>
-      <ConfirmacionEliminarBusqueda
-        abierta={confirmar}
-        cargando={borrando}
-        onCancelar={() => {
-          if (!borrando) setConfirmar(false);
-        }}
-        onConfirmar={() => void eliminar()}
-      />
     </article>
+    <ConfirmacionEliminarBusqueda
+      abierta={confirmar}
+      cargando={borrando}
+      onCancelar={() => {
+        if (!borrando) setConfirmar(false);
+      }}
+      onConfirmar={() => void eliminar()}
+    />
+    </>
   );
 }
 
