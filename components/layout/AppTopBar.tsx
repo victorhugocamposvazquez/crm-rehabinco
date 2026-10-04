@@ -22,19 +22,6 @@ export function AppTopBar() {
       <Link href={inicio} className="grid h-9 w-9 shrink-0 place-items-center min-[820px]:hidden" aria-label="Inicio">
         <img src="/images/icono.png" alt="" className="h-7 w-7 rounded-[8px] object-contain dark:invert" />
       </Link>
-      {user ? (
-        <Link
-          href="/settings"
-          className="shrink-0 min-[820px]:hidden"
-          title={`${user.nombre || user.email} · ${user.role}`}
-          aria-label={user.nombre || user.email || "Perfil"}
-        >
-          <AvatarComercial nombre={user.nombre} email={user.email} color={user.color} size={30} />
-        </Link>
-      ) : null}
-      <span className="shrink-0 min-[820px]:order-2">
-        <AvisosBarra />
-      </span>
       <nav aria-label="Breadcrumb" className="hidden min-w-0 flex-1 truncate text-[13.5px] min-[820px]:block">
         <span className="text-[var(--text-2)]">{seccion}</span>
         {detalle && (
@@ -47,12 +34,25 @@ export function AppTopBar() {
       <span className="ml-auto shrink-0 min-[820px]:order-1 min-[820px]:ml-0">
         <BusquedaGlobal />
       </span>
+      <span className="shrink-0 min-[820px]:order-2">
+        <AvisosBarra />
+      </span>
       <span className="shrink-0 min-[820px]:order-3">
         <InterruptorTema compacto />
       </span>
       <span className="shrink-0 min-[820px]:order-4">
         <NuevoMenu />
       </span>
+      {user ? (
+        <Link
+          href="/settings"
+          className="shrink-0 min-[820px]:hidden"
+          title={`${user.nombre || user.email} · ${user.role}`}
+          aria-label={user.nombre || user.email || "Perfil"}
+        >
+          <AvatarComercial nombre={user.nombre} email={user.email} color={user.color} size={30} />
+        </Link>
+      ) : null}
     </header>
   );
 }

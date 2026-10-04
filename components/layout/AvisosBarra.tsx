@@ -75,12 +75,19 @@ export function AvisosBarra() {
   if (!user) return null;
 
   const lista = abierto && posicion ? (
+    <>
+    <button
+      type="button"
+      aria-label="Cerrar avisos"
+      className="fixed inset-0 z-[70] bg-black/45"
+      onClick={() => setAbierto(false)}
+    />
     <div
       ref={panel}
       style={{ top: posicion.top, left: posicion.left, width: posicion.width }}
-      className="fixed z-[80] max-h-[min(24rem,calc(100dvh-5rem))] overflow-y-auto rounded-[12px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_12px_40px_rgba(0,0,0,0.18)]"
+      className="fixed z-[80] max-h-[min(24rem,calc(100dvh-5rem))] overflow-y-auto rounded-[12px] border border-[var(--input)] bg-[var(--field)] shadow-[0_16px_48px_rgba(0,0,0,0.45)]"
     >
-      <p className="sticky top-0 border-b border-[var(--border-soft)] bg-[var(--surface)] px-3.5 py-2.5 text-[12px] text-[var(--text-3)]">Avisos</p>
+      <p className="sticky top-0 border-b border-[var(--border)] bg-[var(--field)] px-3.5 py-2.5 text-[12px] text-[var(--text-3)]">Avisos</p>
       {avisos.length === 0 ? (
         <p className="px-3.5 py-4 text-[13px] text-[var(--text-2)]">Nada pendiente.</p>
       ) : (
@@ -107,6 +114,7 @@ export function AvisosBarra() {
         </ul>
       )}
     </div>
+    </>
   ) : null;
 
   return (
