@@ -41,12 +41,12 @@ export function CarrilHorizontal({
   }, []);
 
   return (
-    <div className={cn("relative min-w-0 max-w-full", className)}>
+    <div className={cn("relative min-w-0 max-w-full", className)} data-carril>
       <div
         ref={pista}
         role={role}
         aria-label={label}
-        className="overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="overflow-x-auto overflow-y-hidden overscroll-x-contain overscroll-y-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         style={
           mas
             ? {

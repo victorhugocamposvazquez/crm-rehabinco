@@ -94,7 +94,7 @@ export function CatastroSubnav() {
 
   return (
     <nav
-      className="sticky top-14 z-30 -mx-3.5 -mt-5 mb-6 border-b border-[var(--border)] bg-[var(--surface)]/95 px-1 backdrop-blur min-[820px]:-mx-6 min-[820px]:-mt-6 min-[820px]:px-4"
+      className="sticky top-16 z-30 -mx-3.5 -mt-5 mb-6 border-b border-[var(--border)] bg-[var(--surface)]/95 px-1 backdrop-blur min-[820px]:top-14 min-[820px]:-mx-6 min-[820px]:-mt-6 min-[820px]:px-4"
       aria-label="Catastro"
     >
       <CarrilHorizontal trackClassName="min-[780px]:gap-6">
@@ -111,7 +111,7 @@ export function CatastroSubnav() {
             >
               <Icono className="h-4 w-4" strokeWidth={1.9} aria-hidden />
               {item.label}
-              {item.activa ? <span className="absolute inset-x-2 -bottom-px h-[3px] bg-foreground min-[780px]:inset-x-0" /> : null}
+              {item.activa ? <span className="absolute inset-x-2 bottom-0 h-[3px] bg-foreground min-[780px]:inset-x-0" /> : null}
             </Link>
           );
         })}

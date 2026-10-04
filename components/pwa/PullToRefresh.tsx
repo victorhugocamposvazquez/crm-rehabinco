@@ -18,7 +18,7 @@ export function PullToRefresh() {
       if (document.body.style.overflow === "hidden") return true;
       const el = target as HTMLElement | null;
       if (!el?.closest) return true;
-      if (el.closest("input, textarea, select, [contenteditable='true'], [role='dialog']")) return true;
+      if (el.closest("input, textarea, select, [contenteditable='true'], [role='dialog'], [data-carril]")) return true;
       let nodo: HTMLElement | null = el;
       while (nodo && nodo !== document.body) {
         const eje = getComputedStyle(nodo).overflowY;
@@ -85,7 +85,7 @@ export function PullToRefresh() {
   if (pull < 8) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-14 z-50 flex justify-center">
+    <div className="pointer-events-none fixed inset-x-0 top-16 z-50 flex justify-center">
       <span className="caja-flotante mt-1 rounded-full px-3 py-1 text-[12px] font-medium text-[var(--text-2)]">
         {listo ? "Suelta para actualizar" : "Tira para actualizar"}
       </span>
