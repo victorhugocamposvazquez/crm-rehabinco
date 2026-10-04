@@ -45,6 +45,7 @@ import { altaCamposVacios, leerAltaBorrador } from "@/lib/ui/alta-borrador";
 import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
 import { cn } from "@/lib/utils";
 import type { Json } from "@/lib/supabase/types";
+import { Selector } from "@/components/ui/selector";
 
 const area =
   "mt-1.5 min-h-[5.5rem] w-full resize-y rounded-[9px] border border-[var(--input)] bg-white px-3 py-2.5 text-[13.5px] outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15 max-[819px]:text-base";
@@ -100,7 +101,7 @@ function PersonaCard({
         </div>
         <div>
           <Label>Estado civil</Label>
-          <select
+          <Selector
             className="mt-1.5 flex h-9 w-full rounded-[9px] border border-[var(--input)] bg-white px-3 py-0 text-[13.5px] outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15 max-[819px]:h-[46px] max-[819px]:text-base"
             value={estadoCivil}
             onChange={(e) => set({ estado_civil: e.target.value })}
@@ -114,7 +115,7 @@ function PersonaCard({
             {estadoCivil && !ESTADOS_CIVILES.some((e) => e.value === estadoCivil) ? (
               <option value={estadoCivil}>{persona.estado_civil}</option>
             ) : null}
-          </select>
+          </Selector>
         </div>
         <div>
           <Label>DNI</Label>
@@ -382,7 +383,7 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
         <div className="mt-4 space-y-4">
           <div>
             <Label htmlFor="stock">Inmueble del stock</Label>
-            <select
+            <Selector
               id="stock"
               value={propiedadId}
               onChange={(e) => {
@@ -401,7 +402,7 @@ export function ContratoArrasEditor({ contratoId }: { contratoId?: string }) {
                   {[p.referencia, p.titulo || p.direccion].filter(Boolean).join(" · ")}
                 </option>
               ))}
-            </select>
+            </Selector>
           </div>
           <div>
             <Label htmlFor="finca">Descripción de la finca</Label>

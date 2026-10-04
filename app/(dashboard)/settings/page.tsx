@@ -27,6 +27,7 @@ import { EquipoComercialesCard } from "@/components/settings/EquipoComercialesCa
 import { SettingsAdminNav } from "@/components/settings/SettingsAdminNav";
 import { TokenExtensionCard } from "@/components/settings/TokenExtensionCard";
 import { AvisosPwaCard } from "@/components/pwa/AvisosPwa";
+import { Selector } from "@/components/ui/selector";
 
 export default function SettingsPage() {
   const { user, signOut } = useAuth();
@@ -292,7 +293,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="new-user-role">Rol</Label>
-                  <select
+                  <Selector
                     id="new-user-role"
                     value={newUserRole}
                     onChange={(e) => setNewUserRole(e.target.value as Role)}
@@ -303,7 +304,7 @@ export default function SettingsPage() {
                         {ROLE_LABELS[rol]}
                       </option>
                     ))}
-                  </select>
+                  </Selector>
                   {newUserRole === "editor" && (
                     <p className="text-xs text-neutral-500">
                       Solo crea presupuestos. El emisor queda fijado en Garal.

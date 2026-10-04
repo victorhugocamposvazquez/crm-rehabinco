@@ -21,6 +21,7 @@ import { wizardActionBarClassName } from "@/components/layout/wizard-chrome";
 import { BuscadorLocalidad } from "@/components/geo/BuscadorLocalidad";
 import { BotonImportarContacto } from "@/components/clientes/BotonImportarContacto";
 import type { ContactoImportado } from "@/lib/contacts/contact-picker";
+import { Selector } from "@/components/ui/selector";
 
 const STEPS = [
   { id: 1, title: "Datos básicos" },
@@ -314,7 +315,7 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="tipo_documento">Tipo de documento</Label>
-                  <select
+                  <Selector
                     id="tipo_documento"
                     className="flex h-10 w-full rounded-lg border border-border bg-[var(--surface)] px-4 text-base"
                     {...formStep1.register("tipo_documento")}
@@ -330,7 +331,7 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
                         <option value="nie">NIE</option>
                       </>
                     )}
-                  </select>
+                  </Selector>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="documento_fiscal">
@@ -439,7 +440,7 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
                   <p className="text-sm font-medium">Presupuestos (plantilla PDF)</p>
                   <div className="space-y-2">
                     <Label htmlFor="plantilla_presupuesto">Plantilla de PDF</Label>
-                    <select
+                    <Selector
                       id="plantilla_presupuesto"
                       value={data.plantilla_presupuesto ?? ""}
                       onChange={(e) =>
@@ -452,7 +453,7 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
                     >
                       <option value="">Automática</option>
                       <option value="deportivo">Deportivo (Riazor)</option>
-                    </select>
+                    </Selector>
                   </div>
                   {data.plantilla_presupuesto === "deportivo" ? (
                     <p className="text-xs text-neutral-500 leading-relaxed">

@@ -16,6 +16,7 @@ import {
 import { prefillParteDesdeCita } from "@/lib/citas/citas";
 import { altaCamposVacios, leerAltaBorrador } from "@/lib/ui/alta-borrador";
 import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
+import { Selector } from "@/components/ui/selector";
 
 type ParteAltaSnap = {
   propiedadId: string;
@@ -368,7 +369,7 @@ export function NuevoPartePanel({
         ) : null}
         <div className="grid gap-5 min-[780px]:grid-cols-2">
           <AltaField label="Inmueble del stock" optional={!desdeProperty}>
-            <select
+            <Selector
               value={propiedadId}
               onChange={(e) => {
                 if (!desdeProperty) setPropiedadId(e.target.value);
@@ -382,7 +383,7 @@ export function NuevoPartePanel({
                   {[p.referencia, p.titulo || p.direccion].filter(Boolean).join(" · ")}
                 </option>
               ))}
-            </select>
+            </Selector>
           </AltaField>
           <AltaField label="Referencia" optional>
             <input value={inmuebleReferencia} onChange={(e) => setInmuebleReferencia(e.target.value)} className={altaControl} />

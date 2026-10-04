@@ -15,6 +15,7 @@ import {
 import { detalleCambioEstado, ordenarActividad, type ActividadCaptacion } from "@/lib/captacion/actividad";
 import { rutaNuevaVisitaDesdeProperty } from "@/lib/partes-visita";
 import { rutaFincaPersistida } from "@/lib/catastro/explorer/history-ui";
+import { Selector } from "@/components/ui/selector";
 
 export function PipelineFinca({
   fincaReference,
@@ -167,7 +168,7 @@ export function PipelineFinca({
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
           <Label htmlFor="estado-captacion">Estado</Label>
-          <select
+          <Selector
             id="estado-captacion"
             value={estado}
             disabled={guardando}
@@ -179,7 +180,7 @@ export function PipelineFinca({
                 {ESTADO_CAPTACION_LABEL[item]}
               </option>
             ))}
-          </select>
+          </Selector>
         </div>
         <div className="space-y-1">
           <Label htmlFor="proxima-en">Próxima acción</Label>

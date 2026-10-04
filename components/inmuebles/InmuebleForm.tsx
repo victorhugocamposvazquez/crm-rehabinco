@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { UserPlus } from "lucide-react";
 import { ClienteQuickSheet } from "@/components/clientes/ClienteQuickSheet";
 import { BuscadorLocalidad } from "@/components/geo/BuscadorLocalidad";
+import { Selector } from "@/components/ui/selector";
 import {
   ESTADOS_INMUEBLE,
   ESTADO_INMUEBLE_LABEL,
@@ -54,7 +55,7 @@ export function InmuebleForm({
         <h2 className="text-[12px] font-medium text-[var(--text-3)]">Captación</h2>
         <div className="space-y-2">
           <Label>Propietario (ofertante, opcional)</Label>
-          <select
+          <Selector
             value={values.ofertante_id}
             onChange={(e) => set({ ofertante_id: e.target.value })}
             className="flex h-10 w-full rounded-lg border border-border bg-[var(--surface)] px-4 text-base"
@@ -65,7 +66,7 @@ export function InmuebleForm({
                 {c.nombre}
               </option>
             ))}
-          </select>
+          </Selector>
           <button
             type="button"
             onClick={() => setShowQuickClient(true)}
@@ -86,7 +87,7 @@ export function InmuebleForm({
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label>Tipo de inmueble</Label>
-            <select
+            <Selector
               value={values.tipo_inmueble}
               onChange={(e) => set({ tipo_inmueble: e.target.value })}
               className="flex h-10 w-full rounded-lg border border-border bg-[var(--surface)] px-4 text-base"
@@ -96,11 +97,11 @@ export function InmuebleForm({
                   {TIPO_INMUEBLE_LABEL[t]}
                 </option>
               ))}
-            </select>
+            </Selector>
           </div>
           <div className="space-y-2">
             <Label>Operación</Label>
-            <select
+            <Selector
               value={values.tipo_operacion}
               onChange={(e) => set({ tipo_operacion: e.target.value as InmuebleFormValues["tipo_operacion"] })}
               className="flex h-10 w-full rounded-lg border border-border bg-[var(--surface)] px-4 text-base"
@@ -110,7 +111,7 @@ export function InmuebleForm({
                   {TIPO_OPERACION_LABEL[t]}
                 </option>
               ))}
-            </select>
+            </Selector>
           </div>
         </div>
         <div className="space-y-2">
@@ -238,7 +239,7 @@ export function InmuebleForm({
           )}
           <div className="space-y-2">
             <Label>Estado</Label>
-            <select
+            <Selector
               value={values.estado}
               onChange={(e) => set({ estado: e.target.value as InmuebleFormValues["estado"] })}
               className="flex h-10 w-full rounded-lg border border-border bg-[var(--surface)] px-4 text-base"
@@ -248,7 +249,7 @@ export function InmuebleForm({
                   {ESTADO_INMUEBLE_LABEL[e]}
                 </option>
               ))}
-            </select>
+            </Selector>
           </div>
         </div>
         <label className="flex items-center gap-2 text-sm">

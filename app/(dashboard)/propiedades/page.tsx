@@ -40,6 +40,7 @@ import { extraAlta } from "@/lib/ui/alta-panel";
 import { NuevoInmueblePanel } from "@/components/inmuebles/NuevoInmueblePanel";
 import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
 import { Sheet } from "@/components/ui/sheet";
+import { Selector } from "@/components/ui/selector";
 
 type PropiedadLista = InmueblePanel;
 
@@ -193,7 +194,7 @@ export default function PropiedadesPage() {
                   className="h-9 w-full rounded-[9px] border border-[var(--input)] bg-transparent pl-9 pr-3 text-[13.5px] outline-none focus:border-accent"
                 />
               </div>
-              <select
+              <Selector
                 value={filterEstado}
                 onChange={(e) => setFilterEstado(e.target.value)}
                 className="h-9 rounded-[9px] border border-[var(--input)] bg-white px-2.5 text-[13px]"
@@ -204,8 +205,8 @@ export default function PropiedadesPage() {
                 <option value="vendida">Vendida</option>
                 <option value="alquilada">Alquilada</option>
                 <option value="baja">Baja</option>
-              </select>
-              <select
+              </Selector>
+              <Selector
                 value={filterTipo}
                 onChange={(e) => setFilterTipo(e.target.value)}
                 className="h-9 rounded-[9px] border border-[var(--input)] bg-white px-2.5 text-[13px]"
@@ -214,7 +215,7 @@ export default function PropiedadesPage() {
                 <option value="venta">Venta</option>
                 <option value="alquiler">Alquiler</option>
                 <option value="ambos">Ambos</option>
-              </select>
+              </Selector>
               {!narrow ? (
                 <div className="flex overflow-hidden rounded-[9px] border border-[var(--input)]">
                   <button

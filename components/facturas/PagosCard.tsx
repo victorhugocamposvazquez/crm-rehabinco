@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Banknote } from "lucide-react";
 import { toast } from "sonner";
+import { Selector } from "@/components/ui/selector";
 
 const METODOS_PAGO = [
   { value: "transferencia", label: "Transferencia" },
@@ -196,7 +197,7 @@ export function PagosCard({
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="pago-metodo">Método de pago</Label>
-                  <select
+                  <Selector
                     id="pago-metodo"
                     className="flex h-10 w-full rounded-lg border border-border bg-[var(--surface)] px-4 text-base"
                     value={metodoPago}
@@ -207,7 +208,7 @@ export function PagosCard({
                         {m.label}
                       </option>
                     ))}
-                  </select>
+                  </Selector>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="pago-notas">Notas</Label>

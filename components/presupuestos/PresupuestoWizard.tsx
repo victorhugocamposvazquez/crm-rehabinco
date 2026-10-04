@@ -36,6 +36,7 @@ import {
   type TipoDocumentoPresupuesto,
 } from "@/lib/presupuesto-propuesta";
 import { altasDeLineas, lineasParaDb, totalesAmpliacion } from "@/lib/presupuesto-totales";
+import { Selector } from "@/components/ui/selector";
 
 interface Linea {
   descripcion: string;
@@ -462,7 +463,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
             </div>
             <div className="space-y-2">
               <Label>Cliente</Label>
-              <select
+              <Selector
                 value={clienteId}
                 onChange={(e) => setClienteId(e.target.value)}
                 className="flex h-10 w-full rounded-lg border border-border bg-[var(--surface)] px-4 text-base"
@@ -473,7 +474,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
                     {c.nombre}
                   </option>
                 ))}
-              </select>
+              </Selector>
               {!soloGaral && (
               <button
                 type="button"
@@ -527,7 +528,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
             {presupuestoId && (
               <div className="space-y-2">
                 <Label>Estado</Label>
-                <select
+                <Selector
                   value={estado}
                   onChange={(e) => setEstado(e.target.value)}
                   className="flex h-10 w-full rounded-lg border border-border bg-[var(--surface)] px-4 text-base"
@@ -536,7 +537,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
                   <option value="enviado">Enviado</option>
                   <option value="aceptado">Aceptado</option>
                   <option value="rechazado">Rechazado</option>
-                </select>
+                </Selector>
               </div>
             )}
           </CardContent>

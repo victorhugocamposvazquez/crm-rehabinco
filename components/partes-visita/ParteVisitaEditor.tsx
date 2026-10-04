@@ -33,6 +33,7 @@ import {
 import { altaCamposVacios, leerAltaBorrador } from "@/lib/ui/alta-borrador";
 import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
 import { cn } from "@/lib/utils";
+import { Selector } from "@/components/ui/selector";
 
 const area =
   "mt-1.5 min-h-[5rem] w-full resize-y rounded-[9px] border border-[var(--input)] bg-white px-3 py-2.5 text-[13.5px] outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15 max-[819px]:text-base";
@@ -494,7 +495,7 @@ export function ParteVisitaEditor({
               <div className="mt-4 grid gap-4">
                 <div>
                   <Label htmlFor="stock">Inmueble del stock</Label>
-                  <select
+                  <Selector
                     id="stock"
                     value={propiedadId}
                     disabled={desdeProperty}
@@ -507,7 +508,7 @@ export function ParteVisitaEditor({
                         {[p.referencia, p.titulo || p.direccion].filter(Boolean).join(" · ")}
                       </option>
                     ))}
-                  </select>
+                  </Selector>
                 </div>
                 <div>
                   <Label htmlFor="dir">Dirección o calles</Label>

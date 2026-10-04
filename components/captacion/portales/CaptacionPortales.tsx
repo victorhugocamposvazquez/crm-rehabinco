@@ -56,6 +56,7 @@ import { cn } from "@/lib/utils";
 import { cuentaSinTelefonoChip, cuentaSoloMensajeChip } from "@/lib/captacion/telefono-estado";
 import { IconoEstadoTelefono, TelefonoAnuncio } from "@/components/captacion/portales/TelefonoAnuncio";
 import type { PinMapaCaptacion } from "@/components/captacion/portales/CaptacionMapaLeaflet";
+import { Selector } from "@/components/ui/selector";
 
 const CaptacionMapaLeaflet = dynamic(
   () => import("@/components/captacion/portales/CaptacionMapaLeaflet").then((m) => m.CaptacionMapaLeaflet),
@@ -751,18 +752,18 @@ export function CaptacionPortales() {
                   className="min-w-0 flex-1 bg-transparent text-[13.5px] outline-none"
                 />
               </div>
-              <select value={fAlerta} onChange={(e) => { setFAlerta(e.target.value); setPag(1); }} className="h-9 max-w-[220px] rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-2.5 text-[13px]">
+              <Selector value={fAlerta} onChange={(e) => { setFAlerta(e.target.value); setPag(1); }} className="h-9 max-w-[220px] rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-2.5 text-[13px]">
                 <option value="todas">Alerta: todas</option>
                 {alertas.map((a) => (
                   <option key={a.id} value={a.id}>{a.nombre}</option>
                 ))}
-              </select>
-              <select value={fCiudad} onChange={(e) => { setFCiudad(e.target.value); setPag(1); }} className="h-9 rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-2.5 text-[13px]">
+              </Selector>
+              <Selector value={fCiudad} onChange={(e) => { setFCiudad(e.target.value); setPag(1); }} className="h-9 rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-2.5 text-[13px]">
                 <option value="todas">Ciudad: todas</option>
                 {CIUDADES_FILTRO.map((c) => (
                   <option key={c}>{c}</option>
                 ))}
-              </select>
+              </Selector>
               <button type="button" onClick={() => setMas((v) => !v)} className={cn("flex h-9 items-center gap-1.5 rounded-[9px] border px-2.5 text-[13px] font-medium", mas ? "border-accent bg-accent-soft text-accent-dark" : "border-[var(--input)] bg-[var(--field)]")}>
                 Más filtros{nFiltros ? <span className="rounded-full bg-accent px-1.5 text-[11px] font-semibold text-white">{nFiltros}</span> : null}
               </button>
@@ -779,10 +780,10 @@ export function CaptacionPortales() {
                   <span className="mt-1 flex gap-1.5"><input placeholder="mín" value={filtros.m2Min} onChange={(e) => setFiltros((f) => ({ ...f, m2Min: e.target.value }))} className="h-[34px] w-1/2 rounded-lg border border-[var(--input)] px-2 text-[13px]" /><input placeholder="máx" value={filtros.m2Max} onChange={(e) => setFiltros((f) => ({ ...f, m2Max: e.target.value }))} className="h-[34px] w-1/2 rounded-lg border border-[var(--input)] px-2 text-[13px]" /></span>
                 </label>
                 <label className="block text-[12px] text-[var(--text-3)]">Portal
-                  <select value={filtros.portal} onChange={(e) => setFiltros((f) => ({ ...f, portal: e.target.value }))} className="mt-1 h-[34px] w-full rounded-lg border border-[var(--input)] bg-[var(--field)] px-2 text-[13px]"><option value="todos">Todos</option>{FUENTES_PORTAL.map((p) => <option key={p} value={p}>{PORTAL_LABEL[p]}</option>)}</select>
+                  <Selector value={filtros.portal} onChange={(e) => setFiltros((f) => ({ ...f, portal: e.target.value }))} className="mt-1 h-[34px] w-full rounded-lg border border-[var(--input)] bg-[var(--field)] px-2 text-[13px]"><option value="todos">Todos</option>{FUENTES_PORTAL.map((p) => <option key={p} value={p}>{PORTAL_LABEL[p]}</option>)}</Selector>
                 </label>
                 <label className="block text-[12px] text-[var(--text-3)]">Tipo
-                  <select value={filtros.tipo} onChange={(e) => setFiltros((f) => ({ ...f, tipo: e.target.value }))} className="mt-1 h-[34px] w-full rounded-lg border border-[var(--input)] bg-[var(--field)] px-2 text-[13px]"><option value="todos">Todos</option>{TIPOS_ANUNCIO.map((t) => <option key={t} value={t}>{TIPO_ANUNCIO_LABEL[t]}</option>)}</select>
+                  <Selector value={filtros.tipo} onChange={(e) => setFiltros((f) => ({ ...f, tipo: e.target.value }))} className="mt-1 h-[34px] w-full rounded-lg border border-[var(--input)] bg-[var(--field)] px-2 text-[13px]"><option value="todos">Todos</option>{TIPOS_ANUNCIO.map((t) => <option key={t} value={t}>{TIPO_ANUNCIO_LABEL[t]}</option>)}</Selector>
                 </label>
               </div>
             ) : null}
@@ -812,13 +813,13 @@ export function CaptacionPortales() {
                   ))
                 : null}
               <div className="flex-1" />
-              <select value={orden} onChange={(e) => setOrden(e.target.value)} className="h-[30px] rounded-lg bg-[#F5F5F5] px-2 text-[12.5px] text-[var(--text-2)]">
+              <Selector value={orden} onChange={(e) => setOrden(e.target.value)} className="h-[30px] rounded-lg bg-[#F5F5F5] px-2 text-[12.5px] text-[var(--text-2)]">
                 <option value="publicado">Últimos en Idealista</option>
                 <option value="anadido">Añadidos al CRM</option>
                 <option value="precio">Precio ↑</option>
                 <option value="pm2">€/m² ↑</option>
                 <option value="m2">m² ↓</option>
-              </select>
+              </Selector>
             </div>
             {mapa ? (
               <div className="relative border-b border-[var(--border-soft)] bg-[#E9ECE8]">
@@ -1203,8 +1204,8 @@ export function CaptacionPortales() {
               </div>
               <label className="block text-[12px] font-semibold text-[var(--text-2)]">Zonas<input value={draftAlerta.zonas} onChange={(e) => setDraftAlerta((d) => ({ ...d, zonas: e.target.value }))} placeholder="A Coruña, Cambre, Oleiros…" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px]" /></label>
               <div className="grid grid-cols-2 gap-2.5">
-                <label className="block text-[12px] font-semibold text-[var(--text-2)]">Operación<select value={draftAlerta.operacion} onChange={(e) => setDraftAlerta((d) => ({ ...d, operacion: e.target.value as "venta" | "alquiler" }))} className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-2.5 text-[14px]"><option value="venta">Venta</option><option value="alquiler">Alquiler</option></select></label>
-                <label className="block text-[12px] font-semibold text-[var(--text-2)]">Tipo<select value={draftAlerta.tipo} onChange={(e) => setDraftAlerta((d) => ({ ...d, tipo: e.target.value }))} className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-2.5 text-[14px]"><option value="">Cualquiera</option>{TIPOS_ANUNCIO.map((t) => <option key={t} value={t}>{TIPO_ANUNCIO_LABEL[t]}</option>)}</select></label>
+                <label className="block text-[12px] font-semibold text-[var(--text-2)]">Operación<Selector value={draftAlerta.operacion} onChange={(e) => setDraftAlerta((d) => ({ ...d, operacion: e.target.value as "venta" | "alquiler" }))} className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-2.5 text-[14px]"><option value="venta">Venta</option><option value="alquiler">Alquiler</option></Selector></label>
+                <label className="block text-[12px] font-semibold text-[var(--text-2)]">Tipo<Selector value={draftAlerta.tipo} onChange={(e) => setDraftAlerta((d) => ({ ...d, tipo: e.target.value }))} className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-2.5 text-[14px]"><option value="">Cualquiera</option>{TIPOS_ANUNCIO.map((t) => <option key={t} value={t}>{TIPO_ANUNCIO_LABEL[t]}</option>)}</Selector></label>
                 <label className="block text-[12px] font-semibold text-[var(--text-2)]">Precio máx.<input value={draftAlerta.precioMax} onChange={(e) => setDraftAlerta((d) => ({ ...d, precioMax: e.target.value }))} placeholder="€" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px]" /></label>
                 <label className="block text-[12px] font-semibold text-[var(--text-2)]">Metros mín.<input value={draftAlerta.m2Min} onChange={(e) => setDraftAlerta((d) => ({ ...d, m2Min: e.target.value }))} placeholder="m²" className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] px-3 text-[14px]" /></label>
               </div>
@@ -1212,7 +1213,7 @@ export function CaptacionPortales() {
                 <div><div className="text-[13.5px] font-semibold">Solo particulares</div><div className="text-[12px] text-[var(--text-2)]">Excluye agencias y profesionales detectados</div></div>
                 <Switch on={draftAlerta.soloParticulares} onClick={() => setDraftAlerta((d) => ({ ...d, soloParticulares: !d.soloParticulares }))} />
               </div>
-              <label className="block text-[12px] font-semibold text-[var(--text-2)]">Frecuencia<select value={draftAlerta.frecuencia} onChange={(e) => setDraftAlerta((d) => ({ ...d, frecuencia: e.target.value as "hora" | "6h" | "diaria" }))} className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-2.5 text-[14px]"><option value="hora">Cada hora</option><option value="6h">Cada 6 horas</option><option value="diaria">Una vez al día</option></select></label>
+              <label className="block text-[12px] font-semibold text-[var(--text-2)]">Frecuencia<Selector value={draftAlerta.frecuencia} onChange={(e) => setDraftAlerta((d) => ({ ...d, frecuencia: e.target.value as "hora" | "6h" | "diaria" }))} className="mt-1.5 h-10 w-full rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-2.5 text-[14px]"><option value="hora">Cada hora</option><option value="6h">Cada 6 horas</option><option value="diaria">Una vez al día</option></Selector></label>
               {admin ? (
                 <div>
                   <div className="mb-1.5 text-[12px] font-semibold text-[var(--text-2)]">Asignar novedades a</div>

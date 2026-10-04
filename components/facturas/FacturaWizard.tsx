@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { ChevronLeft, Plus, Trash2, UserPlus } from "lucide-react";
 import { ClienteQuickSheet } from "@/components/clientes/ClienteQuickSheet";
 import { parseDecimalMientrasEscribe } from "@/lib/decimales-input";
+import { Selector } from "@/components/ui/selector";
 
 /** Borradores de texto para no perder "10." al convertir a número en cada tecla */
 type LineaConBorrador = FacturaLinea & { _precioDraft?: string; _cantDraft?: string };
@@ -488,7 +489,7 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
               <form id="factura-step1-form" onSubmit={onStep1} className="space-y-4">
                 <div className="space-y-2">
                   <Label>Cliente *</Label>
-                  <select
+                  <Selector
                     className={cn(
                       "flex h-11 w-full rounded-lg border border-border bg-[var(--surface)] px-4 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       esRectificativa && "cursor-not-allowed bg-neutral-50"
@@ -502,7 +503,7 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
                         {c.nombre}
                       </option>
                     ))}
-                  </select>
+                  </Selector>
                   {formStep1.formState.errors.clienteId && (
                     <p className="text-sm text-red-600">
                       {formStep1.formState.errors.clienteId.message}
@@ -700,7 +701,7 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
                     </div>
                     <div className="w-14 shrink-0 space-y-1">
                       <Label className="text-xs">IVA %</Label>
-                      <select
+                      <Selector
                         className="flex h-9 w-full rounded-lg border border-border bg-[var(--surface)] px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         value={l.ivaPorcentaje}
                         onChange={(e) =>
@@ -711,7 +712,7 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
                         <option value={10}>10</option>
                         <option value={4}>4</option>
                         <option value={0}>0</option>
-                      </select>
+                      </Selector>
                     </div>
                     <Button
                       type="button"

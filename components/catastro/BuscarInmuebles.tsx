@@ -99,6 +99,7 @@ import { VacioResultados } from "./VacioResultados";
 import { useBusquedaZona } from "./useBusquedaZona";
 import { useSeleccionFincas } from "./useSeleccionFincas";
 import { persistirRevisionUi, RUTA_EXPLORER, rutaFincaPersistida } from "@/lib/catastro/explorer/history-ui";
+import { Selector } from "@/components/ui/selector";
 import {
   avisoCodigoPostalAjeno,
   fetchCodigosPostalesMunicipio,
@@ -629,7 +630,7 @@ export function BuscarInmuebles() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           <div className="space-y-2">
             <Label htmlFor="provincia">Provincia</Label>
-            <select
+            <Selector
               id="provincia"
               className={SELECT_CLASS}
               value={ubicacion.provincia?.name ?? ""}
@@ -645,7 +646,7 @@ export function BuscarInmuebles() {
                   {item.name}
                 </option>
               ))}
-            </select>
+            </Selector>
           </div>
 
           <div className="space-y-2">
@@ -1008,7 +1009,7 @@ function ResultadosBusqueda({
         <div className="flex flex-wrap items-center gap-2">
           <label className="flex items-center gap-2 text-sm text-neutral-600">
             <span className="sr-only">Filtrar por revisión</span>
-            <select
+            <Selector
               className={SELECT_CLASS}
               value={filtroRevision}
               onChange={(event) => onFiltroRevision(event.target.value as FiltroRevisionComercial)}
@@ -1019,7 +1020,7 @@ function ResultadosBusqueda({
                   {item.label}
                 </option>
               ))}
-            </select>
+            </Selector>
           </label>
           {revision.fincas.length > 0 ? (
             <Button type="button" variant="secondary" size="sm" onClick={onExportarRevision}>

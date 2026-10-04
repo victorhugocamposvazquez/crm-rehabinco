@@ -10,6 +10,7 @@ import { altaCamposVacios, leerAltaBorrador } from "@/lib/ui/alta-borrador";
 import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
 import { BotonImportarContacto } from "@/components/clientes/BotonImportarContacto";
 import type { ContactoImportado } from "@/lib/contacts/contact-picker";
+import { Selector } from "@/components/ui/selector";
 
 type ClienteAltaSnap = {
   tipoCliente: "particular" | "empresa";
@@ -282,7 +283,7 @@ export function NuevoClientePanel({
       <AltaSection title="Documento" hint="Si no lo tienes ahora, déjalo vacío.">
         <div className="grid grid-cols-2 gap-3">
           <AltaField label="Tipo" optional>
-            <select
+            <Selector
               value={tipoDocumento}
               onChange={(e) => setTipoDocumento(e.target.value as "dni" | "nie" | "cif" | "vat")}
               className={altaControl}
@@ -298,7 +299,7 @@ export function NuevoClientePanel({
                   <option value="nie">NIE</option>
                 </>
               )}
-            </select>
+            </Selector>
           </AltaField>
           <AltaField label="Número" optional>
             <input value={documentoFiscal} onChange={(e) => setDocumentoFiscal(e.target.value)} className={altaControl} />

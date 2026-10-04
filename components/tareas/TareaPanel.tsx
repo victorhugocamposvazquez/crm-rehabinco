@@ -15,6 +15,7 @@ import { relacionUno } from "@/lib/citas/citas";
 import { inmuebleDesdeNotasCaptacion } from "@/lib/captacion/portales/contacto";
 import { nombreYApellido } from "@/lib/ui/tokens";
 import { cn } from "@/lib/utils";
+import { Selector } from "@/components/ui/selector";
 import {
   COLUMNAS_TAREA,
   columnaDeTarea,
@@ -345,7 +346,7 @@ export function TareaPanel({
                     color={tarea.profiles?.color}
                     size={18}
                   />
-                  <select
+                  <Selector
                     value={tarea.comercial_id}
                     onChange={(e) => void onPatch(tarea.id, { comercial_id: e.target.value })}
                     className="min-w-0 flex-1 bg-transparent text-[13.5px] outline-none"
@@ -358,7 +359,7 @@ export function TareaPanel({
                         {nombreYApellido(c.nombre) || c.nombre}
                       </option>
                     ))}
-                  </select>
+                  </Selector>
                 </div>
               ) : (
                 <div className="mt-1 flex items-center gap-1.5 text-[13.5px]">
@@ -437,7 +438,7 @@ export function TareaPanel({
                   <p className="mt-0.5 text-[13.5px] font-medium leading-snug">{inmuebleCaptacion}</p>
                 </div>
               ) : null}
-              <select
+              <Selector
                 value={tarea.propiedad_id ?? ""}
                 onChange={(e) =>
                   void onPatch(tarea.id, { propiedad_id: e.target.value || null })
@@ -450,14 +451,14 @@ export function TareaPanel({
                     {p.label}
                   </option>
                 ))}
-              </select>
+              </Selector>
             </CampoVinculo>
             <CampoVinculo
               label="Cliente"
               valor={tarea.cliente_id ? (cliOpts.find((c) => c.id === tarea.cliente_id)?.label || tarea.clientes?.nombre) : null}
               onVer={tarea.cliente_id ? () => abrirFicha({ tipo: "cliente", id: tarea.cliente_id! }) : undefined}
             >
-              <select
+              <Selector
                 value={tarea.cliente_id ?? ""}
                 onChange={(e) =>
                   void onPatch(tarea.id, { cliente_id: e.target.value || null })
@@ -470,14 +471,14 @@ export function TareaPanel({
                     {c.label}
                   </option>
                 ))}
-              </select>
+              </Selector>
             </CampoVinculo>
             <CampoVinculo
               label="Demanda"
               valor={tarea.demanda_id ? (demOpts.find((d) => d.id === tarea.demanda_id)?.label || tarea.demandas?.tipo_operacion) : null}
               onVer={tarea.demanda_id ? () => abrirFicha({ tipo: "demanda", id: tarea.demanda_id! }) : undefined}
             >
-              <select
+              <Selector
                 value={tarea.demanda_id ?? ""}
                 onChange={(e) =>
                   void onPatch(tarea.id, { demanda_id: e.target.value || null })
@@ -490,14 +491,14 @@ export function TareaPanel({
                     {d.label}
                   </option>
                 ))}
-              </select>
+              </Selector>
             </CampoVinculo>
             <CampoVinculo
               label="Parte de visita"
               valor={tarea.parte_visita_id ? (parteOpts.find((p) => p.id === tarea.parte_visita_id)?.label || tarea.partes_visita?.inmueble_direccion) : null}
               onVer={tarea.parte_visita_id ? () => abrirFicha({ tipo: "parte", id: tarea.parte_visita_id! }) : undefined}
             >
-              <select
+              <Selector
                 value={tarea.parte_visita_id ?? ""}
                 onChange={(e) => {
                   const parte = parteOpts.find((p) => p.id === e.target.value);
@@ -514,7 +515,7 @@ export function TareaPanel({
                     {p.label}
                   </option>
                 ))}
-              </select>
+              </Selector>
             </CampoVinculo>
             <CampoVinculo
               label="Finca (Catastro)"

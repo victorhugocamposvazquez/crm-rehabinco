@@ -13,6 +13,7 @@ import {
 } from "@/lib/demandas/matching";
 import { relacionUno } from "@/lib/citas/citas";
 import type { Inmueble } from "@/lib/inmuebles/catalogo";
+import { Selector } from "@/components/ui/selector";
 
 type MatchRow = {
   id: string;
@@ -139,7 +140,7 @@ export function InmuebleMatching({ inmueble }: { inmueble: Inmueble }) {
             <FichaLink tipo="demanda" id={item.demanda_id} className="text-sm font-medium">
               {item.demandas?.clientes?.nombre ?? "Demanda"} · {Math.round(Number(item.puntuacion))} pts
             </FichaLink>
-            <select
+            <Selector
               value={item.estado}
               onChange={(e) => void cambiar(item.id, e.target.value)}
               className="h-8 rounded-lg border px-2 text-xs"
@@ -149,7 +150,7 @@ export function InmuebleMatching({ inmueble }: { inmueble: Inmueble }) {
                   {ESTADO_MATCHING_LABEL[estado]}
                 </option>
               ))}
-            </select>
+            </Selector>
           </li>
         ))}
         {matches.length === 0 ? (

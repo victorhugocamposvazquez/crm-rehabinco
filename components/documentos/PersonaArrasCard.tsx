@@ -4,6 +4,7 @@ import { Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ToggleChip } from "@/components/ui/toggle-chip";
+import { Selector } from "@/components/ui/selector";
 import {
   ESTADOS_CIVILES,
   normalizarEstadoCivil,
@@ -50,7 +51,7 @@ export function PersonaArrasCard({
         </div>
         <div>
           <Label>Estado civil</Label>
-          <select
+          <Selector
             className="mt-1.5 flex h-9 w-full rounded-[9px] border border-[var(--input)] bg-white px-3 py-0 text-[13.5px] outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15 max-[819px]:h-[46px] max-[819px]:text-base"
             value={estadoCivil}
             onChange={(e) => set({ estado_civil: e.target.value })}
@@ -64,7 +65,7 @@ export function PersonaArrasCard({
             {estadoCivil && !ESTADOS_CIVILES.some((e) => e.value === estadoCivil) ? (
               <option value={estadoCivil}>{persona.estado_civil}</option>
             ) : null}
-          </select>
+          </Selector>
         </div>
         <div>
           <Label>DNI</Label>

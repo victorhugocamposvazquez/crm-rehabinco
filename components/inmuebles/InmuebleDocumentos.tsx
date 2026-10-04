@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { FileText, Trash2, Upload } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Selector } from "@/components/ui/selector";
 import {
   BUCKET_DOCS_INMUEBLE,
   TIPOS_DOCUMENTO_INMUEBLE,
@@ -109,7 +110,7 @@ export function InmuebleDocumentos({
       <div className="flex flex-wrap items-end gap-2">
         <label className="text-sm">
           Tipo
-          <select
+          <Selector
             value={tipo}
             onChange={(e) => setTipo(e.target.value as TipoDocumentoInmueble)}
             className="mt-1 flex h-10 rounded-lg border border-border bg-[var(--surface)] px-3 text-sm"
@@ -119,7 +120,7 @@ export function InmuebleDocumentos({
                 {TIPO_DOCUMENTO_LABEL[item]}
               </option>
             ))}
-          </select>
+          </Selector>
         </label>
         <Button type="button" size="sm" variant="secondary" disabled={busy} onClick={() => inputRef.current?.click()}>
           <Upload className="mr-1.5 h-4 w-4" strokeWidth={1.5} />

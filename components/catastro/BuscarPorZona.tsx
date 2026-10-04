@@ -38,6 +38,7 @@ import {
 } from "@/lib/catastro/zone-ui";
 import { rutaFincaPersistida } from "@/lib/catastro/explorer/history-ui";
 import { ListaFincasCatastro } from "./ListaFincasCatastro";
+import { Selector } from "@/components/ui/selector";
 
 type Props = {
   estado: EstadoZonaUi;
@@ -313,7 +314,7 @@ export function BuscarPorZona({
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <select
+            <Selector
               className="flex h-11 rounded-lg border border-border bg-[var(--surface)] px-3 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               value={filtroRevision}
               onChange={(event) => onFiltroRevision(event.target.value as FiltroRevisionComercial)}
@@ -324,7 +325,7 @@ export function BuscarPorZona({
                   {item.label}
                 </option>
               ))}
-            </select>
+            </Selector>
             {revision.fincas.length > 0 ? (
               <Button type="button" variant="secondary" size="sm" onClick={onExportarRevision}>
                 Exportar para revisar

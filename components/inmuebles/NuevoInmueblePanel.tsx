@@ -22,6 +22,7 @@ import { altaCamposVacios, leerAltaBorrador } from "@/lib/ui/alta-borrador";
 import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
 import { acceptMedia, validarArchivoMedia } from "@/lib/inmuebles/media";
 import { subirArchivosMedia } from "@/lib/inmuebles/subir-media";
+import { Selector } from "@/components/ui/selector";
 
 type InmuebleAltaSnap = {
   values: InmuebleFormValues;
@@ -298,13 +299,13 @@ export function NuevoInmueblePanel({
               <input value={values.banos} onChange={(e) => set({ banos: e.target.value })} inputMode="numeric" className={altaControl} />
             </AltaField>
             <AltaField label="Estado">
-              <select value={values.estado} onChange={(e) => set({ estado: e.target.value as InmuebleFormValues["estado"] })} className={altaControl}>
+              <Selector value={values.estado} onChange={(e) => set({ estado: e.target.value as InmuebleFormValues["estado"] })} className={altaControl}>
                 {ESTADOS_INMUEBLE.map((estado) => (
                   <option key={estado} value={estado}>
                     {ESTADO_INMUEBLE_LABEL[estado]}
                   </option>
                 ))}
-              </select>
+              </Selector>
             </AltaField>
           </div>
           <label className="flex items-center justify-between gap-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3.5">

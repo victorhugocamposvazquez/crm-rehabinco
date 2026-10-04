@@ -12,6 +12,7 @@ import { FichaLink } from "@/components/crm/FichaPeek";
 import { relacionUno } from "@/lib/citas/citas";
 import { NuevaDemandaPanel } from "@/components/demandas/NuevaDemandaPanel";
 import { Pencil } from "lucide-react";
+import { Selector } from "@/components/ui/selector";
 
 type Demanda = {
   id: string;
@@ -140,7 +141,7 @@ export default function DemandaDetallePage() {
                   {ESTADO_MATCHING_LABEL[item.estado as keyof typeof ESTADO_MATCHING_LABEL] ?? item.estado}
                 </p>
               </div>
-              <select
+              <Selector
                 value={item.estado}
                 onChange={(e) => void cambiarMatch(item.id, e.target.value)}
                 className="h-9 rounded-lg border px-2 text-sm"
@@ -150,7 +151,7 @@ export default function DemandaDetallePage() {
                     {ESTADO_MATCHING_LABEL[estado]}
                   </option>
                 ))}
-              </select>
+              </Selector>
             </div>
           </li>
         ))}

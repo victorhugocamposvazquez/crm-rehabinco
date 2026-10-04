@@ -14,6 +14,7 @@ import {
   type CatastroPropertyLink,
 } from "@/lib/catastro/explorer";
 import { crearPropiedadDesdeFincaUi } from "@/lib/catastro/explorer/history-ui";
+import { Selector } from "@/components/ui/selector";
 
 export function CatastroPropertyVinculo({
   fincaReference,
@@ -105,7 +106,7 @@ export function CatastroPropertyVinculo({
             </p>
             <div className="mt-4 space-y-2">
               <Label htmlFor="ofertante-catastro">Propietario (opcional)</Label>
-              <select
+              <Selector
                 id="ofertante-catastro"
                 value={ofertanteId}
                 onChange={(e) => setOfertanteId(e.target.value)}
@@ -117,7 +118,7 @@ export function CatastroPropertyVinculo({
                     {c.nombre}
                   </option>
                 ))}
-              </select>
+              </Selector>
               <button
                 type="button"
                 onClick={() => setQuickCliente(true)}
