@@ -29,7 +29,7 @@ export function MobileNav() {
   const ui = (
     <>
       <nav className="mobile-tab-bar min-[820px]:hidden" role="navigation" aria-label="Navegación principal">
-        <div className="flex h-[3.25rem] items-center justify-evenly px-1.5">
+        <div className="flex h-[var(--mobile-nav-row)] items-center justify-evenly px-1.5">
           {items.map(({ href, label, icon: Icon }) => {
             const esMas = href === "/settings" && isAdmin(user?.role);
             const isActive = esMas

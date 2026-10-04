@@ -36,7 +36,10 @@
   --ring: #111111;
   --field: #ffffff;
   --radius: 12px;
-  --mobile-nav-h: calc(3.25rem + env(safe-area-inset-bottom, 0px));
+  --mobile-nav-row: 3rem;
+  /* El inset completo (~34px en iPhone) deja una banda vacía bajo las etiquetas. */
+  --mobile-nav-pad: min(0.75rem, env(safe-area-inset-bottom, 0px));
+  --mobile-nav-h: calc(var(--mobile-nav-row) + var(--mobile-nav-pad));
   --mobile-fab-bottom: calc(var(--mobile-nav-h) + 0.5rem);
   --mobile-content-pb: calc(var(--mobile-nav-h) + 0.5rem);
   --herramientas-footer-h: calc(3.25rem + var(--mobile-nav-h));
@@ -152,7 +155,7 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
   width: 100%;
   border-top: 1px solid var(--border);
   background-color: var(--surface);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: var(--mobile-nav-pad);
   -webkit-tap-highlight-color: transparent;
 }
 
