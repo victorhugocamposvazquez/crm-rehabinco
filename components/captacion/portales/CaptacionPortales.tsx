@@ -612,10 +612,10 @@ export function CaptacionPortales() {
   };
 
   const kpis: Array<{ valor: number; label: string; chip: ChipCaptacion | "seg"; fg: string }> = [
-    { valor: cuentaChip("hoy"), label: "Nuevos hoy", chip: "hoy", fg: "#111111" },
-    { valor: cuentaChip("subida"), label: "Subidas de precio", chip: "subida", fg: "#7A5A10" },
-    { valor: cuentaChip("bajada"), label: "Bajadas de precio", chip: "bajada", fg: "#111111" },
-    { valor: seg.filter((a) => a.fase !== "captado" && a.fase !== "perdido").length, label: "En seguimiento", chip: "seg", fg: "#111111" },
+    { valor: cuentaChip("hoy"), label: "Nuevos hoy", chip: "hoy", fg: "var(--foreground)" },
+    { valor: cuentaChip("subida"), label: "Subidas de precio", chip: "subida", fg: "var(--amber)" },
+    { valor: cuentaChip("bajada"), label: "Bajadas de precio", chip: "bajada", fg: "var(--foreground)" },
+    { valor: seg.filter((a) => a.fase !== "captado" && a.fase !== "perdido").length, label: "En seguimiento", chip: "seg", fg: "var(--foreground)" },
   ];
   const chips: Array<[ChipCaptacion, string, number]> = [
     ["todos", "Todos", cuentaChip("todos")],
@@ -892,9 +892,9 @@ export function CaptacionPortales() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
                         <p className="line-clamp-2 text-[14px] font-semibold leading-snug">{a.titulo}</p>
-                        <p className="shrink-0 text-right text-[14px] font-semibold tabular-nums">
+                        <p className="shrink-0 text-right text-[14px] font-semibold tabular-nums text-foreground">
                           {euros(a.precio, a.operacion === "alquiler")}
-                          {bajada ? <span className="block text-[11px] font-medium text-accent">{bajada}</span> : null}
+                          {bajada ? <span className="block text-[11px] font-medium text-[var(--text-2)]">{bajada}</span> : null}
                         </p>
                       </div>
                       <p className="mt-1 truncate text-[12px] text-[var(--text-2)]">
@@ -939,9 +939,9 @@ export function CaptacionPortales() {
                       </div>
                     </div>
                   </div>
-                  <div className="text-right text-[14px] font-semibold tabular-nums">{euros(a.precio, a.operacion === "alquiler")}{bajada ? <div className="text-[11px] font-medium text-accent">{bajada}</div> : null}</div>
-                  {wide ? <div className="text-right text-[13.5px] tabular-nums">{a.superficie?.toLocaleString("es-ES") ?? "—"}</div> : null}
-                  <div className="hidden text-right text-[13.5px] tabular-nums min-[820px]:block" style={{ color: barato ? "#111111" : undefined, fontWeight: barato ? 600 : 400 }}>{pm2}</div>
+                  <div className="text-right text-[14px] font-semibold tabular-nums text-foreground">{euros(a.precio, a.operacion === "alquiler")}{bajada ? <div className="text-[11px] font-medium text-[var(--text-2)]">{bajada}</div> : null}</div>
+                  {wide ? <div className="text-right text-[13.5px] tabular-nums text-[var(--text-2)]">{a.superficie?.toLocaleString("es-ES") ?? "—"}</div> : null}
+                  <div className={cn("hidden text-right text-[13.5px] tabular-nums min-[820px]:block", barato ? "font-semibold text-foreground" : "text-[var(--text-2)]")}>{pm2}</div>
                   {wide ? (
                     <div className="min-w-0">
                       <div className="truncate text-[13.5px]">{a.contacto_nombre || "—"}</div>
@@ -1018,7 +1018,7 @@ export function CaptacionPortales() {
                           <div className="min-w-0"><div className="text-[13.5px] font-semibold leading-snug">{a.titulo}</div><div className="mt-0.5 text-[11.5px] text-[var(--text-2)]">{a.zona} · {a.superficie ?? "—"} m²</div></div>
                         </div>
                         <div className="mt-2 flex items-center gap-2">
-                          <span className="text-[13px] font-semibold tabular-nums">{euros(a.precio, a.operacion === "alquiler")}</span>
+                          <span className="text-[13px] font-semibold tabular-nums text-foreground">{euros(a.precio, a.operacion === "alquiler")}</span>
                           <span className="text-[11.5px] text-[var(--text-2)]">{a.contacto_nombre}</span>
                           <div className="flex-1" />
                           {a.proxima_accion ? <span className="rounded-md bg-[#FBF0D8] px-1.5 py-0.5 text-[11px] font-medium text-[#7A5A10]">{a.proxima_accion}</span> : null}
@@ -1070,7 +1070,7 @@ export function CaptacionPortales() {
                   </div>
                   <div className="mt-3 flex items-center justify-between border-t border-[var(--border-soft)] pt-2.5 text-[12.5px]">
                     <div className="flex items-center gap-1.5 text-[var(--text-2)]">{com ? <AvatarComercial nombre={com.nombre} color={com.color} size={18} /> : null}{com?.nombre.split(" ")[0] ?? "—"}</div>
-                    <div className="font-semibold" style={{ color: a.activa ? "#111111" : "#8A8A8A" }}>{a.activa ? `${hoy} hoy` : "Pausada"}</div>
+                    <div className={cn("font-semibold", a.activa ? "text-foreground" : "text-[var(--text-3)]")}>{a.activa ? `${hoy} hoy` : "Pausada"}</div>
                   </div>
                 </div>
               );
@@ -1091,7 +1091,7 @@ export function CaptacionPortales() {
               {notifs.length === 0 ? <div className="p-6 text-[13.5px] text-[var(--text-2)]">Aún no hay avisos.</div> : null}
               {notifs.map((n) => (
                 <div key={n.id} className={cn("flex items-start gap-3 border-b border-[var(--border-row)] px-4 py-3.5", n.leida ? "bg-[var(--surface)]" : "bg-[var(--surface-soft)]")}>
-                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: n.leida ? "transparent" : "#111111" }} />
+                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: n.leida ? "transparent" : "var(--foreground)" }} />
                   <div className="min-w-0 flex-1">
                     <div className={cn("text-[14px]", n.leida ? "font-medium" : "font-semibold")}>{n.titulo}</div>
                     {n.detalle ? <div className="mt-0.5 text-[12.5px] text-[var(--text-2)]">{n.detalle}</div> : null}
@@ -1345,8 +1345,8 @@ function PeekAnuncio({
         <div className="mt-2 flex items-start justify-between gap-4">
           <h2 className="min-w-0 text-[22px] font-medium leading-tight tracking-[-0.03em]">{a.titulo}</h2>
           <div className="shrink-0 text-right">
-            <div className="text-[22px] font-medium tabular-nums tracking-[-0.03em]">{euros(a.precio, alquiler)}</div>
-            <div className="mt-1 text-[12px] tabular-nums text-[var(--text-3)]">{eurosM2(a.precio, a.superficie, alquiler)}/m²</div>
+            <div className="text-[22px] font-medium tabular-nums tracking-[-0.03em] text-foreground">{euros(a.precio, alquiler)}</div>
+            <div className="mt-1 text-[12px] tabular-nums text-[var(--text-2)]">{eurosM2(a.precio, a.superficie, alquiler)}/m²</div>
           </div>
         </div>
         <p className="mt-2 text-[13.5px] text-[var(--text-2)]">{[a.zona, a.municipio].filter(Boolean).join(" · ")}</p>
@@ -1421,7 +1421,7 @@ function PeekAnuncio({
         {aviso ? (
           <div
             className="mt-2 rounded-[9px] px-2.5 py-2 text-[12.5px]"
-            style={{ background: avisoFuerte ? "#F8E4D8" : "#FBF0D8", color: avisoFuerte ? "#7A3B10" : "#7A5A10" }}
+            style={{ background: avisoFuerte ? "var(--red-bg)" : "var(--amber-bg)", color: avisoFuerte ? "var(--red)" : "var(--amber-ink)" }}
           >
             {aviso}
           </div>
@@ -1444,7 +1444,7 @@ function PeekAnuncio({
                     <span className="block truncate text-[13px] font-semibold">{r.titulo}</span>
                     <span className="block truncate text-[11.5px] text-[var(--text-2)]">{r.zona || r.municipio || "—"}</span>
                   </span>
-                  <span className="shrink-0 text-[12.5px] font-semibold tabular-nums">{euros(r.precio, r.operacion === "alquiler")}</span>
+                  <span className="shrink-0 text-[12.5px] font-semibold tabular-nums text-foreground">{euros(r.precio, r.operacion === "alquiler")}</span>
                 </button>
               ))}
             </div>

@@ -44,22 +44,32 @@
   --background: #0c0c0c;
   --surface: #141414;
   --surface-soft: #1c1c1c;
-  --foreground: #f3f3f3;
-  --text-2: #a3a3a3;
-  --label: #8a8a8a;
-  --text-3: #737373;
-  --border: #2a2a2a;
-  --border-soft: #242424;
-  --border-row: #202020;
-  --input: #3a3a3a;
-  --accent: #f3f3f3;
-  --accent-dark: #d6d6d6;
-  --accent-soft: #262626;
+  --foreground: #f4f4f4;
+  --text-2: #c4c4c4;
+  --label: #b0b0b0;
+  --text-3: #9a9a9a;
+  --border: #333333;
+  --border-soft: #2a2a2a;
+  --border-row: #2a2a2a;
+  --input: #454545;
+  --accent: #ffffff;
+  --accent-dark: #f4f4f4;
+  --accent-soft: #2a2a2a;
   --accent-foreground: #111111;
   --row-active: #1c1c1c;
-  --muted: #a3a3a3;
-  --ring: #f3f3f3;
-  --field: #222222;
+  --muted: #c4c4c4;
+  --ring: #ffffff;
+  --field: #242424;
+  --amber: #e6c36a;
+  --amber-bg: #3a3014;
+  --amber-ink: #f3d48a;
+  --blue: #9eb6ea;
+  --blue-bg: #1a2744;
+  --violet: #c4b8ee;
+  --violet-bg: #2a2644;
+  --violet-ink: #ddd6f7;
+  --red: #ef8d7c;
+  --red-bg: #3d221c;
 }
 
 * {
@@ -378,4 +388,34 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
 }
 .dark .divide-\[\#F2F2F2\] > :not([hidden]) ~ :not([hidden]) {
   border-color: var(--border);
+}
+.dark .text-\[\#7A5A10\],
+.dark .text-\[\#7A3B10\],
+.dark .text-\[\#B98A16\] {
+  color: var(--amber);
+}
+.dark .text-\[\#A33B2A\] {
+  color: var(--red);
+}
+.dark .text-\[\#2B4A8A\] {
+  color: var(--blue);
+}
+.dark .text-\[\#4B3F8A\],
+.dark .text-\[\#8579C4\] {
+  color: var(--violet);
+}
+.dark .bg-\[\#FBF0D8\],
+.dark .hover\:bg-\[\#FBF0D8\]:hover {
+  background-color: var(--amber-bg);
+}
+.dark .bg-\[\#FBEAE5\],
+.dark .bg-\[\#F8E4D8\],
+.dark .hover\:bg-\[\#FBEAE5\]:hover {
+  background-color: var(--red-bg);
+}
+.dark .bg-\[\#E9EEF8\] {
+  background-color: var(--blue-bg);
+}
+.dark .bg-\[\#F1EFF8\] {
+  background-color: var(--violet-bg);
 }

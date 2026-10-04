@@ -15,6 +15,7 @@ import { ESTADO_CAPTACION_LABEL } from "@/lib/captacion/estados";
 import { agruparTareas, bandejaDeTarea, recuentoTareas } from "@/lib/tareas/tareas";
 import { FiltroComercial, type ComercialFiltro } from "@/components/captacion/FiltroComercial";
 import { useFiltroComercial } from "@/lib/ui/filtro-comercial";
+import { cn } from "@/lib/utils";
 
 type TareaHoy = { id: string; titulo: string; vence: string | null; finca_reference: string | null; estado: string; comercial_id?: string };
 type CitaHoy = {
@@ -128,16 +129,16 @@ export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFactu
   };
 
   const kpis = [
-    { href: "/calendario", label: "Citas hoy", valor: String(citasHoy.length), fg: "#111111" },
+    { href: "/calendario", label: "Citas hoy", valor: String(citasHoy.length), fg: "var(--foreground)" },
     {
       href: "/tareas",
       label: "Tareas vencidas y de hoy",
       valor: String(recuento.VENCIDAS + recuento.HOY),
-      fg: hayVencidas ? "#A33B2A" : "#111111",
+      fg: hayVencidas ? "var(--red)" : "var(--foreground)",
     },
-    { href: "/partes-visita", label: "Partes sin firmar", valor: String(partes.length), fg: partes.length ? "#7A5A10" : "#111111" },
-    { href: "/demandas", label: "Demandas activas", valor: String(demandasNuevas), fg: "#111111" },
-    { href: "/catastro", label: "Fincas a tocar", valor: String(pendientesFinca.length), fg: "#111111" },
+    { href: "/partes-visita", label: "Partes sin firmar", valor: String(partes.length), fg: partes.length ? "var(--amber)" : "var(--foreground)" },
+    { href: "/demandas", label: "Demandas activas", valor: String(demandasNuevas), fg: "var(--foreground)" },
+    { href: "/catastro", label: "Fincas a tocar", valor: String(pendientesFinca.length), fg: "var(--foreground)" },
   ];
 
   return (
@@ -215,8 +216,8 @@ export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFactu
                       <span
                         className="mt-1.5 inline-flex rounded-md px-2 py-0.5 text-[11.5px] font-medium"
                         style={{
-                          color: vencida ? "#A33B2A" : "#7A5A10",
-                          background: vencida ? "#FBEAE5" : "#FBF0D8",
+                          color: vencida ? "var(--red)" : "var(--amber-ink)",
+                          background: vencida ? "var(--red-bg)" : "var(--amber-bg)",
                         }}
                       >
                         {vencida ? "Vencida" : "Hoy"}
@@ -320,12 +321,12 @@ export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFactu
                       className="w-full rounded-t-[6px]"
                       style={{
                         height: `${Math.max(8, (total / maxFact) * 70)}px`,
-                        background: i === facturacionMeses.length - 1 ? "#111111" : "#D4D4D4",
+                        background: i === facturacionMeses.length - 1 ? "var(--foreground)" : "var(--text-3)",
                       }}
                       title={total.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
                     />
                     <span className="text-[10.5px] uppercase text-[var(--text-3)]">{mes}</span>
-                    <span className="font-mono text-[11px] tabular-nums">
+                    <span className={cn("font-mono text-[11px] tabular-nums", i === facturacionMeses.length - 1 ? "font-semibold text-foreground" : "text-[var(--text-2)]")}>
                       {total >= 1000 ? `${(total / 1000).toFixed(1)}k` : total}
                     </span>
                   </div>

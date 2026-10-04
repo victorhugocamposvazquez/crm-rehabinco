@@ -127,10 +127,10 @@ export default function FacturasPage() {
     const emitidasSinCobrar = facturas.filter((f) => f.estado === "emitida").length;
     const borradores = facturas.filter((f) => f.estado === "borrador").length;
     return [
-      { valor: formatEuro(facturadoMes, { fraction: 0 }), label: "Facturado este mes", fg: "#111111" },
-      { valor: formatEuro(pendiente, { fraction: 0 }), label: "Pendiente de cobro", fg: "#B98A16" },
-      { valor: String(emitidasSinCobrar), label: "Emitidas sin cobrar", fg: "#111111" },
-      { valor: String(borradores), label: "Borradores", fg: "#8A8A8A" },
+      { valor: formatEuro(facturadoMes, { fraction: 0 }), label: "Facturado este mes", fg: "var(--foreground)" },
+      { valor: formatEuro(pendiente, { fraction: 0 }), label: "Pendiente de cobro", fg: "var(--amber)" },
+      { valor: String(emitidasSinCobrar), label: "Emitidas sin cobrar", fg: "var(--foreground)" },
+      { valor: String(borradores), label: "Borradores", fg: "var(--text-2)" },
     ];
   }, [facturas]);
 
@@ -316,7 +316,7 @@ export default function FacturasPage() {
                   </Link>
                   <div className="hidden text-[13px] tabular-nums text-[var(--text-2)] min-[820px]:block">{formatFechaCorta(f.fecha)}</div>
                   <div
-                    className={cn("text-right text-[14px] font-semibold tabular-nums", total < 0 && "text-[var(--red)]")}
+                    className={cn("text-right text-[14px] font-semibold tabular-nums text-foreground", total < 0 && "text-[var(--red)]")}
                   >
                     {formatEuro(total, { fraction: 2 })}
                   </div>

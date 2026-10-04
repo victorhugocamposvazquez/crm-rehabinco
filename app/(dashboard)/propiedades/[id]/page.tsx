@@ -295,12 +295,12 @@ export default function DetallePropiedadPage() {
           <CardContent className="space-y-2 text-sm">
             {(propiedad.tipo_operacion === "venta" || propiedad.tipo_operacion === "ambos") && (
               <p>
-                <span className="text-neutral-500">Venta:</span> {formatPrecioInmueble(propiedad.precio_venta)}
+                <span className="text-neutral-500">Venta:</span> <span className="font-semibold text-foreground">{formatPrecioInmueble(propiedad.precio_venta)}</span>
               </p>
             )}
             {(propiedad.tipo_operacion === "alquiler" || propiedad.tipo_operacion === "ambos") && (
               <p>
-                <span className="text-neutral-500">Alquiler:</span> {formatPrecioInmueble(propiedad.precio_alquiler)}/mes
+                <span className="text-neutral-500">Alquiler:</span> <span className="font-semibold text-foreground">{formatPrecioInmueble(propiedad.precio_alquiler)}/mes</span>
               </p>
             )}
             <p>

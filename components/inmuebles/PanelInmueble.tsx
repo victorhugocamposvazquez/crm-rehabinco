@@ -12,7 +12,6 @@ import { precioDeInmueble, type InmueblePanel } from "@/lib/inmuebles/panel";
 import { rutaNuevaCita } from "@/lib/citas/citas";
 import { matchingInmuebleDemandas, type CriteriosDemanda } from "@/lib/demandas/matching";
 import { relacionUno } from "@/lib/citas/citas";
-import { colorEstado } from "@/lib/ui/estados-vista";
 import { FichaLink } from "@/components/crm/FichaPeek";
 import { InmuebleMultimedia } from "@/components/inmuebles/InmuebleMultimedia";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -246,10 +245,10 @@ export function PanelInmueble({
           style={inmueble.portadaUrl ? { backgroundImage: `url(${inmueble.portadaUrl})` } : undefined}
         >
           <div className="absolute bottom-2.5 left-3 flex gap-1.5">
-            <span className="rounded-md bg-white/94 px-2 py-0.5 text-[11px] font-semibold" style={{ color: colorEstado(inmueble.estado) }}>
+            <span className="rounded-md bg-white/94 px-2 py-0.5 text-[11px] font-semibold text-black">
               {labelEstadoInmueble(inmueble.estado)}
             </span>
-            <span className="rounded-md bg-white/94 px-2 py-0.5 text-[11px] font-semibold text-[var(--text-2)]">
+            <span className="rounded-md bg-white/94 px-2 py-0.5 text-[11px] font-semibold text-black/70">
               {inmueble.nFotos} fotos{inmueble.nPlanos ? ` · ${inmueble.nPlanos} planos` : ""}
               {inmueble.video_url || inmueble.tour_url ? " · visita virtual" : ""}
             </span>
@@ -258,7 +257,7 @@ export function PanelInmueble({
             <button
               type="button"
               onClick={onClose}
-              className="absolute right-2.5 top-2.5 grid h-[34px] w-[34px] place-items-center rounded-[9px] bg-white/95"
+              className="absolute right-2.5 top-2.5 grid h-[34px] w-[34px] place-items-center rounded-[9px] bg-white/94 text-black"
               aria-label="Cerrar"
             >
               <X className="h-4 w-4" strokeWidth={2.4} />
@@ -271,7 +270,7 @@ export function PanelInmueble({
             <h2 className="min-w-0 text-[22px] font-medium leading-tight tracking-[-0.03em]">
               {inmueble.titulo || inmueble.direccion || "Inmueble"}
             </h2>
-            <div className="shrink-0 text-[22px] font-medium tabular-nums tracking-[-0.03em]">
+            <div className="shrink-0 text-[22px] font-medium tabular-nums tracking-[-0.03em] text-foreground">
               {formatPrecioInmueble(precioDeInmueble(inmueble))}
             </div>
           </div>

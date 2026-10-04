@@ -537,7 +537,7 @@ function Dato({ label, valor }: { label: string; valor: string }) {
   return (
     <div className="min-w-0">
       <div className="text-[12px] text-[var(--text-3)]">{label}</div>
-      <div className="mt-1.5 text-[14px] leading-5">{valor}</div>
+      <div className="mt-1.5 text-[14px] leading-5 text-foreground">{valor}</div>
     </div>
   );
 }

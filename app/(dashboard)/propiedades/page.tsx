@@ -286,8 +286,8 @@ export default function PropiedadesPage() {
                           </span>
                         </span>
                       </span>
-                      <span className="text-right text-[13.5px] tabular-nums">{p.superficie_m2 ?? "—"}</span>
-                      <span className="text-right text-[13.5px] font-semibold tabular-nums">{formatPrecioInmueble(precioDeInmueble(p))}</span>
+                      <span className="text-right text-[13.5px] tabular-nums text-[var(--text-2)]">{p.superficie_m2 ?? "—"}</span>
+                      <span className="text-right text-[13.5px] font-semibold tabular-nums text-foreground">{formatPrecioInmueble(precioDeInmueble(p))}</span>
                       <span className="inline-flex items-center gap-1.5 text-[12.5px]" style={{ color: colorEstado(p.estado) }}>
                         <span className="h-[7px] w-[7px] rounded-full" style={{ background: colorEstado(p.estado) }} />
                         {labelEstadoInmueble(p.estado)}
@@ -319,8 +319,7 @@ export default function PropiedadesPage() {
                         style={p.portadaUrl ? { backgroundImage: `url(${p.portadaUrl})` } : undefined}
                       >
                         <span
-                          className="absolute left-2 top-2 rounded-md bg-white/94 px-2 py-0.5 text-[11px] font-semibold"
-                          style={{ color: colorEstado(p.estado) }}
+                          className="absolute left-2 top-2 rounded-md bg-white/94 px-2 py-0.5 text-[11px] font-semibold text-black"
                         >
                           {labelEstadoInmueble(p.estado)}
                         </span>
@@ -328,7 +327,7 @@ export default function PropiedadesPage() {
                       <span className="block px-3 pb-3 pt-2.5">
                         <span className="flex items-baseline justify-between gap-2">
                           <span className="font-mono text-[11.5px] text-accent">{p.referencia ?? "—"}</span>
-                          <span className="text-[14px] font-semibold tabular-nums">{formatPrecioInmueble(precioDeInmueble(p))}</span>
+                          <span className="text-[14px] font-semibold tabular-nums text-foreground">{formatPrecioInmueble(precioDeInmueble(p))}</span>
                         </span>
                         <span className="mt-1 block truncate text-[14px] font-semibold">{p.titulo || p.direccion || "Inmueble"}</span>
                         <span className="mt-0.5 block truncate text-[12px] text-[var(--text-2)]">

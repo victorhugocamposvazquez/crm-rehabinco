@@ -1,21 +1,21 @@
 export function colorEstado(estado: string): string {
   const e = estado.toLowerCase();
   if (e === "disponible" || e === "aceptado" || e === "convertido" || e === "pagada" || e === "firmado" || e === "activa" || e === "hecha") {
-    return "#111111";
+    return "var(--foreground)";
   }
   if (e === "reservada" || e === "enviado" || e === "emitida" || e === "pendiente_firma" || e === "hoy") {
-    return "#B98A16";
+    return "var(--amber)";
   }
   if (e === "vendida" || e === "alquilada" || e === "presentado") {
-    return "#2B4A8A";
+    return "var(--blue)";
   }
   if (e === "rechazado" || e === "vencida") {
-    return "#A33B2A";
+    return "var(--red)";
   }
   if (e === "baja" || e === "inactivo" || e === "cerrada") {
-    return "#B3B3B3";
+    return "var(--text-3)";
   }
-  return "#8A8A8A";
+  return "var(--text-2)";
 }
 
 export function formatEuro(

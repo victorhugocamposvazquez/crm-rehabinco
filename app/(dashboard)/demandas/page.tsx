@@ -15,6 +15,7 @@ import { colorEstado, formatEuro } from "@/lib/ui/estados-vista";
 import { NuevaDemandaPanel } from "@/components/demandas/NuevaDemandaPanel";
 import { TIPO_INMUEBLE_LABEL, type TipoInmueble } from "@/lib/inmuebles/catalogo";
 import { extraAlta } from "@/lib/ui/alta-panel";
+import { cn } from "@/lib/utils";
 import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
 
 type DemandaRow = {
@@ -153,7 +154,10 @@ export default function DemandasPage() {
                   </div>
                   <span
                     className="whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                    style={{ background: `${colorEstado(fila.estado)}1A`, color: colorEstado(fila.estado) }}
+                    style={{
+                      background: `color-mix(in srgb, ${colorEstado(fila.estado)} 16%, transparent)`,
+                      color: colorEstado(fila.estado),
+                    }}
                   >
                     {fila.estado}
                   </span>
@@ -170,7 +174,7 @@ export default function DemandasPage() {
                     <AvatarComercial nombre={fila.profiles?.nombre_completo} color={fila.profiles?.color} size={18} />
                     {fila.profiles?.nombre_completo ?? "Sin comercial"}
                   </span>
-                  <span className="text-[12.5px] font-semibold" style={{ color: encajan ? "#111111" : "#8A8A8A" }}>
+                  <span className={cn("text-[12.5px] font-semibold", encajan ? "text-foreground" : "text-[var(--text-3)]")}>
                     {encajan} encajan{visitados ? ` · ${visitados} visitado${visitados === 1 ? "" : "s"}` : ""}
                   </span>
                 </div>

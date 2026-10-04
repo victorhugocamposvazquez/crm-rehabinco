@@ -145,7 +145,7 @@ export function PropiedadCard({
               ) : null}
               <p className="truncate text-sm text-neutral-500">{subtitulo}</p>
               {precio && (
-                <p className="mt-0.5 text-sm font-medium text-neutral-900">{precio}</p>
+                <p className="mt-0.5 text-sm font-medium text-foreground">{precio}</p>
               )}
             </Link>
           </div>

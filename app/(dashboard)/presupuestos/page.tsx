@@ -85,10 +85,10 @@ export default function PresupuestosPage() {
     const ganados = presupuestos.filter((p) => p.estado === "aceptado" || p.estado === "convertido").length;
     const tasa = decididos ? Math.round((ganados / decididos) * 100) : 0;
     return [
-      { valor: String(enviados), label: "Enviados", fg: "#111111" },
-      { valor: String(negociacion), label: "En negociación", fg: "#B98A16" },
-      { valor: String(aceptadosSinFacturar), label: "Aceptados sin facturar", fg: "#111111" },
-      { valor: `${tasa} %`, label: "Tasa de aceptación", fg: "#111111" },
+      { valor: String(enviados), label: "Enviados", fg: "var(--foreground)" },
+      { valor: String(negociacion), label: "En negociación", fg: "var(--amber)" },
+      { valor: String(aceptadosSinFacturar), label: "Aceptados sin facturar", fg: "var(--foreground)" },
+      { valor: `${tasa} %`, label: "Tasa de aceptación", fg: "var(--foreground)" },
     ];
   }, [presupuestos]);
 
@@ -196,7 +196,7 @@ export default function PresupuestosPage() {
                   <div className="mt-px truncate text-[12px] text-[var(--text-2)]">{p.concepto || "Presupuesto"}</div>
                 </div>
                 <div className="hidden text-[13px] tabular-nums text-[var(--text-2)] min-[820px]:block">{formatFechaCorta(p.fecha)}</div>
-                <div className="text-right text-[14px] font-semibold tabular-nums">{formatEuro(p.total, { fraction: 2 })}</div>
+                <div className="text-right text-[14px] font-semibold tabular-nums text-foreground">{formatEuro(p.total, { fraction: 2 })}</div>
                 <div className="hidden items-center gap-1.5 text-[12.5px] min-[820px]:flex" style={{ color: colorEstado(p.estado) }}>
                   <span className="h-[7px] w-[7px] rounded-full" style={{ background: colorEstado(p.estado) }} />
                   {p.estado}
