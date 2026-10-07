@@ -1442,6 +1442,23 @@ export interface Database {
           updated_at?: string;
         };
       };
+      crm_aviso_seguir: {
+        Row: {
+          user_id: string;
+          seguido_id: string;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          seguido_id: string;
+          created_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          seguido_id?: string;
+          created_at?: string;
+        };
+      };
       crm_push_subs: {
         Row: {
           id: string;

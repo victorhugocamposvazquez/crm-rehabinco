@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { MobileNav } from "./MobileNav";
 import { AppTopBar } from "./AppTopBar";
 import { Sidebar } from "./Sidebar";
@@ -21,10 +21,30 @@ import { bandejaDeTarea } from "@/lib/tareas/tareas";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const wizard = isWizardRoute(pathname);
   const herramientas = esRutaHerramientas(pathname ?? "");
   const { user } = useAuth();
   const [badges, setBadges] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    void navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" }).catch(() => undefined);
+    const abrir = (event: MessageEvent) => {
+      const data = event.data as { type?: string; url?: string } | null;
+      if (data?.type !== "abrir-aviso" || !data.url) return;
+      let destino: URL;
+      try {
+        destino = new URL(data.url, window.location.origin);
+      } catch {
+        return;
+      }
+      if (destino.origin !== window.location.origin) return;
+      router.push(`${destino.pathname}${destino.search}${destino.hash}`);
+    };
+    navigator.serviceWorker.addEventListener("message", abrir);
+    return () => navigator.serviceWorker.removeEventListener("message", abrir);
+  }, [router]);
 
   useEffect(() => {
     const ancla = window.location.hash.replace(/^#/, "");

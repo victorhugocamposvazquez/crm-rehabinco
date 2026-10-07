@@ -99,7 +99,7 @@ function Switch({ on, onClick, label }: { on: boolean; onClick: () => void; labe
       aria-label={label}
       onClick={onClick}
       className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
-      style={{ background: on ? "#111111" : "#D4D4D4" }}
+      style={{ background: on ? "var(--green)" : "var(--input)" }}
     >
       <span
         className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-[left] duration-150"
@@ -115,6 +115,9 @@ export function AvisosPwaCard() {
   const [busy, setBusy] = useState(false);
   const [prefs, setPrefs] = useState<PrefsAviso>(prefsCompletas(null));
   const [guardando, setGuardando] = useState<CanalAviso | null>(null);
+  const [equipo, setEquipo] = useState<Array<{ id: string; nombre: string }>>([]);
+  const [seguidos, setSeguidos] = useState<string[]>([]);
+  const [siguiendo, setSiguiendo] = useState<string | null>(null);
   const listaRef = useRef<HTMLDivElement>(null);
 
   const refrescarEstado = useCallback(() => {
@@ -137,6 +140,27 @@ export function AvisosPwaCard() {
         }
         setPrefs(prefsCompletas(data));
       });
+    void supabase
+      .from("profiles")
+      .select("id, nombre_completo, email")
+      .in("role", ["comercial", "admin", "agente", "superadmin"])
+      .eq("activo", true)
+      .then(({ data }) => {
+        setEquipo(
+          (data ?? [])
+            .filter((persona) => persona.id !== user.id)
+            .map((persona) => ({
+              id: persona.id,
+              nombre: persona.nombre_completo?.trim() || persona.email?.split("@")[0] || "Sin nombre",
+            }))
+            .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"))
+        );
+      });
+    void supabase
+      .from("crm_aviso_seguir")
+      .select("seguido_id")
+      .eq("user_id", user.id)
+      .then(({ data }) => setSeguidos((data ?? []).map((fila) => fila.seguido_id)));
   }, [user?.id, refrescarEstado]);
 
   const toggle = async (canal: CanalAviso) => {
@@ -161,6 +185,23 @@ export function AvisosPwaCard() {
       return;
     }
     toast.success(next[canal] ? `${CANALES_AVISO.find((c) => c.id === canal)?.label ?? "Aviso"} activado.` : `${CANALES_AVISO.find((c) => c.id === canal)?.label ?? "Aviso"} desactivado.`);
+  };
+
+  const toggleSeguir = async (personaId: string, nombre: string) => {
+    if (!user?.id || siguiendo) return;
+    const activo = seguidos.includes(personaId);
+    setSiguiendo(personaId);
+    const supabase = createClient();
+    const { error } = activo
+      ? await supabase.from("crm_aviso_seguir").delete().eq("user_id", user.id).eq("seguido_id", personaId)
+      : await supabase.from("crm_aviso_seguir").insert({ user_id: user.id, seguido_id: personaId });
+    setSiguiendo(null);
+    if (error) {
+      toast.error("No se ha podido guardar.");
+      return;
+    }
+    setSeguidos((prev) => (activo ? prev.filter((id) => id !== personaId) : [...prev, personaId]));
+    toast.success(activo ? `Ya no recibes los avisos de ${nombre}.` : `Recibirás los avisos de ${nombre}, con su nombre delante.`);
   };
 
   return (
@@ -249,6 +290,29 @@ export function AvisosPwaCard() {
             ))}
           </div>
         </div>
+        {equipo.length > 0 ? (
+          <div>
+            <p className="mb-1 text-[13px] font-medium">Avisos de otras personas</p>
+            <p className="mb-2 text-[12px] text-[var(--text-2)]">
+              Activa a quien quieras seguir. Si el aviso no es tuyo, el push lleva su nombre delante.
+            </p>
+            <div className="divide-y divide-[var(--border-row)] rounded-[10px] border border-border">
+              {equipo.map((persona) => (
+                <div key={persona.id} className="flex items-center justify-between gap-3 px-3.5 py-2.5">
+                  <p className="min-w-0 truncate text-[13.5px] font-medium">{persona.nombre}</p>
+                  <Switch
+                    on={seguidos.includes(persona.id)}
+                    label={`Avisos de ${persona.nombre}`}
+                    onClick={() => {
+                      if (siguiendo) return;
+                      void toggleSeguir(persona.id, persona.nombre);
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

@@ -54,7 +54,7 @@ export async function dispararVentanaAlertas(ahora = new Date()) {
   const hasta = new Date(ahora.getTime() + VENTANA_MINUTOS * 60 * 1000).toISOString();
   const { data: citas, error } = await admin
     .from("citas")
-    .select("id, comercial_id, titulo, empieza, tipo, lugar")
+    .select("id, comercial_id, titulo, empieza, tipo, lugar, tarea_id")
     .eq("estado", "prevista")
     .gte("empieza", desde)
     .lte("empieza", hasta);
@@ -75,7 +75,7 @@ export async function dispararVentanaAlertas(ahora = new Date()) {
       clave: clavePronto(cita.id, cita.empieza),
       titulo: `${textoPronto(cita.empieza, ahora)} · ${tipo}`,
       cuerpo: [hora, cita.titulo, donde].filter(Boolean).join(" · "),
-      url: `/calendario?cita=${cita.id}`,
+      url: cita.tarea_id ? `/tareas?tarea=${cita.tarea_id}` : `/calendario?cita=${cita.id}`,
       canal: canalDeTipo(cita.tipo),
     });
     if (resultado === "nuevo") avisos += 1;

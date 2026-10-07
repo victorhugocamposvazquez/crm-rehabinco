@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
@@ -71,6 +71,7 @@ type CitaRow = {
 
 export default function CalendarioPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const admin = isAdmin(user?.role);
   const hoy = new Date().toISOString().slice(0, 10);
@@ -241,8 +242,8 @@ export default function CalendarioPage() {
 
   const gestiona = (comercialId: string) => puedeGestionarCita(comercialId, user?.id, admin);
 
-  const abrirEdicion = (id: string) => {
-    const cita = citas.find((item) => item.id === id);
+  const abrirEdicion = (idOCita: string | CitaRow) => {
+    const cita = typeof idOCita === "string" ? citas.find((item) => item.id === idOCita) : idOCita;
     if (!cita || cita.estado === "cancelada") return;
     if (!gestiona(cita.comercial_id)) {
       toast.message("Solo puedes editar tus propias entradas.");
@@ -266,15 +267,45 @@ export default function CalendarioPage() {
   const citaQuery = searchParams.get("cita");
   const citaAbierta = useRef<string | null>(null);
   useEffect(() => {
-    if (!citaQuery || citaAbierta.current === citaQuery) return;
-    const cita = citas.find((item) => item.id === citaQuery);
-    if (!cita) return;
-    citaAbierta.current = citaQuery;
-    setDia(cita.empieza.slice(0, 10));
-    if (puedeGestionarCita(cita.comercial_id, user?.id, admin)) abrirEdicion(cita.id);
+    if (!citaQuery || !user || citaAbierta.current === citaQuery) return;
+    const abrir = (cita: CitaRow) => {
+      if (citaAbierta.current === citaQuery) return;
+      citaAbierta.current = citaQuery;
+      if (cita.tarea_id) {
+        router.replace(`/tareas?tarea=${cita.tarea_id}`);
+        return;
+      }
+      setDia(cita.empieza.slice(0, 10));
+      if (puedeGestionarCita(cita.comercial_id, user.id, admin)) abrirEdicion(cita);
+    };
+    const ya = citas.find((item) => item.id === citaQuery);
+    if (ya) {
+      abrir(ya);
+      return;
+    }
+    let vivo = true;
+    const supabase = createClient();
+    void supabase
+      .from("citas")
+      .select("id, comercial_id, tipo, titulo, empieza, termina, propiedad_id, cliente_id, clientes_extra_ids, notas, estado, tarea_id, lugar")
+      .eq("id", citaQuery)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!vivo || !data) return;
+        abrir({
+          ...data,
+          clientes_extra_ids: data.clientes_extra_ids ?? [],
+          profiles: null,
+          propiedades: null,
+          clientes: null,
+        });
+      });
+    return () => {
+      vivo = false;
+    };
     // abrirEdicion cambia de identidad en cada render; solo debe dispararse al llegar la cita.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [citaQuery, citas, user?.id, admin]);
+  }, [citaQuery, citas, user, admin, router]);
 
   const guardar = async (tipo: TipoAltaCalendario, titulo: string) => {
     if (!user) return;

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Check, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -66,6 +67,9 @@ function personaDe(
 
 export default function TareasPage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const tareaQuery = searchParams.get("tarea");
+  const tareaAbierta = useRef<string | null>(null);
   const admin = isAdmin(user?.role);
   const hoy = new Date().toISOString().slice(0, 10);
   const { comercialId, setComercialId } = useFiltroComercial();
@@ -121,6 +125,13 @@ export default function TareasPage() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, admin]);
+
+  useEffect(() => {
+    if (!tareaQuery || loading || tareaAbierta.current === tareaQuery) return;
+    if (!tareas.some((tarea) => tarea.id === tareaQuery)) return;
+    tareaAbierta.current = tareaQuery;
+    setSel(tareaQuery);
+  }, [tareaQuery, loading, tareas]);
 
   const visibles = comercialId ? tareas.filter((item) => item.comercial_id === comercialId) : tareas;
 

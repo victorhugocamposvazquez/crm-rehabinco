@@ -75,7 +75,7 @@ async function avisarMencion(
       clave: `mencion:${nota.id}:${userId}`,
       titulo: `${quien} te ha mencionado`,
       cuerpo: `${tituloTarea}: ${extracto}`,
-      url: "/tareas",
+      url: tarea?.id ? `/tareas?tarea=${tarea.id}` : "/tareas",
       canal: "menciones",
     });
     if (resultado === "nuevo") avisos += 1;
@@ -130,7 +130,7 @@ async function avisarTarea(
     clave: `asig:tarea:${tarea.id}:${tarea.comercial_id}:${tarea.vence ?? ""}:${tarea.hora ?? ""}`,
     titulo: `${quien} te ha asignado una tarea`,
     cuerpo: [cuando, tarea.titulo].filter(Boolean).join(" · "),
-    url: "/tareas",
+    url: `/tareas?tarea=${tarea.id}`,
     canal: "tareas_hoy",
   });
   return NextResponse.json({ ok: true, avisos: resultado === "nuevo" ? 1 : 0, estado: resultado });

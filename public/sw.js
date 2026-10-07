@@ -1,8 +1,8 @@
 // Service worker PWA: instalación + avisos (Web Push / cron Vercel)
 
 
-self.addEventListener("install", () => {
-  // Espera a que el usuario pulse «Actualizar» en el CRM antes de tomar el control.
+self.addEventListener("install", (event) => {
+  event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener("activate", (event) => {
@@ -33,17 +33,36 @@ self.addEventListener("push", (event) => {
   );
 });
 
+function urlAviso(ruta) {
+  try {
+    return new URL(ruta || "/calendario", self.location.origin).href;
+  } catch {
+    return new URL("/calendario", self.location.origin).href;
+  }
+}
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || "/calendario";
+  const destino = urlAviso(event.notification.data && event.notification.data.url);
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientes) => {
-      const abierto = clientes.find((c) => "focus" in c);
-      if (abierto) {
-        abierto.navigate?.(url);
-        return abierto.focus();
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (clientes) => {
+      const abierto = clientes.find((cliente) => {
+        try {
+          return new URL(cliente.url).origin === self.location.origin;
+        } catch {
+          return false;
+        }
+      });
+      if (!abierto) return self.clients.openWindow(destino);
+      abierto.postMessage({ type: "abrir-aviso", url: destino });
+      if (typeof abierto.navigate === "function") {
+        try {
+          await abierto.navigate(destino);
+        } catch {
+          // La página abre la ruta con el mensaje.
+        }
       }
-      return self.clients.openWindow(url);
+      return abierto.focus();
     })
   );
 });
