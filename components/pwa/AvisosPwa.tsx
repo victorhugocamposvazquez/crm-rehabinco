@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { Check } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -238,10 +239,28 @@ export function AvisosPwaCard() {
           <CardTitle>Este dispositivo</CardTitle>
         </CardHeader>
         <CardContent>
-        <div className="rounded-[10px] border border-border bg-[var(--surface-soft)] px-3.5 py-3">
-          <p className="text-sm font-medium">
-            {estado === "on" ? "Este dispositivo recibe avisos push." : "Este dispositivo aún no recibe avisos push."}
-          </p>
+        <div
+          className={
+            estado === "on"
+              ? "rounded-[10px] border border-[var(--green)] bg-[var(--green-bg)] px-3.5 py-3"
+              : "rounded-[10px] border border-border bg-[var(--surface-soft)] px-3.5 py-3"
+          }
+        >
+          <div className="flex items-center gap-2.5">
+            <span
+              className={
+                estado === "on"
+                  ? "grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[var(--green)] text-[var(--on-green)]"
+                  : "grid h-6 w-6 shrink-0 place-items-center rounded-full border border-[var(--input)] bg-[var(--field)]"
+              }
+              aria-hidden
+            >
+              {estado === "on" ? <Check size={14} strokeWidth={3} /> : null}
+            </span>
+            <p className="text-sm font-medium">
+              {estado === "on" ? "Avisos activados en este dispositivo" : "Avisos apagados en este dispositivo"}
+            </p>
+          </div>
           <p className="mt-1 text-[12px] text-[var(--text-2)]">
             {estado === "on"
               ? "Apágalo aquí si este móvil o navegador no debe recibir nada. Las personas de abajo se quedan como las dejaste."
