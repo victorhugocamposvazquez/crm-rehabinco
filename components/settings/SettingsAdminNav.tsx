@@ -5,15 +5,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
-import { puedeVerApisPortales, puedeVerPapelera, type Role } from "@/lib/auth/roles";
+import { isSuperAdmin, puedeVerApisPortales, puedeVerPapelera, type Role } from "@/lib/auth/roles";
 
 const ITEMS = [
-  { href: "/settings", label: "Perfil y seguridad", portales: false, papelera: false },
-  { href: "/settings#equipo", label: "Equipo", portales: false, papelera: false },
-  { href: "/settings/papelera", label: "Papelera de usuarios", portales: false, papelera: true },
-  { href: "/settings/empresa", label: "Datos de empresa", portales: false, papelera: false },
-  { href: "/settings/emisores-presupuesto", label: "Emisores de presupuesto", portales: false, papelera: false },
-  { href: "/settings/portales", label: "Captación", portales: true, papelera: false },
+  { href: "/settings", label: "Perfil y seguridad", portales: false, papelera: false, superadmin: false },
+  { href: "/settings#sistema-avisos", label: "Sistema de avisos", portales: false, papelera: false, superadmin: true },
+  { href: "/settings#equipo", label: "Equipo", portales: false, papelera: false, superadmin: false },
+  { href: "/settings/papelera", label: "Papelera de usuarios", portales: false, papelera: true, superadmin: false },
+  { href: "/settings/empresa", label: "Datos de empresa", portales: false, papelera: false, superadmin: false },
+  { href: "/settings/emisores-presupuesto", label: "Emisores de presupuesto", portales: false, papelera: false, superadmin: false },
+  { href: "/settings/portales", label: "Captación", portales: true, papelera: false, superadmin: false },
 ] as const;
 
 export function SettingsAdminNav({ role }: { role?: Role | null }) {
@@ -28,8 +29,10 @@ export function SettingsAdminNav({ role }: { role?: Role | null }) {
   const items = ITEMS.filter((item) => {
     if (item.portales && !puedeVerApisPortales(role)) return false;
     if (item.papelera && !puedeVerPapelera(role)) return false;
+    if (item.superadmin && !isSuperAdmin(role)) return false;
     return true;
   });
+  const anclasSettings = new Set(["#equipo", "#sistema-avisos"]);
   return (
     <CarrilHorizontal
       role="navigation"
@@ -42,7 +45,7 @@ export function SettingsAdminNav({ role }: { role?: Role | null }) {
         const activo = ancla
           ? pathname === "/settings" && hash === ancla
           : item.href === "/settings"
-            ? pathname === "/settings" && hash !== "#equipo"
+            ? pathname === "/settings" && !anclasSettings.has(hash)
             : pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (
           <Link

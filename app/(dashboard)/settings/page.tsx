@@ -27,6 +27,7 @@ import { EquipoComercialesCard } from "@/components/settings/EquipoComercialesCa
 import { SettingsAdminNav } from "@/components/settings/SettingsAdminNav";
 import { TokenExtensionCard } from "@/components/settings/TokenExtensionCard";
 import { AvisosPwaCard } from "@/components/pwa/AvisosPwa";
+import { SistemaAvisosCard } from "@/components/settings/SistemaAvisosCard";
 import { Selector } from "@/components/ui/selector";
 
 export default function SettingsPage() {
@@ -101,6 +102,7 @@ export default function SettingsPage() {
         {user?.id && user.role !== "editor" && <PerfilComercialCard userId={user.id} />}
         {user?.id && user.role !== "editor" ? <TokenExtensionCard userId={user.id} /> : null}
         {user?.id && user.role !== "editor" && <AvisosPwaCard />}
+        {superadmin ? <SistemaAvisosCard /> : null}
         {direccion && (
           <div id="equipo" className="contents">
             <EquipoComercialesCard role={user?.role} tick={equipoTick} />
