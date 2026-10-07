@@ -90,7 +90,32 @@ export async function desactivarAvisosPwa(): Promise<void> {
   }
 }
 
-function Switch({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) {
+function Switch({
+  on,
+  onClick,
+  label,
+  decorativo = false,
+}: {
+  on: boolean;
+  onClick?: () => void;
+  label: string;
+  decorativo?: boolean;
+}) {
+  const clase = "relative h-6 w-11 shrink-0 rounded-full transition-colors";
+  const estilo = { background: on ? "var(--green)" : "var(--input)" };
+  const bola = (
+    <span
+      className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-[left] duration-150"
+      style={{ left: on ? 22 : 2 }}
+    />
+  );
+  if (decorativo) {
+    return (
+      <span aria-hidden className={clase} style={estilo}>
+        {bola}
+      </span>
+    );
+  }
   return (
     <button
       type="button"
@@ -98,13 +123,10 @@ function Switch({ on, onClick, label }: { on: boolean; onClick: () => void; labe
       aria-checked={on}
       aria-label={label}
       onClick={onClick}
-      className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
-      style={{ background: on ? "var(--green)" : "var(--input)" }}
+      className={clase}
+      style={estilo}
     >
-      <span
-        className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-[left] duration-150"
-        style={{ left: on ? 22 : 2 }}
-      />
+      {bola}
     </button>
   );
 }
@@ -116,8 +138,8 @@ export function AvisosPwaCard() {
   const [prefs, setPrefs] = useState<PrefsAviso>(prefsCompletas(null));
   const [guardando, setGuardando] = useState<CanalAviso | null>(null);
   const [equipo, setEquipo] = useState<Array<{ id: string; nombre: string }>>([]);
+  const [errorEquipo, setErrorEquipo] = useState<string | null>(null);
   const [seguidos, setSeguidos] = useState<string[]>([]);
-  const [siguiendo, setSiguiendo] = useState<string | null>(null);
   const listaRef = useRef<HTMLDivElement>(null);
 
   const refrescarEstado = useCallback(() => {
@@ -145,7 +167,12 @@ export function AvisosPwaCard() {
       .select("id, nombre_completo, email")
       .in("role", ["comercial", "admin", "agente", "superadmin"])
       .eq("activo", true)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) {
+          setErrorEquipo(error.message);
+          return;
+        }
+        setErrorEquipo(null);
         setEquipo(
           (data ?? [])
             .filter((persona) => persona.id !== user.id)
@@ -188,30 +215,68 @@ export function AvisosPwaCard() {
   };
 
   const toggleSeguir = async (personaId: string, nombre: string) => {
-    if (!user?.id || siguiendo) return;
+    if (!user?.id) return;
     const activo = seguidos.includes(personaId);
-    setSiguiendo(personaId);
+    const siguiente = activo ? seguidos.filter((id) => id !== personaId) : [...seguidos, personaId];
+    setSeguidos(siguiente);
     const supabase = createClient();
     const { error } = activo
       ? await supabase.from("crm_aviso_seguir").delete().eq("user_id", user.id).eq("seguido_id", personaId)
       : await supabase.from("crm_aviso_seguir").insert({ user_id: user.id, seguido_id: personaId });
-    setSiguiendo(null);
     if (error) {
-      toast.error("No se ha podido guardar.");
+      setSeguidos(seguidos);
+      toast.error(error.message || "No se ha podido guardar.");
       return;
     }
-    setSeguidos((prev) => (activo ? prev.filter((id) => id !== personaId) : [...prev, personaId]));
     toast.success(activo ? `Ya no recibes los avisos de ${nombre}.` : `Recibirás los avisos de ${nombre}, con su nombre delante.`);
   };
 
   return (
-    <Card>
+    <Card className="md:col-span-2">
       <CardHeader>
         <CardTitle>Avisos</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div>
+          <p className="text-[13px] font-medium">De quién quieres avisos</p>
+          <p className="mb-2 mt-1 text-[12px] text-[var(--text-2)]">
+            Los tuyos llegan siempre. Toca a otra persona para recibir los suyos o para dejar de recibirlos. Si no es tuyo, el push lleva su nombre delante.
+          </p>
+          {errorEquipo ? (
+            <p className="rounded-[10px] border border-dashed border-border px-3.5 py-3 text-[13px] text-[var(--text-2)]">
+              No se ha podido cargar el equipo. {errorEquipo}
+            </p>
+          ) : equipo.length === 0 ? (
+            <p className="rounded-[10px] border border-dashed border-border px-3.5 py-3 text-[13px] text-[var(--text-2)]">
+              No hay otras personas del equipo para elegir.
+            </p>
+          ) : (
+            <div className="divide-y divide-[var(--border-row)] rounded-[10px] border border-border">
+              {equipo.map((persona) => {
+                const activo = seguidos.includes(persona.id);
+                return (
+                  <button
+                    key={persona.id}
+                    type="button"
+                    aria-pressed={activo}
+                    onClick={() => void toggleSeguir(persona.id, persona.nombre)}
+                    className="flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left hover:bg-[var(--surface-soft)]"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-[13.5px] font-medium">{persona.nombre}</span>
+                      <span className="block text-[12px] text-[var(--text-2)]">
+                        {activo ? "Recibes sus avisos" : "No recibes sus avisos"}
+                      </span>
+                    </span>
+                    <Switch decorativo on={activo} label={`Avisos de ${persona.nombre}`} />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
         <p className="text-sm text-neutral-500">
-          Activa este dispositivo y, debajo, elige qué avisos quieres recibir. Los de portales se configuran en{" "}
+          Los de portales se configuran en{" "}
           <Link href="/captacion" className="font-medium text-accent hover:underline">
             Captación → Notificaciones
           </Link>
@@ -290,29 +355,6 @@ export function AvisosPwaCard() {
             ))}
           </div>
         </div>
-        {equipo.length > 0 ? (
-          <div>
-            <p className="mb-1 text-[13px] font-medium">Avisos de otras personas</p>
-            <p className="mb-2 text-[12px] text-[var(--text-2)]">
-              Activa a quien quieras seguir. Si el aviso no es tuyo, el push lleva su nombre delante.
-            </p>
-            <div className="divide-y divide-[var(--border-row)] rounded-[10px] border border-border">
-              {equipo.map((persona) => (
-                <div key={persona.id} className="flex items-center justify-between gap-3 px-3.5 py-2.5">
-                  <p className="min-w-0 truncate text-[13.5px] font-medium">{persona.nombre}</p>
-                  <Switch
-                    on={seguidos.includes(persona.id)}
-                    label={`Avisos de ${persona.nombre}`}
-                    onClick={() => {
-                      if (siguiendo) return;
-                      void toggleSeguir(persona.id, persona.nombre);
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
       </CardContent>
     </Card>
   );
