@@ -232,64 +232,20 @@ export function AvisosPwaCard() {
   };
 
   return (
-    <Card className="md:col-span-2">
-      <CardHeader>
-        <CardTitle>Avisos</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <p className="text-[13px] font-medium">De quién quieres avisos</p>
-          <p className="mb-2 mt-1 text-[12px] text-[var(--text-2)]">
-            Los tuyos llegan siempre. Toca a otra persona para recibir los suyos o para dejar de recibirlos. Si no es tuyo, el push lleva su nombre delante.
-          </p>
-          {errorEquipo ? (
-            <p className="rounded-[10px] border border-dashed border-border px-3.5 py-3 text-[13px] text-[var(--text-2)]">
-              No se ha podido cargar el equipo. {errorEquipo}
-            </p>
-          ) : equipo.length === 0 ? (
-            <p className="rounded-[10px] border border-dashed border-border px-3.5 py-3 text-[13px] text-[var(--text-2)]">
-              No hay otras personas del equipo para elegir.
-            </p>
-          ) : (
-            <div className="divide-y divide-[var(--border-row)] rounded-[10px] border border-border">
-              {equipo.map((persona) => {
-                const activo = seguidos.includes(persona.id);
-                return (
-                  <button
-                    key={persona.id}
-                    type="button"
-                    aria-pressed={activo}
-                    onClick={() => void toggleSeguir(persona.id, persona.nombre)}
-                    className="flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left hover:bg-[var(--surface-soft)]"
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate text-[13.5px] font-medium">{persona.nombre}</span>
-                      <span className="block text-[12px] text-[var(--text-2)]">
-                        {activo ? "Recibes sus avisos" : "No recibes sus avisos"}
-                      </span>
-                    </span>
-                    <Switch decorativo on={activo} label={`Avisos de ${persona.nombre}`} />
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-        <p className="text-sm text-neutral-500">
-          Los de portales se configuran en{" "}
-          <Link href="/captacion" className="font-medium text-accent hover:underline">
-            Captación → Notificaciones
-          </Link>
-          .
-        </p>
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Este dispositivo</CardTitle>
+        </CardHeader>
+        <CardContent>
         <div className="rounded-[10px] border border-border bg-[var(--surface-soft)] px-3.5 py-3">
           <p className="text-sm font-medium">
             {estado === "on" ? "Este dispositivo recibe avisos push." : "Este dispositivo aún no recibe avisos push."}
           </p>
           <p className="mt-1 text-[12px] text-[var(--text-2)]">
             {estado === "on"
-              ? "Puedes desactivarlos aquí. La lista de debajo se queda como la dejaste."
-              : "Actívalos para recibir el resumen de la mañana y avisos aunque el CRM esté cerrado."}
+              ? "Apágalo aquí si este móvil o navegador no debe recibir nada. Las personas de abajo se quedan como las dejaste."
+              : "Enciéndelo para recibir avisos aunque el CRM esté cerrado."}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {estado === "on" ? (
@@ -321,7 +277,7 @@ export function AvisosPwaCard() {
                       setEstado("on");
                       refrescarEstado();
                       toast.success(msg);
-                      listaRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                      listaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
                     })
                     .catch((error: unknown) => {
                       toast.error(error instanceof Error ? error.message : "No se han podido activar los avisos.");
@@ -334,8 +290,64 @@ export function AvisosPwaCard() {
             )}
           </div>
         </div>
-        <div ref={listaRef} className="scroll-mt-24">
-          <p className="mb-2 text-[13px] font-medium">Qué avisos quieres recibir</p>
+        </CardContent>
+      </Card>
+
+      <Card ref={listaRef} className="scroll-mt-24">
+        <CardHeader>
+          <CardTitle>De quién quieres avisos</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-3 text-[13px] text-[var(--text-2)]">
+            Los tuyos llegan siempre. Toca a otra persona para recibir los suyos o para dejar de recibirlos. Si no es tuyo, el push lleva su nombre delante.
+          </p>
+          {errorEquipo ? (
+            <p className="rounded-[10px] border border-dashed border-border px-3.5 py-3 text-[13px] text-[var(--text-2)]">
+              No se ha podido cargar el equipo. {errorEquipo}
+            </p>
+          ) : equipo.length === 0 ? (
+            <p className="rounded-[10px] border border-dashed border-border px-3.5 py-3 text-[13px] text-[var(--text-2)]">
+              No hay otras personas del equipo para elegir.
+            </p>
+          ) : (
+            <div className="grid gap-2 min-[820px]:grid-cols-2">
+              {equipo.map((persona) => {
+                const activo = seguidos.includes(persona.id);
+                return (
+                  <button
+                    key={persona.id}
+                    type="button"
+                    aria-pressed={activo}
+                    onClick={() => void toggleSeguir(persona.id, persona.nombre)}
+                    className="flex min-h-14 w-full items-center justify-between gap-3 rounded-[10px] border border-border px-3.5 py-2.5 text-left hover:bg-[var(--surface-soft)]"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-[15px] font-medium">{persona.nombre}</span>
+                      <span className="block text-[12px] text-[var(--text-2)]">
+                        {activo ? "Recibes sus avisos" : "No recibes sus avisos"}
+                      </span>
+                    </span>
+                    <Switch decorativo on={activo} label={`Avisos de ${persona.nombre}`} />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Qué tipos quieres recibir</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-3 text-[13px] text-[var(--text-2)]">
+            Vale para los tuyos y para las personas que tengas activadas. Los de portales se configuran en{" "}
+            <Link href="/captacion" className="font-medium text-accent hover:underline">
+              Captación → Notificaciones
+            </Link>
+            .
+          </p>
           <div className="divide-y divide-[var(--border-row)] rounded-[10px] border border-border">
             {CANALES_AVISO.map((canal) => (
               <div key={canal.id} className="flex items-center justify-between gap-3 px-3.5 py-2.5">
@@ -354,9 +366,9 @@ export function AvisosPwaCard() {
               </div>
             ))}
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </>
   );
 }
 

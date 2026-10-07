@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
+  Bell,
   Building2,
   LogOut,
   KeyRound,
@@ -229,6 +230,17 @@ export function TopBar() {
             <Settings className="h-5 w-5 shrink-0 text-neutral-500" strokeWidth={1.5} />
             <span>Ajustes de cuenta</span>
           </Link>
+
+          {user && !isEditor(user.role) ? (
+            <Link
+              href="/settings/avisos"
+              onClick={() => setSheetOpen(false)}
+              className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-[15px] font-medium text-foreground transition-colors hover:bg-neutral-50"
+            >
+              <Bell className="h-5 w-5 shrink-0 text-neutral-500" strokeWidth={1.5} />
+              <span>Avisos</span>
+            </Link>
+          ) : null}
 
           {isAdmin(user?.role) && (
             <Link

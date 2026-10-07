@@ -10,7 +10,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { Building2, KeyRound, LogOut, Settings } from "lucide-react";
+import { Bell, Building2, KeyRound, LogOut, Settings } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
 import { isAdmin, puedeVerApisPortales, roleLabel } from "@/lib/auth/roles";
@@ -174,6 +174,16 @@ function MenuPerfilModal({ abierto, onCerrar }: { abierto: boolean; onCerrar: ()
               <Settings className="h-4 w-4 text-[var(--text-2)]" strokeWidth={1.7} aria-hidden />
               Ajustes de cuenta
             </Link>
+            {user.role !== "editor" ? (
+              <Link
+                href="/settings/avisos"
+                onClick={onCerrar}
+                className="flex min-h-11 items-center gap-3 rounded-[10px] px-3 text-[14px] font-medium hover:bg-[var(--surface-soft)]"
+              >
+                <Bell className="h-4 w-4 text-[var(--text-2)]" strokeWidth={1.7} aria-hidden />
+                Avisos
+              </Link>
+            ) : null}
             {admin ? (
               <Link
                 href="/settings/empresa"

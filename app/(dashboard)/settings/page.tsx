@@ -26,8 +26,6 @@ import { PerfilComercialCard } from "@/components/settings/PerfilComercialCard";
 import { EquipoComercialesCard } from "@/components/settings/EquipoComercialesCard";
 import { SettingsAdminNav } from "@/components/settings/SettingsAdminNav";
 import { TokenExtensionCard } from "@/components/settings/TokenExtensionCard";
-import { AvisosPwaCard } from "@/components/pwa/AvisosPwa";
-import { SistemaAvisosCard } from "@/components/settings/SistemaAvisosCard";
 import { Selector } from "@/components/ui/selector";
 
 export default function SettingsPage() {
@@ -81,7 +79,7 @@ export default function SettingsPage() {
         title="Ajustes"
         description="Perfil, equipo y empresa. El superadministrador también crea usuarios y configura la captación."
       />
-      {direccion ? <SettingsAdminNav role={user?.role} /> : null}
+      {user ? <SettingsAdminNav role={user.role} /> : null}
 
       <div id="perfil" className="mt-8 grid gap-4 md:grid-cols-2">
         <Card>
@@ -101,8 +99,21 @@ export default function SettingsPage() {
 
         {user?.id && user.role !== "editor" && <PerfilComercialCard userId={user.id} />}
         {user?.id && user.role !== "editor" ? <TokenExtensionCard userId={user.id} /> : null}
-        {user?.id && user.role !== "editor" && <AvisosPwaCard />}
-        {superadmin ? <SistemaAvisosCard /> : null}
+        {user?.id && user.role !== "editor" ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Avisos</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-neutral-500">
+                Este dispositivo, de quién quieres recibir avisos y qué tipos.
+              </p>
+              <Button asChild>
+                <Link href="/settings/avisos">Abrir avisos</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
         {direccion && (
           <div id="equipo" className="contents">
             <EquipoComercialesCard role={user?.role} tick={equipoTick} />
