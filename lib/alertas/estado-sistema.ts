@@ -10,34 +10,34 @@ export type CheckAvisos = {
 
 /** Cómo está montado el sistema hoy (para el panel de superadmin). */
 export const SISTEMA_AVISOS_ACTUAL = {
-  nombre: "Digest diario + Web Push",
+  nombre: "Avisos al momento + recordatorio de la hora",
   resumen:
-    "Cada mañana un cron de Vercel revisa citas, tareas, menciones y partes del día, crea avisos en el CRM y, si el dispositivo está suscrito, lanza un push al móvil o al escritorio.",
+    "Lo útil sale en el acto (te mencionan o te asignan algo). Lo que está a punto de empezar se revisa cada 15 minutos. Por la mañana sigue habiendo un resumen del día. El plan Hobby de Vercel no permite un cron cada pocos minutos: esa pasada frecuente la hace Supabase.",
   piezas: [
     {
-      titulo: "Disparador",
+      titulo: "Al momento",
       texto:
-        "Cron de Vercel en /api/cron/alertas, horario 0 7 * * * (07:00 UTC ≈ 09:00 en verano / 08:00 en invierno en España). En la cuenta Hobby de Vercel no se puede pedir un cron cada pocos minutos: por eso el resumen es una vez al día.",
+        "Al guardar un comentario con @, o al asignar una cita o una tarea a otra persona, el CRM crea el aviso y lanza el push en ese instante. No espera al cron.",
     },
     {
-      titulo: "Qué mira",
+      titulo: "Cada 15 minutos",
       texto:
-        "Citas previstas de hoy, tareas pendientes con vencimiento hoy o atrasado, partes sin firmar y menciones @ del día en comentarios de tareas.",
+        "Supabase (pg_cron) llama a /api/cron/alertas?solo=ventana. Avisa al comercial de las citas previstas que empiezan en la próxima hora («Empieza en 40 min»). Si se mueve la hora, vuelve a avisar. Una vez por cita y hora de inicio.",
+    },
+    {
+      titulo: "Resumen de la mañana",
+      texto:
+        "Cron de Vercel, 0 7 * * * (07:00 UTC ≈ 09:00 en verano). Una pasada al día con el resto: tareas de hoy y vencidas, partes sin firmar y lo que queda en la agenda. No sustituye a los avisos de arriba.",
     },
     {
       titulo: "A quién llega",
       texto:
-        "Solo al comercial asignado (comercial_id). Cada persona elige en Ajustes → Avisos qué canales quiere (visitas, recordatorios, agenda, tareas, menciones, partes). No hay aún seguimiento de las tareas de otro del equipo.",
+        "Al comercial asignado, y las menciones a quien nombras con @. Cada persona elige los canales en Ajustes → Avisos. Si te asignas algo a ti mismo no hay push de «te han asignado»; sí el de «empieza en X min».",
     },
     {
       titulo: "Dónde se ve",
       texto:
-        "Aviso en la bombilla del CRM (tabla crm_avisos) y, si el usuario activó push en el dispositivo, notificación del sistema vía Web Push (VAPID).",
-    },
-    {
-      titulo: "Límite del día",
-      texto:
-        "Un digest por usuario, canal y día (clave digest:user:fecha:canal). Si ya se envió, no se repite hasta el día siguiente.",
+        "Bombilla del CRM (crm_avisos) y, si el usuario activó el push en ese móvil o navegador, notificación del sistema (Web Push / VAPID).",
     },
   ],
   secretoCron: "CRON_SECRET",
@@ -94,7 +94,7 @@ export async function estadoSistemaAvisos(): Promise<{
     id: "cron_horario",
     label: "Horario del cron",
     nivel: "ok",
-    detalle: `${SISTEMA_AVISOS_ACTUAL.horarioCron} → ${SISTEMA_AVISOS_ACTUAL.rutaCron} (una pasada diaria; plan Hobby).`,
+    detalle: `Mañana: ${SISTEMA_AVISOS_ACTUAL.horarioCron} (resumen). Cada 15 min: Supabase llama a ${SISTEMA_AVISOS_ACTUAL.rutaCron}?solo=ventana.`,
   });
 
   const admin = createAdminClient();

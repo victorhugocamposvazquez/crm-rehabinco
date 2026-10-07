@@ -24,6 +24,7 @@ import {
 import { backfillTareasDesdeCalendario, syncCitaDesdeTarea } from "@/lib/tareas/sync-cita";
 import { TareasBoard, AvataresTarea, type TareaTarjeta } from "@/components/tareas/TareasBoard";
 import { TareaPanel, type TareaDetalle } from "@/components/tareas/TareaPanel";
+import { avisarEvento } from "@/lib/alertas/avisar-cliente";
 
 function normalizar(row: TareaDetalle & Record<string, unknown>): TareaDetalle {
   return {
@@ -250,6 +251,9 @@ export default function TareasPage() {
       if (dest) siguiente.profiles = { nombre_completo: dest.nombre, color: dest.color };
       if (actual.cita_id) {
         await supabase.from("citas").update({ comercial_id: patch.comercial_id }).eq("id", actual.cita_id);
+        avisarEvento("cita", actual.cita_id);
+      } else {
+        avisarEvento("tarea", id);
       }
     }
     if (patch.hora !== undefined || patch.vence !== undefined || patch.titulo !== undefined) {

@@ -38,6 +38,7 @@ import {
   type TipoCita,
 } from "@/lib/citas/citas";
 import { FiltroComercial, type ComercialFiltro } from "@/components/captacion/FiltroComercial";
+import { avisarEvento } from "@/lib/alertas/avisar-cliente";
 import { useFiltroComercial } from "@/lib/ui/filtro-comercial";
 import { CitaAcciones } from "@/components/citas/CitaAcciones";
 import { CalendarioSemana } from "@/components/citas/CalendarioSemana";
@@ -342,6 +343,7 @@ export default function CalendarioPage() {
       setSaving(false);
       setSheetOpen(false);
       setEditando(null);
+      avisarEvento("cita", editando.id);
       toast.success("Entrada actualizada.");
       cargar();
       return;
@@ -378,6 +380,7 @@ export default function CalendarioPage() {
     }
     setSaving(false);
     setSheetOpen(false);
+    avisarEvento("cita", cita.id);
     toast.success(`${TIPO_CITA_LABEL[tipo]} creado.`);
     cargar();
   };

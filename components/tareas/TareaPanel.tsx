@@ -12,6 +12,7 @@ import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { CampoComentario, TextoConMenciones } from "@/components/tareas/CampoComentario";
 import { useFichaPeek } from "@/components/crm/FichaPeek";
 import { relacionUno } from "@/lib/citas/citas";
+import { avisarEvento } from "@/lib/alertas/avisar-cliente";
 import { inmuebleDesdeNotasCaptacion } from "@/lib/captacion/portales/contacto";
 import { nombreYApellido } from "@/lib/ui/tokens";
 import { cn } from "@/lib/utils";
@@ -251,6 +252,7 @@ export function TareaPanel({
       toast.error("No se ha podido guardar el comentario.");
       return;
     }
+    if (mencionados.length > 0) avisarEvento("mencion", data.id);
     const yo = comerciales.find((c) => c.id === userId);
     setActividad((prev) => [
       ...prev,
