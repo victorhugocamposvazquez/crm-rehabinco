@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
@@ -69,8 +69,8 @@ export async function activarAvisosPwa(): Promise<string> {
     if (!ok.ok) throw new Error("No se ha podido guardar la suscripción.");
   }
   return vapid.key
-    ? "Avisos activados en este dispositivo. Elige abajo qué tipos quieres recibir."
-    : "Permiso concedido. Verás avisos con el CRM abierto. Falta la clave VAPID en Vercel para el push en segundo plano.";
+    ? "Avisos activados en este dispositivo."
+    : "Permiso concedido. Verás avisos con el CRM abierto. Falta la clave VAPID para el push en segundo plano.";
 }
 
 export async function desactivarAvisosPwa(): Promise<void> {
@@ -115,6 +115,7 @@ export function AvisosPwaCard() {
   const [busy, setBusy] = useState(false);
   const [prefs, setPrefs] = useState<PrefsAviso>(prefsCompletas(null));
   const [guardando, setGuardando] = useState<CanalAviso | null>(null);
+  const listaRef = useRef<HTMLDivElement>(null);
 
   const refrescarEstado = useCallback(() => {
     void estadoAvisosDispositivo().then(setEstado);
@@ -169,37 +170,19 @@ export function AvisosPwaCard() {
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-neutral-500">
-          Elige qué te llega al móvil o al navegador. Los de portales se configuran en{" "}
+          Activa este dispositivo y, debajo, elige qué avisos quieres recibir. Los de portales se configuran en{" "}
           <Link href="/captacion" className="font-medium text-accent hover:underline">
             Captación → Notificaciones
           </Link>
           .
         </p>
-        <div className="divide-y divide-[var(--border-row)] rounded-[10px] border border-border">
-          {CANALES_AVISO.map((canal) => (
-            <div key={canal.id} className="flex items-center justify-between gap-3 px-3.5 py-2.5">
-              <div className="min-w-0">
-                <p className="text-[13.5px] font-medium">{canal.label}</p>
-                <p className="text-[12px] text-[var(--text-2)]">{canal.hint}</p>
-              </div>
-              <Switch
-                on={prefs[canal.id]}
-                label={canal.label}
-                onClick={() => {
-                  if (guardando) return;
-                  void toggle(canal.id);
-                }}
-              />
-            </div>
-          ))}
-        </div>
         <div className="rounded-[10px] border border-border bg-[var(--surface-soft)] px-3.5 py-3">
           <p className="text-sm font-medium">
             {estado === "on" ? "Este dispositivo recibe avisos push." : "Este dispositivo aún no recibe avisos push."}
           </p>
           <p className="mt-1 text-[12px] text-[var(--text-2)]">
             {estado === "on"
-              ? "Puedes desactivarlos aquí sin perder tus preferencias de arriba."
+              ? "Puedes desactivarlos aquí. La lista de debajo se queda como la dejaste."
               : "Actívalos para recibir el resumen de la mañana y avisos aunque el CRM esté cerrado."}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -232,6 +215,7 @@ export function AvisosPwaCard() {
                       setEstado("on");
                       refrescarEstado();
                       toast.success(msg);
+                      listaRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
                     })
                     .catch((error: unknown) => {
                       toast.error(error instanceof Error ? error.message : "No se han podido activar los avisos.");
@@ -242,6 +226,27 @@ export function AvisosPwaCard() {
                 {busy ? "Activando…" : "Activar avisos en este dispositivo"}
               </Button>
             )}
+          </div>
+        </div>
+        <div ref={listaRef} className="scroll-mt-24">
+          <p className="mb-2 text-[13px] font-medium">Qué avisos quieres recibir</p>
+          <div className="divide-y divide-[var(--border-row)] rounded-[10px] border border-border">
+            {CANALES_AVISO.map((canal) => (
+              <div key={canal.id} className="flex items-center justify-between gap-3 px-3.5 py-2.5">
+                <div className="min-w-0">
+                  <p className="text-[13.5px] font-medium">{canal.label}</p>
+                  <p className="text-[12px] text-[var(--text-2)]">{canal.hint}</p>
+                </div>
+                <Switch
+                  on={prefs[canal.id]}
+                  label={canal.label}
+                  onClick={() => {
+                    if (guardando) return;
+                    void toggle(canal.id);
+                  }}
+                />
+              </div>
+            ))}
           </div>
         </div>
       </CardContent>
