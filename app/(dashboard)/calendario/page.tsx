@@ -84,6 +84,7 @@ export default function CalendarioPage() {
   const [clientesExtraIds, setClientesExtraIds] = useState<string[]>([]);
   const [notas, setNotas] = useState("");
   const [lugar, setLugar] = useState("");
+  const [comercialAsignado, setComercialAsignado] = useState("");
   const [editando, setEditando] = useState<CitaRow | null>(null);
   const [propiedades, setPropiedades] = useState<InmuebleCalendario[]>([]);
   const [clientes, setClientes] = useState<Array<{ id: string; nombre: string; telefono: string | null }>>([]);
@@ -231,6 +232,7 @@ export default function CalendarioPage() {
     setClientesExtraIds([]);
     setNotas("");
     setLugar("");
+    setComercialAsignado(user?.id ?? "");
     setDia(diaDestino);
     setHora(horaDesdeMinutos(minutos));
     setSheetOpen(true);
@@ -253,6 +255,7 @@ export default function CalendarioPage() {
     setClientesExtraIds(cita.clientes_extra_ids ?? []);
     setNotas(cita.notas?.trim() ?? "");
     setLugar(cita.lugar?.trim() || direccionDeInmueble(cita.propiedades ?? {}));
+    setComercialAsignado(cita.comercial_id);
     if (cita.propiedad_id) mezclarInmueble(cita.propiedad_id);
     if (cita.cliente_id) mezclarCliente(cita.cliente_id, cita.clientes?.nombre);
     for (const id of cita.clientes_extra_ids ?? []) mezclarCliente(id);
@@ -274,6 +277,7 @@ export default function CalendarioPage() {
 
   const guardar = async (tipo: TipoAltaCalendario, titulo: string) => {
     if (!user) return;
+    const asignado = comercialAsignado || user.id;
     const inmueble = propiedades.find((p) => p.id === propiedadId);
     const tituloFinal =
       titulo.trim() ||
@@ -281,7 +285,8 @@ export default function CalendarioPage() {
         ? `${TIPO_CITA_LABEL[tipo]} ${inmueble.referencia || inmueble.direccion || ""}`.trim()
         : TIPO_CITA_LABEL[tipo]);
     const lugarFinal = lugar.trim() || (inmueble ? direccionDeInmueble(inmueble) : "") || null;
-    const notasFinal = tipo === "evento" ? notas.trim() || null : null;
+    const guardaNotas = tipo === "evento" || tipo === "llamada";
+    const notasFinal = guardaNotas ? notas.trim() || null : null;
     const clientesExtraFinal =
       tipo === "evento" ? clientesExtraIds.filter((id) => id && id !== clienteId) : [];
     setSaving(true);
@@ -298,6 +303,7 @@ export default function CalendarioPage() {
       const { error } = await supabase
         .from("citas")
         .update({
+          comercial_id: asignado,
           tipo: tipoFinal,
           titulo: tituloFinal,
           empieza: patch.empieza,
@@ -305,7 +311,7 @@ export default function CalendarioPage() {
           propiedad_id: propiedadId || null,
           cliente_id: clienteId || null,
           clientes_extra_ids: tipoFinal === "evento" ? clientesExtraFinal : [],
-          notas: tipoFinal === "evento" ? notasFinal : null,
+          notas: tipoFinal === "evento" || tipoFinal === "llamada" ? notasFinal : null,
           lugar: lugarFinal,
         })
         .eq("id", editando.id);
@@ -319,7 +325,7 @@ export default function CalendarioPage() {
           supabase,
           {
             id: editando.id,
-            comercial_id: editando.comercial_id,
+            comercial_id: asignado,
             tipo: tipoFinal,
             titulo: tituloFinal,
             empieza: patch.empieza,
@@ -347,7 +353,7 @@ export default function CalendarioPage() {
     const { data: cita, error } = await supabase
       .from("citas")
       .insert({
-        comercial_id: user.id,
+        comercial_id: asignado,
         tipo: tipoCita,
         titulo: tituloFinal,
         empieza: empieza.toISOString(),
@@ -355,7 +361,7 @@ export default function CalendarioPage() {
         propiedad_id: propiedadId || null,
         cliente_id: clienteId || null,
         clientes_extra_ids: tipoCita === "evento" ? clientesExtraFinal : [],
-        notas: tipoCita === "evento" ? notasFinal : null,
+        notas: tipoCita === "evento" || tipoCita === "llamada" ? notasFinal : null,
         lugar: lugarFinal,
       })
       .select("id, comercial_id, tipo, titulo, empieza, propiedad_id, cliente_id, estado, tarea_id")
@@ -516,7 +522,7 @@ export default function CalendarioPage() {
       <PageHeader
         breadcrumb={[{ label: "Calendario" }]}
         title="Calendario"
-        description="Agenda de todo el equipo. Pulsa un hueco para crear; solo puedes editar o mover tus propias entradas."
+        description="Agenda de todo el equipo. Pulsa un hueco para crear; puedes asignar la entrada a otro comercial. Solo editas o mueves las tuyas (salvo dirección)."
       />
       <div className="mt-4">
         <FiltroComercial comerciales={comerciales} valor={filtroComercial} onChange={setFiltroComercial} />
@@ -635,6 +641,9 @@ export default function CalendarioPage() {
         onClientesExtra={setClientesExtraIds}
         onNotas={setNotas}
         onLugar={setLugar}
+        comerciales={comerciales}
+        comercialId={comercialAsignado || user?.id || ""}
+        onComercial={setComercialAsignado}
         saving={saving}
         edicion={
           editando

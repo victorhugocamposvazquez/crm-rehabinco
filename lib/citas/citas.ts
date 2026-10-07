@@ -1,7 +1,7 @@
 export const TIPOS_CITA = ["visita", "llamada", "firma", "evento", "recordatorio", "tarea", "otro"] as const;
 export type TipoCita = (typeof TIPOS_CITA)[number];
 
-export const TIPOS_ALTA_CALENDARIO = ["evento", "recordatorio", "tarea", "visita"] as const;
+export const TIPOS_ALTA_CALENDARIO = ["visita", "llamada", "evento", "recordatorio", "tarea"] as const;
 export type TipoAltaCalendario = (typeof TIPOS_ALTA_CALENDARIO)[number];
 
 export const ESTADOS_CITA = ["prevista", "hecha", "no_asistio", "cancelada"] as const;

@@ -10,6 +10,7 @@ import {
   nombrePersonaArras,
   parrafoReunidos,
   personaArrasVacia,
+  verboPersona,
   verboPropiedad,
   type PersonaArras,
 } from "./contrato-arras";
@@ -63,10 +64,10 @@ export function textosContratoPagoAplazado(datos: ContratoPagoAplazadoDatos) {
       "Intervienen ambos en su propio nombre y derecho y se reconocen mutuamente la capacidad necesaria en derecho para obligarse, lo que de común acuerdo efectúan por medio del presente documento y a tal fin:",
     exponenI: `I. Que ${vendedores} ${son} ${propietarios}, en pleno dominio del siguiente inmueble: ${hueco(datos.finca_descripcion)}.`,
     exponenII: `II. Que le pertenece a ${vendedores} ${hueco(datos.titulo_adquisicion, "por título adquisitivo ………………")}.`,
-    exponenIII: `III. Que ${vendedores} manifiesta que la referida finca se encuentra libre de cargas y gravámenes, según nota simple expedida por el Registro de la Propiedad el día de hoy, y que se une a este documento. Asimismo, manifiesta la propiedad que se encuentra libre de arrendamientos y sin ocupantes.`,
+    exponenIII: `III. Que ${vendedores} ${verboPersona(datos.vendedores, "manifiesta", "manifiestan")} que la referida finca se encuentra libre de cargas y gravámenes, según nota simple expedida por el Registro de la Propiedad el día de hoy, y que se une a este documento. Asimismo, ${verboPersona(datos.vendedores, "manifiesta", "manifiestan")} que la propiedad se encuentra libre de arrendamientos y sin ocupantes.`,
     exponenIV:
       "IV. Que estando interesados ambos comparecientes en la compraventa de la finca descrita, por medio del presente documento lo llevan a efecto con arreglo a las siguientes",
-    primera: `Primera.- Compraventa. ${vendedores}, vende y ${compradores}, que la compra, la vivienda descrita en el expositivo I de este documento, con los elementos que le son inherentes y/o accesorios, libre de cargas y gravámenes, y al corriente en el pago de contribuciones, arbitrios e impuestos y al corriente en el pago de gastos comunes de propiedad horizontal.`,
+    primera: `Primera.- Compraventa. ${vendedores}, ${verboPersona(datos.vendedores, "vende", "venden")} y ${compradores}, ${verboPersona(datos.compradores, "que la compra", "que la compran")}, la vivienda descrita en el expositivo I de este documento, con los elementos que le son inherentes y/o accesorios, libre de cargas y gravámenes, y al corriente en el pago de contribuciones, arbitrios e impuestos y al corriente en el pago de gastos comunes de propiedad horizontal.`,
     segunda: `Segunda.- Precio. El precio convenido por la presente compraventa es el de ${eurosEnPalabras(datos.precio)}, que abonará la parte compradora a la vendedora en la siguiente forma:
 Mediante la entrega que la parte compradora hace en este acto, sirviendo el presente documento como eficaz carta de pago y recibo, de la cantidad de ${eurosEnPalabras(datos.pago_inicial)}.
 Un pago mensual de ${eurosEnPalabras(datos.cuota_mensual)}, que irá abonando desde ${hueco(datos.cuota_desde)} y durante un plazo máximo de tres años, mediante transferencia bancaria a la cuenta corriente nº ${hueco(datos.cuenta_vendedora)} de la que es titular la parte vendedora.

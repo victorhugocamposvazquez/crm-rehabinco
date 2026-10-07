@@ -22,9 +22,9 @@ import { htmlContratoArras, htmlContratoArrasExport, textosContratoArras } from 
 import { hojaEncargoHonorariosVacia } from "./hoja-encargo-honorarios";
 import { htmlHojaEncargoHonorarios } from "./hoja-encargo-honorarios-pdf";
 import { contratoPagoAplazadoVacio } from "./contrato-pago-aplazado";
-import { htmlContratoPagoAplazado } from "./contrato-pago-aplazado-pdf";
+import { htmlContratoPagoAplazado, textosContratoPagoAplazado } from "./contrato-pago-aplazado-pdf";
 import { contratoArrendamientoVacio } from "./contrato-arrendamiento";
-import { htmlContratoArrendamiento } from "./contrato-arrendamiento-pdf";
+import { htmlContratoArrendamiento, textosContratoArrendamiento } from "./contrato-arrendamiento-pdf";
 
 describe("documentos Rehabinco 2026", () => {
   it("no usa datos de Conchado y sí los de Rehabinco", () => {
@@ -132,6 +132,10 @@ describe("documentos Rehabinco 2026", () => {
     assert.match(textos.novena, /REHABINCO, S\.L\./);
     assert.equal(contratoArrasTieneConchado(textos.novena), false);
     assert.equal(htmlContratoArras(datos).includes("margin-top:auto"), false);
+    assert.match(textos.primera, /El vendedor DON Juan Pérez está interesado/);
+    assert.match(textos.primera, /la compradora DOÑA María López está interesada/);
+    assert.match(textos.cuarta, /LA COMPRADORA se reserva/);
+    assert.match(textos.cuarta, /El vendedor manifiesta/);
     assert.equal(listarPersonasArras(datos.vendedores), "DON Juan Pérez");
     assert.match(parrafoReunidos(datos.vendedores, "vendedora"), /estado civil casado/);
     assert.match(parrafoReunidos(datos.compradores, "compradora"), /estado civil soltera/);
@@ -219,6 +223,50 @@ describe("documentos Rehabinco 2026", () => {
     assert.equal(/class="pdf-page"/.test(html), false);
     assert.match(html, /break-inside: auto/);
     assert.match(html, /\.pdf-firmas[\s\S]*break-inside: avoid-page/);
+  });
+
+  it("concierta el número de personas en arras, aplazado y arrendamiento", () => {
+    const persona = (
+      tratamiento: "Don" | "Doña",
+      nombre: string,
+      dni: string
+    ) => ({
+      tratamiento,
+      nombre,
+      estado_civil: tratamiento === "Doña" ? "soltera" : "soltero",
+      vecindad: "A Coruña",
+      domicilio: "calle Real 1",
+      dni,
+    });
+
+    const arras = contratoArrasVacio();
+    arras.vendedores = [persona("Don", "Juan Pérez", "11111111A"), persona("Doña", "Ana Pérez", "33333333C")];
+    arras.compradores = [persona("Don", "Luis Ruiz", "44444444D"), persona("Doña", "María López", "22222222B")];
+    arras.hay_hipoteca = false;
+    const tArras = textosContratoArras(arras);
+    assert.match(tArras.reunidosVendedores, /mayores de edad/);
+    assert.match(tArras.reunidosVendedores, /provistos de DNI Nº 11111111A y Nº 33333333C/);
+    assert.match(tArras.exponenI, /son propietarios/);
+    assert.match(tArras.primera, /Los vendedores DON Juan Pérez y DOÑA Ana Pérez están interesados/);
+    assert.match(tArras.primera, /los compradores DON Luis Ruiz y DOÑA María López están interesados/);
+    assert.match(tArras.cuarta, /LOS COMPRADORES se reservan/);
+    assert.match(tArras.cuarta, /Los vendedores manifiestan/);
+
+    const aplazado = contratoPagoAplazadoVacio();
+    aplazado.vendedores = arras.vendedores;
+    aplazado.compradores = arras.compradores;
+    const tAplazado = textosContratoPagoAplazado(aplazado);
+    assert.match(tAplazado.exponenIII, /manifiestan que la referida finca/);
+    assert.match(tAplazado.exponenIII, /manifiestan que la propiedad/);
+    assert.match(tAplazado.primera, /venden y DON Luis Ruiz y DOÑA María López, que la compran/);
+
+    const arrendamiento = contratoArrendamientoVacio();
+    arrendamiento.arrendadores = arras.vendedores;
+    arrendamiento.arrendatarios = arras.compradores;
+    const tArrendamiento = textosContratoArrendamiento(arrendamiento);
+    assert.match(tArrendamiento.reunidosArrendadores, /mayores de edad/);
+    assert.match(tArrendamiento.reunidosArrendadores, /LA PARTE ARRENDADORA/);
+    assert.match(tArrendamiento.manifiestanA, /son propietarios/);
   });
 
   it("un contrato nuevo tiene una persona por parte", () => {

@@ -252,7 +252,31 @@ function unicos(valores: string[]) {
   return out;
 }
 
-export function parrafoReunidos(personas: PersonaArras[], rol: "vendedora" | "compradora"): string {
+export function contarPersonasArras(personas: PersonaArras[]): number {
+  const conNombre = personas.filter((p) => p.nombre.trim()).length;
+  return conNombre || personas.length || 1;
+}
+
+export function verboPersona(personas: PersonaArras[], singular: string, plural: string): string {
+  return contarPersonasArras(personas) === 1 ? singular : plural;
+}
+
+/** Etiqueta de rol acorde al número y, en singular, al tratamiento. */
+export function sujetoRol(
+  personas: PersonaArras[],
+  formas: { unoM: string; unoF: string; varios: string }
+): string {
+  if (contarPersonasArras(personas) === 1) {
+    return personas[0]?.tratamiento === "Doña" ? formas.unoF : formas.unoM;
+  }
+  return formas.varios;
+}
+
+export function parrafoReunidos(
+  personas: PersonaArras[],
+  rol: "vendedora" | "compradora" | "arrendadora" | "arrendataria",
+  opciones?: { cierreMayusculas?: boolean }
+): string {
   const ps = personas.length ? personas : [personaArrasVacia("Don")];
   const varios = ps.length > 1;
   const nombres = listarPersonasArras(ps);
@@ -268,12 +292,14 @@ export function parrafoReunidos(personas: PersonaArras[], rol: "vendedora" | "co
   const dniTxt = varios
     ? `provistos de DNI Nº ${dnis.join(" y Nº ")} respectivamente`
     : `provisto${ps[0].tratamiento === "Doña" ? "a" : ""} de DNI Nº ${dnis[0]}`;
-  return `${nombres}, ${mayores}, estado civil ${estados}, ${vecinos}, ${domicilioTxt}, ${dniTxt}. En adelante la parte ${rol}.`;
+  const cierre = opciones?.cierreMayusculas
+    ? `En adelante, LA PARTE ${rol.toUpperCase()}.`
+    : `En adelante la parte ${rol}.`;
+  return `${nombres}, ${mayores}, estado civil ${estados}, ${vecinos}, ${domicilioTxt}, ${dniTxt}. ${cierre}`;
 }
 
 export function verboPropiedad(personas: PersonaArras[]): { son: string; propietarios: string } {
-  const n = personas.filter((p) => p.nombre.trim()).length || personas.length || 1;
-  if (n === 1) {
+  if (contarPersonasArras(personas) === 1) {
     const p = personas[0];
     const ella = p?.tratamiento === "Doña";
     return { son: "es", propietarios: ella ? "propietaria" : "propietario" };
@@ -285,10 +311,16 @@ export function textoViviendaVenta(incluyeAnejos: boolean): string {
   return incluyeAnejos ? "la vivienda y el trastero o garaje descritos" : "la vivienda descrita";
 }
 
-export function textoHipoteca(hayHipoteca: boolean): string {
-  return hayHipoteca
-    ? "Los vendedores se obligan a cancelar la hipoteca que grava la finca en el momento de la firma de la escritura pública de compraventa."
-    : "Los vendedores manifiestan que la finca se transmitirá libre de hipoteca, o se obligan a cancelarla en el momento de la firma de la escritura pública de compraventa, si la hubiere.";
+export function textoHipoteca(hayHipoteca: boolean, vendedores: PersonaArras[] = []): string {
+  const sujeto = sujetoRol(vendedores, {
+    unoM: "El vendedor",
+    unoF: "La vendedora",
+    varios: "Los vendedores",
+  });
+  if (hayHipoteca) {
+    return `${sujeto} ${verboPersona(vendedores, "se obliga", "se obligan")} a cancelar la hipoteca que grava la finca en el momento de la firma de la escritura pública de compraventa.`;
+  }
+  return `${sujeto} ${verboPersona(vendedores, "manifiesta", "manifiestan")} que la finca se transmitirá libre de hipoteca, o ${verboPersona(vendedores, "se obliga", "se obligan")} a cancelarla en el momento de la firma de la escritura pública de compraventa, si la hubiere.`;
 }
 
 export function encabezadoContratoArras(datos: Pick<ContratoArrasDatos, "lugar" | "fecha">): string {

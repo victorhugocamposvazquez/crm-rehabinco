@@ -5,10 +5,13 @@ import { Plus } from "lucide-react";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { AltaField, AltaPersona, AltaSection, AltaShell, altaControl, type PersonaOpcion } from "@/components/ui/alta-form";
 import { TimeInput } from "@/components/ui/time-input";
+import { Selector } from "@/components/ui/selector";
+import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { NuevoClientePanel } from "@/components/clientes/NuevoClientePanel";
 import { BuscadorInmuebleCalendario } from "@/components/citas/BuscadorInmuebleCalendario";
 import { EnlaceMaps } from "@/components/citas/InmueblePreviewCita";
 import { createClient } from "@/lib/supabase/client";
+import { nombreYApellido } from "@/lib/ui/tokens";
 import {
   direccionDeInmueble,
   mapInmuebleCalendario,
@@ -18,6 +21,8 @@ import {
   type InmuebleCalendario,
   type TipoAltaCalendario,
 } from "@/lib/citas/citas";
+
+type ComercialOpcion = { id: string; nombre: string; color: string | null };
 
 export type EdicionCalendario = {
   id: string;
@@ -46,6 +51,9 @@ export function NuevaEntradaCalendario({
   onClientesExtra,
   onNotas,
   onLugar,
+  comerciales,
+  comercialId,
+  onComercial,
   saving,
   edicion,
   onGuardar,
@@ -69,11 +77,16 @@ export function NuevaEntradaCalendario({
   onClientesExtra: (ids: string[]) => void;
   onNotas: (notas: string) => void;
   onLugar: (lugar: string) => void;
+  comerciales?: ComercialOpcion[];
+  comercialId?: string;
+  onComercial?: (id: string) => void;
   saving: boolean;
   edicion?: EdicionCalendario | null;
   onGuardar: (tipo: TipoAltaCalendario, titulo: string) => void;
   onCancelar?: () => void;
 }) {
+  const equipo = comerciales ?? [];
+  const comercialSel = equipo.find((c) => c.id === comercialId) ?? null;
   const [tipo, setTipo] = useState<TipoAltaCalendario>("evento");
   const [titulo, setTitulo] = useState("");
   const [qCliente, setQCliente] = useState("");
@@ -141,6 +154,7 @@ export function NuevaEntradaCalendario({
   });
   const clienteSel = agenda.find((c) => c.id === clienteId);
   const esEvento = tipo === "evento";
+  const conNotas = tipo === "evento" || tipo === "llamada";
   const tipos = edicion?.tipo === "tarea" ? (["tarea"] as const) : TIPOS_ALTA_CALENDARIO.filter((item) => item !== "tarea" || !edicion);
   const mapsConsulta = lugar.trim() || (inmuebleSel ? direccionDeInmueble(inmuebleSel) : "");
   const sugeridos = useMemo(() => {
@@ -210,7 +224,7 @@ export function NuevaEntradaCalendario({
             : undefined
         }
       >
-        <AltaSection title="Qué" hint="Evento, recordatorio, tarea o visita. El título es lo que verás en la rejilla.">
+        <AltaSection title="Qué" hint="Visita, llamada, evento, recordatorio o tarea. El título es lo que verás en la rejilla.">
           <div className="flex flex-col gap-5">
             <div className="flex flex-wrap gap-2">
               {tipos.map((item) => (
@@ -242,7 +256,42 @@ export function NuevaEntradaCalendario({
           </div>
         </AltaSection>
 
-        <AltaSection wide title="Cliente" hint="Opcional. Si no está en la agenda, abre la misma ficha completa de Clientes.">
+        {equipo.length > 0 && onComercial && comercialId ? (
+          <AltaSection title="Comercial" hint="Quién aparece asignado a esta entrada. Puedes crearla a nombre de otra persona del equipo.">
+            <div className="flex items-center gap-2">
+              <AvatarComercial
+                nombre={comercialSel?.nombre}
+                color={comercialSel?.color}
+                size={28}
+              />
+              <Selector
+                value={comercialId}
+                onChange={(e) => onComercial(e.target.value)}
+                className="min-w-0 flex-1"
+                aria-label="Comercial asignado"
+              >
+                {equipo.some((c) => c.id === comercialId) ? null : (
+                  <option value={comercialId}>{comercialSel?.nombre ?? "Comercial"}</option>
+                )}
+                {equipo.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {nombreYApellido(c.nombre) || c.nombre}
+                  </option>
+                ))}
+              </Selector>
+            </div>
+          </AltaSection>
+        ) : null}
+
+        <AltaSection
+          wide
+          title="Cliente"
+          hint={
+            tipo === "llamada"
+              ? "Busca al cliente o créalo aquí mismo si aún no está en la agenda."
+              : "Opcional. Busca en la agenda o créalo aquí mismo si no está."
+          }
+        >
           <AltaPersona
             permitirNinguno
             seleccionado={clienteSel}
@@ -322,24 +371,35 @@ export function NuevaEntradaCalendario({
           </AltaSection>
         ) : null}
 
-        {esEvento ? (
-          <AltaSection title="Notas" hint="Observaciones internas. No salen en el título del calendario.">
+        {conNotas ? (
+          <AltaSection
+            title="Notas"
+            hint={
+              tipo === "llamada"
+                ? "Motivo de la llamada, lo hablado o lo pendiente. No sale en el título del calendario."
+                : "Observaciones internas. No salen en el título del calendario."
+            }
+          >
             <textarea
               value={notas}
               onChange={(e) => onNotas(e.target.value)}
-              placeholder="Detalles, acuerdos, recordatorios…"
+              placeholder={tipo === "llamada" ? "Motivo, lo hablado, próximo paso…" : "Detalles, acuerdos, recordatorios…"}
               rows={3}
               className="min-h-[5rem] w-full resize-y rounded-[9px] border border-[var(--input)] bg-white px-3 py-2.5 text-[13.5px] outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15 max-[819px]:text-base"
             />
           </AltaSection>
         ) : null}
 
-        <AltaSection wide title="Inmueble y visita" hint="Busca por referencia, calle o localidad. Solo entonces verás coincidencias; al elegir una aparece la ficha y Maps.">
+        <AltaSection
+          wide
+          title={tipo === "llamada" ? "Inmueble (opcional)" : "Inmueble y visita"}
+          hint="Busca por referencia, calle o localidad. Solo entonces verás coincidencias; al elegir una aparece la ficha y Maps."
+        >
           <AltaField label="Inmueble" optional>
             <BuscadorInmuebleCalendario inmueble={inmuebleSel} onElegir={elegirInmueble} onQuitar={quitarInmueble} />
           </AltaField>
           <div className="mt-4">
-            <AltaField label="Dirección de la visita" optional>
+            <AltaField label={tipo === "visita" ? "Dirección de la visita" : "Dirección"} optional>
               <input
                 value={lugar}
                 onChange={(e) => onLugar(e.target.value)}

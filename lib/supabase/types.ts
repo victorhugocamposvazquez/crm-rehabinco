@@ -1079,6 +1079,7 @@ export interface Database {
           estado?: string;
         };
         Update: {
+          comercial_id?: string;
           tipo?: string;
           titulo?: string;
           empieza?: string;

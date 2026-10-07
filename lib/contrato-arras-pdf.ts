@@ -10,8 +10,10 @@ import {
   parrafoReunidos,
   personaArrasVacia,
   restoPrecio,
+  sujetoRol,
   textoHipoteca,
   textoViviendaVenta,
+  verboPersona,
   verboPropiedad,
   type ClausulaArrasKey,
   type ClausulasPersonalizadasArras,
@@ -87,13 +89,13 @@ export function textosContratoArras(datos: ContratoArrasDatos) {
 Finca 1ª, ${datos.finca_descripcion.trim() || "………………"} que tiene como ANEJOS (si los hubiera): ${anejos}
 Inscripción.- Libro ${datos.registro_libro.trim() || "……"}, folio ${datos.registro_folio.trim() || "……"}, finca número ${datos.registro_finca.trim() || "……"}, en el Registro de la Propiedad número ${datos.registro_numero.trim() || "……"}.`,
     exponenII: `II.- Que interesa a ${compradores} la compra de la citada finca, por lo que estipulan ambas partes llevar a efecto el presente contrato de arras sobre la base de las siguientes`,
-    primera: `PRIMERA: Los vendedores ${vendedores} están interesados en vender y los compradores ${compradores} están interesados en comprar ${vivienda} en el expositivo primero.`,
+    primera: `PRIMERA: ${sujetoRol(datos.vendedores, { unoM: "El vendedor", unoF: "La vendedora", varios: "Los vendedores" })} ${vendedores} ${verboPersona(datos.vendedores, datos.vendedores[0]?.tratamiento === "Doña" ? "está interesada" : "está interesado", "están interesados")} en vender y ${sujetoRol(datos.compradores, { unoM: "el comprador", unoF: "la compradora", varios: "los compradores" })} ${compradores} ${verboPersona(datos.compradores, datos.compradores[0]?.tratamiento === "Doña" ? "está interesada" : "está interesado", "están interesados")} en comprar ${vivienda} en el expositivo primero.`,
     segunda: `SEGUNDA: El precio de esta compraventa se fija en ${eurosEnPalabras(datos.precio)} más los impuestos que resulten aplicables.`,
     tercera: `TERCERA: Que en este acto, la parte compradora entrega en concepto de arras la cantidad de ${eurosEnPalabras(datos.arras)} mediante transferencia bancaria que sale de la cuenta de la parte compradora a la cuenta ${datos.cuenta_vendedora.trim() || "…………………………………………"} a nombre de la parte vendedora. El contrato tendrá validez en el momento que la parte vendedora la reciba en la cuenta.`,
     cuarta: `CUARTA: El resto del precio pactado, esto es, ${eurosEnPalabras(resto)}, lo entregará la parte compradora a la parte vendedora, en el momento de la firma de la escritura pública de compraventa ante notario, que se realizará en un plazo no superior a ${plazo} días a contar desde el día de hoy.
-${textoHipoteca(datos.hay_hipoteca)}
+${textoHipoteca(datos.hay_hipoteca, datos.vendedores)}
 La venta concertada se realizará en concepto de libre de cargas, gravámenes y ocupantes, así como al corriente en el pago de todo tipo de contribuciones, impuestos, tasas, arbitrios y gastos de Comunidad.
-LOS COMPRADORES se reservan el derecho de elevar a escritura pública la compraventa descrita en este contrato en su propio nombre o en el de las personas que libremente designen.`,
+${sujetoRol(datos.compradores, { unoM: "EL COMPRADOR", unoF: "LA COMPRADORA", varios: "LOS COMPRADORES" })} ${verboPersona(datos.compradores, "se reserva", "se reservan")} el derecho de elevar a escritura pública la compraventa descrita en este contrato en su propio nombre o en el de las personas que libremente designen.`,
     quinta:
       "QUINTA: Que en el caso de que la parte compradora no cumpliese lo estipulado en este contrato, la cantidad de dinero otorgada en este acto quedará en poder de los propietarios del inmueble objeto de la compraventa.\nAsimismo, si la parte vendedora desistiera de efectuar la compraventa de la finca objeto de este contrato, vendrá obligada a devolver a la parte compradora duplicadas las arras recibidas.",
     sexta:

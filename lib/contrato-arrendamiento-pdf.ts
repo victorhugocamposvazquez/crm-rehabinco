@@ -8,7 +8,9 @@ import {
   encabezadoContratoArras,
   listarPersonasArras,
   nombrePersonaArras,
+  parrafoReunidos,
   personaArrasVacia,
+  verboPropiedad,
   type PersonaArras,
 } from "./contrato-arras";
 import {
@@ -26,14 +28,6 @@ function nombresAResaltar(personas: PersonaArras[]): string[] {
 function hueco(valor: string | null | undefined, fallback = "………………") {
   const t = valor?.trim();
   return t || fallback;
-}
-
-function parrafoParte(personas: PersonaArras[], rol: "ARRENDADORA" | "ARRENDATARIA"): string {
-  const ps = personas.length ? personas : [personaArrasVacia(rol === "ARRENDADORA" ? "Don" : "Doña")];
-  const p = ps[0];
-  const vecino = p.tratamiento === "Doña" ? "vecina" : "vecino";
-  const nombres = listarPersonasArras(ps);
-  return `${nombres}, mayor de edad, ${vecino} de ${hueco(p.vecindad, EMPRESA_DOCUMENTOS.lugar)}, con domicilio, a estos efectos, en ${hueco(p.domicilio)}, ${hueco(p.vecindad, EMPRESA_DOCUMENTOS.lugar)}, y con DNI ${hueco(p.dni)}, en adelante, LA PARTE ${rol}.`;
 }
 
 function aplicarPersonalizacion(
@@ -61,16 +55,17 @@ export function textosContratoArrendamiento(datos: ContratoArrendamientoDatos) {
   const personalizadas = datos.clausulas_personalizadas ?? {};
   const arrendadores = listarPersonasArras(datos.arrendadores);
   const arrendatarios = listarPersonasArras(datos.arrendatarios);
+  const { son, propietarios } = verboPropiedad(datos.arrendadores);
   const inicio = fechaDocumentoOHueco(datos.fecha_inicio);
   const fin = fechaDocumentoOHueco(datos.fecha_fin);
   const periodo = datos.renta_periodo_texto.trim() || `desde el ${inicio} al ${fin}`;
   const generados = {
     encabezado: encabezadoContratoArras(datos),
-    reunidosArrendadores: `De una parte, ${parrafoParte(datos.arrendadores, "ARRENDADORA")}`,
-    reunidosArrendatarios: `Y de otra parte, ${parrafoParte(datos.arrendatarios, "ARRENDATARIA")}`,
+    reunidosArrendadores: `De una parte, ${parrafoReunidos(datos.arrendadores, "arrendadora", { cierreMayusculas: true })}`,
+    reunidosArrendatarios: `Y de otra parte, ${parrafoReunidos(datos.arrendatarios, "arrendataria", { cierreMayusculas: true })}`,
     intervienen:
       "Ambas partes actúan en su propio nombre y representación, y reconociéndose la capacidad legal suficiente para otorgar el presente contrato, a tal efecto.",
-    manifiestanA: `A) Que ${arrendadores}, en adelante la parte ARRENDADORA, es propietaria de la vivienda sita en ${hueco(datos.vivienda_direccion)}, ${EMPRESA_DOCUMENTOS.lugar}; con referencia catastral ${hueco(datos.referencia_catastral)}.`,
+    manifiestanA: `A) Que ${arrendadores}, en adelante la parte ARRENDADORA, ${son} ${propietarios} de la vivienda sita en ${hueco(datos.vivienda_direccion)}, ${EMPRESA_DOCUMENTOS.lugar}; con referencia catastral ${hueco(datos.referencia_catastral)}.`,
     manifiestanB: `B) Que habiendo convenido el arrendamiento de la vivienda mencionada en el anterior manifestando a ${arrendatarios}, en adelante PARTE ARRENDATARIA, lo llevan a efecto de conformidad a lo que resulta de las siguientes,`,
     primera: `PRIMERA.- OBJETO: La parte arrendadora cede en arrendamiento a ${arrendatarios} la vivienda, que quedó descrita en el apartado A) de los manifestados.
 El inmueble arrendado será dedicado exclusivamente a vivienda con exclusión de todo otro uso distinto, quedando igualmente prohibida la entrada de animales en el mismo.`,
