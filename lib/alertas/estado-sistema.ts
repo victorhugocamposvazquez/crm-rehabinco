@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { fechaMadrid } from "./manana";
+import { fechaMadrid } from "./madrid";
 import { vapidPublica } from "./config";
 
 export type CheckAvisos = {
