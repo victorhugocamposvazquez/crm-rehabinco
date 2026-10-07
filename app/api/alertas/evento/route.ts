@@ -61,7 +61,7 @@ async function avisarMencion(
   if (nota.actor_id !== actorId) {
     return NextResponse.json({ ok: false, error: "Solo quien escribe el comentario puede avisar." }, { status: 403 });
   }
-  const mencionados = (nota.mencionados ?? []).filter((id) => id && id !== actorId);
+  const mencionados = ((nota.mencionados ?? []) as string[]).filter((id) => Boolean(id) && id !== actorId);
   if (mencionados.length === 0) return NextResponse.json({ ok: true, avisos: 0 });
 
   const tarea = relacionUno(nota.tareas as { id?: string; titulo?: string | null } | { id?: string; titulo?: string | null }[] | null);
