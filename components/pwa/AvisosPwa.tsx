@@ -6,6 +6,7 @@ import { Check } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
+import { parseRole, roleLabel } from "@/lib/auth/roles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -138,7 +139,7 @@ export function AvisosPwaCard() {
   const [busy, setBusy] = useState(false);
   const [prefs, setPrefs] = useState<PrefsAviso>(prefsCompletas(null));
   const [guardando, setGuardando] = useState<CanalAviso | null>(null);
-  const [equipo, setEquipo] = useState<Array<{ id: string; nombre: string }>>([]);
+  const [equipo, setEquipo] = useState<Array<{ id: string; nombre: string; rol: string; email: string }>>([]);
   const [errorEquipo, setErrorEquipo] = useState<string | null>(null);
   const [seguidos, setSeguidos] = useState<string[]>([]);
   const listaRef = useRef<HTMLDivElement>(null);
@@ -165,7 +166,7 @@ export function AvisosPwaCard() {
       });
     void supabase
       .from("profiles")
-      .select("id, nombre_completo, email")
+      .select("id, nombre_completo, email, role")
       .in("role", ["comercial", "admin", "agente", "superadmin"])
       .eq("activo", true)
       .then(({ data, error }) => {
@@ -180,6 +181,8 @@ export function AvisosPwaCard() {
             .map((persona) => ({
               id: persona.id,
               nombre: persona.nombre_completo?.trim() || persona.email?.split("@")[0] || "Sin nombre",
+              rol: roleLabel(parseRole(persona.role)),
+              email: persona.email?.trim() || "",
             }))
             .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"))
         );
@@ -342,7 +345,10 @@ export function AvisosPwaCard() {
                   >
                     <span className="min-w-0">
                       <span className="block truncate text-[15px] font-medium">{persona.nombre}</span>
-                      <span className="block text-[12px] text-[var(--text-2)]">
+                      <span className="block truncate text-[12px] text-[var(--text-2)]">
+                        {[persona.rol, persona.email].filter(Boolean).join(" · ")}
+                      </span>
+                      <span className="block text-[12px] text-[var(--text-3)]">
                         {activo ? "Recibes sus avisos" : "No recibes sus avisos"}
                       </span>
                     </span>
