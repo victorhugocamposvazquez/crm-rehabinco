@@ -1,4 +1,4 @@
-import { cronAutorizado } from "@/lib/alertas/config";
+import { cronAutorizadoAvisos } from "@/lib/alertas/secretos";
 import { dispararMananaAlertas } from "@/lib/alertas/manana";
 import { dispararVentanaAlertas } from "@/lib/alertas/ventana";
 
@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 async function ejecutar(request: Request): Promise<Response> {
-  if (!cronAutorizado(request)) {
+  if (!(await cronAutorizadoAvisos(request))) {
     return Response.json({ ok: false, error: "No autorizado." }, { status: 401 });
   }
   const solo = new URL(request.url).searchParams.get("solo");

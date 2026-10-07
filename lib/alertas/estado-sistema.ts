@@ -1,50 +1,11 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fechaMadrid } from "./madrid";
 import { vapidPublica } from "./config";
+import { secretoAviso } from "./secretos";
+import { SISTEMA_AVISOS_ACTUAL, type CheckAvisos } from "./texto-sistema";
 
-export type CheckAvisos = {
-  id: string;
-  label: string;
-  nivel: "ok" | "aviso" | "error";
-  detalle: string;
-};
-
-/** Cómo está montado el sistema hoy (para el panel de superadmin). */
-export const SISTEMA_AVISOS_ACTUAL = {
-  nombre: "Avisos al momento, una hora antes y resumen a las 10:00",
-  resumen:
-    "Lo útil sale en el acto (te mencionan o te asignan algo). Cada cita avisa una vez, sobre una hora antes. A las 10:00 (hora de Madrid) llega un solo push: «Tus tareas del día», con enlace al calendario. La pasada frecuente la hace Supabase cada 15 minutos.",
-  piezas: [
-    {
-      titulo: "Al momento",
-      texto:
-        "Al guardar un comentario con @, o al asignar una cita o una tarea a otra persona, el CRM crea el aviso y lanza el push en ese instante.",
-    },
-    {
-      titulo: "Una hora antes",
-      texto:
-        "Cada 15 minutos Supabase mira las citas previstas. La primera vez que falta una hora y cuarto o menos, avisa («Empieza en 60 min») y no se repite. Llega entre 60 y 75 minutos antes: una hora antes queda cubierta de sobra.",
-    },
-    {
-      titulo: "A las 10:00",
-      texto:
-        "Un push al día, a las 10:00 hora de Madrid, solo si esa persona tiene citas o tareas para hoy. Título: «Tus tareas del día». Abre el calendario. No sale si el día está vacío.",
-    },
-    {
-      titulo: "A quién llega",
-      texto:
-        "Al comercial asignado, y las menciones a quien nombras con @. Cada persona elige los canales en Ajustes → Avisos. Si te asignas algo a ti mismo no hay push de «te han asignado»; sí el de «empieza en X min».",
-    },
-    {
-      titulo: "Dónde se ve",
-      texto:
-        "Bombilla del CRM (crm_avisos) y, si el usuario activó el push en ese móvil o navegador, notificación del sistema (Web Push / VAPID).",
-    },
-  ],
-  secretoCron: "CRON_SECRET",
-  rutaCron: "/api/cron/alertas",
-  horarioCron: "10:00 Europe/Madrid",
-} as const;
+export type { CheckAvisos };
+export { SISTEMA_AVISOS_ACTUAL };
 
 export async function estadoSistemaAvisos(): Promise<{
   nivel: CheckAvisos["nivel"];
@@ -56,38 +17,44 @@ export async function estadoSistemaAvisos(): Promise<{
   const dia = new Date().toISOString().slice(0, 10);
   const checks: CheckAvisos[] = [];
 
-  if (!process.env.CRON_SECRET?.trim()) {
+  const [cronDb, vapidDb] = await Promise.all([secretoAviso("cron_secret"), secretoAviso("vapid_private")]);
+
+  if (!process.env.CRON_SECRET?.trim() && !cronDb) {
     checks.push({
       id: "cron_secret",
       label: "CRON_SECRET",
       nivel: "error",
-      detalle: "Sin este secreto Vercel no puede llamar al cron de avisos (401).",
+      detalle: "Sin este secreto el cron de avisos responde 401.",
     });
   } else {
     checks.push({
       id: "cron_secret",
       label: "CRON_SECRET",
       nivel: "ok",
-      detalle: "Configurado. El cron de Vercel autentica con Bearer.",
+      detalle: cronDb
+        ? "El cron de cada 15 minutos autentica con el secreto de Supabase."
+        : "Configurado en el servidor. El cron autentica con Bearer.",
     });
   }
 
   const publica = vapidPublica();
-  const privada = process.env.VAPID_PRIVATE_KEY?.trim();
+  const privada = vapidDb || process.env.VAPID_PRIVATE_KEY?.trim();
   if (!publica || !privada) {
     checks.push({
       id: "vapid",
       label: "Claves VAPID",
       nivel: "aviso",
       detalle:
-        "Falta VAPID_PRIVATE_KEY (o la pública). Los avisos en la bombilla del CRM siguen; el push en segundo plano no.",
+        "Falta la clave privada VAPID. Los avisos en la bombilla del CRM siguen; el push en segundo plano no.",
     });
   } else {
     checks.push({
       id: "vapid",
       label: "Claves VAPID",
       nivel: "ok",
-      detalle: "Listas para Web Push en móvil y escritorio.",
+      detalle: vapidDb
+        ? "La clave privada está en la base y este servidor puede enviar el push."
+        : "Listas para Web Push en móvil y escritorio.",
     });
   }
 

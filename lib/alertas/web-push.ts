@@ -1,5 +1,6 @@
 import webpush from "web-push";
 import { vapidPublica } from "./config";
+import { secretoAviso } from "./secretos";
 
 export type PushSub = {
   endpoint: string;
@@ -9,10 +10,11 @@ export type PushSub = {
 
 let vapidListo = false;
 
-function asegurarVapid(): boolean {
+async function asegurarVapid(): Promise<boolean> {
   const publica = vapidPublica();
-  const privada = process.env.VAPID_PRIVATE_KEY?.trim();
-  const subject = process.env.VAPID_SUBJECT?.trim() || "mailto:avisos@rehabinco.es";
+  const privada = (await secretoAviso("vapid_private")) || process.env.VAPID_PRIVATE_KEY?.trim() || "";
+  const subject =
+    (await secretoAviso("vapid_subject")) || process.env.VAPID_SUBJECT?.trim() || "mailto:avisos@rehabinco.es";
   if (!publica || !privada) return false;
   if (!vapidListo) {
     webpush.setVapidDetails(subject, publica, privada);
@@ -25,7 +27,7 @@ export async function enviarPush(
   sub: PushSub,
   payload: { titulo: string; cuerpo: string; url: string }
 ): Promise<"ok" | "caducada" | "error"> {
-  if (!asegurarVapid()) return "error";
+  if (!(await asegurarVapid())) return "error";
   try {
     await webpush.sendNotification(
       {

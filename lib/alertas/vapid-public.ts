@@ -1,3 +1,3 @@
-/** Clave pública VAPID (no es secreta). La privada vive en Vercel: VAPID_PRIVATE_KEY. */
+/** Clave pública VAPID (no es secreta). La privada está en private.avisos_config (vapid_private). */
 export const VAPID_PUBLICA_CRM =
-  "BAimLFiMnzTMwC_7DwZR5YahVr3YikHRL-pcZOaGeqkw6icgA8aAb6z1Y0rfl-rxGEQoIt5HSyOqmHbDz1qsJVQ";
+  "BPhnMjSqQy7z6y2OZFHEQLLwUK9aVjPv6xk_2aX0_yJkqvpPbpO9JQ7H7rHqCXzEd2xyS0F0ffP5MR4s5HLt-8Q";

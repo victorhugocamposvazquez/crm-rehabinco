@@ -5,7 +5,7 @@ import { Bell, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SISTEMA_AVISOS_ACTUAL, type CheckAvisos } from "@/lib/alertas/estado-sistema";
+import { SISTEMA_AVISOS_ACTUAL, type CheckAvisos } from "@/lib/alertas/texto-sistema";
 import { cn } from "@/lib/utils";
 
 const DOT: Record<CheckAvisos["nivel"], string> = {
