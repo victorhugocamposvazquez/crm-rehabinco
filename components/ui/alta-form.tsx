@@ -142,14 +142,16 @@ export function AltaSection({
   hint,
   children,
   wide,
+  className,
 }: {
   title: string;
   hint?: string;
   children: ReactNode;
   wide?: boolean;
+  className?: string;
 }) {
   return (
-    <section className={cn("min-w-0", wide && "min-[820px]:col-span-2")}>
+    <section className={cn("min-w-0", wide && "min-[820px]:col-span-2", className)}>
       <div className="mb-3.5">
         <h3 className="text-[14px] font-semibold text-foreground">{title}</h3>
         {hint ? <p className="mt-1 text-[12.5px] leading-5 text-[var(--text-2)]">{hint}</p> : null}
