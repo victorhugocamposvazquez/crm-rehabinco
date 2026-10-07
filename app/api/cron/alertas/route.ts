@@ -1,5 +1,5 @@
 import { cronAutorizado } from "@/lib/alertas/config";
-import { dispararDigestAlertas } from "@/lib/alertas/disparar";
+import { dispararMananaAlertas } from "@/lib/alertas/manana";
 import { dispararVentanaAlertas } from "@/lib/alertas/ventana";
 
 export const runtime = "nodejs";
@@ -12,11 +12,8 @@ async function ejecutar(request: Request): Promise<Response> {
   }
   const solo = new URL(request.url).searchParams.get("solo");
   try {
-    if (solo === "ventana") {
-      return Response.json(await dispararVentanaAlertas());
-    }
-    const [digest, ventana] = await Promise.all([dispararDigestAlertas(), dispararVentanaAlertas()]);
-    return Response.json({ ok: true, digest, ventana });
+    const [ventana, manana] = await Promise.all([dispararVentanaAlertas(), dispararMananaAlertas()]);
+    return Response.json({ ok: true, solo, ventana, manana });
   } catch (error) {
     return Response.json(
       { ok: false, error: error instanceof Error ? error.message : "Error de avisos." },

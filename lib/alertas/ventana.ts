@@ -3,8 +3,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { canalDeTipo } from "./prefs";
 import { publicarAviso } from "./publicar";
 
-/** Margen para un cron cada 15 min: si una pasada se retrasa, la cita sigue entrando. */
-export const VENTANA_MINUTOS = 70;
+/**
+ * Una hora antes, con margen para el cron de cada 15 min.
+ * La primera pasada que ve la cita avisa (sobre 60–75 min antes). No se repite.
+ */
+export const VENTANA_MINUTOS = 75;
 const GRACIA_PASADO_MS = 5 * 60 * 1000;
 
 export function citaEnVentana(empiezaIso: string, ahora: Date, ventanaMin = VENTANA_MINUTOS): boolean {
