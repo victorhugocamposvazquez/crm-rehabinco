@@ -23,6 +23,8 @@ import {
   minutosDesdeOffsetY,
   minutosLocalesDeCita,
   moverCitaADiaHora,
+  entradaConAsistentes,
+  entradaConNotas,
   etiquetaMes,
   moverMes,
   moverSemana,
@@ -317,10 +319,11 @@ export default function CalendarioPage() {
         ? `${TIPO_CITA_LABEL[tipo]} ${inmueble.referencia || inmueble.direccion || ""}`.trim()
         : TIPO_CITA_LABEL[tipo]);
     const lugarFinal = lugar.trim() || (inmueble ? direccionDeInmueble(inmueble) : "") || null;
-    const guardaNotas = tipo === "evento" || tipo === "llamada";
+    const guardaNotas = entradaConNotas(tipo);
     const notasFinal = guardaNotas ? notas.trim() || null : null;
-    const clientesExtraFinal =
-      tipo === "evento" ? clientesExtraIds.filter((id) => id && id !== clienteId) : [];
+    const clientesExtraFinal = entradaConAsistentes(tipo)
+      ? clientesExtraIds.filter((id) => id && id !== clienteId)
+      : [];
     setSaving(true);
     const supabase = createClient();
 
@@ -342,8 +345,8 @@ export default function CalendarioPage() {
           termina: patch.termina,
           propiedad_id: propiedadId || null,
           cliente_id: clienteId || null,
-          clientes_extra_ids: tipoFinal === "evento" ? clientesExtraFinal : [],
-          notas: tipoFinal === "evento" || tipoFinal === "llamada" ? notasFinal : null,
+          clientes_extra_ids: entradaConAsistentes(tipoFinal) ? clientesExtraFinal : [],
+          notas: entradaConNotas(tipoFinal) ? notasFinal : null,
           lugar: lugarFinal,
         })
         .eq("id", editando.id);
@@ -393,8 +396,8 @@ export default function CalendarioPage() {
         termina: termina.toISOString(),
         propiedad_id: propiedadId || null,
         cliente_id: clienteId || null,
-        clientes_extra_ids: tipoCita === "evento" ? clientesExtraFinal : [],
-        notas: tipoCita === "evento" || tipoCita === "llamada" ? notasFinal : null,
+        clientes_extra_ids: entradaConAsistentes(tipoCita) ? clientesExtraFinal : [],
+        notas: entradaConNotas(tipoCita) ? notasFinal : null,
         lugar: lugarFinal,
       })
       .select("id, comercial_id, tipo, titulo, empieza, propiedad_id, cliente_id, estado, tarea_id")
@@ -738,7 +741,7 @@ export default function CalendarioPage() {
                       <EnlaceMaps consulta={mapsConsulta} />
                     </p>
                   ) : null}
-                  {cita.tipo === "evento" &&
+                  {entradaConAsistentes(cita.tipo) &&
                   (cita.clientes?.nombre || (cita.clientes_extra_ids?.length ?? 0) > 0) ? (
                     <p className="mt-1 text-xs text-[#5C5C5C]">
                       {[

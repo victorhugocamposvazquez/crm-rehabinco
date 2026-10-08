@@ -14,6 +14,8 @@ import { createClient } from "@/lib/supabase/client";
 import { nombreYApellido } from "@/lib/ui/tokens";
 import {
   direccionDeInmueble,
+  entradaConAsistentes,
+  entradaConNotas,
   mapInmuebleCalendario,
   SELECT_INMUEBLE_CALENDARIO,
   TIPOS_ALTA_CALENDARIO,
@@ -153,8 +155,8 @@ export function NuevaEntradaCalendario({
     month: "long",
   });
   const clienteSel = agenda.find((c) => c.id === clienteId);
-  const esEvento = tipo === "evento";
-  const conNotas = tipo === "evento" || tipo === "llamada";
+  const esEvento = entradaConAsistentes(tipo);
+  const conNotas = entradaConNotas(tipo);
   const tipos = edicion?.tipo === "tarea" ? (["tarea"] as const) : TIPOS_ALTA_CALENDARIO.filter((item) => item !== "tarea" || !edicion);
   const mapsConsulta = lugar.trim() || (inmuebleSel ? direccionDeInmueble(inmuebleSel) : "");
   const sugeridos = useMemo(() => {
@@ -226,7 +228,7 @@ export function NuevaEntradaCalendario({
       >
         <AltaSection
           title="Qué"
-          hint="Visita, llamada, evento, recordatorio o tarea. El título es lo que verás en la rejilla."
+          hint="Visita, llamada, evento, captación, recordatorio o tarea. El título es lo que verás en la rejilla."
           className="min-[820px]:col-start-1 min-[820px]:row-start-1"
         >
           <div className="flex flex-wrap gap-2">
@@ -326,7 +328,7 @@ export function NuevaEntradaCalendario({
         </AltaSection>
 
         {esEvento ? (
-          <AltaSection wide title="Más clientes" hint="Opcional. Añade todos los que vengan al evento.">
+          <AltaSection wide title="Más clientes" hint={tipo === "captacion" ? "Opcional. Añade todos los que vengan a la captación." : "Opcional. Añade todos los que vengan al evento."}>
             <div className="flex flex-col gap-3">
               {clientesExtraIds.length > 0 ? (
                 <ul className="flex flex-wrap gap-2">

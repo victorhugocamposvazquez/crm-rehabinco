@@ -1,7 +1,7 @@
-export const TIPOS_CITA = ["visita", "llamada", "firma", "evento", "recordatorio", "tarea", "otro"] as const;
+export const TIPOS_CITA = ["visita", "llamada", "firma", "evento", "captacion", "recordatorio", "tarea", "otro"] as const;
 export type TipoCita = (typeof TIPOS_CITA)[number];
 
-export const TIPOS_ALTA_CALENDARIO = ["visita", "llamada", "evento", "recordatorio", "tarea"] as const;
+export const TIPOS_ALTA_CALENDARIO = ["visita", "llamada", "evento", "captacion", "recordatorio", "tarea"] as const;
 export type TipoAltaCalendario = (typeof TIPOS_ALTA_CALENDARIO)[number];
 
 export const ESTADOS_CITA = ["prevista", "hecha", "no_asistio", "cancelada"] as const;
@@ -32,6 +32,7 @@ export const TIPO_CITA_LABEL: Record<TipoCita, string> = {
   llamada: "Llamada",
   firma: "Firma",
   evento: "Evento",
+  captacion: "Captación",
   recordatorio: "Recordatorio",
   tarea: "Tarea",
   otro: "Otro",
@@ -43,6 +44,14 @@ export const ESTADO_CITA_LABEL: Record<EstadoCita, string> = {
   no_asistio: "No asistió",
   cancelada: "Cancelada",
 };
+
+export function entradaConAsistentes(tipo: string): boolean {
+  return tipo === "evento" || tipo === "captacion";
+}
+
+export function entradaConNotas(tipo: string): boolean {
+  return tipo === "evento" || tipo === "captacion" || tipo === "llamada";
+}
 
 export function puedeHacerParte(cita: { tipo: string; estado: string }): boolean {
   return cita.tipo === "visita" && cita.estado === "prevista";
