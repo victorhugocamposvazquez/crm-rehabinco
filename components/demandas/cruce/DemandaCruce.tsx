@@ -458,17 +458,27 @@ export function DemandaCruce({ id }: { id: string }) {
 
   const asignarEncajan = async () => {
     const supabase = createClient();
-    const { error } = await supabase.from("demanda_inmuebles").insert(
-      perfect.map((pieza) => ({
-        demanda_id: demanda.id,
-        propiedad_id: pieza.id,
-        origen: "manual" as const,
-        puntuacion: pieza.passed,
-        estado: "propuesto" as const,
-      }))
-    );
-    if (error) return toast.error("No se han podido asignar.");
-    avisar({ msg: `${perfect.length} inmuebles asignados. Ahora envíaselos.` });
+    const { data, error } = await supabase
+      .from("demanda_inmuebles")
+      .insert(
+        perfect.map((pieza) => ({
+          demanda_id: demanda.id,
+          propiedad_id: pieza.id,
+          origen: "manual" as const,
+          puntuacion: pieza.passed,
+          estado: "propuesto" as const,
+        }))
+      )
+      .select("id");
+    if (error || !data?.length) return toast.error("No se han podido asignar.");
+    const ids = data.map((fila) => fila.id);
+    avisar({
+      msg: `${ids.length} inmuebles asignados. Ahora envíaselos.`,
+      revert: async () => {
+        await supabase.from("demanda_inmuebles").delete().in("id", ids);
+        cargar();
+      },
+    });
     setTab("asignados");
     cargar();
   };
