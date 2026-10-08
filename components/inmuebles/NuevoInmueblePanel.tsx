@@ -202,7 +202,7 @@ export function NuevoInmueblePanel({
         },
       }}
     >
-      <AltaSection wide title="Propietario" hint="Puedes dejarlo sin asignar y ligarlo después. Si es nuevo, abre la misma ficha completa de Clientes.">
+      <AltaSection wide title="Propietario" hint="Puedes dejarlo sin asignar y ligarlo después. Si es nuevo, abre la misma ficha completa de Contactos.">
         <AltaPersona
           fijo={ofertanteFijo}
           fijoNombre={ofertanteNombre}

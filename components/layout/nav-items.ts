@@ -32,7 +32,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/catastro", label: "Catastro", icon: Search },
   { href: "/propiedades", label: "Inmuebles", icon: Building2 },
   { href: "/demandas", label: "Demandas", icon: Users },
-  { href: "/clientes", label: "Clientes", icon: Users },
+  { href: "/clientes", label: "Contactos", icon: Users },
   { href: "/herramientas", label: "Herramientas", icon: Wrench },
   { href: "/partes-visita", label: "Visitas", icon: ClipboardPenLine },
   { href: "/contratos-arras", label: "Arras", icon: FileText },

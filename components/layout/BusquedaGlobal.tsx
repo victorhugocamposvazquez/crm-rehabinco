@@ -60,7 +60,7 @@ export function BusquedaGlobal() {
       const next: Hit[] = [];
       const qn = texto.toLowerCase();
       for (const row of clientes.data ?? []) {
-        next.push({ href: `/clientes/${row.id}`, titulo: row.nombre, meta: row.email ?? "Cliente" });
+        next.push({ href: `/clientes/${row.id}`, titulo: row.nombre, meta: row.email ?? "Contacto" });
       }
       for (const row of inmuebles.data ?? []) {
         next.push({

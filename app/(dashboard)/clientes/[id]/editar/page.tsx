@@ -14,8 +14,8 @@ export default function EditarClientePage() {
     <div>
       <Breadcrumb
         items={[
-          { label: "Clientes", href: "/clientes" },
-          { label: "Cliente", href: `/clientes/${id}` },
+          { label: "Contactos", href: "/clientes" },
+          { label: "Contacto", href: `/clientes/${id}` },
           { label: "Editar" },
         ]}
         className="mb-4"
@@ -23,13 +23,13 @@ export default function EditarClientePage() {
       <div className="mb-6 flex items-center gap-3">
         <Link
           href={`/clientes/${id}`}
-          aria-label="Volver al cliente"
+          aria-label="Volver al contacto"
           className="flex shrink-0 items-center justify-center rounded-lg text-neutral-600 transition-colors hover:text-foreground"
         >
           <ChevronLeft className="h-7 w-7" strokeWidth={1.5} />
         </Link>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          Editar cliente
+          Editar contacto
         </h1>
       </div>
       <ClienteWizard clienteId={id} />

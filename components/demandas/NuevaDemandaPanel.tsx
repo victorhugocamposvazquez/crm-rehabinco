@@ -272,7 +272,7 @@ export function NuevaDemandaPanel({
         },
       }}
     >
-      <AltaSection wide title="Cliente" hint="Primero quién busca. Si no está en la agenda, abre la misma ficha completa de Clientes.">
+      <AltaSection wide title="Cliente" hint="Primero quién busca. Si no está en la agenda, abre la misma ficha completa de Contactos.">
         <AltaPersona
           fijo={clienteFijo}
           fijoNombre={clienteNombre}

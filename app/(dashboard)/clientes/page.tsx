@@ -31,13 +31,25 @@ type ClienteLista = {
   direccion: string | null;
   localidad: string | null;
   codigo_postal: string | null;
+  notas: string | null;
+  es_cliente: boolean;
   ofrece: Array<{ id: string; a: string; b: string }>;
   busca: Array<{ id: string; a: string; b: string }>;
   visitas: Array<{ id: string; a: string; b: string; propiedad_id: string | null }>;
   docs: Array<{ id: string; a: string; b: string; href: string }>;
 };
 
-type FiltroCli = "todos" | "ofrecen" | "buscan" | "obra" | "inactivos";
+type FiltroCli = "todos" | "contactos" | "clientes" | "ofrecen" | "buscan" | "obra" | "inactivos";
+
+const FILTROS_CLI: Array<{ id: FiltroCli; label: string }> = [
+  { id: "todos", label: "Todos" },
+  { id: "contactos", label: "Contactos" },
+  { id: "clientes", label: "Clientes" },
+  { id: "ofrecen", label: "Ofrecen" },
+  { id: "buscan", label: "Buscan" },
+  { id: "obra", label: "Obra" },
+  { id: "inactivos", label: "Inactivos" },
+];
 
 function contacto(c: ClienteLista) {
   return [c.telefono, c.email].filter(Boolean).join(" · ") || "Sin contacto";
@@ -102,7 +114,7 @@ export default function ClientesPage() {
       const { data, error: err } = await supabase
         .from("clientes")
         .select(
-          "id, nombre, email, telefono, activo, etiqueta, tipo_cliente, documento_fiscal, tipo_documento, direccion, localidad, codigo_postal"
+          "id, nombre, email, telefono, activo, etiqueta, tipo_cliente, documento_fiscal, tipo_documento, direccion, localidad, codigo_postal, notas, es_cliente"
         )
         .order("created_at", { ascending: false });
       if (err) {
@@ -222,9 +234,12 @@ export default function ClientesPage() {
         !q ||
         c.nombre.toLowerCase().includes(q) ||
         (c.email?.toLowerCase().includes(q) ?? false) ||
-        (c.telefono?.includes(q) ?? false);
+        (c.telefono?.includes(q) ?? false) ||
+        (c.notas?.toLowerCase().includes(q) ?? false);
       const matchFiltro =
         filtro === "todos" ||
+        (filtro === "contactos" && !c.es_cliente) ||
+        (filtro === "clientes" && c.es_cliente) ||
         (filtro === "ofrecen" && c.ofrece.length > 0) ||
         (filtro === "buscan" && c.busca.length > 0) ||
         (filtro === "obra" && c.docs.length > 0) ||
@@ -254,6 +269,16 @@ export default function ClientesPage() {
   const selected = filtered.find((c) => c.id === selectedId) ?? null;
   const wa = selected ? telWhatsApp(selected.telefono) : null;
 
+  const pasarACliente = async (id: string) => {
+    const supabase = createClient();
+    const { error: err } = await supabase.from("clientes").update({ es_cliente: true }).eq("id", id);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    setClientes((prev) => prev.map((fila) => (fila.id === id ? { ...fila, es_cliente: true } : fila)));
+  };
+
   const rolesDe = (c: ClienteLista) => {
     const roles: Array<{ label: string; bg: string; fg: string }> = [];
     if (c.ofrece.length) roles.push({ label: "Ofrece", bg: "var(--accent-soft)", fg: "var(--foreground)" });
@@ -265,14 +290,14 @@ export default function ClientesPage() {
   return (
     <div>
       <PageHeader
-        breadcrumb={[{ label: "Clientes", href: "/clientes" }]}
-        title="Clientes"
-        description="Ofertantes y demandantes. Cada ficha reúne inmuebles, demandas, visitas y facturas."
+        breadcrumb={[{ label: "Contactos", href: "/clientes" }]}
+        title="Contactos"
+        description="La agenda. Quien busca, ofrece o tiene obra pasa a cliente; el resto sigue como contacto."
         hideActionsOnMobile
         actions={
           <Button type="button" size="sm" onClick={() => { setPadreInicial(undefined); setNuevaOpen(true); }} className="gap-2">
             <UserPlus className="h-4 w-4" strokeWidth={1.5} />
-            {hayBorrador ? "Continuar borrador" : "Nuevo cliente"}
+            {hayBorrador ? "Continuar borrador" : "Nuevo contacto"}
           </Button>
         }
       />
@@ -281,14 +306,14 @@ export default function ClientesPage() {
 
       {loading ? (
         <div className="mt-6 rounded-[14px] border border-dashed border-[var(--input)] px-4 py-16 text-center text-[13px] text-[var(--text-2)]">
-          Cargando clientes…
+          Cargando contactos…
         </div>
       ) : clientes.length === 0 ? (
         <div className="mt-6 rounded-[14px] border border-dashed border-[var(--input)] bg-white p-8 text-center">
-          <p className="text-[var(--text-2)]">Aún no hay clientes.</p>
+          <p className="text-[var(--text-2)]">Aún no hay contactos.</p>
           <Button type="button" className="mt-4 gap-2" onClick={() => { setPadreInicial(undefined); setNuevaOpen(true); }}>
             <UserPlus className="h-4 w-4" strokeWidth={1.5} />
-            {hayBorrador ? "Continuar borrador" : "Añadir primer cliente"}
+            {hayBorrador ? "Continuar borrador" : "Añadir primer contacto"}
           </Button>
         </div>
       ) : (
@@ -301,20 +326,20 @@ export default function ClientesPage() {
                   type="search"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Nombre, email o teléfono"
+                  placeholder="Nombre, teléfono o nota"
                   className="h-9 w-full rounded-[9px] border border-[var(--input)] bg-transparent pl-9 pr-3 text-[13.5px] outline-none focus:border-accent"
                 />
               </div>
-              <CarrilHorizontal className="min-w-0 flex-[1_1_16rem]" trackClassName="gap-1.5" label="Filtros de clientes">
-                {(["todos", "ofrecen", "buscan", "obra", "inactivos"] as const).map((f) => (
-                  <Chip key={f} active={filtro === f} onClick={() => setFiltro(f)}>
-                    {f === "todos" ? "Todos" : f === "ofrecen" ? "Ofrecen" : f === "buscan" ? "Buscan" : f === "obra" ? "Obra" : "Inactivos"}
+              <CarrilHorizontal className="min-w-0 flex-[1_1_16rem]" trackClassName="gap-1.5" label="Filtros de contactos">
+                {FILTROS_CLI.map((f) => (
+                  <Chip key={f.id} active={filtro === f.id} onClick={() => setFiltro(f.id)}>
+                    {f.label}
                   </Chip>
                 ))}
               </CarrilHorizontal>
             </div>
             {filtered.length === 0 ? (
-              <p className="px-4 py-9 text-center text-[13.5px] text-[var(--text-2)]">No hay clientes con ese filtro.</p>
+              <p className="px-4 py-9 text-center text-[13.5px] text-[var(--text-2)]">No hay contactos con ese filtro.</p>
             ) : (
               filtered.map((c) => {
                 const est = estadoCliente(c);
@@ -335,6 +360,9 @@ export default function ClientesPage() {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[14px] font-semibold">{c.nombre}</span>
                       <span className="mt-0.5 block truncate text-[12px] text-[var(--text-2)]">{contacto(c)}</span>
+                      {c.notas?.trim() ? (
+                        <span className="mt-0.5 block truncate text-[12px] text-[var(--text-3)]">{c.notas.trim()}</span>
+                      ) : null}
                     </span>
                     <span className="hidden shrink-0 gap-1 min-[640px]:flex">
                       {rolesDe(c).map((r) => (
@@ -342,6 +370,12 @@ export default function ClientesPage() {
                           {r.label}
                         </span>
                       ))}
+                    </span>
+                    <span
+                      className="shrink-0 rounded-md bg-[var(--surface-soft)] px-1.5 py-0.5 text-[11px] font-semibold text-[var(--foreground)]"
+                      style={c.es_cliente ? { background: "var(--accent-soft)" } : undefined}
+                    >
+                      {c.es_cliente ? "Cliente" : "Contacto"}
                     </span>
                     <span className="flex w-[84px] shrink-0 items-center gap-1.5 text-[12.5px] text-[var(--text-2)]">
                       <span className="h-[7px] w-[7px] rounded-full" style={{ background: est.color }} />
@@ -367,9 +401,9 @@ export default function ClientesPage() {
                 <div className="min-w-0 flex-1">
                   <h2 className="text-[22px] font-medium leading-tight tracking-[-0.03em]">{selected.nombre}</h2>
                   <p className="mt-0.5 text-[12.5px] text-[var(--text-2)]">
-                    {[selected.tipo_documento?.toUpperCase(), selected.documento_fiscal, selected.tipo_cliente]
+                    {[selected.es_cliente ? "Cliente" : "Contacto", selected.tipo_documento?.toUpperCase(), selected.documento_fiscal]
                       .filter(Boolean)
-                      .join(" · ") || selected.tipo_cliente}
+                      .join(" · ")}
                   </p>
                 </div>
                 {narrow ? (
@@ -400,6 +434,21 @@ export default function ClientesPage() {
                 <Link href="/tareas" className="flex h-9 flex-[1_1_90px] items-center justify-center rounded-[9px] bg-accent text-[13px] font-medium text-accent-foreground hover:bg-accent-dark">
                   Tarea
                 </Link>
+              </div>
+              {selected.es_cliente ? null : (
+                <div className="mt-3 px-5">
+                  <button
+                    type="button"
+                    onClick={() => void pasarACliente(selected.id)}
+                    className="flex h-[38px] w-full items-center justify-center rounded-[9px] border border-[var(--input)] text-[13px] font-semibold"
+                  >
+                    Pasar a cliente
+                  </button>
+                </div>
+              )}
+              <div className="mt-5 px-5">
+                <div className="text-[12px] text-[var(--text-3)]">Notas</div>
+                <p className="mt-1.5 whitespace-pre-wrap text-[14px]">{selected.notas?.trim() || "Sin notas"}</p>
               </div>
               <div className="mt-8 grid grid-cols-2 gap-x-8 gap-y-5 px-5">
                 <div>
@@ -503,7 +552,7 @@ export default function ClientesPage() {
         </div>
       )}
 
-      <Fab onClick={() => { setPadreInicial(undefined); setContactoInicial(undefined); setNuevaOpen(true); }} label={hayBorrador ? "Continuar borrador" : "Añadir cliente"} />
+      <Fab onClick={() => { setPadreInicial(undefined); setContactoInicial(undefined); setNuevaOpen(true); }} label={hayBorrador ? "Continuar borrador" : "Añadir contacto"} />
       <NuevoClientePanel
         open={nuevaOpen}
         onOpenChange={(open) => {

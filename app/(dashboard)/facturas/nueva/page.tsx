@@ -20,7 +20,7 @@ export default async function NuevaFacturaPage({
   const breadcrumb = facturaOriginalId
     ? [{ label: "Facturas", href: "/facturas" }, { label: "Rectificativa" }]
     : fromCliente && clienteId
-      ? [{ label: "Clientes", href: "/clientes" }, { label: "Cliente", href: `/clientes/${clienteId}` }, { label: "Nueva factura" }]
+      ? [{ label: "Contactos", href: "/clientes" }, { label: "Cliente", href: `/clientes/${clienteId}` }, { label: "Nueva factura" }]
       : [{ label: "Facturas", href: "/facturas" }, { label: "Nueva" }];
 
   return (

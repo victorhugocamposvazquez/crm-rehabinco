@@ -63,6 +63,7 @@ export interface Database {
           codigo_postal: string | null;
           localidad: string | null;
           notas: string | null;
+          es_cliente: boolean;
           activo: boolean;
           etiqueta: "fallecido" | null;
           presupuesto_logo_url: string | null;
@@ -84,6 +85,7 @@ export interface Database {
           codigo_postal?: string | null;
           localidad?: string | null;
           notas?: string | null;
+          es_cliente?: boolean;
           activo?: boolean;
           etiqueta?: "fallecido" | null;
           presupuesto_logo_url?: string | null;
@@ -102,6 +104,7 @@ export interface Database {
           codigo_postal?: string | null;
           localidad?: string | null;
           notas?: string | null;
+          es_cliente?: boolean;
           activo?: boolean;
           etiqueta?: "fallecido" | null;
           presupuesto_logo_url?: string | null;

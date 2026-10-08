@@ -169,7 +169,7 @@ export function NuevoClientePanel({
       toast.error("No se ha podido crear el cliente.");
       return;
     }
-    toast.success(empresaAsociada ? "Empresa asociada creada." : "Cliente creado.");
+    toast.success(empresaAsociada ? "Empresa asociada creada." : "Contacto creado.");
     altaBorrador.consumir();
     onOpenChange(false);
     onCreado(data.id, { nombre: nombre.trim(), telefono: telefono.trim() || null });
@@ -180,13 +180,13 @@ export function NuevoClientePanel({
       open={open}
       onOpenChange={onOpenChange}
       elevated={elevated}
-      title={empresaAsociada ? "Nueva empresa" : "Nuevo cliente"}
+      title={empresaAsociada ? "Nueva empresa" : "Nuevo contacto"}
       hint={
         empresaAsociada
           ? `Se asocia a ${padreNombre ?? "este particular"} para facturar a su nombre.`
-          : "La misma ficha que en Clientes: particular o empresa, contacto, documento y zona."
+          : "Particular o empresa, teléfono, documento y zona. Empieza como contacto."
       }
-      primaryLabel={empresaAsociada ? "Crear empresa" : "Crear cliente"}
+      primaryLabel={empresaAsociada ? "Crear empresa" : "Crear contacto"}
       saving={saving}
       disablePrimary={!nombre.trim()}
       onSubmit={crear}

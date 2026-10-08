@@ -43,7 +43,7 @@ export function NuevoMenu() {
         { href: "/tareas", label: "Tarea", icon: ListTodo },
         { href: "/calendario", label: "Cita", icon: CalendarDays },
         { href: "/propiedades?nueva=1", label: "Inmueble", icon: Building2 },
-        { href: "/clientes?nueva=1", label: "Cliente", icon: User },
+        { href: "/clientes?nueva=1", label: "Contacto", icon: User },
         { href: "/demandas?nueva=1", label: "Demanda", icon: Users },
         { href: "/partes-visita/nuevo", label: "Parte de visita", icon: ClipboardPen },
         { href: "/contratos-arras/nuevo", label: "Contrato de arras", icon: FileSignature },

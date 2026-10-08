@@ -31,6 +31,7 @@ interface Cliente {
   codigo_postal: string | null;
   localidad: string | null;
   notas: string | null;
+  es_cliente: boolean;
   activo: boolean;
   etiqueta: "fallecido" | null;
   cliente_padre_id?: string | null;
@@ -60,6 +61,7 @@ export default function DetalleClientePage() {
   const [demandasTick, setDemandasTick] = useState(0);
   const [empresasTick, setEmpresasTick] = useState(0);
   const [propiedadesTick, setPropiedadesTick] = useState(0);
+  const [pasando, setPasando] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -129,6 +131,19 @@ export default function DetalleClientePage() {
       .then(({ data }) => setDemandas(data ?? []));
   }, [id, demandasTick]);
 
+  const pasarACliente = async () => {
+    if (!cliente || cliente.es_cliente) return;
+    setPasando(true);
+    const supabase = createClient();
+    const { error: err } = await supabase.from("clientes").update({ es_cliente: true }).eq("id", id);
+    setPasando(false);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    setCliente({ ...cliente, es_cliente: true });
+  };
+
   const handleDelete = async () => {
     if (!cliente) return;
     setDeleting(true);
@@ -149,9 +164,9 @@ export default function DetalleClientePage() {
   if (error || !cliente) {
     return (
       <div className="animate-[fadeIn_0.3s_ease-out]">
-        <p className="text-red-600">{error ?? "Cliente no encontrado"}</p>
+        <p className="text-red-600">{error ?? "Contacto no encontrado"}</p>
         <Button variant="secondary" asChild className="mt-4">
-          <Link href="/clientes">Volver a clientes</Link>
+          <Link href="/clientes">Volver a contactos</Link>
         </Button>
       </div>
     );
@@ -161,7 +176,7 @@ export default function DetalleClientePage() {
     <div>
       <PageHeader
         breadcrumb={[
-          { label: "Clientes", href: "/clientes" },
+          { label: "Contactos", href: "/clientes" },
           { label: cliente.nombre },
         ]}
         title={cliente.nombre}
@@ -195,21 +210,29 @@ export default function DetalleClientePage() {
           </div>
         }
       />
-      <div className="mb-6 flex items-center gap-2">
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        <Badge variant={cliente.es_cliente ? "activo" : "default"}>
+          {cliente.es_cliente ? "Cliente" : "Contacto"}
+        </Badge>
         <Badge
           variant={cliente.etiqueta === "fallecido" ? "fallecido" : cliente.activo ? "activo" : "inactivo"}
         >
           {cliente.etiqueta === "fallecido" ? "Fallecido" : cliente.activo ? "Activo" : "Inactivo"}
         </Badge>
+        {cliente.es_cliente ? null : (
+          <Button variant="secondary" size="sm" type="button" onClick={() => void pasarACliente()} disabled={pasando}>
+            {pasando ? "Pasando…" : "Pasar a cliente"}
+          </Button>
+        )}
       </div>
 
       <AlertDialog
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
-        title={`¿Eliminar cliente ${cliente.nombre}?`}
+        title={`¿Eliminar contacto ${cliente.nombre}?`}
         description={
           facturas.length > 0
-            ? `Tiene ${facturas.length} factura(s) asociada(s). El cliente se eliminará y las facturas quedarán sin cliente asignado.`
+            ? `Tiene ${facturas.length} factura(s) asociada(s). El contacto se eliminará y las facturas quedarán sin cliente asignado.`
             : "Esta acción no se puede deshacer."
         }
         confirmLabel={deleting ? "Eliminando…" : "Eliminar"}
@@ -219,6 +242,14 @@ export default function DetalleClientePage() {
       />
 
       <div className="grid gap-6 md:grid-cols-2">
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle>Notas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="whitespace-pre-wrap text-sm">{cliente.notas?.trim() || "Sin notas"}</p>
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <CardTitle>Datos de contacto</CardTitle>
