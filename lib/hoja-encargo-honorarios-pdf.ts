@@ -50,7 +50,7 @@ export function textosHojaEncargoHonorarios(datos: HojaEncargoHonorariosDatos) {
   const generados = {
     encabezado: formatFechaEncabezado(datos.fecha, datos.lugar.trim() || e.lugar),
     intro: `D./Dña. ${hueco(datos.cliente_nombre)}, con DNI ${hueco(datos.cliente_dni)}, mayor de edad, en calidad de ${hueco(datos.cliente_calidad, "propietario/a")}, firma con ${e.razonSocial}, con C.I.F. ${e.cif} y domicilio social en ${e.direccionCompleta}, la presente hoja de ENCARGO DE VENTA como un reconocimiento de honorarios en caso de acuerdo por la compraventa del piso/finca/propiedad situado en ${hueco(datos.inmueble_descripcion)}, conforme a las siguientes condiciones:`,
-    honorarios: `Los honorarios de mediación de ${e.razonSocial} quedan fijados en un ${pct} % del precio de venta (IVA no incluido), con una retribución mínima de ${formatImporteEs(minimo)} € (IVA no incluido), que se devengarán íntegramente.`,
+    honorarios: `Los honorarios de mediación de ${e.razonSocial} quedan fijados en un ${pct} % del precio de venta (IVA no incluido), con una retribución mínima de ${formatImporteEs(minimo)} € (IVA no incluido), que se devengarán íntegramente. En caso de venta por parte del propietario, los honorarios serán devengados si la operación la llegase a realizar con un cliente presentado por ${e.razonSocial}`,
     reparto: `Si por medio de la gestión de la inmobiliaria se firmase un contrato de arras por una operación que finalmente no se llegase a escriturar, la cantidad entregada como depósito se repartirá entre inmobiliaria y propiedad a un ${prop} % para la propiedad y un ${agencia} % para la agencia inmobiliaria.`,
     lopd: clausulaProteccionDatosContrato(),
     cierre:

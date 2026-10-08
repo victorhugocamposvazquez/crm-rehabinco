@@ -20,7 +20,7 @@ import {
 import { clausulasPersonalizadasDesdeEdicion, normalizarTextoClausula } from "./contrato-arras-preview";
 import { htmlContratoArras, htmlContratoArrasExport, textosContratoArras } from "./contrato-arras-pdf";
 import { hojaEncargoHonorariosVacia } from "./hoja-encargo-honorarios";
-import { htmlHojaEncargoHonorarios } from "./hoja-encargo-honorarios-pdf";
+import { htmlHojaEncargoHonorarios, textosHojaEncargoHonorarios } from "./hoja-encargo-honorarios-pdf";
 import { contratoPagoAplazadoVacio } from "./contrato-pago-aplazado";
 import { htmlContratoPagoAplazado, textosContratoPagoAplazado } from "./contrato-pago-aplazado-pdf";
 import { contratoArrendamientoVacio } from "./contrato-arrendamiento";
@@ -275,6 +275,22 @@ describe("documentos Rehabinco 2026", () => {
     assert.equal(vacio.compradores.length, 1);
     assert.equal(vacio.vendedores[0]?.tratamiento, "Don");
     assert.equal(vacio.compradores[0]?.tratamiento, "Don");
+  });
+
+  it("el encargo de venta devenga honorarios si el propietario vende a un cliente presentado por Rehabinco", () => {
+    const datos = hojaEncargoHonorariosVacia();
+    datos.honorarios_porcentaje = 3;
+    datos.honorarios_minimo = 3000;
+    const textos = textosHojaEncargoHonorarios(datos);
+    assert.match(
+      textos.honorarios,
+      /que se devengarán íntegramente\. En caso de venta por parte del propietario, los honorarios serán devengados si la operación la llegase a realizar con un cliente presentado por REHABINCO, S\.L\.$/
+    );
+    const html = htmlHojaEncargoHonorarios(datos, { editable: false });
+    assert.match(html, /cliente presentado por REHABINCO, S\.L\./);
+    assert.match(html, /@media print/);
+    assert.match(html, /class="pdf-flow"/);
+    assert.match(htmlHojaEncargoHonorarios(datos), /data-clausula="honorarios"[^>]*>[^<]*cliente presentado por REHABINCO, S\.L\./);
   });
 
   it("pasa cantidades a euros en palabras", () => {
