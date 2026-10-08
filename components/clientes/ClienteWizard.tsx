@@ -12,6 +12,7 @@ import {
   type ClienteStep2Values,
 } from "@/lib/validations/cliente";
 import { toast } from "sonner";
+import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -178,10 +179,11 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
       plantilla_presupuesto: data.plantilla_presupuesto === "deportivo" ? "deportivo" : null,
     };
     if (clienteId) {
-      const { error } = await supabase.from("clientes").update(payload).eq("id", clienteId);
+      const { data, error } = await supabase.from("clientes").update(payload).eq("id", clienteId).select("id").maybeSingle();
       setSaving(false);
-      if (error) {
-        setSaveError(error.message);
+      const aviso = mensajeGuardado(error, "No se ha podido guardar el contacto.", data);
+      if (aviso) {
+        setSaveError(aviso);
         return;
       }
       toast.success("Cliente actualizado");

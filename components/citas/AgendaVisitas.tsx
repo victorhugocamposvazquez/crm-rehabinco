@@ -11,6 +11,7 @@ import { CitaAcciones } from "@/components/citas/CitaAcciones";
 import { FichaLink } from "@/components/crm/FichaPeek";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { ESTADO_CITA_LABEL, horaCita, puedeGestionarCita, relacionUno, type EstadoCita } from "@/lib/citas/citas";
+import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 
 type CitaAgenda = {
   id: string;
@@ -109,13 +110,14 @@ export function AgendaVisitas({ compact = false }: { compact?: boolean }) {
   const cambiarEstado = async (id: string, estado: "hecha" | "cancelada") => {
     const cita = citas.find((item) => item.id === id);
     if (cita && !gestiona(cita.comercial_id)) {
-      toast.message("Solo puedes cambiar el estado de tus propias visitas.");
+      toast.message("Inicia sesión para cambiar esta visita.");
       return;
     }
     const supabase = createClient();
-    const { error } = await supabase.from("citas").update({ estado }).eq("id", id);
-    if (error) {
-      toast.error("No se ha podido actualizar la cita.");
+    const { data, error } = await supabase.from("citas").update({ estado }).eq("id", id).select("id").maybeSingle();
+    const aviso = mensajeGuardado(error, "No se ha podido actualizar la cita.", data);
+    if (aviso) {
+      toast.error(aviso);
       return;
     }
     toast.success(estado === "hecha" ? "Visita marcada como hecha." : "Visita cancelada.");

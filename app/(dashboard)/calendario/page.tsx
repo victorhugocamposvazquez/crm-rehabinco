@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
 import { isAdmin } from "@/lib/auth/roles";
@@ -335,7 +336,7 @@ export default function CalendarioPage() {
         minutos: minutosDesdeHora(hora),
       });
       const tipoFinal = editando.tipo === "tarea" ? "tarea" : tipo;
-      const { error } = await supabase
+      const { data: guardada, error } = await supabase
         .from("citas")
         .update({
           comercial_id: asignado,
@@ -349,10 +350,13 @@ export default function CalendarioPage() {
           notas: entradaConNotas(tipoFinal) ? notasFinal : null,
           lugar: lugarFinal,
         })
-        .eq("id", editando.id);
-      if (error) {
+        .eq("id", editando.id)
+        .select("id")
+        .maybeSingle();
+      const aviso = mensajeGuardado(error, "No se ha podido guardar la entrada.", guardada);
+      if (aviso) {
         setSaving(false);
-        toast.error("No se ha podido guardar la entrada.");
+        toast.error(aviso);
         return;
       }
       try {
@@ -402,9 +406,10 @@ export default function CalendarioPage() {
       })
       .select("id, comercial_id, tipo, titulo, empieza, propiedad_id, cliente_id, estado, tarea_id")
       .single();
-    if (error || !cita) {
+    const aviso = mensajeGuardado(error, "No se ha podido crear la entrada.", cita);
+    if (aviso || !cita) {
       setSaving(false);
-      toast.error("No se ha podido crear la entrada.");
+      toast.error(aviso ?? "No se ha podido crear la entrada.");
       return;
     }
     try {
@@ -428,12 +433,15 @@ export default function CalendarioPage() {
     hora: string;
   }) => {
     const supabase = createClient();
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("citas")
       .update({ empieza: snapshot.empieza, termina: snapshot.termina })
-      .eq("id", snapshot.id);
-    if (error) {
-      toast.error("No se ha podido deshacer el movimiento.");
+      .eq("id", snapshot.id)
+      .select("id")
+      .maybeSingle();
+    const aviso = mensajeGuardado(error, "No se ha podido deshacer el movimiento.", data);
+    if (aviso) {
+      toast.error(aviso);
       return;
     }
     if (snapshot.tarea_id) {
@@ -459,7 +467,7 @@ export default function CalendarioPage() {
     const cita = citas.find((item) => item.id === id);
     if (!cita || cita.estado === "hecha" || cita.estado === "cancelada") return;
     if (!gestiona(cita.comercial_id)) {
-      toast.message("Solo puedes mover tus propias entradas.");
+      toast.message("Inicia sesión para mover esta entrada.");
       return;
     }
     const minutos =
@@ -485,12 +493,15 @@ export default function CalendarioPage() {
       minutos,
     });
     const supabase = createClient();
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("citas")
       .update({ empieza: patch.empieza, termina: patch.termina })
-      .eq("id", id);
-    if (error) {
-      toast.error("No se ha podido mover la cita.");
+      .eq("id", id)
+      .select("id")
+      .maybeSingle();
+    const aviso = mensajeGuardado(error, "No se ha podido mover la cita.", data);
+    if (aviso) {
+      toast.error(aviso);
       return;
     }
     try {
@@ -517,13 +528,14 @@ export default function CalendarioPage() {
   const cambiarEstado = async (id: string, estado: "hecha" | "cancelada") => {
     const cita = citas.find((item) => item.id === id);
     if (cita && !gestiona(cita.comercial_id)) {
-      toast.message("Solo puedes cambiar el estado de tus propias entradas.");
+      toast.message("Inicia sesión para cambiar esta entrada.");
       return;
     }
     const supabase = createClient();
-    const { error } = await supabase.from("citas").update({ estado }).eq("id", id);
-    if (error) {
-      toast.error("No se ha podido actualizar la cita.");
+    const { data, error } = await supabase.from("citas").update({ estado }).eq("id", id).select("id").maybeSingle();
+    const aviso = mensajeGuardado(error, "No se ha podido actualizar la cita.", data);
+    if (aviso) {
+      toast.error(aviso);
       return;
     }
     if (cita) {

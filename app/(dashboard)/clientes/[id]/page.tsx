@@ -16,6 +16,7 @@ import { NuevoClientePanel } from "@/components/clientes/NuevoClientePanel";
 import { NuevoInmueblePanel } from "@/components/inmuebles/NuevoInmueblePanel";
 import { Pencil, Trash2, FileText, Building2, Plus, Home } from "lucide-react";
 import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
+import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { useAuth } from "@/lib/auth/auth-context";
 import { isAdmin } from "@/lib/auth/roles";
 
@@ -135,10 +136,11 @@ export default function DetalleClientePage() {
     if (!cliente || cliente.es_cliente) return;
     setPasando(true);
     const supabase = createClient();
-    const { error: err } = await supabase.from("clientes").update({ es_cliente: true }).eq("id", id);
+    const { data, error: err } = await supabase.from("clientes").update({ es_cliente: true }).eq("id", id).select("id").maybeSingle();
     setPasando(false);
-    if (err) {
-      setError(err.message);
+    const aviso = mensajeGuardado(err, "No se ha podido pasar a cliente.", data);
+    if (aviso) {
+      setError(aviso);
       return;
     }
     setCliente({ ...cliente, es_cliente: true });

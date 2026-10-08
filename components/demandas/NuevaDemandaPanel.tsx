@@ -22,6 +22,7 @@ import {
   type BorradorNuevaDemanda,
 } from "@/lib/demandas/nueva";
 import { BuscadorLocalidad } from "@/components/geo/BuscadorLocalidad";
+import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import type { ComercialFiltro } from "@/components/captacion/FiltroComercial";
 import { altaCamposVacios, leerAltaBorrador } from "@/lib/ui/alta-borrador";
 import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
@@ -224,9 +225,10 @@ export function NuevaDemandaPanel({
       const { estado: _estado, ...resto } = payloadNuevaDemanda(paraCrear);
       void _estado;
       const { data, error } = await supabase.from("demandas").update(resto).eq("id", editarId).select("id").maybeSingle();
-      if (error || !data) {
+      const aviso = mensajeGuardado(error, "No se ha podido guardar la demanda.", data);
+      if (aviso) {
         setSaving(false);
-        toast.error("No se ha podido guardar la demanda.");
+        toast.error(aviso);
         return;
       }
       setSaving(false);
@@ -237,9 +239,10 @@ export function NuevaDemandaPanel({
       return;
     }
     const { data, error } = await supabase.from("demandas").insert(payloadNuevaDemanda(paraCrear)).select("id").single();
-    if (error || !data) {
+    const aviso = mensajeGuardado(error, "No se ha podido crear la demanda.", data);
+    if (aviso || !data) {
       setSaving(false);
-      toast.error("No se ha podido crear la demanda.");
+      toast.error(aviso ?? "No se ha podido crear la demanda.");
       return;
     }
     setSaving(false);

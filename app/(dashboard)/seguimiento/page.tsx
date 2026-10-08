@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
 import { isAdmin } from "@/lib/auth/roles";
@@ -216,8 +217,9 @@ export default function SeguimientoPage() {
       },
       { onConflict: "finca_reference" }
     );
-    if (err) {
-      toast.error("No se ha podido mover la finca.");
+    const avisoFinca = mensajeGuardado(err, "No se ha podido mover la finca.");
+    if (avisoFinca) {
+      toast.error(avisoFinca);
       return;
     }
     await supabase.from("catastro_explorer_actividad").insert({
@@ -232,9 +234,10 @@ export default function SeguimientoPage() {
 
   const moverDemanda = async (id: string, estado: EstadoDemanda) => {
     const supabase = createClient();
-    const { error: err } = await supabase.from("demandas").update({ estado }).eq("id", id);
-    if (err) {
-      toast.error("No se ha podido mover la demanda.");
+    const { data, error: err } = await supabase.from("demandas").update({ estado }).eq("id", id).select("id").maybeSingle();
+    const aviso = mensajeGuardado(err, "No se ha podido mover la demanda.", data);
+    if (aviso) {
+      toast.error(aviso);
       return;
     }
     setDemandas((prev) => prev.map((d) => (d.id === id ? { ...d, estado } : d)));
@@ -242,9 +245,10 @@ export default function SeguimientoPage() {
 
   const moverInmueble = async (id: string, estado: (typeof ESTADOS_INMUEBLE)[number]) => {
     const supabase = createClient();
-    const { error: err } = await supabase.from("propiedades").update({ estado }).eq("id", id);
-    if (err) {
-      toast.error("No se ha podido mover el inmueble.");
+    const { data, error: err } = await supabase.from("propiedades").update({ estado }).eq("id", id).select("id").maybeSingle();
+    const aviso = mensajeGuardado(err, "No se ha podido mover el inmueble.", data);
+    if (aviso) {
+      toast.error(aviso);
       return;
     }
     setInmuebles((prev) => prev.map((p) => (p.id === id ? { ...p, estado } : p)));

@@ -15,6 +15,7 @@ import { relacionUno } from "@/lib/citas/citas";
 import { avisarEvento } from "@/lib/alertas/avisar-cliente";
 import { inmuebleDesdeNotasCaptacion } from "@/lib/captacion/portales/contacto";
 import { nombreYApellido } from "@/lib/ui/tokens";
+import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { cn } from "@/lib/utils";
 import { Selector } from "@/components/ui/selector";
 import {
@@ -265,8 +266,9 @@ export function TareaPanel({
       .insert({ tarea_id: tarea.id, actor_id: userId, tipo: "nota", texto, mencionados })
       .select("id, created_at")
       .single();
-    if (error || !data) {
-      toast.error("No se ha podido guardar el comentario.");
+    const aviso = mensajeGuardado(error, "No se ha podido guardar el comentario.", data);
+    if (aviso || !data) {
+      toast.error(aviso ?? "No se ha podido guardar el comentario.");
       return;
     }
     if (mencionados.length > 0) avisarEvento("mencion", data.id);

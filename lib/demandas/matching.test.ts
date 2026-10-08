@@ -73,6 +73,15 @@ describe("matching demanda ↔ inmueble", () => {
     assert.equal(encajaDemandaInmueble(DEMANDA, { ...PISO, publicado: false }).ok, true);
   });
 
+  it("el precio por encima del presupuesto no encaja, igual que en la ficha", () => {
+    assert.equal(encajaDemandaInmueble(DEMANDA, { ...PISO, precioVenta: 308000 }).ok, false);
+  });
+
+  it("si la demanda pide ascensor, un inmueble sin él no encaja", () => {
+    assert.equal(encajaDemandaInmueble({ ...DEMANDA, requisitos: "Ascensor" }, { ...PISO, ascensor: false }).ok, false);
+    assert.equal(encajaDemandaInmueble({ ...DEMANDA, requisitos: "Ascensor" }, { ...PISO, ascensor: true }).ok, true);
+  });
+
   it("rechaza metros por encima del máximo y la falta de precio o superficie", () => {
     assert.equal(encajaDemandaInmueble({ ...DEMANDA, superficieMax: 80 }, PISO).ok, false);
     assert.equal(encajaDemandaInmueble({ ...DEMANDA, superficieMax: 100 }, PISO).ok, true);

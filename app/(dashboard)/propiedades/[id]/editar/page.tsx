@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
+import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { InmuebleForm } from "@/components/inmuebles/InmuebleForm";
 import { InmuebleMultimedia } from "@/components/inmuebles/InmuebleMultimedia";
 import { InmuebleDocumentos, type DocInmueble } from "@/components/inmuebles/InmuebleDocumentos";
@@ -70,16 +71,19 @@ export default function EditarPropiedadPage() {
     setError(null);
     setSaving(true);
     const supabase = createClient();
-    const { error: err } = await supabase
+    const { data, error: err } = await supabase
       .from("propiedades")
       .update({
         ...inmuebleDesdeForm(values),
         updated_at: new Date().toISOString(),
       })
-      .eq("id", id);
+      .eq("id", id)
+      .select("id")
+      .maybeSingle();
     setSaving(false);
-    if (err) {
-      setError(err.message);
+    const aviso = mensajeGuardado(err, "No se ha podido guardar el inmueble.", data);
+    if (aviso) {
+      setError(aviso);
       return;
     }
     toast.success("Inmueble actualizado");

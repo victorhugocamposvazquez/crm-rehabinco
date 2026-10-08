@@ -13,6 +13,7 @@ export function criteriosDeDemanda(row: {
   superficie_max?: number | null;
   habitaciones_min?: number | null;
   banos_min?: number | null;
+  requisitos?: string | null;
 }): CriteriosDemanda {
   return {
     tipoOperacion: row.tipo_operacion,
@@ -24,6 +25,7 @@ export function criteriosDeDemanda(row: {
     superficieMax: row.superficie_max ?? null,
     habitacionesMin: row.habitaciones_min ?? null,
     banosMin: row.banos_min ?? null,
+    requisitos: row.requisitos ?? null,
   };
 }
 
@@ -41,6 +43,7 @@ function mapStock(row: {
   banos: number | null;
   estado: string | null;
   publicado: boolean | null;
+  ascensor?: boolean | null;
 }): InmuebleParaMatching {
   return {
     id: row.id,
@@ -55,6 +58,7 @@ function mapStock(row: {
     banos: row.banos,
     estado: row.estado,
     publicado: row.publicado,
+    ascensor: row.ascensor ?? null,
   };
 }
 
@@ -75,7 +79,7 @@ export async function proponerStockParaDemanda(
     supabase
       .from("propiedades")
       .select(
-        "id, tipo_operacion, tipo_inmueble, localidad, codigo_postal, precio_venta, precio_alquiler, superficie_m2, superficie_util, habitaciones, banos, estado, publicado"
+        "id, tipo_operacion, tipo_inmueble, localidad, codigo_postal, precio_venta, precio_alquiler, superficie_m2, superficie_util, habitaciones, banos, ascensor, estado, publicado"
       )
       .eq("estado", "disponible"),
     supabase.from("demanda_inmuebles").select("id, propiedad_id, origen, estado").eq("demanda_id", demandaId),

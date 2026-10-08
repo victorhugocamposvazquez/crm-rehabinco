@@ -27,6 +27,7 @@ import {
 } from "@/lib/demandas/cruce";
 import { numeroOpcional } from "@/lib/demandas/nueva";
 import { formatEuro, telWhatsApp } from "@/lib/ui/estados-vista";
+import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { cn } from "@/lib/utils";
 
 type Tab = "sugeridos" | "asignados" | "descartados";
@@ -332,9 +333,10 @@ export function DemandaCruce({ id }: { id: string }) {
       .eq("id", demanda.id)
       .select("id")
       .maybeSingle();
-    if (error || !data) {
+    const aviso = mensajeGuardado(error, "No se ha podido guardar el modo.", data);
+    if (aviso) {
       setDemanda(demanda);
-      toast.error("No se ha podido guardar el modo.");
+      toast.error(aviso);
     }
   };
 
@@ -343,11 +345,14 @@ export function DemandaCruce({ id }: { id: string }) {
     const previa = matchDe.get(propiedadId);
     const supabase = createClient();
     if (previa) {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("demanda_inmuebles")
         .update({ estado: "propuesto", notas: null, origen: origenMatch, puntuacion: pieza?.passed ?? 0 })
-        .eq("id", previa.id);
-      if (error) return toast.error("No se ha podido asignar.");
+        .eq("id", previa.id)
+        .select("id")
+        .maybeSingle();
+      const aviso = mensajeGuardado(error, "No se ha podido asignar.", data);
+      if (aviso) return toast.error(aviso);
       avisar({
         msg: `${pieza?.tituloVisible ?? "Inmueble"} asignado. Falta enviárselo.`,
         verId: propiedadId,
@@ -362,7 +367,8 @@ export function DemandaCruce({ id }: { id: string }) {
         .insert({ demanda_id: demanda.id, propiedad_id: propiedadId, origen: origenMatch, puntuacion: pieza?.passed ?? 0, estado: "propuesto" })
         .select("id")
         .single();
-      if (error || !data) return toast.error("No se ha podido asignar.");
+      const aviso = mensajeGuardado(error, "No se ha podido asignar.", data);
+      if (aviso || !data) return toast.error(aviso ?? "No se ha podido asignar.");
       avisar({
         msg: `${pieza?.tituloVisible ?? "Inmueble"} asignado. Falta enviárselo.`,
         verId: propiedadId,
@@ -381,8 +387,9 @@ export function DemandaCruce({ id }: { id: string }) {
     const pieza = porId.get(propiedadId);
     if (!previa) return;
     const supabase = createClient();
-    const { error } = await supabase.from("demanda_inmuebles").delete().eq("id", previa.id);
-    if (error) return toast.error("No se ha podido quitar.");
+    const { data, error } = await supabase.from("demanda_inmuebles").delete().eq("id", previa.id).select("id");
+    const aviso = mensajeGuardado(error, "No se ha podido quitar.", data);
+    if (aviso) return toast.error(aviso);
     avisar({
       msg: `${pieza?.tituloVisible ?? "Inmueble"} quitado de la propuesta.`,
       revert: async () => {
@@ -405,8 +412,14 @@ export function DemandaCruce({ id }: { id: string }) {
     const pieza = porId.get(propiedadId);
     const supabase = createClient();
     if (previa) {
-      const { error } = await supabase.from("demanda_inmuebles").update({ estado: "descartado", notas: motivo }).eq("id", previa.id);
-      if (error) return toast.error("No se ha podido descartar.");
+      const { data, error } = await supabase
+        .from("demanda_inmuebles")
+        .update({ estado: "descartado", notas: motivo })
+        .eq("id", previa.id)
+        .select("id")
+        .maybeSingle();
+      const aviso = mensajeGuardado(error, "No se ha podido descartar.", data);
+      if (aviso) return toast.error(aviso);
       avisar({
         msg: `${pieza?.tituloVisible ?? "Inmueble"} descartado (${motivo.toLowerCase()}).`,
         revert: async () => {
@@ -420,7 +433,8 @@ export function DemandaCruce({ id }: { id: string }) {
         .insert({ demanda_id: demanda.id, propiedad_id: propiedadId, origen: "manual", puntuacion: 0, estado: "descartado", notas: motivo })
         .select("id")
         .single();
-      if (error || !data) return toast.error("No se ha podido descartar.");
+      const aviso = mensajeGuardado(error, "No se ha podido descartar.", data);
+      if (aviso || !data) return toast.error(aviso ?? "No se ha podido descartar.");
       avisar({
         msg: `${pieza?.tituloVisible ?? "Inmueble"} descartado (${motivo.toLowerCase()}).`,
         revert: async () => {
@@ -439,8 +453,9 @@ export function DemandaCruce({ id }: { id: string }) {
     const pieza = porId.get(propiedadId);
     if (!previa) return;
     const supabase = createClient();
-    const { error } = await supabase.from("demanda_inmuebles").delete().eq("id", previa.id);
-    if (error) return toast.error("No se ha podido recuperar.");
+    const { data, error } = await supabase.from("demanda_inmuebles").delete().eq("id", previa.id).select("id");
+    const aviso = mensajeGuardado(error, "No se ha podido recuperar.", data);
+    if (aviso) return toast.error(aviso);
     avisar({
       msg: `${pieza?.tituloVisible ?? "Inmueble"} vuelve a Sugeridos.`,
       revert: async () => {
@@ -462,8 +477,14 @@ export function DemandaCruce({ id }: { id: string }) {
     const previa = matchDe.get(propiedadId);
     if (!previa) return;
     const supabase = createClient();
-    const { error } = await supabase.from("demanda_inmuebles").update({ estado: estadoDbDe(status) }).eq("id", previa.id);
-    if (error) return toast.error("No se ha podido guardar.");
+    const { data, error } = await supabase
+      .from("demanda_inmuebles")
+      .update({ estado: estadoDbDe(status) })
+      .eq("id", previa.id)
+      .select("id")
+      .maybeSingle();
+    const aviso = mensajeGuardado(error, "No se ha podido guardar.", data);
+    if (aviso) return toast.error(aviso);
     avisar({
       msg,
       revert: async () => {
@@ -492,7 +513,13 @@ export function DemandaCruce({ id }: { id: string }) {
       .from("demanda_inmuebles")
       .update({ estado: "presentado" })
       .in("id", ids)
-      .then(() => {
+      .select("id")
+      .then(({ error, data }) => {
+        const aviso = mensajeGuardado(error, "No se ha podido marcar como enviado.", data);
+        if (aviso) {
+          toast.error(aviso);
+          return;
+        }
         avisar({
           msg: piezasEnvio.length === 1 ? `${piezasEnvio[0]!.tituloVisible} enviado a ${nombre}. Cuando responda, anótalo aquí.` : `${piezasEnvio.length} inmuebles enviados a ${nombre}.`,
           revert: async () => {
@@ -521,7 +548,8 @@ export function DemandaCruce({ id }: { id: string }) {
         }))
       )
       .select("id");
-    if (error || !data?.length) return toast.error("No se han podido asignar.");
+    const aviso = mensajeGuardado(error, "No se han podido asignar.", data);
+    if (aviso || !data) return toast.error(aviso ?? "No se han podido asignar.");
     const ids = data.map((fila) => fila.id);
     avisar({
       msg: `${ids.length} inmuebles asignados. Ahora envíaselos.`,
@@ -598,7 +626,8 @@ export function DemandaCruce({ id }: { id: string }) {
       .eq("id", demanda.id)
       .select("id")
       .maybeSingle();
-    if (error || !data) return toast.error("No se han podido guardar los criterios.");
+    const aviso = mensajeGuardado(error, "No se han podido guardar los criterios.", data);
+    if (aviso) return toast.error(aviso);
     setSheet(null);
     setDraft(null);
     autoClave.current = "";

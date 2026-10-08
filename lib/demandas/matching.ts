@@ -1,3 +1,5 @@
+import { evaluarCruce, precioDeCruce, pideAscensor } from "@/lib/demandas/cruce";
+
 export const TIPOS_OPERACION_DEMANDA = ["compra", "alquiler", "ambos"] as const;
 export type TipoOperacionDemanda = (typeof TIPOS_OPERACION_DEMANDA)[number];
 
@@ -38,6 +40,7 @@ export type CriteriosDemanda = {
   superficieMax: number | null;
   habitacionesMin: number | null;
   banosMin: number | null;
+  requisitos?: string | null;
 };
 
 export type InmuebleParaMatching = {
@@ -51,6 +54,7 @@ export type InmuebleParaMatching = {
   superficie: number | null;
   habitaciones: number | null;
   banos: number | null;
+  ascensor?: boolean | null;
   estado?: string | null;
   publicado?: boolean | null;
 };
@@ -61,126 +65,83 @@ export type ResultadoMatching = {
   motivos: string[];
 };
 
-function normalizar(valor: string | null | undefined): string {
-  return (valor ?? "")
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .trim()
-    .toLowerCase();
-}
-
-function operacionCompatible(demanda: string, inmueble: string | null): boolean {
-  const d = normalizar(demanda);
-  const i = normalizar(inmueble);
-  if (d === "ambos" || i === "ambos") return true;
-  if (d === "compra") return i === "venta" || i === "ambos";
-  if (d === "alquiler") return i === "alquiler" || i === "ambos";
-  return d === i;
-}
-
-function precioDeOperacion(demanda: string, inmueble: InmuebleParaMatching): number | null {
-  const d = normalizar(demanda);
-  if (d === "alquiler") return inmueble.precioAlquiler;
-  if (d === "compra") return inmueble.precioVenta;
-  return inmueble.precioVenta ?? inmueble.precioAlquiler;
-}
-
-function zonaCoincide(zonas: string[], inmueble: InmuebleParaMatching): boolean {
-  if (zonas.length === 0) return true;
-  const localidad = normalizar(inmueble.localidad);
-  const cp = normalizar(inmueble.codigoPostal);
-  return zonas.some((zona) => {
-    const z = normalizar(zona);
-    if (!z) return false;
-    return localidad.includes(z) || z.includes(localidad) || cp === z;
-  });
+/** Misma ficha que usa el cruce de la demanda: superficie útil y, si no hay, construida. */
+export function fichaParaMatching(row: {
+  id: string;
+  tipo_operacion: string | null;
+  tipo_inmueble: string | null;
+  localidad: string | null;
+  codigo_postal?: string | null;
+  precio_venta: number | null;
+  precio_alquiler: number | null;
+  superficie_m2?: number | null;
+  superficie_util?: number | null;
+  habitaciones: number | null;
+  banos: number | null;
+  ascensor?: boolean | null;
+  estado?: string | null;
+  publicado?: boolean | null;
+}): InmuebleParaMatching {
+  return {
+    id: row.id,
+    tipoOperacion: row.tipo_operacion,
+    tipoInmueble: row.tipo_inmueble,
+    localidad: row.localidad,
+    codigoPostal: row.codigo_postal ?? null,
+    precioVenta: row.precio_venta,
+    precioAlquiler: row.precio_alquiler,
+    superficie: row.superficie_util ?? row.superficie_m2 ?? null,
+    habitaciones: row.habitaciones,
+    banos: row.banos,
+    ascensor: row.ascensor ?? null,
+    estado: row.estado,
+    publicado: row.publicado,
+  };
 }
 
 export function encajaDemandaInmueble(
   demanda: CriteriosDemanda,
   inmueble: InmuebleParaMatching
 ): ResultadoMatching {
-  const motivos: string[] = [];
-  let puntos = 0;
-
   if (inmueble.estado && inmueble.estado !== "disponible") {
     return { ok: false, puntuacion: 0, motivos: ["El inmueble no está disponible."] };
   }
 
-  if (!operacionCompatible(demanda.tipoOperacion, inmueble.tipoOperacion)) {
-    return { ok: false, puntuacion: 0, motivos: ["No coincide la operación (compra/alquiler)."] };
-  }
-  puntos += 20;
-  motivos.push("Operación compatible");
-
-  if (demanda.tiposInmueble.length > 0) {
-    const tipo = normalizar(inmueble.tipoInmueble);
-    if (!demanda.tiposInmueble.some((item) => normalizar(item) === tipo)) {
-      return { ok: false, puntuacion: 0, motivos: ["El tipo de inmueble no está entre los pedidos."] };
+  const evaluacion = evaluarCruce(
+    {
+      tipoOperacion: inmueble.tipoOperacion,
+      tipoInmueble: inmueble.tipoInmueble,
+      localidad: inmueble.localidad,
+      codigoPostal: inmueble.codigoPostal,
+      precio: precioDeCruce(demanda.tipoOperacion, inmueble.precioVenta, inmueble.precioAlquiler),
+      superficie: inmueble.superficie,
+      habitaciones: inmueble.habitaciones,
+      banos: inmueble.banos,
+      ascensor: inmueble.ascensor ?? null,
+    },
+    {
+      tipoOperacion: demanda.tipoOperacion,
+      tiposInmueble: demanda.tiposInmueble,
+      presupuestoMin: demanda.presupuestoMin,
+      presupuestoMax: demanda.presupuestoMax,
+      zonas: demanda.zonas,
+      habitacionesMin: demanda.habitacionesMin,
+      superficieMin: demanda.superficieMin,
+      superficieMax: demanda.superficieMax,
+      banosMin: demanda.banosMin,
+      pideAscensor: pideAscensor(demanda.requisitos),
     }
-    puntos += 20;
-    motivos.push("Tipo de inmueble");
-  }
+  );
+  const motivos = (evaluacion.perfect ? evaluacion.checks : evaluacion.checks.filter((check) => !check.ok)).map(
+    (check) => check.label
+  );
+  if (!evaluacion.perfect) return { ok: false, puntuacion: 0, motivos };
 
-  if (!zonaCoincide(demanda.zonas, inmueble)) {
-    return { ok: false, puntuacion: 0, motivos: ["La zona no coincide."] };
-  }
-  if (demanda.zonas.length > 0) {
-    puntos += 20;
-    motivos.push("Zona");
-  }
-
-  const precio = precioDeOperacion(demanda.tipoOperacion, inmueble);
-  const pidePrecio = demanda.presupuestoMin != null || demanda.presupuestoMax != null;
-  if (pidePrecio && precio == null) {
-    return { ok: false, puntuacion: 0, motivos: ["El inmueble no tiene precio."] };
-  }
-  if (demanda.presupuestoMax != null && precio != null && precio > demanda.presupuestoMax * 1.1) {
-    return { ok: false, puntuacion: 0, motivos: ["El precio supera el presupuesto (+10 %)."] };
-  }
-  if (demanda.presupuestoMin != null && precio != null && precio < demanda.presupuestoMin) {
-    return { ok: false, puntuacion: 0, motivos: ["El precio queda por debajo del mínimo."] };
-  }
-  if (demanda.presupuestoMax != null && precio != null) {
-    puntos += 15;
-    motivos.push("Precio dentro de presupuesto");
-    if (precio <= demanda.presupuestoMax) {
-      puntos += Math.round(((demanda.presupuestoMax - precio) / demanda.presupuestoMax) * 15);
-    }
-  } else if (demanda.presupuestoMin != null && precio != null) {
-    puntos += 10;
-  }
-
-  const superficie = inmueble.superficie;
-  const pideSuperficie = demanda.superficieMin != null || demanda.superficieMax != null;
-  if (pideSuperficie && superficie == null) {
-    return { ok: false, puntuacion: 0, motivos: ["El inmueble no tiene superficie."] };
-  }
-  if (demanda.superficieMin != null && superficie != null && superficie < demanda.superficieMin) {
-    return { ok: false, puntuacion: 0, motivos: ["La superficie es inferior al mínimo."] };
-  }
-  if (demanda.superficieMax != null && superficie != null && superficie > demanda.superficieMax) {
-    return { ok: false, puntuacion: 0, motivos: ["La superficie supera el máximo."] };
-  }
-  if (pideSuperficie && superficie != null) {
-    puntos += 10;
-    motivos.push("Superficie");
-  }
-
-  if (demanda.habitacionesMin != null && (inmueble.habitaciones ?? 0) < demanda.habitacionesMin) {
-    return { ok: false, puntuacion: 0, motivos: ["Faltan habitaciones."] };
-  }
-  if (demanda.habitacionesMin != null) {
-    puntos += 10;
-    motivos.push("Habitaciones");
-  }
-
-  if (demanda.banosMin != null && (inmueble.banos ?? 0) < demanda.banosMin) {
-    return { ok: false, puntuacion: 0, motivos: ["Faltan baños."] };
-  }
-  if (demanda.banosMin != null) puntos += 5;
-
-  return { ok: true, puntuacion: puntos, motivos };
+  const precio = precioDeCruce(demanda.tipoOperacion, inmueble.precioVenta, inmueble.precioAlquiler);
+  const max = demanda.presupuestoMax;
+  const cerca =
+    max != null && precio != null && precio <= max ? Math.round(((max - precio) / max) * 15) : 0;
+  return { ok: true, puntuacion: 80 + cerca, motivos };
 }
 
 export function matchingDemandas(

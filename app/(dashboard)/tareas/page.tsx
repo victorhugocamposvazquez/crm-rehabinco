@@ -23,6 +23,7 @@ import {
   type ColumnaTarea,
 } from "@/lib/tareas/tareas";
 import { backfillTareasDesdeCalendario, syncCitaDesdeTarea } from "@/lib/tareas/sync-cita";
+import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { TareasBoard, AvataresTarea, type TareaTarjeta } from "@/components/tareas/TareasBoard";
 import { TareaPanel, type TareaDetalle } from "@/components/tareas/TareaPanel";
 import { avisarEvento } from "@/lib/alertas/avisar-cliente";
@@ -193,8 +194,9 @@ export default function TareasPage() {
       })
       .select(SELECT_TAREA)
       .single();
-    if (error || !data) {
-      toast.error("No se ha podido crear la tarea.");
+    const aviso = mensajeGuardado(error, "No se ha podido crear la tarea.", data);
+    if (aviso) {
+      toast.error(aviso);
       return;
     }
     const creada = normalizar(data as TareaDetalle & Record<string, unknown>);
@@ -222,9 +224,10 @@ export default function TareasPage() {
     const actual = tareas.find((t) => t.id === id);
     const siguiente = actual?.estado === "hecha" ? "pendiente" : "hecha";
     const supabase = createClient();
-    const { error } = await supabase.from("tareas").update({ estado: siguiente }).eq("id", id);
-    if (error) {
-      toast.error("No se ha podido actualizar la tarea.");
+    const { data, error } = await supabase.from("tareas").update({ estado: siguiente }).eq("id", id).select("id").maybeSingle();
+    const aviso = mensajeGuardado(error, "No se ha podido actualizar la tarea.", data);
+    if (aviso) {
+      toast.error(aviso);
       return;
     }
     if (actual?.cita_id) {
@@ -239,9 +242,10 @@ export default function TareasPage() {
   const mover = async (id: string, col: ColumnaTarea) => {
     const patch = patchAlMoverColumna(col, hoy);
     const supabase = createClient();
-    const { error } = await supabase.from("tareas").update(patch).eq("id", id);
-    if (error) {
-      toast.error("No se ha podido mover la tarea.");
+    const { data, error } = await supabase.from("tareas").update(patch).eq("id", id).select("id").maybeSingle();
+    const aviso = mensajeGuardado(error, "No se ha podido mover la tarea.", data);
+    if (aviso) {
+      toast.error(aviso);
       return;
     }
     setTareas((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)));
@@ -251,9 +255,10 @@ export default function TareasPage() {
     const actual = tareas.find((t) => t.id === id);
     if (!actual) return;
     const supabase = createClient();
-    const { error } = await supabase.from("tareas").update(patch).eq("id", id);
-    if (error) {
-      toast.error("No se ha podido guardar la tarea.");
+    const { data, error } = await supabase.from("tareas").update(patch).eq("id", id).select("id").maybeSingle();
+    const aviso = mensajeGuardado(error, "No se ha podido guardar la tarea.", data);
+    if (aviso) {
+      toast.error(aviso);
       return;
     }
     const siguiente = { ...actual, ...patch } as TareaDetalle;
@@ -285,9 +290,10 @@ export default function TareasPage() {
     const actual = tareas.find((t) => t.id === id);
     if (!actual?.cita_id) return;
     const supabase = createClient();
-    const { error } = await supabase.from("citas").update({ notas }).eq("id", actual.cita_id);
-    if (error) {
-      toast.error("No se han podido guardar las notas.");
+    const { data, error } = await supabase.from("citas").update({ notas }).eq("id", actual.cita_id).select("id").maybeSingle();
+    const aviso = mensajeGuardado(error, "No se han podido guardar las notas.", data);
+    if (aviso) {
+      toast.error(aviso);
       return;
     }
     setTareas((prev) =>
@@ -300,15 +306,17 @@ export default function TareasPage() {
     if (!actual) return;
     const supabase = createClient();
     if (actual.cita_id) {
-      const { error: errCita } = await supabase.from("citas").delete().eq("id", actual.cita_id);
-      if (errCita) {
-        toast.error("No se ha podido quitar la cita del calendario.");
+      const { data: citaBorrada, error: errCita } = await supabase.from("citas").delete().eq("id", actual.cita_id).select("id");
+      const avisoCita = mensajeGuardado(errCita, "No se ha podido quitar la cita del calendario.", citaBorrada);
+      if (avisoCita) {
+        toast.error(avisoCita);
         return;
       }
     }
-    const { error } = await supabase.from("tareas").delete().eq("id", id);
-    if (error) {
-      toast.error("No se ha podido eliminar la tarea.");
+    const { data, error } = await supabase.from("tareas").delete().eq("id", id).select("id");
+    const aviso = mensajeGuardado(error, "No se ha podido eliminar la tarea.", data);
+    if (aviso) {
+      toast.error(aviso);
       return;
     }
     setTareas((prev) => prev.filter((item) => item.id !== id));

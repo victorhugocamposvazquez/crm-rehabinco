@@ -2,13 +2,14 @@ import { createClient } from "@/lib/supabase/client";
 import { relacionUno } from "@/lib/citas/citas";
 
 export const SELECT_INMUEBLE_PANEL =
-  "id, titulo, direccion, localidad, tipo_operacion, precio_venta, precio_alquiler, estado, referencia, tipo_inmueble, origen, superficie_m2, anio_construccion, referencia_catastral, descripcion, notas, publicado, ofertante_id, comercial_id, habitaciones, banos, planta, video_url, tour_url, clientes:ofertante_id(nombre), profiles:comercial_id(nombre_completo, color), inmueble_media(url, portada, tipo), catastro_property_links(finca_reference)";
+  "id, titulo, direccion, localidad, codigo_postal, tipo_operacion, precio_venta, precio_alquiler, estado, referencia, tipo_inmueble, origen, superficie_m2, superficie_util, ascensor, anio_construccion, referencia_catastral, descripcion, notas, publicado, ofertante_id, comercial_id, habitaciones, banos, planta, video_url, tour_url, clientes:ofertante_id(nombre), profiles:comercial_id(nombre_completo, color), inmueble_media(url, portada, tipo), catastro_property_links(finca_reference)";
 
 export type InmueblePanel = {
   id: string;
   titulo: string | null;
   direccion: string | null;
   localidad: string | null;
+  codigo_postal: string | null;
   tipo_operacion: string;
   precio_venta: number | null;
   precio_alquiler: number | null;
@@ -24,6 +25,8 @@ export type InmueblePanel = {
   origen: string | null;
   dhStatus: string | null;
   superficie_m2: number | null;
+  superficie_util: number | null;
+  ascensor: boolean | null;
   anio_construccion: number | null;
   referencia_catastral: string | null;
   descripcion: string | null;
@@ -43,6 +46,7 @@ export type InmueblePanelRow = {
   titulo: string | null;
   direccion: string | null;
   localidad: string | null;
+  codigo_postal?: string | null;
   tipo_operacion: string;
   precio_venta: number | null;
   precio_alquiler: number | null;
@@ -51,6 +55,8 @@ export type InmueblePanelRow = {
   tipo_inmueble: string | null;
   origen: string | null;
   superficie_m2: number | null;
+  superficie_util?: number | null;
+  ascensor?: boolean | null;
   anio_construccion: number | null;
   referencia_catastral: string | null;
   descripcion: string | null;
@@ -85,6 +91,7 @@ export function mapInmueblePanel(r: InmueblePanelRow, dhPorFinca?: Map<string, s
     titulo: r.titulo,
     direccion: r.direccion,
     localidad: r.localidad,
+    codigo_postal: r.codigo_postal ?? null,
     tipo_operacion: r.tipo_operacion,
     precio_venta: r.precio_venta,
     precio_alquiler: r.precio_alquiler,
@@ -100,6 +107,8 @@ export function mapInmueblePanel(r: InmueblePanelRow, dhPorFinca?: Map<string, s
     origen: r.origen ?? null,
     dhStatus: fincaReference ? dhPorFinca?.get(fincaReference) ?? null : null,
     superficie_m2: r.superficie_m2,
+    superficie_util: r.superficie_util ?? null,
+    ascensor: r.ascensor ?? null,
     anio_construccion: r.anio_construccion,
     referencia_catastral: r.referencia_catastral,
     descripcion: r.descripcion,

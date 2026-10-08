@@ -5,12 +5,9 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { FichaLink } from "@/components/crm/FichaPeek";
-import {
-  ESTADOS_MATCHING,
-  ESTADO_MATCHING_LABEL,
-  matchingInmuebleDemandas,
-  type CriteriosDemanda,
-} from "@/lib/demandas/matching";
+import { fichaParaMatching, matchingInmuebleDemandas, ESTADOS_MATCHING, ESTADO_MATCHING_LABEL } from "@/lib/demandas/matching";
+import { criteriosDeDemanda } from "@/lib/demandas/proponer-stock";
+import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { relacionUno } from "@/lib/citas/citas";
 import type { Inmueble } from "@/lib/inmuebles/catalogo";
 import { Selector } from "@/components/ui/selector";
@@ -59,55 +56,45 @@ export function InmuebleMatching({ inmueble }: { inmueble: Inmueble }) {
     const { data } = await supabase
       .from("demandas")
       .select(
-        "id, tipo_operacion, tipos_inmueble, zonas, presupuesto_min, presupuesto_max, superficie_min, superficie_max, habitaciones_min, banos_min"
+        "id, tipo_operacion, tipos_inmueble, zonas, presupuesto_min, presupuesto_max, superficie_min, superficie_max, habitaciones_min, banos_min, requisitos"
       )
       .eq("estado", "activa");
-    const criterios = (data ?? []).map((d) => ({
-      id: d.id,
-      tipoOperacion: d.tipo_operacion,
-      tiposInmueble: d.tipos_inmueble ?? [],
-      zonas: d.zonas ?? [],
-      presupuestoMin: d.presupuesto_min,
-      presupuestoMax: d.presupuesto_max,
-      superficieMin: d.superficie_min,
-      superficieMax: d.superficie_max,
-      habitacionesMin: d.habitaciones_min,
-      banosMin: d.banos_min,
-    })) satisfies Array<CriteriosDemanda & { id: string }>;
-    const resultados = matchingInmuebleDemandas(
-      {
-        id: inmueble.id,
-        tipoOperacion: inmueble.tipo_operacion,
-        tipoInmueble: inmueble.tipo_inmueble,
-        localidad: inmueble.localidad,
-        codigoPostal: inmueble.codigo_postal,
-        precioVenta: inmueble.precio_venta,
-        precioAlquiler: inmueble.precio_alquiler,
-        superficie: inmueble.superficie_util ?? inmueble.superficie_m2,
-        habitaciones: inmueble.habitaciones,
-        banos: inmueble.banos,
-        estado: inmueble.estado,
-        publicado: inmueble.publicado,
-      },
-      criterios
-    );
+    const criterios = (data ?? []).map((d) => ({ id: d.id, ...criteriosDeDemanda(d) }));
+    const resultados = matchingInmuebleDemandas(fichaParaMatching(inmueble), criterios);
     const ya = new Set(matches.map((item) => item.demanda_id));
     for (const item of resultados) {
       if (ya.has(item.demandaId)) {
-        await supabase
+        const { data: fila, error } = await supabase
           .from("demanda_inmuebles")
           .update({ puntuacion: item.puntuacion })
           .eq("demanda_id", item.demandaId)
-          .eq("propiedad_id", inmueble.id);
+          .eq("propiedad_id", inmueble.id)
+          .select("id");
+        const aviso = mensajeGuardado(error, "No se ha podido actualizar el encaje.", fila);
+        if (aviso) {
+          setBuscando(false);
+          toast.error(aviso);
+          return;
+        }
         continue;
       }
-      await supabase.from("demanda_inmuebles").insert({
-        demanda_id: item.demandaId,
-        propiedad_id: inmueble.id,
-        origen: "automatico",
-        puntuacion: item.puntuacion,
-        estado: "propuesto",
-      });
+      const { data: fila, error } = await supabase
+        .from("demanda_inmuebles")
+        .insert({
+          demanda_id: item.demandaId,
+          propiedad_id: inmueble.id,
+          origen: "automatico",
+          puntuacion: item.puntuacion,
+          estado: "propuesto",
+        })
+        .select("id")
+        .single();
+      const aviso = mensajeGuardado(error, "No se ha podido proponer la demanda.", fila);
+      if (aviso) {
+        setBuscando(false);
+        toast.error(aviso);
+        return;
+      }
     }
     setBuscando(false);
     toast.success(`${resultados.length} demandas encajan.`);
@@ -116,7 +103,12 @@ export function InmuebleMatching({ inmueble }: { inmueble: Inmueble }) {
 
   const cambiar = async (id: string, estado: string) => {
     const supabase = createClient();
-    await supabase.from("demanda_inmuebles").update({ estado }).eq("id", id);
+    const { data, error } = await supabase.from("demanda_inmuebles").update({ estado }).eq("id", id).select("id").maybeSingle();
+    const aviso = mensajeGuardado(error, "No se ha podido guardar el estado.", data);
+    if (aviso) {
+      toast.error(aviso);
+      return;
+    }
     cargar();
   };
 

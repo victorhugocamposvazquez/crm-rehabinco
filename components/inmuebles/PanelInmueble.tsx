@@ -10,7 +10,9 @@ import { completitudFicha } from "@/lib/inmuebles/completitud";
 import { formatPrecioInmueble, labelEstadoInmueble, labelTipoInmueble } from "@/lib/inmuebles/catalogo";
 import { precioDeInmueble, type InmueblePanel } from "@/lib/inmuebles/panel";
 import { rutaNuevaCita } from "@/lib/citas/citas";
-import { matchingInmuebleDemandas, type CriteriosDemanda } from "@/lib/demandas/matching";
+import { fichaParaMatching, matchingInmuebleDemandas } from "@/lib/demandas/matching";
+import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
+import { criteriosDeDemanda } from "@/lib/demandas/proponer-stock";
 import { relacionUno } from "@/lib/citas/citas";
 import { FichaLink } from "@/components/crm/FichaPeek";
 import { InmuebleMultimedia } from "@/components/inmuebles/InmuebleMultimedia";
@@ -104,42 +106,18 @@ export function PanelInmueble({
       const { data: demandas } = await supabase
         .from("demandas")
         .select(
-          "id, tipo_operacion, tipos_inmueble, zonas, presupuesto_min, presupuesto_max, superficie_min, superficie_max, habitaciones_min, banos_min, clientes:cliente_id(nombre)"
+          "id, tipo_operacion, tipos_inmueble, zonas, presupuesto_min, presupuesto_max, superficie_min, superficie_max, habitaciones_min, banos_min, requisitos, clientes:cliente_id(nombre)"
         )
         .eq("estado", "activa");
       const criterios = (demandas ?? []).map((d) => {
         const cliente = relacionUno(d.clientes as { nombre?: string | null } | { nombre?: string | null }[] | null);
         return {
           id: d.id,
-          tipoOperacion: d.tipo_operacion,
-          tiposInmueble: d.tipos_inmueble ?? [],
-          zonas: d.zonas ?? [],
-          presupuestoMin: d.presupuesto_min,
-          presupuestoMax: d.presupuesto_max,
-          superficieMin: d.superficie_min,
-          superficieMax: d.superficie_max,
-          habitacionesMin: d.habitaciones_min,
-          banosMin: d.banos_min,
+          ...criteriosDeDemanda(d),
           cliente: cliente?.nombre ?? "Cliente",
         };
-      }) satisfies Array<CriteriosDemanda & { id: string; cliente: string }>;
-      const resultados = matchingInmuebleDemandas(
-        {
-          id: inmueble.id,
-          tipoOperacion: inmueble.tipo_operacion,
-          tipoInmueble: inmueble.tipo_inmueble,
-          localidad: inmueble.localidad,
-          codigoPostal: null,
-          precioVenta: inmueble.precio_venta,
-          precioAlquiler: inmueble.precio_alquiler,
-          superficie: inmueble.superficie_m2,
-          habitaciones: inmueble.habitaciones,
-          banos: inmueble.banos,
-          estado: inmueble.estado,
-          publicado: inmueble.publicado,
-        },
-        criterios
-      );
+      });
+      const resultados = matchingInmuebleDemandas(fichaParaMatching(inmueble), criterios);
       if (!cancelled) {
         setMatches(
           resultados.slice(0, 5).map((item) => {
@@ -163,15 +141,29 @@ export function PanelInmueble({
     if (!inmueble) return;
     const supabase = createClient();
     if (item.id) {
-      await supabase.from("demanda_inmuebles").update({ estado }).eq("id", item.id);
+      const { data, error } = await supabase.from("demanda_inmuebles").update({ estado }).eq("id", item.id).select("id").maybeSingle();
+      const aviso = mensajeGuardado(error, "No se ha podido guardar el encaje.", data);
+      if (aviso) {
+        toast.error(aviso);
+        return;
+      }
     } else {
-      await supabase.from("demanda_inmuebles").insert({
-        demanda_id: item.demandaId,
-        propiedad_id: inmueble.id,
-        origen: "automatico",
-        puntuacion: item.score,
-        estado,
-      });
+      const { data, error } = await supabase
+        .from("demanda_inmuebles")
+        .insert({
+          demanda_id: item.demandaId,
+          propiedad_id: inmueble.id,
+          origen: "automatico",
+          puntuacion: item.score,
+          estado,
+        })
+        .select("id")
+        .single();
+      const aviso = mensajeGuardado(error, "No se ha podido guardar el encaje.", data);
+      if (aviso) {
+        toast.error(aviso);
+        return;
+      }
     }
     setMatches((prev) => prev.map((m) => (m.demandaId === item.demandaId ? { ...m, estado } : m)));
   };
@@ -212,7 +204,7 @@ export function PanelInmueble({
       precio_venta: inmueble.precio_venta,
       precio_alquiler: inmueble.precio_alquiler,
       superficie_m2: inmueble.superficie_m2,
-      superficie_util: null,
+      superficie_util: inmueble.superficie_util,
       habitaciones: inmueble.habitaciones,
       descripcion: inmueble.descripcion,
       ofertante_id: inmueble.ofertante_id,

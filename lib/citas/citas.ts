@@ -320,9 +320,9 @@ export function mapInmuebleCalendario(
   };
 }
 
-/** Editar, mover o cambiar estado: propietario de la cita o admin. */
-export function puedeGestionarCita(comercialId: string, userId: string | undefined, admin: boolean) {
-  return Boolean(userId && (admin || comercialId === userId));
+/** Editar, mover o cambiar estado: cualquier miembro del equipo con sesión. La base limita el resto. */
+export function puedeGestionarCita(_comercialId: string, userId: string | undefined, _admin: boolean) {
+  return Boolean(userId);
 }
 
 export function prefillParteDesdeCita(cita: {

@@ -11,6 +11,7 @@ import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
 import { BotonImportarContacto } from "@/components/clientes/BotonImportarContacto";
 import type { ContactoImportado } from "@/lib/contacts/contact-picker";
 import { Selector } from "@/components/ui/selector";
+import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 
 type ClienteAltaSnap = {
   tipoCliente: "particular" | "empresa";
@@ -165,8 +166,9 @@ export function NuevoClientePanel({
       .select("id")
       .single();
     setSaving(false);
-    if (error || !data) {
-      toast.error("No se ha podido crear el cliente.");
+    const aviso = mensajeGuardado(error, "No se ha podido crear el contacto.", data);
+    if (aviso || !data) {
+      toast.error(aviso ?? "No se ha podido crear el contacto.");
       return;
     }
     toast.success(empresaAsociada ? "Empresa asociada creada." : "Contacto creado.");

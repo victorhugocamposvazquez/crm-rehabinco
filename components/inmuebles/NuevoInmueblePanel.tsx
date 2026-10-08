@@ -23,6 +23,7 @@ import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
 import { acceptMedia, validarArchivoMedia } from "@/lib/inmuebles/media";
 import { subirArchivosMedia } from "@/lib/inmuebles/subir-media";
 import { Selector } from "@/components/ui/selector";
+import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 
 type InmuebleAltaSnap = {
   values: InmuebleFormValues;
@@ -145,9 +146,10 @@ export function NuevoInmueblePanel({
       })
       .select("id")
       .single();
-    if (error || !data) {
+    const aviso = mensajeGuardado(error, "No se ha podido crear el inmueble.", data);
+    if (aviso || !data) {
       setSaving(false);
-      toast.error("No se ha podido crear el inmueble.");
+      toast.error(aviso ?? "No se ha podido crear el inmueble.");
       return;
     }
     if (pendientesFoto.length || pendientesPlano.length) {

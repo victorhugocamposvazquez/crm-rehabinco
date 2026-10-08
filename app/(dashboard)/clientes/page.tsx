@@ -17,6 +17,7 @@ import { FichaLink } from "@/components/crm/FichaPeek";
 import { extraAlta } from "@/lib/ui/alta-panel";
 import { NuevoClientePanel } from "@/components/clientes/NuevoClientePanel";
 import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
+import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 
 type ClienteLista = {
   id: string;
@@ -271,9 +272,10 @@ export default function ClientesPage() {
 
   const pasarACliente = async (id: string) => {
     const supabase = createClient();
-    const { error: err } = await supabase.from("clientes").update({ es_cliente: true }).eq("id", id);
-    if (err) {
-      setError(err.message);
+    const { data, error: err } = await supabase.from("clientes").update({ es_cliente: true }).eq("id", id).select("id").maybeSingle();
+    const aviso = mensajeGuardado(err, "No se ha podido pasar a cliente.", data);
+    if (aviso) {
+      setError(aviso);
       return;
     }
     setClientes((prev) => prev.map((fila) => (fila.id === id ? { ...fila, es_cliente: true } : fila)));
