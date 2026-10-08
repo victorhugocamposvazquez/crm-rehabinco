@@ -50,8 +50,17 @@ export const PREFS_AVISO_DEFAULT: PrefsAviso = {
   partes: true,
 };
 
+/** Hora de España del recordatorio diario si la persona no elige otra. */
+export const HORA_DIARIA_DEFECTO = 10;
+
 export const SELECT_PREFS_AVISO =
-  "visitas, recordatorios, agenda, tareas_hoy, tareas_vencidas, menciones, partes";
+  "visitas, recordatorios, agenda, tareas_hoy, tareas_vencidas, menciones, partes, hora_diaria";
+
+export function horaDiariaDe(row: { hora_diaria?: number | null } | null | undefined): number {
+  const hora = row?.hora_diaria;
+  if (typeof hora === "number" && Number.isInteger(hora) && hora >= 0 && hora <= 23) return hora;
+  return HORA_DIARIA_DEFECTO;
+}
 
 export function prefsCompletas(row: Partial<PrefsAviso> | null | undefined): PrefsAviso {
   return {

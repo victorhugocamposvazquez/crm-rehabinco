@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { esFranjaManana, fechaMadrid, rangoDiaMadrid } from "./madrid";
-import { prefsCompletas, SELECT_PREFS_AVISO, type CanalAviso, type PrefsAviso } from "./prefs";
+import { esFranjaDeHora, esFranjaManana, fechaMadrid, partesMadrid, rangoDiaMadrid } from "./madrid";
+import { horaDiariaDe, prefsCompletas, SELECT_PREFS_AVISO, type CanalAviso, type PrefsAviso } from "./prefs";
 import { publicarAviso } from "./publicar";
 import { horaMadrid } from "./ventana";
 
@@ -35,9 +35,10 @@ function ordenDeHora(hora: string | null): number {
   return hn * 60 + mn;
 }
 
-/** Un push a las 10:00 (Madrid): «Tus tareas del día», enlace al calendario. Una vez por persona y día. */
+/** Un push al día, a la hora que eligió cada persona (por defecto las 10:00 de España). Una vez por persona y día. */
 export async function dispararMananaAlertas(ahora = new Date()) {
-  if (!esFranjaManana(ahora)) {
+  const { minuto } = partesMadrid(ahora);
+  if (minuto >= 15) {
     return { ok: true as const, modo: "manana" as const, avisos: 0, motivo: "fuera de hora" as const };
   }
 
@@ -60,7 +61,11 @@ export async function dispararMananaAlertas(ahora = new Date()) {
   if (errPrefs) throw new Error(errPrefs.message);
 
   const prefsPorUsuario = new Map<string, PrefsAviso>();
-  for (const row of prefsRows ?? []) prefsPorUsuario.set(row.user_id, prefsCompletas(row));
+  const horaPorUsuario = new Map<string, number>();
+  for (const row of prefsRows ?? []) {
+    prefsPorUsuario.set(row.user_id, prefsCompletas(row));
+    horaPorUsuario.set(row.user_id, horaDiariaDe(row));
+  }
 
   const porUsuario = new Map<string, ItemDia[]>();
   const meter = (userId: string | null | undefined, item: ItemDia) => {
@@ -82,6 +87,8 @@ export async function dispararMananaAlertas(ahora = new Date()) {
   let avisos = 0;
   for (const [userId, items] of porUsuario) {
     if (items.length === 0) continue;
+    const hora = horaPorUsuario.get(userId) ?? horaDiariaDe(null);
+    if (!esFranjaDeHora(hora, ahora)) continue;
     const canal = canalResumen(prefsPorUsuario.get(userId) ?? prefsCompletas(null));
     if (!canal) continue;
     items.sort((a, b) => a.orden - b.orden);

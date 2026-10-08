@@ -40,7 +40,7 @@ export default function SettingsAvisosPage() {
       <PageHeader
         breadcrumb={[{ label: "Ajustes", href: "/settings" }, { label: "Avisos" }]}
         title="Avisos"
-        description="Este dispositivo, de quién quieres recibir avisos y qué tipos."
+        description="Este dispositivo, la hora del recordatorio, de quién quieres avisos y qué tipos."
       />
       <SettingsAdminNav role={user?.role} />
       <div className="mt-6 space-y-4 min-[820px]:overflow-hidden">

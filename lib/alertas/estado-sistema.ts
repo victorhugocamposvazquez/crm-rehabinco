@@ -62,7 +62,7 @@ export async function estadoSistemaAvisos(): Promise<{
     id: "cron_horario",
     label: "Horario del cron",
     nivel: "ok",
-    detalle: `Cada 15 min: Supabase llama a ${SISTEMA_AVISOS_ACTUAL.rutaCron}?solo=ventana (una hora antes, y a las ${SISTEMA_AVISOS_ACTUAL.horarioCron} el resumen del día).`,
+    detalle: `Cada 15 min: Supabase llama a ${SISTEMA_AVISOS_ACTUAL.rutaCron}?solo=ventana. Avisa una hora antes, y manda el resumen del día a la hora que eligió cada persona (por defecto las 10:00).`,
   });
 
   const admin = createAdminClient();
@@ -81,14 +81,14 @@ export async function estadoSistemaAvisos(): Promise<{
   if (nDigests === 0) {
     checks.push({
       id: "digests_hoy",
-      label: "Resumen de las 10:00",
+      label: "Recordatorio del día",
       nivel: "aviso",
-      detalle: `Aún no hay «Tus tareas del día» del ${fecha}. Normal antes de las 10:00, o si nadie tenía citas ni tareas hoy.`,
+      detalle: `Aún no hay «Tus tareas del día» del ${fecha}. Normal si todavía no ha llegado la hora de nadie, o si el día estaba vacío.`,
     });
   } else {
     checks.push({
       id: "digests_hoy",
-      label: "Resumen de las 10:00",
+      label: "Recordatorio del día",
       nivel: "ok",
       detalle: `${nDigests} aviso(s) «Tus tareas del día» del ${fecha}.`,
     });

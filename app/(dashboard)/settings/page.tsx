@@ -106,7 +106,7 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-sm text-neutral-500">
-                Este dispositivo, de quién quieres recibir avisos y qué tipos.
+                Este dispositivo, la hora del recordatorio, de quién quieres avisos y qué tipos.
               </p>
               <Button asChild>
                 <Link href="/settings/avisos">Abrir avisos</Link>

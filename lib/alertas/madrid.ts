@@ -9,7 +9,7 @@ export function fechaMadrid(ahora = new Date()): string {
   }).format(ahora);
 }
 
-function partesMadrid(ahora: Date): { hora: number; minuto: number } {
+export function partesMadrid(ahora = new Date()): { hora: number; minuto: number } {
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: ZONA,
     hour: "2-digit",
@@ -20,10 +20,17 @@ function partesMadrid(ahora: Date): { hora: number; minuto: number } {
   return { hora: leer("hour"), minuto: leer("minute") };
 }
 
-/** La pasada de las 10:00. El cron va cada 15 min, así que entra de 10:00 a 10:14. */
+/** El cron va cada 15 min: la hora elegida entra de HH:00 a HH:14, hora de Madrid. */
+export function esFranjaDeHora(horaElegida: number, ahora = new Date()): boolean {
+  const hora = Math.trunc(horaElegida);
+  if (hora < 0 || hora > 23) return false;
+  const partes = partesMadrid(ahora);
+  return partes.hora === hora && partes.minuto < 15;
+}
+
+/** La pasada de las 10:00, el valor por defecto. */
 export function esFranjaManana(ahora = new Date()): boolean {
-  const { hora, minuto } = partesMadrid(ahora);
-  return hora === 10 && minuto < 15;
+  return esFranjaDeHora(10, ahora);
 }
 
 function offsetMadridMinutos(instante: Date): number {

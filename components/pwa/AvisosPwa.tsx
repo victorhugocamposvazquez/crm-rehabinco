@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import {
   canalDeTipo,
   CANALES_AVISO,
+  horaDiariaDe,
+  HORA_DIARIA_DEFECTO,
   itemPermitido,
   prefsCompletas,
   SELECT_PREFS_AVISO,
@@ -138,6 +140,8 @@ export function AvisosPwaCard() {
   const [estado, setEstado] = useState<"off" | "on">("off");
   const [busy, setBusy] = useState(false);
   const [prefs, setPrefs] = useState<PrefsAviso>(prefsCompletas(null));
+  const [horaDiaria, setHoraDiaria] = useState(HORA_DIARIA_DEFECTO);
+  const [guardandoHora, setGuardandoHora] = useState(false);
   const [guardando, setGuardando] = useState<CanalAviso | null>(null);
   const [equipo, setEquipo] = useState<Array<{ id: string; nombre: string; rol: string; email: string }>>([]);
   const [errorEquipo, setErrorEquipo] = useState<string | null>(null);
@@ -163,6 +167,7 @@ export function AvisosPwaCard() {
           return;
         }
         setPrefs(prefsCompletas(data));
+        setHoraDiaria(horaDiariaDe(data));
       });
     void supabase
       .from("profiles")
@@ -205,6 +210,7 @@ export function AvisosPwaCard() {
       {
         user_id: user.id,
         ...next,
+        hora_diaria: horaDiaria,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id" }
@@ -216,6 +222,30 @@ export function AvisosPwaCard() {
       return;
     }
     toast.success(next[canal] ? `${CANALES_AVISO.find((c) => c.id === canal)?.label ?? "Aviso"} activado.` : `${CANALES_AVISO.find((c) => c.id === canal)?.label ?? "Aviso"} desactivado.`);
+  };
+
+  const guardarHora = async (hora: number) => {
+    if (!user?.id || hora < 0 || hora > 23) return;
+    const previa = horaDiaria;
+    setHoraDiaria(hora);
+    setGuardandoHora(true);
+    const supabase = createClient();
+    const { error } = await supabase.from("crm_aviso_prefs").upsert(
+      {
+        user_id: user.id,
+        ...prefs,
+        hora_diaria: hora,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" }
+    );
+    setGuardandoHora(false);
+    if (error) {
+      setHoraDiaria(previa);
+      toast.error("No se ha podido guardar la hora.");
+      return;
+    }
+    toast.success(`Recordatorio diario a las ${String(hora).padStart(2, "0")}:00, hora de España.`);
   };
 
   const toggleSeguir = async (personaId: string, nombre: string) => {
@@ -312,6 +342,32 @@ export function AvisosPwaCard() {
             )}
           </div>
         </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Tu recordatorio diario</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-[13px] text-[var(--text-2)]">
+            Un aviso al día, «Tus tareas del día», solo si tienes citas o tareas. Por defecto a las 10:00, hora de España.
+          </p>
+          <label className="flex flex-wrap items-center gap-3 text-[13.5px] font-medium">
+            Hora
+            <select
+              value={horaDiaria}
+              disabled={guardandoHora}
+              onChange={(event) => void guardarHora(Number(event.target.value))}
+              className="h-10 rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-3 text-[14px] text-foreground"
+            >
+              {Array.from({ length: 24 }, (_, hora) => (
+                <option key={hora} value={hora}>
+                  {String(hora).padStart(2, "0")}:00
+                </option>
+              ))}
+            </select>
+          </label>
         </CardContent>
       </Card>
 

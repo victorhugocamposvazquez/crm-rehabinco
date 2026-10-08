@@ -7,9 +7,9 @@ export type CheckAvisos = {
 
 /** Cómo está montado el sistema hoy (para el panel de superadmin). Sin imports de servidor. */
 export const SISTEMA_AVISOS_ACTUAL = {
-  nombre: "Avisos al momento, una hora antes y resumen a las 10:00",
+  nombre: "Avisos al momento, una hora antes y un recordatorio al día",
   resumen:
-    "Lo útil sale en el acto (te mencionan o te asignan algo). Cada cita avisa una vez, sobre una hora antes. A las 10:00 (hora de Madrid) llega un solo push: «Tus tareas del día», con enlace al calendario. La pasada frecuente la hace Supabase cada 15 minutos.",
+    "Lo útil sale en el acto (te mencionan o te asignan algo). Cada cita avisa una vez, sobre una hora antes. Una vez al día llega «Tus tareas del día», con enlace al calendario. Por defecto a las 10:00, hora de España; cada persona puede cambiar la hora. La pasada frecuente la hace Supabase cada 15 minutos.",
   piezas: [
     {
       titulo: "Al momento",
@@ -22,9 +22,9 @@ export const SISTEMA_AVISOS_ACTUAL = {
         "Cada 15 minutos Supabase mira las citas previstas. La primera vez que falta una hora y cuarto o menos, avisa («Empieza en 60 min») y no se repite. Llega entre 60 y 75 minutos antes: una hora antes queda cubierta de sobra.",
     },
     {
-      titulo: "A las 10:00",
+      titulo: "Una vez al día",
       texto:
-        "Un push al día, a las 10:00 hora de Madrid, solo si esa persona tiene citas o tareas para hoy. Título: «Tus tareas del día». Abre el calendario. No sale si el día está vacío.",
+        "Un push al día, a la hora que elija cada persona (por defecto las 10:00, hora de España), solo si tiene citas o tareas para hoy. Título: «Tus tareas del día». Abre el calendario. No sale si el día está vacío.",
     },
     {
       titulo: "A quién llega",

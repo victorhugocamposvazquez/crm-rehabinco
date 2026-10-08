@@ -1418,6 +1418,7 @@ export interface Database {
           tareas_vencidas: boolean;
           menciones: boolean;
           partes: boolean;
+          hora_diaria: number;
           updated_at: string;
         };
         Insert: {
@@ -1429,6 +1430,7 @@ export interface Database {
           tareas_vencidas?: boolean;
           menciones?: boolean;
           partes?: boolean;
+          hora_diaria?: number;
           updated_at?: string;
         };
         Update: {
@@ -1439,6 +1441,7 @@ export interface Database {
           tareas_vencidas?: boolean;
           menciones?: boolean;
           partes?: boolean;
+          hora_diaria?: number;
           updated_at?: string;
         };
       };
