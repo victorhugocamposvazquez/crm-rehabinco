@@ -71,7 +71,7 @@ export function completitudFicha(input: {
       ok: hayTexto(input.inmueble.video_url) || hayTexto(input.inmueble.tour_url),
     },
     { clave: "propietario", label: "Propietario", ok: Boolean(input.inmueble.ofertante_id) },
-    { clave: "publicado", label: "Listo para matching", ok: Boolean(input.inmueble.publicado) },
+    { clave: "publicado", label: "Visible para el equipo", ok: Boolean(input.inmueble.publicado) },
   ];
   const rellenos = campos.filter((item) => item.ok).length;
   return {

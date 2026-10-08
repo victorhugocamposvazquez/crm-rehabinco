@@ -101,10 +101,6 @@ export function PanelInmueble({
         if (!cancelled) setMatches(existentes);
         return;
       }
-      if (!inmueble.publicado) {
-        if (!cancelled) setMatches([]);
-        return;
-      }
       const { data: demandas } = await supabase
         .from("demandas")
         .select(

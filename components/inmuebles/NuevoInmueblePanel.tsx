@@ -310,8 +310,8 @@ export function NuevoInmueblePanel({
           </div>
           <label className="flex items-center justify-between gap-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3.5">
             <span>
-              <span className="block text-[14px] font-semibold">Listo para matching</span>
-              <span className="text-[12.5px] text-[var(--text-2)]">Visible internamente, no en portales</span>
+              <span className="block text-[14px] font-semibold">Visible para el equipo</span>
+              <span className="text-[12.5px] text-[var(--text-2)]">No lo publica en portales. El cruce con demandas usa los inmuebles disponibles.</span>
             </span>
             <input type="checkbox" checked={values.publicado} onChange={(e) => set({ publicado: e.target.checked })} className="h-4 w-4 accent-[var(--accent)]" />
           </label>

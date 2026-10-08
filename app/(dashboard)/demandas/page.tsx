@@ -148,7 +148,7 @@ export default function DemandasPage() {
       <PageHeader
         breadcrumb={[{ label: "Demandas" }]}
         title="Demandas"
-        description="Lo que busca cada cliente. Al crear, proponemos stock publicado; tú confirmas."
+        description="Lo que busca cada cliente. El cruce usa el stock disponible; tú confirmas."
         hideActionsOnMobile
         actions={
           <Button type="button" size="sm" onClick={() => { setClienteInicial(undefined); setNuevaOpen(true); }}>

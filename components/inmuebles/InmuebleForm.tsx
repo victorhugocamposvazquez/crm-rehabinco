@@ -259,7 +259,7 @@ export function InmuebleForm({
             onChange={(e) => set({ publicado: e.target.checked })}
             className="h-4 w-4 rounded border-border"
           />
-          Listo para matching (publicado internamente)
+          Visible para el equipo
         </label>
       </section>
 

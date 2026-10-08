@@ -30,11 +30,12 @@ function piso(parcial: Partial<InmuebleParaCruce> = {}): InmuebleParaCruce {
 }
 
 describe("evaluar cruce", () => {
-  it("sin zona no encaja, aunque el precio y el tipo cuadren", () => {
-    const r = evaluarCruce(piso(), { ...DEMANDA, zonas: [] });
-    assert.equal(r.perfect, false);
-    assert.equal(r.near, false);
-    assert.match(r.checks.find((c) => !c.ok)?.label ?? "", /Sin zona/);
+  it("sin zona encaja un chalet en compra si el tipo y el precio cuadran", () => {
+    const r = evaluarCruce(
+      piso({ tipoOperacion: "ambos", tipoInmueble: "chalet", localidad: "coruña", precio: 450000 }),
+      { ...DEMANDA, tiposInmueble: ["piso", "chalet"], zonas: [], presupuestoMax: 620000 }
+    );
+    assert.equal(r.perfect, true);
   });
 
   it("un piso dentro de presupuesto y de zona encaja del todo si no hay más criterios", () => {

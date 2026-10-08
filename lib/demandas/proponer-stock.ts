@@ -65,7 +65,7 @@ type FilaPropuesta = {
   estado: string;
 };
 
-/** Propone inmuebles publicados y disponibles. Devuelve cuántos entran nuevos. */
+/** Propone inmuebles disponibles. Devuelve cuántos entran nuevos. */
 export async function proponerStockParaDemanda(
   supabase: Cliente,
   demandaId: string,
@@ -77,8 +77,7 @@ export async function proponerStockParaDemanda(
       .select(
         "id, tipo_operacion, tipo_inmueble, localidad, codigo_postal, precio_venta, precio_alquiler, superficie_m2, superficie_util, habitaciones, banos, estado, publicado"
       )
-      .eq("estado", "disponible")
-      .eq("publicado", true),
+      .eq("estado", "disponible"),
     supabase.from("demanda_inmuebles").select("id, propiedad_id, origen, estado").eq("demanda_id", demandaId),
   ]);
   const filas = (ya ?? []) as FilaPropuesta[];

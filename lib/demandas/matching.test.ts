@@ -29,8 +29,8 @@ const PISO = {
 };
 
 describe("matching demanda ↔ inmueble", () => {
-  it("sin zona no encaja", () => {
-    assert.equal(encajaDemandaInmueble({ ...DEMANDA, zonas: [] }, PISO).ok, false);
+  it("sin zona encaja si el resto cuadra", () => {
+    assert.equal(encajaDemandaInmueble({ ...DEMANDA, zonas: [] }, PISO).ok, true);
   });
 
   it("encaja un piso de Oleiros dentro de presupuesto", () => {
@@ -69,9 +69,8 @@ describe("matching demanda ↔ inmueble", () => {
     assert.equal(lista[0]?.demandaId, "d1");
   });
 
-  it("rechaza un inmueble que no está publicado", () => {
-    const r = encajaDemandaInmueble(DEMANDA, { ...PISO, publicado: false });
-    assert.equal(r.ok, false);
+  it("un inmueble disponible encaja aunque no esté marcado como visible", () => {
+    assert.equal(encajaDemandaInmueble(DEMANDA, { ...PISO, publicado: false }).ok, true);
   });
 
   it("rechaza metros por encima del máximo y la falta de precio o superficie", () => {

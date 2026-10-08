@@ -257,7 +257,7 @@ export function NuevaDemandaPanel({
       open={open}
       onOpenChange={onOpenChange}
       title={editarId ? "Editar demanda" : "Nueva demanda"}
-      hint={editarId ? "Cambia criterios sin recrear la demanda." : "Lo que busca esta persona. Al crear, proponemos inmuebles publicados que encajan; tú confirmas."}
+      hint={editarId ? "Cambia criterios sin recrear la demanda." : "Lo que busca esta persona. El cruce mira el stock disponible que encaja."}
       primaryLabel={editarId ? "Guardar demanda" : "Crear demanda"}
       saving={saving}
       disablePrimary={faltaCliente}

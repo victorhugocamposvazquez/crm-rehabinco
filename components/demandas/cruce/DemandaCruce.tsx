@@ -189,7 +189,6 @@ export function DemandaCruce({ id }: { id: string }) {
       .from("propiedades")
       .select(SELECT_STOCK)
       .eq("estado", "disponible")
-      .eq("publicado", true)
       .then(({ data }) => setStock((data ?? []) as StockFila[]));
     void supabase
       .from("demanda_inmuebles")
@@ -651,7 +650,7 @@ export function DemandaCruce({ id }: { id: string }) {
               ))}
               {faltan.length ? <span className="rounded-[7px] bg-[var(--amber-bg)] px-2 py-1 text-[12px] text-[var(--amber-ink)]">Falta {faltan.join(", ")}</span> : null}
             </span>
-            {!(demanda.zonas ?? []).length ? <span className="text-[12px] leading-relaxed text-[var(--text-3)]">Sin zona no se propone ningún inmueble. Añade dónde busca.</span> : null}
+            {!(demanda.zonas ?? []).length ? <span className="text-[12px] leading-relaxed text-[var(--text-3)]">Sin zona, entra cualquier inmueble del tipo y el precio. Añádela para afinar.</span> : null}
             {notasRequisitos ? <span className="text-[12px] leading-relaxed text-[var(--text-3)]">Notas: {notasRequisitos}. Garaje, terraza y exterior no filtran: el inmueble no guarda ese dato.</span> : null}
           </button>
 
