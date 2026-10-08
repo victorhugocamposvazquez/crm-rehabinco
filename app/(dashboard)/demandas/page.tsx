@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -18,9 +18,12 @@ import { TIPO_INMUEBLE_LABEL, type TipoInmueble } from "@/lib/inmuebles/catalogo
 import { extraAlta } from "@/lib/ui/alta-panel";
 import { cn } from "@/lib/utils";
 import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
+import { FILTRO_LISTADO_VACIO, hayFiltroListado, pasaFiltroDemanda, type FiltroListadoDemanda } from "@/lib/demandas/filtros";
+import { FiltrosDemandas, tiposVisibles } from "@/components/demandas/FiltrosDemandas";
 
 type DemandaRow = {
   id: string;
+  comercial_id: string | null;
   tipo_operacion: string;
   estado: string;
   zonas: string[] | null;
@@ -41,33 +44,19 @@ export default function DemandasPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [filas, setFilas] = useState<DemandaRow[]>([]);
-  const [totales, setTotales] = useState<Record<string, number>>({});
   const [estado, setEstado] = useState("activa");
+  const [filtro, setFiltro] = useState<FiltroListadoDemanda>(FILTRO_LISTADO_VACIO);
   const [nuevaOpen, setNuevaOpen] = useState(false);
   const [clienteInicial, setClienteInicial] = useState<string | undefined>();
   const hayBorrador = useHayAltaBorrador("demanda");
 
-  const cargarTotales = () => {
-    const supabase = createClient();
-    void supabase.from("demandas").select("estado").then(({ data }) => {
-      const map: Record<string, number> = {};
-      for (const item of ESTADOS_DEMANDA) map[item] = 0;
-      for (const row of data ?? []) {
-        const e = (row as { estado: string }).estado;
-        map[e] = (map[e] ?? 0) + 1;
-      }
-      setTotales(map);
-    });
-  };
-
-  const cargarFilas = (estadoActual = estado) => {
+  const cargarFilas = () => {
     const supabase = createClient();
     void supabase
       .from("demandas")
       .select(
-        "id, tipo_operacion, estado, zonas, tipos_inmueble, presupuesto_max, habitaciones_min, clientes:cliente_id(nombre), profiles:comercial_id(nombre_completo, color), demanda_inmuebles(id, estado)"
+        "id, comercial_id, tipo_operacion, estado, zonas, tipos_inmueble, presupuesto_max, habitaciones_min, clientes:cliente_id(nombre), profiles:comercial_id(nombre_completo, color), demanda_inmuebles(id, estado)"
       )
-      .eq("estado", estadoActual)
       .order("updated_at", { ascending: false })
       .then(({ data }) =>
         setFilas(
@@ -91,13 +80,8 @@ export default function DemandasPage() {
   };
 
   useEffect(() => {
-    cargarTotales();
-  }, []);
-
-  useEffect(() => {
     cargarFilas();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [estado]);
+  }, []);
 
   useEffect(() => {
     const extra = extraAlta(searchParams);
@@ -106,6 +90,58 @@ export default function DemandasPage() {
     setNuevaOpen(true);
     router.replace("/demandas", { scroll: false });
   }, [searchParams, router]);
+
+  const totales = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const item of ESTADOS_DEMANDA) map[item] = 0;
+    for (const fila of filas) map[fila.estado] = (map[fila.estado] ?? 0) + 1;
+    return map;
+  }, [filas]);
+
+  const delEstado = useMemo(() => filas.filter((fila) => fila.estado === estado), [filas, estado]);
+
+  const visibles = useMemo(
+    () =>
+      delEstado.filter((fila) =>
+        pasaFiltroDemanda(
+          {
+            tipo_operacion: fila.tipo_operacion,
+            tipos_inmueble: fila.tipos_inmueble,
+            zonas: fila.zonas,
+            comercial_id: fila.comercial_id,
+            cliente: fila.clientes?.nombre,
+            comercial: fila.profiles?.nombre_completo,
+          },
+          filtro
+        )
+      ),
+    [delEstado, filtro]
+  );
+
+  const tipos = useMemo(() => {
+    const presentes = delEstado.flatMap((fila) => fila.tipos_inmueble ?? []);
+    return tiposVisibles(presentes, filtro.tipo);
+  }, [delEstado, filtro.tipo]);
+
+  const zonas = useMemo(() => {
+    const set = new Set(delEstado.flatMap((fila) => (fila.zonas ?? []).map((zona) => zona.trim()).filter(Boolean)));
+    if (filtro.zona) set.add(filtro.zona);
+    return [...set].sort((a, b) => a.localeCompare(b, "es"));
+  }, [delEstado, filtro.zona]);
+
+  const comerciales = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const fila of delEstado) {
+      if (!fila.comercial_id) continue;
+      map.set(fila.comercial_id, fila.profiles?.nombre_completo?.trim() || "Sin nombre");
+    }
+    if (filtro.comercialId && !map.has(filtro.comercialId)) map.set(filtro.comercialId, "Comercial");
+    return [...map.entries()]
+      .map(([id, nombre]) => ({ id, nombre }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  }, [delEstado, filtro.comercialId]);
+
+  const hayFiltro = hayFiltroListado(filtro);
 
   return (
     <div>
@@ -127,8 +163,20 @@ export default function DemandasPage() {
           </Chip>
         ))}
       </CarrilHorizontal>
-      <ul className="mt-4 grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(300px,1fr))]">
-        {filas.map((fila) => {
+      <FiltrosDemandas
+        filtro={filtro}
+        onChange={setFiltro}
+        tipos={tipos}
+        zonas={zonas}
+        comerciales={comerciales}
+      />
+      {hayFiltro ? (
+        <p className="mt-2 text-[12.5px] text-[var(--text-2)]">
+          {visibles.length} {visibles.length === 1 ? "demanda" : "demandas"}
+        </p>
+      ) : null}
+      <ul className="mt-4 grid grid-cols-1 gap-3 min-[640px]:[grid-template-columns:repeat(auto-fill,minmax(300px,1fr))]">
+        {visibles.map((fila) => {
           const matches = fila.demanda_inmuebles ?? [];
           const encajan = matches.filter((m) => m.estado !== "descartado").length;
           const visitados = matches.filter((m) => m.estado === "visitado").length;
@@ -165,7 +213,7 @@ export default function DemandasPage() {
                 </div>
                 <div className="mt-2.5 flex flex-wrap gap-1.5">
                   {chips.map((chip) => (
-                    <span key={chip} className="rounded-md bg-[#F5F5F5] px-2 py-0.5 text-[11.5px] text-[var(--text-2)]">
+                    <span key={chip} className="rounded-md bg-[var(--surface-soft)] px-2 py-0.5 text-[11.5px] text-[var(--text-2)]">
                       {chip}
                     </span>
                   ))}
@@ -183,9 +231,9 @@ export default function DemandasPage() {
             </li>
           );
         })}
-        {filas.length === 0 ? (
+        {visibles.length === 0 ? (
           <li className="rounded-[10px] border border-dashed border-[var(--input)] px-4 py-10 text-center text-[12.5px] text-[var(--text-2)]">
-            No hay demandas en este estado.
+            {hayFiltro ? "Ninguna demanda con esos filtros." : "No hay demandas en este estado."}
           </li>
         ) : null}
       </ul>
@@ -205,8 +253,7 @@ export default function DemandasPage() {
         clienteIdInicial={clienteInicial}
         onCreada={() => {
           setEstado("activa");
-          cargarTotales();
-          cargarFilas("activa");
+          cargarFilas();
         }}
       />
     </div>
