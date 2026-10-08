@@ -1,22 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { ESTADOS_MATCHING, ESTADO_MATCHING_LABEL } from "@/lib/demandas/matching";
+import { ESTADOS_MATCHING, ESTADO_MATCHING_LABEL, TIPO_OPERACION_DEMANDA_LABEL, type TipoOperacionDemanda } from "@/lib/demandas/matching";
+import { ORIGENES_DEMANDA } from "@/lib/demandas/nueva";
 import { criteriosDeDemanda, proponerStockParaDemanda } from "@/lib/demandas/proponer-stock";
+import { TIPO_INMUEBLE_LABEL, type TipoInmueble } from "@/lib/inmuebles/catalogo";
+import { formatEuro } from "@/lib/ui/estados-vista";
 import { FichaLink } from "@/components/crm/FichaPeek";
 import { relacionUno } from "@/lib/citas/citas";
 import { NuevaDemandaPanel } from "@/components/demandas/NuevaDemandaPanel";
+import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { Pencil } from "lucide-react";
 import { Selector } from "@/components/ui/selector";
 
 type Demanda = {
   id: string;
   cliente_id: string;
+  comercial_id: string;
   tipo_operacion: string;
   tipos_inmueble: string[] | null;
   zonas: string[] | null;
@@ -27,9 +32,49 @@ type Demanda = {
   habitaciones_min: number | null;
   banos_min: number | null;
   requisitos: string | null;
+  origen: string | null;
   estado: string;
   clientes?: { nombre?: string | null } | null;
+  profiles?: { nombre_completo?: string | null; color?: string | null } | null;
 };
+
+function numero(valor: number | string | null | undefined): number | null {
+  if (valor == null || valor === "") return null;
+  const n = Number(valor);
+  return Number.isFinite(n) ? n : null;
+}
+
+function rango(
+  min: number | string | null | undefined,
+  max: number | string | null | undefined,
+  formato: (n: number) => string
+): string {
+  const a = numero(min);
+  const b = numero(max);
+  if (a != null && b != null) return `${formato(a)} – ${formato(b)}`;
+  if (a != null) return `desde ${formato(a)}`;
+  if (b != null) return `hasta ${formato(b)}`;
+  return "—";
+}
+
+function labelTipos(tipos: string[] | null | undefined): string {
+  if (!tipos?.length) return "—";
+  return tipos.map((tipo) => TIPO_INMUEBLE_LABEL[tipo as TipoInmueble] ?? tipo).join(", ");
+}
+
+function labelOrigen(origen: string | null | undefined): string {
+  if (!origen) return "—";
+  return ORIGENES_DEMANDA.find((item) => item.id === origen)?.label ?? origen;
+}
+
+function Dato({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[12px] text-[var(--text-3)]">{label}</dt>
+      <dd className="mt-1.5 text-[14px] leading-5 text-foreground">{children}</dd>
+    </div>
+  );
+}
 
 type MatchRow = {
   id: string;
@@ -51,7 +96,7 @@ export default function DemandaDetallePage() {
     void supabase
       .from("demandas")
       .select(
-        "id, cliente_id, tipo_operacion, tipos_inmueble, zonas, presupuesto_min, presupuesto_max, superficie_min, superficie_max, habitaciones_min, banos_min, requisitos, estado, clientes:cliente_id(nombre)"
+        "id, cliente_id, comercial_id, tipo_operacion, tipos_inmueble, zonas, presupuesto_min, presupuesto_max, superficie_min, superficie_max, habitaciones_min, banos_min, requisitos, origen, estado, clientes:cliente_id(nombre), profiles:comercial_id(nombre_completo, color)"
       )
       .eq("id", id)
       .single()
@@ -60,8 +105,15 @@ export default function DemandaDetallePage() {
           setDemanda(null);
           return;
         }
-        const fila = data as Demanda & { clientes?: Demanda["clientes"] | Demanda["clientes"][] };
-        setDemanda({ ...fila, clientes: relacionUno(fila.clientes) });
+        const fila = data as Demanda & {
+          clientes?: Demanda["clientes"] | Demanda["clientes"][];
+          profiles?: Demanda["profiles"] | Demanda["profiles"][];
+        };
+        setDemanda({
+          ...fila,
+          clientes: relacionUno(fila.clientes),
+          profiles: relacionUno(fila.profiles),
+        });
       });
     void supabase
       .from("demanda_inmuebles")
@@ -98,8 +150,12 @@ export default function DemandaDetallePage() {
   };
 
   if (!demanda) {
-    return <p className="mt-8 text-sm text-[#5C5C5C]">Cargando demanda…</p>;
+    return <p className="mt-8 text-sm text-[var(--text-2)]">Cargando demanda…</p>;
   }
+
+  const operacion = TIPO_OPERACION_DEMANDA_LABEL[demanda.tipo_operacion as TipoOperacionDemanda] ?? demanda.tipo_operacion;
+  const tipos = labelTipos(demanda.tipos_inmueble);
+  const comercial = demanda.profiles?.nombre_completo?.trim() || "Sin comercial";
 
   return (
     <div>
@@ -114,7 +170,7 @@ export default function DemandaDetallePage() {
             (demanda.clientes?.nombre ?? "Demanda")
           )
         }
-        description={`${demanda.tipo_operacion}${demanda.zonas?.length ? ` · ${demanda.zonas.join(", ")}` : ""}`}
+        description={`${operacion} · ${demanda.estado}`}
         actions={
           <div className="flex flex-wrap gap-2">
             <Button type="button" size="sm" variant="secondary" onClick={() => setEditar(true)} className="gap-2">
@@ -127,16 +183,42 @@ export default function DemandaDetallePage() {
           </div>
         }
       />
-      {demanda.requisitos ? <p className="mt-4 text-sm text-[#5C5C5C]">{demanda.requisitos}</p> : null}
-      <ul className="mt-6 space-y-2">
+      <section className="mt-6 rounded-[13px] border border-border bg-[var(--surface)] px-5 py-5">
+        <h2 className="text-[13px] font-semibold text-[var(--text-2)]">Lo que busca</h2>
+        <dl className="mt-4 grid grid-cols-2 gap-x-8 gap-y-5 lg:grid-cols-3">
+          <Dato label="Operación">{operacion}</Dato>
+          <Dato label="Tipo de inmueble">{tipos}</Dato>
+          <Dato label="Zonas">{demanda.zonas?.length ? demanda.zonas.join(", ") : "—"}</Dato>
+          <Dato label={demanda.tipo_operacion === "alquiler" ? "Presupuesto €/mes" : "Presupuesto"}>
+            {rango(demanda.presupuesto_min, demanda.presupuesto_max, (n) => formatEuro(n))}
+          </Dato>
+          <Dato label="Superficie">{rango(demanda.superficie_min, demanda.superficie_max, (n) => `${n} m²`)}</Dato>
+          <Dato label="Habitaciones">
+            {numero(demanda.habitaciones_min) != null ? `desde ${numero(demanda.habitaciones_min)}` : "—"}
+          </Dato>
+          <Dato label="Baños">{numero(demanda.banos_min) != null ? `desde ${numero(demanda.banos_min)}` : "—"}</Dato>
+          <Dato label="Origen">{labelOrigen(demanda.origen)}</Dato>
+          <Dato label="Comercial">
+            <span className="inline-flex items-center gap-1.5">
+              <AvatarComercial nombre={demanda.profiles?.nombre_completo} color={demanda.profiles?.color} size={18} />
+              {comercial}
+            </span>
+          </Dato>
+          <div className="col-span-2 lg:col-span-3">
+            <Dato label="Imprescindible">{demanda.requisitos?.trim() || "—"}</Dato>
+          </div>
+        </dl>
+      </section>
+      <h2 className="mt-6 text-[13px] font-semibold text-[var(--text-2)]">Inmuebles propuestos</h2>
+      <ul className="mt-3 space-y-2">
         {matches.map((item) => (
-          <li key={item.id} className="rounded-2xl border border-[#E5E5E5] bg-white px-4 py-3">
+          <li key={item.id} className="rounded-[13px] border border-border bg-[var(--surface)] px-4 py-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <FichaLink tipo="propiedad" id={item.propiedad_id} className="font-semibold text-foreground">
                   {item.propiedades?.titulo || item.propiedades?.direccion || "Inmueble"}
                 </FichaLink>
-                <p className="text-sm text-[#5C5C5C]">
+                <p className="text-sm text-[var(--text-2)]">
                   {item.propiedades?.localidad} · {Math.round(Number(item.puntuacion))} pts ·{" "}
                   {ESTADO_MATCHING_LABEL[item.estado as keyof typeof ESTADO_MATCHING_LABEL] ?? item.estado}
                 </p>
@@ -156,7 +238,7 @@ export default function DemandaDetallePage() {
           </li>
         ))}
         {matches.length === 0 ? (
-          <li className="text-sm text-[#5C5C5C]">Aún no hay inmuebles propuestos. Pulsa «Buscar en stock».</li>
+          <li className="text-sm text-[var(--text-2)]">Aún no hay inmuebles propuestos. Pulsa «Buscar en stock».</li>
         ) : null}
       </ul>
       <NuevaDemandaPanel
