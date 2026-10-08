@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Fab } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
 import { ESTADOS_DEMANDA, TIPO_OPERACION_DEMANDA_LABEL, type TipoOperacionDemanda } from "@/lib/demandas/matching";
+import { cuentaEncajesPerfectos, pideAscensor, precioDeCruce, type DemandaParaCruce, type InmuebleParaCruce } from "@/lib/demandas/cruce";
 import { relacionUno } from "@/lib/citas/citas";
 import { Chip } from "@/components/ui/chip";
 import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
@@ -28,12 +29,67 @@ type DemandaRow = {
   estado: string;
   zonas: string[] | null;
   tipos_inmueble: string[] | null;
+  presupuesto_min: number | null;
   presupuesto_max: number | null;
+  superficie_min: number | null;
+  superficie_max: number | null;
   habitaciones_min: number | null;
+  banos_min: number | null;
+  requisitos: string | null;
   clientes?: { nombre?: string | null } | null;
   profiles?: { nombre_completo?: string | null; color?: string | null } | null;
-  demanda_inmuebles?: Array<{ id: string; estado: string }> | null;
+  demanda_inmuebles?: Array<{ propiedad_id: string; estado: string }> | null;
 };
+
+type StockRow = {
+  id: string;
+  tipo_operacion: string | null;
+  tipo_inmueble: string | null;
+  localidad: string | null;
+  codigo_postal: string | null;
+  precio_venta: number | null;
+  precio_alquiler: number | null;
+  superficie_util: number | null;
+  superficie_m2: number | null;
+  habitaciones: number | null;
+  banos: number | null;
+  ascensor: boolean | null;
+};
+
+function num(valor: number | string | null | undefined): number | null {
+  if (valor == null || valor === "") return null;
+  const n = Number(valor);
+  return Number.isFinite(n) ? n : null;
+}
+
+function criteriosDeFila(fila: DemandaRow): DemandaParaCruce {
+  return {
+    tipoOperacion: fila.tipo_operacion,
+    tiposInmueble: fila.tipos_inmueble ?? [],
+    presupuestoMin: num(fila.presupuesto_min),
+    presupuestoMax: num(fila.presupuesto_max),
+    zonas: fila.zonas ?? [],
+    habitacionesMin: num(fila.habitaciones_min),
+    superficieMin: num(fila.superficie_min),
+    superficieMax: num(fila.superficie_max),
+    banosMin: num(fila.banos_min),
+    pideAscensor: pideAscensor(fila.requisitos),
+  };
+}
+
+function inmuebleDeFila(fila: StockRow, operacion: string): InmuebleParaCruce {
+  return {
+    tipoOperacion: fila.tipo_operacion,
+    tipoInmueble: fila.tipo_inmueble,
+    localidad: fila.localidad,
+    codigoPostal: fila.codigo_postal,
+    precio: precioDeCruce(operacion, fila.precio_venta, fila.precio_alquiler),
+    superficie: num(fila.superficie_util) ?? num(fila.superficie_m2),
+    habitaciones: num(fila.habitaciones),
+    banos: num(fila.banos),
+    ascensor: fila.ascensor,
+  };
+}
 
 function labelTipos(tipos: string[] | null | undefined): string {
   if (!tipos?.length) return "";
@@ -44,6 +100,7 @@ export default function DemandasPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [filas, setFilas] = useState<DemandaRow[]>([]);
+  const [stock, setStock] = useState<StockRow[]>([]);
   const [estado, setEstado] = useState("activa");
   const [filtro, setFiltro] = useState<FiltroListadoDemanda>(FILTRO_LISTADO_VACIO);
   const [nuevaOpen, setNuevaOpen] = useState(false);
@@ -55,7 +112,7 @@ export default function DemandasPage() {
     void supabase
       .from("demandas")
       .select(
-        "id, comercial_id, tipo_operacion, estado, zonas, tipos_inmueble, presupuesto_max, habitaciones_min, clientes:cliente_id(nombre), profiles:comercial_id(nombre_completo, color), demanda_inmuebles(id, estado)"
+        "id, comercial_id, tipo_operacion, estado, zonas, tipos_inmueble, presupuesto_min, presupuesto_max, superficie_min, superficie_max, habitaciones_min, banos_min, requisitos, clientes:cliente_id(nombre), profiles:comercial_id(nombre_completo, color), demanda_inmuebles(propiedad_id, estado)"
       )
       .order("updated_at", { ascending: false })
       .then(({ data }) =>
@@ -77,6 +134,11 @@ export default function DemandasPage() {
           }))
         )
       );
+    void supabase
+      .from("propiedades")
+      .select("id, tipo_operacion, tipo_inmueble, localidad, codigo_postal, precio_venta, precio_alquiler, superficie_util, superficie_m2, habitaciones, banos, ascensor")
+      .eq("estado", "disponible")
+      .then(({ data }) => setStock((data ?? []) as StockRow[]));
   };
 
   useEffect(() => {
@@ -97,6 +159,16 @@ export default function DemandasPage() {
     for (const fila of filas) map[fila.estado] = (map[fila.estado] ?? 0) + 1;
     return map;
   }, [filas]);
+
+  const encajes = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const fila of filas) {
+      const descartados = new Set((fila.demanda_inmuebles ?? []).filter((item) => item.estado === "descartado").map((item) => item.propiedad_id));
+      const candidatos = stock.filter((item) => !descartados.has(item.id)).map((item) => inmuebleDeFila(item, fila.tipo_operacion));
+      map.set(fila.id, cuentaEncajesPerfectos(criteriosDeFila(fila), candidatos));
+    }
+    return map;
+  }, [filas, stock]);
 
   const delEstado = useMemo(() => filas.filter((fila) => fila.estado === estado), [filas, estado]);
 
@@ -178,7 +250,7 @@ export default function DemandasPage() {
       <ul className="mt-4 grid grid-cols-1 gap-3 min-[640px]:[grid-template-columns:repeat(auto-fill,minmax(300px,1fr))]">
         {visibles.map((fila) => {
           const matches = fila.demanda_inmuebles ?? [];
-          const encajan = matches.filter((m) => m.estado !== "descartado").length;
+          const encajan = encajes.get(fila.id) ?? 0;
           const visitados = matches.filter((m) => m.estado === "visitado").length;
           const chips = [
             ...(fila.zonas ?? []).slice(0, 2),

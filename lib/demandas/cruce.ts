@@ -99,6 +99,10 @@ export function conAscensor(requisitos: string | null | undefined, pide: boolean
   return resto.length ? `Ascensor. ${resto.join(". ")}` : "Ascensor";
 }
 
+export function cuentaEncajesPerfectos(demanda: DemandaParaCruce, inmuebles: InmuebleParaCruce[]): number {
+  return inmuebles.reduce((total, item) => total + Number(evaluarCruce(item, demanda).perfect), 0);
+}
+
 /** Encaje de un inmueble con una demanda. «Casi» = operación y tipo bien, y un solo fallo leve. */
 export function evaluarCruce(inmueble: InmuebleParaCruce, demanda: DemandaParaCruce): EvaluacionCruce {
   const checks: CheckCruce[] = [];

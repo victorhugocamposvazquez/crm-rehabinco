@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { evaluarCruce, ordenarCruce, type DemandaParaCruce, type InmuebleParaCruce } from "./cruce";
+import { cuentaEncajesPerfectos, evaluarCruce, ordenarCruce, type DemandaParaCruce, type InmuebleParaCruce } from "./cruce";
 
 const DEMANDA: DemandaParaCruce = {
   tipoOperacion: "compra",
@@ -30,6 +30,22 @@ function piso(parcial: Partial<InmuebleParaCruce> = {}): InmuebleParaCruce {
 }
 
 describe("evaluar cruce", () => {
+  it("el listado cuenta los que encajan del todo, no los ya asignados", () => {
+    const sonia: DemandaParaCruce = {
+      ...DEMANDA,
+      tiposInmueble: ["piso", "chalet"],
+      zonas: [],
+      presupuestoMax: 620000,
+    };
+    const maria: DemandaParaCruce = { ...DEMANDA, zonas: [], presupuestoMax: 250000 };
+    const stock = [
+      piso({ tipoOperacion: "ambos", tipoInmueble: "chalet", localidad: "coruña", precio: 450000 }),
+      piso({ tipoOperacion: "venta", tipoInmueble: "piso", localidad: "A Coruña Capital", precio: 435000 }),
+    ];
+    assert.equal(cuentaEncajesPerfectos(sonia, stock), 2);
+    assert.equal(cuentaEncajesPerfectos(maria, stock), 0);
+  });
+
   it("sin zona encaja un chalet en compra si el tipo y el precio cuadran", () => {
     const r = evaluarCruce(
       piso({ tipoOperacion: "ambos", tipoInmueble: "chalet", localidad: "coruña", precio: 450000 }),
