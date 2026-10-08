@@ -2,7 +2,7 @@ import { TIPO_INMUEBLE_LABEL, type TipoInmueble } from "@/lib/inmuebles/catalogo
 import { TIPO_OPERACION_DEMANDA_LABEL, type TipoOperacionDemanda } from "@/lib/demandas/matching";
 import { formatEuro } from "@/lib/ui/estados-vista";
 
-export type CheckCruce = { ok: boolean; label: string; near: boolean };
+export type CheckCruce = { ok: boolean; label: string; near: boolean; falta?: boolean };
 
 export type EvaluacionCruce = {
   checks: CheckCruce[];
@@ -23,6 +23,9 @@ export type DemandaParaCruce = {
   superficieMax: number | null;
   banosMin: number | null;
   pideAscensor: boolean;
+  pideGaraje?: boolean;
+  pideTerraza?: boolean;
+  pideExterior?: boolean;
 };
 
 export type InmuebleParaCruce = {
@@ -35,6 +38,9 @@ export type InmuebleParaCruce = {
   habitaciones: number | null;
   banos: number | null;
   ascensor: boolean | null;
+  garaje?: boolean | null;
+  terraza?: boolean | null;
+  exterior?: boolean | null;
 };
 
 export type EstadoAsignacion = "pending" | "sent" | "interested" | "visit";
@@ -84,10 +90,13 @@ function numero(valor: number | string | null | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+export function pideRequisito(requisitos: string | null | undefined, nombre: string): boolean {
+  const buscado = normalizar(nombre);
+  return (requisitos ?? "").split(/[.\n,;]+/).some((parte) => normalizar(parte) === buscado);
+}
+
 export function pideAscensor(requisitos: string | null | undefined): boolean {
-  return (requisitos ?? "")
-    .split(/[.\n,;]+/)
-    .some((parte) => normalizar(parte) === "ascensor");
+  return pideRequisito(requisitos, "ascensor");
 }
 
 export function conAscensor(requisitos: string | null | undefined, pide: boolean): string | null {
@@ -103,10 +112,16 @@ export function cuentaEncajesPerfectos(demanda: DemandaParaCruce, inmuebles: Inm
   return inmuebles.reduce((total, item) => total + Number(evaluarCruce(item, demanda).perfect), 0);
 }
 
-/** Encaje de un inmueble con una demanda. «Casi» = operación y tipo bien, y un solo fallo leve. */
+/** Encaje de un inmueble con una demanda. «Casi» = un fallo leve, o solo datos que el inmueble no tiene. */
 export function evaluarCruce(inmueble: InmuebleParaCruce, demanda: DemandaParaCruce): EvaluacionCruce {
   const checks: CheckCruce[] = [];
-  const add = (ok: boolean, label: string, near = false) => checks.push({ ok, label, near: !ok && near });
+  const add = (ok: boolean, label: string, near = false, falta = false) =>
+    checks.push({ ok, label, near: !ok && near, falta: !ok && falta });
+  const dato = (pide: boolean, valor: boolean | null | undefined, si: string, no: string) => {
+    if (!pide) return;
+    if (valor == null) add(false, `${si} sin indicar`, false, true);
+    else add(valor === true, valor ? si : no);
+  };
 
   const opOk = operacionOk(demanda.tipoOperacion, inmueble.tipoOperacion);
   add(opOk, opOk ? etiquetaOperacion(demanda.tipoOperacion) : `${etiquetaTipoOperacionInmueble(inmueble.tipoOperacion)} (busca ${etiquetaOperacion(demanda.tipoOperacion).toLowerCase()})`);
@@ -122,7 +137,7 @@ export function evaluarCruce(inmueble: InmuebleParaCruce, demanda: DemandaParaCr
   const min = numero(demanda.presupuestoMin);
   if (max != null || min != null) {
     const precio = numero(inmueble.precio);
-    if (precio == null) add(false, "Sin precio");
+    if (precio == null) add(false, "Sin precio", false, true);
     else if (max != null && precio > max) {
       const over = precio - max;
       add(false, `+${formatEuro(over)} sobre presupuesto`, over <= max * 0.1);
@@ -140,7 +155,7 @@ export function evaluarCruce(inmueble: InmuebleParaCruce, demanda: DemandaParaCr
   const hab = numero(demanda.habitacionesMin);
   if (hab != null) {
     const rooms = numero(inmueble.habitaciones);
-    if (rooms == null) add(false, "Sin habitaciones");
+    if (rooms == null) add(false, "Sin habitaciones", false, true);
     else add(rooms >= hab, rooms >= hab ? `${rooms} hab` : `Solo ${rooms} hab (pide ${hab})`, rooms === hab - 1);
   }
 
@@ -148,7 +163,7 @@ export function evaluarCruce(inmueble: InmuebleParaCruce, demanda: DemandaParaCr
   const maxM = numero(demanda.superficieMax);
   const m2 = numero(inmueble.superficie);
   if (minM != null || maxM != null) {
-    if (m2 == null) add(false, "Sin superficie");
+    if (m2 == null) add(false, "Sin superficie", false, true);
     else if (minM != null && m2 < minM) add(false, `Solo ${m2} m² (pide ${minM})`, m2 >= minM * 0.9);
     else if (maxM != null && m2 > maxM) add(false, `${m2} m² (máximo ${maxM})`);
     else add(true, `${m2} m²`);
@@ -157,15 +172,22 @@ export function evaluarCruce(inmueble: InmuebleParaCruce, demanda: DemandaParaCr
   const banosMin = numero(demanda.banosMin);
   if (banosMin != null) {
     const banos = numero(inmueble.banos);
-    if (banos == null) add(false, "Sin baños");
+    if (banos == null) add(false, "Sin baños", false, true);
     else add(banos >= banosMin, banos >= banosMin ? `${banos} baños` : `Solo ${banos} baños (pide ${banosMin})`, banos === banosMin - 1);
   }
 
-  if (demanda.pideAscensor) add(inmueble.ascensor === true, inmueble.ascensor === true ? "Ascensor" : "Sin ascensor");
+  if (demanda.pideAscensor) {
+    if (inmueble.ascensor == null) add(false, "Ascensor sin indicar", false, true);
+    else add(inmueble.ascensor === true, inmueble.ascensor ? "Ascensor" : "Sin ascensor");
+  }
+  dato(Boolean(demanda.pideGaraje), inmueble.garaje, "Garaje", "Sin garaje");
+  dato(Boolean(demanda.pideTerraza), inmueble.terraza, "Terraza", "Sin terraza");
+  dato(Boolean(demanda.pideExterior), inmueble.exterior, "Exterior", "Sin exterior");
 
   const failed = checks.filter((check) => !check.ok);
   const perfect = failed.length === 0;
-  const near = !perfect && opOk && tipoOk && failed.length === 1 && failed[0]!.near;
+  const soloFaltanDatos = failed.length > 0 && failed.every((check) => check.falta);
+  const near = !perfect && opOk && tipoOk && ((failed.length === 1 && failed[0]!.near) || soloFaltanDatos);
   return { checks, passed: checks.length - failed.length, total: checks.length, perfect, near };
 }
 

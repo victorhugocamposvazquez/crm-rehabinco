@@ -24,6 +24,8 @@ import { acceptMedia, validarArchivoMedia } from "@/lib/inmuebles/media";
 import { subirArchivosMedia } from "@/lib/inmuebles/subir-media";
 import { Selector } from "@/components/ui/selector";
 import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
+import { proponerInmuebleADemandas } from "@/lib/demandas/proponer-stock";
+import { siNoDe, triSiNo } from "@/lib/inmuebles/catalogo";
 
 type InmuebleAltaSnap = {
   values: InmuebleFormValues;
@@ -152,6 +154,7 @@ export function NuevoInmueblePanel({
       toast.error(aviso ?? "No se ha podido crear el inmueble.");
       return;
     }
+    await proponerInmuebleADemandas(supabase, data.id);
     if (pendientesFoto.length || pendientesPlano.length) {
       let media: Awaited<ReturnType<typeof subirArchivosMedia>>["media"] = [];
       if (pendientesFoto.length) {
@@ -299,6 +302,27 @@ export function NuevoInmueblePanel({
             </AltaField>
             <AltaField label="Baños" optional>
               <input value={values.banos} onChange={(e) => set({ banos: e.target.value })} inputMode="numeric" className={altaControl} />
+            </AltaField>
+            <AltaField label="Garaje" optional>
+              <Selector value={triSiNo(values.garaje)} onChange={(e) => set({ garaje: siNoDe(e.target.value) })} className={altaControl}>
+                <option value="">Sin indicar</option>
+                <option value="si">Sí</option>
+                <option value="no">No</option>
+              </Selector>
+            </AltaField>
+            <AltaField label="Terraza" optional>
+              <Selector value={triSiNo(values.terraza)} onChange={(e) => set({ terraza: siNoDe(e.target.value) })} className={altaControl}>
+                <option value="">Sin indicar</option>
+                <option value="si">Sí</option>
+                <option value="no">No</option>
+              </Selector>
+            </AltaField>
+            <AltaField label="Exterior" optional>
+              <Selector value={triSiNo(values.exterior)} onChange={(e) => set({ exterior: siNoDe(e.target.value) })} className={altaControl}>
+                <option value="">Sin indicar</option>
+                <option value="si">Sí</option>
+                <option value="no">No</option>
+              </Selector>
             </AltaField>
             <AltaField label="Estado">
               <Selector value={values.estado} onChange={(e) => set({ estado: e.target.value as InmuebleFormValues["estado"] })} className={altaControl}>

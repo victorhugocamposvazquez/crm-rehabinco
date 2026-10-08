@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Banknote } from "lucide-react";
 import { toast } from "sonner";
+import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { Selector } from "@/components/ui/selector";
 
 const METODOS_PAGO = [
@@ -111,8 +112,15 @@ export function PagosCard({
 
     const nuevoTotal = totalPagado + importeNum;
     if (nuevoTotal >= totalFactura - 0.01) {
-      await supabase.from("facturas").update({ estado: "pagada" }).eq("id", facturaId);
-      toast.success("Factura marcada como pagada");
+      const { data: marcada, error: errEstado } = await supabase
+        .from("facturas")
+        .update({ estado: "pagada" })
+        .eq("id", facturaId)
+        .select("id")
+        .maybeSingle();
+      const aviso = mensajeGuardado(errEstado, "El pago está registrado, pero la factura no ha pasado a pagada.", marcada);
+      if (aviso) toast.error(aviso);
+      else toast.success("Factura marcada como pagada");
     }
     onPagoAdded?.();
   };

@@ -98,6 +98,9 @@ export type Inmueble = {
   aseos: number | null;
   planta: string | null;
   ascensor: boolean | null;
+  garaje: boolean | null;
+  terraza: boolean | null;
+  exterior: boolean | null;
   anio_construccion: number | null;
   superficie_util: number | null;
   superficie_construida: number | null;
@@ -140,6 +143,9 @@ export type InmuebleFormValues = {
   aseos: string;
   planta: string;
   ascensor: boolean;
+  garaje: boolean | null;
+  terraza: boolean | null;
+  exterior: boolean | null;
   anio_construccion: string;
   superficie_util: string;
   superficie_construida: string;
@@ -170,6 +176,9 @@ export const INMUEBLE_FORM_VACIO: InmuebleFormValues = {
   aseos: "",
   planta: "",
   ascensor: false,
+  garaje: null,
+  terraza: null,
+  exterior: null,
   anio_construccion: "",
   superficie_util: "",
   superficie_construida: "",
@@ -180,6 +189,24 @@ export const INMUEBLE_FORM_VACIO: InmuebleFormValues = {
   tour_url: "",
   publicado: false,
 };
+
+export function triSiNo(valor: boolean | null | undefined): string {
+  if (valor === true) return "si";
+  if (valor === false) return "no";
+  return "";
+}
+
+export function siNoDe(valor: string): boolean | null {
+  if (valor === "si") return true;
+  if (valor === "no") return false;
+  return null;
+}
+
+export function etiquetaSiNo(valor: boolean | null | undefined): string {
+  if (valor === true) return "sí";
+  if (valor === false) return "no";
+  return "sin indicar";
+}
 
 function numOrNull(v: string) {
   const n = Number(v);
@@ -206,6 +233,9 @@ export function inmuebleDesdeForm(values: InmuebleFormValues) {
     aseos: numOrNull(values.aseos),
     planta: values.planta.trim() || null,
     ascensor: values.ascensor,
+    garaje: values.garaje,
+    terraza: values.terraza,
+    exterior: values.exterior,
     anio_construccion: numOrNull(values.anio_construccion),
     superficie_util: numOrNull(values.superficie_util),
     superficie_construida: numOrNull(values.superficie_construida),
@@ -239,6 +269,9 @@ export function formDesdeInmueble(p: Partial<Inmueble>, fallbackOfertante = ""):
     aseos: p.aseos != null ? String(p.aseos) : "",
     planta: p.planta ?? "",
     ascensor: Boolean(p.ascensor),
+    garaje: p.garaje ?? null,
+    terraza: p.terraza ?? null,
+    exterior: p.exterior ?? null,
     anio_construccion: p.anio_construccion != null ? String(p.anio_construccion) : "",
     superficie_util: p.superficie_util != null ? String(p.superficie_util) : "",
     superficie_construida: p.superficie_construida != null ? String(p.superficie_construida) : "",

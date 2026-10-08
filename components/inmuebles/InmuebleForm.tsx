@@ -16,6 +16,8 @@ import {
   TIPOS_OPERACION,
   TIPO_INMUEBLE_LABEL,
   TIPO_OPERACION_LABEL,
+  siNoDe,
+  triSiNo,
   type InmuebleFormValues,
 } from "@/lib/inmuebles/catalogo";
 
@@ -199,6 +201,30 @@ export function InmuebleForm({
             />
             Ascensor
           </label>
+          <div className="space-y-2">
+            <Label>Garaje</Label>
+            <Selector value={triSiNo(values.garaje)} onChange={(e) => set({ garaje: siNoDe(e.target.value) })}>
+              <option value="">Sin indicar</option>
+              <option value="si">Sí</option>
+              <option value="no">No</option>
+            </Selector>
+          </div>
+          <div className="space-y-2">
+            <Label>Terraza</Label>
+            <Selector value={triSiNo(values.terraza)} onChange={(e) => set({ terraza: siNoDe(e.target.value) })}>
+              <option value="">Sin indicar</option>
+              <option value="si">Sí</option>
+              <option value="no">No</option>
+            </Selector>
+          </div>
+          <div className="space-y-2">
+            <Label>Exterior</Label>
+            <Selector value={triSiNo(values.exterior)} onChange={(e) => set({ exterior: siNoDe(e.target.value) })}>
+              <option value="">Sin indicar</option>
+              <option value="si">Sí</option>
+              <option value="no">No</option>
+            </Selector>
+          </div>
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-2">

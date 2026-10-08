@@ -1,4 +1,4 @@
-import { evaluarCruce, precioDeCruce, pideAscensor } from "@/lib/demandas/cruce";
+import { evaluarCruce, precioDeCruce, pideAscensor, pideRequisito } from "@/lib/demandas/cruce";
 
 export const TIPOS_OPERACION_DEMANDA = ["compra", "alquiler", "ambos"] as const;
 export type TipoOperacionDemanda = (typeof TIPOS_OPERACION_DEMANDA)[number];
@@ -55,6 +55,9 @@ export type InmuebleParaMatching = {
   habitaciones: number | null;
   banos: number | null;
   ascensor?: boolean | null;
+  garaje?: boolean | null;
+  terraza?: boolean | null;
+  exterior?: boolean | null;
   estado?: string | null;
   publicado?: boolean | null;
 };
@@ -79,6 +82,9 @@ export function fichaParaMatching(row: {
   habitaciones: number | null;
   banos: number | null;
   ascensor?: boolean | null;
+  garaje?: boolean | null;
+  terraza?: boolean | null;
+  exterior?: boolean | null;
   estado?: string | null;
   publicado?: boolean | null;
 }): InmuebleParaMatching {
@@ -94,6 +100,9 @@ export function fichaParaMatching(row: {
     habitaciones: row.habitaciones,
     banos: row.banos,
     ascensor: row.ascensor ?? null,
+    garaje: row.garaje ?? null,
+    terraza: row.terraza ?? null,
+    exterior: row.exterior ?? null,
     estado: row.estado,
     publicado: row.publicado,
   };
@@ -118,6 +127,9 @@ export function encajaDemandaInmueble(
       habitaciones: inmueble.habitaciones,
       banos: inmueble.banos,
       ascensor: inmueble.ascensor ?? null,
+      garaje: inmueble.garaje ?? null,
+      terraza: inmueble.terraza ?? null,
+      exterior: inmueble.exterior ?? null,
     },
     {
       tipoOperacion: demanda.tipoOperacion,
@@ -130,6 +142,9 @@ export function encajaDemandaInmueble(
       superficieMax: demanda.superficieMax,
       banosMin: demanda.banosMin,
       pideAscensor: pideAscensor(demanda.requisitos),
+      pideGaraje: pideRequisito(demanda.requisitos, "garaje"),
+      pideTerraza: pideRequisito(demanda.requisitos, "terraza"),
+      pideExterior: pideRequisito(demanda.requisitos, "exterior"),
     }
   );
   const motivos = (evaluacion.perfect ? evaluacion.checks : evaluacion.checks.filter((check) => !check.ok)).map(

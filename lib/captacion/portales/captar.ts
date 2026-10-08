@@ -1,5 +1,6 @@
 import type { AnunciantePortal, AnuncioCaptacion } from "./modelo";
 import { payloadMediaExterna, urlsDeFotosPortal } from "@/lib/inmuebles/media";
+import { proponerInmuebleADemandas } from "@/lib/demandas/proponer-stock";
 
 export function siguienteReferencia(refs: Array<string | null | undefined>, year: number): string {
   const re = new RegExp(`^RHB-${year}-(\\d+)$`);
@@ -156,6 +157,7 @@ export async function convertirAnuncioACrm(
     return { ok: false, error: error?.message ?? "No se ha podido crear el inmueble." };
   }
   const propiedadId = String(data.id);
+  await proponerInmuebleADemandas(db as never, propiedadId);
   const fotos = urlsDeFotosPortal({ thumb: anuncio.thumb, fotos: anuncio.fotos });
   for (const [i, url] of fotos.entries()) {
     await db

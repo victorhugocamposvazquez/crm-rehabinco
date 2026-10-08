@@ -19,6 +19,7 @@ import {
   formatPrecioInmueble,
   labelEstadoInmueble,
   labelTipoInmueble,
+  etiquetaSiNo,
   labelTipoOperacion,
   type Inmueble,
   type InmuebleMedia,
@@ -317,6 +318,9 @@ export default function DetallePropiedadPage() {
             <p>
               <span className="text-neutral-500">Planta / ascensor:</span> {propiedad.planta || "—"} /{" "}
               {propiedad.ascensor ? "sí" : "no"}
+            </p>
+            <p>
+              <span className="text-neutral-500">Garaje / terraza / exterior:</span> {etiquetaSiNo(propiedad.garaje)} / {etiquetaSiNo(propiedad.terraza)} / {etiquetaSiNo(propiedad.exterior)}
             </p>
             <p>
               <span className="text-neutral-500">Año:</span> {propiedad.anio_construccion ?? "—"}

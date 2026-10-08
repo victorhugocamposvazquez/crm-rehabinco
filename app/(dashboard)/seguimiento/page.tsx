@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { actualizarDemanda } from "@/lib/actions/demandas";
 import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
+import { proponerInmuebleADemandas } from "@/lib/demandas/proponer-stock";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
 import { isAdmin } from "@/lib/auth/roles";
@@ -250,6 +251,7 @@ export default function SeguimientoPage() {
       toast.error(aviso);
       return;
     }
+    if (estado === "disponible") await proponerInmuebleADemandas(supabase, id);
     setInmuebles((prev) => prev.map((p) => (p.id === id ? { ...p, estado } : p)));
   };
 

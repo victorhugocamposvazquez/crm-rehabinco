@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileDown, FileText, Pencil } from "lucide-react";
 import { toast } from "sonner";
+import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { useAuth } from "@/lib/auth/auth-context";
 import { isEditor } from "@/lib/auth/roles";
 import { fetchEmisorPresupuesto, type EmisorPresupuesto } from "@/lib/emisores-presupuesto";
@@ -211,12 +212,15 @@ export default function DetallePresupuestoPage() {
       return;
     }
 
-    await supabase
+    const { data: convertido, error: errEstado } = await supabase
       .from("presupuestos")
       .update({ estado: "convertido" })
-      .eq("id", presupuesto.id);
-
-    toast.success("Factura creada");
+      .eq("id", presupuesto.id)
+      .select("id")
+      .maybeSingle();
+    const avisoEstado = mensajeGuardado(errEstado, "La factura está creada, pero el presupuesto no ha pasado a convertido.", convertido);
+    if (avisoEstado) toast.error(avisoEstado);
+    else toast.success("Factura creada");
     router.push(`/facturas/${factura.id}`);
     router.refresh();
     setConverting(false);
@@ -272,19 +276,26 @@ export default function DetallePresupuestoPage() {
     const actual = parsePropuesta(presupuesto.propuesta);
     const nextPropuesta = aplicarPropuestaTexto(actual, output.propuesta, output.lineas);
     const descuento = nextPropuesta.tipo === "ampliacion" ? 0 : output.porcentaje_descuento;
-    const { error: errUpd } = await supabase
+    const { data: guardado, error: errUpd } = await supabase
       .from("presupuestos")
       .update({
         concepto: output.concepto.trim() || presupuesto.concepto,
         porcentaje_descuento: descuento,
         propuesta: nextPropuesta,
       })
-      .eq("id", presupuesto.id);
-    if (errUpd) {
-      toast.error(errUpd.message);
+      .eq("id", presupuesto.id)
+      .select("id")
+      .maybeSingle();
+    const aviso = mensajeGuardado(errUpd, "No se ha podido guardar el presupuesto.", guardado);
+    if (aviso || !guardado) {
+      toast.error(aviso ?? "No se ha podido guardar el presupuesto.");
       return;
     }
-    await supabase.from("presupuesto_lineas").delete().eq("presupuesto_id", presupuesto.id);
+    const { error: errDel } = await supabase.from("presupuesto_lineas").delete().eq("presupuesto_id", presupuesto.id);
+    if (errDel) {
+      toast.error(errDel.message);
+      return;
+    }
     const rows = lineasParaDb(output.lineas, nextPropuesta).map((l, orden) => ({
       presupuesto_id: presupuesto.id,
       descripcion: l.descripcion,

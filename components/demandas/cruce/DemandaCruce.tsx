@@ -22,6 +22,7 @@ import {
   evaluarCruce,
   ordenarCruce,
   pideAscensor,
+  pideRequisito,
   precioDeCruce,
   type EstadoAsignacion,
   type EvaluacionCruce,
@@ -72,6 +73,9 @@ type StockFila = {
   habitaciones: number | null;
   banos: number | null;
   ascensor: boolean | null;
+  garaje: boolean | null;
+  terraza: boolean | null;
+  exterior: boolean | null;
   created_at: string | null;
 };
 
@@ -102,7 +106,7 @@ const SELECT_DEMANDA =
   "id, cliente_id, comercial_id, tipo_operacion, tipos_inmueble, zonas, presupuesto_min, presupuesto_max, superficie_min, superficie_max, habitaciones_min, banos_min, requisitos, origen, estado, asignacion_auto, asignacion_casi, updated_at, clientes:cliente_id(nombre, telefono), profiles:comercial_id(nombre_completo, color)";
 
 const SELECT_STOCK =
-  "id, titulo, direccion, localidad, codigo_postal, referencia, tipo_operacion, tipo_inmueble, precio_venta, precio_alquiler, superficie_util, superficie_m2, habitaciones, banos, ascensor, created_at";
+  "id, titulo, direccion, localidad, codigo_postal, referencia, tipo_operacion, tipo_inmueble, precio_venta, precio_alquiler, superficie_util, superficie_m2, habitaciones, banos, ascensor, garaje, terraza, exterior, created_at";
 
 function num(valor: number | string | null | undefined): number | null {
   if (valor == null || valor === "") return null;
@@ -122,6 +126,9 @@ function criteriosDe(demanda: DemandaFila, extra?: Borrador) {
     superficieMax: extra ? extra.superficieMax : num(demanda.superficie_max),
     banosMin: extra ? extra.banosMin : num(demanda.banos_min),
     pideAscensor: extra ? extra.ascensor : pideAscensor(demanda.requisitos),
+    pideGaraje: pideRequisito(demanda.requisitos, "garaje"),
+    pideTerraza: pideRequisito(demanda.requisitos, "terraza"),
+    pideExterior: pideRequisito(demanda.requisitos, "exterior"),
   };
 }
 
@@ -138,6 +145,9 @@ function aPieza(fila: StockFila, demanda: DemandaFila, extra?: Borrador): Pieza 
       habitaciones: num(fila.habitaciones),
       banos: num(fila.banos),
       ascensor: fila.ascensor,
+      garaje: fila.garaje,
+      terraza: fila.terraza,
+      exterior: fila.exterior,
     },
     criteriosDe(demanda, extra)
   );
@@ -309,12 +319,18 @@ export function DemandaCruce({ id }: { id: string }) {
     metros,
     num(demanda.banos_min) != null ? `≥ ${num(demanda.banos_min)} baños` : "",
     pideAscensor(demanda.requisitos) ? "Ascensor" : "",
+    pideRequisito(demanda.requisitos, "garaje") ? "Garaje" : "",
+    pideRequisito(demanda.requisitos, "terraza") ? "Terraza" : "",
+    pideRequisito(demanda.requisitos, "exterior") ? "Exterior" : "",
   ].filter(Boolean);
   const faltan = [!(demanda.zonas ?? []).length && "zona", num(demanda.habitaciones_min) == null && "habitaciones", num(demanda.superficie_min) == null && "superficie"].filter(Boolean) as string[];
   const notasRequisitos = (demanda.requisitos ?? "")
     .split(/[.\n]+/)
     .map((parte) => parte.trim())
-    .filter((parte) => parte && parte.toLowerCase() !== "ascensor")
+    .filter((parte) => {
+      const token = parte.toLowerCase();
+      return Boolean(parte) && token !== "ascensor" && token !== "garaje" && token !== "terraza" && token !== "exterior";
+    })
     .join(". ");
 
   const avisar = (siguiente: Aviso) => setAviso(siguiente);
@@ -678,7 +694,7 @@ export function DemandaCruce({ id }: { id: string }) {
               {faltan.length ? <span className="rounded-[7px] bg-[var(--amber-bg)] px-2 py-1 text-[12px] text-[var(--amber-ink)]">Falta {faltan.join(", ")}</span> : null}
             </span>
             {!(demanda.zonas ?? []).length ? <span className="text-[12px] leading-relaxed text-[var(--text-3)]">Sin zona, entra cualquier inmueble del tipo y el precio. Añádela para afinar.</span> : null}
-            {notasRequisitos ? <span className="text-[12px] leading-relaxed text-[var(--text-3)]">Notas: {notasRequisitos}. Garaje, terraza y exterior no filtran: el inmueble no guarda ese dato.</span> : null}
+            {notasRequisitos ? <span className="text-[12px] leading-relaxed text-[var(--text-3)]">Notas: {notasRequisitos}</span> : null}
           </button>
 
           <div className="flex flex-col gap-3 rounded-[14px] border border-border bg-[var(--surface)] p-5">

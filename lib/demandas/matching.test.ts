@@ -82,6 +82,13 @@ describe("matching demanda ↔ inmueble", () => {
     assert.equal(encajaDemandaInmueble({ ...DEMANDA, requisitos: "Ascensor" }, { ...PISO, ascensor: true }).ok, true);
   });
 
+  it("garaje, terraza y exterior solo cuentan como encaje si el inmueble los tiene", () => {
+    const pide = { ...DEMANDA, requisitos: "Garaje. Terraza. Exterior" };
+    assert.equal(encajaDemandaInmueble(pide, { ...PISO, garaje: true, terraza: true, exterior: true }).ok, true);
+    assert.equal(encajaDemandaInmueble(pide, { ...PISO, garaje: false, terraza: true, exterior: true }).ok, false);
+    assert.equal(encajaDemandaInmueble(pide, PISO).ok, false);
+  });
+
   it("rechaza metros por encima del máximo y la falta de precio o superficie", () => {
     assert.equal(encajaDemandaInmueble({ ...DEMANDA, superficieMax: 80 }, PISO).ok, false);
     assert.equal(encajaDemandaInmueble({ ...DEMANDA, superficieMax: 100 }, PISO).ok, true);

@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
 import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
+import { proponerInmuebleADemandas } from "@/lib/demandas/proponer-stock";
 import { InmuebleForm } from "@/components/inmuebles/InmuebleForm";
 import { InmuebleMultimedia } from "@/components/inmuebles/InmuebleMultimedia";
 import { InmuebleDocumentos, type DocInmueble } from "@/components/inmuebles/InmuebleDocumentos";
@@ -86,6 +87,7 @@ export default function EditarPropiedadPage() {
       setError(aviso);
       return;
     }
+    await proponerInmuebleADemandas(supabase, id);
     toast.success("Inmueble actualizado");
     router.push(`/propiedades/${id}`);
     router.refresh();

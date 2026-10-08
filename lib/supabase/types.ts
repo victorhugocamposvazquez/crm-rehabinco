@@ -249,6 +249,9 @@ export interface Database {
           aseos: number | null;
           planta: string | null;
           ascensor: boolean | null;
+          garaje: boolean | null;
+          terraza: boolean | null;
+          exterior: boolean | null;
           anio_construccion: number | null;
           superficie_util: number | null;
           superficie_construida: number | null;
@@ -286,6 +289,9 @@ export interface Database {
           aseos?: number | null;
           planta?: string | null;
           ascensor?: boolean | null;
+          garaje?: boolean | null;
+          terraza?: boolean | null;
+          exterior?: boolean | null;
           anio_construccion?: number | null;
           superficie_util?: number | null;
           superficie_construida?: number | null;
@@ -318,6 +324,9 @@ export interface Database {
           aseos?: number | null;
           planta?: string | null;
           ascensor?: boolean | null;
+          garaje?: boolean | null;
+          terraza?: boolean | null;
+          exterior?: boolean | null;
           anio_construccion?: number | null;
           superficie_util?: number | null;
           superficie_construida?: number | null;

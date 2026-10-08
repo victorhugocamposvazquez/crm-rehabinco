@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { wizardActionBarClassName } from "@/components/layout/wizard-chrome";
 import { toast } from "sonner";
+import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { ChevronLeft, Plus, Trash2, UserPlus } from "lucide-react";
 import { ClienteQuickSheet } from "@/components/clientes/ClienteQuickSheet";
 import { parseDecimalMientrasEscribe } from "@/lib/decimales-input";
@@ -320,7 +321,7 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
     }));
 
     if (facturaId) {
-      const { error: errFactura } = await supabase
+      const { data: guardada, error: errFactura } = await supabase
         .from("facturas")
         .update({
           cliente_id: clienteId,
@@ -331,10 +332,13 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
           irpf_porcentaje: irpfPorcentaje,
           porcentaje_descuento: porcentajeDescuento,
         })
-        .eq("id", facturaId);
+        .eq("id", facturaId)
+        .select("id")
+        .maybeSingle();
 
-      if (errFactura) {
-        setCreateError(errFactura.message);
+      const aviso = mensajeGuardado(errFactura, "No se ha podido guardar la factura.", guardada);
+      if (aviso || !guardada) {
+        setCreateError(aviso ?? "No se ha podido guardar la factura.");
         setCreating(false);
         return;
       }

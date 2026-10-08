@@ -109,6 +109,32 @@ describe("evaluar cruce", () => {
     assert.equal(sinAscensor.near, false);
   });
 
+  it("si faltan precio, metros o habitaciones no desaparece: queda como casi", () => {
+    const sinPrecio = evaluarCruce(piso({ precio: null }), DEMANDA);
+    assert.equal(sinPrecio.perfect, false);
+    assert.equal(sinPrecio.near, true);
+    const sinVarios = evaluarCruce(piso({ precio: null, habitaciones: null, superficie: null }), {
+      ...DEMANDA,
+      habitacionesMin: 3,
+      superficieMin: 80,
+    });
+    assert.equal(sinVarios.perfect, false);
+    assert.equal(sinVarios.near, true);
+    const faltaYZona = evaluarCruce(piso({ precio: null, localidad: "Oleiros" }), DEMANDA);
+    assert.equal(faltaYZona.near, false);
+  });
+
+  it("garaje, terraza y exterior filtran, y sin indicar queda como casi", () => {
+    const pide = { ...DEMANDA, pideGaraje: true, pideTerraza: true, pideExterior: true };
+    assert.equal(evaluarCruce(piso({ garaje: true, terraza: true, exterior: true }), pide).perfect, true);
+    const sinDecir = evaluarCruce(piso(), pide);
+    assert.equal(sinDecir.perfect, false);
+    assert.equal(sinDecir.near, true);
+    const sinGaraje = evaluarCruce(piso({ garaje: false, terraza: true, exterior: true }), pide);
+    assert.equal(sinGaraje.perfect, false);
+    assert.equal(sinGaraje.near, false);
+  });
+
   it("rechaza por encima de los metros máximos", () => {
     const r = evaluarCruce(piso({ superficie: 140 }), { ...DEMANDA, superficieMax: 100 });
     assert.equal(r.perfect, false);

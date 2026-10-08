@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { cn } from "@/lib/utils";
 import { Plus, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
+import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { ClienteQuickSheet } from "@/components/clientes/ClienteQuickSheet";
 import { parseDecimalMientrasEscribe } from "@/lib/decimales-input";
 import { listEmisoresPresupuesto, type EmisorPresupuesto } from "@/lib/emisores-presupuesto";
@@ -241,7 +242,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
     const propuestaSave = propuestaConDestacadosDeLineas(propuesta, lineasFijas);
 
     if (presupuestoId) {
-      const { error: errUpd } = await supabase
+      const { data: guardado, error: errUpd } = await supabase
         .from("presupuestos")
         .update({
           cliente_id: clienteId || null,
@@ -253,15 +254,23 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
           emisor_id: emisorId || undefined,
           propuesta: propuestaSave,
         })
-        .eq("id", presupuestoId);
+        .eq("id", presupuestoId)
+        .select("id")
+        .maybeSingle();
 
-      if (errUpd) {
-        setError(errUpd.message);
+      const aviso = mensajeGuardado(errUpd, "No se ha podido guardar el presupuesto.", guardado);
+      if (aviso || !guardado) {
+        setError(aviso ?? "No se ha podido guardar el presupuesto.");
         setCreating(false);
         return;
       }
 
-      await supabase.from("presupuesto_lineas").delete().eq("presupuesto_id", presupuestoId);
+      const { error: errDel } = await supabase.from("presupuesto_lineas").delete().eq("presupuesto_id", presupuestoId);
+      if (errDel) {
+        setError(errDel.message);
+        setCreating(false);
+        return;
+      }
 
       const lineasToInsert = filasParaInsert(presupuestoId);
 

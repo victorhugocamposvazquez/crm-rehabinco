@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Fab } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
 import { ESTADOS_DEMANDA, TIPO_OPERACION_DEMANDA_LABEL, type TipoOperacionDemanda } from "@/lib/demandas/matching";
-import { cuentaEncajesPerfectos, pideAscensor, precioDeCruce, type DemandaParaCruce, type InmuebleParaCruce } from "@/lib/demandas/cruce";
+import { cuentaEncajesPerfectos, pideAscensor, pideRequisito, precioDeCruce, type DemandaParaCruce, type InmuebleParaCruce } from "@/lib/demandas/cruce";
 import { relacionUno } from "@/lib/citas/citas";
 import { Chip } from "@/components/ui/chip";
 import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
@@ -54,6 +54,9 @@ type StockRow = {
   habitaciones: number | null;
   banos: number | null;
   ascensor: boolean | null;
+  garaje: boolean | null;
+  terraza: boolean | null;
+  exterior: boolean | null;
 };
 
 function num(valor: number | string | null | undefined): number | null {
@@ -74,6 +77,9 @@ function criteriosDeFila(fila: DemandaRow): DemandaParaCruce {
     superficieMax: num(fila.superficie_max),
     banosMin: num(fila.banos_min),
     pideAscensor: pideAscensor(fila.requisitos),
+    pideGaraje: pideRequisito(fila.requisitos, "garaje"),
+    pideTerraza: pideRequisito(fila.requisitos, "terraza"),
+    pideExterior: pideRequisito(fila.requisitos, "exterior"),
   };
 }
 
@@ -88,6 +94,9 @@ function inmuebleDeFila(fila: StockRow, operacion: string): InmuebleParaCruce {
     habitaciones: num(fila.habitaciones),
     banos: num(fila.banos),
     ascensor: fila.ascensor,
+    garaje: fila.garaje,
+    terraza: fila.terraza,
+    exterior: fila.exterior,
   };
 }
 
@@ -136,7 +145,7 @@ export default function DemandasPage() {
       );
     void supabase
       .from("propiedades")
-      .select("id, tipo_operacion, tipo_inmueble, localidad, codigo_postal, precio_venta, precio_alquiler, superficie_util, superficie_m2, habitaciones, banos, ascensor")
+      .select("id, tipo_operacion, tipo_inmueble, localidad, codigo_postal, precio_venta, precio_alquiler, superficie_util, superficie_m2, habitaciones, banos, ascensor, garaje, terraza, exterior")
       .eq("estado", "disponible")
       .then(({ data }) => setStock((data ?? []) as StockRow[]));
   };
