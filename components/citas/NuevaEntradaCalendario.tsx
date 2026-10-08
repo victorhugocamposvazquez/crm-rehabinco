@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { AltaField, AltaPersona, AltaSection, AltaShell, altaControl, type PersonaOpcion } from "@/components/ui/alta-form";
@@ -100,9 +100,18 @@ export function NuevaEntradaCalendario({
   const [altaClienteExtraNombre, setAltaClienteExtraNombre] = useState("");
   const [anadiendoClienteExtra, setAnadiendoClienteExtra] = useState(false);
   const [inmuebleSel, setInmuebleSel] = useState<InmuebleCalendario | null>(null);
+  const sesionFormulario = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      sesionFormulario.current = null;
+      return;
+    }
+    // `edicion` es un objeto nuevo en cada render del calendario. Si el efecto
+    // se reinicia con él, cada tecla en Notas vuelve al texto guardado.
+    const clave = edicion?.id ?? "nueva";
+    if (sesionFormulario.current === clave) return;
+    sesionFormulario.current = clave;
     setQCliente("");
     setQClienteExtra("");
     setAnadiendoClienteExtra(false);

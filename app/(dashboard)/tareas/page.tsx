@@ -281,6 +281,20 @@ export default function TareasPage() {
     }
   };
 
+  const guardarNotasCita = async (id: string, notas: string | null) => {
+    const actual = tareas.find((t) => t.id === id);
+    if (!actual?.cita_id) return;
+    const supabase = createClient();
+    const { error } = await supabase.from("citas").update({ notas }).eq("id", actual.cita_id);
+    if (error) {
+      toast.error("No se han podido guardar las notas.");
+      return;
+    }
+    setTareas((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, cita: { ...(item.cita ?? {}), notas } } : item))
+    );
+  };
+
   const eliminar = async (id: string) => {
     const actual = tareas.find((t) => t.id === id);
     if (!actual) return;
@@ -408,6 +422,8 @@ export default function TareasPage() {
           void mover(id, col);
         }}
         onEliminar={eliminar}
+        puedeEscribirNotas={Boolean(seleccionada && (admin || seleccionada.comercial_id === user?.id))}
+        onNotasCita={seleccionada ? (notas) => guardarNotasCita(seleccionada.id, notas) : undefined}
       />
     </div>
   );

@@ -111,7 +111,7 @@ export function CampoComentario({
             }
           }}
           placeholder="Escribe un comentario… Usa @ para mencionar"
-          className="h-[38px] min-w-0 flex-1 rounded-[9px] border border-[var(--input)] px-3 text-[13.5px] outline-none focus:border-accent"
+          className="h-[38px] min-w-0 flex-1 rounded-[9px] border border-[var(--input)] px-3 text-[13.5px] outline-none focus:border-accent max-[819px]:text-base"
         />
         <button
           type="button"

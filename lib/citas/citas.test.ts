@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { celdasMes, citasAgrupadasPorDia, citasDelDia, coincideInmueble, direccionDeInmueble, enlaceGoogleMaps, etiquetaInmueble, horaCita, horaDesdeMinutos, minutosDesdeHora, minutosDesdeOffsetY, moverCitaADiaHora, moverMes, moverSemana, orFiltroInmueble, puedeHacerParte, portadaDeMedia, prefillParteDesdeCita, rangoGrillaMes, relacionUno, rutaNuevaCita, rutaNuevaVisitaDesdeCita, semanaDesde, snapMinutos } from "./citas";
+import { celdasMes, citasAgrupadasPorDia, citasDelDia, coincideInmueble, direccionDeInmueble, enlaceGoogleMaps, entradaConNotas, etiquetaInmueble, horaCita, horaDesdeMinutos, minutosDesdeHora, minutosDesdeOffsetY, moverCitaADiaHora, moverMes, moverSemana, orFiltroInmueble, puedeHacerParte, portadaDeMedia, prefillParteDesdeCita, rangoGrillaMes, relacionUno, rutaNuevaCita, rutaNuevaVisitaDesdeCita, semanaDesde, snapMinutos } from "./citas";
 
 describe("citas", () => {
   it("el parte se abre prellenado desde la cita, no al revés", () => {
@@ -58,6 +58,15 @@ describe("citas", () => {
     assert.equal(puedeHacerParte({ tipo: "visita", estado: "prevista" }), true);
     assert.equal(puedeHacerParte({ tipo: "llamada", estado: "prevista" }), false);
     assert.equal(puedeHacerParte({ tipo: "visita", estado: "hecha" }), false);
+  });
+
+  it("la tarea guarda notas, igual que evento, llamada y captación", () => {
+    assert.equal(entradaConNotas("tarea"), true);
+    assert.equal(entradaConNotas("evento"), true);
+    assert.equal(entradaConNotas("llamada"), true);
+    assert.equal(entradaConNotas("captacion"), true);
+    assert.equal(entradaConNotas("visita"), false);
+    assert.equal(entradaConNotas("recordatorio"), false);
   });
 
   it("calcula la grilla mensual y navega de mes en mes", () => {

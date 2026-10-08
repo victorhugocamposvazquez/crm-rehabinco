@@ -50,7 +50,7 @@ export function entradaConAsistentes(tipo: string): boolean {
 }
 
 export function entradaConNotas(tipo: string): boolean {
-  return tipo === "evento" || tipo === "captacion" || tipo === "llamada";
+  return tipo === "evento" || tipo === "captacion" || tipo === "llamada" || tipo === "tarea";
 }
 
 export function puedeHacerParte(cita: { tipo: string; estado: string }): boolean {

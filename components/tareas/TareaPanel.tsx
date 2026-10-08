@@ -68,6 +68,8 @@ export function TareaPanel({
   onToggle,
   onMover,
   onEliminar,
+  onNotasCita,
+  puedeEscribirNotas = false,
 }: {
   tarea: TareaDetalle | null;
   hoy: string;
@@ -78,9 +80,12 @@ export function TareaPanel({
   onToggle: (id: string) => void;
   onMover: (id: string, col: ColumnaTarea) => void;
   onEliminar?: (id: string) => Promise<void>;
+  onNotasCita?: (notas: string | null) => Promise<void>;
+  puedeEscribirNotas?: boolean;
 }) {
   const [titulo, setTitulo] = useState("");
   const [finca, setFinca] = useState("");
+  const [notasCita, setNotasCita] = useState("");
   const [actividad, setActividad] = useState<Actividad[]>([]);
   const [propsOpts, setPropsOpts] = useState<Array<{ id: string; label: string }>>([]);
   const [cliOpts, setCliOpts] = useState<Array<{ id: string; label: string }>>([]);
@@ -96,6 +101,10 @@ export function TareaPanel({
     setConfirmEliminar(false);
     setEliminando(false);
   }, [tarea?.id, tarea?.titulo]);
+
+  useEffect(() => {
+    setNotasCita(tarea?.cita?.notas ?? "");
+  }, [tarea?.id, tarea?.cita?.notas]);
 
   useEffect(() => {
     if (!tarea) {
@@ -235,6 +244,14 @@ export function TareaPanel({
       return;
     }
     void onPatch(tarea.id, { titulo: limpio });
+  };
+
+  const guardarNotasCita = () => {
+    if (!tarea?.cita_id || !onNotasCita || !puedeEscribirNotas) return;
+    const valor = notasCita.trim() || null;
+    const previa = tarea.cita?.notas?.trim() || null;
+    if (valor === previa) return;
+    void onNotasCita(valor);
   };
 
   const guardarNota = async (texto: string, mencionados: string[]) => {
@@ -537,6 +554,26 @@ export function TareaPanel({
               />
             </CampoVinculo>
           </div>
+
+          {tarea.cita_id ? (
+            <label className="mt-8 block text-[12px] text-[var(--text-3)]">
+              Notas
+              {puedeEscribirNotas ? (
+                <textarea
+                  value={notasCita}
+                  onChange={(e) => setNotasCita(e.target.value)}
+                  onBlur={guardarNotasCita}
+                  placeholder="Observaciones de esta tarea. No salen en el título."
+                  rows={3}
+                  className="mt-2 min-h-[5rem] w-full resize-y rounded-[9px] border border-[var(--input)] bg-[var(--surface)] px-3 py-2.5 text-[13.5px] text-foreground outline-none focus:border-accent max-[819px]:text-base"
+                />
+              ) : (
+                <p className="mt-2 whitespace-pre-wrap text-[13.5px] leading-snug text-foreground">
+                  {tarea.cita?.notas?.trim() || "Sin notas"}
+                </p>
+              )}
+            </label>
+          ) : null}
 
           <div className="mt-8">
             <div className="mb-2 text-[12px] text-[var(--text-3)]">Comentarios</div>
