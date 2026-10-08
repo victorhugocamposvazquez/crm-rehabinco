@@ -980,6 +980,8 @@ export interface Database {
           requisitos: string | null;
           estado: string;
           origen: string | null;
+          asignacion_auto: boolean;
+          asignacion_casi: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -998,6 +1000,8 @@ export interface Database {
           requisitos?: string | null;
           estado?: string;
           origen?: string | null;
+          asignacion_auto?: boolean;
+          asignacion_casi?: boolean;
         };
         Update: {
           cliente_id?: string;
@@ -1014,6 +1018,8 @@ export interface Database {
           requisitos?: string | null;
           estado?: string;
           origen?: string | null;
+          asignacion_auto?: boolean;
+          asignacion_casi?: boolean;
           updated_at?: string;
         };
       };

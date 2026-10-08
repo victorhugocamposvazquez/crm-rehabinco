@@ -14,7 +14,6 @@ import { nombreYApellido } from "@/lib/ui/tokens";
 import { cn } from "@/lib/utils";
 import { TIPOS_INMUEBLE, TIPO_INMUEBLE_LABEL } from "@/lib/inmuebles/catalogo";
 import { TIPOS_OPERACION_DEMANDA, TIPO_OPERACION_DEMANDA_LABEL } from "@/lib/demandas/matching";
-import { criteriosDeDemanda, proponerStockParaDemanda } from "@/lib/demandas/proponer-stock";
 import {
   ORIGENES_DEMANDA,
   REQUISITOS_RAPIDOS,
@@ -230,9 +229,8 @@ export function NuevaDemandaPanel({
         toast.error("No se ha podido guardar la demanda.");
         return;
       }
-      const n = await proponerStockParaDemanda(supabase, editarId, criteriosDeDemanda(payloadNuevaDemanda(paraCrear)));
       setSaving(false);
-      toast.success(n > 0 ? `Demanda actualizada. ${n} ${n === 1 ? "inmueble nuevo" : "inmuebles nuevos"}.` : "Demanda actualizada.");
+      toast.success("Demanda actualizada.");
       altaBorrador.consumir();
       onOpenChange(false);
       onCreada(editarId);
@@ -244,9 +242,8 @@ export function NuevaDemandaPanel({
       toast.error("No se ha podido crear la demanda.");
       return;
     }
-    const n = await proponerStockParaDemanda(supabase, data.id, criteriosDeDemanda(payloadNuevaDemanda(paraCrear)));
     setSaving(false);
-    toast.success(n > 0 ? `Demanda creada. ${n} ${n === 1 ? "inmueble nuevo" : "inmuebles nuevos"}.` : "Demanda creada.");
+    toast.success("Demanda creada.");
     altaBorrador.consumir();
     onOpenChange(false);
     onCreada(data.id);
