@@ -69,6 +69,20 @@ describe("matching demanda ↔ inmueble", () => {
     assert.equal(r.ok, false);
   });
 
+  it("rechaza metros por encima del máximo y la falta de precio o superficie", () => {
+    assert.equal(encajaDemandaInmueble({ ...DEMANDA, superficieMax: 80 }, PISO).ok, false);
+    assert.equal(encajaDemandaInmueble({ ...DEMANDA, superficieMax: 100 }, PISO).ok, true);
+    assert.equal(encajaDemandaInmueble(DEMANDA, { ...PISO, precioVenta: null }).ok, false);
+    assert.equal(encajaDemandaInmueble(DEMANDA, { ...PISO, superficie: null }).ok, false);
+    assert.equal(
+      encajaDemandaInmueble(
+        { ...DEMANDA, presupuestoMin: null, presupuestoMax: null, superficieMin: null, superficieMax: null },
+        { ...PISO, precioVenta: null, superficie: null }
+      ).ok,
+      true
+    );
+  });
+
   it("al firmar la visita, propuesto y presentado pasan a visitado", () => {
     assert.equal(matchingPasaAVisitado("propuesto"), true);
     assert.equal(matchingPasaAVisitado("presentado"), true);

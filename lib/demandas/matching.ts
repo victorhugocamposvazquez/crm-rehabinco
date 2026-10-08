@@ -134,6 +134,10 @@ export function encajaDemandaInmueble(
   }
 
   const precio = precioDeOperacion(demanda.tipoOperacion, inmueble);
+  const pidePrecio = demanda.presupuestoMin != null || demanda.presupuestoMax != null;
+  if (pidePrecio && precio == null) {
+    return { ok: false, puntuacion: 0, motivos: ["El inmueble no tiene precio."] };
+  }
   if (demanda.presupuestoMax != null && precio != null) {
     const techo = demanda.presupuestoMax * 1.1;
     if (precio > techo) {
@@ -149,10 +153,17 @@ export function encajaDemandaInmueble(
   }
 
   const superficie = inmueble.superficie;
+  const pideSuperficie = demanda.superficieMin != null || demanda.superficieMax != null;
+  if (pideSuperficie && superficie == null) {
+    return { ok: false, puntuacion: 0, motivos: ["El inmueble no tiene superficie."] };
+  }
   if (demanda.superficieMin != null && superficie != null && superficie < demanda.superficieMin) {
     return { ok: false, puntuacion: 0, motivos: ["La superficie es inferior al mínimo."] };
   }
-  if (demanda.superficieMin != null && superficie != null) {
+  if (demanda.superficieMax != null && superficie != null && superficie > demanda.superficieMax) {
+    return { ok: false, puntuacion: 0, motivos: ["La superficie supera el máximo."] };
+  }
+  if (pideSuperficie && superficie != null) {
     puntos += 10;
     motivos.push("Superficie");
   }

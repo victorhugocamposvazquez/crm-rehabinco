@@ -14,6 +14,7 @@ import { formatEuro } from "@/lib/ui/estados-vista";
 import { FichaLink } from "@/components/crm/FichaPeek";
 import { relacionUno } from "@/lib/citas/citas";
 import { NuevaDemandaPanel } from "@/components/demandas/NuevaDemandaPanel";
+import { BuscadorProponerInmueble } from "@/components/demandas/BuscadorProponerInmueble";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { Pencil } from "lucide-react";
 import { Selector } from "@/components/ui/selector";
@@ -81,6 +82,7 @@ type MatchRow = {
   propiedad_id: string;
   puntuacion: number;
   estado: string;
+  origen: string;
   propiedades?: { titulo?: string | null; direccion?: string | null; localidad?: string | null } | null;
 };
 
@@ -117,7 +119,7 @@ export default function DemandaDetallePage() {
       });
     void supabase
       .from("demanda_inmuebles")
-      .select("id, propiedad_id, puntuacion, estado, propiedades:propiedad_id(titulo, direccion, localidad)")
+      .select("id, propiedad_id, puntuacion, estado, origen, propiedades:propiedad_id(titulo, direccion, localidad)")
       .eq("demanda_id", id)
       .order("puntuacion", { ascending: false })
       .then(({ data }) =>
@@ -139,7 +141,28 @@ export default function DemandaDetallePage() {
   const buscar = async () => {
     if (!demanda) return;
     const n = await proponerStockParaDemanda(createClient(), id, criteriosDeDemanda(demanda));
-    toast.success(`${n} inmuebles encajan.`);
+    toast.success(n > 0 ? `${n} ${n === 1 ? "inmueble nuevo" : "inmuebles nuevos"}.` : "Ningún inmueble nuevo.");
+    cargar();
+  };
+
+  const proponerManual = async (propiedadId: string) => {
+    if (matches.some((item) => item.propiedad_id === propiedadId)) {
+      toast.error("Ese inmueble ya está en la lista.");
+      return;
+    }
+    const supabase = createClient();
+    const { error } = await supabase.from("demanda_inmuebles").insert({
+      demanda_id: id,
+      propiedad_id: propiedadId,
+      origen: "manual",
+      puntuacion: 0,
+      estado: "propuesto",
+    });
+    if (error) {
+      toast.error(error.code === "23505" ? "Ese inmueble ya está en la lista." : "No se ha podido proponer el inmueble.");
+      return;
+    }
+    toast.success("Inmueble propuesto a mano.");
     cargar();
   };
 
@@ -210,6 +233,7 @@ export default function DemandaDetallePage() {
         </dl>
       </section>
       <h2 className="mt-6 text-[13px] font-semibold text-[var(--text-2)]">Inmuebles propuestos</h2>
+      <BuscadorProponerInmueble onElegir={(propiedadId) => void proponerManual(propiedadId)} />
       <ul className="mt-3 space-y-2">
         {matches.map((item) => (
           <li key={item.id} className="rounded-[13px] border border-border bg-[var(--surface)] px-4 py-3">
@@ -219,8 +243,9 @@ export default function DemandaDetallePage() {
                   {item.propiedades?.titulo || item.propiedades?.direccion || "Inmueble"}
                 </FichaLink>
                 <p className="text-sm text-[var(--text-2)]">
-                  {item.propiedades?.localidad} · {Math.round(Number(item.puntuacion))} pts ·{" "}
-                  {ESTADO_MATCHING_LABEL[item.estado as keyof typeof ESTADO_MATCHING_LABEL] ?? item.estado}
+                  {[item.propiedades?.localidad, `${Math.round(Number(item.puntuacion))} pts`, item.origen === "manual" ? "A mano" : "Automático", ESTADO_MATCHING_LABEL[item.estado as keyof typeof ESTADO_MATCHING_LABEL] ?? item.estado]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </p>
               </div>
               <Selector

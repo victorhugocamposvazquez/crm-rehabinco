@@ -232,7 +232,7 @@ export function NuevaDemandaPanel({
       }
       const n = await proponerStockParaDemanda(supabase, editarId, criteriosDeDemanda(payloadNuevaDemanda(paraCrear)));
       setSaving(false);
-      toast.success(n > 0 ? `Demanda actualizada. ${n} inmuebles encajan.` : "Demanda actualizada.");
+      toast.success(n > 0 ? `Demanda actualizada. ${n} ${n === 1 ? "inmueble nuevo" : "inmuebles nuevos"}.` : "Demanda actualizada.");
       altaBorrador.consumir();
       onOpenChange(false);
       onCreada(editarId);
@@ -246,7 +246,7 @@ export function NuevaDemandaPanel({
     }
     const n = await proponerStockParaDemanda(supabase, data.id, criteriosDeDemanda(payloadNuevaDemanda(paraCrear)));
     setSaving(false);
-    toast.success(n > 0 ? `Demanda creada. ${n} inmuebles encajan.` : "Demanda creada.");
+    toast.success(n > 0 ? `Demanda creada. ${n} ${n === 1 ? "inmueble nuevo" : "inmuebles nuevos"}.` : "Demanda creada.");
     altaBorrador.consumir();
     onOpenChange(false);
     onCreada(data.id);

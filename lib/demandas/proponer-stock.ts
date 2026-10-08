@@ -58,7 +58,14 @@ function mapStock(row: {
   };
 }
 
-/** Propone inmuebles publicados y disponibles. No confirma el match. */
+type FilaPropuesta = {
+  id: string;
+  propiedad_id: string;
+  origen: string;
+  estado: string;
+};
+
+/** Propone inmuebles publicados y disponibles. Devuelve cuántos entran nuevos. */
 export async function proponerStockParaDemanda(
   supabase: Cliente,
   demandaId: string,
@@ -72,10 +79,13 @@ export async function proponerStockParaDemanda(
       )
       .eq("estado", "disponible")
       .eq("publicado", true),
-    supabase.from("demanda_inmuebles").select("propiedad_id").eq("demanda_id", demandaId),
+    supabase.from("demanda_inmuebles").select("id, propiedad_id, origen, estado").eq("demanda_id", demandaId),
   ]);
-  const existentes = new Set((ya ?? []).map((row) => row.propiedad_id));
+  const filas = (ya ?? []) as FilaPropuesta[];
+  const existentes = new Set(filas.map((row) => row.propiedad_id));
   const resultados = matchingDemandas(criterios, (stock ?? []).map(mapStock));
+  const encajan = new Set(resultados.map((item) => item.propiedadId));
+  let nuevos = 0;
   for (const item of resultados) {
     if (existentes.has(item.propiedadId)) {
       await supabase
@@ -92,6 +102,13 @@ export async function proponerStockParaDemanda(
       puntuacion: item.puntuacion,
       estado: "propuesto",
     });
+    nuevos += 1;
   }
-  return resultados.length;
+  const sobran = filas
+    .filter((row) => row.origen === "automatico" && row.estado === "propuesto" && !encajan.has(row.propiedad_id))
+    .map((row) => row.id);
+  if (sobran.length > 0) {
+    await supabase.from("demanda_inmuebles").delete().in("id", sobran);
+  }
+  return nuevos;
 }
