@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowUpDown, Check, ChevronDown, ChevronRight, ChevronUp, MessageCircle, Phone, Search } from "lucide-react";
 import { toast } from "sonner";
+import { actualizarDemanda } from "@/lib/actions/demandas";
 import { createClient } from "@/lib/supabase/client";
 import { relacionUno } from "@/lib/citas/citas";
 import { BuscadorLocalidad } from "@/components/geo/BuscadorLocalidad";
@@ -327,16 +328,10 @@ export function DemandaCruce({ id }: { id: string }) {
   const guardarModo = async (auto: boolean, casi = demanda.asignacion_casi) => {
     setDemanda({ ...demanda, asignacion_auto: auto, asignacion_casi: casi });
     autoClave.current = "";
-    const { data, error } = await createClient()
-      .from("demandas")
-      .update({ asignacion_auto: auto, asignacion_casi: casi })
-      .eq("id", demanda.id)
-      .select("id")
-      .maybeSingle();
-    const aviso = mensajeGuardado(error, "No se ha podido guardar el modo.", data);
-    if (aviso) {
+    const resultado = await actualizarDemanda(demanda.id, { asignacion_auto: auto, asignacion_casi: casi });
+    if (!resultado.ok) {
       setDemanda(demanda);
-      toast.error(aviso);
+      toast.error(resultado.error);
     }
   };
 
@@ -610,24 +605,17 @@ export function DemandaCruce({ id }: { id: string }) {
     if (draft.superficieMin != null && draft.superficieMax != null && draft.superficieMin > draft.superficieMax) {
       return toast.error("Los m² mínimos no pueden ser mayores que los máximos.");
     }
-    const { data, error } = await createClient()
-      .from("demandas")
-      .update({
-        zonas: draft.zonas,
-        habitaciones_min: draft.habitacionesMin,
-        superficie_min: draft.superficieMin,
-        superficie_max: draft.superficieMax,
-        banos_min: draft.banosMin,
-        presupuesto_min: presupuestoMin,
-        presupuesto_max: presupuestoMax,
-        requisitos: conAscensor(demanda.requisitos, draft.ascensor),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", demanda.id)
-      .select("id")
-      .maybeSingle();
-    const aviso = mensajeGuardado(error, "No se han podido guardar los criterios.", data);
-    if (aviso) return toast.error(aviso);
+    const resultado = await actualizarDemanda(demanda.id, {
+      zonas: draft.zonas,
+      habitaciones_min: draft.habitacionesMin,
+      superficie_min: draft.superficieMin,
+      superficie_max: draft.superficieMax,
+      banos_min: draft.banosMin,
+      presupuesto_min: presupuestoMin,
+      presupuesto_max: presupuestoMax,
+      requisitos: conAscensor(demanda.requisitos, draft.ascensor),
+    });
+    if (!resultado.ok) return toast.error(resultado.error);
     setSheet(null);
     setDraft(null);
     autoClave.current = "";

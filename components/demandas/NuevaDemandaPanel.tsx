@@ -14,15 +14,14 @@ import { nombreYApellido } from "@/lib/ui/tokens";
 import { cn } from "@/lib/utils";
 import { TIPOS_INMUEBLE, TIPO_INMUEBLE_LABEL } from "@/lib/inmuebles/catalogo";
 import { TIPOS_OPERACION_DEMANDA, TIPO_OPERACION_DEMANDA_LABEL } from "@/lib/demandas/matching";
+import { guardarDemanda } from "@/lib/actions/demandas";
 import {
   ORIGENES_DEMANDA,
   REQUISITOS_RAPIDOS,
-  payloadNuevaDemanda,
   validarNuevaDemanda,
   type BorradorNuevaDemanda,
 } from "@/lib/demandas/nueva";
 import { BuscadorLocalidad } from "@/components/geo/BuscadorLocalidad";
-import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import type { ComercialFiltro } from "@/components/captacion/FiltroComercial";
 import { altaCamposVacios, leerAltaBorrador } from "@/lib/ui/alta-borrador";
 import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
@@ -213,7 +212,6 @@ export function NuevaDemandaPanel({
       toast.error("Elige o crea un cliente.");
       return;
     }
-    const supabase = createClient();
     const paraCrear = { ...draft, clienteId, comercialId: draft.comercialId || user.id };
     const fallo = validarNuevaDemanda(paraCrear);
     if (fallo) {
@@ -221,35 +219,17 @@ export function NuevaDemandaPanel({
       return;
     }
     setSaving(true);
-    if (editarId) {
-      const { estado: _estado, ...resto } = payloadNuevaDemanda(paraCrear);
-      void _estado;
-      const { data, error } = await supabase.from("demandas").update(resto).eq("id", editarId).select("id").maybeSingle();
-      const aviso = mensajeGuardado(error, "No se ha podido guardar la demanda.", data);
-      if (aviso) {
-        setSaving(false);
-        toast.error(aviso);
-        return;
-      }
+    const resultado = await guardarDemanda({ id: editarId ?? null, borrador: paraCrear });
+    if (!resultado.ok) {
       setSaving(false);
-      toast.success("Demanda actualizada.");
-      altaBorrador.consumir();
-      onOpenChange(false);
-      onCreada(editarId);
-      return;
-    }
-    const { data, error } = await supabase.from("demandas").insert(payloadNuevaDemanda(paraCrear)).select("id").single();
-    const aviso = mensajeGuardado(error, "No se ha podido crear la demanda.", data);
-    if (aviso || !data) {
-      setSaving(false);
-      toast.error(aviso ?? "No se ha podido crear la demanda.");
+      toast.error(resultado.error);
       return;
     }
     setSaving(false);
-    toast.success("Demanda creada.");
+    toast.success(editarId ? "Demanda actualizada." : "Demanda creada.");
     altaBorrador.consumir();
     onOpenChange(false);
-    onCreada(data.id);
+    onCreada(resultado.id);
   };
 
   const faltaCliente = !draft.clienteId;

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { actualizarDemanda } from "@/lib/actions/demandas";
 import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -233,11 +234,9 @@ export default function SeguimientoPage() {
   };
 
   const moverDemanda = async (id: string, estado: EstadoDemanda) => {
-    const supabase = createClient();
-    const { data, error: err } = await supabase.from("demandas").update({ estado }).eq("id", id).select("id").maybeSingle();
-    const aviso = mensajeGuardado(err, "No se ha podido mover la demanda.", data);
-    if (aviso) {
-      toast.error(aviso);
+    const resultado = await actualizarDemanda(id, { estado });
+    if (!resultado.ok) {
+      toast.error(resultado.error);
       return;
     }
     setDemandas((prev) => prev.map((d) => (d.id === id ? { ...d, estado } : d)));

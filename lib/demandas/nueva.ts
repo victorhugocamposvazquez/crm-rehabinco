@@ -81,3 +81,11 @@ export function payloadNuevaDemanda(borrador: BorradorNuevaDemanda) {
     estado: "activa" as const,
   };
 }
+
+/** Al editar no se toca el cliente ni el estado: el trigger de «es cliente» no debe echar atrás el guardado. */
+export function payloadActualizarDemanda(borrador: BorradorNuevaDemanda) {
+  const { estado: _estado, cliente_id: _cliente, ...resto } = payloadNuevaDemanda(borrador);
+  void _estado;
+  void _cliente;
+  return resto;
+}
