@@ -15,14 +15,17 @@ import { ORIGENES_DEMANDA } from "@/lib/demandas/nueva";
 import { TIPO_OPERACION_DEMANDA_LABEL, type TipoOperacionDemanda } from "@/lib/demandas/matching";
 import {
   MOTIVOS_DESCARTE_CRUCE,
+  conAscensor,
   estadoAsignacionDe,
   estadoDbDe,
   evaluarCruce,
   ordenarCruce,
+  pideAscensor,
   precioDeCruce,
   type EstadoAsignacion,
   type EvaluacionCruce,
 } from "@/lib/demandas/cruce";
+import { numeroOpcional } from "@/lib/demandas/nueva";
 import { formatEuro, telWhatsApp } from "@/lib/ui/estados-vista";
 import { cn } from "@/lib/utils";
 
@@ -35,10 +38,13 @@ type DemandaFila = {
   tipo_operacion: string;
   tipos_inmueble: string[] | null;
   zonas: string[] | null;
+  presupuesto_min: number | null;
   presupuesto_max: number | null;
   superficie_min: number | null;
   superficie_max: number | null;
   habitaciones_min: number | null;
+  banos_min: number | null;
+  requisitos: string | null;
   origen: string | null;
   estado: string;
   asignacion_auto: boolean;
@@ -63,6 +69,7 @@ type StockFila = {
   superficie_m2: number | null;
   habitaciones: number | null;
   banos: number | null;
+  ascensor: boolean | null;
   created_at: string | null;
 };
 
@@ -76,15 +83,24 @@ type MatchFila = {
 
 type Pieza = StockFila & EvaluacionCruce & { precio: number | null; isNew: boolean; tituloVisible: string };
 
-type Borrador = { zonas: string[]; habitacionesMin: number | null; superficieMin: number | null };
+type Borrador = {
+  zonas: string[];
+  habitacionesMin: number | null;
+  superficieMin: number | null;
+  superficieMax: number | null;
+  banosMin: number | null;
+  presupuestoMin: string;
+  presupuestoMax: string;
+  ascensor: boolean;
+};
 
 type Aviso = { msg: string; verId?: string; revert: () => Promise<void> };
 
 const SELECT_DEMANDA =
-  "id, cliente_id, comercial_id, tipo_operacion, tipos_inmueble, zonas, presupuesto_max, superficie_min, superficie_max, habitaciones_min, origen, estado, asignacion_auto, asignacion_casi, updated_at, clientes:cliente_id(nombre, telefono), profiles:comercial_id(nombre_completo, color)";
+  "id, cliente_id, comercial_id, tipo_operacion, tipos_inmueble, zonas, presupuesto_min, presupuesto_max, superficie_min, superficie_max, habitaciones_min, banos_min, requisitos, origen, estado, asignacion_auto, asignacion_casi, updated_at, clientes:cliente_id(nombre, telefono), profiles:comercial_id(nombre_completo, color)";
 
 const SELECT_STOCK =
-  "id, titulo, direccion, localidad, codigo_postal, referencia, tipo_operacion, tipo_inmueble, precio_venta, precio_alquiler, superficie_util, superficie_m2, habitaciones, banos, created_at";
+  "id, titulo, direccion, localidad, codigo_postal, referencia, tipo_operacion, tipo_inmueble, precio_venta, precio_alquiler, superficie_util, superficie_m2, habitaciones, banos, ascensor, created_at";
 
 function num(valor: number | string | null | undefined): number | null {
   if (valor == null || valor === "") return null;
@@ -92,19 +108,22 @@ function num(valor: number | string | null | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-function criteriosDe(demanda: DemandaFila, extra?: Partial<Borrador>) {
+function criteriosDe(demanda: DemandaFila, extra?: Borrador) {
   return {
     tipoOperacion: demanda.tipo_operacion,
     tiposInmueble: demanda.tipos_inmueble ?? [],
-    presupuestoMax: num(demanda.presupuesto_max),
+    presupuestoMin: extra ? numeroOpcional(extra.presupuestoMin) : num(demanda.presupuesto_min),
+    presupuestoMax: extra ? numeroOpcional(extra.presupuestoMax) : num(demanda.presupuesto_max),
     zonas: extra?.zonas ?? demanda.zonas ?? [],
-    habitacionesMin: extra && "habitacionesMin" in extra ? extra.habitacionesMin ?? null : num(demanda.habitaciones_min),
-    superficieMin: extra && "superficieMin" in extra ? extra.superficieMin ?? null : num(demanda.superficie_min),
-    superficieMax: num(demanda.superficie_max),
+    habitacionesMin: extra ? extra.habitacionesMin : num(demanda.habitaciones_min),
+    superficieMin: extra ? extra.superficieMin : num(demanda.superficie_min),
+    superficieMax: extra ? extra.superficieMax : num(demanda.superficie_max),
+    banosMin: extra ? extra.banosMin : num(demanda.banos_min),
+    pideAscensor: extra ? extra.ascensor : pideAscensor(demanda.requisitos),
   };
 }
 
-function aPieza(fila: StockFila, demanda: DemandaFila, extra?: Partial<Borrador>): Pieza {
+function aPieza(fila: StockFila, demanda: DemandaFila, extra?: Borrador): Pieza {
   const precio = precioDeCruce(demanda.tipo_operacion, fila.precio_venta, fila.precio_alquiler);
   const eval_ = evaluarCruce(
     {
@@ -115,6 +134,8 @@ function aPieza(fila: StockFila, demanda: DemandaFila, extra?: Partial<Borrador>
       precio,
       superficie: num(fila.superficie_util) ?? num(fila.superficie_m2),
       habitaciones: num(fila.habitaciones),
+      banos: num(fila.banos),
+      ascensor: fila.ascensor,
     },
     criteriosDe(demanda, extra)
   );
@@ -262,15 +283,38 @@ export function DemandaCruce({ id }: { id: string }) {
   const telefono = demanda.clientes?.telefono ?? "";
   const wa = telWhatsApp(telefono);
   const tipos = (demanda.tipos_inmueble ?? []).map((tipo) => TIPO_INMUEBLE_LABEL[tipo as TipoInmueble] ?? tipo);
+  const presupuesto =
+    num(demanda.presupuesto_min) != null && num(demanda.presupuesto_max) != null
+      ? `${formatEuro(num(demanda.presupuesto_min))} – ${formatEuro(num(demanda.presupuesto_max))}`
+      : num(demanda.presupuesto_max) != null
+        ? `Hasta ${formatEuro(num(demanda.presupuesto_max))}`
+        : num(demanda.presupuesto_min) != null
+          ? `Desde ${formatEuro(num(demanda.presupuesto_min))}`
+          : "";
+  const metros =
+    num(demanda.superficie_min) != null && num(demanda.superficie_max) != null
+      ? `${num(demanda.superficie_min)}–${num(demanda.superficie_max)} m²`
+      : num(demanda.superficie_min) != null
+        ? `≥ ${num(demanda.superficie_min)} m²`
+        : num(demanda.superficie_max) != null
+          ? `≤ ${num(demanda.superficie_max)} m²`
+          : "";
   const chips = [
     operacion,
     tipos.join(", "),
-    num(demanda.presupuesto_max) != null ? `Hasta ${formatEuro(num(demanda.presupuesto_max))}` : "",
+    presupuesto,
     (demanda.zonas ?? []).length > 2 ? `${(demanda.zonas ?? []).length} zonas` : (demanda.zonas ?? []).join(", "),
     num(demanda.habitaciones_min) != null ? `≥ ${num(demanda.habitaciones_min)} hab` : "",
-    num(demanda.superficie_min) != null ? `≥ ${num(demanda.superficie_min)} m²` : "",
+    metros,
+    num(demanda.banos_min) != null ? `≥ ${num(demanda.banos_min)} baños` : "",
+    pideAscensor(demanda.requisitos) ? "Ascensor" : "",
   ].filter(Boolean);
   const faltan = [!(demanda.zonas ?? []).length && "zona", num(demanda.habitaciones_min) == null && "habitaciones", num(demanda.superficie_min) == null && "superficie"].filter(Boolean) as string[];
+  const notasRequisitos = (demanda.requisitos ?? "")
+    .split(/[.\n]+/)
+    .map((parte) => parte.trim())
+    .filter((parte) => parte && parte.toLowerCase() !== "ascensor")
+    .join(". ");
 
   const avisar = (siguiente: Aviso) => setAviso(siguiente);
   const ver = (propiedadId: string) => {
@@ -507,14 +551,41 @@ export function DemandaCruce({ id }: { id: string }) {
   const draftMatches = draft ? stock.filter((fila) => aPieza(fila, demanda, draft).perfect).length : 0;
   const piezaDescarte = discardId ? porId.get(discardId) : null;
 
+  const abrirCriterios = () => {
+    setDraft({
+      zonas: [...(demanda.zonas ?? [])],
+      habitacionesMin: num(demanda.habitaciones_min),
+      superficieMin: num(demanda.superficie_min),
+      superficieMax: num(demanda.superficie_max),
+      banosMin: num(demanda.banos_min),
+      presupuestoMin: num(demanda.presupuesto_min) != null ? String(num(demanda.presupuesto_min)) : "",
+      presupuestoMax: num(demanda.presupuesto_max) != null ? String(num(demanda.presupuesto_max)) : "",
+      ascensor: pideAscensor(demanda.requisitos),
+    });
+    setSheet("criteria");
+  };
+
   const guardarCriterios = async () => {
     if (!draft) return;
+    const presupuestoMin = numeroOpcional(draft.presupuestoMin);
+    const presupuestoMax = numeroOpcional(draft.presupuestoMax);
+    if (presupuestoMin != null && presupuestoMax != null && presupuestoMin > presupuestoMax) {
+      return toast.error("El presupuesto mínimo no puede ser mayor que el máximo.");
+    }
+    if (draft.superficieMin != null && draft.superficieMax != null && draft.superficieMin > draft.superficieMax) {
+      return toast.error("Los m² mínimos no pueden ser mayores que los máximos.");
+    }
     const { error } = await createClient()
       .from("demandas")
       .update({
         zonas: draft.zonas,
         habitaciones_min: draft.habitacionesMin,
         superficie_min: draft.superficieMin,
+        superficie_max: draft.superficieMax,
+        banos_min: draft.banosMin,
+        presupuesto_min: presupuestoMin,
+        presupuesto_max: presupuestoMax,
+        requisitos: conAscensor(demanda.requisitos, draft.ascensor),
         updated_at: new Date().toISOString(),
       })
       .eq("id", demanda.id);
@@ -567,10 +638,7 @@ export function DemandaCruce({ id }: { id: string }) {
         <aside className="flex flex-col gap-4">
           <button
             type="button"
-            onClick={() => {
-              setDraft({ zonas: [...(demanda.zonas ?? [])], habitacionesMin: num(demanda.habitaciones_min), superficieMin: num(demanda.superficie_min) });
-              setSheet("criteria");
-            }}
+            onClick={abrirCriterios}
             className="flex w-full flex-col gap-3 rounded-[14px] border border-border bg-[var(--surface)] p-5 text-left"
           >
             <span className="flex w-full items-center justify-between">
@@ -583,7 +651,8 @@ export function DemandaCruce({ id }: { id: string }) {
               ))}
               {faltan.length ? <span className="rounded-[7px] bg-[var(--amber-bg)] px-2 py-1 text-[12px] text-[var(--amber-ink)]">Falta {faltan.join(", ")}</span> : null}
             </span>
-            {faltan.length ? <span className="text-[12px] leading-relaxed text-[var(--text-3)]">Sin zona ni tamaño, cualquier inmueble en presupuesto encaja. Añádelos para afinar.</span> : null}
+            {faltan.length ? <span className="text-[12px] leading-relaxed text-[var(--text-3)]">Sin zona ni tamaño, cualquier inmueble que cumpla el resto encaja. Añádelos para afinar.</span> : null}
+            {notasRequisitos ? <span className="text-[12px] leading-relaxed text-[var(--text-3)]">Notas: {notasRequisitos}. Garaje, terraza y exterior no filtran: el inmueble no guarda ese dato.</span> : null}
           </button>
 
           <div className="flex flex-col gap-3 rounded-[14px] border border-border bg-[var(--surface)] p-5">
@@ -649,6 +718,7 @@ export function DemandaCruce({ id }: { id: string }) {
                         </span>
                       </p>
                     </div>
+                    <Link href={`/propiedades/${pieza.id}/editar`} className={btnGhost}>Editar</Link>
                     <button type="button" className={btnPrimary} onClick={() => void asignar(pieza.id, "manual")}>
                       {pieza.perfect ? "Asignar" : "Asignar igualmente"}
                     </button>
@@ -785,14 +855,33 @@ export function DemandaCruce({ id }: { id: string }) {
           <h2 className="text-[17px] font-semibold">Lo que busca {nombre}</h2>
           <p className="mt-1 text-[13px] text-[var(--text-2)]">Cuanto más completo, mejores sugerencias y menos ruido.</p>
           <div className="mt-4 flex flex-wrap gap-1.5">
-            {chips.slice(0, 3).map((chip) => <span key={chip} className="rounded-[7px] bg-[var(--surface-soft)] px-2 py-1 text-[12px]">{chip}</span>)}
+            {[operacion, tipos.join(", ")].filter(Boolean).map((chip) => <span key={chip} className="rounded-[7px] bg-[var(--surface-soft)] px-2 py-1 text-[12px]">{chip}</span>)}
+          </div>
+          <p className="mt-2 text-[12px] text-[var(--text-3)]">Operación y tipo se cambian en Editar demanda. El resto de esta ficha sí filtra el stock.</p>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1 text-[13px] font-medium">
+              Presupuesto desde
+              <input value={draft.presupuestoMin} onChange={(event) => setDraft({ ...draft, presupuestoMin: event.target.value })} inputMode="numeric" placeholder="—" className={campo} />
+            </label>
+            <label className="flex flex-col gap-1 text-[13px] font-medium">
+              Presupuesto hasta
+              <input value={draft.presupuestoMax} onChange={(event) => setDraft({ ...draft, presupuestoMax: event.target.value })} inputMode="numeric" placeholder="—" className={campo} />
+            </label>
           </div>
           <div className="mt-4">
             <p className="mb-2 text-[13px] font-medium">Zonas</p>
             <BuscadorLocalidad multiple value={draft.zonas} onChange={(valor) => setDraft({ ...draft, zonas: Array.isArray(valor) ? valor : valor ? [valor] : [] })} placeholder="Añadir zona" />
           </div>
           <Stepper label="Habitaciones mínimas" hint="Vacío = le da igual" valor={draft.habitacionesMin != null ? `≥ ${draft.habitacionesMin}` : "—"} onMenos={() => setDraft({ ...draft, habitacionesMin: draft.habitacionesMin != null && draft.habitacionesMin > 1 ? draft.habitacionesMin - 1 : null })} onMas={() => setDraft({ ...draft, habitacionesMin: (draft.habitacionesMin || 0) + 1 })} />
+          <Stepper label="Baños mínimos" hint="Vacío = le da igual" valor={draft.banosMin != null ? `≥ ${draft.banosMin}` : "—"} onMenos={() => setDraft({ ...draft, banosMin: draft.banosMin != null && draft.banosMin > 1 ? draft.banosMin - 1 : null })} onMas={() => setDraft({ ...draft, banosMin: (draft.banosMin || 0) + 1 })} />
           <Stepper label="Superficie mínima" hint="Pasos de 10 m²" valor={draft.superficieMin != null ? `≥ ${draft.superficieMin} m²` : "—"} onMenos={() => setDraft({ ...draft, superficieMin: draft.superficieMin != null && draft.superficieMin > 50 ? draft.superficieMin - 10 : null })} onMas={() => setDraft({ ...draft, superficieMin: draft.superficieMin ? draft.superficieMin + 10 : 50 })} />
+          <Stepper label="Superficie máxima" hint="Vacío = sin tope" valor={draft.superficieMax != null ? `≤ ${draft.superficieMax} m²` : "—"} onMenos={() => setDraft({ ...draft, superficieMax: draft.superficieMax != null && draft.superficieMax > 50 ? draft.superficieMax - 10 : null })} onMas={() => setDraft({ ...draft, superficieMax: draft.superficieMax ? draft.superficieMax + 10 : Math.max(draft.superficieMin ?? 50, 50) })} />
+          <button type="button" onClick={() => setDraft({ ...draft, ascensor: !draft.ascensor })} className="mt-4 flex items-center gap-2.5 text-left text-[13px]">
+            <span className={cn("grid h-5 w-5 place-items-center rounded-[6px] border-2", draft.ascensor ? "border-foreground bg-foreground text-[var(--background)]" : "border-[var(--input)]")}>
+              {draft.ascensor ? <Check className="h-3 w-3" strokeWidth={3} /> : null}
+            </span>
+            Imprescindible con ascensor
+          </button>
           <p className={cn("mt-4 text-[13px]", draftMatches ? "text-[var(--green)]" : "text-[var(--amber)]")}>
             {draftMatches ? `Con estos criterios encajan ${draftMatches} ${draftMatches === 1 ? "inmueble" : "inmuebles"} de tu stock.` : "Con estos criterios no encaja ninguno ahora mismo. Puedes guardarlos igualmente: avisaremos cuando entre uno."}
           </p>
@@ -820,6 +909,7 @@ export function DemandaCruce({ id }: { id: string }) {
 }
 
 const btnGhost = "inline-flex h-11 items-center gap-2 rounded-[10px] border border-[var(--input)] bg-[var(--surface)] px-3.5 text-[14px] font-medium min-[1024px]:h-10";
+const campo = "h-11 rounded-[10px] border border-[var(--input)] bg-[var(--field)] px-3 text-[16px] font-normal outline-none min-[1024px]:text-[14px]";
 const btnPrimary = "inline-flex h-11 items-center justify-center rounded-[10px] bg-accent px-3.5 text-[14px] font-semibold text-accent-foreground min-[1024px]:h-9";
 
 function Modo({ activo, titulo, texto, pasos, onClick }: { activo: boolean; titulo: string; texto: string; pasos: string[]; onClick: () => void }) {
@@ -930,6 +1020,7 @@ function Fila({
             ))}
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Link href={`/propiedades/${pieza.id}/editar`} className={btnGhost}>Editar</Link>
             {tab === "sugeridos" || casi ? (
               <>
                 <button type="button" className={btnGhost} onClick={onDescartar}>Descartar</button>

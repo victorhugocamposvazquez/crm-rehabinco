@@ -5,11 +5,14 @@ import { evaluarCruce, ordenarCruce, type DemandaParaCruce, type InmuebleParaCru
 const DEMANDA: DemandaParaCruce = {
   tipoOperacion: "compra",
   tiposInmueble: ["piso"],
+  presupuestoMin: null,
   presupuestoMax: 250000,
   zonas: [],
   habitacionesMin: null,
   superficieMin: null,
   superficieMax: null,
+  banosMin: null,
+  pideAscensor: false,
 };
 
 function piso(parcial: Partial<InmuebleParaCruce> = {}): InmuebleParaCruce {
@@ -20,6 +23,8 @@ function piso(parcial: Partial<InmuebleParaCruce> = {}): InmuebleParaCruce {
     precio: 235000,
     superficie: 92,
     habitaciones: 3,
+    banos: 2,
+    ascensor: true,
     ...parcial,
   };
 }
@@ -54,6 +59,21 @@ describe("evaluar cruce", () => {
   it("tipo u operación distintos no son casi encaje", () => {
     assert.equal(evaluarCruce(piso({ tipoInmueble: "atico" }), DEMANDA).near, false);
     assert.equal(evaluarCruce(piso({ tipoOperacion: "alquiler" }), DEMANDA).perfect, false);
+  });
+
+  it("el mínimo de presupuesto, los baños y el ascensor cuentan", () => {
+    const estricta = { ...DEMANDA, presupuestoMin: 200000, banosMin: 2, pideAscensor: true };
+    assert.equal(evaluarCruce(piso(), estricta).perfect, true);
+    const barato = evaluarCruce(piso({ precio: 170000 }), estricta);
+    assert.equal(barato.perfect, false);
+    assert.equal(barato.near, false);
+    const cerca = evaluarCruce(piso({ precio: 185000 }), estricta);
+    assert.equal(cerca.near, true);
+    const sinBanos = evaluarCruce(piso({ banos: 1 }), estricta);
+    assert.equal(sinBanos.near, true);
+    const sinAscensor = evaluarCruce(piso({ ascensor: false }), estricta);
+    assert.equal(sinAscensor.perfect, false);
+    assert.equal(sinAscensor.near, false);
   });
 
   it("rechaza por encima de los metros máximos", () => {

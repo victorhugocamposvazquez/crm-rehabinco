@@ -360,7 +360,12 @@ function FichaPeekHost({
           )}
         </div>
         {destino && rutaFichaCompleta(destino) ? (
-          <div className="border-t border-[var(--border-soft)] px-4 py-3">
+          <div className="flex flex-wrap gap-4 border-t border-[var(--border-soft)] px-4 py-3">
+            {destino.tipo === "propiedad" ? (
+              <Link href={`/propiedades/${destino.id}/editar`} className="text-[12.5px] font-medium text-accent hover:underline">
+                Editar
+              </Link>
+            ) : null}
             <Link href={rutaFichaCompleta(destino)!} className="text-[12.5px] font-medium text-accent hover:underline">
               Abrir ficha completa
             </Link>

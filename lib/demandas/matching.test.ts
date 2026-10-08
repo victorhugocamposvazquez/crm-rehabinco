@@ -35,9 +35,10 @@ describe("matching demanda ↔ inmueble", () => {
     assert.ok(r.puntuacion >= 70);
   });
 
-  it("rechaza precio por encima del +10 %", () => {
-    const r = encajaDemandaInmueble(DEMANDA, { ...PISO, precioVenta: 400000 });
-    assert.equal(r.ok, false);
+  it("rechaza precio por encima del +10 % y por debajo del mínimo", () => {
+    assert.equal(encajaDemandaInmueble(DEMANDA, { ...PISO, precioVenta: 400000 }).ok, false);
+    assert.equal(encajaDemandaInmueble(DEMANDA, { ...PISO, precioVenta: 120000 }).ok, false);
+    assert.equal(encajaDemandaInmueble(DEMANDA, { ...PISO, precioVenta: 150000 }).ok, true);
   });
 
   it("compra encaja con venta, no con solo alquiler", () => {

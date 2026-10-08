@@ -15,11 +15,14 @@ export type EvaluacionCruce = {
 export type DemandaParaCruce = {
   tipoOperacion: string;
   tiposInmueble: string[];
+  presupuestoMin: number | null;
   presupuestoMax: number | null;
   zonas: string[];
   habitacionesMin: number | null;
   superficieMin: number | null;
   superficieMax: number | null;
+  banosMin: number | null;
+  pideAscensor: boolean;
 };
 
 export type InmuebleParaCruce = {
@@ -30,6 +33,8 @@ export type InmuebleParaCruce = {
   precio: number | null;
   superficie: number | null;
   habitaciones: number | null;
+  banos: number | null;
+  ascensor: boolean | null;
 };
 
 export type EstadoAsignacion = "pending" | "sent" | "interested" | "visit";
@@ -79,6 +84,21 @@ function numero(valor: number | string | null | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+export function pideAscensor(requisitos: string | null | undefined): boolean {
+  return (requisitos ?? "")
+    .split(/[.\n,;]+/)
+    .some((parte) => normalizar(parte) === "ascensor");
+}
+
+export function conAscensor(requisitos: string | null | undefined, pide: boolean): string | null {
+  const resto = (requisitos ?? "")
+    .split(/[.\n]+/)
+    .map((parte) => parte.trim())
+    .filter((parte) => parte && normalizar(parte) !== "ascensor");
+  if (!pide) return resto.length ? resto.join(". ") : null;
+  return resto.length ? `Ascensor. ${resto.join(". ")}` : "Ascensor";
+}
+
 /** Encaje de un inmueble con una demanda. «Casi» = operación y tipo bien, y un solo fallo leve. */
 export function evaluarCruce(inmueble: InmuebleParaCruce, demanda: DemandaParaCruce): EvaluacionCruce {
   const checks: CheckCruce[] = [];
@@ -95,13 +115,17 @@ export function evaluarCruce(inmueble: InmuebleParaCruce, demanda: DemandaParaCr
   }
 
   const max = numero(demanda.presupuestoMax);
-  if (max != null) {
+  const min = numero(demanda.presupuestoMin);
+  if (max != null || min != null) {
     const precio = numero(inmueble.precio);
     if (precio == null) add(false, "Sin precio");
-    else {
+    else if (max != null && precio > max) {
       const over = precio - max;
-      add(over <= 0, over <= 0 ? "En presupuesto" : `+${formatEuro(over)} sobre presupuesto`, over > 0 && over <= max * 0.1);
-    }
+      add(false, `+${formatEuro(over)} sobre presupuesto`, over <= max * 0.1);
+    } else if (min != null && precio < min) {
+      const under = min - precio;
+      add(false, `${formatEuro(under)} por debajo del mínimo`, under <= min * 0.1);
+    } else add(true, "En presupuesto");
   }
 
   if (demanda.zonas.length > 0) {
@@ -125,6 +149,15 @@ export function evaluarCruce(inmueble: InmuebleParaCruce, demanda: DemandaParaCr
     else if (maxM != null && m2 > maxM) add(false, `${m2} m² (máximo ${maxM})`);
     else add(true, `${m2} m²`);
   }
+
+  const banosMin = numero(demanda.banosMin);
+  if (banosMin != null) {
+    const banos = numero(inmueble.banos);
+    if (banos == null) add(false, "Sin baños");
+    else add(banos >= banosMin, banos >= banosMin ? `${banos} baños` : `Solo ${banos} baños (pide ${banosMin})`, banos === banosMin - 1);
+  }
+
+  if (demanda.pideAscensor) add(inmueble.ascensor === true, inmueble.ascensor === true ? "Ascensor" : "Sin ascensor");
 
   const failed = checks.filter((check) => !check.ok);
   const perfect = failed.length === 0;

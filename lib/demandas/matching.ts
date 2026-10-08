@@ -138,17 +138,19 @@ export function encajaDemandaInmueble(
   if (pidePrecio && precio == null) {
     return { ok: false, puntuacion: 0, motivos: ["El inmueble no tiene precio."] };
   }
+  if (demanda.presupuestoMax != null && precio != null && precio > demanda.presupuestoMax * 1.1) {
+    return { ok: false, puntuacion: 0, motivos: ["El precio supera el presupuesto (+10 %)."] };
+  }
+  if (demanda.presupuestoMin != null && precio != null && precio < demanda.presupuestoMin) {
+    return { ok: false, puntuacion: 0, motivos: ["El precio queda por debajo del mínimo."] };
+  }
   if (demanda.presupuestoMax != null && precio != null) {
-    const techo = demanda.presupuestoMax * 1.1;
-    if (precio > techo) {
-      return { ok: false, puntuacion: 0, motivos: ["El precio supera el presupuesto (+10 %)."] };
-    }
     puntos += 15;
     motivos.push("Precio dentro de presupuesto");
     if (precio <= demanda.presupuestoMax) {
       puntos += Math.round(((demanda.presupuestoMax - precio) / demanda.presupuestoMax) * 15);
     }
-  } else if (demanda.presupuestoMin != null && precio != null && precio >= demanda.presupuestoMin) {
+  } else if (demanda.presupuestoMin != null && precio != null) {
     puntos += 10;
   }
 
