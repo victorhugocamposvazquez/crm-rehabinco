@@ -718,7 +718,7 @@ export function DemandaCruce({ id }: { id: string }) {
                         </span>
                       </p>
                     </div>
-                    <Link href={`/propiedades/${pieza.id}/editar`} className={btnGhost}>Editar</Link>
+                    <Link href={`/propiedades/${pieza.id}/editar`} className={btnGhost}>Editar inmueble</Link>
                     <button type="button" className={btnPrimary} onClick={() => void asignar(pieza.id, "manual")}>
                       {pieza.perfect ? "Asignar" : "Asignar igualmente"}
                     </button>
@@ -1020,7 +1020,7 @@ function Fila({
             ))}
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <Link href={`/propiedades/${pieza.id}/editar`} className={btnGhost}>Editar</Link>
+            <Link href={`/propiedades/${pieza.id}/editar`} className={btnGhost}>Editar inmueble</Link>
             {tab === "sugeridos" || casi ? (
               <>
                 <button type="button" className={btnGhost} onClick={onDescartar}>Descartar</button>

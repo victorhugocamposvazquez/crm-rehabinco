@@ -283,6 +283,9 @@ export function PanelInmueble({
           </div>
           <div className="mt-5 flex flex-wrap items-center gap-2">
             <Button asChild>
+              <Link href={`/propiedades/${inmueble.id}/editar`}>Editar inmueble</Link>
+            </Button>
+            <Button variant="ghost" asChild>
               <Link href={rutaNuevaCita({ propiedadId: inmueble.id, clienteId: inmueble.ofertante_id })}>Concertar visita</Link>
             </Button>
             <Button type="button" variant="ghost" onClick={() => void compartir()}>
