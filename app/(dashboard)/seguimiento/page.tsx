@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { actualizarDemanda } from "@/lib/actions/demandas";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
 import { isAdmin } from "@/lib/auth/roles";
@@ -231,10 +232,9 @@ export default function SeguimientoPage() {
   };
 
   const moverDemanda = async (id: string, estado: EstadoDemanda) => {
-    const supabase = createClient();
-    const { error: err } = await supabase.from("demandas").update({ estado }).eq("id", id);
-    if (err) {
-      toast.error("No se ha podido mover la demanda.");
+    const resultado = await actualizarDemanda(id, { estado });
+    if (!resultado.ok) {
+      toast.error(resultado.error);
       return;
     }
     setDemandas((prev) => prev.map((d) => (d.id === id ? { ...d, estado } : d)));

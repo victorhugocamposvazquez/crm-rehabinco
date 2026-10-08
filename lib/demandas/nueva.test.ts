@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   combinarRequisitos,
   numeroOpcional,
+  payloadActualizarDemanda,
   payloadNuevaDemanda,
   validarNuevaDemanda,
   type BorradorNuevaDemanda,
@@ -53,6 +54,15 @@ describe("nueva demanda", () => {
     assert.equal(row.requisitos, "Ascensor. Con luz");
     assert.equal(row.origen, "llamada");
     assert.equal(row.estado, "activa");
+  });
+
+  it("al editar no manda el cliente ni reinicia el estado", () => {
+    const row = payloadActualizarDemanda(borrador());
+    assert.equal("cliente_id" in row, false);
+    assert.equal("estado" in row, false);
+    assert.equal(row.comercial_id, "com-1");
+    assert.equal(row.presupuesto_max, 280000);
+    assert.equal(row.requisitos, "Ascensor. Con luz");
   });
 
   it("acepta números con coma y deja vacíos en null", () => {
