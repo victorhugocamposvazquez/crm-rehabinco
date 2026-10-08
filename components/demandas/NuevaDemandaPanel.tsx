@@ -223,8 +223,8 @@ export function NuevaDemandaPanel({
     if (editarId) {
       const { estado: _estado, ...resto } = payloadNuevaDemanda(paraCrear);
       void _estado;
-      const { error } = await supabase.from("demandas").update(resto).eq("id", editarId);
-      if (error) {
+      const { data, error } = await supabase.from("demandas").update(resto).eq("id", editarId).select("id").maybeSingle();
+      if (error || !data) {
         setSaving(false);
         toast.error("No se ha podido guardar la demanda.");
         return;

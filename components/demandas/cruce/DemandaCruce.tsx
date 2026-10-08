@@ -326,8 +326,16 @@ export function DemandaCruce({ id }: { id: string }) {
   const guardarModo = async (auto: boolean, casi = demanda.asignacion_casi) => {
     setDemanda({ ...demanda, asignacion_auto: auto, asignacion_casi: casi });
     autoClave.current = "";
-    const { error } = await createClient().from("demandas").update({ asignacion_auto: auto, asignacion_casi: casi }).eq("id", demanda.id);
-    if (error) toast.error("No se ha podido guardar el modo.");
+    const { data, error } = await createClient()
+      .from("demandas")
+      .update({ asignacion_auto: auto, asignacion_casi: casi })
+      .eq("id", demanda.id)
+      .select("id")
+      .maybeSingle();
+    if (error || !data) {
+      setDemanda(demanda);
+      toast.error("No se ha podido guardar el modo.");
+    }
   };
 
   const asignar = async (propiedadId: string, origenMatch: "manual" | "automatico") => {
@@ -574,7 +582,7 @@ export function DemandaCruce({ id }: { id: string }) {
     if (draft.superficieMin != null && draft.superficieMax != null && draft.superficieMin > draft.superficieMax) {
       return toast.error("Los m² mínimos no pueden ser mayores que los máximos.");
     }
-    const { error } = await createClient()
+    const { data, error } = await createClient()
       .from("demandas")
       .update({
         zonas: draft.zonas,
@@ -587,8 +595,10 @@ export function DemandaCruce({ id }: { id: string }) {
         requisitos: conAscensor(demanda.requisitos, draft.ascensor),
         updated_at: new Date().toISOString(),
       })
-      .eq("id", demanda.id);
-    if (error) return toast.error("No se han podido guardar los criterios.");
+      .eq("id", demanda.id)
+      .select("id")
+      .maybeSingle();
+    if (error || !data) return toast.error("No se han podido guardar los criterios.");
     setSheet(null);
     setDraft(null);
     autoClave.current = "";
