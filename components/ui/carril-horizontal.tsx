@@ -11,12 +11,15 @@ export function CarrilHorizontal({
   trackClassName,
   label,
   role,
+  scrollDePagina = false,
 }: {
   children: ReactNode;
   className?: string;
   trackClassName?: string;
   label?: string;
   role?: string;
+  /** El carril es alto (un tablero). El gesto vertical mueve la página. */
+  scrollDePagina?: boolean;
 }) {
   const pista = useRef<HTMLDivElement>(null);
   const contenido = useRef<HTMLDivElement>(null);
@@ -40,6 +43,69 @@ export function CarrilHorizontal({
     };
   }, []);
 
+  useEffect(() => {
+    const caja = pista.current;
+    if (!caja || !scrollDePagina) return;
+
+    const pixeles = (delta: number, modo: number) => {
+      if (modo === 1) return delta * 16;
+      if (modo === 2) return delta * window.innerHeight;
+      return delta;
+    };
+
+    const onWheel = (evento: WheelEvent) => {
+      if (evento.shiftKey || Math.abs(evento.deltaY) <= Math.abs(evento.deltaX)) return;
+      if (caja.scrollHeight > caja.clientHeight + 1) return;
+      evento.preventDefault();
+      window.scrollBy(0, pixeles(evento.deltaY, evento.deltaMode));
+    };
+
+    let inicio: { x: number; y: number; top: number } | null = null;
+    let eje: "pendiente" | "x" | "y" = "pendiente";
+
+    const onStart = (evento: TouchEvent) => {
+      if (evento.touches.length !== 1) {
+        inicio = null;
+        return;
+      }
+      const toque = evento.touches[0];
+      inicio = { x: toque.clientX, y: toque.clientY, top: window.scrollY };
+      eje = "pendiente";
+    };
+
+    const onMove = (evento: TouchEvent) => {
+      if (!inicio || evento.touches.length !== 1) return;
+      const toque = evento.touches[0];
+      const dx = toque.clientX - inicio.x;
+      const dy = toque.clientY - inicio.y;
+      if (eje === "pendiente") {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        eje = Math.abs(dy) > Math.abs(dx) ? "y" : "x";
+      }
+      if (eje !== "y" || caja.scrollHeight > caja.clientHeight + 1) return;
+      if (evento.cancelable) evento.preventDefault();
+      window.scrollTo(0, inicio.top - dy);
+    };
+
+    const onEnd = () => {
+      inicio = null;
+      eje = "pendiente";
+    };
+
+    caja.addEventListener("wheel", onWheel, { passive: false });
+    caja.addEventListener("touchstart", onStart, { passive: true });
+    caja.addEventListener("touchmove", onMove, { passive: false });
+    caja.addEventListener("touchend", onEnd);
+    caja.addEventListener("touchcancel", onEnd);
+    return () => {
+      caja.removeEventListener("wheel", onWheel);
+      caja.removeEventListener("touchstart", onStart);
+      caja.removeEventListener("touchmove", onMove);
+      caja.removeEventListener("touchend", onEnd);
+      caja.removeEventListener("touchcancel", onEnd);
+    };
+  }, [scrollDePagina]);
+
   const avanzar = () => {
     const caja = pista.current;
     if (!caja) return;
@@ -53,7 +119,10 @@ export function CarrilHorizontal({
         ref={pista}
         role={role}
         aria-label={label}
-        className="overflow-x-auto overflow-y-hidden overscroll-x-contain overscroll-y-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className={cn(
+          "overflow-x-auto overflow-y-hidden overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+          scrollDePagina ? "overscroll-y-auto" : "overscroll-y-none"
+        )}
         style={
           mas
             ? {

@@ -167,7 +167,7 @@ export function TareasBoard({
   }, [nuevaCol]);
 
   return (
-    <CarrilHorizontal trackClassName="items-start gap-3 pb-2.5" label="Columnas de tareas">
+    <CarrilHorizontal trackClassName="items-start gap-3 pb-2.5" label="Columnas de tareas" scrollDePagina>
       {COLUMNAS_TAREA.map((col) => {
         const items = tareas.filter((t) => t.col === col.id);
         const hot = over === col.id;

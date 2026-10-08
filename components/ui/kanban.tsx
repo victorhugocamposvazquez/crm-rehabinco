@@ -31,7 +31,7 @@ export function Kanban<C extends string, T extends { id: string }>({
   const draggingRef = useRef(false);
 
   return (
-    <CarrilHorizontal trackClassName="items-start gap-3 pb-2.5" label="Columnas">
+    <CarrilHorizontal trackClassName="items-start gap-3 pb-2.5" label="Columnas" scrollDePagina>
       {columns.map((col) => {
         const filas = items.filter((item) => colOf(item) === col.id);
         const hot = over === col.id;
