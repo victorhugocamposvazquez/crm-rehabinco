@@ -29,6 +29,10 @@ const PISO = {
 };
 
 describe("matching demanda ↔ inmueble", () => {
+  it("sin zona no encaja", () => {
+    assert.equal(encajaDemandaInmueble({ ...DEMANDA, zonas: [] }, PISO).ok, false);
+  });
+
   it("encaja un piso de Oleiros dentro de presupuesto", () => {
     const r = encajaDemandaInmueble(DEMANDA, PISO);
     assert.equal(r.ok, true);

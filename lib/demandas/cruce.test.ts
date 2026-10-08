@@ -7,7 +7,7 @@ const DEMANDA: DemandaParaCruce = {
   tiposInmueble: ["piso"],
   presupuestoMin: null,
   presupuestoMax: 250000,
-  zonas: [],
+  zonas: ["Ensanche"],
   habitacionesMin: null,
   superficieMin: null,
   superficieMax: null,
@@ -30,7 +30,14 @@ function piso(parcial: Partial<InmuebleParaCruce> = {}): InmuebleParaCruce {
 }
 
 describe("evaluar cruce", () => {
-  it("un piso dentro de presupuesto encaja del todo si no hay más criterios", () => {
+  it("sin zona no encaja, aunque el precio y el tipo cuadren", () => {
+    const r = evaluarCruce(piso(), { ...DEMANDA, zonas: [] });
+    assert.equal(r.perfect, false);
+    assert.equal(r.near, false);
+    assert.match(r.checks.find((c) => !c.ok)?.label ?? "", /Sin zona/);
+  });
+
+  it("un piso dentro de presupuesto y de zona encaja del todo si no hay más criterios", () => {
     const r = evaluarCruce(piso(), DEMANDA);
     assert.equal(r.perfect, true);
     assert.equal(r.near, false);
@@ -54,6 +61,15 @@ describe("evaluar cruce", () => {
     const dos = evaluarCruce(piso({ localidad: "Os Mallos", habitaciones: 3, superficie: 78 }), estricta);
     assert.equal(dos.near, false);
     assert.equal(dos.perfect, false);
+  });
+
+  it("una localidad contenida en otra zona no basta: tiene que coincidir el sitio", () => {
+    const coruna = evaluarCruce(
+      piso({ localidad: "coruña", tipoInmueble: "chalet" }),
+      { ...DEMANDA, tiposInmueble: ["piso", "chalet"], zonas: ["Oleiros"], presupuestoMax: 620000 }
+    );
+    assert.equal(coruna.perfect, false);
+    assert.equal(coruna.near, false);
   });
 
   it("tipo u operación distintos no son casi encaje", () => {

@@ -86,7 +86,7 @@ function precioDeOperacion(demanda: string, inmueble: InmuebleParaMatching): num
 }
 
 function zonaCoincide(zonas: string[], inmueble: InmuebleParaMatching): boolean {
-  if (zonas.length === 0) return true;
+  if (zonas.length === 0) return false;
   const localidad = normalizar(inmueble.localidad);
   const cp = normalizar(inmueble.codigoPostal);
   return zonas.some((zona) => {
@@ -126,7 +126,11 @@ export function encajaDemandaInmueble(
   }
 
   if (!zonaCoincide(demanda.zonas, inmueble)) {
-    return { ok: false, puntuacion: 0, motivos: ["La zona no coincide."] };
+    return {
+      ok: false,
+      puntuacion: 0,
+      motivos: [demanda.zonas.length === 0 ? "La demanda no tiene zona." : "La zona no coincide."],
+    };
   }
   if (demanda.zonas.length > 0) {
     puntos += 20;

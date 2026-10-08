@@ -128,7 +128,8 @@ export function evaluarCruce(inmueble: InmuebleParaCruce, demanda: DemandaParaCr
     } else add(true, "En presupuesto");
   }
 
-  if (demanda.zonas.length > 0) {
+  if (demanda.zonas.length === 0) add(false, "Sin zona");
+  else {
     const ok = zonaOk(demanda.zonas, inmueble);
     add(ok, ok ? `Zona ${inmueble.localidad || demanda.zonas[0]}` : "Fuera de zona");
   }
