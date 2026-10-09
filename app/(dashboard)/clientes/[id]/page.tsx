@@ -15,6 +15,7 @@ import { NuevaDemandaPanel } from "@/components/demandas/NuevaDemandaPanel";
 import { NuevoClientePanel } from "@/components/clientes/NuevoClientePanel";
 import { NuevoInmueblePanel } from "@/components/inmuebles/NuevoInmueblePanel";
 import { Pencil, Trash2, FileText, Building2, Plus, Home } from "lucide-react";
+import { rutaNuevaCita } from "@/lib/citas/citas";
 import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
 import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -185,6 +186,16 @@ export default function DetalleClientePage() {
         description={undefined}
         actions={
           <div className="flex shrink-0 items-center gap-1">
+            <Button variant="secondary" size="icon" className="md:h-9 md:w-auto md:gap-2 md:px-3" asChild>
+              <Link href={rutaNuevaCita({ clienteId: id })} aria-label="Nueva tarea">
+                <Plus className="h-4 w-4" strokeWidth={1.5} />
+                <span className="hidden md:inline">Nueva tarea</span>
+              </Link>
+            </Button>
+            <Button variant="secondary" size="icon" className="md:h-9 md:w-auto md:gap-2 md:px-3" type="button" onClick={() => setNuevaOpen(true)} aria-label={hayBorradorDemanda ? "Continuar demanda" : "Nueva demanda"}>
+              <Plus className="h-4 w-4" strokeWidth={1.5} />
+              <span className="hidden md:inline">{hayBorradorDemanda ? "Continuar demanda" : "Nueva demanda"}</span>
+            </Button>
             {admin ? (
             <Button variant="secondary" size="icon" className="md:h-9 md:w-auto md:gap-2 md:px-3" asChild>
               <Link href={`/facturas/nueva?cliente=${id}&from=cliente`} aria-label="Nueva factura">

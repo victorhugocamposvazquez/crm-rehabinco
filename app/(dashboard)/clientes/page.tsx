@@ -16,8 +16,10 @@ import { cn } from "@/lib/utils";
 import { FichaLink } from "@/components/crm/FichaPeek";
 import { extraAlta } from "@/lib/ui/alta-panel";
 import { NuevoClientePanel } from "@/components/clientes/NuevoClientePanel";
+import { NuevaDemandaPanel } from "@/components/demandas/NuevaDemandaPanel";
 import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
 import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
+import { rutaNuevaCita } from "@/lib/citas/citas";
 
 type ClienteLista = {
   id: string;
@@ -73,6 +75,7 @@ export default function ClientesPage() {
   const [narrow, setNarrow] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nuevaOpen, setNuevaOpen] = useState(false);
+  const [demandaOpen, setDemandaOpen] = useState(false);
   const [padreInicial, setPadreInicial] = useState<string | undefined>();
   const [contactoInicial, setContactoInicial] = useState<
     { nombre?: string; telefono?: string; email?: string } | undefined
@@ -433,9 +436,16 @@ export default function ClientesPage() {
                     WhatsApp
                   </span>
                 )}
-                <Link href="/tareas" className="flex h-9 flex-[1_1_90px] items-center justify-center rounded-[9px] bg-accent text-[13px] font-medium text-accent-foreground hover:bg-accent-dark">
-                  Tarea
+                <Link href={rutaNuevaCita({ clienteId: selected.id })} className="flex h-[38px] flex-[1_1_120px] items-center justify-center rounded-[9px] bg-accent text-[13px] font-medium text-accent-foreground hover:bg-accent-dark">
+                  Nueva tarea
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => setDemandaOpen(true)}
+                  className="flex h-[38px] flex-[1_1_140px] items-center justify-center rounded-[9px] border border-[var(--input)] text-[13px] font-semibold"
+                >
+                  Nueva demanda
+                </button>
               </div>
               {selected.es_cliente ? null : (
                 <div className="mt-3 px-5">
@@ -555,6 +565,16 @@ export default function ClientesPage() {
       )}
 
       <Fab onClick={() => { setPadreInicial(undefined); setContactoInicial(undefined); setNuevaOpen(true); }} label={hayBorrador ? "Continuar borrador" : "Añadir contacto"} />
+      <NuevaDemandaPanel
+        open={demandaOpen && Boolean(selected)}
+        onOpenChange={setDemandaOpen}
+        clienteIdInicial={selected?.id}
+        clienteNombre={selected?.nombre}
+        onCreada={() => {
+          if (selected) setPendingSelectedId(selected.id);
+          setCargaKey((n) => n + 1);
+        }}
+      />
       <NuevoClientePanel
         open={nuevaOpen}
         onOpenChange={(open) => {

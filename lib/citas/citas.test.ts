@@ -65,6 +65,8 @@ describe("citas", () => {
     assert.equal(entradaConNotas("evento"), true);
     assert.equal(entradaConNotas("llamada"), true);
     assert.equal(entradaConNotas("captacion"), true);
+    assert.equal(entradaConNotas("firma"), true);
+    assert.equal(entradaConNotas("tasacion"), true);
     assert.equal(entradaConNotas("visita"), false);
     assert.equal(entradaConNotas("recordatorio"), false);
   });

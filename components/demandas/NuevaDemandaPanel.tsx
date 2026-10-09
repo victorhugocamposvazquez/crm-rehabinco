@@ -21,7 +21,7 @@ import {
   validarNuevaDemanda,
   type BorradorNuevaDemanda,
 } from "@/lib/demandas/nueva";
-import { BuscadorLocalidad } from "@/components/geo/BuscadorLocalidad";
+import { SelectorZonas } from "@/components/demandas/SelectorZonas";
 import type { ComercialFiltro } from "@/components/captacion/FiltroComercial";
 import { altaCamposVacios, leerAltaBorrador } from "@/lib/ui/alta-borrador";
 import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
@@ -297,12 +297,7 @@ export function NuevaDemandaPanel({
           </div>
           <div>
             <div className="mb-2.5 text-[12.5px] font-semibold text-[var(--text-2)]">Zonas</div>
-            <BuscadorLocalidad
-              multiple
-              value={draft.zonas}
-              onChange={(valor) => set("zonas", Array.isArray(valor) ? valor : valor ? [valor] : [])}
-              placeholder="Toda España · 3 letras para añadir"
-            />
+            <SelectorZonas value={draft.zonas} onChange={(zonas) => set("zonas", zonas)} />
           </div>
         </div>
       </AltaSection>

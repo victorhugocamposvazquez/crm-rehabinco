@@ -1,7 +1,7 @@
-export const TIPOS_CITA = ["visita", "llamada", "firma", "evento", "captacion", "recordatorio", "tarea", "otro"] as const;
+export const TIPOS_CITA = ["visita", "llamada", "firma", "tasacion", "evento", "captacion", "recordatorio", "tarea", "otro"] as const;
 export type TipoCita = (typeof TIPOS_CITA)[number];
 
-export const TIPOS_ALTA_CALENDARIO = ["visita", "llamada", "evento", "captacion", "recordatorio", "tarea"] as const;
+export const TIPOS_ALTA_CALENDARIO = ["visita", "llamada", "firma", "tasacion", "evento", "captacion", "recordatorio", "tarea"] as const;
 export type TipoAltaCalendario = (typeof TIPOS_ALTA_CALENDARIO)[number];
 
 export const ESTADOS_CITA = ["prevista", "hecha", "no_asistio", "cancelada"] as const;
@@ -31,6 +31,7 @@ export const TIPO_CITA_LABEL: Record<TipoCita, string> = {
   visita: "Visita",
   llamada: "Llamada",
   firma: "Firma",
+  tasacion: "Tasación",
   evento: "Evento",
   captacion: "Captación",
   recordatorio: "Recordatorio",
@@ -50,7 +51,7 @@ export function entradaConAsistentes(tipo: string): boolean {
 }
 
 export function entradaConNotas(tipo: string): boolean {
-  return tipo === "evento" || tipo === "captacion" || tipo === "llamada" || tipo === "tarea";
+  return tipo === "evento" || tipo === "captacion" || tipo === "llamada" || tipo === "tarea" || tipo === "firma" || tipo === "tasacion";
 }
 
 export function puedeHacerParte(cita: { tipo: string; estado: string }): boolean {

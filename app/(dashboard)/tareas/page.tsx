@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Check, Plus } from "lucide-react";
@@ -333,6 +334,14 @@ export default function TareasPage() {
         title="Tareas"
         description="Todo lo del calendario entra aquí por día. Arrastra entre columnas; lo que tiene hora también aparece en la agenda."
         actions={
+          <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/calendario?nueva=1"
+            className="inline-flex h-8 items-center gap-1.5 rounded-[9px] bg-accent px-3 text-[12.5px] font-semibold text-accent-foreground hover:bg-accent-dark"
+          >
+            <Plus size={14} strokeWidth={2.6} />
+            Nueva tarea
+          </Link>
           <div className="flex overflow-hidden rounded-[9px] border border-border">
             <button
               type="button"
@@ -348,6 +357,7 @@ export default function TareasPage() {
             >
               Lista
             </button>
+          </div>
           </div>
         }
       />

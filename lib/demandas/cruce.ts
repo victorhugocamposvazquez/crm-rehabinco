@@ -1,4 +1,5 @@
 import { TIPO_INMUEBLE_LABEL, type TipoInmueble } from "@/lib/inmuebles/catalogo";
+import { inmuebleEnDistrito } from "@/lib/demandas/zonas-coruna";
 import { TIPO_OPERACION_DEMANDA_LABEL, type TipoOperacionDemanda } from "@/lib/demandas/matching";
 import { formatEuro } from "@/lib/ui/estados-vista";
 
@@ -32,6 +33,8 @@ export type InmuebleParaCruce = {
   tipoOperacion: string | null;
   tipoInmueble: string | null;
   localidad: string | null;
+  direccion?: string | null;
+  titulo?: string | null;
   codigoPostal?: string | null;
   precio: number | null;
   superficie: number | null;
@@ -80,6 +83,7 @@ function zonaOk(zonas: string[], inmueble: InmuebleParaCruce): boolean {
   return zonas.some((zona) => {
     const z = normalizar(zona);
     if (!z) return false;
+    if (inmuebleEnDistrito(zona, inmueble)) return true;
     return localidad.includes(z) || (localidad && z.includes(localidad)) || cp === z;
   });
 }

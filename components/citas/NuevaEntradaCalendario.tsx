@@ -237,7 +237,7 @@ export function NuevaEntradaCalendario({
       >
         <AltaSection
           title="Qué"
-          hint="Visita, llamada, evento, captación, recordatorio o tarea. El título es lo que verás en la rejilla."
+          hint="Visita, llamada, firma, tasación, evento, captación, recordatorio o tarea. El título es lo que verás en la rejilla."
           className="min-[820px]:col-start-1 min-[820px]:row-start-1"
         >
           <div className="flex flex-wrap gap-2">

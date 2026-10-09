@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { actualizarDemanda } from "@/lib/actions/demandas";
 import { createClient } from "@/lib/supabase/client";
 import { relacionUno } from "@/lib/citas/citas";
-import { BuscadorLocalidad } from "@/components/geo/BuscadorLocalidad";
+import { SelectorZonas } from "@/components/demandas/SelectorZonas";
 import { NuevaDemandaPanel } from "@/components/demandas/NuevaDemandaPanel";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { FichaLink } from "@/components/crm/FichaPeek";
@@ -139,6 +139,8 @@ function aPieza(fila: StockFila, demanda: DemandaFila, extra?: Borrador): Pieza 
       tipoOperacion: fila.tipo_operacion,
       tipoInmueble: fila.tipo_inmueble,
       localidad: fila.localidad,
+      direccion: fila.direccion,
+      titulo: fila.titulo,
       codigoPostal: fila.codigo_postal,
       precio,
       superficie: num(fila.superficie_util) ?? num(fila.superficie_m2),
@@ -912,7 +914,7 @@ export function DemandaCruce({ id }: { id: string }) {
           </div>
           <div className="mt-4">
             <p className="mb-2 text-[13px] font-medium">Zonas</p>
-            <BuscadorLocalidad multiple value={draft.zonas} onChange={(valor) => setDraft({ ...draft, zonas: Array.isArray(valor) ? valor : valor ? [valor] : [] })} placeholder="Añadir zona" />
+            <SelectorZonas value={draft.zonas} onChange={(zonas) => setDraft({ ...draft, zonas })} />
           </div>
           <Stepper label="Habitaciones mínimas" hint="Vacío = le da igual" valor={draft.habitacionesMin != null ? `≥ ${draft.habitacionesMin}` : "—"} onMenos={() => setDraft({ ...draft, habitacionesMin: draft.habitacionesMin != null && draft.habitacionesMin > 1 ? draft.habitacionesMin - 1 : null })} onMas={() => setDraft({ ...draft, habitacionesMin: (draft.habitacionesMin || 0) + 1 })} />
           <Stepper label="Baños mínimos" hint="Vacío = le da igual" valor={draft.banosMin != null ? `≥ ${draft.banosMin}` : "—"} onMenos={() => setDraft({ ...draft, banosMin: draft.banosMin != null && draft.banosMin > 1 ? draft.banosMin - 1 : null })} onMas={() => setDraft({ ...draft, banosMin: (draft.banosMin || 0) + 1 })} />

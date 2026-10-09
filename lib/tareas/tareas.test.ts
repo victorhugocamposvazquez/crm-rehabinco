@@ -60,6 +60,8 @@ describe("organizador de tareas", () => {
       hora: horaLocal("2026-09-18T10:30:00.000Z"),
     });
     assert.equal(tituloTareaDesdeCita({ tipo: "visita", titulo: "Piso en Narón" }), "Visita: Piso en Narón");
+    assert.equal(tituloTareaDesdeCita({ tipo: "firma", titulo: "Notaría" }), "Firma: Notaría");
+    assert.equal(tituloTareaDesdeCita({ tipo: "tasacion", titulo: "Piso Ensanche" }), "Tasación: Piso Ensanche");
     assert.equal(tituloTareaDesdeCita({ tipo: "tarea", titulo: "Llamar al propietario" }), "Llamar al propietario");
     assert.equal(estadoTareaDesdeCita("hecha"), "hecha");
     assert.equal(estadoTareaDesdeCita("cancelada"), "hecha");

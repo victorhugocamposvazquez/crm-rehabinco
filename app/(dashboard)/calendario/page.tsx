@@ -82,7 +82,9 @@ export default function CalendarioPage() {
   const [vista, setVista] = useState<VistaCalendario>("semana");
   const [citas, setCitas] = useState<CitaRow[]>([]);
   const [hora, setHora] = useState("10:00");
-  const [sheetOpen, setSheetOpen] = useState(() => Boolean(searchParams.get("propiedad") || searchParams.get("cliente")));
+  const [sheetOpen, setSheetOpen] = useState(() =>
+    Boolean(searchParams.get("propiedad") || searchParams.get("cliente") || searchParams.get("nueva"))
+  );
   const [saving, setSaving] = useState(false);
   const [propiedadId, setPropiedadId] = useState(searchParams.get("propiedad") ?? "");
   const [clienteId, setClienteId] = useState(searchParams.get("cliente") ?? "");

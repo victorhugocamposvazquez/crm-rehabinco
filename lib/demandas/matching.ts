@@ -48,6 +48,8 @@ export type InmuebleParaMatching = {
   tipoOperacion: string | null;
   tipoInmueble: string | null;
   localidad: string | null;
+  direccion?: string | null;
+  titulo?: string | null;
   codigoPostal: string | null;
   precioVenta: number | null;
   precioAlquiler: number | null;
@@ -74,6 +76,8 @@ export function fichaParaMatching(row: {
   tipo_operacion: string | null;
   tipo_inmueble: string | null;
   localidad: string | null;
+  direccion?: string | null;
+  titulo?: string | null;
   codigo_postal?: string | null;
   precio_venta: number | null;
   precio_alquiler: number | null;
@@ -93,6 +97,8 @@ export function fichaParaMatching(row: {
     tipoOperacion: row.tipo_operacion,
     tipoInmueble: row.tipo_inmueble,
     localidad: row.localidad,
+    direccion: row.direccion,
+    titulo: row.titulo,
     codigoPostal: row.codigo_postal ?? null,
     precioVenta: row.precio_venta,
     precioAlquiler: row.precio_alquiler,
@@ -121,6 +127,8 @@ export function encajaDemandaInmueble(
       tipoOperacion: inmueble.tipoOperacion,
       tipoInmueble: inmueble.tipoInmueble,
       localidad: inmueble.localidad,
+      direccion: inmueble.direccion,
+      titulo: inmueble.titulo,
       codigoPostal: inmueble.codigoPostal,
       precio: precioDeCruce(demanda.tipoOperacion, inmueble.precioVenta, inmueble.precioAlquiler),
       superficie: inmueble.superficie,

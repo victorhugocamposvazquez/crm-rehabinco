@@ -46,6 +46,8 @@ type StockRow = {
   tipo_operacion: string | null;
   tipo_inmueble: string | null;
   localidad: string | null;
+  direccion: string | null;
+  titulo: string | null;
   codigo_postal: string | null;
   precio_venta: number | null;
   precio_alquiler: number | null;
@@ -88,6 +90,8 @@ function inmuebleDeFila(fila: StockRow, operacion: string): InmuebleParaCruce {
     tipoOperacion: fila.tipo_operacion,
     tipoInmueble: fila.tipo_inmueble,
     localidad: fila.localidad,
+    direccion: fila.direccion,
+    titulo: fila.titulo,
     codigoPostal: fila.codigo_postal,
     precio: precioDeCruce(operacion, fila.precio_venta, fila.precio_alquiler),
     superficie: num(fila.superficie_util) ?? num(fila.superficie_m2),
@@ -145,7 +149,7 @@ export default function DemandasPage() {
       );
     void supabase
       .from("propiedades")
-      .select("id, tipo_operacion, tipo_inmueble, localidad, codigo_postal, precio_venta, precio_alquiler, superficie_util, superficie_m2, habitaciones, banos, ascensor, garaje, terraza, exterior")
+      .select("id, titulo, direccion, tipo_operacion, tipo_inmueble, localidad, codigo_postal, precio_venta, precio_alquiler, superficie_util, superficie_m2, habitaciones, banos, ascensor, garaje, terraza, exterior")
       .eq("estado", "disponible")
       .then(({ data }) => setStock((data ?? []) as StockRow[]));
   };

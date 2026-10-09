@@ -35,6 +35,8 @@ function mapStock(row: {
   tipo_operacion: string | null;
   tipo_inmueble: string | null;
   localidad: string | null;
+  direccion?: string | null;
+  titulo?: string | null;
   codigo_postal: string | null;
   precio_venta: number | null;
   precio_alquiler: number | null;
@@ -54,6 +56,8 @@ function mapStock(row: {
     tipoOperacion: row.tipo_operacion,
     tipoInmueble: row.tipo_inmueble,
     localidad: row.localidad,
+    direccion: row.direccion,
+    titulo: row.titulo,
     codigoPostal: row.codigo_postal,
     precioVenta: row.precio_venta,
     precioAlquiler: row.precio_alquiler,
@@ -86,7 +90,7 @@ export async function proponerStockParaDemanda(
     supabase
       .from("propiedades")
       .select(
-        "id, tipo_operacion, tipo_inmueble, localidad, codigo_postal, precio_venta, precio_alquiler, superficie_m2, superficie_util, habitaciones, banos, ascensor, garaje, terraza, exterior, estado, publicado"
+        "id, titulo, direccion, tipo_operacion, tipo_inmueble, localidad, codigo_postal, precio_venta, precio_alquiler, superficie_m2, superficie_util, habitaciones, banos, ascensor, garaje, terraza, exterior, estado, publicado"
       )
       .eq("estado", "disponible"),
     supabase.from("demanda_inmuebles").select("id, propiedad_id, origen, estado").eq("demanda_id", demandaId),
@@ -124,7 +128,7 @@ export async function proponerStockParaDemanda(
 }
 
 const SELECT_PARA_CRUCE =
-  "id, tipo_operacion, tipo_inmueble, localidad, codigo_postal, precio_venta, precio_alquiler, superficie_m2, superficie_util, habitaciones, banos, ascensor, garaje, terraza, exterior, estado";
+  "id, titulo, direccion, tipo_operacion, tipo_inmueble, localidad, codigo_postal, precio_venta, precio_alquiler, superficie_m2, superficie_util, habitaciones, banos, ascensor, garaje, terraza, exterior, estado";
 
 /** Cuando entra o pasa a disponible un inmueble, lo propone a las demandas en automático. */
 export async function proponerInmuebleADemandas(supabase: Cliente, propiedadId: string): Promise<number> {
@@ -148,6 +152,8 @@ export async function proponerInmuebleADemandas(supabase: Cliente, propiedadId: 
     tipoOperacion: row.tipo_operacion,
     tipoInmueble: row.tipo_inmueble,
     localidad: row.localidad,
+    direccion: row.direccion,
+    titulo: row.titulo,
     codigoPostal: row.codigo_postal,
     precio: null as number | null,
     superficie: row.superficie_util ?? row.superficie_m2,

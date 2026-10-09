@@ -80,6 +80,24 @@ describe("evaluar cruce", () => {
     assert.equal(dos.perfect, false);
   });
 
+  it("un distrito de A Coruña encaja por la dirección, no por estar solo en la ciudad", () => {
+    const ensanche = evaluarCruce(
+      piso({ localidad: "A Coruña", direccion: "Calle Juan Flórez 12", codigoPostal: "15004" }),
+      { ...DEMANDA, zonas: ["Ensanche - Juan Flórez"] }
+    );
+    assert.equal(ensanche.perfect, true);
+    const soloCiudad = evaluarCruce(
+      piso({ localidad: "A Coruña", direccion: "Rúa Real 1", codigoPostal: "15001" }),
+      { ...DEMANDA, zonas: ["Ensanche - Juan Flórez"] }
+    );
+    assert.equal(soloCiudad.perfect, false);
+    const fuera = evaluarCruce(
+      piso({ localidad: "Oleiros", direccion: "Estilo ensanche", titulo: "Piso ensanche" }),
+      { ...DEMANDA, zonas: ["Ensanche - Juan Flórez"] }
+    );
+    assert.equal(fuera.perfect, false);
+  });
+
   it("una localidad contenida en otra zona no basta: tiene que coincidir el sitio", () => {
     const coruna = evaluarCruce(
       piso({ localidad: "coruña", tipoInmueble: "chalet" }),
