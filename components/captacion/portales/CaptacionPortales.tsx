@@ -11,6 +11,7 @@ import { Sheet } from "@/components/ui/sheet";
 import { FiltroComercial, type ComercialFiltro } from "@/components/captacion/FiltroComercial";
 import { nombreYApellido, inicialesNombre } from "@/lib/ui/tokens";
 import { normalizarTexto } from "@/lib/captacion/pipeline/normalize";
+import { coincideBusqueda } from "@/lib/captacion/portales/busqueda";
 import { CIUDADES_FILTRO } from "@/lib/captacion/portales/zonas";
 import {
   indiciosEncubierta,
@@ -407,12 +408,11 @@ export function CaptacionPortales() {
 
   const filtraListado = useCallback(
     (a: AnuncioCaptacion, chipActivo: ChipCaptacion = chip) => {
-      const query = q.trim().toLowerCase();
       if (chipActivo === "retirados") {
         if (!esRetirado(a)) return false;
       } else if (a.fase !== "novedad" || a.desaparecido_en) return false;
       if (!matchChip(a, chipActivo)) return false;
-      if (query && ![a.titulo, a.zona, a.municipio, a.contacto_nombre, a.externo_id].filter(Boolean).join(" ").toLowerCase().includes(query)) return false;
+      if (!coincideBusqueda(q, [a.titulo, a.zona, a.municipio, a.direccion, a.contacto_nombre, a.externo_id])) return false;
       if (fAlerta !== "todas" && a.alerta_id !== fAlerta) return false;
       if (fCiudad !== "todas" && !(a.municipio ?? "").startsWith(fCiudad)) return false;
       if (filtros.portal !== "todos" && a.fuente !== filtros.portal) return false;
