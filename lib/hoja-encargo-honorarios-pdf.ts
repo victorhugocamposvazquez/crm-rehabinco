@@ -15,8 +15,8 @@ import type {
 } from "./hoja-encargo-honorarios";
 
 const LOGO_REHABINCO = "/images/logo-web.png";
-const LOGO_ANCHO = 168;
-const LOGO_ALTO = 39;
+const LOGO_ANCHO = 200;
+const LOGO_ALTO = 46;
 
 function srcLogoRehabinco(): string {
   if (typeof window !== "undefined" && window.location?.origin && window.location.origin !== "null") {
@@ -26,7 +26,7 @@ function srcLogoRehabinco(): string {
 }
 
 function marcaRehabinco(): string {
-  return `<div data-bloque="1" data-evitar-corte="1" style="display:flex;justify-content:center;margin:0 0 8px;">
+  return `<div data-bloque="1" data-evitar-corte="1" style="display:flex;justify-content:center;margin:0 0 14px;">
     <img src="${srcLogoRehabinco()}" alt="Rehabinco" width="${LOGO_ANCHO}" height="${LOGO_ALTO}" style="width:${LOGO_ANCHO}px;height:${LOGO_ALTO}px;object-fit:contain;display:block;" />
   </div>`;
 }
@@ -46,15 +46,15 @@ function aplicarPersonalizacion(
 }
 
 function h(texto: string) {
-  return `<p data-bloque="1" data-titulo-seccion="1" style="margin:8px 0 4px;font-size:13px;font-weight:700;letter-spacing:0.04em;">${htmlEsc(texto)}</p>`;
+  return `<p data-bloque="1" data-titulo-seccion="1" style="margin:12px 0 6px;font-size:13.5px;font-weight:700;letter-spacing:0.04em;">${htmlEsc(texto)}</p>`;
 }
 
 function bloqueEditable(key: ClausulaHonorariosKey, innerHtml: string, extraStyle = "") {
-  return `<p data-bloque="1" data-clausula="${key}" contenteditable="true" style="margin:0 0 6px;font-size:12.5px;line-height:1.38;text-align:justify;${extraStyle}">${innerHtml}</p>`;
+  return `<p data-bloque="1" data-clausula="${key}" contenteditable="true" style="margin:0 0 8px;font-size:13px;line-height:1.45;text-align:justify;${extraStyle}">${innerHtml}</p>`;
 }
 
 function bloqueEstatico(innerHtml: string, extraStyle = "") {
-  return `<p data-bloque="1" style="margin:0 0 6px;font-size:12.5px;line-height:1.38;text-align:justify;${extraStyle}">${innerHtml}</p>`;
+  return `<p data-bloque="1" style="margin:0 0 8px;font-size:13px;line-height:1.45;text-align:justify;${extraStyle}">${innerHtml}</p>`;
 }
 
 export function textosHojaEncargoHonorarios(datos: HojaEncargoHonorariosDatos) {
@@ -89,7 +89,7 @@ export function htmlHojaEncargoHonorarios(
   const editable = opts?.editable !== false;
   const nombre = hueco(datos.cliente_nombre);
   const render = (s: string) => {
-    let html = htmlEsc(s).replace(/\n+/g, "<br />");
+    let html = htmlEsc(s).replace(/\n\n/g, '<span style="display:block;height:8px"></span>').replace(/\n/g, "<br />");
     if (nombre && nombre !== "………………") {
       const esc = htmlEsc(nombre);
       html = html.split(esc).join(`<strong>${esc}</strong>`);
@@ -101,23 +101,23 @@ export function htmlHojaEncargoHonorarios(
 
   const bloques =
     marcaRehabinco() +
-    clausula("encabezado", render(t.encabezado), "text-align:center;margin-bottom:6px;font-size:12.5px;") +
+    clausula("encabezado", render(t.encabezado), "text-align:center;margin-bottom:10px;font-size:13px;") +
     h("HOJA DE ENCARGO PROFESIONAL") +
-    `<p data-bloque="1" style="margin:0 0 6px;font-size:12px;text-align:center;color:#444;">Reconocimiento de honorarios · Encargo de venta</p>` +
+    `<p data-bloque="1" style="margin:0 0 10px;font-size:12.5px;text-align:center;color:#444;">Reconocimiento de honorarios · Encargo de venta</p>` +
     clausula("intro", render(t.intro)) +
     h("HONORARIOS") +
     clausula("honorarios", render(t.honorarios)) +
     clausula("reparto", render(t.reparto)) +
     h("PROTECCIÓN DE DATOS") +
     clausula("lopd", render(t.lopd)) +
-    clausula("cierre", render(t.cierre), "margin-top:8px;") +
-    `<div data-bloque="1" data-evitar-corte="1" class="pdf-firmas" style="margin-top:16px;display:flex;justify-content:space-between;gap:40px;">
+    clausula("cierre", render(t.cierre), "margin-top:12px;") +
+    `<div data-bloque="1" data-evitar-corte="1" class="pdf-firmas" style="margin-top:18px;display:flex;justify-content:space-between;gap:40px;">
         <div style="flex:1;text-align:center;">
-          <p style="margin:0 0 56px;font-size:12.5px;font-weight:700;letter-spacing:0.04em;">FDO.: EL CLIENTE</p>
+          <p style="margin:0 0 56px;font-size:13px;font-weight:700;letter-spacing:0.04em;">FDO.: EL CLIENTE</p>
           <div style="border-top:1px solid #222;"></div>
         </div>
         <div style="flex:1;text-align:center;">
-          <p style="margin:0 0 56px;font-size:12.5px;font-weight:700;letter-spacing:0.04em;">FDO.: LA AGENCIA</p>
+          <p style="margin:0 0 56px;font-size:13px;font-weight:700;letter-spacing:0.04em;">FDO.: LA AGENCIA</p>
           <div style="border-top:1px solid #222;"></div>
         </div>
       </div>`;
