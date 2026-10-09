@@ -2,7 +2,11 @@ import { createClient } from "@/lib/supabase/client";
 import { relacionUno } from "@/lib/citas/citas";
 
 export const SELECT_INMUEBLE_PANEL =
-  "id, titulo, direccion, localidad, codigo_postal, tipo_operacion, precio_venta, precio_alquiler, estado, referencia, tipo_inmueble, origen, superficie_m2, superficie_util, ascensor, anio_construccion, referencia_catastral, descripcion, notas, publicado, ofertante_id, comercial_id, habitaciones, banos, planta, video_url, tour_url, clientes:ofertante_id(nombre), profiles:comercial_id(nombre_completo, color), inmueble_media(url, portada, tipo), catastro_property_links(finca_reference)";
+  "id, user_id, titulo, direccion, localidad, codigo_postal, tipo_operacion, precio_venta, precio_alquiler, estado, referencia, tipo_inmueble, origen, superficie_m2, superficie_util, ascensor, anio_construccion, referencia_catastral, descripcion, notas, publicado, ofertante_id, comercial_id, habitaciones, banos, planta, video_url, tour_url, clientes:ofertante_id(nombre), profiles:comercial_id(nombre_completo, color), inmueble_media(url, portada, tipo), catastro_property_links(finca_reference)";
+
+/** Listado: sin descripción, notas ni todas las fotos. La ficha completa se pide al abrir. */
+export const SELECT_INMUEBLE_LISTA =
+  "id, user_id, titulo, direccion, localidad, codigo_postal, tipo_operacion, precio_venta, precio_alquiler, estado, referencia, tipo_inmueble, origen, superficie_m2, superficie_util, ascensor, anio_construccion, referencia_catastral, publicado, ofertante_id, comercial_id, habitaciones, banos, planta, video_url, tour_url, clientes:ofertante_id(nombre), profiles:comercial_id(nombre_completo, color), catastro_property_links(finca_reference)";
 
 export type InmueblePanel = {
   id: string;
@@ -33,8 +37,12 @@ export type InmueblePanel = {
   notas: string | null;
   publicado: boolean;
   ofertante_id: string | null;
+  comercialId: string | null;
   comercialNombre: string | null;
   comercialColor: string | null;
+  user_id: string | null;
+  /** El listado aún no ha traído descripción, notas ni el recuento de fotos. */
+  resumen?: boolean;
   fincaReference: string | null;
   habitaciones: number | null;
   banos: number | null;
@@ -43,6 +51,8 @@ export type InmueblePanel = {
 
 export type InmueblePanelRow = {
   id: string;
+  user_id?: string | null;
+  comercial_id?: string | null;
   titulo: string | null;
   direccion: string | null;
   localidad: string | null;
@@ -59,7 +69,7 @@ export type InmueblePanelRow = {
   ascensor?: boolean | null;
   anio_construccion: number | null;
   referencia_catastral: string | null;
-  descripcion: string | null;
+  descripcion?: string | null;
   notas?: string | null;
   publicado: boolean;
   ofertante_id: string | null;
@@ -73,7 +83,7 @@ export type InmueblePanelRow = {
     | { nombre_completo: string | null; color: string | null }
     | { nombre_completo: string | null; color: string | null }[]
     | null;
-  inmueble_media: Array<{ url: string; portada: boolean; tipo?: string | null }> | null;
+  inmueble_media?: Array<{ url: string; portada: boolean; tipo?: string | null }> | null;
   catastro_property_links: { finca_reference: string } | { finca_reference: string }[] | null;
 };
 
@@ -111,12 +121,14 @@ export function mapInmueblePanel(r: InmueblePanelRow, dhPorFinca?: Map<string, s
     ascensor: r.ascensor ?? null,
     anio_construccion: r.anio_construccion,
     referencia_catastral: r.referencia_catastral,
-    descripcion: r.descripcion,
+    descripcion: r.descripcion ?? null,
     notas: r.notas ?? null,
     publicado: r.publicado,
     ofertante_id: r.ofertante_id,
+    comercialId: r.comercial_id ?? null,
     comercialNombre: com?.nombre_completo ?? null,
     comercialColor: com?.color ?? null,
+    user_id: r.user_id ?? null,
     fincaReference,
     habitaciones: r.habitaciones ?? null,
     banos: r.banos ?? null,
@@ -128,9 +140,16 @@ export async function cargarDhPorFincas(refs: string[]): Promise<Map<string, str
   const dhPorFinca = new Map<string, string>();
   if (refs.length === 0) return dhPorFinca;
   const supabase = createClient();
-  const { data: fincas } = await supabase.from("catastro_fincas").select("finca_reference, dh_status").in("finca_reference", refs);
-  for (const finca of fincas ?? []) {
-    dhPorFinca.set(finca.finca_reference, finca.dh_status);
+  const tam = 80;
+  const lotes: string[][] = [];
+  for (let i = 0; i < refs.length; i += tam) lotes.push(refs.slice(i, i + tam));
+  const respuestas = await Promise.all(
+    lotes.map((lote) => supabase.from("catastro_fincas").select("finca_reference, dh_status").in("finca_reference", lote))
+  );
+  for (const { data: fincas } of respuestas) {
+    for (const finca of fincas ?? []) {
+      dhPorFinca.set(finca.finca_reference, finca.dh_status);
+    }
   }
   return dhPorFinca;
 }
@@ -143,6 +162,33 @@ export async function cargarInmueblePanel(id: string): Promise<InmueblePanel | n
   const ref = relacionUno(row.catastro_property_links)?.finca_reference;
   const dh = await cargarDhPorFincas(ref ? [ref] : []);
   return mapInmueblePanel(row, dh);
+}
+
+type MediaPortada = {
+  id: string;
+  propiedad_id: string;
+  portada: boolean;
+  orden: number | null;
+  tipo: string | null;
+};
+
+/** Una foto por inmueble: la marcada como portada, o la de menor orden. */
+export function idsPortada(filas: MediaPortada[]): Map<string, string> {
+  const mejor = new Map<string, MediaPortada>();
+  for (const fila of filas) {
+    if (fila.tipo && fila.tipo !== "foto") continue;
+    const previa = mejor.get(fila.propiedad_id);
+    if (!previa) {
+      mejor.set(fila.propiedad_id, fila);
+      continue;
+    }
+    if (fila.portada !== previa.portada) {
+      if (fila.portada) mejor.set(fila.propiedad_id, fila);
+      continue;
+    }
+    if ((fila.orden ?? 999) < (previa.orden ?? 999)) mejor.set(fila.propiedad_id, fila);
+  }
+  return new Map([...mejor.entries()].map(([propiedadId, fila]) => [propiedadId, fila.id]));
 }
 
 export function precioDeInmueble(p: Pick<InmueblePanel, "tipo_operacion" | "precio_alquiler" | "precio_venta">) {

@@ -27,10 +27,12 @@ export function AvataresTarea({
   creador,
   asignado,
   size = 22,
+  tituloCreador,
 }: {
   creador: PersonaTarjeta;
   asignado: PersonaTarjeta;
   size?: number;
+  tituloCreador?: string;
 }) {
   const delegada = asignado.id !== creador.id;
   const nombreCreador = nombreYApellido(creador.nombre, creador.email);
@@ -43,7 +45,7 @@ export function AvataresTarea({
         email={creador.email}
         color={creador.color}
         size={size}
-        title={`Creada por ${nombreCreador || creador.nombre}`}
+        title={tituloCreador ?? `Creada por ${nombreCreador || creador.nombre}`}
       />
       {delegada ? (
         <AvatarComercial

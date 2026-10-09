@@ -154,7 +154,10 @@ export default function CalendarioPage() {
     });
   };
 
+  const catalogosPedidos = useRef(false);
   useEffect(() => {
+    if (!sheetOpen || catalogosPedidos.current) return;
+    catalogosPedidos.current = true;
     const supabase = createClient();
     void supabase
       .from("propiedades")
@@ -163,6 +166,7 @@ export default function CalendarioPage() {
       .limit(200)
       .then(({ data, error }) => {
         if (error) {
+          catalogosPedidos.current = false;
           toast.error("No se han podido cargar los inmuebles.");
           return;
         }
@@ -173,8 +177,16 @@ export default function CalendarioPage() {
       .select("id, nombre, telefono")
       .eq("activo", true)
       .order("nombre")
-      .then(({ data }) => setClientes(data ?? []));
-  }, []);
+      .then(({ data, error }) => {
+        if (error) catalogosPedidos.current = false;
+        if (!data) return;
+        setClientes((prev) => {
+          const byId = new Map(data.map((c) => [c.id, c] as const));
+          for (const c of prev) if (!byId.has(c.id)) byId.set(c.id, c);
+          return [...byId.values()].sort((a, b) => a.nombre.localeCompare(b.nombre));
+        });
+      });
+  }, [sheetOpen]);
 
   useEffect(() => {
     if (!user) return;

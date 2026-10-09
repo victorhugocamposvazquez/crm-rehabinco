@@ -313,10 +313,12 @@ export function PanelInmueble({
         {inmueble.descripcion ? (
           <p className="mt-8 px-5 text-[14px] leading-7 text-[var(--text-2)]">{inmueble.descripcion}</p>
         ) : null}
-        <div className="mt-8 px-5">
-          <h3 className="text-[13px] font-medium text-[var(--text-3)]">Notas internas</h3>
-          <p className="mt-2 text-[14px] leading-7 text-foreground">{inmueble.notas?.trim() || "Sin notas internas."}</p>
-        </div>
+        {inmueble.resumen ? null : (
+          <div className="mt-8 px-5">
+            <h3 className="text-[13px] font-medium text-[var(--text-3)]">Notas internas</h3>
+            <p className="mt-2 text-[14px] leading-7 text-foreground">{inmueble.notas?.trim() || "Sin notas internas."}</p>
+          </div>
+        )}
         {user?.id ? (
           <div className="mt-8 px-5">
             <h3 className="mb-4 text-[13px] font-medium text-[var(--text-3)]">Fotos, planos y visita virtual</h3>

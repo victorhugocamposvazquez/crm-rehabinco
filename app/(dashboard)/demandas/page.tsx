@@ -12,7 +12,8 @@ import { cuentaEncajesPerfectos, pideAscensor, pideRequisito, precioDeCruce, typ
 import { relacionUno } from "@/lib/citas/citas";
 import { Chip } from "@/components/ui/chip";
 import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
-import { AvatarComercial } from "@/components/ui/avatar-comercial";
+import { AvataresTarea } from "@/components/tareas/TareasBoard";
+import { nombreYApellido } from "@/lib/ui/tokens";
 import { colorEstado, formatEuro } from "@/lib/ui/estados-vista";
 import { NuevaDemandaPanel } from "@/components/demandas/NuevaDemandaPanel";
 import { TIPO_INMUEBLE_LABEL, type TipoInmueble } from "@/lib/inmuebles/catalogo";
@@ -37,7 +38,7 @@ type DemandaRow = {
   banos_min: number | null;
   requisitos: string | null;
   clientes?: { nombre?: string | null } | null;
-  profiles?: { nombre_completo?: string | null; color?: string | null } | null;
+  profiles?: { nombre_completo?: string | null; color?: string | null; email?: string | null } | null;
   demanda_inmuebles?: Array<{ propiedad_id: string; estado: string }> | null;
 };
 
@@ -114,6 +115,7 @@ export default function DemandasPage() {
   const searchParams = useSearchParams();
   const [filas, setFilas] = useState<DemandaRow[]>([]);
   const [stock, setStock] = useState<StockRow[]>([]);
+  const [stockListo, setStockListo] = useState(false);
   const [estado, setEstado] = useState("activa");
   const [filtro, setFiltro] = useState<FiltroListadoDemanda>(FILTRO_LISTADO_VACIO);
   const [nuevaOpen, setNuevaOpen] = useState(false);
@@ -125,7 +127,7 @@ export default function DemandasPage() {
     void supabase
       .from("demandas")
       .select(
-        "id, comercial_id, tipo_operacion, estado, zonas, tipos_inmueble, presupuesto_min, presupuesto_max, superficie_min, superficie_max, habitaciones_min, banos_min, requisitos, clientes:cliente_id(nombre), profiles:comercial_id(nombre_completo, color), demanda_inmuebles(propiedad_id, estado)"
+        "id, comercial_id, tipo_operacion, estado, zonas, tipos_inmueble, presupuesto_min, presupuesto_max, superficie_min, superficie_max, habitaciones_min, banos_min, requisitos, clientes:cliente_id(nombre), profiles:comercial_id(nombre_completo, color, email), demanda_inmuebles(propiedad_id, estado)"
       )
       .order("updated_at", { ascending: false })
       .then(({ data }) =>
@@ -147,11 +149,15 @@ export default function DemandasPage() {
           }))
         )
       );
+    setStockListo(false);
     void supabase
       .from("propiedades")
       .select("id, titulo, direccion, tipo_operacion, tipo_inmueble, localidad, codigo_postal, precio_venta, precio_alquiler, superficie_util, superficie_m2, habitaciones, banos, ascensor, garaje, terraza, exterior")
       .eq("estado", "disponible")
-      .then(({ data }) => setStock((data ?? []) as StockRow[]));
+      .then(({ data }) => {
+        setStock((data ?? []) as StockRow[]);
+        setStockListo(true);
+      });
   };
 
   useEffect(() => {
@@ -173,16 +179,6 @@ export default function DemandasPage() {
     return map;
   }, [filas]);
 
-  const encajes = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const fila of filas) {
-      const descartados = new Set((fila.demanda_inmuebles ?? []).filter((item) => item.estado === "descartado").map((item) => item.propiedad_id));
-      const candidatos = stock.filter((item) => !descartados.has(item.id)).map((item) => inmuebleDeFila(item, fila.tipo_operacion));
-      map.set(fila.id, cuentaEncajesPerfectos(criteriosDeFila(fila), candidatos));
-    }
-    return map;
-  }, [filas, stock]);
-
   const delEstado = useMemo(() => filas.filter((fila) => fila.estado === estado), [filas, estado]);
 
   const visibles = useMemo(
@@ -202,6 +198,17 @@ export default function DemandasPage() {
       ),
     [delEstado, filtro]
   );
+
+  const encajes = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!stockListo) return map;
+    for (const fila of visibles) {
+      const descartados = new Set((fila.demanda_inmuebles ?? []).filter((item) => item.estado === "descartado").map((item) => item.propiedad_id));
+      const candidatos = stock.filter((item) => !descartados.has(item.id)).map((item) => inmuebleDeFila(item, fila.tipo_operacion));
+      map.set(fila.id, cuentaEncajesPerfectos(criteriosDeFila(fila), candidatos));
+    }
+    return map;
+  }, [visibles, stock, stockListo]);
 
   const tipos = useMemo(() => {
     const presentes = delEstado.flatMap((fila) => fila.tipos_inmueble ?? []);
@@ -303,13 +310,25 @@ export default function DemandasPage() {
                     </span>
                   ))}
                 </div>
-                <div className="mt-3 flex items-center justify-between border-t border-[var(--border-soft)] pt-2.5">
-                  <span className="flex items-center gap-1.5 text-[12.5px] text-[var(--text-2)]">
-                    <AvatarComercial nombre={fila.profiles?.nombre_completo} color={fila.profiles?.color} size={18} />
-                    {fila.profiles?.nombre_completo ?? "Sin comercial"}
-                  </span>
-                  <span className={cn("text-[12.5px] font-semibold", encajan ? "text-foreground" : "text-[var(--text-3)]")}>
-                    {encajan} encajan{visitados ? ` · ${visitados} visitado${visitados === 1 ? "" : "s"}` : ""}
+                <div className="mt-3 flex items-center justify-between gap-2 border-t border-[var(--border-soft)] pt-2.5">
+                  <AvataresTarea
+                    size={18}
+                    tituloCreador={`Creada por ${nombreYApellido(fila.profiles?.nombre_completo, fila.profiles?.email) || fila.profiles?.nombre_completo || "el equipo"}`}
+                    creador={{
+                      id: fila.comercial_id ?? "",
+                      nombre: fila.profiles?.nombre_completo || "Sin comercial",
+                      color: fila.profiles?.color ?? null,
+                      email: fila.profiles?.email,
+                    }}
+                    asignado={{
+                      id: fila.comercial_id ?? "",
+                      nombre: fila.profiles?.nombre_completo || "Sin comercial",
+                      color: fila.profiles?.color ?? null,
+                      email: fila.profiles?.email,
+                    }}
+                  />
+                  <span className={cn("shrink-0 text-[12.5px] font-semibold", encajan ? "text-foreground" : "text-[var(--text-3)]")}>
+                    {stockListo ? `${encajan} encajan${visitados ? ` · ${visitados} visitado${visitados === 1 ? "" : "s"}` : ""}` : "…"}
                   </span>
                 </div>
               </Link>

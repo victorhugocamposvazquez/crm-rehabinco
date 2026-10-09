@@ -9,8 +9,10 @@ import { Fab } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
+import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { UserPlus, Search, X } from "lucide-react";
-import { inicialesNombre } from "@/lib/ui/tokens";
+import { inicialesNombre, nombreYApellido } from "@/lib/ui/tokens";
+import { cargarPerfilesEquipo, mapaPerfiles, type PerfilEquipo } from "@/lib/equipo/perfiles";
 import { telWhatsApp } from "@/lib/ui/estados-vista";
 import { cn } from "@/lib/utils";
 import { FichaLink } from "@/components/crm/FichaPeek";
@@ -36,6 +38,13 @@ type ClienteLista = {
   codigo_postal: string | null;
   notas: string | null;
   es_cliente: boolean;
+  created_at: string | null;
+  user_id: string | null;
+  creador: PerfilEquipo | null;
+  tieneOferta: boolean;
+  tieneBusqueda: boolean;
+  tieneObra: boolean;
+  detalleCargado: boolean;
   ofrece: Array<{ id: string; a: string; b: string }>;
   busca: Array<{ id: string; a: string; b: string }>;
   visitas: Array<{ id: string; a: string; b: string; propiedad_id: string | null }>;
@@ -56,6 +65,38 @@ const FILTROS_CLI: Array<{ id: FiltroCli; label: string }> = [
 
 function contacto(c: ClienteLista) {
   return [c.telefono, c.email].filter(Boolean).join(" · ") || "Sin contacto";
+}
+
+function fechaAlta(iso: string | null | undefined) {
+  if (!iso) return "";
+  const fecha = new Date(iso);
+  if (Number.isNaN(fecha.getTime())) return "";
+  const mismoAno = fecha.getFullYear() === new Date().getFullYear();
+  return fecha.toLocaleDateString("es-ES", {
+    day: "numeric",
+    month: "short",
+    year: mismoAno ? undefined : "numeric",
+  });
+}
+
+async function idsConColumna(tabla: "propiedades" | "demandas" | "presupuestos" | "facturas", columna: "ofertante_id" | "cliente_id") {
+  const supabase = createClient();
+  const ids = new Set<string>();
+  const tam = 1000;
+  for (let desde = 0; ; desde += tam) {
+    const { data, error } = await supabase
+      .from(tabla)
+      .select(columna)
+      .not(columna, "is", null)
+      .range(desde, desde + tam - 1);
+    if (error || !data?.length) break;
+    for (const fila of data as Array<Record<string, string | null>>) {
+      const id = fila[columna];
+      if (typeof id === "string") ids.add(id);
+    }
+    if (data.length < tam) break;
+  }
+  return ids;
 }
 
 function estadoCliente(c: ClienteLista) {
@@ -81,6 +122,7 @@ export default function ClientesPage() {
     { nombre?: string; telefono?: string; email?: string } | undefined
   >();
   const [cargaKey, setCargaKey] = useState(0);
+  const [listaLista, setListaLista] = useState(0);
   const [pendingSelectedId, setPendingSelectedId] = useState<string | null>(null);
   const hayBorrador = useHayAltaBorrador("cliente");
 
@@ -113,123 +155,142 @@ export default function ClientesPage() {
   }, [searchParams, router]);
 
   useEffect(() => {
+    let vivo = true;
     const supabase = createClient();
     void (async () => {
-      const { data, error: err } = await supabase
-        .from("clientes")
-        .select(
-          "id, nombre, email, telefono, activo, etiqueta, tipo_cliente, documento_fiscal, tipo_documento, direccion, localidad, codigo_postal, notas, es_cliente"
-        )
-        .order("created_at", { ascending: false });
+      const [{ data, error: err }, perfiles] = await Promise.all([
+        supabase
+          .from("clientes")
+          .select(
+            "id, nombre, email, telefono, activo, etiqueta, tipo_cliente, documento_fiscal, tipo_documento, direccion, localidad, codigo_postal, notas, es_cliente, created_at, user_id"
+          )
+          .order("created_at", { ascending: false }),
+        cargarPerfilesEquipo(),
+      ]);
+      if (!vivo) return;
       if (err) {
         setError(err.message);
         setClientes([]);
         setLoading(false);
         return;
       }
-      const base = (data ?? []) as Omit<ClienteLista, "ofrece" | "busca" | "visitas" | "docs">[];
-      const ids = base.map((c) => c.id);
-      if (ids.length === 0) {
-        setClientes([]);
-        setLoading(false);
-        return;
-      }
-      const [props, demandas, presupuestos, facturas, citas] = await Promise.all([
-        supabase.from("propiedades").select("id, ofertante_id, titulo, direccion, referencia, estado").in("ofertante_id", ids),
-        supabase.from("demandas").select("id, cliente_id, tipo_operacion, estado, zonas").in("cliente_id", ids),
-        supabase.from("presupuestos").select("id, cliente_id, numero, estado, total").in("cliente_id", ids),
-        supabase.from("facturas").select("id, cliente_id, numero, estado, total").in("cliente_id", ids),
-        supabase.from("citas").select("id, cliente_id, titulo, empieza, estado, propiedad_id").eq("tipo", "visita").in("cliente_id", ids),
-      ]);
-      const byCliente = (rows: Array<{ cliente_id?: string | null; ofertante_id?: string | null }> | null, key: "cliente_id" | "ofertante_id") => {
-        const map = new Map<string, typeof rows>();
-        for (const row of rows ?? []) {
-          const id = row[key];
-          if (!id) continue;
-          const list = map.get(id) ?? [];
-          list.push(row);
-          map.set(id, list);
-        }
-        return map;
-      };
-      const propsMap = byCliente(props.data as Array<{ ofertante_id: string | null }>, "ofertante_id");
-      const demMap = byCliente(demandas.data as Array<{ cliente_id: string | null }>, "cliente_id");
-      const preMap = byCliente(presupuestos.data as Array<{ cliente_id: string | null }>, "cliente_id");
-      const facMap = byCliente(facturas.data as Array<{ cliente_id: string | null }>, "cliente_id");
-      const citMap = byCliente(citas.data as Array<{ cliente_id: string | null }>, "cliente_id");
-
+      const equipo = mapaPerfiles(perfiles);
+      const base = (data ?? []) as Array<
+        Omit<ClienteLista, "creador" | "tieneOferta" | "tieneBusqueda" | "tieneObra" | "detalleCargado" | "ofrece" | "busca" | "visitas" | "docs">
+      >;
       setClientes(
-        base.map((c) => {
-          const inmuebles = (propsMap.get(c.id) ?? []) as Array<{
-            id: string;
-            titulo: string | null;
-            direccion: string | null;
-            referencia: string | null;
-            estado: string;
-          }>;
-          const dems = (demMap.get(c.id) ?? []) as Array<{
-            id: string;
-            tipo_operacion: string;
-            estado: string;
-            zonas: string[] | null;
-          }>;
-          const pres = (preMap.get(c.id) ?? []) as Array<{
-            id: string;
-            numero: string;
-            estado: string;
-            total: number | null;
-          }>;
-          const facs = (facMap.get(c.id) ?? []) as Array<{
-            id: string;
-            numero: string;
-            estado: string;
-            total: number | null;
-          }>;
-          const vis = (citMap.get(c.id) ?? []) as Array<{
-            id: string;
-            titulo: string;
-            empieza: string;
-            estado: string;
-            propiedad_id: string | null;
-          }>;
-          return {
-            ...c,
-            ofrece: inmuebles.slice(0, 3).map((p) => ({
-              id: p.id,
-              a: p.referencia || p.titulo || p.direccion || "Inmueble",
-              b: p.estado,
-            })),
-            busca: dems.slice(0, 3).map((d) => ({
-              id: d.id,
-              a: d.tipo_operacion,
-              b: d.zonas?.[0] ?? d.estado,
-            })),
-            visitas: vis.slice(0, 3).map((v) => ({
-              id: v.id,
-              a: v.titulo,
-              b: v.empieza.slice(0, 10),
-              propiedad_id: v.propiedad_id,
-            })),
-            docs: [
-              ...pres.slice(0, 2).map((p) => ({
-                id: p.id,
-                a: p.numero,
-                b: p.estado,
-                href: `/presupuestos/${p.id}`,
-              })),
-              ...facs.slice(0, 2).map((f) => ({
-                id: f.id,
-                a: f.numero,
-                b: f.estado,
-                href: `/facturas/${f.id}`,
-              })),
-            ],
-          };
-        })
+        base.map((c) => ({
+          ...c,
+          creador: c.user_id ? equipo.get(c.user_id) ?? null : null,
+          tieneOferta: false,
+          tieneBusqueda: false,
+          tieneObra: false,
+          detalleCargado: false,
+          ofrece: [],
+          busca: [],
+          visitas: [],
+          docs: [],
+        }))
       );
+      setListaLista((n) => n + 1);
       setLoading(false);
+      if (base.length === 0) return;
+      const [ofertas, busquedas, presupuestos, facturas] = await Promise.all([
+        idsConColumna("propiedades", "ofertante_id"),
+        idsConColumna("demandas", "cliente_id"),
+        idsConColumna("presupuestos", "cliente_id"),
+        idsConColumna("facturas", "cliente_id"),
+      ]);
+      if (!vivo) return;
+      setClientes((prev) =>
+        prev.map((c) => ({
+          ...c,
+          tieneOferta: ofertas.has(c.id),
+          tieneBusqueda: busquedas.has(c.id),
+          tieneObra: presupuestos.has(c.id) || facturas.has(c.id),
+        }))
+      );
     })();
+    return () => {
+      vivo = false;
+    };
   }, [cargaKey]);
+
+  useEffect(() => {
+    if (!selectedId) return;
+    let vivo = true;
+    const supabase = createClient();
+    void (async () => {
+      const [props, demandas, presupuestos, facturas, citas] = await Promise.all([
+        supabase.from("propiedades").select("id, ofertante_id, titulo, direccion, referencia, estado").eq("ofertante_id", selectedId),
+        supabase.from("demandas").select("id, cliente_id, tipo_operacion, estado, zonas").eq("cliente_id", selectedId),
+        supabase.from("presupuestos").select("id, cliente_id, numero, estado, total").eq("cliente_id", selectedId),
+        supabase.from("facturas").select("id, cliente_id, numero, estado, total").eq("cliente_id", selectedId),
+        supabase.from("citas").select("id, cliente_id, titulo, empieza, estado, propiedad_id").eq("tipo", "visita").eq("cliente_id", selectedId),
+      ]);
+      if (!vivo) return;
+      const inmuebles = (props.data ?? []) as Array<{
+        id: string;
+        titulo: string | null;
+        direccion: string | null;
+        referencia: string | null;
+        estado: string;
+      }>;
+      const dems = (demandas.data ?? []) as Array<{
+        id: string;
+        tipo_operacion: string;
+        estado: string;
+        zonas: string[] | null;
+      }>;
+      const pres = (presupuestos.data ?? []) as Array<{ id: string; numero: string; estado: string }>;
+      const facs = (facturas.data ?? []) as Array<{ id: string; numero: string; estado: string }>;
+      const vis = (citas.data ?? []) as Array<{
+        id: string;
+        titulo: string;
+        empieza: string;
+        propiedad_id: string | null;
+      }>;
+      const ofrece = inmuebles.slice(0, 3).map((p) => ({
+        id: p.id,
+        a: p.referencia || p.titulo || p.direccion || "Inmueble",
+        b: p.estado,
+      }));
+      const busca = dems.slice(0, 3).map((d) => ({
+        id: d.id,
+        a: d.tipo_operacion,
+        b: d.zonas?.[0] ?? d.estado,
+      }));
+      const docs = [
+        ...pres.slice(0, 2).map((p) => ({ id: p.id, a: p.numero, b: p.estado, href: `/presupuestos/${p.id}` })),
+        ...facs.slice(0, 2).map((f) => ({ id: f.id, a: f.numero, b: f.estado, href: `/facturas/${f.id}` })),
+      ];
+      setClientes((prev) =>
+        prev.map((c) =>
+          c.id === selectedId
+            ? {
+                ...c,
+                detalleCargado: true,
+                tieneOferta: inmuebles.length > 0,
+                tieneBusqueda: dems.length > 0,
+                tieneObra: pres.length > 0 || facs.length > 0,
+                ofrece,
+                busca,
+                visitas: vis.slice(0, 3).map((v) => ({
+                  id: v.id,
+                  a: v.titulo,
+                  b: v.empieza.slice(0, 10),
+                  propiedad_id: v.propiedad_id,
+                })),
+                docs,
+              }
+            : c
+        )
+      );
+    })();
+    return () => {
+      vivo = false;
+    };
+  }, [selectedId, listaLista]);
 
   const filtered = useMemo(() => {
     return clientes.filter((c) => {
@@ -244,9 +305,9 @@ export default function ClientesPage() {
         filtro === "todos" ||
         (filtro === "contactos" && !c.es_cliente) ||
         (filtro === "clientes" && c.es_cliente) ||
-        (filtro === "ofrecen" && c.ofrece.length > 0) ||
-        (filtro === "buscan" && c.busca.length > 0) ||
-        (filtro === "obra" && c.docs.length > 0) ||
+        (filtro === "ofrecen" && c.tieneOferta) ||
+        (filtro === "buscan" && c.tieneBusqueda) ||
+        (filtro === "obra" && c.tieneObra) ||
         (filtro === "inactivos" && (!c.activo || c.etiqueta === "fallecido"));
       return matchSearch && matchFiltro;
     });
@@ -364,7 +425,19 @@ export default function ClientesPage() {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[14px] font-semibold">{c.nombre}</span>
-                      <span className="mt-0.5 block truncate text-[12px] text-[var(--text-2)]">{contacto(c)}</span>
+                      <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[12px] text-[var(--text-2)]">
+                        {c.creador ? (
+                          <AvatarComercial
+                            nombre={c.creador.nombre}
+                            email={c.creador.email}
+                            color={c.creador.color}
+                            size={18}
+                            title={`Creado por ${nombreYApellido(c.creador.nombre, c.creador.email) || c.creador.nombre}`}
+                          />
+                        ) : null}
+                        {c.created_at ? <span className="shrink-0 tabular-nums">{fechaAlta(c.created_at)}</span> : null}
+                        <span className="truncate">{contacto(c)}</span>
+                      </span>
                       {c.notas?.trim() ? (
                         <span className="mt-0.5 block truncate text-[12px] text-[var(--text-3)]">{c.notas.trim()}</span>
                       ) : null}
@@ -409,6 +482,27 @@ export default function ClientesPage() {
                     {[selected.es_cliente ? "Cliente" : "Contacto", selected.tipo_documento?.toUpperCase(), selected.documento_fiscal]
                       .filter(Boolean)
                       .join(" · ")}
+                  </p>
+                  <p className="mt-1 flex items-center gap-1.5 text-[12px] text-[var(--text-2)]">
+                    {selected.creador ? (
+                      <AvatarComercial
+                        nombre={selected.creador.nombre}
+                        email={selected.creador.email}
+                        color={selected.creador.color}
+                        size={18}
+                        title={`Creado por ${nombreYApellido(selected.creador.nombre, selected.creador.email) || selected.creador.nombre}`}
+                      />
+                    ) : null}
+                    <span className="truncate">
+                      {[
+                        selected.creador
+                          ? nombreYApellido(selected.creador.nombre, selected.creador.email) || selected.creador.nombre
+                          : null,
+                        selected.created_at ? `alta ${fechaAlta(selected.created_at)}` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </span>
                   </p>
                 </div>
                 {narrow ? (
@@ -518,9 +612,11 @@ export default function ClientesPage() {
                 <div key={bloque.label} className="mt-8 px-5">
                   <div className="flex items-baseline justify-between">
                     <h3 className="text-[12px] font-medium text-[var(--text-3)]">{bloque.label}</h3>
-                    <span className="text-[12px] text-[var(--text-2)]">{bloque.n}</span>
+                    <span className="text-[12px] text-[var(--text-2)]">{selected.detalleCargado ? bloque.n : "…"}</span>
                   </div>
-                  {bloque.items.length === 0 ? (
+                  {!selected.detalleCargado ? (
+                    <p className="mt-1.5 text-[12.5px] text-[var(--text-3)]">Cargando…</p>
+                  ) : bloque.items.length === 0 ? (
                     <p className="mt-1.5 text-[12.5px] text-[var(--text-3)]">Ninguno</p>
                   ) : (
                     bloque.items.map((item) => {

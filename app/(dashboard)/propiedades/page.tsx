@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Fab } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
-import { AvatarComercial } from "@/components/ui/avatar-comercial";
+import { AvataresTarea, type PersonaTarjeta } from "@/components/tareas/TareasBoard";
+import { cargarPerfilesEquipo, mapaPerfiles, type PerfilEquipo } from "@/lib/equipo/perfiles";
+import { nombreYApellido } from "@/lib/ui/tokens";
 import { Chip } from "@/components/ui/chip";
 import { PanelInmueble } from "@/components/inmuebles/PanelInmueble";
 import {
@@ -27,9 +29,11 @@ import {
 } from "@/lib/catastro/explorer";
 import { formatPrecioInmueble, labelEstadoInmueble } from "@/lib/inmuebles/catalogo";
 import {
-  SELECT_INMUEBLE_PANEL,
+  SELECT_INMUEBLE_LISTA,
   cargarDhPorFincas,
+  idsPortada,
   mapInmueblePanel,
+  cargarInmueblePanel,
   precioDeInmueble,
   type InmueblePanel,
   type InmueblePanelRow,
@@ -44,6 +48,39 @@ import { Selector } from "@/components/ui/selector";
 
 type PropiedadLista = InmueblePanel;
 
+function EquipoInmueble({
+  inmueble,
+  perfiles,
+}: {
+  inmueble: PropiedadLista;
+  perfiles: Map<string, PerfilEquipo>;
+}) {
+  const creador = personaDe(inmueble.user_id, perfiles);
+  const asignado = inmueble.comercialId ? personaDe(inmueble.comercialId, perfiles) : creador;
+  if (!creador.id && !asignado.id) return <span className="text-[12.5px] text-[var(--text-3)]">—</span>;
+  const quienCrea = creador.id ? creador : asignado;
+  const quienLleva = asignado.id ? asignado : creador;
+  const nombre = nombreYApellido(quienCrea.nombre, quienCrea.email) || quienCrea.nombre;
+  return (
+    <AvataresTarea
+      creador={quienCrea}
+      asignado={quienLleva}
+      size={20}
+      tituloCreador={nombre ? `Creado por ${nombre}` : "Creado por"}
+    />
+  );
+}
+
+function personaDe(id: string | null, perfiles: Map<string, PerfilEquipo>): PersonaTarjeta {
+  const perfil = id ? perfiles.get(id) : undefined;
+  return {
+    id: id ?? "",
+    nombre: perfil ? nombreYApellido(perfil.nombre, perfil.email) || perfil.nombre : "",
+    color: perfil?.color ?? null,
+    email: perfil?.email,
+  };
+}
+
 export default function PropiedadesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -57,6 +94,10 @@ export default function PropiedadesPage() {
   const [narrow, setNarrow] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [propiedades, setPropiedades] = useState<PropiedadLista[]>([]);
+  const [perfiles, setPerfiles] = useState<Map<string, PerfilEquipo>>(new Map());
+  const propsRef = useRef(propiedades);
+  propsRef.current = propiedades;
+  const portadasRef = useRef(new Map<string, string>());
   const [error, setError] = useState<string | null>(null);
   const [nuevaOpen, setNuevaOpen] = useState(false);
   const [ofertanteInicial, setOfertanteInicial] = useState<string | undefined>();
@@ -81,12 +122,24 @@ export default function PropiedadesPage() {
   }, [searchParams, router]);
 
   useEffect(() => {
+    let vivo = true;
+    void cargarPerfilesEquipo().then((lista) => {
+      if (vivo) setPerfiles(mapaPerfiles(lista));
+    });
+    return () => {
+      vivo = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let vivo = true;
     const supabase = createClient();
-    supabase
+    void supabase
       .from("propiedades")
-      .select(SELECT_INMUEBLE_PANEL)
+      .select(SELECT_INMUEBLE_LISTA)
       .order("created_at", { ascending: false })
       .then(async ({ data, error: err }) => {
+        if (!vivo) return;
         if (err) {
           setError(err.message);
           setPropiedades([]);
@@ -94,23 +147,82 @@ export default function PropiedadesPage() {
           return;
         }
         const rows = (data ?? []) as InmueblePanelRow[];
+        setPropiedades(
+          rows.map((r) => {
+            const item = { ...mapInmueblePanel(r), resumen: true };
+            const url = portadasRef.current.get(item.id);
+            return url ? { ...item, portadaUrl: url } : item;
+          })
+        );
+        setLoading(false);
         const refs = [
           ...new Set(
             rows
               .map((r) => {
-                const link = Array.isArray(r.catastro_property_links)
-                  ? r.catastro_property_links[0]
-                  : r.catastro_property_links;
+                const link = Array.isArray(r.catastro_property_links) ? r.catastro_property_links[0] : r.catastro_property_links;
                 return link?.finca_reference;
               })
               .filter((ref): ref is string => Boolean(ref))
           ),
         ];
         const dhPorFinca = await cargarDhPorFincas(refs);
-        setPropiedades(rows.map((r) => mapInmueblePanel(r, dhPorFinca)));
-        setLoading(false);
+        if (!vivo) return;
+        setPropiedades((prev) =>
+          prev.map((p) => {
+            if (!p.fincaReference) return p;
+            const status = dhPorFinca.get(p.fincaReference);
+            return status ? { ...p, dhStatus: status } : p;
+          })
+        );
       });
+    void (async () => {
+      const { data } = await supabase.from("inmueble_media").select("id, propiedad_id, portada, orden, tipo");
+      if (!vivo || !data) return;
+      const elegidas = idsPortada(data);
+      const mediaIds = [...new Set(elegidas.values())];
+      const urls = new Map<string, string>();
+      const tam = 80;
+      const lotes: string[][] = [];
+      for (let i = 0; i < mediaIds.length; i += tam) lotes.push(mediaIds.slice(i, i + tam));
+      const respuestas = await Promise.all(
+        lotes.map((lote) => supabase.from("inmueble_media").select("id, url").in("id", lote))
+      );
+      for (const respuesta of respuestas) {
+        for (const fila of respuesta.data ?? []) urls.set(fila.id, fila.url);
+      }
+      if (!vivo) return;
+      const porInmueble = new Map<string, string>();
+      for (const [propiedadId, mediaId] of elegidas) {
+        const url = urls.get(mediaId);
+        if (url) porInmueble.set(propiedadId, url);
+      }
+      portadasRef.current = porInmueble;
+      setPropiedades((prev) =>
+        prev.map((p) => {
+          const url = porInmueble.get(p.id);
+          return url && !p.portadaUrl ? { ...p, portadaUrl: url } : p;
+        })
+      );
+    })();
+    return () => {
+      vivo = false;
+    };
   }, [cargaKey]);
+
+  useEffect(() => {
+    if (!selectedId) return;
+    if (!propsRef.current.find((p) => p.id === selectedId)?.resumen) return;
+    let vivo = true;
+    void cargarInmueblePanel(selectedId).then((completo) => {
+      if (!vivo || !completo) return;
+      setPropiedades((prev) =>
+        prev.map((p) => (p.id === completo.id ? { ...completo, portadaUrl: completo.portadaUrl || p.portadaUrl } : p))
+      );
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [selectedId, cargaKey]);
 
   const filteredPropiedades = useMemo(() => {
     return propiedades.filter((p) => {
@@ -259,7 +371,7 @@ export default function PropiedadesPage() {
                   <div className="text-right">m²</div>
                   <div className="text-right">Precio</div>
                   <div>Estado</div>
-                  <div>Comercial</div>
+                  <div>Creado</div>
                 </div>
                 {filteredPropiedades.map((p) => {
                   const active = p.id === selectedId;
@@ -292,9 +404,8 @@ export default function PropiedadesPage() {
                         <span className="h-[7px] w-[7px] rounded-full" style={{ background: colorEstado(p.estado) }} />
                         {labelEstadoInmueble(p.estado)}
                       </span>
-                      <span className="flex items-center gap-1.5 text-[12.5px] text-[var(--text-2)]">
-                        <AvatarComercial nombre={p.comercialNombre} color={p.comercialColor} size={20} />
-                        {p.comercialNombre?.split(" ")[0] ?? "—"}
+                      <span className="min-w-0">
+                        <EquipoInmueble inmueble={p} perfiles={perfiles} />
                       </span>
                     </button>
                   );
@@ -333,6 +444,9 @@ export default function PropiedadesPage() {
                         <span className="mt-0.5 block truncate text-[12px] text-[var(--text-2)]">
                           {p.direccion}
                           {p.superficie_m2 ? ` · ${p.superficie_m2} m²` : ""}
+                        </span>
+                        <span className="mt-1.5 block">
+                          <EquipoInmueble inmueble={p} perfiles={perfiles} />
                         </span>
                       </span>
                     </button>
