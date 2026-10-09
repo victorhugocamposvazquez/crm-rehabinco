@@ -41,6 +41,23 @@ function sano(valor: string | null | undefined): string {
   return (valor ?? "").replace(/\s+/g, " ").trim();
 }
 
+const PREFIJO_CALLE =
+  /^(calle|c\/|avda\.?|avenida|av\.|plaza|praza|rúa|rua|carretera|ctra\.?|traves[ií]a|camino|ronda|lugar|lg\.?|aldea|urbanizaci[oó]n|v[ií]a|tr\.?)\b|(s\/n)$|^(ac|cp|dp|n)-?\d/i;
+
+/** «Piso en Eirís, A Coruña» no trae calle: el barrio es el tramo de delante de la ciudad. */
+export function barrioDeTitulo(title: string | null | undefined): { municipality: string | null; neighborhood: string | null } {
+  const tramos = (title ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  const municipality = tramos.length ? tramos[tramos.length - 1] : null;
+  if (tramos.length > 2) return { municipality, neighborhood: tramos[tramos.length - 2] };
+  if (tramos.length === 2) {
+    const cabeza = tramos[0];
+    const corte = cabeza.toLowerCase().lastIndexOf(" en ");
+    const candidato = corte >= 0 ? cabeza.slice(corte + 4).trim() : "";
+    if (candidato && !PREFIJO_CALLE.test(candidato)) return { municipality, neighborhood: candidato };
+  }
+  return { municipality, neighborhood: null };
+}
+
 function abs(href: string | undefined): string | null {
   if (!href) return null;
   try {
@@ -65,9 +82,9 @@ export function parsearListadoIdealista(html: string, urlEntrada?: string | null
     const href = link.attr("href");
     const url = abs(href);
     const title = link.attr("title") || sano(link.text()) || null;
-    const tramos = title ? title.split(",").map((s) => s.trim()).filter(Boolean) : [];
-    const municipality = tramos.length ? tramos[tramos.length - 1] : null;
-    const neighborhood = tramos.length > 2 ? tramos[tramos.length - 2] : null;
+    const lugar = barrioDeTitulo(title);
+    const municipality = lugar.municipality;
+    const neighborhood = lugar.neighborhood;
     const tipo = title?.match(/^(Piso|Casa|Chalet|Ático|Dúplex|Estudio|Loft|Casa rústica|Casa de pueblo|Casa adosada|Casa o chalet|Finca rústica|Planta baja)/i);
     const price = num(sano($el.find(".item-price").not(".item-price-by-area").first().text()));
     let rooms: number | null = null;
