@@ -14,6 +14,23 @@ import type {
   HojaEncargoHonorariosDatos,
 } from "./hoja-encargo-honorarios";
 
+const LOGO_REHABINCO = "/images/logo-web.png";
+const LOGO_ANCHO = 220;
+const LOGO_ALTO = 51;
+
+function srcLogoRehabinco(): string {
+  if (typeof window !== "undefined" && window.location?.origin && window.location.origin !== "null") {
+    return `${window.location.origin}${LOGO_REHABINCO}`;
+  }
+  return LOGO_REHABINCO;
+}
+
+function marcaRehabinco(): string {
+  return `<div data-bloque="1" data-evitar-corte="1" style="display:flex;justify-content:center;margin:0 0 22px;">
+    <img src="${srcLogoRehabinco()}" alt="Rehabinco" width="${LOGO_ANCHO}" height="${LOGO_ALTO}" style="width:${LOGO_ANCHO}px;height:${LOGO_ALTO}px;object-fit:contain;display:block;" />
+  </div>`;
+}
+
 function hueco(valor: string | null | undefined, fallback = "………………") {
   const t = valor?.trim();
   return t || fallback;
@@ -83,6 +100,7 @@ export function htmlHojaEncargoHonorarios(
     editable ? bloqueEditable(key, inner, extra) : bloqueEstatico(inner, extra);
 
   const bloques =
+    marcaRehabinco() +
     clausula("encabezado", render(t.encabezado), "text-align:center;margin-bottom:22px;font-size:13.5px;") +
     h("HOJA DE ENCARGO PROFESIONAL") +
     `<p data-bloque="1" style="margin:0 0 14px;font-size:12.5px;text-align:center;color:#444;">Reconocimiento de honorarios · Encargo de venta</p>` +

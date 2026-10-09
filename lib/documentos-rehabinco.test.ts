@@ -288,6 +288,8 @@ describe("documentos Rehabinco 2026", () => {
     );
     const html = htmlHojaEncargoHonorarios(datos, { editable: false });
     assert.match(html, /cliente presentado por REHABINCO, S\.L\./);
+    assert.match(html, /src="\/images\/logo-web\.png"/);
+    assert.match(html, /alt="Rehabinco"/);
     assert.match(html, /@media print/);
     assert.match(html, /class="pdf-flow"/);
     assert.match(htmlHojaEncargoHonorarios(datos), /data-clausula="honorarios"[^>]*>[^<]*cliente presentado por REHABINCO, S\.L\./);
