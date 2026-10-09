@@ -29,10 +29,34 @@ describe("mapearBrightDataIdealista", () => {
     assert.equal(anuncio.tipo, "piso");
     assert.equal(anuncio.anunciante, "particular");
     assert.equal(anuncio.municipio, "A Coruña");
+    assert.equal(anuncio.zona, "Monte Alto");
     assert.equal(anuncio.contacto_telefono, "+34600111222");
 
     const guardado = upsertAnuncio(null, anuncio, "2026-09-22T18:00:00.000Z", null);
     assert.equal(guardado.row.contacto_clave, "tel:+34600111222");
+  });
+
+  it("saca el barrio del título cuando el portal solo manda la ciudad", () => {
+    const anuncio = mapearBrightDataIdealista({
+      url: "https://www.idealista.com/inmueble/22001100/",
+      title: "Piso en Eirís, A Coruña",
+      price: 150000,
+      municipality: "A Coruña",
+      neighborhood: "A Coruña",
+      listing_position: 1,
+    });
+    assert.ok(anuncio);
+    assert.equal(anuncio.municipio, "A Coruña");
+    assert.equal(anuncio.zona, "Eirís");
+
+    const otraCiudad = mapearBrightDataIdealista({
+      url: "https://www.idealista.com/inmueble/22001101/",
+      title: "Piso en Calle Mayor, 12, Madrid",
+      price: 400000,
+      municipality: "Madrid",
+      listing_position: 2,
+    });
+    assert.equal(otraCiudad?.zona, "Madrid");
   });
 
   it("acepta claves anidadas y marca agencia cuando el portal lo dice", () => {

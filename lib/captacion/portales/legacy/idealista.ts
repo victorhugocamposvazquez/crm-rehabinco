@@ -1,3 +1,4 @@
+import { lugarDeAnuncioIdealista } from "@/lib/captacion/brightdata/lugar-idealista";
 import {
   claveContacto,
   type AnunciantePortal,
@@ -69,7 +70,11 @@ export function mapearIdealista(element: IdealistaElement): AnuncioEntrante | nu
   const externo = element.propertyCode == null ? "" : String(element.propertyCode).trim();
   if (!externo) return null;
   const municipio = element.municipality?.trim() || null;
-  const zona = element.neighborhood?.trim() || element.district?.trim() || municipio;
+  const lugar = lugarDeAnuncioIdealista({
+    municipio,
+    barrio: element.neighborhood?.trim() || element.district?.trim() || null,
+  });
+  const zona = lugar.barrio ?? lugar.municipio ?? municipio;
   const titulo = element.address?.trim() || [zona, municipio].filter(Boolean).join(", ") || `Anuncio ${externo}`;
   const tel = telefonoDe(element.contactInfo);
   const nombre = element.contactInfo?.contactName?.trim() || element.contactInfo?.commercialName?.trim() || null;

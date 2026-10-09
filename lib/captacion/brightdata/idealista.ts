@@ -7,6 +7,7 @@ import {
   normalizarTexto,
   normalizarTipo,
 } from "@/lib/captacion/pipeline/normalize";
+import { lugarDeAnuncioIdealista } from "@/lib/captacion/brightdata/lugar-idealista";
 import type { AnuncioEntrante, AnunciantePortal } from "@/lib/captacion/portales/modelo";
 
 export const PARSER_VERSION = "brightdata-idealista-listado-2026-09-23";
@@ -280,10 +281,10 @@ export function mapearBrightDataIdealista(raw: Registro): AnuncioEntrante | null
   const externoId = idDesdeUrl(url) ?? crudoId?.replace(/\D/g, "") ?? "";
   if (!/^\d{5,}$/.test(externoId)) return null;
 
-  const municipio = normalizarTexto(
+  const municipioPortal = normalizarTexto(
     texto(campo(raw, ["municipality", "municipio", "city", "locality", "town"]))
   );
-  const zona = normalizarTexto(
+  const barrioPortal = normalizarTexto(
     texto(campo(raw, ["neighborhood", "neighbourhood", "district", "zona", "area"]))
   );
   const direccion = normalizarTexto(texto(campo(raw, ["address", "direccion", "street"])));
@@ -293,6 +294,13 @@ export function mapearBrightDataIdealista(raw: Registro): AnuncioEntrante | null
   const esListado = raw.listing_position != null || raw.items_en_pagina != null;
   // Una ficha que no cargó llega solo con la URL. Un listado sin teléfono sí es válido.
   if (!esListado && !tituloPortal && precio == null && fotos.length === 0) return null;
+  const lugar = lugarDeAnuncioIdealista({
+    titulo: tituloPortal,
+    municipio: municipioPortal,
+    barrio: barrioPortal,
+  });
+  const municipio = lugar.municipio ?? municipioPortal;
+  const zona = lugar.barrio ?? municipio;
   const titulo =
     tituloPortal ||
     [direccion, zona, municipio].filter(Boolean).join(", ") ||

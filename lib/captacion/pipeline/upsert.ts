@@ -2,6 +2,7 @@ import { esAgencia } from "@/lib/captacion/captacion-activos";
 import { claveContacto, esTelefonoVirtualIdealista } from "@/lib/captacion/contacto";
 import { publicadoEsCarga } from "@/lib/captacion/portales/modelo";
 import { urlsDeFotosPortal } from "@/lib/inmuebles/media";
+import { zonaAlGuardar } from "@/lib/captacion/brightdata/lugar-idealista";
 import type { AnuncioEntrante, FaseAnuncio } from "@/lib/captacion/portales/modelo";
 
 export type AnuncioGuardado = {
@@ -22,6 +23,7 @@ export type AnuncioGuardado = {
   contacto_telefono?: string | null;
   contacto_nombre?: string | null;
   municipio?: string | null;
+  zona?: string | null;
   lat?: number | null;
   lng?: number | null;
   publicado_en?: string | null;
@@ -165,7 +167,10 @@ export function upsertAnuncio(
       banos: entrante.banos,
       planta: entrante.planta ?? null,
       direccion: entrante.direccion,
-      zona: entrante.zona,
+      zona:
+        portalId === "idealista"
+          ? zonaAlGuardar(entrante.zona, entrante.municipio, previo?.zona)
+          : entrante.zona,
       municipio: entrante.municipio,
       codigo_postal: entrante.codigo_postal,
       lat: entrante.lat ?? previo?.lat ?? null,
