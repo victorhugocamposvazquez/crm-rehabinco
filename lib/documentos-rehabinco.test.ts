@@ -290,6 +290,9 @@ describe("documentos Rehabinco 2026", () => {
     assert.match(html, /cliente presentado por REHABINCO, S\.L\./);
     assert.match(html, /src="\/images\/logo-web\.png"/);
     assert.match(html, /alt="Rehabinco"/);
+    const editable = htmlHojaEncargoHonorarios(datos);
+    assert.match(editable, /data-clausula="honorarios"[^>]*font-size:17px/);
+    assert.match(editable, /data-clausula="lopd"[^>]*font-size:10px/);
     assert.match(html, /@media print/);
     assert.match(html, /class="pdf-flow"/);
     assert.match(htmlHojaEncargoHonorarios(datos), /data-clausula="honorarios"[^>]*>[^<]*cliente presentado por REHABINCO, S\.L\./);
