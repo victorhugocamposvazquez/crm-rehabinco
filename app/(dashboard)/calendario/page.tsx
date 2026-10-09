@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
+import { nombreYApellido } from "@/lib/ui/tokens";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
 import { isAdmin } from "@/lib/auth/roles";
@@ -68,7 +69,7 @@ type CitaRow = {
   lugar?: string | null;
   tarea_id?: string | null;
   clientes?: { nombre?: string | null } | null;
-  profiles?: { nombre_completo?: string | null; color?: string | null } | null;
+  profiles?: { nombre_completo?: string | null; color?: string | null; email?: string | null } | null;
   propiedades?: { titulo?: string | null; direccion?: string | null; localidad?: string | null; referencia?: string | null } | null;
 };
 
@@ -115,7 +116,7 @@ export default function CalendarioPage() {
     const q = supabase
       .from("citas")
       .select(
-        "id, comercial_id, tipo, titulo, empieza, termina, propiedad_id, cliente_id, clientes_extra_ids, notas, estado, tarea_id, lugar, profiles:comercial_id(nombre_completo, color), propiedades:propiedad_id(titulo, direccion, localidad, referencia), clientes:cliente_id(nombre)"
+        "id, comercial_id, tipo, titulo, empieza, termina, propiedad_id, cliente_id, clientes_extra_ids, notas, estado, tarea_id, lugar, profiles:comercial_id(nombre_completo, color, email), propiedades:propiedad_id(titulo, direccion, localidad, referencia), clientes:cliente_id(nombre)"
       )
       .gte("empieza", inicio)
       .lte("empieza", fin)
@@ -200,7 +201,7 @@ export default function CalendarioPage() {
         setComerciales(
           (data ?? []).map((item) => ({
             id: item.id,
-            nombre: item.nombre_completo || item.email || "Comercial",
+            nombre: nombreYApellido(item.nombre_completo, item.email) || "Comercial",
             color: item.color,
           }))
         )
@@ -740,6 +741,7 @@ export default function CalendarioPage() {
                 <AvatarComercial
                   id={cita.comercial_id}
                   nombre={cita.profiles?.nombre_completo}
+                  email={cita.profiles?.email}
                   color={cita.profiles?.color}
                   size={28}
                   className="mt-0.5"
@@ -748,8 +750,8 @@ export default function CalendarioPage() {
                   <p className="font-medium">{cita.titulo}</p>
                   <p className="text-xs text-[#5C5C5C]">
                     {horaCita(cita.empieza)}
-                    {cita.profiles?.nombre_completo && cita.comercial_id !== user?.id
-                      ? ` · ${cita.profiles.nombre_completo}`
+                    {nombreYApellido(cita.profiles?.nombre_completo, cita.profiles?.email) && cita.comercial_id !== user?.id
+                      ? ` · ${nombreYApellido(cita.profiles?.nombre_completo, cita.profiles?.email)}`
                       : ""}{" "}
                     ·{" "}
                     {TIPO_CITA_LABEL[(cita.tipo as TipoCita) ?? "otro"] ?? cita.tipo} ·{" "}

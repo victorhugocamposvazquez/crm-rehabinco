@@ -25,7 +25,7 @@ export type CitaRejilla = {
   termina: string;
   estado: string;
   lugar?: string | null;
-  profiles?: { nombre_completo?: string | null; color?: string | null } | null;
+  profiles?: { nombre_completo?: string | null; color?: string | null; email?: string | null } | null;
 };
 
 export function GuiaHoraCalendario({ minutos }: { minutos: number }) {
@@ -48,6 +48,7 @@ export function EventoCalendarioChip({
         <AvatarComercial
           id={cita.comercial_id}
           nombre={cita.profiles?.nombre_completo}
+          email={cita.profiles?.email}
           color={cita.profiles?.color}
           size={compact ? 16 : 18}
         />

@@ -88,6 +88,27 @@ const PREF_LABELS: Array<{ key: keyof Prefs; label: string }> = [
   { key: "sin_mover", label: "Lleve 5 días sin mover un anuncio" },
 ];
 
+const SELECT_ANUNCIO_LISTA =
+  "id, fuente, portal_id, externo_id, url, titulo, operacion, tipo, anunciante, precio, precio_anterior, superficie, habitaciones, banos, direccion, zona, municipio, codigo_postal, lat, lng, thumb, n_fotos, contacto_nombre, contacto_telefono, contacto_clave, tags, alerta_id, fase, comercial_id, proxima_accion, propiedad_id, cliente_id, publicado_en, visto_en, visto_primera_vez, telefono_capturado_por, telefono_capturado_en, publicado_en_portal, publicado_precision, desaparecido_en, telefono_pendiente, ficha_pendiente, telefono_estado, telefono_tipo, telefono_reintentar_en, contacto_telefono_fuente, created_at";
+
+async function cargarAnunciosCaptacion() {
+  const supabase = createClient();
+  const tam = 1000;
+  const filas: Record<string, unknown>[] = [];
+  for (let desde = 0; ; desde += tam) {
+    const { data, error } = await supabase
+      .from("captacion_anuncios")
+      .select(SELECT_ANUNCIO_LISTA)
+      .order("publicado_en_portal", { ascending: false, nullsFirst: false })
+      .order("id", { ascending: true })
+      .range(desde, desde + tam - 1);
+    if (error || !data?.length) break;
+    filas.push(...(data as Record<string, unknown>[]));
+    if (data.length < tam) break;
+  }
+  return filas;
+}
+
 function filaAnuncio(row: Record<string, unknown>): AnuncioCaptacion {
   return {
     id: String(row.id),
@@ -247,14 +268,14 @@ export function CaptacionPortales() {
   const cargar = () => {
     const supabase = createClient();
     void Promise.all([
-      supabase.from("captacion_anuncios").select("*").order("publicado_en_portal", { ascending: false, nullsFirst: false }),
+      cargarAnunciosCaptacion(),
       supabase.from("captacion_alertas").select("*").order("created_at", { ascending: false }),
       supabase.from("captacion_notificaciones").select("*").eq("user_id", user?.id ?? "").order("created_at", { ascending: false }).limit(40),
       supabase.from("captacion_notif_prefs").select("*").eq("user_id", user?.id ?? "").maybeSingle(),
       supabase.from("profiles").select("id, nombre_completo, color, email, role").eq("activo", true),
       fetch("/api/captacion/contexto").then((r) => r.json()),
     ]).then(([a, al, n, p, c, ctx]) => {
-      const filas = ((a.data ?? []) as Record<string, unknown>[]).map(filaAnuncio);
+      const filas = a.map(filaAnuncio);
       setAnuncios(filas);
       if (ctx && typeof ctx === "object" && (ctx as { ok?: boolean }).ok) {
         const meta = ctx as { hayRecogidaCompleta?: boolean; telefonosEnCola?: string[] };
@@ -309,6 +330,25 @@ export function CaptacionPortales() {
       return;
     }
     const supabase = createClient();
+    void supabase
+      .from("captacion_anuncios")
+      .select("id, descripcion, fotos")
+      .eq("id", sel)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return;
+        setAnuncios((prev) =>
+          prev.map((item) =>
+            item.id === data.id
+              ? {
+                  ...item,
+                  descripcion: typeof data.descripcion === "string" ? normalizarTexto(data.descripcion) : item.descripcion,
+                  fotos: fotosAnuncio(data.fotos),
+                }
+              : item
+          )
+        );
+      });
     void supabase
       .from("captacion_anuncios_actividad")
       .select("id, detalle, created_at, tipo")

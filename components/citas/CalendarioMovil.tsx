@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { TimeInput } from "@/components/ui/time-input";
 import { FichaLink } from "@/components/crm/FichaPeek";
 import { cn } from "@/lib/utils";
+import { nombreYApellido } from "@/lib/ui/tokens";
 import {
   CAL_HORA_FIN,
   CAL_HORA_INICIO,
@@ -34,7 +35,7 @@ export type CitaMovil = {
   propiedad_id: string | null;
   estado: string;
   lugar?: string | null;
-  profiles?: { nombre_completo?: string | null; color?: string | null } | null;
+  profiles?: { nombre_completo?: string | null; color?: string | null; email?: string | null } | null;
   propiedades?: { titulo?: string | null; direccion?: string | null; localidad?: string | null; referencia?: string | null } | null;
 };
 
@@ -307,6 +308,7 @@ export function CalendarioMovil({
                 <AvatarComercial
                   id={cita.comercial_id}
                   nombre={cita.profiles?.nombre_completo}
+                  email={cita.profiles?.email}
                   color={cita.profiles?.color}
                   size={28}
                   className="mt-1"
@@ -314,8 +316,8 @@ export function CalendarioMovil({
                 <div className="min-w-0 flex-1">
                   <p className="text-[14.5px] font-semibold">{cita.titulo}</p>
                   <p className="mt-0.5 text-[12px] text-[var(--text-2)]">
-                    {cita.profiles?.nombre_completo && cita.comercial_id !== userId
-                      ? `${cita.profiles.nombre_completo} · `
+                    {nombreYApellido(cita.profiles?.nombre_completo, cita.profiles?.email) && cita.comercial_id !== userId
+                      ? `${nombreYApellido(cita.profiles?.nombre_completo, cita.profiles?.email)} · `
                       : ""}
                     {TIPO_CITA_LABEL[(cita.tipo as TipoCita) ?? "otro"] ?? cita.tipo}
                     {" · "}

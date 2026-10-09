@@ -51,21 +51,24 @@ function nombreUtil(nombre?: string | null): string {
   return limpio;
 }
 
-/** Nombre y primer apellido. No usa el rol «Comercial». */
+function localDeCorreo(valor: string): string {
+  return valor.split("@")[0]?.replace(/[._-]+/g, " ").trim() ?? "";
+}
+
+/** Nombre y primer apellido. Un correo no aporta el dominio. */
 export function nombreYApellido(nombre?: string | null, email?: string | null): string {
   const limpio = nombreUtil(nombre);
-  if (limpio) {
-    const partes = limpio.split(/\s+/).filter(Boolean);
-    if (partes.length === 1) return partes[0];
-    return `${partes[0]} ${partes[1]}`;
-  }
-  const local = email?.split("@")[0]?.replace(/[._-]+/g, " ").trim();
-  return local || "";
+  const base = limpio && !limpio.includes("@") ? limpio : localDeCorreo(limpio.includes("@") ? limpio : (email ?? ""));
+  const partes = base.split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return "";
+  if (partes.length === 1) return partes[0];
+  return `${partes[0]} ${partes[1]}`;
 }
 
 export function inicialesNombre(nombre?: string | null, email?: string | null): string {
-  const source = (nombreUtil(nombre) || email?.split("@")[0] || "U").trim();
-  const parts = source.split(/[\s._-]+/).filter(Boolean);
+  const corto = nombreYApellido(nombre, email);
+  const parts = corto.split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "U";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
 }

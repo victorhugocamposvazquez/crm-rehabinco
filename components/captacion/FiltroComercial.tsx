@@ -3,7 +3,7 @@
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
 import { cn } from "@/lib/utils";
-import { colorComercial } from "@/lib/ui/tokens";
+import { colorComercial, nombreYApellido } from "@/lib/ui/tokens";
 
 export type ComercialFiltro = { id: string; nombre: string; color: string | null };
 
@@ -26,7 +26,7 @@ export function FiltroComercial({
           <button
             key={item.id}
             type="button"
-            title={item.nombre}
+            title={nombreYApellido(item.nombre) || item.nombre}
             onClick={() => onChange(on ? "" : item.id)}
             className={cn(
               "flex min-w-[3.25rem] shrink-0 flex-col items-center gap-1 rounded-[12px] px-1.5 py-1.5 transition-[opacity,background] duration-150",
@@ -41,7 +41,7 @@ export function FiltroComercial({
               className={on ? "ring-2 ring-[var(--green)] ring-offset-2 ring-offset-[var(--surface)]" : "ring-2 ring-[var(--border)]"}
             />
             <span className="max-w-[4.75rem] truncate text-[11px] font-semibold" style={{ color }}>
-              {item.nombre.split(" ")[0]}
+              {nombreYApellido(item.nombre) || item.nombre.split(" ")[0]}
             </span>
           </button>
         );
