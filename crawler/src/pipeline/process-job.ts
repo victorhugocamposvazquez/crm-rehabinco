@@ -4,6 +4,7 @@ import "../adapters/pisos/index.js";
 import "../adapters/milanuncios/index.js";
 import "../adapters/fotocasa/index.js";
 import "../adapters/wallapop/index.js";
+import { volcarTarjetaCaptacion } from "../../../lib/avm/crawl/from-captacion.js";
 import { upsertAnuncio } from "../../../lib/captacion/pipeline/upsert.js";
 import {
   normalizarAnunciante,
@@ -353,6 +354,31 @@ export async function procesarJob(
           });
           return;
         }
+      }
+
+      try {
+        await volcarTarjetaCaptacion(supabase, {
+          portal: entrante.portal_id ?? entrante.fuente,
+          portalId: entrante.externo_id,
+          url: entrante.url,
+          title: entrante.titulo,
+          operation: entrante.operacion,
+          propertyType: entrante.tipo,
+          agency: entrante.anunciante === "empresa" ? true : entrante.anunciante === "particular" ? false : null,
+          price: entrante.precio,
+          surface: entrante.superficie,
+          rooms: entrante.habitaciones,
+          bathrooms: entrante.banos,
+          floor: entrante.planta ?? null,
+          zone: entrante.zona,
+          postcode: entrante.codigo_postal,
+          lat: entrante.lat,
+          lng: entrante.lng,
+          municipality: entrante.municipio,
+          geoAproximada: entrante.geo_aproximada === true,
+        });
+      } catch {
+        /* El volcado es opcional y no interrumpe la captación. */
       }
 
       for (const h of patch.historial) {

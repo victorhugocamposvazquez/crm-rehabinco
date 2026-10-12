@@ -154,6 +154,16 @@ export function createCatastroClient(options: CatastroClientOptions = {}) {
     return http.getText(url.toString(), undefined, { timeoutMs: catalogoTimeoutMs });
   }
 
+  /** Consulta_RCCOOR: parcela que contiene el punto. X es longitud, Y latitud, SRS 4326. */
+  async function consultarReferenciaPorCoordenadas(lat: number, lng: number): Promise<JsonValue> {
+    const url = new URL(`${CATASTRO_COORDENADAS_JSON}/Consulta_RCCOOR`);
+    url.searchParams.set("CoorX", String(lng));
+    url.searchParams.set("CoorY", String(lat));
+    url.searchParams.set("SRS", "EPSG:4326");
+    const texto = await http.getText(url.toString(), "application/json");
+    return JSON.parse(texto) as JsonValue;
+  }
+
   /** Consulta_CPMRC: centroide oficial de la parcela. RefCat de 14. */
   async function consultarCoordenadasPorReferencia(refCat: string): Promise<JsonValue> {
     const rc = getFincaReference(refCat);
@@ -177,6 +187,7 @@ export function createCatastroClient(options: CatastroClientOptions = {}) {
     obtenerNumerero,
     obtenerDireccionesPorCodigoVia,
     obtenerDireccionesPorCodigoPostal,
+    consultarReferenciaPorCoordenadas,
     consultarCoordenadasPorReferencia,
     getStats: http.getStats,
   };

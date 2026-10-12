@@ -147,6 +147,8 @@ export const habitacliaAdapter: PortalAdapter = {
   },
 };
 
+export { parseListingCardsHabitaclia as parseListingCards } from "../../../../lib/avm/market/habitaclia-cards.js";
+
 export function totalAnunciosEnJson(html: string): number {
   const page = paginaListadoDesdeHtml(html);
   return page?.initialSearchResultsPage?.initialSearchContext?.results?.pagination?.totalCount ?? 0;

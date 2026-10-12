@@ -5,6 +5,7 @@ import { PARSER_VERSION } from "@/lib/captacion/brightdata/idealista";
 import { buscarInmuebleDuplicado } from "@/lib/captacion/pipeline/dedup";
 import { upsertAnuncio, type AnuncioGuardado } from "@/lib/captacion/pipeline/upsert";
 import type { AnuncioEntrante } from "@/lib/captacion/portales/modelo";
+import { volcarTarjetaCaptacion } from "@/lib/avm/crawl/from-captacion";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const SELECT_PREVIO =
@@ -99,6 +100,31 @@ export async function guardarAnuncioPipeline(
     }
     await aplicarDedup(supabase, anuncioId, entrante, errores);
     await aplicarScore(supabase, anuncioId, entrante, ahoraIso, errores);
+  }
+
+  try {
+    await volcarTarjetaCaptacion(supabase, {
+      portal: portalId,
+      portalId: entrante.externo_id,
+      url: entrante.url,
+      title: entrante.titulo,
+      operation: entrante.operacion,
+      propertyType: entrante.tipo,
+      agency: entrante.anunciante === "empresa" ? true : entrante.anunciante === "particular" ? false : null,
+      price: entrante.precio,
+      surface: entrante.superficie,
+      rooms: entrante.habitaciones,
+      bathrooms: entrante.banos,
+      floor: entrante.planta ?? null,
+      zone: entrante.zona,
+      postcode: entrante.codigo_postal,
+      lat: entrante.lat,
+      lng: entrante.lng,
+      municipality: entrante.municipio,
+      geoAproximada: entrante.geo_aproximada === true,
+    });
+  } catch (error) {
+    errores.push(`${entrante.externo_id} mercado: ${error instanceof Error ? error.message : "volcado"}`);
   }
 
   return { nuevo, actualizado, anuncioId, errores };

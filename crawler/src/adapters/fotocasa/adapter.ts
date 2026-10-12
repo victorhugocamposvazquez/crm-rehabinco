@@ -112,6 +112,8 @@ export const fotocasaAdapter: PortalAdapter = {
   },
 };
 
+export { parseListingCardsFotocasa as parseListingCards } from "../../../../lib/avm/market/fotocasa-cards.js";
+
 export function totalAnunciosEnFixture(html: string): number {
   return anunciosFotocasa(html).length;
 }

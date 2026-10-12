@@ -21,6 +21,9 @@
     },
     "app/api/captacion/brightdata/route.ts": {
       "maxDuration": 60
+    },
+    "app/api/avm/crawl/route.ts": {
+      "maxDuration": 300
     }
   },
   "crons": [

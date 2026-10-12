@@ -77,6 +77,8 @@ export const pisosAdapter: PortalAdapter = {
   },
 };
 
+export { parseListingCardsPisos as parseListingCards } from "../../../../lib/avm/market/pisos-cards.js";
+
 export function totalAnunciosEnFixture(html: string): number {
   return listadoPisosDesdeHtml(html).items.length;
 }

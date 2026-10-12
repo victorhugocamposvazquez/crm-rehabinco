@@ -42,4 +42,7 @@ if (files.length === 0) {
 
 const env = { ...process.env, CATASTRO_SKIP_LIVE: process.env.CATASTRO_SKIP_LIVE ?? "1" };
 const result = spawnSync("npx", ["tsx", "--test", ...files], { cwd: root, env, stdio: "inherit" });
-process.exit(result.status ?? 1);
+if (result.status) process.exit(result.status ?? 1);
+
+const avm = spawnSync("npx", ["vitest", "run", "lib/avm"], { cwd: root, env, stdio: "inherit" });
+process.exit(avm.status ?? 1);
