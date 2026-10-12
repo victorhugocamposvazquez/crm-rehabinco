@@ -10,6 +10,8 @@ export type EntornoCoverage = {
   municipality_has_layers: boolean;
   elements_within_600m: number;
   layers_consulted: CapaConsultada[];
+  /** Criminalidad u OVU cargadas para el municipio/sección (sin distancia). */
+  municipal_stats_loaded?: boolean;
 };
 
 export type AvisoEntornoVacio =
@@ -23,6 +25,7 @@ export function parseEntornoCoverage(data: unknown): EntornoCoverage | null {
   return {
     municipality_has_layers: Boolean(o.municipality_has_layers),
     elements_within_600m: Number(o.elements_within_600m ?? 0),
+    municipal_stats_loaded: Boolean(o.municipal_stats_loaded),
     layers_consulted: layers
       .map((row) => {
         const r = row as Record<string, unknown>;
@@ -44,16 +47,24 @@ export function entornoSinElementosPuntuables(environment: Environment | null): 
   return !environment.positives.length && !environment.negatives.length;
 }
 
+const CAPAS_AMBITO_MUNICIPIO = new Set(["crime_municipality", "vulnerable_section"]);
+
 export function avisoEntornoVacio(
   environment: Environment | null,
   coverage: EntornoCoverage | null,
   municipalityLabel: string,
 ): AvisoEntornoVacio | null {
   if (!entornoSinElementosPuntuables(environment)) return null;
+  const flagsMunicipales = environment?.flags?.length ?? 0;
+  if (flagsMunicipales > 0) return null;
   if (!coverage?.municipality_has_layers) {
     return { kind: "sin_capas", municipalityLabel };
   }
   if (coverage.elements_within_600m === 0) {
+    const soloAmbitoMunicipio =
+      coverage.layers_consulted.length > 0 &&
+      coverage.layers_consulted.every((l) => CAPAS_AMBITO_MUNICIPIO.has(l.layer));
+    if (coverage.municipal_stats_loaded || soloAmbitoMunicipio) return null;
     return { kind: "sin_cerca", layers: coverage.layers_consulted };
   }
   return null;

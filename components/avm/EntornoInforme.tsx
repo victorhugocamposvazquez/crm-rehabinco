@@ -256,7 +256,7 @@ export function FlagsEntorno({ flags }: { flags: EnvironmentItem[] }) {
     return <p className="text-[13px] text-[var(--text-3)]">Sin avisos del equipo en esta zona</p>;
   }
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2" data-testid="entorno-flags">
       {flags.map((f) => (
         <FilaEntorno key={f.label} item={f} variant={f.sense === "negative" ? "warn" : "info"} />
       ))}

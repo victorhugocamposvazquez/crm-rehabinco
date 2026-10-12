@@ -45,7 +45,11 @@ export function normalizarMunicipioCatastro(municipio: string | null | undefined
 }
 
 /** Resuelve provincia Catastro: código INE de municipio o provincia, o CP. */
-export function provinciaNombreCatastro(province: string | null, postcode: string | null, ineMuni?: string | null): string {
+export function provinciaNombreCatastro(
+  province: string | null | undefined,
+  postcode: string | null | undefined,
+  ineMuni?: string | null,
+): string {
   const ine = ineMunicipioValido(ineMuni ?? "");
   if (ine) {
     const p = provinciaCatastroPorCodigo(ineProvinciaDeMunicipio(ine));

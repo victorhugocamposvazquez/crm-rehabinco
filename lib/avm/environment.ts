@@ -67,7 +67,9 @@ const FLAG_RULES: Omit<Rule, 'points'>[] = [
   { layer: 'vulnerable_section', label: () => 'Sección censal en el catálogo de barrios vulnerables', sense: 'negative', source: 'Observatorio de la Vulnerabilidad Urbana' },
   { layer: 'crime_municipality', label: (r) => {
     const rate = r.props.rate_per_1000 ?? '?';
-    const peer = r.props.peer_avg != null ? ` (media ciudades similares: ${r.props.peer_avg})` : '';
+    const peerN = Number(r.props.peer_avg);
+    const peer =
+      Number.isFinite(peerN) ? ` (media ciudades similares: ${peerN.toFixed(1)})` : '';
     return `Criminalidad municipal: ${rate} infracciones / 1.000 hab.${peer}`;
   }, sense: 'info', source: 'Ministerio del Interior' },
   { layer: 'air_station', label: (r) => `Calidad del aire (estación a ${r.distance_m} m): ${r.props.index_label ?? '?'}`, sense: 'info', source: 'MITECO' },
@@ -125,5 +127,15 @@ export function buildEnvironment(raw: RawEnvironment): Environment {
   positives.sort((a, b) => Number(b.value) - Number(a.value));
   negatives.sort((a, b) => Number(a.value) - Number(b.value));
 
-  return { score: Math.max(0, Math.min(100, Math.round(score))), positives, negatives, flags };
+  return {
+    score: Math.max(0, Math.min(100, Math.round(score))),
+    positives,
+    negatives,
+    flags,
+  };
+}
+
+/** Filas RPC de capas sin distancia → banderas (por si el informe hidrata solo flags). */
+export function flagsFromNearest(nearest: NearestRow[]): EnvironmentItem[] {
+  return buildEnvironment({ nearest, counts_500m: {} }).flags;
 }

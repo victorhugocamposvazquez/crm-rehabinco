@@ -20,6 +20,25 @@ describe("avisoEntornoVacio", () => {
     expect(aviso?.kind).toBe("sin_cerca");
   });
 
+  it("solo criminalidad municipal: no aviso sin_cerca", () => {
+    const aviso = avisoEntornoVacio(
+      {
+        score: 50,
+        positives: [],
+        negatives: [],
+        flags: [{ indicator: "crime_municipality", label: "Criminalidad municipal: 49", sense: "info", source: "Interior" }],
+      },
+      {
+        municipality_has_layers: true,
+        municipal_stats_loaded: true,
+        elements_within_600m: 0,
+        layers_consulted: [{ layer: "crime_municipality", source: "Interior", loaded_at: "2026-01-01T00:00:00Z" }],
+      },
+      "A Coruña",
+    );
+    expect(aviso).toBeNull();
+  });
+
   it("con positivos no avisa", () => {
     const aviso = avisoEntornoVacio(
       {

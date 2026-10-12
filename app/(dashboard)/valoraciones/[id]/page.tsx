@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { ValoracionesNav } from "@/components/avm/ValoracionesNav";
 import { InformeValoracion } from "@/components/avm/InformeValoracion";
 import { InformeAcciones } from "@/components/avm/InformeAcciones";
-import { parseEntornoCoverage, entornoSinElementosPuntuables } from "@/lib/avm/entorno-coverage";
+import { hydrateEnvironmentForInforme } from "@/lib/avm/environment-hydrate";
 import { createClient } from "@/lib/supabase/client";
 import type { Environment, Twin, ValuationResult } from "@/lib/avm/types";
 import { subtituloInforme, tituloInforme } from "@/lib/avm/ui/labels";
@@ -21,7 +21,7 @@ export default function InformePage() {
     creada: string;
     mesesHistorico: number;
     primerMes: string | null;
-    entornoCoverage: ReturnType<typeof parseEntornoCoverage>;
+    entornoCoverage: import("@/lib/avm/entorno-coverage").EntornoCoverage | null;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,20 +56,10 @@ export default function InformePage() {
             primerMes = meses[0].month;
           }
         }
-        const environment = data.environment as Environment | null;
-        let entornoCoverage = null;
-        if (
-          entornoSinElementosPuntuables(environment) &&
-          twin.address.lat != null &&
-          twin.address.lng != null
-        ) {
-          const { data: cov } = await supabase.rpc("avm_environment_coverage", {
-            p_lat: twin.address.lat,
-            p_lng: twin.address.lng,
-            p_municipality_code: twin.address.municipalityCode ?? null,
-          });
-          entornoCoverage = parseEntornoCoverage(cov);
-        }
+        const storedEnvironment = data.environment as Environment | null;
+        const hydrated = await hydrateEnvironmentForInforme(supabase, twin, storedEnvironment);
+        const environment = hydrated.environment;
+        const entornoCoverage = hydrated.coverage;
         const result: ValuationResult = {
           methodVersion: data.method_version,
           operation: data.operation,
