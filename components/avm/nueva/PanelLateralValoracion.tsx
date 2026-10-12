@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { TagAvm } from "@/components/avm/nueva/wizard-ui";
 import { fmtEurosPorM2, fmtNumero } from "@/lib/avm/ui/format";
+import type { FilaConocido } from "@/lib/avm/wizard-known";
 import type { Twin } from "@/lib/avm/types";
 
 type Props = {
@@ -9,8 +12,9 @@ type Props = {
   estimado: { low: number; high: number; mid: number; uncertainty: number } | null;
   twin: Twin | null;
   confirmados: number;
+  conocidos?: FilaConocido[];
+  onIrCampo?: (key: string) => void;
   mediana: { median: number; n: number; trend: number | null; label?: string } | null;
-  muestraCatastro: boolean;
   listoValorar: boolean;
   ocupado: boolean;
   onValorar: () => void;
@@ -22,16 +26,44 @@ export function PanelLateralValoracion({
   estimado,
   twin,
   confirmados,
+  conocidos = [],
+  onIrCampo,
   mediana,
-  muestraCatastro,
   listoValorar,
   ocupado,
   onValorar,
   compacto,
 }: Props) {
+  const [resumenAbierto, setResumenAbierto] = useState(false);
   const desenfocado = !twin?.mainType || !twin.builtSurface;
   const cuerpo = (
     <>
+      {conocidos.length ? (
+        <div className="rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-4">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-3)]">
+            Lo que ya sabemos · {confirmados}
+          </p>
+          <div className="flex max-h-[220px] flex-col gap-1 overflow-y-auto">
+            {conocidos.map((r) => (
+              <button
+                key={r.key}
+                type="button"
+                className="flex w-full items-start justify-between gap-2 rounded-md px-1 py-1.5 text-left text-[13px] hover:bg-[var(--surface-soft)]"
+                onClick={() => onIrCampo?.(r.key)}
+              >
+                <span className="text-[var(--text-3)]">{r.label}</span>
+                <span className={`min-w-0 text-right ${r.unknown ? "text-[var(--text-3)] italic" : "font-medium"}`}>
+                  {r.value}
+                  {r.source ? (
+                    <TagAvm className="ml-1 inline border-transparent bg-blue-500/10 text-blue-600">{r.source}</TagAvm>
+                  ) : null}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <div className="rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-4">
         <div className="flex items-center justify-between text-[12px] text-[var(--text-3)]">
           <span>Precisión de la valoración</span>
@@ -59,10 +91,6 @@ export function PanelLateralValoracion({
                 : ""}
         </p>
         <div className="my-3 h-px bg-[var(--border)]" />
-        <div className="flex items-center justify-between text-[12px]">
-          <span className="text-[var(--text-3)]">Detalles confirmados</span>
-          <b className="tabular-nums">{confirmados}</b>
-        </div>
       </div>
 
       {twin?.address.lat != null ? (
@@ -93,17 +121,6 @@ export function PanelLateralValoracion({
         </div>
       ) : null}
 
-      {muestraCatastro ? (
-        <div className="rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-4">
-          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-3)]">
-            Rellenado desde Catastro
-          </p>
-          <p className="text-[12px] text-[var(--text-3)]">
-            Superficie, año, planta y tipo ya están. Solo confirmas y añades lo que Catastro no sabe.
-          </p>
-        </div>
-      ) : null}
-
       {listoValorar ? (
         <Button type="button" className="w-full" disabled={ocupado} onClick={onValorar}>
           {ocupado ? "Valorando…" : "Valorar"}
@@ -114,12 +131,37 @@ export function PanelLateralValoracion({
 
   if (compacto) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--border)] bg-[var(--surface)]/95 px-4 py-3 backdrop-blur lg:hidden">
-        <div className="flex items-center justify-between gap-3">
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur lg:hidden">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between px-4 py-2 text-[12px] text-[var(--text-3)]"
+          onClick={() => setResumenAbierto((v) => !v)}
+        >
+          <span>Lo que ya sabemos ({confirmados})</span>
+          <span>{resumenAbierto ? "▾" : "▸"}</span>
+        </button>
+        {resumenAbierto && conocidos.length ? (
+          <div className="max-h-40 overflow-y-auto border-t border-[var(--border)] px-4 py-2">
+            {conocidos.slice(0, 12).map((r) => (
+              <button
+                key={r.key}
+                type="button"
+                className="block w-full py-1 text-left text-[12px]"
+                onClick={() => onIrCampo?.(r.key)}
+              >
+                <span className="text-[var(--text-3)]">{r.label}: </span>
+                <span className={r.unknown ? "italic text-[var(--text-3)]" : ""}>{r.value}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+        <div className="flex items-center justify-between gap-3 border-t border-[var(--border)] px-4 py-3">
           <div className="min-w-0">
             <p className="text-[11px] text-[var(--text-3)]">Precisión {precision} %</p>
             <p className={`truncate text-[15px] font-semibold tabular-nums ${desenfocado ? "blur-sm" : ""}`}>
-              {estimado && !desenfocado ? `${fmtNumero(estimado.mid)} €` : "— €"}
+              {estimado && !desenfocado
+                ? `${fmtNumero(estimado.low)} – ${fmtNumero(estimado.high)} €`
+                : "— €"}
             </p>
           </div>
           {listoValorar ? (

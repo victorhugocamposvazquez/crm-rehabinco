@@ -40,19 +40,30 @@ export async function construirGemelo(input: {
 export async function candidatosDireccion(q: string) {
   const consulta = q.trim();
   if (consulta.length < 4) return [];
-  const url = `https://www.cartociudad.es/geocoder/api/geocoder/candidates?limit=6&q=${encodeURIComponent(consulta)}`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
-  if (!res.ok) return [];
-  const json = (await res.json()) as unknown;
-  const data = (Array.isArray(json) ? json : []) as { address?: string; lat?: number; lng?: number; postalCode?: string }[];
-  return data
-    .filter((c) => typeof c.lat === "number" && typeof c.lng === "number")
-    .map((c) => ({
-      address: c.address ?? "",
-      lat: c.lat as number,
-      lng: c.lng as number,
-      postcode: c.postalCode ?? null,
-    }));
+  const supabase = await createClient();
+  const { data: targets } = await supabase
+    .from("market_crawl_targets")
+    .select("municipality_code, name")
+    .eq("active", true);
+  const municipalityNames = (targets ?? []).map((t) => String(t.name)).filter(Boolean);
+  const municipalityCodes = (targets ?? []).map((t) => String(t.municipality_code)).filter(Boolean);
+  if (!municipalityNames.length) municipalityNames.push("A Coruña");
+  if (!municipalityCodes.length) municipalityCodes.push("15030");
+
+  const { fetchCartoCandidates } = await import("@/lib/avm/geocoder-carto");
+  const lista = await fetchCartoCandidates(consulta, {
+    municipalityNames,
+    municipalityCodes,
+    provinceCode: municipalityCodes[0]?.slice(0, 2) ?? "15",
+  });
+  return lista.map((c) => ({
+    address: c.address,
+    lat: c.lat,
+    lng: c.lng,
+    postcode: c.postcode,
+    municipality: c.municipality,
+    province: c.province,
+  }));
 }
 
 export type ResultadoBusquedaCrm = {

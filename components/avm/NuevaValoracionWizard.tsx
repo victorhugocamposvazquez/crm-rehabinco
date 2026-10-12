@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { MapaAvm } from "@/components/avm/MapaAvm";
 import { PanelLateralValoracion } from "@/components/avm/nueva/PanelLateralValoracion";
-import { PreguntaPaso } from "@/components/avm/nueva/PreguntaPaso";
+import { PantallaGrupo } from "@/components/avm/nueva/PantallaGrupo";
 import {
   buscarEnCrm,
   candidatosDireccion,
@@ -13,12 +13,22 @@ import {
   valorarInmueble,
   type ResultadoBusquedaCrm,
 } from "@/lib/actions/avm-valuar";
-import { confirmedCount, nextStep, resolveFlow, type StepId } from "@/lib/avm/flow";
 import { computeLiveEstimate, computePrecision } from "@/lib/avm/estimate";
 import { descartarBorrador, guardarBorrador, leerBorrador } from "@/lib/avm/ui/borrador-nueva";
-import { ETIQUETA_MAIN_TYPE, ETIQUETA_PROPERTY_TYPE } from "@/lib/avm/ui/labels";
 import { normalizarReferencia, tipoReferencia } from "@/lib/avm/ui/referencia";
 import { mensajeReferencia } from "@/lib/avm/ui/referencia-mensaje";
+import { etiquetaUnidad, unidadesAgrupadas } from "@/lib/avm/ui/unidades";
+import { filasConocidas } from "@/lib/avm/wizard-known";
+import {
+  canContinueScreen,
+  screenForField,
+  wizardScreens,
+  type WizardScreenId,
+} from "@/lib/avm/wizard-groups";
+import { plantaNumero, type TwinUnit } from "@/lib/avm/twin-builder";
+import { useAuth } from "@/lib/auth/auth-context";
+import { createClient } from "@/lib/supabase/client";
+import type { Channel, Twin } from "@/lib/avm/types";
 import {
   BandBorrador,
   CampoEntrada,
@@ -27,82 +37,65 @@ import {
   SugerenciaChip,
   TagAvm,
 } from "@/components/avm/nueva/wizard-ui";
-import { etiquetaUnidad, unidadesAgrupadas } from "@/lib/avm/ui/unidades";
-import { plantaNumero, type TwinUnit } from "@/lib/avm/twin-builder";
-import { useAuth } from "@/lib/auth/auth-context";
-import { createClient } from "@/lib/supabase/client";
-import type { Twin } from "@/lib/avm/types";
 
 type GemeloOk = Extract<Awaited<ReturnType<typeof construirGemelo>>, { ok: true }>;
-
-type Pantalla =
-  | "entrada"
-  | "mapa-direccion"
-  | "unidad"
-  | "catastro"
-  | "pregunta"
-  | "valorar";
-
 type EntryTab = "direccion" | "referencia" | "mapa" | "crm";
+type Candidato = Awaited<ReturnType<typeof candidatosDireccion>>[number];
 
 const CENTRO_AGENCIA = { lat: 43.3665, lng: -8.406, label: "A Coruña" };
 
-export function NuevaValoracionWizard() {
+export function NuevaValoracionWizard({
+  channel = "crm",
+  landingSlug = "rehabinco",
+}: {
+  channel?: Channel;
+  landingSlug?: string;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const fromId = searchParams.get("from");
   const { user } = useAuth();
 
-  const [pantalla, setPantalla] = useState<Pantalla>("entrada");
-  const [historial, setHistorial] = useState<Pantalla[]>([]);
+  const [pantalla, setPantalla] = useState<WizardScreenId>("address");
+  const [historial, setHistorial] = useState<WizardScreenId[]>([]);
   const [entryTab, setEntryTab] = useState<EntryTab>("direccion");
   const [origen, setOrigen] = useState("direccion");
+  const [needsUnit, setNeedsUnit] = useState(false);
+  const [unknown, setUnknown] = useState<Set<string>>(() => new Set());
 
   const [consulta, setConsulta] = useState("");
-  const [sugerencias, setSugerencias] = useState<{ address: string; lat: number; lng: number }[]>([]);
-  const [elegida, setElegida] = useState<{ address: string; lat: number; lng: number } | null>(null);
+  const [sugerencias, setSugerencias] = useState<Candidato[]>([]);
+  const [elegida, setElegida] = useState<Candidato | null>(null);
   const [pinMapa, setPinMapa] = useState(CENTRO_AGENCIA);
   const [referencia, setReferencia] = useState("");
   const [crmQ, setCrmQ] = useState("");
   const [crmRes, setCrmRes] = useState<ResultadoBusquedaCrm[]>([]);
-  const [buscaMapa, setBuscaMapa] = useState("");
-  const [sugerenciasMapa, setSugerenciasMapa] = useState<{ address: string; lat: number; lng: number }[]>([]);
 
   const [built, setBuilt] = useState<GemeloOk | null>(null);
   const [units, setUnits] = useState<TwinUnit[] | null>(null);
   const [filtroPlanta, setFiltroPlanta] = useState("");
-  const [catastroOk, setCatastroOk] = useState(false);
-  const [pasoActivo, setPasoActivo] = useState<StepId | null>(null);
-  const [vistos, setVistos] = useState<StepId[]>([]);
 
   const [mediana, setMediana] = useState<{ median: number; n: number; trend: number | null; label?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [borradorBanner, setBorradorBanner] = useState<{ etiqueta: string } | null>(null);
+  const [email, setEmail] = useState("");
+  const [consent, setConsent] = useState(false);
 
   const twin = built?.twin ?? null;
-  const prefilled = useMemo(() => new Set((built?.prefilledFields ?? []) as (keyof Twin)[]), [built]);
-  const prefilledPasos = useMemo(
-    () => (twin ? resolveFlow(twin, "crm", prefilled).filter((s) => s.prefilled && s.fields.length > 0) : []),
-    [twin, prefilled],
-  );
-
-  const paso = useMemo(() => {
-    if (!twin) return null;
-    if (pasoActivo) return resolveFlow(twin, "crm", prefilled).find((s) => s.id === pasoActivo) ?? null;
-    return nextStep(twin, "crm", prefilled);
-  }, [twin, prefilled, pasoActivo]);
+  const screens = useMemo(() => wizardScreens(channel, needsUnit), [channel, needsUnit]);
+  const stepIndex = screens.findIndex((s) => s.id === pantalla);
+  const stepMeta = screens[stepIndex];
 
   const precision = twin ? computePrecision(twin) : 0;
   const estimado = twin ? computeLiveEstimate(twin, mediana?.median ?? null) : null;
-  const confirmados = twin ? confirmedCount(twin, "crm", prefilled) : 0;
-  const sinMasPasos = twin ? !nextStep(twin, "crm", prefilled) : false;
-  const listoValorar = Boolean(twin && (pantalla === "valorar" || sinMasPasos));
+  const conocidos = twin ? filasConocidas(twin, unknown, built?.fieldSources ?? {}) : [];
+  const confirmados = conocidos.filter((r) => r.key !== "address" && r.key !== "catastralRef" && !r.unknown).length;
 
-  const refTipo = tipoReferencia(referencia);
-  const grupos = units ? unidadesAgrupadas(units) : null;
+  const puedeContinuar = canContinueScreen(pantalla, twin, unknown, { email, consent, channel });
+  const listoValorar = pantalla === "valorar";
 
-  const ir = useCallback((siguiente: Pantalla) => {
+  const ir = useCallback((siguiente: WizardScreenId) => {
     setPantalla((actual) => {
       setHistorial((h) => [...h, actual]);
       return siguiente;
@@ -118,6 +111,30 @@ export function NuevaValoracionWizard() {
     });
   }, []);
 
+  const siguiente = useCallback(() => {
+    const next = screens[stepIndex + 1]?.id;
+    if (next) ir(next);
+  }, [screens, stepIndex, ir]);
+
+  function patchTwin(patch: Partial<Twin>, touched: (keyof Twin)[]) {
+    if (!built) return;
+    const unk = new Set(unknown);
+    const prefilled = built.prefilledFields.filter((f) => !touched.includes(f as keyof Twin));
+    const fieldSources = { ...built.fieldSources };
+    for (const f of touched) {
+      delete fieldSources[f];
+      if (patch[f as keyof Twin] === null) unk.add(String(f));
+      else unk.delete(String(f));
+    }
+    setUnknown(unk);
+    setBuilt({
+      ...built,
+      twin: { ...built.twin, ...patch },
+      prefilledFields: prefilled,
+      fieldSources,
+    });
+  }
+
   useEffect(() => {
     if (!user?.id || built) return;
     const b = leerBorrador(user.id);
@@ -128,49 +145,21 @@ export function NuevaValoracionWizard() {
     if (!user?.id) return;
     const b = leerBorrador(user.id);
     if (!b?.built) return;
-    const ok = b.built as GemeloOk;
-    setBuilt(ok);
+    setBuilt(b.built as GemeloOk);
     setOrigen(b.origen);
     setEntryTab(b.entryTab as EntryTab);
-    setPantalla(b.pantalla as Pantalla);
-    setHistorial((b.historial ?? []) as Pantalla[]);
+    setPantalla((b.pantalla as WizardScreenId) ?? "address");
+    setHistorial((b.historial ?? []) as WizardScreenId[]);
+    setUnknown(new Set((b as { unknown?: string[] }).unknown ?? []));
     setBorradorBanner(null);
   }
-
-  useEffect(() => {
-    if (!fromId || built) return;
-    const supabase = createClient();
-    void supabase
-      .from("avm_valuations")
-      .select("inputs")
-      .eq("id", fromId)
-      .maybeSingle()
-      .then(({ data }) => {
-        const inputs = data?.inputs as { twin?: Twin; fieldSources?: GemeloOk["fieldSources"]; prefilledFields?: string[] };
-        if (!inputs?.twin) return;
-        setBuilt({
-          ok: true,
-          twin: inputs.twin,
-          fieldSources: inputs.fieldSources ?? {},
-          prefilledFields: [],
-          propertySource: "manual",
-          geocodingSource: "catastro",
-          warnings: [],
-          units: [],
-        });
-        setCatastroOk(false);
-        setPantalla(prefilledPasos.length ? "catastro" : "pregunta");
-      });
-  }, [fromId, built, prefilledPasos.length]);
 
   useEffect(() => {
     if (consulta.trim().length < 4) {
       setSugerencias([]);
       return;
     }
-    const t = window.setTimeout(() => {
-      void candidatosDireccion(consulta).then(setSugerencias);
-    }, 300);
+    const t = window.setTimeout(() => void candidatosDireccion(consulta).then(setSugerencias), 300);
     return () => clearTimeout(t);
   }, [consulta]);
 
@@ -182,15 +171,6 @@ export function NuevaValoracionWizard() {
     const t = window.setTimeout(() => void buscarEnCrm(crmQ).then(setCrmRes), 300);
     return () => clearTimeout(t);
   }, [crmQ]);
-
-  useEffect(() => {
-    if (buscaMapa.trim().length < 4) {
-      setSugerenciasMapa([]);
-      return;
-    }
-    const t = window.setTimeout(() => void candidatosDireccion(buscaMapa).then(setSugerenciasMapa), 300);
-    return () => clearTimeout(t);
-  }, [buscaMapa]);
 
   useEffect(() => {
     if (!twin?.address.lat || !twin.address.lng) return;
@@ -227,25 +207,36 @@ export function NuevaValoracionWizard() {
       built,
       historial: historial as string[],
       etiqueta: twin?.address.formattedAddress?.split(",")[0] ?? "Valoración a medias",
-    });
-  }, [user?.id, built, pantalla, entryTab, origen, twin, historial]);
+      unknown: [...unknown],
+    } as Parameters<typeof guardarBorrador>[1]);
+  }, [user?.id, built, pantalla, entryTab, origen, twin, historial, unknown]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Enter" || e.defaultPrevented) return;
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "TEXTAREA") return;
+      if (!puedeContinuar || ocupado) return;
+      if (pantalla === "valorar") return;
+      e.preventDefault();
+      siguiente();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [puedeContinuar, ocupado, pantalla, siguiente]);
 
   function trasGemelo(res: GemeloOk, pendingUnits: TwinUnit[] | null) {
     setBuilt(res);
-    setCatastroOk(false);
-    setVistos([]);
-    setPasoActivo(null);
+    setUnknown(new Set());
     if (pendingUnits && pendingUnits.length > 1) {
       setUnits(pendingUnits);
-      ir("unidad");
+      setNeedsUnit(true);
+      ir("unit");
       return;
     }
     setUnits(null);
-    if (resolveFlow(res.twin, "crm", new Set(res.prefilledFields as (keyof Twin)[])).some((s) => s.prefilled && s.fields.length)) {
-      ir("catastro");
-      return;
-    }
-    ir(nextStep(res.twin, "crm", new Set(res.prefilledFields as (keyof Twin)[])) ? "pregunta" : "valorar");
+    setNeedsUnit(false);
+    ir("building");
   }
 
   async function cargar(input: Parameters<typeof construirGemelo>[0], orig: string) {
@@ -258,30 +249,14 @@ export function NuevaValoracionWizard() {
       setError(res.error);
       return;
     }
-    if (input.catastralRef) setUnits(null);
     const pending = res.units.length > 1 ? res.units : null;
     trasGemelo(res, pending);
-  }
-
-  function aplicar(patch: Partial<Twin>, pasoId?: StepId) {
-    if (!built) return;
-    const campos = Object.keys(patch) as (keyof Twin)[];
-    setBuilt({
-      ...built,
-      twin: { ...built.twin, ...patch },
-      prefilledFields: built.prefilledFields.filter((f) => !campos.includes(f as keyof Twin)),
-    });
-    setPasoActivo(null);
-    if (pasoId) setVistos((ids) => (ids.includes(pasoId) ? ids : [...ids, pasoId]));
-    const t = { ...built.twin, ...patch };
-    const sig = nextStep(t, "crm", new Set(built.prefilledFields.filter((f) => !campos.includes(f as keyof Twin)) as (keyof Twin)[]));
-    setPantalla(sig ? "pregunta" : "valorar");
   }
 
   async function terminar() {
     if (!built) return;
     setOcupado(true);
-    const res = await valorarInmueble({
+    const payload = {
       input: {
         twin: built.twin,
         fieldSources: built.fieldSources,
@@ -290,36 +265,68 @@ export function NuevaValoracionWizard() {
         geocodingSource: built.geocodingSource,
         warnings: built.warnings,
       },
-      channel: "crm",
-    });
+      channel,
+      ...(channel === "landing" ? { landingSlug } : {}),
+    };
+    const res =
+      channel === "landing"
+        ? await fetch("/api/avm/valuate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          })
+            .then(async (r) => ({ status: r.status as number, body: await r.json() }))
+            .catch(() => ({ status: 500, body: { error: "Error de red" } }))
+        : await valorarInmueble(payload);
     setOcupado(false);
     if (res.status === 200 && "valuationId" in res.body) {
       if (user?.id) descartarBorrador(user.id);
-      router.push(`/valoraciones/${res.body.valuationId}`);
+      router.push(`/valoraciones/${(res.body as { valuationId: string }).valuationId}`);
       return;
     }
     if (res.status === 409 && "units" in res.body) {
       setUnits(res.body.units);
-      setPantalla("unidad");
+      setNeedsUnit(true);
+      setPantalla("unit");
       return;
     }
     setError("error" in res.body ? res.body.error : "No se ha podido valorar");
   }
 
-  const tituloPaso = useMemo(() => {
-    const map: Record<Pantalla, string> = {
-      entrada: "¿Qué inmueble valoramos?",
-      "mapa-direccion": "Confirma la ubicación",
-      unidad: "Elige la unidad",
-      catastro: "Confirmado desde Catastro",
-      pregunta: paso?.title ?? "Detalles del inmueble",
-      valorar: "Lista para valorar",
-    };
-    return map[pantalla];
-  }, [pantalla, paso?.title]);
+  function irCampo(key: string) {
+    const dest = screenForField(key);
+    setPantalla(dest);
+  }
 
-  const totalPasos = 9;
-  const indicePaso = pantalla === "entrada" ? 1 : pantalla === "mapa-direccion" ? 2 : pantalla === "unidad" ? 3 : pantalla === "catastro" ? 4 : pantalla === "pregunta" ? 5 + vistos.length : totalPasos;
+  const titulos: Record<WizardScreenId, { title: string; hint: string }> = {
+    address: {
+      title: channel === "crm" ? "¿Qué inmueble valoramos?" : "¿Dónde está tu vivienda?",
+      hint: "Dirección, referencia catastral o un punto en el mapa.",
+    },
+    unit: {
+      title: "¿Cuál es tu vivienda?",
+      hint: "Elige la unidad en la parcela; no adivinamos.",
+    },
+    building: {
+      title: channel === "crm" ? "Datos del inmueble" : "Hemos encontrado tu vivienda",
+      hint:
+        channel === "crm"
+          ? "Lo que viene de Catastro ya está puesto y marcado; corrige lo que haga falta. Con tipo y superficie basta para continuar."
+          : "Confirma y completa; con tipo y superficie basta para continuar.",
+    },
+    state: {
+      title: "Estado y distribución",
+      hint: "Si no sabes algo, márcalo con «No lo sé»: la precisión lo refleja y nada se bloquea.",
+    },
+    about: { title: "Sobre ti", hint: "Nos ayuda a adaptar el informe. Sin compromiso." },
+    email: {
+      title: "Tu valoración está lista",
+      hint: "Déjanos tu email para verla y recibir el informe.",
+    },
+    valorar: { title: "Lista para valorar", hint: "Revisa el resumen y pulsa Valorar." },
+  };
+
+  const navLabel = pantalla === "email" ? "Ver mi valoración" : pantalla === "valorar" ? "Valorar" : "Continuar";
 
   return (
     <div className="pb-24 lg:pb-8">
@@ -341,26 +348,31 @@ export function NuevaValoracionWizard() {
               <button type="button" className="hover:text-foreground disabled:opacity-40" onClick={atras} disabled={!historial.length}>
                 ← Atrás
               </button>
-              <span className="text-[var(--text-3)]">
-                Paso {Math.min(indicePaso, totalPasos)} de {totalPasos} · {tituloPaso}
+              <span>
+                Paso {stepIndex + 1} de {screens.length} · {stepMeta?.label ?? ""}
               </span>
             </div>
 
-            {pantalla === "entrada" ? (
+            <h2 className="text-[22px] font-semibold tracking-[-0.02em]">{titulos[pantalla].title}</h2>
+            <p className="mb-5 mt-1 text-[14px] text-[var(--text-3)]">{titulos[pantalla].hint}</p>
+
+            {pantalla === "address" ? (
               <Entrada
+                channel={channel}
                 tab={entryTab}
                 setTab={setEntryTab}
                 consulta={consulta}
                 setConsulta={setConsulta}
                 sugerencias={sugerencias}
+                elegida={elegida}
                 onElegirDireccion={(s) => {
                   setElegida(s);
                   setPinMapa({ lat: s.lat, lng: s.lng, label: CENTRO_AGENCIA.label });
-                  ir("mapa-direccion");
                 }}
+                onLimpiarElegida={() => setElegida(null)}
                 referencia={referencia}
                 setReferencia={setReferencia}
-                refTipo={refTipo}
+                refTipo={tipoReferencia(referencia)}
                 ocupado={ocupado}
                 onBuscarRef={() => void cargar({ catastralRef: normalizarReferencia(referencia) }, "referencia")}
                 pinMapa={pinMapa}
@@ -373,79 +385,72 @@ export function NuevaValoracionWizard() {
                   if (r.tipo === "anuncio") void cargar({ listingId: r.id }, "crm");
                   else void cargar({ crmPropertyId: r.id }, "crm");
                 }}
-                buscaMapa={buscaMapa}
-                setBuscaMapa={setBuscaMapa}
-                sugerenciasMapa={sugerenciasMapa}
+                onContinuarDireccion={() => {
+                  if (!elegida) return;
+                  void cargar({ address: elegida.address, lat: pinMapa.lat, lng: pinMapa.lng }, "direccion");
+                }}
               />
             ) : null}
 
-            {pantalla === "mapa-direccion" && elegida ? (
-              <div className="space-y-3">
-                <h2 className="text-[22px] font-semibold tracking-[-0.02em]">Confirma la ubicación</h2>
-                <p className="text-[14px] text-[var(--text-3)]">{elegida.address}</p>
-                <MapaAvm
-                  className="h-[260px] w-full overflow-hidden rounded-lg border border-[var(--border)]"
-                  lat={pinMapa.lat}
-                  lng={pinMapa.lng}
-                  arrastrable
-                  onMover={(lat, lng) => setPinMapa((p) => ({ ...p, lat, lng }))}
-                />
-                <p className="text-[12px] text-[var(--text-3)]">Si el punto no está en el portal, arrástralo.</p>
-                <QNav
-                  disabled={ocupado}
-                  onContinuar={() => void cargar({ address: elegida.address, lat: pinMapa.lat, lng: pinMapa.lng }, "direccion")}
-                />
-              </div>
-            ) : null}
-
-            {pantalla === "unidad" && grupos ? (
+            {pantalla === "unit" && units ? (
               <Unidades
-                grupos={grupos}
+                grupos={unidadesAgrupadas(units)}
                 filtroPlanta={filtroPlanta}
                 setFiltroPlanta={setFiltroPlanta}
                 onElegir={(ref) => void cargar({ catastralRef: ref }, "unidad")}
               />
             ) : null}
 
-            {pantalla === "catastro" && twin ? (
-              <CatastroConfirm
-                twin={twin}
-                prefilled={prefilledPasos}
-                onCorregir={(id) => {
-                  setPasoActivo(id);
-                  ir("pregunta");
-                }}
-                onTodoOk={() => {
-                  setCatastroOk(true);
-                  const sig = nextStep(twin, "crm", prefilled);
-                  setPantalla(sig ? "pregunta" : "valorar");
-                }}
-              />
+            {pantalla === "building" && twin && built ? (
+              <>
+                <PantallaGrupo
+                  group="building"
+                  twin={twin}
+                  unknown={unknown}
+                  sources={built.fieldSources}
+                  onPatch={patchTwin}
+                />
+                <QNav label={navLabel} disabled={!puedeContinuar || ocupado} onContinuar={siguiente} extra={<span className="text-[12px] text-[var(--text-3)]">· obligatorio</span>} />
+              </>
             ) : null}
 
-            {pantalla === "pregunta" && twin && paso ? (
-              <PreguntaPaso
-                pasoId={paso.id}
-                title={paso.title}
-                hint={paso.hint}
-                twin={twin}
-                optional={paso.optional}
-                onContinuar={(patch) => aplicar(patch, paso.id)}
-                onSaltar={() => {
-                  setVistos((v) => [...v, paso.id]);
-                  setPasoActivo(null);
-                  const t = twin;
-                  const sig = nextStep(t, "crm", prefilled);
-                  setPantalla(sig && sig.id !== paso.id ? "pregunta" : "valorar");
-                }}
-              />
+            {pantalla === "state" && twin && built ? (
+              <>
+                <PantallaGrupo group="state" twin={twin} unknown={unknown} sources={built.fieldSources} onPatch={patchTwin} />
+                <QNav label={navLabel} disabled={!puedeContinuar || ocupado} onContinuar={siguiente} />
+              </>
+            ) : null}
+
+            {pantalla === "about" && twin && built ? (
+              <>
+                <PantallaGrupo group="about" twin={twin} unknown={unknown} sources={built.fieldSources} onPatch={patchTwin} />
+                <QNav label="Continuar" disabled={!puedeContinuar} onContinuar={siguiente} />
+              </>
+            ) : null}
+
+            {pantalla === "email" ? (
+              <div className="space-y-4">
+                <CampoEntrada label="Correo electrónico">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="tu@email.com"
+                    className="min-w-0 flex-1 bg-transparent text-[15px] outline-none"
+                  />
+                </CampoEntrada>
+                <label className="flex items-start gap-2 text-[13px] text-[var(--text-3)]">
+                  <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+                  Acepto que la agencia me contacte sobre esta valoración.
+                </label>
+                <QNav label={navLabel} disabled={!puedeContinuar} onContinuar={siguiente} />
+              </div>
             ) : null}
 
             {pantalla === "valorar" && twin ? (
               <div className="space-y-3">
-                <h2 className="text-[22px] font-semibold">Revisa y valora</h2>
                 <p className="text-[14px] text-[var(--text-3)]">
-                  {twin.address.formattedAddress ?? "Inmueble listo"} · {confirmados} detalles confirmados
+                  {twin.address.formattedAddress ?? "Inmueble listo"} · {confirmados} datos en el resumen
                 </p>
                 <Button type="button" className="lg:hidden" disabled={ocupado} onClick={() => void terminar()}>
                   Valorar
@@ -456,7 +461,9 @@ export function NuevaValoracionWizard() {
             {error ? <p className="mt-4 text-[13px] text-red-600">{error}</p> : null}
           </div>
           <p className="mt-3 text-[12px] text-[var(--text-3)]">
-            Una pregunta por pantalla. Enter avanza; «No lo sé» salta el paso. El borrador se guarda solo y se puede reanudar 24 h.
+            {channel === "crm"
+              ? "Dos pantallas de datos. Lo obligatorio lleva punto; en lo demás vale «No lo sé». Enter avanza. Borrador 24 h."
+              : "Gratis y sin compromiso. Los datos se rellenan desde Catastro; tú confirmas lo que falta."}
           </p>
         </div>
 
@@ -465,9 +472,10 @@ export function NuevaValoracionWizard() {
           estimado={estimado}
           twin={twin}
           confirmados={confirmados}
+          conocidos={conocidos}
+          onIrCampo={irCampo}
           mediana={mediana}
-          muestraCatastro={Boolean(built && prefilled.size > 0 && !catastroOk)}
-          listoValorar={listoValorar || pantalla === "valorar"}
+          listoValorar={listoValorar}
           ocupado={ocupado}
           onValorar={() => void terminar()}
         />
@@ -479,9 +487,10 @@ export function NuevaValoracionWizard() {
         estimado={estimado}
         twin={twin}
         confirmados={confirmados}
+        conocidos={conocidos}
+        onIrCampo={irCampo}
         mediana={mediana}
-        muestraCatastro={false}
-        listoValorar={listoValorar || pantalla === "valorar"}
+        listoValorar={listoValorar}
         ocupado={ocupado}
         onValorar={() => void terminar()}
       />
@@ -490,12 +499,15 @@ export function NuevaValoracionWizard() {
 }
 
 function Entrada(props: {
+  channel: Channel;
   tab: EntryTab;
   setTab: (t: EntryTab) => void;
   consulta: string;
   setConsulta: (v: string) => void;
-  sugerencias: { address: string; lat: number; lng: number }[];
-  onElegirDireccion: (s: { address: string; lat: number; lng: number }) => void;
+  sugerencias: Candidato[];
+  elegida: Candidato | null;
+  onElegirDireccion: (s: Candidato) => void;
+  onLimpiarElegida: () => void;
   referencia: string;
   setReferencia: (v: string) => void;
   refTipo: ReturnType<typeof tipoReferencia>;
@@ -508,45 +520,64 @@ function Entrada(props: {
   setCrmQ: (v: string) => void;
   crmRes: ResultadoBusquedaCrm[];
   onElegirCrm: (r: ResultadoBusquedaCrm) => void;
-  buscaMapa: string;
-  setBuscaMapa: (v: string) => void;
-  sugerenciasMapa: { address: string; lat: number; lng: number }[];
+  onContinuarDireccion: () => void;
 }) {
   const tabs: { id: EntryTab; label: string }[] = [
     { id: "direccion", label: "Dirección" },
     { id: "referencia", label: "Referencia catastral" },
     { id: "mapa", label: "En el mapa" },
-    { id: "crm", label: "Del CRM" },
+    ...(props.channel === "crm" ? [{ id: "crm" as const, label: "Del CRM" }] : []),
   ];
   const refMsg = mensajeReferencia(props.referencia);
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-[22px] font-semibold tracking-[-0.02em]">¿Qué inmueble valoramos?</h2>
-      </div>
       <SegControl options={tabs} value={props.tab} onChange={props.setTab} />
 
       {props.tab === "direccion" ? (
-        <div className="mt-4 space-y-2">
+        <div className="mt-2 space-y-2">
           <CampoEntrada label="Dirección" icon="search">
             <input
               value={props.consulta}
-              onChange={(e) => props.setConsulta(e.target.value)}
+              onChange={(e) => {
+                props.setConsulta(e.target.value);
+                if (!e.target.value.trim()) props.onLimpiarElegida();
+              }}
               placeholder="Calle, número y municipio"
               className="min-w-0 flex-1 bg-transparent text-[15px] outline-none"
               autoComplete="off"
             />
           </CampoEntrada>
           <div className="flex flex-col gap-1.5">
-            {props.sugerencias.slice(0, 6).map((s) => (
-              <SugerenciaChip key={`${s.lat}-${s.lng}`} titulo={s.address} onClick={() => props.onElegirDireccion(s)} />
+            {props.sugerencias.slice(0, 8).map((s) => (
+              <SugerenciaChip
+                key={`${s.lat}-${s.lng}`}
+                titulo={s.address}
+                subtitulo={[s.municipality, s.province ? `prov. ${s.province}` : null].filter(Boolean).join(" · ")}
+                onClick={() => props.onElegirDireccion(s)}
+              />
             ))}
           </div>
+          {props.elegida ? (
+            <div className="mt-3 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <TagAvm className="text-foreground">{props.elegida.address}</TagAvm>
+                <span className="text-[12px] text-[var(--text-3)]">CartoCiudad · arrastra el marcador si hace falta</span>
+              </div>
+              <MapaAvm
+                className="h-[220px] w-full overflow-hidden rounded-lg border border-[var(--border)]"
+                lat={props.pinMapa.lat}
+                lng={props.pinMapa.lng}
+                arrastrable
+                onMover={(lat, lng) => props.setPinMapa((p) => ({ ...p, lat, lng }))}
+              />
+              <QNav disabled={props.ocupado} onContinuar={props.onContinuarDireccion} />
+            </div>
+          ) : null}
         </div>
       ) : null}
 
       {props.tab === "referencia" ? (
-        <div className="mt-4 space-y-2">
+        <div className="mt-2 space-y-2">
           <CampoEntrada label="Referencia catastral" icon="file">
             <input
               value={props.referencia}
@@ -560,47 +591,15 @@ function Entrada(props: {
               }}
             />
           </CampoEntrada>
-          <p
-            className={`min-h-4 text-[12px] ${refMsg.clase === "err" ? "text-red-600" : refMsg.clase === "ok" ? "text-emerald-600" : "text-[var(--text-3)]"}`}
-          >
+          <p className={`min-h-4 text-[12px] ${refMsg.clase === "err" ? "text-red-600" : refMsg.clase === "ok" ? "text-emerald-600" : "text-[var(--text-3)]"}`}>
             {refMsg.texto}
           </p>
-          <details className="text-[13px] text-[var(--text-3)]">
-            <summary className="cursor-pointer text-foreground underline underline-offset-[3px]">¿Dónde la encuentro?</summary>
-            <ul className="mt-2 list-disc pl-[18px]">
-              <li>En el recibo del IBI, junto a la dirección.</li>
-              <li>En la escritura o en la nota simple del Registro.</li>
-              <li>En la Sede Electrónica del Catastro, buscando por dirección.</li>
-            </ul>
-          </details>
           <QNav label="Buscar" disabled={!refMsg.ok || props.ocupado} onContinuar={props.onBuscarRef} />
         </div>
       ) : null}
 
       {props.tab === "mapa" ? (
-        <div className="mt-4 space-y-2">
-          <p className="text-[12px] text-[var(--text-3)]">
-            Acerca el mapa y arrastra el marcador hasta el portal. Se usa el punto para pedir a Catastro la parcela.
-          </p>
-          <CampoEntrada label="Buscar calle" icon="search">
-            <input
-              value={props.buscaMapa}
-              onChange={(e) => props.setBuscaMapa(e.target.value)}
-              placeholder="Nombre de calle"
-              className="min-w-0 flex-1 bg-transparent text-[15px] outline-none"
-            />
-          </CampoEntrada>
-          {props.sugerenciasMapa.length ? (
-            <div className="flex flex-col gap-1.5">
-              {props.sugerenciasMapa.slice(0, 4).map((s) => (
-                <SugerenciaChip
-                  key={`m-${s.lat}`}
-                  titulo={s.address}
-                  onClick={() => props.setPinMapa((p) => ({ ...p, lat: s.lat, lng: s.lng }))}
-                />
-              ))}
-            </div>
-          ) : null}
+        <div className="mt-2 space-y-2">
           <MapaAvm
             className="h-[360px] w-full overflow-hidden rounded-lg border border-[var(--border)]"
             lat={props.pinMapa.lat}
@@ -609,15 +608,12 @@ function Entrada(props: {
             arrastrable
             onMover={(lat, lng) => props.setPinMapa((p) => ({ ...p, lat, lng }))}
           />
-          <p className="text-[12px] tabular-nums text-[var(--text-3)]">
-            {props.pinMapa.lat.toFixed(5)} · {props.pinMapa.lng.toFixed(5)}
-          </p>
           <QNav label="Usar este punto" disabled={props.ocupado} onContinuar={props.onUsarPin} />
         </div>
       ) : null}
 
       {props.tab === "crm" ? (
-        <div className="mt-4 space-y-2">
+        <div className="mt-2 space-y-2">
           <CampoEntrada label="Inmueble o anuncio captado" icon="search">
             <input
               value={props.crmQ}
@@ -631,14 +627,11 @@ function Entrada(props: {
               <button
                 key={`${r.tipo}-${r.id}`}
                 type="button"
-                className="flex w-full gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-left hover:border-[var(--border-strong)] hover:bg-[var(--surface-soft)]"
+                className="flex w-full gap-3 rounded-lg border border-[var(--border)] px-3 py-2.5 text-left hover:bg-[var(--surface-soft)]"
                 onClick={() => props.onElegirCrm(r)}
               >
-                <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-lg bg-[var(--surface-soft)] text-[var(--text-3)] text-[11px] font-semibold">
-                  {r.tipo === "inmueble" ? "IN" : "AN"}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[12px] text-[var(--text-3)]">{r.tipo === "inmueble" ? "Inmueble" : "Captación"}</span>
+                <span className="text-[12px] text-[var(--text-3)]">{r.tipo === "inmueble" ? "Inmueble" : "Captación"}</span>
+                <span className="flex-1">
                   <span className="block text-[14px]">{r.titulo}</span>
                   <span className="block text-[12px] text-[var(--text-3)]">{r.subtitulo}</span>
                 </span>
@@ -666,7 +659,6 @@ function Unidades({
   const viviendas = grupos.viviendas.filter((u) => (filtroN == null ? true : plantaNumero(u.floor) === filtroN));
   return (
     <div className="space-y-4">
-      <h2 className="text-[22px] font-semibold">Elige la unidad</h2>
       <input
         value={filtroPlanta}
         onChange={(e) => setFiltroPlanta(e.target.value)}
@@ -678,96 +670,26 @@ function Unidades({
           <button
             key={u.catastralRef}
             type="button"
-            className="flex w-full items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2.5 text-left hover:border-[var(--border-strong)] hover:bg-[var(--surface-soft)]"
+            className="flex w-full items-center justify-between rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-left hover:bg-[var(--surface-soft)]"
             onClick={() => onElegir(u.catastralRef)}
           >
-            <span className="text-[14px]">
-              <b>{etiquetaUnidad(u).split(" · ")[0]}</b>
-              {etiquetaUnidad(u).includes(" · ") ? ` · ${etiquetaUnidad(u).split(" · ").slice(1).join(" · ")}` : ""}
-            </span>
+            <span className="text-[14px]">{etiquetaUnidad(u)}</span>
             <span className="font-mono text-[11px] text-[var(--text-3)]">…{u.catastralRef.slice(-6)}</span>
           </button>
         ))}
       </div>
       {grupos.otros.length ? (
-        <details className="mt-1">
-          <summary className="cursor-pointer list-none text-[13px] text-[var(--text-3)] before:mr-1 before:text-[var(--text-3)] before:content-['▸_'] open:before:content-['▾_']">
-            Otros usos: locales, garajes y trasteros · {grupos.otros.length}
-          </summary>
+        <details>
+          <summary className="cursor-pointer text-[13px] text-[var(--text-3)]">Otros usos · {grupos.otros.length}</summary>
           <div className="mt-2 flex flex-col gap-2">
             {grupos.otros.map((u) => (
-              <button
-                key={u.catastralRef}
-                type="button"
-                className="flex w-full items-center justify-between rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-left hover:bg-[var(--surface-soft)]"
-                onClick={() => onElegir(u.catastralRef)}
-              >
-                <span className="text-[14px]">{etiquetaUnidad(u)}</span>
+              <button key={u.catastralRef} type="button" className="rounded-lg border px-3 py-2 text-left" onClick={() => onElegir(u.catastralRef)}>
+                {etiquetaUnidad(u)}
               </button>
             ))}
           </div>
         </details>
       ) : null}
-      <p className="text-[12px] text-[var(--text-3)]">Viviendas primero, ordenadas por planta y puerta.</p>
-    </div>
-  );
-}
-
-function CatastroConfirm({
-  twin,
-  prefilled,
-  onCorregir,
-  onTodoOk,
-}: {
-  twin: Twin;
-  prefilled: ReturnType<typeof resolveFlow>;
-  onCorregir: (id: StepId) => void;
-  onTodoOk: () => void;
-}) {
-  const tarjetas: { id: StepId; label: string; value: string }[] = [];
-  for (const s of prefilled) {
-    if (s.id === "surface" && twin.builtSurface) tarjetas.push({ id: s.id, label: "Superficie", value: `${twin.builtSurface} m²` });
-    else if (s.id === "constructionYear" && twin.constructionYear) tarjetas.push({ id: s.id, label: "Año", value: String(twin.constructionYear) });
-    else if (s.id === "floors" && twin.floorOfFlat != null)
-      tarjetas.push({ id: s.id, label: "Planta", value: `${twin.floorOfFlat}ª${twin.numberOfFloors ? ` de ${twin.numberOfFloors}` : ""}` });
-    else if (s.id === "propertyType" && twin.mainType)
-      tarjetas.push({
-        id: s.id,
-        label: "Tipo",
-        value: ETIQUETA_PROPERTY_TYPE[twin.propertyType ?? twin.mainType] ?? ETIQUETA_MAIN_TYPE[twin.mainType],
-      });
-  }
-  return (
-    <div className="space-y-4">
-      <h2 className="text-[22px] font-semibold">Confirmado desde Catastro</h2>
-      <p className="text-[14px] text-[var(--text-3)]">Hemos encontrado tu inmueble. Confírmalo o corrige lo que no cuadre.</p>
-      <div className="mb-2 flex flex-wrap gap-2">
-        {twin.address.formattedAddress ? <TagAvm className="text-foreground">{twin.address.formattedAddress}</TagAvm> : null}
-        {twin.address.catastralRef ? (
-          <TagAvm>
-            ref. <span className="font-mono">{twin.address.catastralRef}</span>
-          </TagAvm>
-        ) : null}
-      </div>
-      <div className="grid gap-2.5 sm:grid-cols-2">
-        {tarjetas.map((t) => (
-          <div key={t.id} className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3.5 py-3">
-            <p className="text-[12px] text-[var(--text-3)]">{t.label}</p>
-            <div className="mt-0.5 flex items-center justify-between gap-2">
-              <span className="font-semibold tabular-nums">
-                {t.value} <TagAvm className="ml-1 border-transparent bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">Catastro</TagAvm>
-              </span>
-              <button type="button" className="text-[12px] underline underline-offset-2" onClick={() => onCorregir(t.id)}>
-                Corregir
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-      <p className="text-[12px] text-[var(--text-3)]">
-        Si Catastro no respondiera, te pediríamos estos datos y la valoración saldría con menos confianza. Nunca se bloquea.
-      </p>
-      <QNav label="Todo correcto, continuar" onContinuar={onTodoOk} />
     </div>
   );
 }

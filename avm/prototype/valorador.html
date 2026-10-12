@@ -238,6 +238,22 @@ svg text{font-family:var(--font)}
 .msg.ok{color:var(--good)}
 .msg.err{color:var(--bad)}
 .band{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface-2);font-size:13px;margin-bottom:14px;flex-wrap:wrap}
+/* Formulario agrupado (canal CRM) y resumen lateral */
+.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 22px}
+@media (max-width:640px){.form{grid-template-columns:1fr}}
+.frow.wide{grid-column:1/-1}
+.flabel{font-size:13px;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.flabel .req{color:var(--warn)}
+.chip.sm{padding:7px 12px;font-size:13px}
+.chip.unk{color:var(--muted);border-style:dashed}
+.chip.unk[aria-pressed="true"]{border-style:solid;border-color:var(--muted);color:var(--fg)}
+.known{display:flex;flex-direction:column;gap:2px;margin-top:8px}
+.known button{display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid transparent}
+.known button:hover{border-color:var(--border);background:var(--surface-2)}
+.known .k{color:var(--muted);white-space:nowrap}
+.known .v{color:var(--fg);text-align:right;min-width:0}
+.known .v.unk{color:var(--dim);font-style:italic}
+.known .v .tag{font-size:10px;padding:0 6px;margin-left:6px;vertical-align:1px}
 .band .lnk{color:var(--fg);text-decoration:underline;text-underline-offset:3px}
 
 /* Metodología */
@@ -403,7 +419,8 @@ svg text{font-family:var(--font)}
         <div class="range num blur" id="l-range">— €</div>
         <div class="small muted" id="l-unc"></div>
         <div class="sep"></div>
-        <div class="row" style="justify-content:space-between"><span class="muted small">Detalles confirmados</span><b class="num" id="l-count">0</b></div>
+        <div class="row" style="justify-content:space-between"><span class="muted small">Lo que ya sabemos</span><b class="num" id="l-count">0</b></div>
+        <div class="known" id="l-known"></div>
       </div>
       <div class="card" id="l-zone" hidden>
         <div class="kicker">Tu zona · <span id="l-zone-label"></span></div>
@@ -787,7 +804,7 @@ function renderCRM(){
 
 /* ============================ LANDING: flujo ============================ */
 /* L.channel: 'landing' (público) o 'crm' (Nueva valoración). L.prefilled: campo → origen ('Catastro' | 'Anuncio' | 'CRM'). */
-const L={channel:'landing',twin:emptyTwin(),step:0,history:[],prefilled:new Map(),email:'',done:false,entry:'address',addrText:'',refText:'',needsUnit:false,unitStep:false,geo:null};
+const L={channel:'landing',twin:emptyTwin(),step:0,history:[],prefilled:new Map(),email:'',done:false,entry:'address',addrText:'',refText:'',needsUnit:false,unitStep:false,geo:null,unknown:new Set()};
 const BUILDING={constructionYear:1967,numberOfFloors:11};
 /* Unidades de la parcela (subconjunto real de las 52 que devuelve la Sede). */
 const UNITS=[
@@ -801,27 +818,89 @@ const UNITS=[
  {ref:'8018007NJ4081N0025IX',floor:'Sótano',n:-1,door:'Garaje',m2:109,dw:false},{ref:'8018007NJ4081N0051WH',floor:'Bajo cubierta',n:12,door:'Trastero',m2:20,dw:false},
 ];
 
-const choice=(key,opts,{after}={})=>({type:'choice',key,opts,after});
 const STEPS_L=[
  {id:'address',title:()=>L.channel==='crm'?'¿Qué inmueble valoramos?':'¿Dónde está tu vivienda?',hint:'Dirección, referencia catastral o un punto en el mapa.',type:'address'},
  {id:'unit',title:'¿Cuál es tu vivienda?',hint:'Catastro tiene 52 inmuebles en esta parcela. Elige el tuyo; no adivinamos.',type:'unit',when:()=>L.needsUnit||L.unitStep},
- {id:'catastro',title:()=>L.channel==='crm'?'Confirmado desde Catastro':'Hemos encontrado tu vivienda',hint:'No preguntamos lo que Catastro ya sabe. Confírmalo o corrígelo.',type:'catastro'},
- {id:'propertyType',title:'¿Qué tipo de vivienda es?',hint:'Nos ayuda a elegir las ventas y anuncios comparables.',type:'type',when:()=>!L.prefilled.has('propertyType')},
- {id:'side',title:'¿A qué lado da?',hint:'La orientación a la calle o al patio afecta al valor.',when:t=>t.mainType==='apartment',...choice('side',[['exterior','Exterior','Da a la calle'],['interior','Interior','Da al patio']])},
- {id:'condition',title:'¿En qué estado está?',hint:'Sé sincero: solo hará la valoración más precisa.',...choice('buildingCondition',[[5,'Excelente','Nueva o reformada recientemente'],[4,'Bueno','Bien mantenida'],[3,'Aceptable','Necesita reparaciones'],[2,'Malo','Problemas importantes'],[1,'Ruina','No habitable']])},
- {id:'renovated',title:'¿Se ha reformado?',hint:'Las reformas suben el valor.',...choice('isRenovated',[[true,'Sí'],[false,'No'],[null,'No lo sé']])},
- {id:'renovationYear',title:'¿Cuándo fue la última reforma?',hint:'Un año aproximado basta.',when:t=>t.isRenovated===true,type:'number',fields:[['renovationYear','Año de la reforma','']],optional:true},
- {id:'hasBalcony',title:'¿Tiene balcón o terraza?',hint:'El espacio exterior añade un valor cuantificable.',when:t=>t.mainType==='apartment',...choice('hasBalcony',[[true,'Sí'],[false,'No']])},
- {id:'balconySurface',title:'¿Qué tamaño tiene?',hint:'Superficie del balcón o terraza.',when:t=>t.hasBalcony===true,type:'number',fields:[['balconySurface','Superficie','m²']],optional:true},
- {id:'counters',title:'Dormitorios, baños y aparcamiento',hint:'',type:'counters',fields:[['numberOfBedrooms','Dormitorios',1],['numberOfBathrooms','Baños',1],['numberOfIndoorParkings','Plazas cubiertas',0],['numberOfOutdoorParkings','Plazas exteriores',0]]},
- {id:'features',title:'¿Qué más tiene?',hint:'Marca todo lo que corresponda; cada una afina la valoración.',type:'multi',fields:[['hasView','Vistas despejadas'],['hasSwimmingPool','Piscina'],['hasGarden','Jardín'],['hasElevator','Ascensor'],['hasStorageRoom','Trastero'],['hasFireplace','Chimenea']]},
- {id:'relationship',channel:'landing',title:'¿Cuál es tu relación con la vivienda?',hint:'Nos ayuda a adaptar el informe.',...choice('relationship',[['owner','Propietario'],['buyer','Comprador'],['tenant','Inquilino'],['agent','Agente'],['other','Otro']])},
- {id:'horizon',channel:'landing',title:'¿Estás pensando en vender?',hint:'Sin compromiso. Solo nos ayuda a personalizar.',when:t=>t.relationship==='owner',...choice('saleHorizon',[['asap','Sí, lo antes posible'],['from_6_to_12_months','Sí, en 6 a 12 meses'],['from_1_to_2_years','Sí, en 1 a 2 años'],['from_2_years','Sí, en 2 años o más'],['already_for_sale','Ya está a la venta'],['not_selling','No tengo intención de vender']])},
+ {id:'building',title:()=>L.channel==='crm'?'Datos del inmueble':'Hemos encontrado tu vivienda',hint:()=>L.channel==='crm'?'Lo que viene de Catastro ya está puesto y marcado; corrige lo que haga falta. Con tipo y superficie basta para continuar.':'Catastro nos da estos datos. Confírmalos y completa el resto; con tipo y superficie basta para continuar.',type:'group',group:'building'},
+ {id:'state',title:'Estado y distribución',hint:'Si no sabes algo, márcalo: la precisión lo refleja y nada se bloquea.',type:'group',group:'state'},
+ {id:'about',channel:'landing',title:'Sobre ti',hint:'Nos ayuda a adaptar el informe. Sin compromiso.',type:'group',group:'about'},
  {id:'email',channel:'landing',title:'Tu valoración está lista',hint:'Déjanos tu email para verla y recibir el informe. Sin spam, sin compromiso.',type:'email'},
  {id:'result',title:'',hint:'',type:'result'},
 ];
 const flowL=()=>STEPS_L.filter(s=>(!s.channel||s.channel===L.channel)&&(!s.when||s.when(L.twin)));
 const el=id=>document.getElementById(id);
+
+/* Pantallas agrupadas del canal CRM: dos formularios en vez de nueve micro-preguntas. Cada campo admite "No lo sé" salvo los obligatorios. */
+const SUBTYPES={apartment:[['apartment','Piso'],['studio','Estudio'],['duplex','Dúplex'],['penthouse','Ático']],house:[['house','Casa'],['villa','Chalet'],['townhouse','Adosado']],land:[['land','Terreno']],building:[['building','Edificio']]};
+const GROUPS={
+ building:{fields:[
+  {f:'mainType',label:'Tipo',kind:'chips',opts:[['apartment','Piso'],['house','Casa'],['building','Edificio'],['land','Terreno']],required:true,noUnknown:true},
+  {f:'propertyType',label:'Subtipo',kind:'chips',opts:t=>SUBTYPES[t.mainType]||[],when:t=>!!t.mainType&&SUBTYPES[t.mainType].length>1,noUnknown:true},
+  {f:'builtSurface',label:'Superficie construida',kind:'number',unit:'m²',required:true},
+  {f:'constructionYear',label:'Año de construcción',kind:'number'},
+  {f:'floorOfFlat',label:'Planta',kind:'chips',opts:[[0,'Bajo'],[1,'1ª'],[2,'2ª'],[3,'3ª'],[4,'4ª'],[5,'5ª'],[6,'6ª'],[7,'7ª'],[8,'8ª'],['more','9ª o más']],when:t=>t.mainType==='apartment'},
+  {f:'numberOfFloors',label:'Plantas del edificio',kind:'stepper',min:1,when:t=>t.mainType==='apartment'},
+  {f:'side',label:'Orientación',kind:'chips',opts:[['exterior','Exterior · da a la calle'],['interior','Interior · da al patio']],when:t=>t.mainType==='apartment'},
+  {f:'hasElevator',label:'Ascensor',kind:'chips',opts:[[true,'Sí'],[false,'No']],when:t=>t.mainType==='apartment'},
+  {f:'landSurface',label:'Parcela',kind:'number',unit:'m²',when:t=>t.mainType==='house'||t.mainType==='land'},
+ ]},
+ state:{fields:[
+  {f:'buildingCondition',label:'Estado',kind:'chips',opts:[[5,'Excelente'],[4,'Bueno'],[3,'Aceptable'],[2,'Malo'],[1,'Ruina']]},
+  {f:'isRenovated',label:'Reformado',kind:'chips',opts:[[true,'Sí'],[false,'No']]},
+  {f:'renovationYear',label:'Año de la reforma',kind:'number',when:t=>t.isRenovated===true},
+  {f:'numberOfBedrooms',label:'Dormitorios',kind:'stepper',min:0},
+  {f:'numberOfBathrooms',label:'Baños',kind:'stepper',min:0},
+  {f:'numberOfIndoorParkings',label:'Plazas de garaje',kind:'stepper',min:0},
+  {f:'hasBalcony',label:'Terraza o balcón',kind:'chips',opts:[[true,'Sí'],[false,'No']],when:t=>t.mainType==='apartment'},
+  {f:'balconySurface',label:'Superficie de terraza',kind:'number',unit:'m²',when:t=>t.hasBalcony===true},
+  {f:'extras',label:'Extras',kind:'multi',opts:[['hasView','Vistas despejadas'],['hasSwimmingPool','Piscina'],['hasGarden','Jardín'],['hasStorageRoom','Trastero'],['hasFireplace','Chimenea']]},
+ ]},
+ about:{fields:[
+  {f:'relationship',label:'Tu relación con la vivienda',kind:'chips',opts:[['owner','Propietario'],['buyer','Comprador'],['tenant','Inquilino'],['agent','Agente'],['other','Otro']],required:true,noUnknown:true},
+  {f:'saleHorizon',label:'¿Estás pensando en vender?',kind:'chips',opts:[['asap','Sí, lo antes posible'],['from_6_to_12_months','En 6 a 12 meses'],['from_1_to_2_years','En 1 a 2 años'],['from_2_years','En 2 años o más'],['already_for_sale','Ya está a la venta'],['not_selling','No tengo intención']],when:t=>t.relationship==='owner',noUnknown:true},
+ ]}};
+function groupHTML(g){
+  const t=L.twin;
+  const srcTag=f=>L.prefilled.has(f)?`<span class="tag ${L.prefilled.get(f)==='Catastro'?'good':'info'}" style="font-size:11px;padding:1px 7px">${L.prefilled.get(f)}</span>`:'';
+  const unk=f=>`<button class="chip sm unk" data-f="${f}" data-u="1" aria-pressed="${L.unknown.has(f)}">No lo sé</button>`;
+  return `<div class="form">`+g.fields.filter(x=>!x.when||x.when(t)).map(x=>{
+    const opts=typeof x.opts==='function'?x.opts(t):x.opts; let ctl='';
+    if(x.kind==='chips'){ctl=`<div class="chips">${opts.map(([v,l],i)=>`<button class="chip sm" data-f="${x.f}" data-i="${i}" aria-pressed="${t[x.f]===v||(v==='more'&&t[x.f]>=9)}">${l}</button>`).join('')}${x.noUnknown?'':unk(x.f)}</div>${x.f==='floorOfFlat'&&t.floorOfFlat>=9?`<div class="stepper" style="margin-top:8px;max-width:150px" data-f="floorOfFlat"><button data-d="-1" aria-label="Planta menos">−</button><span class="v num">${t.floorOfFlat}ª</span><button data-d="1" aria-label="Planta más">+</button></div>`:''}`;}
+    else if(x.kind==='stepper'){ctl=`<div class="row"><div class="stepper" style="width:150px" data-f="${x.f}"><button data-d="-1" aria-label="Menos">−</button><span class="v num">${t[x.f]??'—'}</span><button data-d="1" aria-label="Más">+</button></div>${x.noUnknown?'':unk(x.f)}</div>`;}
+    else if(x.kind==='number'){ctl=`<div class="row"><div class="input" style="height:42px;width:170px"><input data-f="${x.f}" inputmode="numeric" value="${t[x.f]??''}" placeholder="—">${x.unit?`<span class="unit">${x.unit}</span>`:''}</div>${x.required?'':unk(x.f)}</div>`;}
+    else if(x.kind==='multi'){ctl=`<div class="chips">${opts.map(([k,l])=>`<button class="chip sm" data-m="${k}" aria-pressed="${!!t[k]}">${t[k]?'✓ ':''}${l}</button>`).join('')}</div>`;}
+    const wide=(x.kind==='chips'&&opts.length>4)||x.kind==='multi';
+    return `<div class="frow${wide?' wide':''}"><div class="flabel">${x.label}${x.required?' <span class="req">·</span>':''}${srcTag(x.f)}</div>${ctl}</div>`;
+  }).join('')+`</div>`;
+}
+const EXTRAS=['hasView','hasSwimmingPool','hasGarden','hasStorageRoom','hasFireplace'];
+const LBL={mainType:'Tipo',propertyType:'Subtipo',builtSurface:'Superficie',floorOfFlat:'Planta',numberOfFloors:'Plantas',side:'Orientación',hasElevator:'Ascensor',constructionYear:'Año',landSurface:'Parcela',buildingCondition:'Estado',isRenovated:'Reformado',renovationYear:'Reforma',numberOfBedrooms:'Dormitorios',numberOfBathrooms:'Baños',numberOfIndoorParkings:'Garaje',numberOfOutdoorParkings:'Plazas ext.',hasBalcony:'Terraza',balconySurface:'Terraza',hasView:'Vistas',hasSwimmingPool:'Piscina',hasGarden:'Jardín',hasStorageRoom:'Trastero',hasFireplace:'Chimenea',relationship:'Relación',saleHorizon:'Venta'};
+function fmtField(f,v){
+  if(v===null||v===undefined)return null;
+  const T={apartment:'Piso',house:'Casa',land:'Terreno',building:'Edificio',studio:'Estudio',duplex:'Dúplex',penthouse:'Ático',villa:'Chalet',townhouse:'Adosado'};
+  switch(f){case 'mainType':case 'propertyType':return T[v]||v;case 'builtSurface':case 'landSurface':case 'balconySurface':return `${v} m²`;case 'floorOfFlat':return v===0?'Bajo':`${v}ª`;case 'side':return v==='exterior'?'Exterior':'Interior';case 'buildingCondition':return {5:'Excelente',4:'Bueno',3:'Aceptable',2:'Malo',1:'Ruina'}[v];case 'numberOfIndoorParkings':return v===0?'No':`${v} plaza${v>1?'s':''}`;case 'relationship':return {owner:'Propietario',buyer:'Comprador',tenant:'Inquilino',agent:'Agente',other:'Otro'}[v];case 'saleHorizon':return {asap:'Lo antes posible',from_6_to_12_months:'6–12 meses',from_1_to_2_years:'1–2 años',from_2_years:'2 años o más',already_for_sale:'Ya a la venta',not_selling:'Sin intención'}[v];default:return typeof v==='boolean'?(v?'Sí':'No'):String(v);}
+}
+function renderKnown(){
+  const t=L.twin; const rows=[];
+  if(t.address.lat)rows.push(['address','Dirección',t.address.formattedAddress.replace(', 15004 A Coruña',''),null]);
+  if(t.address.catastralRef)rows.push(['address','Ref. catastral',`<span class="mono">…${t.address.catastralRef.slice(-8)}</span>`,null]);
+  for(const f of Object.keys(LBL)){
+    if(f==='propertyType'&&t.propertyType===t.mainType)continue;
+    if(EXTRAS.includes(f)&&t[f]!==true)continue;
+    const v=fmtField(f,t[f]);
+    if(v!==null)rows.push([f,LBL[f],v,L.prefilled.get(f)||null]);
+    else if(L.unknown.has(f))rows.push([f,LBL[f],'<span class="v unk">no lo sé</span>',null]);
+  }
+  el('l-count').textContent=rows.filter(r=>r[0]!=='address').length;
+  el('l-known').innerHTML=rows.map(([f,k,v,src])=>`<button data-f="${f}" title="Ir a este dato"><span class="k">${k}</span><span class="v">${v}${src?`<span class="tag ${src==='Catastro'?'good':'info'}">${src}</span>`:''}</span></button>`).join('');
+  el('l-known').querySelectorAll('button').forEach(b=>b.onclick=()=>gotoField(b.dataset.f));
+}
+function gotoField(f){
+  const flow=flowL();
+  let i=flow.findIndex(s=>s.type==='group'&&GROUPS[s.group].fields.some(x=>x.f===f||(x.kind==='multi'&&x.opts.some(o=>o[0]===f))));
+  if(i<0)i=flow.findIndex(s=>(f==='address'&&s.type==='address')||s.key===f||(s.type==='type'&&(f==='mainType'||f==='propertyType'))||(['counters','multi'].includes(s.type)&&s.fields.some(x=>x[0]===f))||(s.type==='number'&&s.fields[0][0]===f)||(s.type==='catastro'&&L.prefilled.has(f)));
+  if(i>=0&&i!==L.step){L.history.push(L.step);L.step=i;render();window.scrollTo({top:0,behavior:'smooth'});}
+}
 
 /* Mapa esquemático oscuro (en el CRM: Leaflet con tiles CARTO dark_all y marcador divIcon). Marcador arrastrable. */
 function miniMap(h,id){
@@ -850,7 +929,7 @@ function locate({address='Rúa Juan Flórez 30, 15004 A Coruña',source,unit=nul
 }
 function applyUnit(u){
   const t=L.twin; t.address.catastralRef=u.ref; t.builtSurface=u.m2; t.floorOfFlat=u.n; t.mainType='apartment'; t.propertyType='apartment';
-  ['builtSurface','floorOfFlat','propertyType'].forEach(k=>L.prefilled.set(k,'Catastro')); L.needsUnit=false;
+  ['builtSurface','floorOfFlat','mainType'].forEach(k=>L.prefilled.set(k,'Catastro')); L.needsUnit=false;
 }
 function applyListing(){
   const t=L.twin;
@@ -868,8 +947,7 @@ function liveUpdate(){
   const rng=el('l-range'); rng.classList.toggle('blur',!ready);
   rng.textContent=hasAddr?`${K(e.low)} – ${K(e.high)} €`:'— €';
   el('l-unc').textContent=!hasAddr?'Empieza por la dirección, la referencia catastral o el mapa.':!ready?'Se desenfoca al saber el tipo y la superficie.':`±${e.uncertainty} % · ${e.basis==='zone_median'?'con el €/m² real de tu zona':'estimación base'}`;
-  const answered=flowL().filter(s=>s.key?t[s.key]!==null&&t[s.key]!==undefined||(s.id==='renovated'&&t._renovAnswered):s.type==='counters'?t.numberOfBedrooms!==null:s.type==='multi'?t._featAnswered:s.type==='catastro'?L.prefilled.size>0:s.type==='number'?t[s.fields[0][0]]!==null:s.type==='unit'?!L.needsUnit:false).length;
-  el('l-count').textContent=answered;
+  renderKnown();
   el('l-zone').hidden=!hasAddr; el('l-zone-label').textContent=ZONE.label;
   el('l-catastro').hidden=!L.prefilled.size;
   el('l-draft').hidden=!(L.channel==='crm'&&L.step>0&&L.step<flowL().length-1); el('l-draft-addr').textContent=L.addrText;
@@ -877,10 +955,10 @@ function liveUpdate(){
 
 function render(){
   const flow=flowL(); const s=flow[L.step]; const q=el('l-q');
-  el('l-progress').textContent=s.type==='result'?'Resultado':`Paso ${L.step+1} de ${flow.length}${s.id==='unit'?' · Vivienda':s.id==='catastro'?' · Catastro':s.key?' · '+({side:'Orientación',buildingCondition:'Estado',isRenovated:'Reforma',hasBalcony:'Terraza',relationship:'Relación',saleHorizon:'Venta'}[s.key]||''):''}`;
+  el('l-progress').textContent=s.type==='result'?'Resultado':`Paso ${L.step+1} de ${flow.length} · ${({address:'Inmueble',unit:'Vivienda',building:'Datos',state:'Estado',about:'Sobre ti',email:'Email'})[s.id]||''}`;
   el('l-back').hidden=L.step===0||s.type==='result';
-  const title=typeof s.title==='function'?s.title():s.title;
-  const head=title?`<h2>${title}</h2><p class="hint">${s.hint}</p>`:'';
+  const title=typeof s.title==='function'?s.title():s.title, hint=typeof s.hint==='function'?s.hint():s.hint;
+  const head=title?`<h2>${title}</h2><p class="hint">${hint}</p>`:'';
   const t=L.twin;
   const nav=(label='Continuar',enabled=true,extra='')=>`<div class="qnav">${extra||'<span></span>'}<button class="btn primary" id="l-next" ${enabled?'':'disabled'}>${label}</button></div>`;
   if(s.type==='address'){
@@ -931,41 +1009,22 @@ function render(){
       <div class="units">${UNITS.filter(u=>u.dw).map(row).join('')}<details><summary>Otros usos: locales, garajes y trasteros · ${UNITS.filter(u=>!u.dw).length}</summary>${UNITS.filter(u=>!u.dw).map(row).join('')}</details></div>
       <p class="small dim" style="margin-top:12px">Viviendas primero, ordenadas por planta y puerta. Lo que Catastro no marca como vivienda va plegado.</p>`;
     q.querySelectorAll('.u').forEach(b=>b.onclick=()=>{L.unitStep=true;applyUnit(UNITS.find(u=>u.ref===b.dataset.r));next();});
-  } else if(s.type==='catastro'){
-    const fmt={builtSurface:v=>`${v} m²`,constructionYear:v=>v,floorOfFlat:v=>v===0?'Bajo':`${v}ª`,numberOfFloors:v=>v,propertyType:v=>({apartment:'Piso',house:'Casa',land:'Terreno',building:'Edificio'}[v]||v),numberOfBedrooms:v=>v,numberOfBathrooms:v=>v,hasElevator:v=>v?'Sí':'No',buildingCondition:v=>({5:'Excelente',4:'Bueno',3:'Aceptable',2:'Malo',1:'Ruina'}[v]),side:v=>v==='exterior'?'Exterior':'Interior'};
-    const lbl={builtSurface:'Superficie construida',constructionYear:'Año de construcción',floorOfFlat:'Planta',numberOfFloors:'Plantas del edificio',propertyType:'Tipo',numberOfBedrooms:'Dormitorios',numberOfBathrooms:'Baños',hasElevator:'Ascensor',buildingCondition:'Estado',side:'Orientación'};
-    const order=['propertyType','builtSurface','floorOfFlat','numberOfFloors','constructionYear','numberOfBedrooms','numberOfBathrooms','hasElevator','buildingCondition','side'];
-    const srcCls={Catastro:'good',Anuncio:'info',CRM:'info'};
-    q.innerHTML=head+`<div class="row" style="margin-bottom:6px"><span class="tag fg">${t.address.formattedAddress}</span>${t.address.catastralRef?`<span class="tag">ref. <span class="mono">${t.address.catastralRef}</span></span>`:''}</div>
-      <div class="prefill">${order.filter(k=>L.prefilled.has(k)).map(k=>`<div class="item"><div class="l">${lbl[k]}</div><div class="v num" style="justify-content:space-between"><span>${fmt[k](t[k])} <span class="tag ${srcCls[L.prefilled.get(k)]}">${L.prefilled.get(k)}</span></span><button class="linkbtn small" data-toast="Abre ese paso para corregirlo; el valor corregido pasa a ser manual.">Corregir</button></div></div>`).join('')}</div>
-      <p class="small muted">Si Catastro no respondiera, te pediríamos estos datos y la valoración saldría con menos confianza. Nunca se bloquea.</p>`+nav('Todo correcto, continuar');
-    bindToasts(q); el('l-next').onclick=next;
-  } else if(s.type==='type'){
-    const main=[['apartment','Piso'],['house','Casa'],['land','Terreno'],['building','Edificio']], sub={apartment:[['apartment','Piso'],['studio','Estudio'],['duplex','Dúplex'],['penthouse','Ático']],house:[['house','Casa'],['villa','Chalet'],['townhouse','Adosado']],land:[['land','Terreno']],building:[['building','Edificio']]};
-    q.innerHTML=head+`<div class="chips" id="l-main">${main.map(([v,l])=>`<button class="chip wide" data-v="${v}" aria-pressed="${t.mainType===v}">${l}</button>`).join('')}</div><div id="l-sub" style="margin-top:18px"></div>`;
-    const drawSub=()=>{el('l-sub').innerHTML=t.mainType?`<div class="kicker">Tipo de ${main.find(m=>m[0]===t.mainType)[1].toLowerCase()}</div><div class="chips">${sub[t.mainType].map(([v,l])=>`<button class="chip" data-v="${v}" aria-pressed="${t.propertyType===v}">${l}</button>`).join('')}</div>`:'';
-      el('l-sub').querySelectorAll('.chip').forEach(c=>c.onclick=()=>{t.propertyType=c.dataset.v;next();});};
-    el('l-main').querySelectorAll('.chip').forEach(c=>c.onclick=()=>{t.mainType=c.dataset.v;t.propertyType=null;el('l-main').querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',x===c));drawSub();liveUpdate();});
-    drawSub();
-  } else if(s.type==='choice'){
-    q.innerHTML=head+`<div class="chips">${s.opts.map(([v,l,sub],i)=>`<button class="chip wide" data-i="${i}" aria-pressed="${t[s.key]===v}">${l}${sub?`<span class="sub">${sub}</span>`:''}</button>`).join('')}</div>`;
-    q.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{t[s.key]=s.opts[+c.dataset.i][0];if(s.id==='renovated')t._renovAnswered=true;next();});
-  } else if(s.type==='number'){
-    const [k,label,unit]=s.fields[0];
-    q.innerHTML=head+`<div class="field"><label for="l-n">${label}</label><div class="input"><input id="l-n" inputmode="numeric" value="${t[k]??''}">${unit?`<span class="unit">${unit}</span>`:''}</div></div>`+nav('Siguiente',t[k]!==null,s.optional?'<button class="linkbtn" id="l-skip">No lo sé</button>':'');
-    const inp=el('l-n'); inp.oninput=()=>{const v=parseInt(inp.value,10);t[k]=isNaN(v)?null:v;el('l-next').disabled=t[k]===null;liveUpdate();};
-    inp.onkeydown=e=>{if(e.key==='Enter'&&t[k]!==null)next();};
-    el('l-next').onclick=next; if(s.optional)el('l-skip').onclick=()=>{t[k]=null;next();}; inp.focus();
-  } else if(s.type==='counters'){
-    s.fields.forEach(([k,,d])=>{if(t[k]===null)t[k]=d;});
-    q.innerHTML=head+`<div class="grid g2">${s.fields.map(([k,l])=>`<div class="field"><label>${l}</label><div class="stepper" data-k="${k}"><button data-d="-1" aria-label="Menos ${l}">−</button><span class="v num">${t[k]}</span><button data-d="1" aria-label="Más ${l}">+</button></div></div>`).join('')}</div>`+nav();
-    q.querySelectorAll('.stepper button').forEach(b=>b.onclick=()=>{const st=b.parentElement,k=st.dataset.k;t[k]=Math.max(0,t[k]+parseInt(b.dataset.d,10));st.querySelector('.v').textContent=t[k];liveUpdate();});
-    el('l-next').onclick=next;
-  } else if(s.type==='multi'){
-    s.fields.forEach(([k])=>{if(t[k]===null)t[k]=false;});
-    q.innerHTML=head+`<div class="chips">${s.fields.map(([k,l])=>`<button class="chip wide" data-k="${k}" aria-pressed="${!!t[k]}">${t[k]?'✓ ':''}${l}</button>`).join('')}</div>`+nav();
-    q.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{const k=c.dataset.k;t[k]=!t[k];c.setAttribute('aria-pressed',t[k]);c.textContent=(t[k]?'✓ ':'')+s.fields.find(f=>f[0]===k)[1];liveUpdate();});
-    el('l-next').onclick=()=>{t._featAnswered=true;next();};
+  } else if(s.type==='group'){
+    const g=GROUPS[s.group]; const isLast=flow[L.step+1]?.type==='result';
+    const valid=()=>g.fields.filter(x=>x.required&&(!x.when||x.when(t))).every(x=>t[x.f]!==null&&t[x.f]!==undefined&&t[x.f]!=='');
+    const draw=()=>{
+      q.innerHTML=head+groupHTML(g)+nav(isLast?'Valorar':'Continuar',valid(),'<span class="small dim">· obligatorio</span>');
+      q.querySelectorAll('.chip[data-f]').forEach(c=>c.onclick=()=>{const f=c.dataset.f,x=g.fields.find(y=>y.f===f),before=t[f];
+        if(c.dataset.u){t[f]=null;L.unknown.add(f);}
+        else{const v=(typeof x.opts==='function'?x.opts(t):x.opts)[+c.dataset.i][0];L.unknown.delete(f);t[f]=v==='more'?Math.max(9,t[f]??9):v;
+          if(f==='mainType')t.propertyType=SUBTYPES[v].length>1?null:v; if(f==='isRenovated'&&v!==true)t.renovationYear=null; if(f==='hasBalcony'&&v!==true)t.balconySurface=null; if(f==='relationship'&&v!=='owner')t.saleHorizon=null;}
+        if(t[f]!==before)L.prefilled.delete(f); draw();liveUpdate();});
+      q.querySelectorAll('.chip[data-m]').forEach(c=>c.onclick=()=>{const k=c.dataset.m;t[k]=!t[k];draw();liveUpdate();});
+      q.querySelectorAll('.stepper button').forEach(b=>b.onclick=()=>{const st=b.parentElement,f=st.dataset.f,x=g.fields.find(y=>y.f===f)||{min:0};t[f]=Math.max(x.min??0,(t[f]??(x.min??0))+parseInt(b.dataset.d,10));L.unknown.delete(f);L.prefilled.delete(f);draw();liveUpdate();});
+      q.querySelectorAll('input[data-f]').forEach(i=>{i.oninput=()=>{const f=i.dataset.f,v=parseInt(i.value,10);t[f]=isNaN(v)?null:v;L.unknown.delete(f);L.prefilled.delete(f);el('l-next').disabled=!valid();liveUpdate();};i.onkeydown=e=>{if(e.key==='Enter'&&valid())next();};});
+      el('l-next').onclick=next;
+    };
+    draw();
   } else if(s.type==='email'){
     const e=liveEstimate(t,ZONE.medianPpm2);
     q.innerHTML=head+`<div class="card" style="background:var(--surface-2);margin-bottom:18px"><div class="row" style="justify-content:space-between"><div><div class="muted small">Tu valoración</div><div class="range num blur" aria-hidden="true">${eur(e.mid)}</div></div><span class="tag good">precisión ${precision(t)} %</span></div><div class="small muted" style="margin-top:8px">Desbloquea el valor, el rango, el análisis de tu zona y el informe PDF.</div></div>
@@ -1003,10 +1062,10 @@ function render(){
   liveUpdate();
 }
 function resetFlow(channel){
-  Object.assign(L,{channel,twin:emptyTwin(),step:0,history:[],prefilled:new Map(),email:'',entry:'address',addrText:'',refText:'',needsUnit:false,unitStep:false,geo:null});
+  Object.assign(L,{channel,twin:emptyTwin(),step:0,history:[],prefilled:new Map(),email:'',entry:'address',addrText:'',refText:'',needsUnit:false,unitStep:false,geo:null,unknown:new Set()});
   const crm=channel==='crm';
   el('l-agency').hidden=crm; el('l-crmhead').hidden=!crm;
-  el('l-foot').textContent=crm?'Una pregunta por pantalla. Enter avanza; «No lo sé» salta el paso. El borrador se guarda solo y se puede reanudar 24 h.':'Gratis y sin compromiso. Los datos del inmueble se rellenan desde Catastro; tú solo confirmas y añades lo que Catastro no sabe.';
+  el('l-foot').textContent=crm?'Dos pantallas de datos. Lo obligatorio lleva punto; en lo demás vale «No lo sé». Enter avanza. El borrador se guarda solo y se puede reanudar 24 h.':'Gratis y sin compromiso. Los datos del inmueble se rellenan desde Catastro; tú solo confirmas y añades lo que Catastro no sabe.';
   document.querySelectorAll('#l-channel button').forEach(b=>b.setAttribute('aria-selected',b.dataset.c===channel));
   render();
 }

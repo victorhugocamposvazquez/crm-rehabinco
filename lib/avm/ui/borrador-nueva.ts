@@ -12,6 +12,7 @@ export type BorradorNuevaValoracion = {
   built: unknown;
   historial: string[];
   etiqueta: string;
+  unknown?: string[];
 };
 
 function clave(userId: string) {
