@@ -16,6 +16,8 @@ export interface ConfidenceInput {
   precisionScore: number;
   /** null cuando la zona no tiene mediana de hace 12 meses. */
   trend12mPct?: number | null;
+  /** Municipio recién dado de alta sin anuncios aún. */
+  marketLoading?: boolean;
 }
 
 export interface ConfidenceResult {
@@ -74,6 +76,11 @@ export function computeConfidence(input: ConfidenceInput): ConfidenceResult {
   if (input.trend12mPct == null) {
     penalties.push({ reason: 'sin histórico de 12 meses en la zona', points: 3 });
     score -= 3;
+  }
+
+  if (input.marketLoading) {
+    penalties.push({ reason: 'mercado de la zona en primera carga', points: 12 });
+    score -= 12;
   }
 
   // 4. Radio de búsqueda amplio

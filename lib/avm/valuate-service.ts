@@ -355,12 +355,16 @@ export async function valorar(solicitud: SolicitudValoracion, ctx: Ctx): Promise
   }
 
   const deps = depsMercado(ctx.admin);
+  const { estadoMercadoMunicipio, mensajeMercadoEnCarga } = await import("./market-loading");
+  const mercado = await estadoMercadoMunicipio(ctx.admin, built.twin.address.municipalityCode ?? built.zone.municipalityCode);
   const result = await valuate(built.twin, deps, {
     channel: solicitud.channel,
     operation: "sale",
     propertySource: fuenteMotor(built.propertySource),
     propertyStale: built.warnings.some((w) => /caché/i.test(w)),
     geocodingSource: built.geocodingSource === "missing" ? "missing" : built.geocodingSource,
+    marketLoading: mercado.loading,
+    marketLoadingMessage: mensajeMercadoEnCarga(mercado),
   });
   if (op === "rent") result.operation = "rent";
 

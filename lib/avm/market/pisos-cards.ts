@@ -9,11 +9,8 @@ import type { PaginaTarjetas } from "./fotocasa-cards";
 
 const MUNICIPIO = "15030";
 
-export function urlListadoPisos(operation: OperacionMercado, kind: "piso" | "casas", pagina: number): string {
-  const op = operation === "rent" ? "alquiler" : "venta";
-  const base = `https://www.pisos.com/${op}/${kind}-a_coruna_capital/asc/`;
-  return pagina <= 1 ? base : `${base}${pagina}/`;
-}
+export { urlListadoPisos } from "./portal-urls";
+
 
 function decodeHtml(s: string): string {
   return s

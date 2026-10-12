@@ -37,6 +37,8 @@ type Item = {
 
 const MUNICIPIO = "15030";
 
+export { urlListadoHabitaclia } from "./portal-urls";
+
 function extraerJsonParse(html: string, varName: string): unknown | null {
   for (const marker of [`${varName} = JSON.parse(`, `${varName}=JSON.parse(`]) {
     const idx = html.indexOf(marker);
@@ -97,12 +99,6 @@ function itemsDe(html: string): { items: Item[]; page: number; totalPages: numbe
   return { items: [], page: 1, totalPages: 1, pageSize: 0 };
 }
 
-export function urlListadoHabitaclia(operation: OperacionMercado, kind: "viviendas" | "casas", pagina: number): string {
-  const op = operation === "rent" ? "alquiler" : "comprar";
-  const base = `https://www.habitaclia.com/${op}/${kind}/a-coruna-provincia/a-coruna-capital/s`;
-  const path = pagina <= 1 ? base : `${base}/${pagina}`;
-  return `${path}?sortBy=PRICE_ASC`;
-}
 
 function clase(item: Item): { main: "apartment" | "house"; property: string } | null {
   const base = (item.property?.propertyType ?? "").toLowerCase();

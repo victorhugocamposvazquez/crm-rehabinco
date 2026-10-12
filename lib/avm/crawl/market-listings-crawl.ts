@@ -2,7 +2,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { MarketListingCard, PortalRastreo } from "../market/card";
 import { fotocasaTieneMas, parseListingCardsFotocasa, urlListadoFotocasa } from "../market/fotocasa-cards";
 import { parseListingCardsHabitaclia, urlListadoHabitaclia } from "../market/habitaclia-cards";
+import { slugsDesdePortalMap } from "../market/portal-urls";
 import { parseListingCardsPisos, pisosTieneMas, urlListadoPisos } from "../market/pisos-cards";
+import { slugsPortalPorMunicipio } from "./portal-slugs";
 import { guardarTarjetas, retirarNoVistos } from "./upsert";
 
 const UA =
@@ -41,13 +43,13 @@ function esPortal(value: string): value is PortalRastreo {
   return (PORTALES as string[]).includes(value);
 }
 
-function consultas(portal: PortalRastreo, operation: "sale" | "rent"): Consulta[] {
+function consultas(portal: PortalRastreo, operation: "sale" | "rent", slugs = slugsDesdePortalMap(new Map())): Consulta[] {
   if (portal === "fotocasa") {
     let vistos = 0;
     return [
       {
         kind: "viviendas",
-        url: (pagina) => urlListadoFotocasa(operation, pagina),
+        url: (pagina) => urlListadoFotocasa(operation, pagina, slugs),
         parse: (html) => {
           const page = parseListingCardsFotocasa(html, operation);
           vistos += page.pageSize;
@@ -59,7 +61,7 @@ function consultas(portal: PortalRastreo, operation: "sale" | "rent"): Consulta[
   if (portal === "habitaclia") {
     return (["viviendas", "casas"] as const).map((kind) => ({
       kind,
-      url: (pagina: number) => urlListadoHabitaclia(operation, kind, pagina),
+      url: (pagina: number) => urlListadoHabitaclia(operation, kind, pagina, slugs),
       parse: (html: string) => {
         const page = parseListingCardsHabitaclia(html, operation);
         return { cards: page.cards, hasMore: page.hasMore };
@@ -70,7 +72,7 @@ function consultas(portal: PortalRastreo, operation: "sale" | "rent"): Consulta[
     let vistos = 0;
     return {
       kind,
-      url: (pagina: number) => urlListadoPisos(operation, kind, pagina),
+      url: (pagina: number) => urlListadoPisos(operation, kind, pagina, slugs),
       parse: (html: string) => {
         const page = parseListingCardsPisos(html, operation, kind);
         vistos += page.pageSize;
@@ -173,6 +175,7 @@ export async function rastrearMercado(
   const informes: InformePasada[] = [];
   for (const target of targets ?? []) {
     const municipalityCode = String(target.municipality_code);
+    const portalSlugs = slugsDesdePortalMap(await slugsPortalPorMunicipio(db, municipalityCode));
     const zonas = await centroides(db, municipalityCode);
     const portales = (target.portals as string[]).filter(esPortal).filter((p) => !filtro.portal || p === filtro.portal);
     const operations = ((target.operations as string[]) ?? ["sale", "rent"]).filter(
@@ -195,7 +198,7 @@ export async function rastrearMercado(
         let fallo: string | null = bloqueados.has(portal) ? "Portal parado por bloqueo" : null;
 
         if (!fallo) {
-          for (const consultaPortal of consultas(portal, operation)) {
+          for (const consultaPortal of consultas(portal, operation, portalSlugs)) {
             if (fallo || pages >= TOPE_PAGINAS) break;
             for (let pagina = 1; pagina <= TOPE_PAGINAS && pages < TOPE_PAGINAS; pagina += 1) {
               if (pagina > 1 || pages > 0) await pausa();

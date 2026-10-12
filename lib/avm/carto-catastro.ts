@@ -1,4 +1,7 @@
-import { TIPOS_VIA_OFICIALES } from "../catastro/constants";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { dnplocDesdeIne, ineMunicipioValido } from "../catastro/municipio-resolver";
+import { provinciaCatastroPorCodigo, ineProvinciaDeMunicipio } from "../catastro/provincias-espana";
+import { siglaViaCartoCiudad } from "./carto-via-catastro";
 
 export type ViaCatastroDnploc = {
   provincia: string;
@@ -23,57 +26,62 @@ export type CartoCandidatoNormalizado = {
   muniCode?: string;
 };
 
-const PROVINCIA_POR_CP: Record<string, string> = {
-  "15": "A CORUÑA",
-  "36": "PONTEVEDRA",
-  "32": "OURENSE",
-  "27": "LUGO",
-};
+export function normalizarNumeroPortal(raw: string | null | undefined): string | null {
+  const t = (raw ?? "").trim();
+  if (!t) return null;
+  if (/^s\s*\/?\s*n\.?$/i.test(t)) return "S/N";
+  return t.toUpperCase();
+}
 
 export function siglaViaCarto(tipVia: string | null | undefined): string {
-  const t = (tipVia ?? "CALLE")
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .trim()
-    .toUpperCase();
-  const porCodigo = TIPOS_VIA_OFICIALES.find((item) => item.codigo === t);
-  if (porCodigo) return porCodigo.codigo;
-  const porNombre = TIPOS_VIA_OFICIALES.find((item) =>
-    item.nombres.some((nombre) => nombre.normalize("NFD").replace(/\p{M}/gu, "").toUpperCase() === t),
-  );
-  return porNombre?.codigo ?? "CL";
+  return siglaViaCartoCiudad(tipVia);
 }
 
-/** Municipio tal como lo espera Consulta_DNPLOC (ej. A CORUÑA, no CORUÑA (A)). */
+/** @deprecated Solo tests legacy; producción usa catastro_municipios por INE. */
 export function normalizarMunicipioCatastro(municipio: string | null | undefined): string {
   const raw = (municipio ?? "").trim();
-  if (!raw) return "A CORUÑA";
-  const sinParentesis = raw.replace(/\s*\([^)]*\)\s*/g, " ").trim();
-  const n = sinParentesis
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .toLowerCase();
-  if (n === "a coruna" || n === "coruna" || n.includes("coruna")) return "A CORUÑA";
-  return sinParentesis.toUpperCase();
+  if (!raw) return "";
+  return raw.replace(/\s*\([^)]*\)\s*/g, " ").trim().toUpperCase();
 }
 
-export function provinciaNombreCatastro(province: string | null, postcode: string | null): string {
+/** Resuelve provincia Catastro: código INE de municipio o provincia, o CP. */
+export function provinciaNombreCatastro(province: string | null, postcode: string | null, ineMuni?: string | null): string {
+  const ine = ineMunicipioValido(ineMuni ?? "");
+  if (ine) {
+    const p = provinciaCatastroPorCodigo(ineProvinciaDeMunicipio(ine));
+    if (p) return p;
+  }
   const p = (province ?? "").trim();
   if (p && !/^\d{2}$/.test(p)) return p.toUpperCase();
   const cp = postcode?.slice(0, 2) ?? p;
-  if (cp && PROVINCIA_POR_CP[cp]) return PROVINCIA_POR_CP[cp];
-  return p ? p.toUpperCase() : "A CORUÑA";
+  const porCp = provinciaCatastroPorCodigo(cp);
+  if (porCp) return porCp;
+  return p ? p.toUpperCase() : "";
 }
 
-export function viaCatastroDesdeCandidato(c: CartoCandidatoNormalizado): ViaCatastroDnploc | null {
+export function armarViaCatastro(
+  c: CartoCandidatoNormalizado,
+  ubicacion: { provincia: string; municipio: string },
+): ViaCatastroDnploc | null {
   const calle = c.streetName?.trim();
-  const numero = c.streetNumber?.trim();
-  if (!calle || !numero) return null;
+  const numero = normalizarNumeroPortal(c.streetNumber);
+  if (!calle || !numero || !ubicacion.municipio.trim() || !ubicacion.provincia.trim()) return null;
   return {
-    provincia: provinciaNombreCatastro(c.province, c.postcode),
-    municipio: normalizarMunicipioCatastro(c.municipality),
+    provincia: ubicacion.provincia.trim().toUpperCase(),
+    municipio: ubicacion.municipio.trim().toUpperCase(),
     sigla: siglaViaCarto(c.streetType),
     calle: calle.toUpperCase(),
     numero,
   };
+}
+
+export async function viaCatastroDesdeCandidato(
+  c: CartoCandidatoNormalizado,
+  db: SupabaseClient | null,
+): Promise<ViaCatastroDnploc | null> {
+  const ine = ineMunicipioValido(c.muniCode);
+  if (!db || !ine) return null;
+  const loc = await dnplocDesdeIne(db, ine);
+  if (!loc) return null;
+  return armarViaCatastro(c, loc);
 }

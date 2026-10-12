@@ -30,6 +30,8 @@ export type PaginaTarjetas = {
 
 const MUNICIPIO = "15030";
 
+export { urlListadoFotocasa } from "./portal-urls";
+
 function feature(item: Item, key: string): number | undefined {
   return item.features?.find((f) => f.key === key)?.value;
 }
@@ -48,12 +50,6 @@ function tipo(item: Item): { main: "apartment" | "house"; property: string } | n
   return null;
 }
 
-export function urlListadoFotocasa(operation: OperacionMercado, pagina: number): string {
-  const op = operation === "rent" ? "alquiler" : "comprar";
-  const base = `https://www.fotocasa.es/es/${op}/viviendas/a-coruna-capital/todas-las-zonas/l`;
-  const path = pagina <= 1 ? base : `${base}/${pagina}`;
-  return `${path}?sortType=price&sortOrderDesc=false`;
-}
 
 export function parseListingCardsFotocasa(html: string, operation: OperacionMercado): PaginaTarjetas {
   const m = html.match(/<script[^>]*id="__initial_props__"[^>]*>([\s\S]*?)<\/script>/);

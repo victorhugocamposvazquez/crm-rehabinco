@@ -9,9 +9,21 @@ Scripts **idempotentes** (borran y recargan su capa). Ejecutar desde el Mac con 
 ```bash
 brew install osmium-tool
 npx tsx scripts/env-load/load-spain.ts
+# todo excepto GTFS/NAP (SNCZI + MER + OSM; brew install gdal osmium-tool):
+npx tsx scripts/env-load/load-spain.ts --full --skip-t10
 ```
 
-Incluye criminalidad municipal (datoscrimen.es), vulnerabilidad OVU 2021 (MITMA) y OSM Geofabrik `spain-latest.osm.pbf`. Inundación/ruido/GTFS siguen siendo cargas manuales por fuente (ver abajo).
+Incluye criminalidad municipal (datoscrimen.es), vulnerabilidad OVU 2021 (MITMA) y OSM Geofabrik `spain-latest.osm.pbf`.
+
+Inundación (SNCZI) y ruido (MER Lden) automáticos con GDAL:
+
+```bash
+brew install gdal
+npx tsx scripts/env-load/load-spain.ts --with-flood --with-noise --skip-osm
+# T10 ~800 MB: añade --skip-t10 al comando de sncsi o en load-spain con --skip-t10
+```
+
+GTFS vía NAP no se carga aquí (requiere API key); las paradas siguen en OSM.
 
 ## Orden recomendado
 
@@ -39,12 +51,17 @@ npx tsx scripts/env-load/vulnerability.ts --fetch-spain
 # 2 · GTFS tranvías (carpeta descomprimida con stops.txt)
 npx tsx scripts/env-load/gtfs.ts --zip data/env/gtfs/tranvias-coruna
 
-# 3 · Inundabilidad (convertir shapefile MITECO)
-ogr2ogr -t_srs EPSG:4326 -f GeoJSON data/env/snczi/galicia-costa.geojson /ruta/shp/Zona_inundable.shp
-npx tsx scripts/env-load/sncsi.ts --geojson data/env/snczi/galicia-costa.geojson
+# 3 · Inundabilidad SNCZI (España, ZIP MITECO)
+npx tsx scripts/env-load/sncsi.ts --fetch-spain
+npx tsx scripts/env-load/sncsi.ts --fetch-spain --skip-t10 --only T100,T500
 
-# 4 · Ruido Lden
-npx tsx scripts/env-load/noise.ts --geojson data/env/ruido/acoruna-lden.geojson
+# 4 · Ruido MER Lden (España)
+npx tsx scripts/env-load/noise.ts --fetch-spain
+npx tsx scripts/env-load/noise.ts --fetch-spain --aglomeraciones-only
+
+# Manual (GeoJSON previo)
+npx tsx scripts/env-load/sncsi.ts --geojson data/env/snczi/galicia-costa.geojson
+npx tsx scripts/env-load/noise.ts --geojson data/env/ruido/acoruna-lden.geojson --region acoruna
 
 # 5 · Vulnerabilidad urbana (CSV: census_section,edition,indicator)
 npx tsx scripts/env-load/vulnerability.ts --csv data/env/ovu/secciones.csv

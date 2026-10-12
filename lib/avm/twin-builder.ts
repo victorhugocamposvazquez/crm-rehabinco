@@ -982,7 +982,20 @@ async function ejecutar(input: TwinInput, ctx: TwinCtx, deps: TwinDeps): Promise
   }
 
   const refExplicita = input.catastralRef?.replace(/\s/g, "") || null;
-  const viaCarto = input.carto ? viaCatastroDesdeCandidato(input.carto) : null;
+  const dbTwin = ctx.db ?? adminONull();
+  let cartoParaCatastro = input.carto;
+  if (cartoParaCatastro && lat != null && lng != null && !cartoParaCatastro.muniCode) {
+    try {
+      const pre = await deps.zoneAt(lat, lng);
+      if (pre.municipalityCode) {
+        cartoParaCatastro = { ...cartoParaCatastro, muniCode: pre.municipalityCode };
+      }
+    } catch {
+      /* se reintenta tras zoneAt */
+    }
+  }
+  const viaCarto =
+    cartoParaCatastro && dbTwin ? await viaCatastroDesdeCandidato(cartoParaCatastro, dbTwin) : null;
   const via = refExplicita ? null : viaCarto ?? viaDesde(geo, input.carto ? null : direccion);
   let unidades: TwinUnit[] | undefined;
   try {

@@ -38,6 +38,9 @@ export interface ValuateOptions {
   /** true solo cuando se sirvió la caché caducada de la Sede. */
   propertyStale?: boolean;
   geocodingSource?: 'google' | 'cartociudad' | 'postcode_centroid' | 'catastro' | 'pin' | 'listing' | 'missing';
+  /** Sin anuncios aún en un municipio recién onboarded. */
+  marketLoading?: boolean;
+  marketLoadingMessage?: string | null;
 }
 
 export const METHOD_VERSION = 'comparables-1.1';
@@ -143,11 +146,16 @@ export async function valuate(twin: Twin, deps: ValuateDeps, opts: ValuateOption
   const environment = (await deps.environment?.(twin)) ?? null;
   sources.push({ layer: 'environment', source: environment ? 'environment_layers' : 'none', status: environment ? 'primary' : 'missing' });
 
+  if (opts.marketLoadingMessage) {
+    explanation.unshift(opts.marketLoadingMessage);
+  }
+
   const { confidence, penalties } = computeConfidence({
     sourcesUsed: sources,
     comparables: byComps?.used ?? [],
     precisionScore,
     trend12mPct: zone?.trend12mPct ?? null,
+    marketLoading: opts.marketLoading,
   });
   if (penalties.length) explanation.push(`Confianza ${confidence} %: ` + penalties.map((p) => `${p.reason} (−${p.points})`).join('; ') + '.');
 
