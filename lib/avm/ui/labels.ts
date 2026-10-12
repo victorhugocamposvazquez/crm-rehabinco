@@ -225,7 +225,9 @@ function enteroEs(n: number): string {
   return n.toLocaleString("es-ES", { maximumFractionDigits: 0 });
 }
 
-const REEMPLAZOS_EXPLICACION: [RegExp, string | ((m: RegExpExecArray) => string)][] = [
+type ReemplazoExplicacion = string | ((match: string, ...groups: string[]) => string);
+
+const REEMPLAZOS_EXPLICACION: [RegExp, ReemplazoExplicacion][] = [
   [/\bclose_series\b/g, ETIQUETA_CAPA.close_series],
   [/\bdefault_8pct\b/g, ETIQUETA_CLOSE_SOURCE.default_8pct],
   [/\bmarket_discount\b/g, ETIQUETA_CLOSE_SOURCE.market_discount],
@@ -233,7 +235,7 @@ const REEMPLAZOS_EXPLICACION: [RegExp, string | ((m: RegExpExecArray) => string)
   [/\biqr\b/g, ETIQUETA_RANGE_METHOD.iqr],
   [/\bcatastro_sede\b/g, ETIQUETA_PROPERTY_SOURCE.catastro_sede],
   [/\bcatastro_local\b/g, ETIQUETA_PROPERTY_SOURCE.catastro_local],
-  [/\bavm_comparables\/(\d+)m\b/g, (m: string, r: string) => `comparables a ${r} m`],
+  [/\bavm_comparables\/(\d+)m\b/g, (_match, metros) => `comparables a ${metros} m`],
   [/\bmarket_listings\/postcode\b/g, "anuncios · código postal"],
   [/\bmarket_listings\/census_section\b/g, "anuncios · sección censal"],
   [/\bmarket_listings\/municipality\b/g, "anuncios · municipio"],
@@ -242,7 +244,8 @@ const REEMPLAZOS_EXPLICACION: [RegExp, string | ((m: RegExpExecArray) => string)
 export function humanizarExplicacion(linea: string, ctx: FuenteEtiquetaContext = {}): string {
   let out = linea;
   for (const [re, repl] of REEMPLAZOS_EXPLICACION) {
-    out = out.replace(re, typeof repl === "function" ? (m) => repl(m as RegExpExecArray) : repl);
+    if (typeof repl === "string") out = out.replace(re, repl);
+    else out = out.replace(re, repl);
   }
   if (ctx.zoneKey) {
     out = out.replace(new RegExp(`\\b${ctx.zoneKey}\\b`, "g"), ctx.zoneKey);
