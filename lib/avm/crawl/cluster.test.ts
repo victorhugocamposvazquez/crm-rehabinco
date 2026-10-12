@@ -25,6 +25,20 @@ describe("clúster entre portales", () => {
     expect(new Set(grupos).size).toBe(1);
   });
 
+  it("mismo precio a menos de 100 m y superficie ±10 % es un clúster aunque las habitaciones no coincidan", () => {
+    const base = piso("fotocasa", 390000);
+    const otroPortal: FichaCluster = {
+      ...piso("habitaclia", 390000),
+      lng: base.lng! + 0.0009,
+      surface: 100,
+      rooms: 1,
+    };
+    const lejos: FichaCluster = { ...otroPortal, lng: base.lng! + 0.004, price: 390000 };
+    const grupos = agruparClusters([base, otroPortal, lejos]);
+    expect(grupos[0]).toBe(grupos[1]);
+    expect(grupos[2]).not.toBe(grupos[0]);
+  });
+
   it("un piso distinto no entra en el clúster", () => {
     const otro: FichaCluster = { ...piso("fotocasa", 390000), lat: 43.37, surface: 140, price: 500000 };
     const grupos = agruparClusters([piso("fotocasa", 390000), piso("habitaclia", 395000), otro]);

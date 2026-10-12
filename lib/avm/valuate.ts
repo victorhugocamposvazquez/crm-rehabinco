@@ -33,7 +33,7 @@ export interface ValuateOptions {
   operation?: Operation;
   /** Campos que vinieron de Catastro/anuncio (para sourcesUsed.property). */
   propertySource?: 'catastro_local' | 'catastro_live' | 'listing' | 'manual';
-  geocodingSource?: 'google' | 'cartociudad' | 'postcode_centroid';
+  geocodingSource?: 'google' | 'cartociudad' | 'postcode_centroid' | 'catastro' | 'pin' | 'listing' | 'missing';
 }
 
 export const METHOD_VERSION = 'comparables-1.0';
@@ -44,11 +44,13 @@ export async function valuate(twin: Twin, deps: ValuateDeps, opts: ValuateOption
   const explanation: string[] = [];
 
   // Geocodificación y datos del inmueble: ya resueltos aguas arriba; aquí solo se anotan.
-  sources.push({
-    layer: 'geocoding',
-    source: opts.geocodingSource ?? 'google',
-    status: opts.geocodingSource === 'postcode_centroid' ? 'degraded' : opts.geocodingSource === 'cartociudad' ? 'fallback' : 'primary',
-  });
+  const geo = opts.geocodingSource ?? 'google';
+  const geoStatus: SourceUsed['status'] =
+    geo === 'missing' ? 'missing'
+    : geo === 'postcode_centroid' ? 'degraded'
+    : geo === 'cartociudad' ? 'fallback'
+    : 'primary';
+  sources.push({ layer: 'geocoding', source: geo, status: geoStatus });
   const propStatus: SourceUsed['status'] =
     opts.propertySource === 'catastro_local' ? 'primary'
     : opts.propertySource === 'catastro_live' ? 'fallback'

@@ -51,7 +51,8 @@ function tipo(item: Item): { main: "apartment" | "house"; property: string } | n
 export function urlListadoFotocasa(operation: OperacionMercado, pagina: number): string {
   const op = operation === "rent" ? "alquiler" : "comprar";
   const base = `https://www.fotocasa.es/es/${op}/viviendas/a-coruna-capital/todas-las-zonas/l`;
-  return pagina <= 1 ? base : `${base}/${pagina}`;
+  const path = pagina <= 1 ? base : `${base}/${pagina}`;
+  return `${path}?sortType=price&sortOrderDesc=false`;
 }
 
 export function parseListingCardsFotocasa(html: string, operation: OperacionMercado): PaginaTarjetas {

@@ -11,7 +11,7 @@ import { valuate } from '../valuate';
 import { buildEnvironment } from '../environment';
 import { emptyTwin, type Comparable, type Twin } from '../types';
 
-const juanFlorez = (): Twin => ({
+export const juanFlorez = (): Twin => ({
   ...emptyTwin(),
   address: { ...emptyTwin().address, formattedAddress: 'Rúa Juan Flórez 30, 15004 A Coruña', postcode: '15004', locality: 'A Coruña', lat: 43.3654271, lng: -8.408791 },
   mainType: 'apartment', propertyType: 'apartment',

@@ -24,6 +24,7 @@ function deps(parcial: Partial<TwinDeps> = {}): TwinDeps {
     geocodeGoogle: vacio,
     geocodeCartociudad: vacio,
     postcodeCentroid: vacio,
+    postcodeAt: async () => null,
     zoneAt: async () => ({ censusSection: "1503001012", municipalityCode: "15030" }),
     catastroLocal: async () => null,
     catastroSede: async () => ({ hit: null }),
@@ -49,31 +50,31 @@ function sede(hit: Partial<CatastroHit>): CatastroHit {
 }
 
 describe("buildTwin", () => {
-  it("geocodifica con Google cuando responde", async () => {
+  it("geocodifica con CartoCiudad y deja Google para cuando esa no responde", async () => {
     const out = await buildTwin(
       { address: "Rúa Juan Flórez 30, 15004 A Coruña" },
       ctx,
-      deps({ geocodeGoogle: async () => punto })
+      deps({ geocodeCartociudad: async () => punto })
     );
-    expect(out.geocodingSource).toBe("google");
+    expect(out.geocodingSource).toBe("cartociudad");
     expect(out.twin.address.lat).toBe(43.37);
     expect(out.zone.municipalityCode).toBe("15030");
     expect(out.zone.postcode).toBe("15004");
   });
 
-  it("si Google falla sigue con CartoCiudad", async () => {
+  it("si CartoCiudad falla sigue con Google", async () => {
     const out = await buildTwin(
       { address: "Rúa Juan Flórez 30, 15004 A Coruña" },
       ctx,
       deps({
-        geocodeGoogle: async () => {
+        geocodeCartociudad: async () => {
           throw new Error("timeout");
         },
-        geocodeCartociudad: async () => punto,
+        geocodeGoogle: async () => punto,
       })
     );
-    expect(out.geocodingSource).toBe("cartociudad");
-    expect(out.warnings.some((w) => w.startsWith("Google:"))).toBe(true);
+    expect(out.geocodingSource).toBe("google");
+    expect(out.warnings.some((w) => w.startsWith("CartoCiudad:"))).toBe(true);
   });
 
   it("si fallan los dos geocoders usa el código postal cacheado", async () => {
@@ -152,6 +153,8 @@ describe("buildTwin", () => {
       floor: String(i % 4).padStart(2, "0"),
       door: "A",
       surface: 70 + i,
+      use: "Vivienda",
+      isDwelling: true,
     }));
     const out = await buildTwin(
       { address: "Rúa Juan Flórez 30, 15004 A Coruña", lat: 43.3656, lng: -8.4085 },
@@ -260,6 +263,22 @@ describe("buildTwin Juan Flórez", () => {
     ).toBeLessThan(50);
     expect(out.zone.postcode).toBe("15004");
     expect(out.zone.municipalityCode).toBe("15030");
+    expect(out.geocodingSource).toBe("catastro");
+    expect(out.twin.address.catastralRef?.slice(0, 14)).toBe("8018007NJ4081N");
     expect(out.units && out.units.length > 1).toBe(true);
-  }, 30000);
+    const unidad = out.units?.find((u) => u.floor === "03" && u.door === "DR" && u.isDwelling);
+    expect(unidad?.catastralRef).toHaveLength(20);
+    const elegido = await buildTwin(
+      { address: "Rúa Juan Flórez 30, 15004 A Coruña", catastralRef: unidad?.catastralRef },
+      ctx
+    );
+    expect(elegido.twin.mainType).toBe("apartment");
+    expect(elegido.twin.propertyType).toBe("apartment");
+    expect(elegido.twin.builtSurface).toBeGreaterThan(0);
+    expect(elegido.twin.floorOfFlat).toBe(3);
+    expect(elegido.fieldSources.builtSurface).toBe("catastro_sede");
+    expect(elegido.fieldSources.floorOfFlat).toBe("catastro_sede");
+    expect(elegido.twin.address.catastralRef).toHaveLength(20);
+    expect(elegido.prefilledFields.has("floorOfFlat")).toBe(true);
+  }, 45000);
 });

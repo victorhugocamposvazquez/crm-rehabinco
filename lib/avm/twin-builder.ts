@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createCatastroClient } from "../catastro/client";
+import { TIPOS_VIA_OFICIALES } from "../catastro/constants";
 import { asArray, asRecord, asString } from "../catastro/parse";
 import type { ResultadoConsultaCatastro } from "../catastro/types";
 import { createAdminClient } from "../supabase/admin";
@@ -17,13 +18,15 @@ const GANA_CATASTRO = new Set<keyof Twin>([
 
 export type FieldSource = "catastro_local" | "catastro_sede" | "listing" | "crm";
 export type PropertySource = FieldSource | "manual";
-export type GeocodingSource = "google" | "cartociudad" | "postcode_centroid" | "pin" | "listing" | "missing";
+export type GeocodingSource = "google" | "cartociudad" | "postcode_centroid" | "pin" | "listing" | "catastro" | "missing";
 
 export type TwinUnit = {
   catastralRef: string;
   floor: string | null;
   door: string | null;
   surface: number | null;
+  use: string | null;
+  isDwelling: boolean;
 };
 
 export type TwinBuild = {
@@ -58,8 +61,17 @@ export type GeoHit = {
   postcode?: string | null;
   locality?: string | null;
   province?: string | null;
+  tipVia?: string | null;
   googlePlaceId?: string | null;
   refCatastral?: string | null;
+};
+
+export type ViaCatastro = {
+  provincia: string;
+  municipio: string;
+  sigla: string;
+  calle: string;
+  numero: string;
 };
 
 export type CatastroHit = {
@@ -70,6 +82,8 @@ export type CatastroHit = {
   constructionYear: number | null;
   floorOfFlat: number | null;
   numberOfFloors: number | null;
+  centroid?: { lat: number; lng: number } | null;
+  unitRef?: string | null;
   mainType: MainType | null;
   propertyType: PropertyType | null;
 };
@@ -101,9 +115,10 @@ export type TwinDeps = {
   geocodeGoogle: (address: string) => Promise<GeoHit | null>;
   geocodeCartociudad: (address: string) => Promise<GeoHit | null>;
   postcodeCentroid: (postcode: string) => Promise<GeoHit | null>;
+  postcodeAt: (lat: number, lng: number) => Promise<string | null>;
   zoneAt: (lat: number, lng: number) => Promise<{ censusSection: string | null; municipalityCode: string | null }>;
   catastroLocal: (q: { ref?: string; lat?: number; lng?: number }) => Promise<CatastroHit | null>;
-  catastroSede: (q: { ref?: string; address?: string; lat?: number; lng?: number }) => Promise<SedeResult>;
+  catastroSede: (q: { ref?: string; address?: string; via?: ViaCatastro; lat?: number; lng?: number }) => Promise<SedeResult>;
   listingById: (id: string) => Promise<FichaOrigen | null>;
   crmById: (id: string, tenantId: string) => Promise<FichaOrigen | null>;
 };
@@ -122,10 +137,42 @@ export function condicionDesdePista(pista: string | null | undefined): 1 | 2 | 3
 export function plantaNumero(planta: string | null | undefined): number | null {
   if (!planta?.trim()) return null;
   const t = planta.trim().toUpperCase();
+  if (t === "+1" || t === "-1") return null;
   if (/^-?\d+$/.test(t)) return Number(t);
   if (t === "BJ" || t === "BA" || t === "OD" || t === "EN") return 0;
   if (t === "SS" || t === "SM") return -1;
   return null;
+}
+
+export function esVivienda(uso: string | null | undefined): boolean {
+  if (!uso) return false;
+  const t = uso.toLowerCase();
+  if (/almac|estacionamiento|garaje|aparcamiento|trastero|comercial|oficina|industrial|suelo|solar/.test(t)) return false;
+  return /vivienda|residencial/.test(t);
+}
+
+function tipoDesdeUso(uso: string | null, viviendas: number): { mainType: MainType; propertyType: PropertyType } | null {
+  const t = (uso ?? "").toLowerCase();
+  if (/suelo|solar|sin edificar/.test(t)) return { mainType: "land", propertyType: "land" };
+  if (/unifamiliar|casa|chalet/.test(t)) return { mainType: "house", propertyType: "house" };
+  if (/vivienda|residencial/.test(t)) {
+    return viviendas > 1
+      ? { mainType: "apartment", propertyType: "apartment" }
+      : { mainType: "house", propertyType: "house" };
+  }
+  return null;
+}
+
+function ordenarUnidades(units: TwinUnit[]): TwinUnit[] {
+  return [...units].sort((a, b) => {
+    if (a.isDwelling !== b.isDwelling) return a.isDwelling ? -1 : 1;
+    const fa = plantaNumero(a.floor);
+    const fb = plantaNumero(b.floor);
+    const na = fa ?? 999;
+    const nb = fb ?? 999;
+    if (na !== nb) return na - nb;
+    return (a.door ?? "").localeCompare(b.door ?? "", "es");
+  });
 }
 
 export async function conCache<T>(opts: {
@@ -191,6 +238,16 @@ function numeroPortal(address: string): string | null {
   return sinCp.match(/\b(\d+)\b/)?.[1] ?? null;
 }
 
+function calleCartociudad(item: Record<string, unknown>): string | null {
+  if (typeof item.address !== "string") return null;
+  let calle = item.address.split(",")[0].trim();
+  const tip = typeof item.tip_via === "string" ? item.tip_via : "";
+  if (tip && calle.toUpperCase().startsWith(`${tip.toUpperCase()} `)) calle = calle.slice(tip.length).trim();
+  const numero = item.portalNumber == null ? "" : String(item.portalNumber);
+  if (numero && calle.endsWith(` ${numero}`)) calle = calle.slice(0, -(numero.length + 1)).trim();
+  return calle || null;
+}
+
 async function pedirCartociudad(path: "candidates" | "find", q: string): Promise<GeoHit | null> {
   const url = new URL(`https://www.cartociudad.es/geocoder/api/geocoder/${path}`);
   url.searchParams.set("q", q);
@@ -204,7 +261,8 @@ async function pedirCartociudad(path: "candidates" | "find", q: string): Promise
     lat: item.lat,
     lng: item.lng,
     formattedAddress: typeof item.address === "string" ? item.address : null,
-    route: typeof item.address === "string" ? item.address : null,
+    route: calleCartociudad(item),
+    tipVia: typeof item.tip_via === "string" ? item.tip_via : null,
     streetNumber: item.portalNumber == null ? null : String(item.portalNumber),
     postcode: typeof item.postalCode === "string" ? item.postalCode : null,
     locality: typeof item.muni === "string" ? item.muni : typeof item.poblacion === "string" ? item.poblacion : null,
@@ -289,33 +347,45 @@ function moda(nums: number[]): number | null {
   return mejor;
 }
 
-export function hitDesdeConsulta(resultado: ResultadoConsultaCatastro): CatastroHit | null {
+export function hitDesdeConsulta(resultado: ResultadoConsultaCatastro, elegidaRef?: string | null): CatastroHit | null {
   if (resultado.tipo === "error" || resultado.tipo === "vacio" || resultado.results.length === 0) return null;
-  const units: TwinUnit[] = [];
-  for (const item of resultado.results) {
-    const ref = item.referenciaCatastral?.replace(/\s/g, "") ?? "";
-    if (ref.length !== 20) continue;
-    units.push({
-      catastralRef: ref,
-      floor: item.direccion.planta,
-      door: item.direccion.puerta,
-      surface: item.superficie,
-    });
-  }
-  const varias = units.length > 1;
-  const unica = units.length === 1 ? units[0] : null;
+  const units = ordenarUnidades(
+    resultado.results.flatMap((item) => {
+      const ref = item.referenciaCatastral?.replace(/\s/g, "") ?? "";
+      if (ref.length !== 20) return [];
+      const use = item.uso ?? null;
+      return [{
+        catastralRef: ref,
+        floor: item.direccion.planta,
+        door: item.direccion.puerta,
+        surface: item.superficie,
+        use,
+        isDwelling: esVivienda(use),
+      }];
+    })
+  );
+  const pedida = elegidaRef?.replace(/\s/g, "") ?? "";
+  const elegida = pedida.length === 20 ? units.find((u) => u.catastralRef === pedida) ?? null : units.length === 1 ? units[0] : null;
+  const viviendas = units.filter((u) => u.isDwelling).length;
   const years = resultado.results.map((r) => r.anio).filter((n): n is number => n != null);
-  const plantas = units.map((u) => plantaNumero(u.floor)).filter((n): n is number => n != null);
-  const usos = [...new Set(resultado.results.map((r) => r.uso).filter((u): u is string => Boolean(u)))];
-  const tipo = usos.length === 1 ? usoATipo(usos[0]) : null;
+  const plantas = units.map((u) => plantaNumero(u.floor)).filter((n): n is number => n != null && n >= 0);
   const land = resultado.results.map((r) => r.finca?.superficieSolar).find((n) => n != null) ?? null;
+  const sinEdificar = units.length === 0;
+  const tipo = elegida
+    ? tipoDesdeUso(elegida.use, viviendas)
+    : sinEdificar
+      ? { mainType: "land" as const, propertyType: "land" as const }
+      : units.length > 1
+        ? { mainType: "building" as const, propertyType: "building" as const }
+        : null;
   return {
-    parcelRef: resultado.results[0]?.referenciaParcela ?? null,
-    units: varias ? units : [],
-    builtSurface: unica?.surface ?? null,
+    parcelRef: resultado.results[0]?.referenciaParcela ?? (pedida.length >= 14 ? pedida.slice(0, 14) : null),
+    unitRef: elegida?.catastralRef ?? null,
+    units: elegida || units.length <= 1 ? [] : units,
+    builtSurface: elegida?.surface ?? null,
     landSurface: land ?? null,
     constructionYear: moda(years),
-    floorOfFlat: unica ? plantaNumero(unica.floor) : null,
+    floorOfFlat: elegida ? plantaNumero(elegida.floor) : null,
     numberOfFloors: plantas.length ? Math.max(...plantas) : null,
     mainType: tipo?.mainType ?? null,
     propertyType: tipo?.propertyType ?? null,
@@ -333,6 +403,22 @@ function referenciaDesdeRccoor(raw: unknown): string | null {
   const pc2 = asString(pc?.pc2);
   if (!pc1 || !pc2) return null;
   return `${pc1}${pc2}`;
+}
+
+function viaDesde(geo: GeoHit | null, direccion: string | null): ViaCatastro | null {
+  if (geo?.route && geo.streetNumber) {
+    return {
+      provincia: (geo.province ?? "A CORUÑA").toUpperCase(),
+      municipio: (geo.locality ?? "A CORUÑA").toUpperCase(),
+      sigla: geo.tipVia ?? "CALLE",
+      calle: geo.route.toUpperCase(),
+      numero: geo.streetNumber,
+    };
+  }
+  if (!direccion) return null;
+  const dir = partirDireccion(direccion);
+  if (!dir.calle || !dir.numero) return null;
+  return dir;
 }
 
 function partirDireccion(address: string): { provincia: string; municipio: string; calle: string; numero: string; sigla: string } {
@@ -397,6 +483,29 @@ function depsReales(ctx: TwinCtx): TwinDeps {
       }
       return hit ? { ...hit, postcode: hit.postcode ?? postcode } : null;
     },
+    async postcodeAt(lat, lng) {
+      const db = adminONull();
+      if (db) {
+        const { data } = await db.rpc("avm_postcode_at", { p_lat: lat, p_lng: lng });
+        const cp = typeof data === "string" ? data : null;
+        if (cp) return cp;
+      }
+      const url = new URL("https://www.cartociudad.es/geocoder/api/geocoder/reverseGeocode");
+      url.searchParams.set("lat", String(lat));
+      url.searchParams.set("lon", String(lng));
+      const res = await fetch(url, { signal: AbortSignal.timeout(TOPE_MS) });
+      if (!res.ok) return null;
+      const json = (await res.json()) as { postalCode?: string };
+      const cp = typeof json.postalCode === "string" && /^\d{5}$/.test(json.postalCode) ? json.postalCode : null;
+      if (cp && db) {
+        await db.from("postcode_reverse_cache").upsert({
+          lat: Number(lat.toFixed(5)),
+          lng: Number(lng.toFixed(5)),
+          postcode: cp,
+        });
+      }
+      return cp;
+    },
     async zoneAt(lat, lng) {
       const db = adminONull();
       if (!db) return { censusSection: null, municipalityCode: null };
@@ -427,12 +536,14 @@ function depsReales(ctx: TwinCtx): TwinDeps {
     },
     async catastroSede(q) {
       const key = q.ref
-        ? `ref:${q.ref.replace(/\s/g, "")}`
-        : q.address
-          ? `addr:${q.address.trim().toLowerCase()}`
-          : q.lat != null && q.lng != null
-            ? `xy:${q.lat.toFixed(5)},${q.lng.toFixed(5)}`
-            : "";
+        ? `v2:ref:${q.ref.replace(/\s/g, "")}`
+        : q.via
+          ? `v2:via:${q.via.sigla}|${q.via.calle}|${q.via.numero}|${q.via.municipio}`
+          : q.address
+            ? `v2:addr:${q.address.trim().toLowerCase()}`
+            : q.lat != null && q.lng != null
+              ? `v2:xy:${q.lat.toFixed(5)},${q.lng.toFixed(5)}`
+              : "";
       if (!key) return { hit: null };
       const db = adminONull();
       const leido = await conCache<CatastroHit>({
@@ -488,24 +599,72 @@ function depsReales(ctx: TwinCtx): TwinDeps {
   };
 }
 
-async function pedirSede(q: { ref?: string; address?: string; lat?: number; lng?: number }): Promise<CatastroHit | null> {
+function siglaOficial(tipVia: string | null | undefined): string {
+  const t = (tipVia ?? "CALLE").normalize("NFD").replace(/\p{Diacritic}/gu, "").toUpperCase();
+  const porCodigo = TIPOS_VIA_OFICIALES.find((item) => item.codigo === t);
+  if (porCodigo) return porCodigo.codigo;
+  const porNombre = TIPOS_VIA_OFICIALES.find((item) => item.nombres.some((nombre) => nombre === t));
+  return porNombre?.codigo ?? "CL";
+}
+
+function centroideDesdeCpmrc(raw: unknown): { lat: number; lng: number } | null {
+  const root = asRecord(raw);
+  const result = asRecord(root?.Consulta_CPMRCResult);
+  const coordenadas = asRecord(result?.coordenadas);
+  const lista = asArray(coordenadas?.coord);
+  const coord = asRecord(lista[0]) ?? asRecord(coordenadas?.coord);
+  const geo = asRecord(coord?.geo);
+  const lng = Number(asString(geo?.xcen));
+  const lat = Number(asString(geo?.ycen));
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return { lat, lng };
+}
+
+async function conCentroide(client: ReturnType<typeof createCatastroClient>, hit: CatastroHit | null): Promise<CatastroHit | null> {
+  if (!hit?.parcelRef || hit.parcelRef.length < 14) return hit;
+  try {
+    const crudo = await client.consultarCoordenadasPorReferencia(hit.parcelRef.slice(0, 14));
+    const centroid = centroideDesdeCpmrc(crudo);
+    return centroid ? { ...hit, centroid } : hit;
+  } catch {
+    return hit;
+  }
+}
+
+async function pedirSede(q: { ref?: string; address?: string; via?: ViaCatastro; lat?: number; lng?: number }): Promise<CatastroHit | null> {
   const client = createCatastroClient({ timeoutMs: TOPE_MS, minIntervalMs: 0 });
-  if (q.ref) {
-    const raw = await client.consultarReferencia({ refCat: q.ref.replace(/\s/g, "") });
-    return hitDesdeConsulta(raw);
+  const ref = q.ref?.replace(/\s/g, "");
+  if (ref && ref.length >= 20) {
+    const parcela = await client.consultarReferencia({ refCat: ref.slice(0, 14) });
+    const hit = hitDesdeConsulta(parcela, ref);
+    return conCentroide(client, hit);
+  }
+  if (ref) {
+    const raw = await client.consultarReferencia({ refCat: ref.slice(0, 14) });
+    return conCentroide(client, hitDesdeConsulta(raw));
+  }
+  if (q.via?.calle && q.via.numero) {
+    const raw = await client.consultarDireccion({
+      provincia: q.via.provincia,
+      municipio: q.via.municipio,
+      sigla: siglaOficial(q.via.sigla),
+      calle: q.via.calle,
+      numero: q.via.numero,
+    });
+    return conCentroide(client, hitDesdeConsulta(raw));
   }
   if (q.address) {
     const dir = partirDireccion(q.address);
     if (!dir.calle || !dir.numero) return null;
     const raw = await client.consultarDireccion(dir);
-    return hitDesdeConsulta(raw);
+    return conCentroide(client, hitDesdeConsulta(raw));
   }
   if (q.lat == null || q.lng == null) return null;
   const crudo = await client.consultarReferenciaPorCoordenadas(q.lat, q.lng);
-  const ref = referenciaDesdeRccoor(crudo);
-  if (!ref) return null;
-  const detalle = await client.consultarReferencia({ refCat: ref });
-  return hitDesdeConsulta(detalle);
+  const porPunto = referenciaDesdeRccoor(crudo);
+  if (!porPunto) return null;
+  const detalle = await client.consultarReferencia({ refCat: porPunto });
+  return conCentroide(client, hitDesdeConsulta(detalle));
 }
 
 function fichaMercado(row: Record<string, unknown>): FichaOrigen {
@@ -674,17 +833,17 @@ async function ejecutar(input: TwinInput, ctx: TwinCtx, deps: TwinDeps): Promise
     geocodingSource = "listing";
   } else if (direccion) {
     try {
-      geo = await deps.geocodeGoogle(direccion);
-      if (geo) geocodingSource = "google";
+      geo = await deps.geocodeCartociudad(direccion);
+      if (geo) geocodingSource = "cartociudad";
     } catch (err) {
-      warnings.push(`Google: ${aviso(err)}`);
+      warnings.push(`CartoCiudad: ${aviso(err)}`);
     }
     if (!geo) {
       try {
-        geo = await deps.geocodeCartociudad(direccion);
-        if (geo) geocodingSource = "cartociudad";
+        geo = await deps.geocodeGoogle(direccion);
+        if (geo) geocodingSource = "google";
       } catch (err) {
-        warnings.push(`CartoCiudad: ${aviso(err)}`);
+        warnings.push(`Google: ${aviso(err)}`);
       }
     }
     if (!geo) {
@@ -708,7 +867,6 @@ async function ejecutar(input: TwinInput, ctx: TwinCtx, deps: TwinDeps): Promise
       twin.address.locality = geo.locality ?? null;
       twin.address.province = geo.province ?? null;
       twin.address.googlePlaceId = geo.googlePlaceId ?? null;
-      if (!twin.address.catastralRef && geo.refCatastral) twin.address.catastralRef = geo.refCatastral;
     }
   }
 
@@ -718,6 +876,41 @@ async function ejecutar(input: TwinInput, ctx: TwinCtx, deps: TwinDeps): Promise
   } else {
     twin.address.lat = lat;
     twin.address.lng = lng;
+  }
+
+  const refExplicita = input.catastralRef?.replace(/\s/g, "") || null;
+  const via = refExplicita ? null : viaDesde(geo, direccion);
+  let unidades: TwinUnit[] | undefined;
+  try {
+    const local = await deps.catastroLocal({ ref: refExplicita ?? undefined, lat: lat ?? undefined, lng: lng ?? undefined });
+    if (local) aplicarCatastro(twin, sources, local, "catastro_local");
+  } catch (err) {
+    warnings.push(`Catastro local: ${aviso(err)}`);
+  }
+  try {
+    const sede = await deps.catastroSede({
+      ref: refExplicita ?? undefined,
+      via: via ?? undefined,
+      address: refExplicita || via ? undefined : direccion ?? undefined,
+      lat: refExplicita || via || direccion ? undefined : lat ?? undefined,
+      lng: refExplicita || via || direccion ? undefined : lng ?? undefined,
+    });
+    if (sede.warning) warnings.push(sede.warning);
+    if (sede.hit) {
+      if (sede.hit.centroid) {
+        lat = sede.hit.centroid.lat;
+        lng = sede.hit.centroid.lng;
+        twin.address.lat = lat;
+        twin.address.lng = lng;
+        geocodingSource = "catastro";
+      }
+      if (sede.hit.unitRef) twin.address.catastralRef = sede.hit.unitRef;
+      else if (sede.hit.parcelRef) twin.address.catastralRef = sede.hit.parcelRef;
+      aplicarCatastro(twin, sources, sede.hit, "catastro_sede");
+      if (sede.hit.units.length > 1) unidades = ordenarUnidades(sede.hit.units);
+    }
+  } catch (err) {
+    warnings.push(`Sede del Catastro: ${aviso(err)}`);
   }
 
   const zone = { censusSection: null as string | null, municipalityCode: null as string | null, postcode: twin.address.postcode };
@@ -731,39 +924,15 @@ async function ejecutar(input: TwinInput, ctx: TwinCtx, deps: TwinDeps): Promise
     } catch (err) {
       warnings.push(`Sección censal: ${aviso(err)}`);
     }
-  }
-
-  const ref = twin.address.catastralRef ?? undefined;
-  let unidades: TwinUnit[] | undefined;
-  try {
-    const local = await deps.catastroLocal({ ref, lat: lat ?? undefined, lng: lng ?? undefined });
-    if (local) aplicarCatastro(twin, sources, local, "catastro_local");
-  } catch (err) {
-    warnings.push(`Catastro local: ${aviso(err)}`);
-  }
-  try {
-    const sede = await deps.catastroSede({
-      ref,
-      address: ref ? undefined : direccion ?? undefined,
-      lat: ref || direccion ? undefined : lat ?? undefined,
-      lng: ref || direccion ? undefined : lng ?? undefined,
-    });
-    if (sede.warning) warnings.push(sede.warning);
-    if (sede.hit) {
-      aplicarCatastro(twin, sources, sede.hit, "catastro_sede");
-      if (sede.hit.units.length > 1) unidades = sede.hit.units;
-      if (unidades && unidades.length === 1) {
-        /* una sola unidad ya rellena superficie y planta */
+    try {
+      const cp = await deps.postcodeAt(lat, lng);
+      if (cp) {
+        twin.address.postcode = cp;
+        zone.postcode = cp;
       }
-      if (!twin.address.catastralRef && sede.hit.units.length === 1) {
-        twin.address.catastralRef = sede.hit.units[0].catastralRef;
-      }
-      if (!twin.address.catastralRef && sede.hit.parcelRef && sede.hit.units.length === 0 && (sede.hit.builtSurface != null || sede.hit.constructionYear != null)) {
-        twin.address.catastralRef = twin.address.catastralRef ?? null;
-      }
+    } catch (err) {
+      warnings.push(`Código postal: ${aviso(err)}`);
     }
-  } catch (err) {
-    warnings.push(`Sede del Catastro: ${aviso(err)}`);
   }
 
   if (unidades && unidades.length > 1) {

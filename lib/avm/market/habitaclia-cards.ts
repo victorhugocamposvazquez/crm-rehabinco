@@ -100,7 +100,8 @@ function itemsDe(html: string): { items: Item[]; page: number; totalPages: numbe
 export function urlListadoHabitaclia(operation: OperacionMercado, kind: "viviendas" | "casas", pagina: number): string {
   const op = operation === "rent" ? "alquiler" : "comprar";
   const base = `https://www.habitaclia.com/${op}/${kind}/a-coruna-provincia/a-coruna-capital/s`;
-  return pagina <= 1 ? base : `${base}/${pagina}`;
+  const path = pagina <= 1 ? base : `${base}/${pagina}`;
+  return `${path}?sortBy=PRICE_ASC`;
 }
 
 function clase(item: Item): { main: "apartment" | "house"; property: string } | null {
