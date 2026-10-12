@@ -37,22 +37,26 @@ export function PanelLateralValoracion({
           <span>Precisión de la valoración</span>
           <b className="text-[15px] tabular-nums text-foreground">{precision} %</b>
         </div>
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--surface-soft)]">
+        <div className="mt-2 h-1.5 overflow-hidden rounded-sm bg-[var(--surface-soft)]">
           <div className="h-full rounded-full bg-foreground transition-all" style={{ width: `${precision}%` }} />
         </div>
         <div className="my-3 h-px bg-[var(--border)]" />
         <p className="text-[12px] text-[var(--text-3)]">Rango de estimación en vivo</p>
         <p
-          className={`mt-1 text-[22px] font-semibold tabular-nums tracking-[-0.02em] ${desenfocado ? "blur-md select-none" : ""}`}
+          className={`mt-1 text-[26px] font-semibold tabular-nums tracking-[-0.02em] transition-[filter] ${desenfocado ? "blur-[7px] select-none" : ""}`}
         >
           {estimado && !desenfocado
             ? `${fmtNumero(estimado.low)} – ${fmtNumero(estimado.high)} €`
             : "— €"}
         </p>
         <p className="mt-1 text-[12px] text-[var(--text-3)]">
-          {estimado && !desenfocado
-            ? `±${estimado.uncertainty} % · ${mediana ? "con mediana de zona" : "estimación base"}`
-            : "Confirma tipo y superficie para ver el rango."}
+          {!twin?.address.lat
+            ? "Empieza por la dirección, la referencia catastral o el mapa."
+            : desenfocado
+              ? "Se desenfoca al saber el tipo y la superficie."
+              : estimado
+                ? `±${estimado.uncertainty} % · ${mediana ? "con el €/m² real de tu zona" : "estimación base"}`
+                : ""}
         </p>
         <div className="my-3 h-px bg-[var(--border)]" />
         <div className="flex items-center justify-between text-[12px]">
@@ -128,5 +132,5 @@ export function PanelLateralValoracion({
     );
   }
 
-  return <aside className="sticky top-[4.5rem] hidden w-[320px] shrink-0 flex-col gap-3 lg:flex">{cuerpo}</aside>;
+  return <aside className="sticky top-[4.5rem] hidden w-[340px] shrink-0 flex-col gap-3.5 lg:flex">{cuerpo}</aside>;
 }

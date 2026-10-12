@@ -1,5 +1,5 @@
 import React from "react";
-import type { Environment, SourceUsed, Twin, ValuationResult } from "../../lib/avm/types";
+import type { SourceUsed, Twin, ValuationResult } from "../../lib/avm/types";
 import { computeConfidence } from "../../lib/avm/confidence";
 import { filasFicha } from "../../lib/avm/ui/ficha";
 import {
@@ -23,6 +23,7 @@ import {
 } from "../../lib/avm/ui/format";
 import type { FieldSource } from "../../lib/avm/twin-builder";
 import { MapaValoracion } from "./MapaValoracion";
+import { EntornoInforme, FlagsEntorno } from "./EntornoInforme";
 
 export type InformeProps = {
   creada: string;
@@ -256,21 +257,11 @@ export function InformeValoracion({
       </section>
 
       <div className={`grid gap-4 ${result.environment ? "lg:grid-cols-2" : ""}`}>
-        {result.environment ? <EntornoCard environment={result.environment} /> : null}
+        {result.environment ? <EntornoInforme environment={result.environment} /> : null}
         <section className={`rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-5 ${result.environment ? "" : "lg:col-span-2"}`}>
           <h2 className="mb-3 text-base font-semibold">Riesgos y avisos</h2>
           <div className="space-y-4">
-            {result.environment?.flags?.length ? (
-              <ul className="space-y-2 text-[13px]">
-                {result.environment.flags.map((f) => (
-                  <li key={f.label} className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2">
-                    {f.label}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-[13px] text-[var(--text-3)]">Sin avisos del equipo en esta zona</p>
-            )}
+            <FlagsEntorno flags={result.environment?.flags ?? []} />
             <div className="h-px bg-[var(--border)]" />
             <div>
               <h3 className="mb-2 text-base font-semibold">Alquiler y rentabilidad</h3>
@@ -363,38 +354,3 @@ function Ajustes({ c }: { c: import("../../lib/avm/types").AdjustedComparable })
   );
 }
 
-function EntornoCard({ environment }: { environment: Environment }) {
-  return (
-    <section className="rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-5" data-testid="entorno">
-      <div className="mb-3 flex flex-row items-center justify-between">
-        <h2 className="text-base font-semibold">Entorno</h2>
-        <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[11px] text-[var(--text-3)]">
-          no cambia el precio en fase 1
-        </span>
-      </div>
-      <div>
-        {environment.score != null ? (
-          <p className="mb-3 text-4xl font-bold tabular-nums">{environment.score}</p>
-        ) : null}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-3)]">A favor</p>
-            <ul className="space-y-1 text-[13px]">
-              {environment.positives.map((p) => (
-                <li key={p.label}>{p.label}</li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-3)]">En contra</p>
-            <ul className="space-y-1 text-[13px]">
-              {environment.negatives.map((p) => (
-                <li key={p.label}>{p.label}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}

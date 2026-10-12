@@ -18,6 +18,15 @@ import { computeLiveEstimate, computePrecision } from "@/lib/avm/estimate";
 import { descartarBorrador, guardarBorrador, leerBorrador } from "@/lib/avm/ui/borrador-nueva";
 import { ETIQUETA_MAIN_TYPE, ETIQUETA_PROPERTY_TYPE } from "@/lib/avm/ui/labels";
 import { normalizarReferencia, tipoReferencia } from "@/lib/avm/ui/referencia";
+import { mensajeReferencia } from "@/lib/avm/ui/referencia-mensaje";
+import {
+  BandBorrador,
+  CampoEntrada,
+  QNav,
+  SegControl,
+  SugerenciaChip,
+  TagAvm,
+} from "@/components/avm/nueva/wizard-ui";
 import { etiquetaUnidad, unidadesAgrupadas } from "@/lib/avm/ui/unidades";
 import { plantaNumero, type TwinUnit } from "@/lib/avm/twin-builder";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -54,9 +63,10 @@ export function NuevaValoracionWizard() {
   const [elegida, setElegida] = useState<{ address: string; lat: number; lng: number } | null>(null);
   const [pinMapa, setPinMapa] = useState(CENTRO_AGENCIA);
   const [referencia, setReferencia] = useState("");
-  const [ayudaRef, setAyudaRef] = useState(false);
   const [crmQ, setCrmQ] = useState("");
   const [crmRes, setCrmRes] = useState<ResultadoBusquedaCrm[]>([]);
+  const [buscaMapa, setBuscaMapa] = useState("");
+  const [sugerenciasMapa, setSugerenciasMapa] = useState<{ address: string; lat: number; lng: number }[]>([]);
 
   const [built, setBuilt] = useState<GemeloOk | null>(null);
   const [units, setUnits] = useState<TwinUnit[] | null>(null);
@@ -172,6 +182,15 @@ export function NuevaValoracionWizard() {
     const t = window.setTimeout(() => void buscarEnCrm(crmQ).then(setCrmRes), 300);
     return () => clearTimeout(t);
   }, [crmQ]);
+
+  useEffect(() => {
+    if (buscaMapa.trim().length < 4) {
+      setSugerenciasMapa([]);
+      return;
+    }
+    const t = window.setTimeout(() => void candidatosDireccion(buscaMapa).then(setSugerenciasMapa), 300);
+    return () => clearTimeout(t);
+  }, [buscaMapa]);
 
   useEffect(() => {
     if (!twin?.address.lat || !twin.address.lng) return;
@@ -305,31 +324,21 @@ export function NuevaValoracionWizard() {
   return (
     <div className="pb-24 lg:pb-8">
       {borradorBanner && !built ? (
-        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-[13px]">
-          <span>
-            Tienes una valoración a medias en <b>{borradorBanner.etiqueta}</b>
-          </span>
-          <button type="button" className="underline" onClick={reanudarBorrador}>
-            Reanudar
-          </button>
-          <button
-            type="button"
-            className="text-[var(--text-3)] underline"
-            onClick={() => {
-              if (user?.id) descartarBorrador(user.id);
-              setBorradorBanner(null);
-            }}
-          >
-            Descartar
-          </button>
-        </div>
+        <BandBorrador
+          etiqueta={borradorBanner.etiqueta}
+          onReanudar={reanudarBorrador}
+          onDescartar={() => {
+            if (user?.id) descartarBorrador(user.id);
+            setBorradorBanner(null);
+          }}
+        />
       ) : null}
 
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
         <div className="min-w-0 flex-1 lg:max-w-[760px]">
-          <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-5 min-[820px]:p-6">
-            <div className="mb-5 flex items-center justify-between gap-2 text-[13px]">
-              <button type="button" className="text-[var(--text-3)] hover:text-foreground" onClick={atras} disabled={!historial.length}>
+          <div className="min-h-[300px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 min-[820px]:p-6">
+            <div className="mb-3.5 flex items-center justify-between gap-2 text-[13px] text-[var(--text-3)]">
+              <button type="button" className="hover:text-foreground disabled:opacity-40" onClick={atras} disabled={!historial.length}>
                 ← Atrás
               </button>
               <span className="text-[var(--text-3)]">
@@ -351,8 +360,6 @@ export function NuevaValoracionWizard() {
                 }}
                 referencia={referencia}
                 setReferencia={setReferencia}
-                ayudaRef={ayudaRef}
-                setAyudaRef={setAyudaRef}
                 refTipo={refTipo}
                 ocupado={ocupado}
                 onBuscarRef={() => void cargar({ catastralRef: normalizarReferencia(referencia) }, "referencia")}
@@ -366,6 +373,9 @@ export function NuevaValoracionWizard() {
                   if (r.tipo === "anuncio") void cargar({ listingId: r.id }, "crm");
                   else void cargar({ crmPropertyId: r.id }, "crm");
                 }}
+                buscaMapa={buscaMapa}
+                setBuscaMapa={setBuscaMapa}
+                sugerenciasMapa={sugerenciasMapa}
               />
             ) : null}
 
@@ -381,15 +391,10 @@ export function NuevaValoracionWizard() {
                   onMover={(lat, lng) => setPinMapa((p) => ({ ...p, lat, lng }))}
                 />
                 <p className="text-[12px] text-[var(--text-3)]">Si el punto no está en el portal, arrástralo.</p>
-                <Button
-                  type="button"
+                <QNav
                   disabled={ocupado}
-                  onClick={() =>
-                    void cargar({ address: elegida.address, lat: pinMapa.lat, lng: pinMapa.lng }, "direccion")
-                  }
-                >
-                  Continuar
-                </Button>
+                  onContinuar={() => void cargar({ address: elegida.address, lat: pinMapa.lat, lng: pinMapa.lng }, "direccion")}
+                />
               </div>
             ) : null}
 
@@ -451,7 +456,7 @@ export function NuevaValoracionWizard() {
             {error ? <p className="mt-4 text-[13px] text-red-600">{error}</p> : null}
           </div>
           <p className="mt-3 text-[12px] text-[var(--text-3)]">
-            Los datos del inmueble se rellenan desde Catastro; tú solo confirmas y añades lo que Catastro no sabe.
+            Una pregunta por pantalla. Enter avanza; «No lo sé» salta el paso. El borrador se guarda solo y se puede reanudar 24 h.
           </p>
         </div>
 
@@ -493,8 +498,6 @@ function Entrada(props: {
   onElegirDireccion: (s: { address: string; lat: number; lng: number }) => void;
   referencia: string;
   setReferencia: (v: string) => void;
-  ayudaRef: boolean;
-  setAyudaRef: (v: boolean) => void;
   refTipo: ReturnType<typeof tipoReferencia>;
   ocupado: boolean;
   onBuscarRef: () => void;
@@ -505,6 +508,9 @@ function Entrada(props: {
   setCrmQ: (v: string) => void;
   crmRes: ResultadoBusquedaCrm[];
   onElegirCrm: (r: ResultadoBusquedaCrm) => void;
+  buscaMapa: string;
+  setBuscaMapa: (v: string) => void;
+  sugerenciasMapa: { address: string; lat: number; lng: number }[];
 }) {
   const tabs: { id: EntryTab; label: string }[] = [
     { id: "direccion", label: "Dirección" },
@@ -512,73 +518,89 @@ function Entrada(props: {
     { id: "mapa", label: "En el mapa" },
     { id: "crm", label: "Del CRM" },
   ];
+  const refMsg = mensajeReferencia(props.referencia);
   return (
     <div className="space-y-4">
-      <h2 className="text-[22px] font-semibold tracking-[-0.02em]">¿Qué inmueble valoramos?</h2>
-      <div className="flex flex-wrap gap-1 rounded-lg border border-[var(--border)] p-1">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            className={`flex-1 rounded-md px-2 py-2 text-[12px] min-[520px]:text-[13px] ${props.tab === t.id ? "bg-[var(--surface-soft)] font-medium" : "text-[var(--text-3)]"}`}
-            onClick={() => props.setTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
+      <div>
+        <h2 className="text-[22px] font-semibold tracking-[-0.02em]">¿Qué inmueble valoramos?</h2>
       </div>
+      <SegControl options={tabs} value={props.tab} onChange={props.setTab} />
 
       {props.tab === "direccion" ? (
-        <>
-          <input
-            value={props.consulta}
-            onChange={(e) => props.setConsulta(e.target.value)}
-            placeholder="Rúa Juan Flórez 30, 15004 A Coruña"
-            className="h-12 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-[15px] outline-none focus:border-[var(--border-strong)]"
-          />
-          {props.sugerencias.length ? (
-            <ul className="divide-y divide-[var(--border)] rounded-lg border border-[var(--border)]">
-              {props.sugerencias.slice(0, 6).map((s) => (
-                <li key={`${s.lat}-${s.lng}`}>
-                  <button type="button" className="w-full px-3 py-2.5 text-left text-[14px] hover:bg-[var(--surface-soft)]" onClick={() => props.onElegirDireccion(s)}>
-                    {s.address}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </>
+        <div className="mt-4 space-y-2">
+          <CampoEntrada label="Dirección" icon="search">
+            <input
+              value={props.consulta}
+              onChange={(e) => props.setConsulta(e.target.value)}
+              placeholder="Calle, número y municipio"
+              className="min-w-0 flex-1 bg-transparent text-[15px] outline-none"
+              autoComplete="off"
+            />
+          </CampoEntrada>
+          <div className="flex flex-col gap-1.5">
+            {props.sugerencias.slice(0, 6).map((s) => (
+              <SugerenciaChip key={`${s.lat}-${s.lng}`} titulo={s.address} onClick={() => props.onElegirDireccion(s)} />
+            ))}
+          </div>
+        </div>
       ) : null}
 
       {props.tab === "referencia" ? (
-        <>
-          <input
-            value={props.referencia}
-            onChange={(e) => props.setReferencia(e.target.value.toUpperCase().replace(/\s/g, ""))}
-            className="h-12 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 font-mono text-[15px]"
-            placeholder="20 caracteres inmueble o 14 parcela"
-          />
-          {props.referencia && !props.refTipo ? (
-            <p className="text-[12px] text-red-600">14 o 20 caracteres, mayúsculas, sin espacios.</p>
-          ) : null}
-          <button type="button" className="text-[13px] text-[var(--text-2)] underline" onClick={() => props.setAyudaRef(!props.ayudaRef)}>
-            ¿Dónde la encuentro?
-          </button>
-          {props.ayudaRef ? (
-            <ul className="list-inside list-disc text-[12px] text-[var(--text-3)]">
-              <li>Recibo del IBI</li>
-              <li>Escritura o nota simple</li>
-              <li>Sede del Catastro</li>
+        <div className="mt-4 space-y-2">
+          <CampoEntrada label="Referencia catastral" icon="file">
+            <input
+              value={props.referencia}
+              onChange={(e) => props.setReferencia(e.target.value.toUpperCase().replace(/\s/g, ""))}
+              className="min-w-0 flex-1 bg-transparent font-mono text-[15px] tracking-wide outline-none"
+              placeholder="20 caracteres del inmueble, o 14 de la parcela"
+              spellCheck={false}
+              autoComplete="off"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && refMsg.ok && !props.ocupado) props.onBuscarRef();
+              }}
+            />
+          </CampoEntrada>
+          <p
+            className={`min-h-4 text-[12px] ${refMsg.clase === "err" ? "text-red-600" : refMsg.clase === "ok" ? "text-emerald-600" : "text-[var(--text-3)]"}`}
+          >
+            {refMsg.texto}
+          </p>
+          <details className="text-[13px] text-[var(--text-3)]">
+            <summary className="cursor-pointer text-foreground underline underline-offset-[3px]">¿Dónde la encuentro?</summary>
+            <ul className="mt-2 list-disc pl-[18px]">
+              <li>En el recibo del IBI, junto a la dirección.</li>
+              <li>En la escritura o en la nota simple del Registro.</li>
+              <li>En la Sede Electrónica del Catastro, buscando por dirección.</li>
             </ul>
-          ) : null}
-          <Button type="button" disabled={!props.refTipo || props.ocupado} onClick={props.onBuscarRef}>
-            Buscar
-          </Button>
-        </>
+          </details>
+          <QNav label="Buscar" disabled={!refMsg.ok || props.ocupado} onContinuar={props.onBuscarRef} />
+        </div>
       ) : null}
 
       {props.tab === "mapa" ? (
-        <>
+        <div className="mt-4 space-y-2">
+          <p className="text-[12px] text-[var(--text-3)]">
+            Acerca el mapa y arrastra el marcador hasta el portal. Se usa el punto para pedir a Catastro la parcela.
+          </p>
+          <CampoEntrada label="Buscar calle" icon="search">
+            <input
+              value={props.buscaMapa}
+              onChange={(e) => props.setBuscaMapa(e.target.value)}
+              placeholder="Nombre de calle"
+              className="min-w-0 flex-1 bg-transparent text-[15px] outline-none"
+            />
+          </CampoEntrada>
+          {props.sugerenciasMapa.length ? (
+            <div className="flex flex-col gap-1.5">
+              {props.sugerenciasMapa.slice(0, 4).map((s) => (
+                <SugerenciaChip
+                  key={`m-${s.lat}`}
+                  titulo={s.address}
+                  onClick={() => props.setPinMapa((p) => ({ ...p, lat: s.lat, lng: s.lng }))}
+                />
+              ))}
+            </div>
+          ) : null}
           <MapaAvm
             className="h-[360px] w-full overflow-hidden rounded-lg border border-[var(--border)]"
             lat={props.pinMapa.lat}
@@ -587,33 +609,43 @@ function Entrada(props: {
             arrastrable
             onMover={(lat, lng) => props.setPinMapa((p) => ({ ...p, lat, lng }))}
           />
-          <Button type="button" variant="secondary" disabled={props.ocupado} onClick={props.onUsarPin}>
-            Usar este punto
-          </Button>
-        </>
+          <p className="text-[12px] tabular-nums text-[var(--text-3)]">
+            {props.pinMapa.lat.toFixed(5)} · {props.pinMapa.lng.toFixed(5)}
+          </p>
+          <QNav label="Usar este punto" disabled={props.ocupado} onContinuar={props.onUsarPin} />
+        </div>
       ) : null}
 
       {props.tab === "crm" ? (
-        <>
-          <input
-            value={props.crmQ}
-            onChange={(e) => props.setCrmQ(e.target.value)}
-            placeholder="Dirección, referencia o id"
-            className="h-12 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-[15px]"
-          />
-          <ul className="divide-y divide-[var(--border)] rounded-lg border border-[var(--border)]">
+        <div className="mt-4 space-y-2">
+          <CampoEntrada label="Inmueble o anuncio captado" icon="search">
+            <input
+              value={props.crmQ}
+              onChange={(e) => props.setCrmQ(e.target.value)}
+              placeholder="Dirección, referencia o id"
+              className="min-w-0 flex-1 bg-transparent text-[15px] outline-none"
+            />
+          </CampoEntrada>
+          <div className="flex flex-col gap-1.5">
             {props.crmRes.map((r) => (
-              <li key={`${r.tipo}-${r.id}`}>
-                <button type="button" className="w-full px-3 py-2 text-left hover:bg-[var(--surface-soft)]" onClick={() => props.onElegirCrm(r)}>
-                  <div className="text-[14px]">{r.titulo}</div>
-                  <div className="text-[12px] text-[var(--text-3)]">
-                    {r.tipo === "inmueble" ? "Inmueble" : "Captación"} · {r.subtitulo}
-                  </div>
-                </button>
-              </li>
+              <button
+                key={`${r.tipo}-${r.id}`}
+                type="button"
+                className="flex w-full gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-left hover:border-[var(--border-strong)] hover:bg-[var(--surface-soft)]"
+                onClick={() => props.onElegirCrm(r)}
+              >
+                <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-lg bg-[var(--surface-soft)] text-[var(--text-3)] text-[11px] font-semibold">
+                  {r.tipo === "inmueble" ? "IN" : "AN"}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[12px] text-[var(--text-3)]">{r.tipo === "inmueble" ? "Inmueble" : "Captación"}</span>
+                  <span className="block text-[14px]">{r.titulo}</span>
+                  <span className="block text-[12px] text-[var(--text-3)]">{r.subtitulo}</span>
+                </span>
+              </button>
             ))}
-          </ul>
-        </>
+          </div>
+        </div>
       ) : null}
     </div>
   );
@@ -641,30 +673,42 @@ function Unidades({
         placeholder="Filtrar por planta (ej. 3)"
         className="h-10 w-full max-w-xs rounded-lg border border-[var(--border)] px-3 text-[14px]"
       />
-      <ListaUnidades titulo="Viviendas" items={viviendas} onElegir={onElegir} />
+      <div className="flex flex-col gap-2">
+        {viviendas.map((u) => (
+          <button
+            key={u.catastralRef}
+            type="button"
+            className="flex w-full items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2.5 text-left hover:border-[var(--border-strong)] hover:bg-[var(--surface-soft)]"
+            onClick={() => onElegir(u.catastralRef)}
+          >
+            <span className="text-[14px]">
+              <b>{etiquetaUnidad(u).split(" · ")[0]}</b>
+              {etiquetaUnidad(u).includes(" · ") ? ` · ${etiquetaUnidad(u).split(" · ").slice(1).join(" · ")}` : ""}
+            </span>
+            <span className="font-mono text-[11px] text-[var(--text-3)]">…{u.catastralRef.slice(-6)}</span>
+          </button>
+        ))}
+      </div>
       {grupos.otros.length ? (
-        <details className="rounded-lg border border-[var(--border)] px-3 py-2">
-          <summary className="cursor-pointer text-[13px] font-medium">Otros usos (locales, trasteros, garajes)</summary>
-          <ListaUnidades titulo="" items={grupos.otros} onElegir={onElegir} />
+        <details className="mt-1">
+          <summary className="cursor-pointer list-none text-[13px] text-[var(--text-3)] before:mr-1 before:text-[var(--text-3)] before:content-['▸_'] open:before:content-['▾_']">
+            Otros usos: locales, garajes y trasteros · {grupos.otros.length}
+          </summary>
+          <div className="mt-2 flex flex-col gap-2">
+            {grupos.otros.map((u) => (
+              <button
+                key={u.catastralRef}
+                type="button"
+                className="flex w-full items-center justify-between rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-left hover:bg-[var(--surface-soft)]"
+                onClick={() => onElegir(u.catastralRef)}
+              >
+                <span className="text-[14px]">{etiquetaUnidad(u)}</span>
+              </button>
+            ))}
+          </div>
         </details>
       ) : null}
-    </div>
-  );
-}
-
-function ListaUnidades({ titulo, items, onElegir }: { titulo: string; items: TwinUnit[]; onElegir: (ref: string) => void }) {
-  return (
-    <div>
-      {titulo ? <p className="mb-1 text-[12px] uppercase tracking-wide text-[var(--text-3)]">{titulo}</p> : null}
-      <ul className="divide-y divide-[var(--border)] rounded-lg border border-[var(--border)]">
-        {items.map((u) => (
-          <li key={u.catastralRef}>
-            <button type="button" className="w-full px-3 py-3 text-left text-[14px] hover:bg-[var(--surface-soft)]" onClick={() => onElegir(u.catastralRef)}>
-              {etiquetaUnidad(u)}
-            </button>
-          </li>
-        ))}
-      </ul>
+      <p className="text-[12px] text-[var(--text-3)]">Viviendas primero, ordenadas por planta y puerta.</p>
     </div>
   );
 }
@@ -697,22 +741,33 @@ function CatastroConfirm({
     <div className="space-y-4">
       <h2 className="text-[22px] font-semibold">Confirmado desde Catastro</h2>
       <p className="text-[14px] text-[var(--text-3)]">Hemos encontrado tu inmueble. Confírmalo o corrige lo que no cuadre.</p>
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="mb-2 flex flex-wrap gap-2">
+        {twin.address.formattedAddress ? <TagAvm className="text-foreground">{twin.address.formattedAddress}</TagAvm> : null}
+        {twin.address.catastralRef ? (
+          <TagAvm>
+            ref. <span className="font-mono">{twin.address.catastralRef}</span>
+          </TagAvm>
+        ) : null}
+      </div>
+      <div className="grid gap-2.5 sm:grid-cols-2">
         {tarjetas.map((t) => (
-          <div key={t.id} className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2">
+          <div key={t.id} className="rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3.5 py-3">
             <p className="text-[12px] text-[var(--text-3)]">{t.label}</p>
-            <div className="mt-1 flex items-center justify-between gap-2">
-              <span className="font-semibold">{t.value}</span>
-              <button type="button" className="text-[12px] underline" onClick={() => onCorregir(t.id)}>
+            <div className="mt-0.5 flex items-center justify-between gap-2">
+              <span className="font-semibold tabular-nums">
+                {t.value} <TagAvm className="ml-1 border-transparent bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">Catastro</TagAvm>
+              </span>
+              <button type="button" className="text-[12px] underline underline-offset-2" onClick={() => onCorregir(t.id)}>
                 Corregir
               </button>
             </div>
           </div>
         ))}
       </div>
-      <Button type="button" onClick={onTodoOk}>
-        Todo correcto, continuar
-      </Button>
+      <p className="text-[12px] text-[var(--text-3)]">
+        Si Catastro no respondiera, te pediríamos estos datos y la valoración saldría con menos confianza. Nunca se bloquea.
+      </p>
+      <QNav label="Todo correcto, continuar" onContinuar={onTodoOk} />
     </div>
   );
 }
