@@ -9,6 +9,11 @@ const TENANT = "00000000-0000-4000-8000-000000000001";
 export const solicitudValoracion = z.object({
   input: z.object({
     twin: z.custom<Twin>().optional(),
+    fieldSources: z.record(z.string()).optional(),
+    prefilledFields: z.array(z.string()).optional(),
+    propertySource: z.enum(["catastro_local", "catastro_sede", "listing", "crm", "manual"]).optional(),
+    geocodingSource: z.enum(["google", "cartociudad", "postcode_centroid", "pin", "listing", "catastro", "missing"]).optional(),
+    warnings: z.array(z.string()).optional(),
     address: z.string().optional(),
     lat: z.number().optional(),
     lng: z.number().optional(),
@@ -58,6 +63,39 @@ function etiqueta(locality: string | null, level: string, key: string): string {
 }
 
 export function depsMercado(db: SupabaseClient): ValuateDeps {
+  async function comparablesDe(twin: Twin, op: Operation): Promise<Comparable[]> {
+    const lat = twin.address.lat;
+    const lng = twin.address.lng;
+    const surface = twin.builtSurface ?? twin.livingSurface;
+    if (lat == null || lng == null || !twin.mainType || !surface) return [];
+    const { data, error } = await db.rpc("avm_comparables", {
+      p_lat: lat,
+      p_lng: lng,
+      p_main_type: twin.mainType,
+      p_surface: surface,
+      p_operation: op,
+    });
+    if (error) throw new Error(error.message);
+    return ((data ?? []) as Record<string, unknown>[]).map((row) => ({
+      listingId: String(row.listing_id),
+      portal: String(row.portal),
+      title: row.title == null ? null : String(row.title),
+      price: Number(row.price),
+      surface: Number(row.surface),
+      pricePerM2: Number(row.price_per_m2),
+      rooms: numero(row.rooms),
+      floor: numero(row.floor),
+      hasElevator: row.has_elevator == null ? null : Boolean(row.has_elevator),
+      hasGarage: row.has_garage == null ? null : Boolean(row.has_garage),
+      hasTerrace: row.has_terrace == null ? null : Boolean(row.has_terrace),
+      isExterior: row.is_exterior == null ? null : Boolean(row.is_exterior),
+      conditionHint: row.condition_hint == null ? null : String(row.condition_hint),
+      lastSeen: String(row.last_seen).slice(0, 10),
+      distanceM: Number(row.distance_m),
+      radiusM: Number(row.radius_m),
+    }));
+  }
+
   return {
     async zoneStats(twin, op) {
       const lat = twin.address.lat;
@@ -87,38 +125,8 @@ export function depsMercado(db: SupabaseClient): ValuateDeps {
       } satisfies ZoneStats;
     },
     zoneStatsFallback: async () => null,
-    async comparables(twin, op) {
-      const lat = twin.address.lat;
-      const lng = twin.address.lng;
-      const surface = twin.builtSurface ?? twin.livingSurface;
-      if (lat == null || lng == null || !twin.mainType || !surface) return [];
-      const { data, error } = await db.rpc("avm_comparables", {
-        p_lat: lat,
-        p_lng: lng,
-        p_main_type: twin.mainType,
-        p_surface: surface,
-        p_operation: op,
-      });
-      if (error) throw new Error(error.message);
-      return ((data ?? []) as Record<string, unknown>[]).map((row) => ({
-        listingId: String(row.listing_id),
-        portal: String(row.portal),
-        title: row.title == null ? null : String(row.title),
-        price: Number(row.price),
-        surface: Number(row.surface),
-        pricePerM2: Number(row.price_per_m2),
-        rooms: numero(row.rooms),
-        floor: numero(row.floor),
-        hasElevator: row.has_elevator == null ? null : Boolean(row.has_elevator),
-        hasGarage: row.has_garage == null ? null : Boolean(row.has_garage),
-        hasTerrace: row.has_terrace == null ? null : Boolean(row.has_terrace),
-        isExterior: row.is_exterior == null ? null : Boolean(row.is_exterior),
-        conditionHint: row.condition_hint == null ? null : String(row.condition_hint),
-        lastSeen: String(row.last_seen).slice(0, 10),
-        distanceM: Number(row.distance_m),
-        radiusM: Number(row.radius_m),
-      })) satisfies Comparable[];
-    },
+    comparables: comparablesDe,
+    rentComparables: (twin) => comparablesDe(twin, "rent"),
     async discountPct(twin) {
       if (!twin.address.municipalityCode || !twin.mainType) return null;
       const { data } = await db
@@ -168,7 +176,7 @@ export function depsMercado(db: SupabaseClient): ValuateDeps {
 
 function fuenteMotor(source: PropertySource): ValuateOptions["propertySource"] {
   if (source === "catastro_local") return "catastro_local";
-  if (source === "catastro_sede") return "catastro_live";
+  if (source === "catastro_sede") return "catastro_sede";
   if (source === "listing" || source === "crm") return "listing";
   return "manual";
 }
@@ -267,6 +275,8 @@ async function guardar(
       price_per_m2: result.pricePerM2,
       rent_monthly: result.rentMonthly,
       gross_yield: result.grossYield,
+      range_method: result.rangeMethod,
+      rent_source: result.rentSource,
       confidence: result.confidence,
       precision_score: result.precisionScore,
       sources_used: result.sourcesUsed,
@@ -313,16 +323,16 @@ export async function valorar(solicitud: SolicitudValoracion, ctx: Ctx): Promise
   const built = solicitud.input.twin
     ? {
         twin: solicitud.input.twin,
-        prefilledFields: new Set<keyof Twin>(),
-        fieldSources: {},
-        propertySource: "manual" as PropertySource,
-        geocodingSource: "missing" as const,
+        prefilledFields: new Set((solicitud.input.prefilledFields ?? []) as (keyof Twin)[]),
+        fieldSources: (solicitud.input.fieldSources ?? {}) as TwinBuild["fieldSources"],
+        propertySource: (solicitud.input.propertySource ?? "manual") as PropertySource,
+        geocodingSource: solicitud.input.geocodingSource ?? "missing",
         zone: {
           censusSection: solicitud.input.twin.address.censusSection,
           municipalityCode: solicitud.input.twin.address.municipalityCode,
           postcode: solicitud.input.twin.address.postcode,
         },
-        warnings: [],
+        warnings: solicitud.input.warnings ?? [],
       }
     : await construir(solicitud.input, tenantId);
 
@@ -336,6 +346,7 @@ export async function valorar(solicitud: SolicitudValoracion, ctx: Ctx): Promise
     channel: solicitud.channel,
     operation: "sale",
     propertySource: fuenteMotor(built.propertySource),
+    propertyStale: built.warnings.some((w) => /caché/i.test(w)),
     geocodingSource: built.geocodingSource === "missing" ? "missing" : built.geocodingSource,
   });
   if (op === "rent") result.operation = "rent";

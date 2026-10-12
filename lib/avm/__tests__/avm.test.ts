@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { computeLiveEstimate, computePrecision } from '../estimate';
 import { resolveFlow, nextStep } from '../flow';
 import { valueFromComparables } from '../comparables';
+import { computeConfidence } from '../confidence';
 import { valuate } from '../valuate';
 import { buildEnvironment } from '../environment';
 import { emptyTwin, type Comparable, type Twin } from '../types';
@@ -87,6 +88,15 @@ describe('comparables', () => {
     expect(v!.explanation.length).toBeGreaterThan(2);
   });
 
+  it('amortigua el rango hacia ±8 % cuando hay pocos comparables', () => {
+    const v = valueFromComparables(juanFlorez(), comps, { discountPct: 7 })!;
+    expect(v.rangeMethod).toBe('iqr_shrunk');
+    expect(v.ppm2Low).toBeLessThanOrEqual(v.ppm2Mid);
+    expect(v.ppm2High).toBeGreaterThanOrEqual(v.ppm2Mid);
+    const linea = v.explanation.find((l) => l.startsWith('Rango:'));
+    expect(linea).toMatch(/amortiguado hacia ±8 % por tener \d+ comparables/);
+  });
+
   it('el piso interior sin ascensor sale ajustado al alza al compararlo con el sujeto exterior con ascensor', () => {
     const v = valueFromComparables(juanFlorez(), comps)!;
     const c3 = v.used.find((c) => c.listingId === '3');
@@ -115,6 +125,49 @@ describe('valuate', () => {
     expect(r.valueMid).toBeGreaterThan(0);
     expect(r.confidence).toBeLessThan(40);
     expect(r.sourcesUsed.find((s) => s.layer === 'market')?.status).toBe('missing');
+  });
+
+  it('la Sede del Catastro en vivo es fuente primaria y la caché caducada es respaldo', async () => {
+    const base = {
+      zoneStats: async () => null,
+      comparables: async () => [],
+    };
+    const fresco = await valuate(juanFlorez(), base, { channel: 'crm', propertySource: 'catastro_sede', geocodingSource: 'catastro' });
+    const caducada = await valuate(juanFlorez(), base, { channel: 'crm', propertySource: 'catastro_sede', propertyStale: true, geocodingSource: 'catastro' });
+    expect(fresco.sourcesUsed.find((s) => s.layer === 'property')).toMatchObject({ source: 'catastro_sede', status: 'primary' });
+    expect(caducada.sourcesUsed.find((s) => s.layer === 'property')?.status).toBe('fallback');
+    expect(fresco.methodVersion).toBe('comparables-1.1');
+  });
+
+  it('el alquiler sale de sus comparables y la rentabilidad es derivada', async () => {
+    const rents: Comparable[] = Array.from({ length: 6 }, (_, i) => ({
+      listingId: `r${i}`, portal: 'fotocasa', title: 'Alquiler', price: 900 + i * 20, surface: 90,
+      pricePerM2: (900 + i * 20) / 90, rooms: 3, floor: 2, hasElevator: true, hasGarage: false,
+      hasTerrace: null, isExterior: true, conditionHint: null, lastSeen: '2026-10-01', distanceM: 120, radiusM: 300,
+    }));
+    const r = await valuate(juanFlorez(), {
+      zoneStats: async () => null,
+      comparables: async () => comps,
+      rentComparables: async () => rents,
+      discountPct: async () => 8,
+    }, { channel: 'crm', propertySource: 'catastro_sede', geocodingSource: 'catastro' });
+    expect(r.rentSource).toBe('comparables');
+    expect(r.rentMonthly).toBeGreaterThan(500);
+    expect(r.grossYield).toBeCloseTo((r.rentMonthly! * 12 / r.valueMid) * 100, 1);
+    expect(r.sourcesUsed.find((s) => s.layer === 'rent')?.status).toBe('primary');
+  });
+});
+
+describe('confianza 1.1', () => {
+  it('resta 2 puntos por comparable hasta 12, abre la dispersión al 10 % y penaliza la zona sin tendencia', () => {
+    const ocho = comps.slice(0, 8).map((c) => ({ ...c, adjustments: {}, adjustedPpm2: 4000, weight: 1 }));
+    const conTendencia = computeConfidence({ sourcesUsed: [], comparables: ocho, precisionScore: 80, trend12mPct: 4 });
+    const sinTendencia = computeConfidence({ sourcesUsed: [], comparables: ocho, precisionScore: 80, trend12mPct: null });
+    expect(conTendencia.penalties.find((p) => p.reason.includes('12'))?.points).toBe(8);
+    expect(sinTendencia.confidence).toBe(conTendencia.confidence - 3);
+    const dispersos = ocho.map((c, i) => ({ ...c, adjustedPpm2: i % 2 ? 3000 : 5000 }));
+    const cv = computeConfidence({ sourcesUsed: [], comparables: dispersos, precisionScore: 80, trend12mPct: 1 });
+    expect(cv.penalties.some((p) => p.reason.startsWith('dispersión'))).toBe(true);
   });
 });
 

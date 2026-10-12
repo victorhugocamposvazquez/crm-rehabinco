@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
+import { BotonValorar } from "@/components/avm/BotonValorar";
 import { isAdmin } from "@/lib/auth/roles";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { Sheet } from "@/components/ui/sheet";
@@ -1443,6 +1444,7 @@ function PeekAnuncio({
           ) : a.propiedad_id ? (
             <a href={`/propiedades/${a.propiedad_id}`} className={primaria}>Ver inmueble</a>
           ) : null}
+          <BotonValorar listingId={a.id} address={[a.titulo, a.zona, a.municipio].filter(Boolean).join(", ")} />
           {a.url ? <a href={a.url} target="_blank" rel="noopener noreferrer" className={secundaria}>Ver en {labelFuentePortal(a.fuente)}</a> : null}
           {a.fuente === "idealista" && a.url ? <a href={a.url} target="_blank" rel="noopener noreferrer" className={secundaria}>Abrir en Idealista</a> : null}
           {a.fuente === "idealista" ? (

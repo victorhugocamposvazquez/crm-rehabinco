@@ -57,7 +57,7 @@ Para asignar a alguien a otra agencia en el futuro: `insert into memberships (us
 - Fotocasa recorre viviendas (pisos y casas). Habitaclia recorre viviendas y casas. pisos.com recorre piso y casas, en las URLs de A Coruña Capital. El portal en base de datos es `pisos`.
 - Si el portal trae coordenadas, `location_precision` es `exact` y el municipio es `left(census_section, 5)`. Si no hay coordenadas, hereda el código del objetivo y, si el slug es de barrio, el centroide de `market_zones`. Un slug de municipio (`level = 'municipality'`, por ejemplo `a-coruna-capital` o Sada) no recibe centroide y el anuncio se queda con `location_precision` null.
 - Los anuncios de municipios de alrededor que pisos.com cuelga de A Coruña se guardan. No se descartan por el código postal.
-- El mismo piso en varios portales comparte `cluster_id`. Regla estricta: ≤ 40 m, ±3 m², mismas habitaciones o null, ±3 % de precio. Regla fuerte, además: precio idéntico, ≤ 100 m y superficie ±10 %, aunque las habitaciones no coincidan o falten. `avm_comparables()` cuenta solo activos y uno por clúster.
+- El mismo piso en varios portales comparte `cluster_id`. Regla estricta: ≤ 40 m, ±3 m², mismas habitaciones o null, ±3 % de precio. Además, precio idéntico y ≤ 100 m con superficie ±10 %; precio idéntico y ≤ 300 m con superficie ±5 %; precio idéntico y ≤ 100 m con superficie ±15 % (construida frente a útil). `avm_comparables()` cuenta solo activos, uno por clúster, y si aun así quedan dos filas con el mismo precio y superficie ±5 % se queda con la más cercana.
 - El código postal de un anuncio con coordenadas exactas sale de `postcode_polygons` (`ST_Contains`). El CNIG no deja descargar esa capa (Correos, solo visualización), así que la tabla está vacía y el CP se resuelve con la geocodificación inversa de CartoCiudad, cacheada en `postcode_reverse_cache`. El CP del portal se guarda en `portal_postcode`. `postcode_centroids` se rellena con `ST_PointOnSurface` cuando hay polígonos; si el CP no está cargado, el centroide sigue pidiéndose en vivo a CartoCiudad.
 - `market_zones_derive()` se lanza al final de cada pasada. No pisa filas `source = 'manual'`.
 - `AVM_INGEST_FROM_CAPTACION` por defecto no está definido y el volcado no hace nada. En `true`, cada listado que captación ya procesó se copia a `market_listings` sin teléfono ni nombre.
@@ -71,7 +71,7 @@ En `market_zone_trend` la mediana de alquiler es €/m²/mes.
 
 `grossYieldPct = rent_median × 12 / sale_median × 100`.
 
-La mediana de alquiler es €/m²/mes. El motor de comparables valora una compraventa (€/m² de venta, con el descuento oferta→cierre). Pasarle comparables de alquiler produciría un valor de venta diminuto, así que `operation = 'rent'` no entra en ese cálculo: el precio guardado es el de venta y `rentMonthly` sale de la rentabilidad bruta. No se ha tocado el motor para forzar un camino de alquiler.
+La mediana de alquiler es €/m²/mes. El valor de cierre sigue saliendo de los comparables de venta. El alquiler, en este orden: si hay al menos 6 comparables de alquiler a ≤ 1.500 m, mediana ponderada recortada del €/m²/mes ajustado × superficie (`rentSource = comparables`); si no, superficie × mediana de alquiler de la zona × (€/m² ajustado del sujeto ÷ mediana de venta), acotado a 0,8–1,2 (`zone_adjusted`); si tampoco, la rentabilidad bruta (`yield`). `grossYield` es `rentMonthly × 12 / valueMid`. `propertySource = catastro_sede` es primario, igual que la copia local; `fallback` solo cuando se sirvió caché caducada.
 
 Con el 15004 anterior al clúster: 13,71 × 12 / 4.125 = 3,99 %.
 

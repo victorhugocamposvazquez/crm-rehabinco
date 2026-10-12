@@ -163,7 +163,7 @@ function tipoDesdeUso(uso: string | null, viviendas: number): { mainType: MainTy
   return null;
 }
 
-function ordenarUnidades(units: TwinUnit[]): TwinUnit[] {
+export function ordenarUnidades(units: TwinUnit[]): TwinUnit[] {
   return [...units].sort((a, b) => {
     if (a.isDwelling !== b.isDwelling) return a.isDwelling ? -1 : 1;
     const fa = plantaNumero(a.floor);

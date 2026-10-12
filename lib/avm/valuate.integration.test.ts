@@ -79,6 +79,8 @@ describe("valuate con dependencias", () => {
     });
     const radio = Math.max(...r.comparables.map((c) => c.radiusM));
     expect(r.comparables.length).toBeGreaterThanOrEqual(8);
+    const duplicado = r.comparables.filter((c) => c.price === 270000 && c.surface === 70);
+    expect(duplicado).toHaveLength(1);
     expect(radio).toBeLessThanOrEqual(1500);
     expect(r.confidence).toBeGreaterThanOrEqual(50);
     expect(r.sourcesUsed.find((s) => s.layer === "market")?.status).toBe("primary");

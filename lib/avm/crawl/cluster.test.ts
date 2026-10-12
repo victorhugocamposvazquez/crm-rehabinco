@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { agruparClusters, type FichaCluster } from "./cluster";
+import { agruparClusters, distanciaMetros, type FichaCluster } from "./cluster";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -33,10 +33,25 @@ describe("clúster entre portales", () => {
       surface: 100,
       rooms: 1,
     };
-    const lejos: FichaCluster = { ...otroPortal, lng: base.lng! + 0.004, price: 390000 };
+    const lejos: FichaCluster = { ...otroPortal, lng: base.lng! + 0.01, price: 390000 };
     const grupos = agruparClusters([base, otroPortal, lejos]);
     expect(grupos[0]).toBe(grupos[1]);
     expect(grupos[2]).not.toBe(grupos[0]);
+  });
+
+  it("el mismo precio y superficie a 141 m es un solo piso", () => {
+    const a = piso("fotocasa", 270000);
+    const b: FichaCluster = { ...piso("habitaclia", 270000), lng: a.lng! + 0.00175, surface: 70, rooms: 2 };
+    const a70: FichaCluster = { ...a, surface: 70 };
+    expect(distanciaMetros(a70.lat!, a70.lng!, b.lat!, b.lng!)).toBeLessThan(300);
+    expect(agruparClusters([a70, b])[0]).toBe(agruparClusters([a70, b])[1]);
+  });
+
+  it("precio idéntico a menos de 100 m agrupa construida y útil", () => {
+    const a = piso("fotocasa", 270000);
+    const util: FichaCluster = { ...piso("pisos", 270000), lng: a.lng! + 0.0008, surface: 80 };
+    const grupos = agruparClusters([{ ...a, surface: 70 }, util]);
+    expect(grupos[0]).toBe(grupos[1]);
   });
 
   it("un piso distinto no entra en el clúster", () => {
@@ -45,10 +60,11 @@ describe("clúster entre portales", () => {
     expect(new Set(grupos).size).toBe(2);
   });
 
-  it("avm_comparables se queda con uno por clúster", () => {
-    const sql = readFileSync(path.join(root, "supabase/migrations/20261012180000_avm_b1_y_twin.sql"), "utf8");
+  it("avm_comparables se queda con uno por clúster y descarta el duplicado más lejano", () => {
+    const sql = readFileSync(path.join(root, "supabase/migrations/20261012233000_avm_cluster_rent_method.sql"), "utf8");
     const cuerpo = sql.slice(sql.lastIndexOf("create or replace function avm_comparables"));
+    expect(sql).toContain("ST_DWithin(a.geom, b.geom, 300)");
     expect(cuerpo).toContain("distinct on (coalesce(l.cluster_id, l.id))");
-    expect(cuerpo).toContain("count(distinct coalesce(l.cluster_id, l.id))");
+    expect(cuerpo).toContain("0.05 * least(c.surface, b.surface)");
   });
 });

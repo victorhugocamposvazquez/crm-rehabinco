@@ -27,6 +27,7 @@ import {
 import { useAuth } from "@/lib/auth/auth-context";
 import { FichaLink, useFichaPeek } from "@/components/crm/FichaPeek";
 import { ClipboardPenLine, Pencil, Printer, Trash2 } from "lucide-react";
+import { BotonValorar } from "@/components/avm/BotonValorar";
 import { CatastroPropertyFicha } from "@/components/catastro/CatastroPropertyFicha";
 import { esOrigenCatastroExplorer, fincaReferenceDesdeVinculo } from "@/lib/catastro/explorer";
 import {
@@ -181,6 +182,11 @@ export default function DetallePropiedadPage() {
               <Printer className="h-4 w-4" strokeWidth={1.5} />
               Imprimir
             </Button>
+            <BotonValorar
+              crmPropertyId={id}
+              catastralRef={propiedad.referencia_catastral || fincaReference}
+              address={propiedad.referencia_catastral || fincaReference ? null : [propiedad.direccion, propiedad.codigo_postal, propiedad.localidad].filter(Boolean).join(", ")}
+            />
             <Button variant="secondary" size="sm" asChild>
               <Link href={`/propiedades/${id}/editar`} className="gap-2">
                 <Pencil className="h-4 w-4" strokeWidth={1.5} />

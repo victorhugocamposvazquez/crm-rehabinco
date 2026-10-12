@@ -154,7 +154,7 @@ export interface AdjustedComparable extends Comparable {
 /** Qué eslabón se usó en cada capa. */
 export type SourceStatus = 'primary' | 'fallback' | 'degraded' | 'missing';
 export interface SourceUsed {
-  layer: 'geocoding' | 'property' | 'market' | 'comparables' | 'close_series' | 'environment';
+  layer: 'geocoding' | 'property' | 'market' | 'comparables' | 'close_series' | 'environment' | 'rent';
   source: string;
   status: SourceStatus;
   note?: string;
@@ -184,6 +184,8 @@ export interface ValuationResult {
   valueHigh: number;
   pricePerM2: number | null;
   rentMonthly: number | null;
+  rentSource: 'comparables' | 'zone_adjusted' | 'yield' | null;
+  rangeMethod: 'iqr' | 'iqr_shrunk' | null;
   grossYield: number | null;
   confidence: number;        // 0..100
   precisionScore: number;    // completitud del twin, 0..100

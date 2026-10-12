@@ -21,20 +21,22 @@ export function distanciaMetros(aLat: number, aLng: number, bLat: number, bLng: 
   return 2 * tierra * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-function precioYCerca(a: FichaCluster, b: FichaCluster): boolean {
+function precioIdentico(a: FichaCluster, b: FichaCluster, metros: number, toleranciaSuperficie: number): boolean {
   if (a.lat == null || a.lng == null || b.lat == null || b.lng == null) return false;
   if (a.price == null || b.price == null || a.price <= 0 || a.price !== b.price) return false;
-  if (distanciaMetros(a.lat, a.lng, b.lat, b.lng) > 100) return false;
+  if (distanciaMetros(a.lat, a.lng, b.lat, b.lng) > metros) return false;
   if (a.surface == null || b.surface == null || a.surface <= 0 || b.surface <= 0) return false;
   const menor = Math.min(a.surface, b.surface);
-  return Math.abs(a.surface - b.surface) <= menor * 0.1;
+  return Math.abs(a.surface - b.surface) <= menor * toleranciaSuperficie;
 }
 
 export function encajanEnCluster(a: FichaCluster, b: FichaCluster): boolean {
   if (a.active === false || b.active === false) return false;
   if (a.operation !== b.operation || a.mainType !== b.mainType) return false;
   if (a.lat == null || a.lng == null || b.lat == null || b.lng == null) return false;
-  if (precioYCerca(a, b)) return true;
+  if (precioIdentico(a, b, 100, 0.1)) return true;
+  if (precioIdentico(a, b, 300, 0.05)) return true;
+  if (precioIdentico(a, b, 100, 0.15)) return true;
   if (distanciaMetros(a.lat, a.lng, b.lat, b.lng) > 40) return false;
   if (a.surface == null || b.surface == null || Math.abs(a.surface - b.surface) > 3) return false;
   if (a.rooms != null && b.rooms != null && a.rooms !== b.rooms) return false;

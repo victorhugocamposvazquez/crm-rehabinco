@@ -76,6 +76,7 @@ const EDITOR_BLOCKED_PREFIXES = [
   "/buscar",
   "/catastro",
   "/propiedades",
+  "/valoraciones",
   "/inmuebles",
   "/partes-visita",
   "/visitas",
@@ -143,6 +144,7 @@ const NAV_DIRECCION = [
   "/captacion",
   "/catastro",
   "/propiedades",
+  "/valoraciones",
   "/demandas",
   "/calendario",
   "/tareas",
@@ -165,6 +167,7 @@ export const NAV_DESKTOP_BY_ROLE: Record<Role, readonly string[]> = {
     "/captacion",
     "/herramientas",
     "/propiedades",
+    "/valoraciones",
     "/demandas",
     "/seguimiento",
     "/catastro",
@@ -175,7 +178,7 @@ export const NAV_DESKTOP_BY_ROLE: Record<Role, readonly string[]> = {
 };
 
 /** Atajos de la barra: lo del día a día. El resto vive en el menú lateral. */
-const NAV_TOP_DIRECCION = ["/", "/captacion", "/catastro", "/propiedades", "/demandas"] as const;
+const NAV_TOP_DIRECCION = ["/", "/captacion", "/catastro", "/propiedades", "/valoraciones", "/demandas"] as const;
 
 export const NAV_TOP_BY_ROLE: Record<Role, readonly string[]> = {
   superadmin: NAV_TOP_DIRECCION,

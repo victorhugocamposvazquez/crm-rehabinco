@@ -86,6 +86,7 @@ describe("roles", () => {
       "/captacion",
       "/catastro",
       "/propiedades",
+      "/valoraciones",
       "/demandas",
     ]);
     assert.equal(navHrefsForRole("admin", "top").includes("/clientes"), false);

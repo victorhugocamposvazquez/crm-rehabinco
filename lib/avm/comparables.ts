@@ -126,6 +126,8 @@ function weightedPercentile(items: { v: number; w: number }[], p: number): numbe
   return sorted[sorted.length - 1]?.v ?? 0;
 }
 
+export type RangeMethod = 'iqr' | 'iqr_shrunk';
+
 export interface ComparablesValuation {
   ppm2Mid: number;
   ppm2Low: number;
@@ -133,10 +135,16 @@ export interface ComparablesValuation {
   valueMid: number;
   valueLow: number;
   valueHigh: number;
+  rangeMethod: RangeMethod;
   used: AdjustedComparable[];
   trimmed: number;
   discountPct: number;
   explanation: string[];
+}
+
+function firmaPct(ratio: number): string {
+  const n = Math.round(ratio * 100);
+  return `${n < 0 ? '−' : '+'}${Math.abs(n)} %`;
 }
 
 /**
@@ -166,25 +174,46 @@ export function valueFromComparables(
 
   const discountPct = opts.discountPct ?? 8; // respaldo: 8 % oferta → cierre
   const f = 1 - discountPct / 100;
+  const n = kept.length;
+  const w = n / (n + 8);
+  const rawLow = ppm2Mid > 0 ? ppm2Low / ppm2Mid - 1 : 0;
+  const rawHigh = ppm2Mid > 0 ? ppm2High / ppm2Mid - 1 : 0;
+  const lowRel = w * rawLow + (1 - w) * -0.08;
+  const highRel = w * rawHigh + (1 - w) * 0.08;
+  const valueMid = Math.round(surface * ppm2Mid * f);
+  const rangeMethod: RangeMethod = n >= 40 ? 'iqr' : 'iqr_shrunk';
 
   const explanation = [
     `${comparables.length} comparables en ${Math.max(...comparables.map((c) => c.radiusM))} m; ${kept.length} tras recortar colas (${Math.round(t.trimPct * 100)} % por lado).`,
     `€/m² ajustado: mediana ${ppm2Mid.toFixed(0)}, P25 ${ppm2Low.toFixed(0)}, P75 ${ppm2High.toFixed(0)}.`,
     `Superficie ${surface} m² × ${ppm2Mid.toFixed(0)} €/m² = ${Math.round(surface * ppm2Mid).toLocaleString('es-ES')} € de oferta.`,
     `Descuento oferta → cierre ${discountPct} % (${opts.discountPct != null ? 'calibrado en la zona' : 'valor por defecto'}).`,
+    `Rango: P25–P75 de los comparables (${firmaPct(rawLow)} / ${firmaPct(rawHigh)}) amortiguado hacia ±8 % por tener ${n} comparables → ${firmaPct(lowRel)} / ${firmaPct(highRel)}`,
   ];
   if (opts.zone) explanation.push(`Mediana de zona (${opts.zone.label}): ${opts.zone.medianPpm2} €/m², ${opts.zone.n} anuncios.`);
 
   return {
     ppm2Mid, ppm2Low, ppm2High,
-    valueMid: Math.round(surface * ppm2Mid * f),
-    valueLow: Math.round(surface * ppm2Low * f),
-    valueHigh: Math.round(surface * ppm2High * f),
+    valueMid,
+    valueLow: Math.round(valueMid * (1 + lowRel)),
+    valueHigh: Math.round(valueMid * (1 + highRel)),
+    rangeMethod,
     used: kept,
     trimmed: adjusted.length - kept.length,
     discountPct,
     explanation,
   };
+}
+
+/** Mediana ponderada recortada del €/m² ajustado, sin descuento de cierre. Sirve para el alquiler. */
+export function medianaAjustadaPpm2(twin: Twin, comparables: Comparable[], table: AdjustmentTable = DEFAULT_ADJUSTMENTS): number | null {
+  const surface = twin.builtSurface ?? twin.livingSurface;
+  if (!surface || comparables.length === 0) return null;
+  const adjusted = comparables.map((c) => adjustComparable(twin, c, table));
+  const sorted = [...adjusted].sort((a, b) => a.adjustedPpm2 - b.adjustedPpm2);
+  const cut = Math.floor(sorted.length * table.trimPct);
+  const kept = sorted.length - 2 * cut >= 3 ? sorted.slice(cut, sorted.length - cut) : sorted;
+  return weightedPercentile(kept.map((c) => ({ v: c.adjustedPpm2, w: c.weight })), 0.5);
 }
 
 /** Alquiler fase 1: valor × rentabilidad bruta de la zona (calculada de los anuncios de alquiler). */

@@ -14,6 +14,8 @@ export interface ConfidenceInput {
   comparables: AdjustedComparable[];
   /** Completitud del twin, 0..100 */
   precisionScore: number;
+  /** null cuando la zona no tiene mediana de hace 12 meses. */
+  trend12mPct?: number | null;
 }
 
 export interface ConfidenceResult {
@@ -21,13 +23,14 @@ export interface ConfidenceResult {
   penalties: { reason: string; points: number }[];
 }
 
-const PENALTIES: Record<SourceUsed['layer'], Partial<Record<SourceUsed['status'], number>>> = {
+export const PENALTIES: Record<SourceUsed['layer'], Partial<Record<SourceUsed['status'], number>>> = {
   geocoding:    { fallback: 2,  degraded: 10, missing: 10 },
   property:     { fallback: 3,  degraded: 10, missing: 20 },
   market:       { fallback: 10, degraded: 25, missing: 40 },
   comparables:  { fallback: 15, degraded: 30, missing: 30 },
   close_series: { fallback: 2,  degraded: 5,  missing: 5 },
   environment:  { fallback: 0,  degraded: 0,  missing: 0 },
+  rent:         { fallback: 0,  degraded: 0,  missing: 0 },
 };
 
 /** Coeficiente de variación ponderado de los €/m² ajustados. */
@@ -52,20 +55,25 @@ export function computeConfidence(input: ConfidenceInput): ConfidenceResult {
     }
   }
 
-  // 2. Número de comparables
+  // 2. Número de comparables: −2 por cada uno que falte hasta 12.
   const n = input.comparables.length;
-  if (n > 0 && n < 8) {
-    const p = (8 - n) * 3;
-    penalties.push({ reason: `solo ${n} comparables`, points: p });
+  if (n > 0 && n < 12) {
+    const p = (12 - n) * 2;
+    penalties.push({ reason: `pocos comparables (${n} de 12)`, points: p });
     score -= p;
   }
 
-  // 3. Dispersión de los comparables
+  // 3. Dispersión: umbral 10 %, penalización acotada a 20.
   const cv = weightedCv(input.comparables);
-  if (cv !== null && cv > 0.15) {
-    const p = Math.min(20, Math.round((cv - 0.15) * 100));
+  if (cv !== null && cv > 0.10) {
+    const p = Math.min(20, Math.round((cv - 0.10) * 100));
     penalties.push({ reason: `dispersión de comparables ${(cv * 100).toFixed(0)} %`, points: p });
     score -= p;
+  }
+
+  if (input.trend12mPct == null) {
+    penalties.push({ reason: 'sin histórico de 12 meses en la zona', points: 3 });
+    score -= 3;
   }
 
   // 4. Radio de búsqueda amplio
