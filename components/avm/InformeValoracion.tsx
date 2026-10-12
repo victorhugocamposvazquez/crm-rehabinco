@@ -22,6 +22,7 @@ import {
   fmtRangoNumeros,
 } from "../../lib/avm/ui/format";
 import type { FieldSource } from "../../lib/avm/twin-builder";
+import type { EntornoCoverage } from "../../lib/avm/entorno-coverage";
 import { MapaValoracion } from "./MapaValoracion";
 import { EntornoInforme, FlagsEntorno } from "./EntornoInforme";
 import { InformeAcciones } from "./InformeAcciones";
@@ -34,6 +35,7 @@ export type InformeProps = {
   valuationId?: string;
   mesesHistoricoZona?: number;
   primerMesZona?: string | null;
+  entornoCoverage?: EntornoCoverage | null;
 };
 
 const colorEstado: Record<SourceUsed["status"], string> = {
@@ -51,7 +53,12 @@ export function InformeValoracion({
   valuationId,
   mesesHistoricoZona = 0,
   primerMesZona = null,
+  entornoCoverage = null,
 }: InformeProps) {
+  const municipioEntorno =
+    twin.address.locality ??
+    twin.address.formattedAddress?.match(/\(([^)]+)\)/)?.[1] ??
+    "este municipio";
   const ctx = {
     zoneKey: result.zoneStats?.zoneKey,
     comparablesCount: result.comparables.length,
@@ -259,7 +266,11 @@ export function InformeValoracion({
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <EntornoInforme environment={result.environment} />
+        <EntornoInforme
+          environment={result.environment}
+          coverage={entornoCoverage}
+          municipalityLabel={municipioEntorno}
+        />
         <section className="rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-5">
           <h2 className="mb-3 text-base font-semibold">Riesgos y avisos</h2>
           <div className="space-y-4">

@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { ValoracionesNav } from "@/components/avm/ValoracionesNav";
 import { InformeValoracion } from "@/components/avm/InformeValoracion";
 import { InformeAcciones } from "@/components/avm/InformeAcciones";
-import { environmentFromAvmRpc } from "@/lib/avm/environment-from-rpc";
+import { parseEntornoCoverage, entornoSinElementosPuntuables } from "@/lib/avm/entorno-coverage";
 import { createClient } from "@/lib/supabase/client";
 import type { Environment, Twin, ValuationResult } from "@/lib/avm/types";
 import { subtituloInforme, tituloInforme } from "@/lib/avm/ui/labels";
@@ -21,6 +21,7 @@ export default function InformePage() {
     creada: string;
     mesesHistorico: number;
     primerMes: string | null;
+    entornoCoverage: ReturnType<typeof parseEntornoCoverage>;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,18 +56,19 @@ export default function InformePage() {
             primerMes = meses[0].month;
           }
         }
-        let environment = data.environment as Environment | null;
-        const tieneEntorno =
-          environment &&
-          (environment.positives?.length || environment.negatives?.length || environment.flags?.length);
-        if (!tieneEntorno && twin.address.lat != null && twin.address.lng != null) {
-          const { data: rpcEnv } = await supabase.rpc("avm_environment", {
+        const environment = data.environment as Environment | null;
+        let entornoCoverage = null;
+        if (
+          entornoSinElementosPuntuables(environment) &&
+          twin.address.lat != null &&
+          twin.address.lng != null
+        ) {
+          const { data: cov } = await supabase.rpc("avm_environment_coverage", {
             p_lat: twin.address.lat,
             p_lng: twin.address.lng,
-            p_census_section: twin.address.censusSection ?? null,
             p_municipality_code: twin.address.municipalityCode ?? null,
           });
-          environment = environmentFromAvmRpc(rpcEnv) ?? environment;
+          entornoCoverage = parseEntornoCoverage(cov);
         }
         const result: ValuationResult = {
           methodVersion: data.method_version,
@@ -94,6 +96,7 @@ export default function InformePage() {
           creada: new Date(data.created_at).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" }),
           mesesHistorico,
           primerMes,
+          entornoCoverage,
         });
       });
   }, [id]);
@@ -119,6 +122,7 @@ export default function InformePage() {
           valuationId={id}
           mesesHistoricoZona={dato.mesesHistorico}
           primerMesZona={dato.primerMes}
+          entornoCoverage={dato.entornoCoverage}
         />
       ) : !error ? (
         <p className="text-[13px] text-[var(--text-3)]">Cargando informe…</p>

@@ -1,8 +1,15 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import type { Environment, EnvironmentItem } from "../../lib/avm/types";
 import { fmtNumero } from "../../lib/avm/ui/format";
+import {
+  avisoEntornoVacio,
+  fmtCapaEntorno,
+  type EntornoCoverage,
+  type AvisoEntornoVacio,
+} from "../../lib/avm/entorno-coverage";
 import {
   Bus,
   Store,
@@ -118,8 +125,62 @@ function ReglaDistancias({ items }: { items: EnvironmentItem[] }) {
   );
 }
 
-export function EntornoInforme({ environment }: { environment: Environment | null }) {
-  const vacio = !environment || (!environment.positives.length && !environment.negatives.length && !environment.flags.length);
+function AvisoVacio({ aviso }: { aviso: AvisoEntornoVacio }) {
+  if (aviso.kind === "sin_capas") {
+    return (
+      <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3.5 py-3 text-[13px] leading-snug text-[var(--text-2)]">
+        <p>
+          Capas de entorno no cargadas para <b>{aviso.municipalityLabel}</b>. Ejecuta los cargadores de{" "}
+          <code className="text-[12px]">scripts/env-load/</code> (ver README) y{" "}
+          <b>revalora</b> el inmueble; el entorno se calcula al valorar, no al abrir el informe.
+        </p>
+        <p className="mt-2">
+          <Link href="/valoraciones/metodologia#entorno-capas" className="text-accent underline underline-offset-2">
+            Cómo valoramos · Entorno · capas públicas
+          </Link>
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="mb-3 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] px-3.5 py-3 text-[13px] leading-snug text-[var(--text-2)]">
+      <p className="font-medium">Sin elementos de entorno a menos de 600 m</p>
+      <p className="mt-1 text-[12px] text-[var(--text-3)]">
+        Capas consultadas en la valoración (fecha de carga en Supabase):
+      </p>
+      {aviso.layers.length ? (
+        <ul className="mt-2 space-y-1 text-[12px] text-[var(--text-3)]">
+          {aviso.layers.map((c) => (
+            <li key={`${c.layer}-${c.source}`}>
+              {fmtCapaEntorno(c.layer)} · {c.source}
+              {c.loaded_at ? (
+                <span className="tabular-nums">
+                  {" "}
+                  · {new Date(c.loaded_at).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })}
+                </span>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-1 text-[12px] text-[var(--text-3)]">No hay capas geográficas registradas cerca de este punto.</p>
+      )}
+    </div>
+  );
+}
+
+export function EntornoInforme({
+  environment,
+  coverage,
+  municipalityLabel = "este municipio",
+}: {
+  environment: Environment | null;
+  coverage?: EntornoCoverage | null;
+  municipalityLabel?: string;
+}) {
+  const sinPuntuables =
+    !environment || (!environment.positives.length && !environment.negatives.length);
+  const aviso = sinPuntuables ? avisoEntornoVacio(environment, coverage ?? null, municipalityLabel) : null;
   const score = environment?.score ?? 0;
   const positivos = [...(environment?.positives ?? [])].sort((a, b) => Number(b.value ?? 0) - Number(a.value ?? 0));
   const todos = [...(environment?.positives ?? []), ...(environment?.negatives ?? [])];
@@ -135,12 +196,7 @@ export function EntornoInforme({ environment }: { environment: Environment | nul
       <p className="mb-3 text-[12px] leading-snug text-[var(--text-3)]">
         Cada fila lleva icono por tipo (transporte, comercio, salud, ruido…), insignia de puntos si aplica y la fuente con fecha de carga del dato.
       </p>
-      {vacio ? (
-        <p className="mb-3 text-[13px] text-[var(--text-3)]">
-          Aún no hay capas de entorno cerca de este punto (OSM/GTFS en carga o valoración anterior). Revalora tras cargar
-          datos o espera unos segundos si acabas de abrir el informe.
-        </p>
-      ) : null}
+      {aviso ? <AvisoVacio aviso={aviso} /> : null}
       {environment?.score != null ? (
         <div className="mb-3.5 flex flex-wrap items-center gap-4">
           <p className="text-[40px] font-bold leading-none tracking-[-0.03em] tabular-nums">{environment.score}</p>
@@ -153,7 +209,7 @@ export function EntornoInforme({ environment }: { environment: Environment | nul
           <span className="text-[13px] whitespace-nowrap text-[var(--text-3)]">{palabraEntorno(score)}</span>
         </div>
       ) : null}
-      {!vacio ? (
+      {!sinPuntuables ? (
         <>
       <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-3)]">A tu alrededor</p>
       <ReglaDistancias items={todos} />

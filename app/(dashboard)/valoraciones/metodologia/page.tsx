@@ -89,7 +89,7 @@ export default function MetodologiaPage() {
             </>
           ) : null}
         </Seccion>
-        <Seccion titulo="Entorno · capas públicas">
+        <Seccion titulo="Entorno · capas públicas" id="entorno-capas">
           {stats?.environmentLayers?.length ? (
             <>
               <p className="text-[var(--text-2)]">
@@ -149,9 +149,9 @@ function pct(n: number | undefined): string {
   return n == null ? "0 %" : `${n} %`;
 }
 
-function Seccion({ titulo, children }: { titulo: string; children: ReactNode }) {
+function Seccion({ titulo, id, children }: { titulo: string; id?: string; children: ReactNode }) {
   return (
-    <section>
+    <section id={id}>
       <h2 className="mb-2 text-[18px] font-medium">{titulo}</h2>
       <div className="space-y-3">{children}</div>
     </section>
