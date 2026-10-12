@@ -6,6 +6,11 @@ export type CandidatoCarto = {
   municipality: string | null;
   province: string | null;
   muniCode?: string;
+  /** tip_via CartoCiudad (ej. AVENIDA). */
+  streetType: string | null;
+  /** Nombre de vía sin tipo ni portal (ej. MONSERRAT). */
+  streetName: string | null;
+  streetNumber: string | null;
 };
 
 export type ContextoGeocoder = {
@@ -27,7 +32,22 @@ type RawCarto = {
   muniCode?: string;
   province?: string;
   provinceCode?: string;
+  tip_via?: string;
+  portalNumber?: string | number;
 };
+
+/** Nombre de calle sin tipología ni número (alineado con pedirCartociudad en twin-builder). */
+export function calleDesdeCarto(item: RawCarto): string | null {
+  if (typeof item.address !== "string") return null;
+  let calle = item.address.split(",")[0].trim();
+  const tip = typeof item.tip_via === "string" ? item.tip_via : "";
+  if (tip && calle.toUpperCase().startsWith(`${tip.toUpperCase()} `)) {
+    calle = calle.slice(tip.length).trim();
+  }
+  const numero = item.portalNumber == null ? "" : String(item.portalNumber);
+  if (numero && calle.endsWith(` ${numero}`)) calle = calle.slice(0, -(numero.length + 1)).trim();
+  return calle || null;
+}
 
 export function parseCartoRow(c: RawCarto): CandidatoCarto | null {
   if (typeof c.lat !== "number" || typeof c.lng !== "number") return null;
@@ -38,6 +58,9 @@ export function parseCartoRow(c: RawCarto): CandidatoCarto | null {
     c.provinceCode ??
     (c.province && /^\d{2}$/.test(c.province) ? c.province : null) ??
     (postcode ? postcode.slice(0, 2) : null);
+  const streetType = typeof c.tip_via === "string" ? c.tip_via : null;
+  const streetNumber = c.portalNumber == null ? null : String(c.portalNumber);
+  const streetName = calleDesdeCarto(c);
   return {
     address,
     lat: c.lat,
@@ -45,6 +68,9 @@ export function parseCartoRow(c: RawCarto): CandidatoCarto | null {
     postcode,
     municipality,
     province,
+    streetType,
+    streetName,
+    streetNumber,
     ...(c.muniCode ? { muniCode: c.muniCode } : {}),
   };
 }

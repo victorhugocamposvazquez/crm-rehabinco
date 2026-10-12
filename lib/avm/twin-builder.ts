@@ -4,6 +4,13 @@ import { TIPOS_VIA_OFICIALES } from "../catastro/constants";
 import { asArray, asRecord, asString } from "../catastro/parse";
 import type { ResultadoConsultaCatastro } from "../catastro/types";
 import { createAdminClient } from "../supabase/admin";
+import {
+  normalizarMunicipioCatastro,
+  provinciaNombreCatastro,
+  siglaViaCarto,
+  viaCatastroDesdeCandidato,
+  type CartoCandidatoNormalizado,
+} from "./carto-catastro";
 import { emptyTwin, type MainType, type PropertyType, type Twin } from "./types";
 
 const TOPE_MS = 3000;
@@ -45,6 +52,8 @@ export type TwinInput = {
   address?: string;
   lat?: number;
   lng?: number;
+  /** Candidato CartoCiudad elegido: Catastro usa solo estos campos, no el texto libre del usuario. */
+  carto?: CartoCandidatoNormalizado;
   catastralRef?: string;
   listingId?: string;
   crmPropertyId?: string;
@@ -408,9 +417,9 @@ function referenciaDesdeRccoor(raw: unknown): string | null {
 function viaDesde(geo: GeoHit | null, direccion: string | null): ViaCatastro | null {
   if (geo?.route && geo.streetNumber) {
     return {
-      provincia: (geo.province ?? "A CORUÑA").toUpperCase(),
-      municipio: (geo.locality ?? "A CORUÑA").toUpperCase(),
-      sigla: geo.tipVia ?? "CALLE",
+      provincia: provinciaNombreCatastro(geo.province, geo.postcode),
+      municipio: normalizarMunicipioCatastro(geo.locality),
+      sigla: siglaViaCarto(geo.tipVia),
       calle: geo.route.toUpperCase(),
       numero: geo.streetNumber,
     };
@@ -421,25 +430,90 @@ function viaDesde(geo: GeoHit | null, direccion: string | null): ViaCatastro | n
   return dir;
 }
 
-function partirDireccion(address: string): { provincia: string; municipio: string; calle: string; numero: string; sigla: string } {
+const PROVINCIA_POR_CP: Record<string, string> = {
+  "15": "A CORUÑA",
+  "36": "PONTEVEDRA",
+  "32": "OURENSE",
+  "27": "LUGO",
+};
+
+function nombreProvinciaCatastro(cp: string | null, address: string, municipio: string): string {
+  if (cp && PROVINCIA_POR_CP[cp.slice(0, 2)]) return PROVINCIA_POR_CP[cp.slice(0, 2)];
+  if (/coru/i.test(address) || /coru/i.test(municipio)) return "A CORUÑA";
+  return municipio.toUpperCase();
+}
+
+/** Parseo para consulta por vía en la Sede del Catastro. */
+export function partirDireccion(address: string): {
+  provincia: string;
+  municipio: string;
+  calle: string;
+  numero: string;
+  sigla: string;
+} {
+  const cp = address.match(/\b(\d{5})\b/)?.[1] ?? null;
   const sinCp = address.replace(/\b\d{5}\b/g, " ").replace(/\s+/g, " ").trim();
   const partes = sinCp.split(",").map((p) => p.trim()).filter(Boolean);
   const cabeza = partes[0] ?? sinCp;
-  const numero = cabeza.match(/(\d+)\s*$/)?.[1] ?? "";
-  let calle = cabeza.replace(/\s*\d+\s*$/, "").trim();
+  let numero = cabeza.match(/(\d+[a-zA-Z]?)\s*$/)?.[1] ?? "";
+  if (!numero) {
+    for (const p of partes.slice(1, 3)) {
+      const m = p.match(/^(\d+[a-zA-Z]?)\b/);
+      if (m) {
+        numero = m[1];
+        break;
+      }
+    }
+  }
+  let calle = cabeza.replace(/\s*\d+[a-zA-Z]?\s*$/, "").trim();
   let sigla = "CL";
-  const via = calle.match(/^(rúa|rua|calle|avenida|avda\.?|plaza|praza|camino)\s+/i);
+  const via = calle.match(/^(rúa|rua|calle|avenida|avda\.?|av\.?\s|plaza|praza|camino|paseo|traves[ií]a)\s+/i);
   if (via) {
     const nombre = via[1].toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
     if (nombre.startsWith("av")) sigla = "AV";
     else if (nombre.startsWith("pl") || nombre.startsWith("pr")) sigla = "PZ";
     else if (nombre.startsWith("cam")) sigla = "CM";
+    else if (nombre.startsWith("pas")) sigla = "PS";
+    else if (nombre.startsWith("tra")) sigla = "TR";
     calle = calle.slice(via[0].length).trim();
   }
-  const resto = partes.slice(1).join(" ").trim();
-  const municipio = resto || "A Coruña";
-  const provincia = /coru/i.test(address) ? "A CORUÑA" : municipio;
-  return { provincia, municipio, calle, numero, sigla };
+  let municipio = "A CORUÑA";
+  for (let i = partes.length - 1; i >= 1; i--) {
+    const p = partes[i];
+    const enParentesis = p.match(/\(([^)]+)\)\s*$/);
+    if (enParentesis) {
+      municipio = enParentesis[1].trim();
+      break;
+    }
+    if (!/^\d+[a-zA-Z]?$/.test(p) && p.length > 2) {
+      municipio = p.replace(/\([^)]*\)/g, "").trim();
+      break;
+    }
+  }
+  municipio = municipio.toUpperCase();
+  const provincia = nombreProvinciaCatastro(cp, address, municipio);
+  return { provincia, municipio, calle: calle.toUpperCase(), numero, sigla };
+}
+
+function geoDesdePin(
+  direccion: string | null,
+  lat: number,
+  lng: number,
+  hints: { locality?: string; province?: string; postcode?: string },
+): GeoHit | null {
+  if (!direccion) return null;
+  const dir = partirDireccion(direccion);
+  return {
+    lat,
+    lng,
+    formattedAddress: direccion,
+    route: dir.calle || null,
+    streetNumber: dir.numero || null,
+    tipVia: dir.sigla,
+    locality: (hints.locality ?? dir.municipio).toUpperCase(),
+    province: hints.province ?? dir.provincia,
+    postcode: hints.postcode ?? direccion.match(/\b(\d{5})\b/)?.[1] ?? null,
+  };
 }
 
 function hitLocal(row: {
@@ -655,9 +729,11 @@ async function pedirSede(q: { ref?: string; address?: string; via?: ViaCatastro;
   }
   if (q.address) {
     const dir = partirDireccion(q.address);
-    if (!dir.calle || !dir.numero) return null;
-    const raw = await client.consultarDireccion(dir);
-    return conCentroide(client, hitDesdeConsulta(raw));
+    if (dir.calle && dir.numero) {
+      const raw = await client.consultarDireccion(dir);
+      const hit = await conCentroide(client, hitDesdeConsulta(raw));
+      if (hit) return hit;
+    }
   }
   if (q.lat == null || q.lng == null) return null;
   const crudo = await client.consultarReferenciaPorCoordenadas(q.lat, q.lng);
@@ -825,8 +901,35 @@ async function ejecutar(input: TwinInput, ctx: TwinCtx, deps: TwinDeps): Promise
   const direccion = input.address || ficha?.address || null;
   if (!direccion && !twin.address.formattedAddress && ficha?.address) twin.address.formattedAddress = ficha.address;
 
-  if (lat != null && lng != null) {
+  if (input.carto) {
+    lat = input.carto.lat;
+    lng = input.carto.lng;
+    geocodingSource = "cartociudad";
+    twin.address.formattedAddress = input.carto.address;
+    twin.address.postcode = input.carto.postcode ?? twin.address.postcode;
+    twin.address.locality = input.carto.municipality;
+    twin.address.province = input.carto.province;
+    geo = {
+      lat: input.carto.lat,
+      lng: input.carto.lng,
+      formattedAddress: input.carto.address,
+      route: input.carto.streetName,
+      streetNumber: input.carto.streetNumber,
+      tipVia: input.carto.streetType,
+      locality: input.carto.municipality,
+      province: input.carto.province,
+      postcode: input.carto.postcode,
+    };
+  } else if (lat != null && lng != null) {
     geocodingSource = input.listingId || ficha?.source === "listing" ? "listing" : "pin";
+    if (direccion) {
+      geo =
+        geoDesdePin(direccion, lat, lng, {
+          locality: undefined,
+          province: undefined,
+          postcode: undefined,
+        }) ?? geo;
+    }
   } else if (ficha?.lat != null && ficha.lng != null) {
     lat = ficha.lat;
     lng = ficha.lng;
@@ -879,7 +982,8 @@ async function ejecutar(input: TwinInput, ctx: TwinCtx, deps: TwinDeps): Promise
   }
 
   const refExplicita = input.catastralRef?.replace(/\s/g, "") || null;
-  const via = refExplicita ? null : viaDesde(geo, direccion);
+  const viaCarto = input.carto ? viaCatastroDesdeCandidato(input.carto) : null;
+  const via = refExplicita ? null : viaCarto ?? viaDesde(geo, input.carto ? null : direccion);
   let unidades: TwinUnit[] | undefined;
   try {
     const local = await deps.catastroLocal({ ref: refExplicita ?? undefined, lat: lat ?? undefined, lng: lng ?? undefined });
@@ -891,9 +995,9 @@ async function ejecutar(input: TwinInput, ctx: TwinCtx, deps: TwinDeps): Promise
     const sede = await deps.catastroSede({
       ref: refExplicita ?? undefined,
       via: via ?? undefined,
-      address: refExplicita || via ? undefined : direccion ?? undefined,
-      lat: refExplicita || via || direccion ? undefined : lat ?? undefined,
-      lng: refExplicita || via || direccion ? undefined : lng ?? undefined,
+      address: refExplicita || via || input.carto ? undefined : direccion ?? undefined,
+      lat: lat ?? undefined,
+      lng: lng ?? undefined,
     });
     if (sede.warning) warnings.push(sede.warning);
     if (sede.hit) {

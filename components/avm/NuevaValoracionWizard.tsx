@@ -396,7 +396,22 @@ export function NuevaValoracionWizard({
                   else void cargar({ crmPropertyId: r.id }, "crm");
                 }}
                 onContinuarDireccion={(s) => {
-                  void cargar({ address: s.address, lat: s.lat, lng: s.lng }, "direccion");
+                  void cargar(
+                    {
+                      carto: {
+                        address: s.address,
+                        lat: s.lat,
+                        lng: s.lng,
+                        postcode: s.postcode,
+                        municipality: s.municipality,
+                        province: s.province,
+                        streetType: s.streetType,
+                        streetName: s.streetName,
+                        streetNumber: s.streetNumber,
+                      },
+                    },
+                    "direccion",
+                  );
                 }}
                 onMoverPin={(lat, lng) => {
                   setPinMapa((p) => ({ ...p, lat, lng }));

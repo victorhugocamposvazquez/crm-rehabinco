@@ -7,6 +7,7 @@ import {
   buildTwin,
   conCache,
   condicionDesdePista,
+  partirDireccion,
   type CatastroHit,
   type FichaOrigen,
   type GeoHit,
@@ -49,7 +50,57 @@ function sede(hit: Partial<CatastroHit>): CatastroHit {
   };
 }
 
+describe("partirDireccion", () => {
+  it("Avenida Monserrat 12 usa A Coruña como municipio, no el barrio Monserrat", () => {
+    const d = partirDireccion("Avenida Monserrat 12, Monserrat (A Coruña)");
+    expect(d.municipio).toBe("A CORUÑA");
+    expect(d.provincia).toBe("A CORUÑA");
+    expect(d.sigla).toBe("AV");
+    expect(d.calle).toBe("MONSERRAT");
+    expect(d.numero).toBe("12");
+  });
+
+  it("AVENIDA MONSERRAT 12 con paréntesis CartoCiudad", () => {
+    const d = partirDireccion("AVENIDA MONSERRAT 12, Monserrat (A Coruña)");
+    expect(d.numero).toBe("12");
+    expect(d.municipio).toBe("A CORUÑA");
+  });
+});
+
 describe("buildTwin", () => {
+  it("candidato CartoCiudad envía vía AV MONSERRAT 12 a la Sede (no texto del usuario)", async () => {
+    let viaEnviada: unknown;
+    await buildTwin(
+      {
+        carto: {
+          address: "AVENIDA MONSERRAT 12, Monserrat (A Coruña)",
+          lat: 43.33695,
+          lng: -8.39167,
+          postcode: "15009",
+          municipality: "A Coruña",
+          province: "15",
+          streetType: "AVENIDA",
+          streetName: "MONSERRAT",
+          streetNumber: "12",
+        },
+      },
+      ctx,
+      deps({
+        catastroSede: async (q) => {
+          viaEnviada = q.via;
+          return { hit: null };
+        },
+      }),
+    );
+    expect(viaEnviada).toEqual({
+      provincia: "A CORUÑA",
+      municipio: "A CORUÑA",
+      sigla: "AV",
+      calle: "MONSERRAT",
+      numero: "12",
+    });
+  });
+
   it("geocodifica con CartoCiudad y deja Google para cuando esa no responde", async () => {
     const out = await buildTwin(
       { address: "Rúa Juan Flórez 30, 15004 A Coruña" },
@@ -240,6 +291,41 @@ async function hayRed(): Promise<boolean> {
     return false;
   }
 }
+
+describe("buildTwin Avenida Monserrat 12", () => {
+  it("devuelve 22 viviendas y propertySource catastro_sede", async ({ skip }) => {
+    if (!(await hayRed())) {
+      skip();
+      return;
+    }
+    cargarEnv();
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      skip();
+      return;
+    }
+    const out = await buildTwin(
+      {
+        carto: {
+          address: "AVENIDA MONSERRAT 12, Monserrat (A Coruña)",
+          lat: 43.33695075899978,
+          lng: -8.391675832934954,
+          postcode: "15009",
+          municipality: "A Coruña",
+          province: "15",
+          streetType: "AVENIDA",
+          streetName: "MONSERRAT",
+          streetNumber: "12",
+        },
+      },
+      ctx,
+    );
+    expect(out.propertySource).toBe("catastro_sede");
+    expect(["cartociudad", "catastro"]).toContain(out.geocodingSource);
+    const viviendas = out.units?.filter((u) => u.isDwelling) ?? [];
+    expect(viviendas.length).toBe(22);
+    expect(out.twin.address.catastralRef?.slice(0, 14)).toBe("9385402NH4998S");
+  }, 45000);
+});
 
 describe("buildTwin Juan Flórez", () => {
   it("resuelve la dirección real cuando hay red", async ({ skip }) => {

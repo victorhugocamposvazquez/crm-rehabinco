@@ -8,6 +8,7 @@ export async function construirGemelo(input: {
   address?: string;
   lat?: number;
   lng?: number;
+  carto?: import("@/lib/avm/carto-catastro").CartoCandidatoNormalizado;
   catastralRef?: string;
   listingId?: string;
   crmPropertyId?: string;
@@ -63,6 +64,9 @@ export async function candidatosDireccion(q: string) {
     postcode: c.postcode,
     municipality: c.municipality,
     province: c.province,
+    streetType: c.streetType,
+    streetName: c.streetName,
+    streetNumber: c.streetNumber,
   }));
 }
 
