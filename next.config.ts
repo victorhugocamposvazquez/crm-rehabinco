@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const buildId = process.env.VERCEL_GIT_COMMIT_SHA ?? "dev";
 
 const nextConfig: NextConfig = {
+  transpilePackages: ["maplibre-gl"],
   env: {
     NEXT_PUBLIC_BUILD_ID: buildId,
   },
