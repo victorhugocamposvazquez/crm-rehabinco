@@ -24,6 +24,7 @@ import {
 import type { FieldSource } from "../../lib/avm/twin-builder";
 import { MapaValoracion } from "./MapaValoracion";
 import { EntornoInforme, FlagsEntorno } from "./EntornoInforme";
+import { InformeAcciones } from "./InformeAcciones";
 
 export type InformeProps = {
   creada: string;
@@ -73,6 +74,7 @@ export function InformeValoracion({
 
   return (
     <article className="flex flex-col gap-4" data-testid="informe">
+      <InformeAcciones className="min-[820px]:hidden" />
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" data-testid="tiles">
         <Tile label="Valor de cierre" value={fmtEuros(result.valueMid)} foot={`rango ${rangoPie}`} grande />
         <Tile
@@ -256,9 +258,9 @@ export function InformeValoracion({
         </div>
       </section>
 
-      <div className={`grid gap-4 ${result.environment ? "lg:grid-cols-2" : ""}`}>
-        {result.environment ? <EntornoInforme environment={result.environment} /> : null}
-        <section className={`rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-5 ${result.environment ? "" : "lg:col-span-2"}`}>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <EntornoInforme environment={result.environment} />
+        <section className="rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-5">
           <h2 className="mb-3 text-base font-semibold">Riesgos y avisos</h2>
           <div className="space-y-4">
             <FlagsEntorno flags={result.environment?.flags ?? []} />

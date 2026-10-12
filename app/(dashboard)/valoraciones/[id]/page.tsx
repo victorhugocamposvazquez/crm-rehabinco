@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Button } from "@/components/ui/button";
 import { ValoracionesNav } from "@/components/avm/ValoracionesNav";
 import { InformeValoracion } from "@/components/avm/InformeValoracion";
+import { InformeAcciones } from "@/components/avm/InformeAcciones";
+import { environmentFromAvmRpc } from "@/lib/avm/environment-from-rpc";
 import { createClient } from "@/lib/supabase/client";
-import type { Twin, ValuationResult } from "@/lib/avm/types";
+import type { Environment, Twin, ValuationResult } from "@/lib/avm/types";
 import { subtituloInforme, tituloInforme } from "@/lib/avm/ui/labels";
 
 export default function InformePage() {
@@ -54,6 +55,19 @@ export default function InformePage() {
             primerMes = meses[0].month;
           }
         }
+        let environment = data.environment as Environment | null;
+        const tieneEntorno =
+          environment &&
+          (environment.positives?.length || environment.negatives?.length || environment.flags?.length);
+        if (!tieneEntorno && twin.address.lat != null && twin.address.lng != null) {
+          const { data: rpcEnv } = await supabase.rpc("avm_environment", {
+            p_lat: twin.address.lat,
+            p_lng: twin.address.lng,
+            p_census_section: twin.address.censusSection ?? null,
+            p_municipality_code: twin.address.municipalityCode ?? null,
+          });
+          environment = environmentFromAvmRpc(rpcEnv) ?? environment;
+        }
         const result: ValuationResult = {
           methodVersion: data.method_version,
           operation: data.operation,
@@ -70,7 +84,7 @@ export default function InformePage() {
           sourcesUsed: data.sources_used ?? [],
           comparables: data.comparables ?? [],
           zoneStats: zone,
-          environment: data.environment,
+          environment,
           explanation: data.explanation ?? [],
         };
         setDato({
@@ -91,19 +105,7 @@ export default function InformePage() {
       <PageHeader
         title={twin ? tituloInforme(twin) : "Informe"}
         description={dato ? subtituloInforme(dato.twin, dato.creada, dato.result.methodVersion) : undefined}
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" size="sm" variant="secondary" disabled title="Disponible en fase 2">
-              Marcar zona
-            </Button>
-            <Button type="button" size="sm" variant="secondary" disabled title="Disponible en fase 2">
-              Informe PDF
-            </Button>
-            <Button type="button" size="sm" disabled title="Disponible en fase 2">
-              Enviar al propietario
-            </Button>
-          </div>
-        }
+        actions={<InformeAcciones className="hidden min-[820px]:flex" />}
         className="mb-5"
       />
       <ValoracionesNav actual="" />

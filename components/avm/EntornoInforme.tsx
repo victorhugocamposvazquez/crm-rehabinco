@@ -118,10 +118,11 @@ function ReglaDistancias({ items }: { items: EnvironmentItem[] }) {
   );
 }
 
-export function EntornoInforme({ environment }: { environment: Environment }) {
-  const score = environment.score ?? 0;
-  const positivos = [...environment.positives].sort((a, b) => Number(b.value ?? 0) - Number(a.value ?? 0));
-  const todos = [...environment.positives, ...environment.negatives];
+export function EntornoInforme({ environment }: { environment: Environment | null }) {
+  const vacio = !environment || (!environment.positives.length && !environment.negatives.length && !environment.flags.length);
+  const score = environment?.score ?? 0;
+  const positivos = [...(environment?.positives ?? [])].sort((a, b) => Number(b.value ?? 0) - Number(a.value ?? 0));
+  const todos = [...(environment?.positives ?? []), ...(environment?.negatives ?? [])];
 
   return (
     <section className="rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-5" data-testid="entorno">
@@ -134,7 +135,13 @@ export function EntornoInforme({ environment }: { environment: Environment }) {
       <p className="mb-3 text-[12px] leading-snug text-[var(--text-3)]">
         Cada fila lleva icono por tipo (transporte, comercio, salud, ruido…), insignia de puntos si aplica y la fuente con fecha de carga del dato.
       </p>
-      {environment.score != null ? (
+      {vacio ? (
+        <p className="mb-3 text-[13px] text-[var(--text-3)]">
+          Aún no hay capas de entorno cerca de este punto (OSM/GTFS en carga o valoración anterior). Revalora tras cargar
+          datos o espera unos segundos si acabas de abrir el informe.
+        </p>
+      ) : null}
+      {environment?.score != null ? (
         <div className="mb-3.5 flex flex-wrap items-center gap-4">
           <p className="text-[40px] font-bold leading-none tracking-[-0.03em] tabular-nums">{environment.score}</p>
           <div className="relative h-2 min-w-[120px] flex-1 rounded bg-gradient-to-r from-red-500 via-amber-500 to-emerald-500">
@@ -146,6 +153,8 @@ export function EntornoInforme({ environment }: { environment: Environment }) {
           <span className="text-[13px] whitespace-nowrap text-[var(--text-3)]">{palabraEntorno(score)}</span>
         </div>
       ) : null}
+      {!vacio ? (
+        <>
       <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-3)]">A tu alrededor</p>
       <ReglaDistancias items={todos} />
       <div className="mb-3 flex flex-wrap gap-3 text-[12px] text-[var(--text-3)]">
@@ -171,12 +180,14 @@ export function EntornoInforme({ environment }: { environment: Environment }) {
         <div>
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-3)]">En contra</p>
           <div className="flex flex-col gap-2">
-            {environment.negatives.map((p) => (
+            {(environment?.negatives ?? []).map((p) => (
               <FilaEntorno key={p.label} item={p} variant="bad" />
             ))}
           </div>
         </div>
       </div>
+        </>
+      ) : null}
     </section>
   );
 }

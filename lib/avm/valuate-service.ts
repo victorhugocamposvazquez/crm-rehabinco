@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { buildTwin, type PropertySource, type TwinBuild, type TwinUnit } from "./twin-builder";
 import type { Channel, Comparable, Operation, Twin, ZoneLevel, ZoneStats } from "./types";
-import { buildEnvironment, type RawEnvironment } from "./environment";
+import { environmentFromAvmRpc } from "./environment-from-rpc";
 import { publicView, valuate, type ValuateDeps, type ValuateOptions } from "./valuate";
 
 const TENANT = "00000000-0000-4000-8000-000000000001";
@@ -182,16 +182,7 @@ export function depsMercado(db: SupabaseClient): ValuateDeps {
         p_municipality_code: twin.address.municipalityCode ?? null,
       });
       if (error) throw new Error(error.message);
-      const payload = data as {
-        nearest?: RawEnvironment["nearest"];
-        counts_500m?: Record<string, number>;
-        meta?: { has_osm?: boolean };
-      } | null;
-      if (!payload?.meta?.has_osm) return null;
-      return buildEnvironment({
-        nearest: payload.nearest ?? [],
-        counts_500m: payload.counts_500m ?? {},
-      });
+      return environmentFromAvmRpc(data);
     },
   };
 }
