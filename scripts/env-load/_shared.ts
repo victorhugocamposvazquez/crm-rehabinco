@@ -13,6 +13,38 @@ export const BBOX_ACORUNA = {
   maxLng: -8.28,
 };
 
+/** Península, Baleares, Canarias, Ceuta y Melilla (Geofabrik «spain»). */
+export const BBOX_ESPANIA = {
+  minLat: 27,
+  maxLat: 44.5,
+  minLng: -19,
+  maxLng: 5,
+};
+
+export type EnvLoadRegion = "acoruna" | "spain";
+
+let envLoadRegion: EnvLoadRegion = "spain";
+
+export function getEnvLoadRegion(): EnvLoadRegion {
+  return envLoadRegion;
+}
+
+export function setEnvLoadRegion(r: EnvLoadRegion): void {
+  envLoadRegion = r;
+}
+
+/** `--region spain|acoruna` o `--acoruna` (legacy). Por defecto: España. */
+export function parseRegionArg(argv: string[] = process.argv): EnvLoadRegion {
+  const i = argv.indexOf("--region");
+  if (i >= 0) {
+    const v = (argv[i + 1] ?? "").toLowerCase();
+    if (v === "acoruna" || v === "coruna" || v === "a-coruna") return "acoruna";
+    if (v === "spain" || v === "espana" || v === "es") return "spain";
+  }
+  if (argv.includes("--acoruna")) return "acoruna";
+  return "spain";
+}
+
 export function cargarEnv(): void {
   for (const rel of [".env.local", "crawler/.env"]) {
     const file = path.join(root, rel);
@@ -36,12 +68,8 @@ export async function adminClient(): Promise<SupabaseClient> {
 }
 
 export function enBbox(lat: number, lng: number): boolean {
-  return (
-    lat >= BBOX_ACORUNA.minLat &&
-    lat <= BBOX_ACORUNA.maxLat &&
-    lng >= BBOX_ACORUNA.minLng &&
-    lng <= BBOX_ACORUNA.maxLng
-  );
+  const box = getEnvLoadRegion() === "acoruna" ? BBOX_ACORUNA : BBOX_ESPANIA;
+  return lat >= box.minLat && lat <= box.maxLat && lng >= box.minLng && lng <= box.maxLng;
 }
 
 export type LayerRow = {
@@ -104,12 +132,15 @@ export function leerJson<T>(file: string): T {
   return JSON.parse(readFileSync(file, "utf8")) as T;
 }
 
-export async function leerNdjson<T>(file: string, onLine: (row: T) => void): Promise<void> {
+export async function leerNdjson<T>(
+  file: string,
+  onLine: (row: T) => void | Promise<void>,
+): Promise<void> {
   const { createInterface } = await import("node:readline");
   const rl = createInterface({ input: createReadStream(file), crlfDelay: Infinity });
   for await (const line of rl) {
     const t = line.trim();
     if (!t) continue;
-    onLine(JSON.parse(t) as T);
+    await onLine(JSON.parse(t) as T);
   }
 }

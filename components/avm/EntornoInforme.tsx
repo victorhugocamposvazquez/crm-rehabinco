@@ -179,7 +179,10 @@ export function EntornoInforme({
   municipalityLabel?: string;
 }) {
   const sinPuntuables =
-    !environment || (!environment.positives.length && !environment.negatives.length);
+    !environment ||
+    (!environment.positives.length &&
+      !environment.negatives.length &&
+      !(environment.flags?.length ?? 0));
   const aviso = sinPuntuables ? avisoEntornoVacio(environment, coverage ?? null, municipalityLabel) : null;
   const score = environment?.score ?? 0;
   const positivos = [...(environment?.positives ?? [])].sort((a, b) => Number(b.value ?? 0) - Number(a.value ?? 0));

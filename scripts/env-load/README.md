@@ -4,6 +4,15 @@ Scripts **idempotentes** (borran y recargan su capa). Ejecutar desde el Mac con 
 
 **Antes:** aplicar migración `supabase/migrations/20261013050000_avm_environment_phase_g.sql`.
 
+## España completa (recomendado)
+
+```bash
+brew install osmium-tool
+npx tsx scripts/env-load/load-spain.ts
+```
+
+Incluye criminalidad municipal (datoscrimen.es), vulnerabilidad OVU 2021 (MITMA) y OSM Geofabrik `spain-latest.osm.pbf`. Inundación/ruido/GTFS siguen siendo cargas manuales por fuente (ver abajo).
+
 ## Orden recomendado
 
 | # | Script | Tiempo orientativo | Notas |
@@ -19,9 +28,13 @@ Scripts **idempotentes** (borran y recargan su capa). Ejecutar desde el Mac con 
 
 ```bash
 # 1 · OpenStreetMap (brew install osmium-tool)
-npx tsx scripts/env-load/osm.ts
-# o con PBF ya descargado:
-npx tsx scripts/env-load/osm.ts --pbf ~/Downloads/galicia-latest.osm.pbf
+npx tsx scripts/env-load/osm.ts --region spain
+# solo A Coruña / Galicia OSM:
+npx tsx scripts/env-load/osm.ts --region acoruna --pbf ~/Downloads/galicia-latest.osm.pbf
+
+# 5–6 · Nacional automático
+npx tsx scripts/env-load/crime.ts --fetch
+npx tsx scripts/env-load/vulnerability.ts --fetch-spain
 
 # 2 · GTFS tranvías (carpeta descomprimida con stops.txt)
 npx tsx scripts/env-load/gtfs.ts --zip data/env/gtfs/tranvias-coruna

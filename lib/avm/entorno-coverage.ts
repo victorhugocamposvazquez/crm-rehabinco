@@ -36,9 +36,11 @@ export function parseEntornoCoverage(data: unknown): EntornoCoverage | null {
   };
 }
 
-/** Sin filas a favor/en contra en el snapshot guardado al valorar. */
+/** Sin filas a favor/en contra ni avisos (flags) en el snapshot guardado al valorar. */
 export function entornoSinElementosPuntuables(environment: Environment | null): boolean {
   if (!environment) return true;
+  const flags = environment.flags?.length ?? 0;
+  if (flags > 0) return false;
   return !environment.positives.length && !environment.negatives.length;
 }
 

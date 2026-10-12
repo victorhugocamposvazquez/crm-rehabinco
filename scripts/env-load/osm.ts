@@ -1,9 +1,10 @@
 /**
- * OpenStreetMap (Geofabrik Galicia) → environment_layers
+ * OpenStreetMap (Geofabrik) → environment_layers
  * Requisitos en Mac: osmium-tool (`brew install osmium-tool`)
  *
  * npx tsx scripts/env-load/osm.ts
- * npx tsx scripts/env-load/osm.ts --pbf ~/Downloads/galicia-latest.osm.pbf
+ * npx tsx scripts/env-load/osm.ts --region spain
+ * npx tsx scripts/env-load/osm.ts --region acoruna --pbf ~/Downloads/galicia-latest.osm.pbf
  */
 import { execSync } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
@@ -16,8 +17,10 @@ import {
   insertarLotes,
   leerNdjson,
   lineaWkt,
+  parseRegionArg,
   puntoWkt,
   poligonoWkt,
+  setEnvLoadRegion,
   type LayerRow,
 } from "./_shared";
 
@@ -43,14 +46,25 @@ function asegurarOsmium(): void {
   }
 }
 
-function descargarGalicia(dest: string): void {
+const GEOFABRIK = {
+  spain: {
+    url: "https://download.geofabrik.de/europe/spain-latest.osm.pbf",
+    file: "spain-latest.osm.pbf",
+    label: "España (península e islas)",
+  },
+  acoruna: {
+    url: "https://download.geofabrik.de/europe/spain/galicia-latest.osm.pbf",
+    file: "galicia-latest.osm.pbf",
+    label: "Galicia (recorte OSM)",
+  },
+} as const;
+
+function descargarPbf(dest: string, region: keyof typeof GEOFABRIK): void {
   if (existsSync(dest)) return;
   mkdirSync(path.dirname(dest), { recursive: true });
-  console.log("Descargando galicia-latest.osm.pbf (Geofabrik)…");
-  execSync(
-    `curl -L -o "${dest}" "https://download.geofabrik.de/europe/spain/galicia-latest.osm.pbf"`,
-    { stdio: "inherit" }
-  );
+  const g = GEOFABRIK[region];
+  console.log(`Descargando ${g.file} (${g.label})…`);
+  execSync(`curl -L -o "${dest}" "${g.url}"`, { stdio: "inherit" });
 }
 
 function filtrarExportar(pbf: string, work: string, name: string, filterArgs: string[]): string {
@@ -174,9 +188,13 @@ function filaDesdeFeature(f: GeoFeature): LayerRow | null {
 
 async function main(): Promise<void> {
   asegurarOsmium();
+  const region = parseRegionArg();
+  setEnvLoadRegion(region);
+  const geof = region === "acoruna" ? "acoruna" : "spain";
   const work = dataDir("osm-work");
-  const pbf = arg("--pbf") ?? path.join(dataDir("osm"), "galicia-latest.osm.pbf");
-  descargarGalicia(pbf);
+  const pbf =
+    arg("--pbf") ?? path.join(dataDir("osm"), GEOFABRIK[geof].file);
+  descargarPbf(pbf, geof);
 
   const t0 = Date.now();
   const pois = filtrarExportar(pbf, work, "pois", [
@@ -228,42 +246,62 @@ async function main(): Promise<void> {
     "w/railway=rail",
   ]);
 
-  const filas: LayerRow[] = [];
-  const push = (f: GeoFeature) => {
-    const row = filaDesdeFeature(f);
-    if (row) filas.push(row);
-  };
-  await leerNdjson<GeoFeature>(pois, push);
-  await leerNdjson<GeoFeature>(vias, (f) => {
-    const tags = f.properties ?? {};
-    if (tags.railway === "rail") {
-      const row = filaDesdeFeature({ ...f, properties: { ...tags, highway: undefined } });
-      if (row) {
-        filas.push({
-          ...row,
-          layer: "osm_poi",
-          category: "railway",
-          sense: "negative",
-        });
-      }
-      return;
-    }
-    push(f);
-  });
-
   const porCat = new Map<string, number>();
-  for (const r of filas) {
-    const k = `${r.layer}:${r.category ?? ""}`;
-    porCat.set(k, (porCat.get(k) ?? 0) + 1);
-  }
-
   const db = await adminClient();
   console.log("Borrando capa OSM previa…");
   await borrarCapa(db, { source: SOURCE });
-  console.log(`Insertando ${filas.length} elementos…`);
-  const n = await insertarLotes(db, filas);
+
+  const lote = 2500;
+  let buffer: LayerRow[] = [];
+  let n = 0;
+
+  const contar = (row: LayerRow) => {
+    const k = `${row.layer}:${row.category ?? ""}`;
+    porCat.set(k, (porCat.get(k) ?? 0) + 1);
+  };
+
+  const flush = async () => {
+    if (!buffer.length) return;
+    n += await insertarLotes(db, buffer, 200);
+    buffer = [];
+    if (n % 50_000 < lote) console.log(`  … ${n} filas insertadas`);
+  };
+
+  const push = async (f: GeoFeature) => {
+    const row = filaDesdeFeature(f);
+    if (!row) return;
+    contar(row);
+    buffer.push(row);
+    if (buffer.length >= lote) await flush();
+  };
+
+  const ingest = async (f: GeoFeature) => {
+    const tags = f.properties ?? {};
+    if (tags.railway === "rail") {
+      const railRow = filaDesdeFeature({ ...f, properties: { ...tags, highway: undefined } });
+      if (railRow) {
+        const row: LayerRow = {
+          ...railRow,
+          layer: "osm_poi",
+          category: "railway",
+          sense: "negative",
+        };
+        contar(row);
+        buffer.push(row);
+        if (buffer.length >= lote) await flush();
+      }
+      return;
+    }
+    await push(f);
+  };
+
+  await leerNdjson<GeoFeature>(pois, ingest);
+  await flush();
+  await leerNdjson<GeoFeature>(vias, ingest);
+  await flush();
+
   const seg = ((Date.now() - t0) / 1000).toFixed(0);
-  console.log(`OSM listo: ${n} filas en ${seg}s`);
+  console.log(`OSM listo (${region}): ${n} filas en ${seg}s`);
   for (const [k, c] of [...porCat.entries()].sort()) console.log(`  ${k}: ${c}`);
 }
 
