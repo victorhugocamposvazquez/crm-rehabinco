@@ -7,6 +7,9 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { ValoracionesNav } from "@/components/avm/ValoracionesNav";
 import { createClient } from "@/lib/supabase/client";
+import { ETIQUETA_CANAL, ETIQUETA_MAIN_TYPE, claseConfianza, etiquetaConfianzaCorta } from "@/lib/avm/ui/labels";
+import { fmtEuros, fmtFechaCorta } from "@/lib/avm/ui/format";
+import type { Channel, MainType } from "@/lib/avm/types";
 
 type Fila = {
   id: string;
@@ -95,13 +98,19 @@ export default function ValoracionesPage() {
           {filas.map((f) => (
             <tr key={f.id} className="border-t border-[var(--border)]">
               <td className="py-2 pr-3"><Link href={`/valoraciones/${f.id}`} className="underline-offset-2 hover:underline">{f.property?.formatted_address || "Sin dirección"}</Link></td>
-              <td className="py-2 pr-3">{f.property?.main_type || "—"}</td>
+              <td className="py-2 pr-3">
+                {f.property?.main_type && ETIQUETA_MAIN_TYPE[f.property.main_type as MainType]
+                  ? ETIQUETA_MAIN_TYPE[f.property.main_type as MainType]
+                  : f.property?.main_type || "—"}
+              </td>
               <td className="py-2 pr-3 tabular-nums">{f.property?.built_surface ?? "—"}</td>
-              <td className="py-2 pr-3 tabular-nums">{Number(f.value_mid).toLocaleString("es-ES")} €</td>
-              <td className="py-2 pr-3 tabular-nums">{f.confidence} %</td>
-              <td className="py-2 pr-3">{new Date(f.created_at).toLocaleDateString("es-ES")}</td>
+              <td className="py-2 pr-3 tabular-nums">{fmtEuros(Number(f.value_mid))}</td>
+              <td className="py-2 pr-3">
+                <ConfianzaChip valor={f.confidence} />
+              </td>
+              <td className="py-2 pr-3">{fmtFechaCorta(f.created_at)}</td>
               <td className="py-2 pr-3">{f.comercial || "—"}</td>
-              <td className="py-2">{f.channel}</td>
+              <td className="py-2">{ETIQUETA_CANAL[f.channel as Channel] ?? f.channel}</td>
             </tr>
           ))}
         </tbody>
@@ -113,5 +122,20 @@ export default function ValoracionesPage() {
         {pagina < paginas ? <Link href={`/valoraciones?pagina=${pagina + 1}${canal ? `&canal=${canal}` : ""}`}>Siguiente</Link> : null}
       </div>
     </div>
+  );
+}
+
+function ConfianzaChip({ valor }: { valor: number }) {
+  const banda = claseConfianza(valor);
+  const cls =
+    banda === "good"
+      ? "border-transparent bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+      : banda === "warn"
+        ? "border-transparent bg-amber-500/10 text-amber-800 dark:text-amber-400"
+        : "border-transparent bg-red-500/10 text-red-700 dark:text-red-400";
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[12px] tabular-nums ${cls}`}>
+      {valor} % · {etiquetaConfianzaCorta(valor)}
+    </span>
   );
 }

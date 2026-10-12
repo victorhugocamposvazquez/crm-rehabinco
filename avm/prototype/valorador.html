@@ -1,0 +1,908 @@
+<title>Valorador statecrm</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: panel de gestión oscuro; una columna de trabajo + panel lateral pegajoso en la landing; informe en bloques a ancho completo en la zona interna. */
+:root{
+  color-scheme:dark;
+  --bg:#0a0a0b; --surface:#121214; --surface-2:#19191c; --surface-3:#202024;
+  --border:#26262b; --border-strong:#36363d;
+  --fg:#f3f3f1; --muted:#9b9ba3; --dim:#6a6a72;
+  --btn:#ffffff; --btn-fg:#0a0a0b;
+  --good:#4ade80; --good-bg:rgba(74,222,128,.10);
+  --warn:#f5b942; --warn-bg:rgba(245,185,66,.12);
+  --bad:#f87171;  --bad-bg:rgba(248,113,113,.12);
+  --info:#7ab8ff; --info-bg:rgba(122,184,255,.12);
+  --focus:#8ab4ff;
+  --font:'Inter',ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:12px; --radius-sm:8px; --pill:999px;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    color-scheme:light;
+    --bg:#f5f5f3; --surface:#ffffff; --surface-2:#f1f1ee; --surface-3:#e9e9e5;
+    --border:#e1e1dc; --border-strong:#c9c9c3;
+    --fg:#121214; --muted:#63636b; --dim:#8b8b93;
+    --btn:#121214; --btn-fg:#ffffff;
+    --good:#15803d; --good-bg:rgba(21,128,61,.10);
+    --warn:#b45309; --warn-bg:rgba(180,83,9,.12);
+    --bad:#b91c1c;  --bad-bg:rgba(185,28,28,.10);
+    --info:#1d4ed8; --info-bg:rgba(29,78,216,.10);
+    --focus:#2563eb;
+  }
+}
+:root[data-theme="light"]{
+  color-scheme:light;
+  --bg:#f5f5f3; --surface:#ffffff; --surface-2:#f1f1ee; --surface-3:#e9e9e5;
+  --border:#e1e1dc; --border-strong:#c9c9c3;
+  --fg:#121214; --muted:#63636b; --dim:#8b8b93;
+  --btn:#121214; --btn-fg:#ffffff;
+  --good:#15803d; --good-bg:rgba(21,128,61,.10);
+  --warn:#b45309; --warn-bg:rgba(180,83,9,.12);
+  --bad:#b91c1c;  --bad-bg:rgba(185,28,28,.10);
+  --info:#1d4ed8; --info-bg:rgba(29,78,216,.10);
+  --focus:#2563eb;
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 var(--font);-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{margin:0;text-wrap:balance;font-weight:600;letter-spacing:-.01em}
+h1{font-size:30px;letter-spacing:-.02em}
+h2{font-size:18px}
+h3{font-size:14px}
+p{margin:0}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+input{font:inherit;color:inherit}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--mono);font-size:12px}
+.muted{color:var(--muted)}
+.dim{color:var(--dim)}
+.small{font-size:12px}
+
+/* Top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:10px 20px;min-height:56px;flex-wrap:wrap}
+@media (max-width:640px){.top .pill{display:none}.tabs{margin-left:0;width:100%}.tab{flex:1;text-align:center;padding:7px 8px}}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:16px;letter-spacing:-.01em}
+.ring{width:18px;height:18px;border-radius:50%;border:5px solid var(--muted);display:inline-block}
+.brand em{font-style:normal;color:var(--muted);font-weight:500}
+.tabs{display:flex;gap:4px;margin-left:12px}
+.tab{padding:7px 14px;border-radius:var(--pill);color:var(--muted);border:1px solid transparent}
+.tab[aria-selected="true"]{color:var(--fg);border-color:var(--border-strong);background:var(--surface-2)}
+.top .spacer{flex:1}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:var(--pill);border:1px solid var(--border);color:var(--muted);font-size:12px;white-space:nowrap}
+.pill .dot{width:6px;height:6px;border-radius:50%;background:var(--good)}
+
+.wrap{max-width:1240px;margin:0 auto;padding-block:28px 64px;padding-inline:20px}
+.crumb{color:var(--muted);font-size:13px;margin-bottom:14px}
+.crumb b{color:var(--fg);font-weight:500}
+.head{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;margin-bottom:22px}
+.head .sub{color:var(--muted);margin-top:6px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Buttons & chips */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:var(--radius-sm);border:1px solid var(--border-strong);background:var(--surface-2);font-weight:500;transition:background .15s,border-color .15s}
+.btn:hover{background:var(--surface-3)}
+.btn.primary{background:var(--btn);color:var(--btn-fg);border-color:var(--btn)}
+.btn.primary:hover{opacity:.92}
+.btn.block{width:100%;justify-content:center;padding:13px 16px;font-size:15px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:9px 14px;border-radius:var(--pill);border:1px solid var(--border);background:var(--surface);transition:border-color .15s,background .15s;text-align:left}
+.chip:hover{border-color:var(--border-strong)}
+.chip[aria-pressed="true"]{border-color:var(--fg);background:var(--surface-2)}
+.chip .sub{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.chip.wide{padding:12px 16px;border-radius:var(--radius-sm);min-width:200px;flex:1}
+.tag{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:var(--pill);font-size:12px;border:1px solid var(--border);background:var(--surface-2);color:var(--muted)}
+.tag.good{color:var(--good);background:var(--good-bg);border-color:transparent}
+.tag.warn{color:var(--warn);background:var(--warn-bg);border-color:transparent}
+.tag.bad{color:var(--bad);background:var(--bad-bg);border-color:transparent}
+.tag.info{color:var(--info);background:var(--info-bg);border-color:transparent}
+.tag.fg{color:var(--fg)}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.card.pad-lg{padding:24px}
+.card h3{margin-bottom:12px}
+.kicker{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);font-weight:600;margin-bottom:10px}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g6{grid-template-columns:repeat(6,minmax(0,1fr))}
+@media (max-width:900px){.g3,.g4,.g6{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.g2,.g3,.g4,.g6{grid-template-columns:1fr}}
+.tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;min-width:0}
+.tile .label{color:var(--muted);font-size:12px;margin-bottom:6px}
+.tile .value{font-size:24px;font-weight:600;letter-spacing:-.02em}
+.tile .value.lg{font-size:30px}
+.tile .foot{color:var(--muted);font-size:12px;margin-top:6px}
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px 16px;font-size:13px}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;text-align:right}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sep{height:1px;background:var(--border);margin:16px 0}
+
+/* Landing */
+.landing{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+@media (max-width:900px){.landing{grid-template-columns:1fr}}
+.agency{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.agency .logo{width:30px;height:30px;border-radius:8px;background:var(--surface-3);display:grid;place-items:center;font-weight:700;font-size:12px}
+.agency .name{font-weight:600}
+.agency .sub{color:var(--muted);font-size:12px}
+.steps-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;color:var(--muted);font-size:13px}
+.q{min-height:300px}
+.q h2{font-size:22px;letter-spacing:-.02em;margin-bottom:6px}
+.q .hint{color:var(--muted);margin-bottom:20px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:13px;color:var(--muted)}
+.input{display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0 14px;height:48px}
+.input:focus-within{border-color:var(--border-strong)}
+.input input{flex:1;min-width:0;background:none;border:0;outline:0;height:100%;font-size:15px}
+.input .unit{color:var(--muted);font-size:13px}
+.suggest{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.suggest .chip{display:flex;justify-content:space-between;align-items:center;border-radius:var(--radius-sm)}
+.stepper{display:flex;align-items:center;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface-2);height:44px}
+.stepper button{width:42px;height:100%;font-size:18px;color:var(--muted)}
+.stepper button:hover{color:var(--fg)}
+.stepper .v{flex:1;text-align:center;font-weight:600;font-size:15px}
+.qnav{display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:22px;flex-wrap:wrap}
+.linkbtn{color:var(--muted);padding:8px 2px}
+.linkbtn:hover{color:var(--fg)}
+.prefill{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}
+@media (max-width:520px){.prefill{grid-template-columns:1fr}}
+.prefill .item{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px}
+.prefill .item .l{font-size:12px;color:var(--muted)}
+.prefill .item .v{font-weight:600;margin-top:2px;display:flex;align-items:center;gap:8px}
+
+.side{position:sticky;top:calc(env(safe-area-inset-top,0px) + 72px);display:flex;flex-direction:column;gap:14px}
+.meter{height:6px;border-radius:3px;background:var(--surface-3);overflow:hidden;margin-top:10px}
+.meter i{display:block;height:100%;background:var(--fg);border-radius:3px;transition:width .35s}
+.range{font-size:26px;font-weight:600;letter-spacing:-.02em;filter:none;transition:filter .3s}
+.range.blur{filter:blur(7px);user-select:none}
+
+.result .big{font-size:40px;font-weight:700;letter-spacing:-.03em;line-height:1.1}
+.result .rng{color:var(--muted);margin-top:4px}
+.list{display:flex;flex-direction:column;gap:8px}
+.li{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface-2)}
+.li .mark{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none}
+.li.good .mark{background:var(--good-bg);color:var(--good)}
+.li.bad .mark{background:var(--bad-bg);color:var(--bad)}
+.li.info .mark{background:var(--info-bg);color:var(--info)}
+.li.warn .mark{background:var(--warn-bg);color:var(--warn)}
+.li .t{flex:1;min-width:0}
+.li .t .s{color:var(--muted);font-size:12px}
+.li .pts{color:var(--muted);font-size:12px;white-space:nowrap}
+
+/* CRM report */
+.report{display:flex;flex-direction:column;gap:16px}
+.sources{display:flex;flex-wrap:wrap;gap:8px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--muted);font-weight:500;font-size:12px;padding:0 10px 10px 0;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:10px 10px 10px 0;border-bottom:1px solid var(--border);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+.tbl{overflow-x:auto}
+.adj{display:inline-flex;gap:4px;flex-wrap:wrap}
+.adj span{font-family:var(--mono);font-size:11px;padding:1px 6px;border-radius:4px;background:var(--surface-3);color:var(--muted)}
+.adj span.up{color:var(--good)}
+.adj span.down{color:var(--bad)}
+.split{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px}
+@media (max-width:900px){.split{grid-template-columns:1fr}}
+.map{aspect-ratio:1;max-width:100%;width:100%;background:var(--surface-2);border-radius:var(--radius-sm);border:1px solid var(--border)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.score{display:flex;align-items:center;gap:16px}
+.score .n{font-size:40px;font-weight:700;letter-spacing:-.03em;line-height:1}
+.score .bar{flex:1;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--bad),var(--warn),var(--good));position:relative}
+.score .bar i{position:absolute;top:-4px;width:16px;height:16px;border-radius:50%;background:var(--fg);border:3px solid var(--bg);transform:translateX(-50%)}
+.explain{font-family:var(--mono);font-size:12px;color:var(--muted);line-height:1.7;white-space:pre-wrap;word-break:break-word}
+.conf-list{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:var(--pill);font-weight:500;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;max-width:calc(100vw - 32px)}
+.toast.show{opacity:1;transform:translateX(-50%)}
+svg text{font-family:var(--font)}
+
+/* Metodología */
+.tab .short{display:none}
+@media (max-width:640px){.tab .full{display:none}.tab .short{display:inline}}
+.steps{display:grid;gap:10px}
+.step{display:grid;grid-template-columns:28px 1fr;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface-2);align-items:start}
+.step .n{width:26px;height:26px;border-radius:50%;background:var(--surface-3);display:grid;place-items:center;font-weight:600;font-size:12px;font-variant-numeric:tabular-nums}
+.step b{display:block;font-weight:600}
+.step .s{color:var(--muted);font-size:12px;margin-top:2px}
+.src{display:flex;flex-direction:column;gap:10px;min-width:0}
+.src h3{margin-bottom:0}
+.src .what{color:var(--muted);font-size:13px}
+.src .kv{margin-top:auto;padding-top:10px;border-top:1px solid var(--border)}
+.dist{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--surface-3);margin:10px 0 8px}
+.dist i{display:block;height:100%}
+.dist-legend{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12px}
+.dist-legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.principles{display:grid;gap:12px;grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:900px){.principles{grid-template-columns:1fr}}
+.principles .p b{display:block;margin-bottom:4px}
+.principles .p{color:var(--muted);font-size:13px}
+.note{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1px dashed var(--border-strong);border-radius:var(--radius-sm);color:var(--muted);font-size:13px}
+@media print{.top,.actions,.toast{display:none!important}body{background:#fff;color:#000}.card,.tile,.step,.li{break-inside:avoid}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header class="top">
+  <div class="brand"><span class="ring"></span><span>state<em>crm</em></span></div>
+  <nav class="tabs" role="tablist" aria-label="Vista">
+    <button class="tab" role="tab" id="tab-crm" aria-selected="true" data-view="crm"><span class="full">Zona interna · informe</span><span class="short">Informe</span></button>
+    <button class="tab" role="tab" id="tab-landing" aria-selected="false" data-view="landing"><span class="full">Landing pública · agencia</span><span class="short">Landing</span></button>
+    <button class="tab" role="tab" id="tab-method" aria-selected="false" data-view="method"><span class="full">Cómo valoramos</span><span class="short">Método</span></button>
+  </nav>
+  <div class="spacer"></div>
+  <span class="pill"><span class="dot"></span>Prototipo · datos de ejemplo</span>
+</header>
+
+<!-- ============================ ZONA INTERNA ============================ -->
+<main id="view-crm" class="wrap">
+  <div class="crumb">Valoraciones / <b>Rúa Juan Flórez 30</b></div>
+  <div class="head">
+    <div>
+      <h1>Rúa Juan Flórez 30, 3º</h1>
+      <p class="sub">Piso · 95 m² · 15004 A Coruña · <span id="crm-date"></span> · método <span class="mono">comparables-1.0</span></p>
+    </div>
+    <div class="actions">
+      <button class="btn" data-toast="La marca de zona se guarda con fecha, motivo y evidencia; solo avisa, no cambia el precio.">Marcar zona</button>
+      <button class="btn" data-toast="El PDF se genera en el CRM (fase 2).">Informe PDF</button>
+      <button class="btn primary" data-toast="Se envía la versión para propietario con la marca de la agencia.">Enviar al propietario</button>
+    </div>
+  </div>
+
+  <div class="report">
+    <div class="grid g4" id="crm-tiles"></div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <div class="kicker">Fuentes usadas</div>
+          <div class="sources" id="crm-sources"></div>
+        </div>
+        <div style="min-width:220px">
+          <div class="kicker">Por qué esta confianza</div>
+          <div class="conf-list" id="crm-penalties"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="split">
+      <div class="card">
+        <h3>Ficha del inmueble</h3>
+        <dl class="kv" id="crm-twin"></dl>
+      </div>
+      <div class="card">
+        <h3>Mercado de la zona · A Coruña (15004)</h3>
+        <div class="grid g2" style="gap:10px;margin-bottom:14px">
+          <div class="tile" style="padding:12px 14px"><div class="label">Oferta · mediana</div><div class="value num" style="font-size:20px">3.547 €/m²</div><div class="foot">194 anuncios · +7,1 % en 12 m</div></div>
+          <div class="tile" style="padding:12px 14px"><div class="label">Cierre · Notariado</div><div class="value num" style="font-size:20px">3.103 €/m²</div><div class="foot">descuento oferta → cierre 7 %</div></div>
+        </div>
+        <svg id="crm-history" viewBox="0 0 420 170" width="100%" role="img" aria-label="Evolución del €/m² de oferta y cierre 2021–2026"></svg>
+        <div class="legend"><span><i style="background:var(--fg)"></i>Oferta (anuncios)</span><span><i style="background:var(--muted)"></i>Cierre (Notariado)</span><span class="dim">Las dos series se muestran por separado.</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between;margin-bottom:12px">
+        <h3 style="margin:0">Comparables · <span class="muted" id="crm-comp-count"></span></h3>
+        <span class="tag">ajustes solo por atributos del inmueble</span>
+      </div>
+      <div class="split">
+        <div class="tbl"><table id="crm-comps"></table></div>
+        <div>
+          <svg class="map" id="crm-map" viewBox="0 0 320 320" role="img" aria-label="Comparables alrededor del inmueble"></svg>
+          <div class="legend"><span><i style="background:var(--fg)"></i>Inmueble</span><span><i style="background:var(--info)"></i>Comparable (tamaño = peso)</span><span>anillos a 100, 200 y 300 m</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="split">
+      <div class="card">
+        <div class="row" style="justify-content:space-between;margin-bottom:14px">
+          <h3 style="margin:0">Entorno</h3>
+          <span class="tag">no cambia el precio en fase 1</span>
+        </div>
+        <div class="score" style="margin-bottom:16px"><div class="n num" id="env-score"></div><div class="bar"><i id="env-marker"></i></div></div>
+        <div class="grid g2">
+          <div><div class="kicker">A favor</div><div class="list" id="env-pos"></div></div>
+          <div><div class="kicker">En contra</div><div class="list" id="env-neg"></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Riesgos y avisos</h3>
+        <div class="list" id="env-flags"></div>
+        <div class="sep"></div>
+        <h3>Alquiler y rentabilidad</h3>
+        <dl class="kv" id="crm-rent"></dl>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Cómo se ha calculado</h3>
+      <div class="explain" id="crm-explain"></div>
+    </div>
+  </div>
+</main>
+
+<!-- ============================ LANDING PÚBLICA ============================ -->
+<main id="view-landing" class="wrap" hidden>
+  <div class="agency">
+    <div class="logo">IA</div>
+    <div><div class="name">Inmobiliaria Atlántica</div><div class="sub">valora.inmobiliaria-atlantica.es · marca blanca sobre statecrm</div></div>
+  </div>
+  <div class="landing">
+    <div>
+      <div class="card pad-lg">
+        <div class="steps-bar">
+          <button class="linkbtn" id="l-back">← Atrás</button>
+          <span id="l-progress">Dirección</span>
+        </div>
+        <div class="q" id="l-q"></div>
+      </div>
+      <p class="small dim" style="margin-top:12px">Gratis y sin compromiso. Los datos del inmueble se rellenan desde Catastro; tú solo confirmas y añades lo que Catastro no sabe.</p>
+    </div>
+    <aside class="side">
+      <div class="card">
+        <div class="row" style="justify-content:space-between"><span class="muted small">Precisión de la valoración</span><b class="num" id="l-prec">0 %</b></div>
+        <div class="meter"><i id="l-meter" style="width:0%"></i></div>
+        <div class="sep"></div>
+        <div class="muted small">Rango de estimación en vivo</div>
+        <div class="range num blur" id="l-range">— €</div>
+        <div class="small muted" id="l-unc"></div>
+        <div class="sep"></div>
+        <div class="row" style="justify-content:space-between"><span class="muted small">Detalles confirmados</span><b class="num" id="l-count">0</b></div>
+      </div>
+      <div class="card" id="l-zone" hidden>
+        <div class="kicker">Tu zona · <span id="l-zone-label"></span></div>
+        <dl class="kv">
+          <dt>Precio mediano de oferta</dt><dd class="num">3.547 €/m²</dd>
+          <dt>Anuncios en la zona</dt><dd class="num">194</dd>
+          <dt>Tendencia 12 meses</dt><dd class="num" style="color:var(--good)">+7,1 %</dd>
+          <dt>Valor del barrio desde 2021</dt><dd class="num" style="color:var(--good)">+31 %</dd>
+        </dl>
+      </div>
+      <div class="card" id="l-catastro" hidden>
+        <div class="kicker">Rellenado desde Catastro</div>
+        <div class="small muted">Superficie, año, planta y plantas del edificio ya están. No se vuelven a preguntar.</div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<!-- ============================ CÓMO VALORAMOS ============================ -->
+<main id="view-method" class="wrap" hidden>
+  <div class="crumb">Valoraciones / <b>Cómo valoramos</b></div>
+  <div class="head">
+    <div>
+      <h1>Cómo valoramos</h1>
+      <p class="sub">Motor propio de statecrm · método <span class="mono">comparables-1.0</span> · datos a <span id="m-asof"></span></p>
+    </div>
+    <div class="actions">
+      <button class="btn" data-toast="La landing enseña una versión recortada: sin cifras internas de la agencia.">Versión pública</button>
+      <button class="btn primary" data-toast="Se exporta la página tal cual, en una hoja, para enviar a socios o inversores.">Exportar PDF</button>
+    </div>
+  </div>
+
+  <div class="report">
+    <div class="grid g4" id="m-tiles"></div>
+
+    <div class="card pad-lg">
+      <div class="kicker">Qué es</div>
+      <div class="principles">
+        <div class="p"><b>Motor propio, no una API de terceros.</b>Cada valoración se calcula aquí, con datos públicos y con los del mercado que recogemos nosotros. Sin cuota por valoración.</div>
+        <div class="p"><b>Ninguna fuente es obligatoria.</b>Cada capa tiene respaldo. Si Catastro o un portal fallan, la valoración sale igual con menos confianza, y el informe dice qué se usó.</div>
+        <div class="p"><b>Trazable y revisable.</b>Cada valoración guarda sus entradas, las fuentes, los comparables con sus ajustes y la explicación paso a paso. Se puede auditar meses después.</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="kicker">Fuentes de datos</div>
+      <div class="grid g3" id="m-sources"></div>
+    </div>
+
+    <div class="split">
+      <div class="card">
+        <h3>Cómo se calcula</h3>
+        <div class="steps" id="m-steps"></div>
+      </div>
+      <div class="report" style="gap:16px">
+        <div class="card">
+          <div class="row" style="justify-content:space-between;margin-bottom:10px"><h3 style="margin:0">Ajustes a los comparables</h3><span class="tag">solo atributos del inmueble</span></div>
+          <div class="tbl"><table id="m-adj"></table></div>
+        </div>
+        <div class="card">
+          <div class="row" style="justify-content:space-between;margin-bottom:10px"><h3 style="margin:0">Penalizaciones de confianza</h3><span class="tag">puntos sobre 100</span></div>
+          <div class="tbl"><table id="m-pen"></table></div>
+          <div class="small muted" id="m-pen-extra" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="split">
+      <div class="card">
+        <h3>Confianza y precisión no son lo mismo</h3>
+        <div class="grid g2" style="gap:16px">
+          <div><b>Precisión</b><div class="muted small" style="margin-top:4px">Cuánto sabemos del inmueble: completitud ponderada del formulario. Sube al responder; la vemos mientras se rellena.</div><div class="row" id="m-weights" style="gap:6px;margin-top:10px"></div></div>
+          <div><b>Confianza</b><div class="muted small" style="margin-top:4px">Cuánto nos fiamos de la cifra: fuentes usadas, número y dispersión de comparables, radio de búsqueda. Puede ser baja aunque el formulario esté al 100 %.</div></div>
+        </div>
+        <div class="sep"></div>
+        <div class="kicker">Confianza de las valoraciones hechas</div>
+        <div class="dist" id="m-dist"></div>
+        <div class="dist-legend" id="m-dist-legend"></div>
+      </div>
+      <div class="card">
+        <div class="row" style="justify-content:space-between;margin-bottom:10px"><h3 style="margin:0">Calidad</h3><span class="tag" id="m-val-count"></span></div>
+        <div class="tbl"><table id="m-layers"></table></div>
+        <div class="sep"></div>
+        <div class="kicker">Error frente a cierres reales</div>
+        <div class="note" id="m-error"></div>
+      </div>
+    </div>
+
+    <div class="split">
+      <div class="card">
+        <h3>Lo que no hacemos</h3>
+        <div class="list" id="m-not"></div>
+      </div>
+      <div class="card">
+        <h3>Qué cambia respecto a un valorador online</h3>
+        <div class="list" id="m-diff"></div>
+      </div>
+    </div>
+
+    <p class="small dim">Esta página se genera desde la base de datos y desde las constantes del motor: ningún número está escrito a mano. Método <span class="mono">comparables-1.0</span>.</p>
+  </div>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ============================ MOTOR (port de avm/src) ============================ */
+const COUNTRY = { basePricePerM2: 2800, landPricePerM2: 200 };
+const R = Math.round;
+const eur = n => new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n);
+const num = (n,d=0) => { const [i,f]=Math.abs(n).toFixed(d).split('.'); return (n<0?'−':'')+i.replace(/\B(?=(\d{3})+(?!\d))/g,'.')+(f?','+f:''); };
+const K = n => n>=1e6 ? (n/1e6).toFixed(2)+'M' : R(n/1000)+'K';
+
+function liveEstimate(t, zone){
+  if(!t.address.lat) return {low:0,high:0,mid:0,uncertainty:100,basis:'country_base'};
+  const ppm2 = zone ?? COUNTRY.basePricePerM2, basis = zone?'zone_median':'country_base';
+  let low=R(0.6*100*ppm2), high=R(1.5*100*ppm2), u= zone?60:70;
+  const tf={apartment:[.7,.9],house:[1.3,1.4],building:[2.5,3.5],land:[.3,.6]};
+  if(t.mainType){const[a,b]=tf[t.mainType];low=R(low*a);high=R(high*b);u=Math.min(u,55);}
+  const s=t.builtSurface??t.livingSurface;
+  if(s>0){low=R(.82*s*ppm2);high=R(1.22*s*ppm2);u=35;}
+  const rooms=t.numberOfBedrooms??t.numberOfRooms;
+  if(rooms){const f=rooms>4?1.08:rooms<2?.92:1;low=R(low*f);high=R(high*f);u=Math.min(u,25);}
+  if(t.buildingCondition){const f={5:1.15,4:1.05,3:1,2:.85,1:.7}[t.buildingCondition];low=R(low*f);high=R(high*f);u=Math.min(u,18);}
+  if(t.landSurface&&t.mainType==='house'){const lv=t.landSurface*COUNTRY.landPricePerM2;low=R(low+.3*lv);high=R(high+.5*lv);u=Math.max(u-3,12);}
+  if(t.constructionYear)u=Math.max(u-2,10);
+  if(t.numberOfBedrooms)u=Math.max(u-1,10);
+  if(t.numberOfIndoorParkings){low+=25000*t.numberOfIndoorParkings;high+=40000*t.numberOfIndoorParkings;u=Math.max(u-2,10);}
+  if(t.hasView){low=R(low*1.05);high=R(high*1.08);u=Math.max(u-1,10);}
+  if(t.hasSwimmingPool){low+=30000;high+=60000;u=Math.max(u-1,10);}
+  return {low,high,mid:R((low+high)/2),uncertainty:u,basis};
+}
+const WEIGHTS=[
+ ['address',20],['propertyType',15],['builtSurface',15],['numberOfBedrooms',10],['buildingCondition',10],
+ ['landSurface',10,['house','land','building']],['numberOfResidentialUnits',8,['building']],['constructionYear',5],
+ ['floorOfFlat',4,['apartment']],['numberOfBathrooms',3],['numberOfIndoorParkings',3],['side',3,['apartment']],
+ ['numberOfOutdoorParkings',2],['hasView',2],['renovationYear',2],['hasSwimmingPool',1],['hasElevator',1,['apartment']],
+ ['balconySurface',1,['apartment']],['gardenSurface',1,['house']]];
+function precision(t){
+  const ap=WEIGHTS.filter(([,,ft])=>!ft||(t.mainType&&ft.includes(t.mainType)));
+  const tot=ap.reduce((a,[,w])=>a+w,0);
+  const got=ap.filter(([k])=>k==='address'?!!t.address.lat:(t[k]!==null&&t[k]!==undefined)).reduce((a,[,w])=>a+w,0);
+  return tot?R(got/tot*100):0;
+}
+const ADJ={sizeElasticity:.12,floorWithElevatorPerFloor:.01,floorNoElevatorPerFloor:-.04,groundFloor:-.08,exteriorVsInterior:.06,
+  condition:{1:.7,2:.85,3:1,4:1.06,5:1.15},hint:{reformar:2,'buen estado':3,reformado:4,nuevo:5},garage:.07,terrace:.03,renovatedRecent:.05,
+  distanceHalfLifeM:600,ageHalfLifeDays:120,trimPct:.1};
+const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
+function floorFactor(sf,cf,el){ if(sf==null||cf==null)return 1; const f=fl=>fl===0?1+ADJ.groundFloor:el===false?1+ADJ.floorNoElevatorPerFloor*Math.max(0,fl-1):1+ADJ.floorWithElevatorPerFloor*Math.min(fl,6); return f(sf)/f(cf);}
+function adjustComparable(t,c,today=new Date()){
+  const adj={}; const S=t.builtSurface??t.livingSurface??c.surface;
+  adj.tamaño=Math.pow(c.surface/S,ADJ.sizeElasticity);
+  adj.planta=floorFactor(t.floorOfFlat,c.floor,t.hasElevator??c.hasElevator);
+  if(t.side&&c.isExterior!==null){const se=t.side==='exterior';adj.exterior=se===c.isExterior?1:se?1+ADJ.exteriorVsInterior:1/(1+ADJ.exteriorVsInterior);}
+  if(t.buildingCondition){const cl=(c.conditionHint&&ADJ.hint[c.conditionHint])||3;adj.estado=ADJ.condition[t.buildingCondition]/ADJ.condition[cl];}
+  if(((t.numberOfIndoorParkings??0)>0)!==(c.hasGarage??false))adj.garaje=(t.numberOfIndoorParkings??0)>0?1+ADJ.garage:1/(1+ADJ.garage);
+  if(t.hasBalcony!==null&&c.hasTerrace!==null&&t.hasBalcony!==c.hasTerrace)adj.terraza=t.hasBalcony?1+ADJ.terrace:1/(1+ADJ.terrace);
+  if(t.isRenovated&&t.renovationYear&&today.getFullYear()-t.renovationYear<8)adj.reforma=1+ADJ.renovatedRecent;
+  const factor=Object.values(adj).reduce((a,b)=>a*b,1);
+  const adjustedPpm2=c.pricePerM2*clamp(factor,.6,1.6);
+  const age=Math.max(0,(today-new Date(c.lastSeen))/864e5);
+  const w=Math.pow(.5,c.distanceM/ADJ.distanceHalfLifeM)*Math.pow(.5,age/ADJ.ageHalfLifeDays)*(1-Math.min(.5,Math.abs(c.surface-S)/S));
+  return {...c,adjustments:adj,adjustedPpm2:+adjustedPpm2.toFixed(2),weight:+w.toFixed(4)};
+}
+function wPct(items,p){const s=[...items].sort((a,b)=>a.v-b.v);const tot=s.reduce((a,i)=>a+i.w,0);let acc=0;for(const i of s){acc+=i.w;if(acc/tot>=p)return i.v;}return s.at(-1)?.v??0;}
+function valueFromComparables(t,comps,{discountPct=null,zone=null}={}){
+  const S=t.builtSurface??t.livingSurface; if(!S||!comps.length)return null;
+  const adjusted=comps.map(c=>adjustComparable(t,c));
+  const sorted=[...adjusted].sort((a,b)=>a.adjustedPpm2-b.adjustedPpm2);
+  const cut=Math.floor(sorted.length*ADJ.trimPct);
+  const kept=sorted.length-2*cut>=3?sorted.slice(cut,sorted.length-cut):sorted;
+  const items=kept.map(c=>({v:c.adjustedPpm2,w:c.weight}));
+  const mid=wPct(items,.5),low=wPct(items,.25),high=wPct(items,.75);
+  const d=discountPct??8, f=1-d/100;
+  const explanation=[
+    `${comps.length} comparables en ${Math.max(...comps.map(c=>c.radiusM))} m; ${kept.length} tras recortar colas (${R(ADJ.trimPct*100)} % por lado).`,
+    `€/m² ajustado: mediana ${num(mid)}, P25 ${num(low)}, P75 ${num(high)}.`,
+    `Superficie ${S} m² × ${num(mid)} €/m² = ${num(S*mid)} € de oferta.`,
+    `Descuento oferta → cierre ${d} % (${discountPct!=null?'serie de cierre del Notariado para la provincia; se afinará con las ventas propias':'valor por defecto'}).`,
+  ];
+  if(zone)explanation.push(`Mediana de zona (${zone.label}): ${num(zone.medianPpm2)} €/m², ${zone.n} anuncios, ${zone.trend>0?'+':''}${num(zone.trend,1)} % en 12 m.`);
+  return {ppm2Mid:mid,ppm2Low:low,ppm2High:high,valueMid:R(S*mid*f),valueLow:R(S*low*f),valueHigh:R(S*high*f),used:kept,trimmed:adjusted.length-kept.length,discountPct:d,explanation,all:adjusted};
+}
+const PEN={geocoding:{fallback:2,degraded:10,missing:10},property:{fallback:3,degraded:10,missing:20},market:{fallback:10,degraded:25,missing:40},comparables:{fallback:15,degraded:30,missing:30},close_series:{fallback:2,degraded:5,missing:5},environment:{}};
+function confidence(sources,comps,prec){
+  const pen=[];let s=100;
+  for(const src of sources){const p=PEN[src.layer]?.[src.status]??0;if(p){pen.push({reason:`${src.label}: ${src.status}`,points:p});s-=p;}}
+  const n=comps.length; if(n&&n<8){const p=(8-n)*3;pen.push({reason:`solo ${n} comparables`,points:p});s-=p;}
+  const w=comps.reduce((a,c)=>a+c.weight,0);
+  if(w&&n>1){const mean=comps.reduce((a,c)=>a+c.weight*c.adjustedPpm2,0)/w;const v=comps.reduce((a,c)=>a+c.weight*(c.adjustedPpm2-mean)**2,0)/w;const cv=Math.sqrt(v)/mean;
+    if(cv>.15){const p=Math.min(20,R((cv-.15)*100));pen.push({reason:`dispersión de comparables ${R(cv*100)} %`,points:p});s-=p;}
+    else pen.push({reason:`dispersión de comparables ${R(cv*100)} % (dentro del umbral)`,points:0});}
+  const mr=comps.reduce((a,c)=>Math.max(a,c.radiusM),0); if(mr>1500){pen.push({reason:`radio ${mr} m`,points:8});s-=8;}
+  if(prec<60){const p=R((60-prec)/4);pen.push({reason:`formulario al ${prec} %`,points:p});s-=p;}
+  return {confidence:clamp(s,5,100),penalties:pen};
+}
+
+/* ============================ DATOS DE EJEMPLO ============================ */
+const emptyTwin=()=>({address:{formattedAddress:null,postcode:null,locality:null,lat:null,lng:null,catastralRef:null},
+  mainType:null,propertyType:null,floorOfFlat:null,numberOfFloors:null,side:null,hasElevator:null,
+  builtSurface:null,livingSurface:null,landSurface:null,balconySurface:null,gardenSurface:null,
+  constructionYear:null,renovationYear:null,isRenovated:null,buildingCondition:null,
+  numberOfRooms:null,numberOfBedrooms:null,numberOfBathrooms:null,numberOfIndoorParkings:null,numberOfOutdoorParkings:null,
+  hasView:null,hasSwimmingPool:null,hasBalcony:null,hasGarden:null,hasStorageRoom:null,hasFireplace:null,
+  numberOfResidentialUnits:null,relationship:null,saleHorizon:null,propertyOccupied:null,propertyUsage:null,perceivedValue:null});
+
+const SUBJECT={...emptyTwin(),address:{formattedAddress:'Rúa Juan Flórez 30, 15004 A Coruña',postcode:'15004',locality:'A Coruña',lat:43.3654271,lng:-8.408791,catastralRef:'8044512NJ4984S0012XY'},
+  mainType:'apartment',propertyType:'apartment',floorOfFlat:3,numberOfFloors:6,side:'exterior',hasElevator:true,
+  builtSurface:95,balconySurface:6,hasBalcony:true,constructionYear:1975,renovationYear:2018,isRenovated:true,buildingCondition:4,
+  numberOfBedrooms:3,numberOfBathrooms:2,numberOfIndoorParkings:1,numberOfOutdoorParkings:0,
+  hasView:false,hasSwimmingPool:false,hasGarden:false,hasStorageRoom:true,hasFireplace:false};
+
+const ZONE={label:'A Coruña (15004)',level:'postcode',medianPpm2:3547,n:194,trend:7.1,closePpm2:3103,
+  history:[{y:2021,offer:2950,close:2376},{y:2022,offer:3050,close:2444},{y:2023,offer:3120,close:2493},{y:2024,offer:3250,close:2623},{y:2025,offer:3380,close:2885},{y:2026,offer:3547,close:3103}]};
+
+const COMPS=[
+ {id:'FC-20431',portal:'Fotocasa',title:'Piso exterior en Juan Flórez',price:340000,surface:100,rooms:3,floor:4,hasElevator:true,hasGarage:true,hasTerrace:null,isExterior:true,conditionHint:'buen estado',lastSeen:'2026-10-01',distanceM:120,radiusM:300,ang:20},
+ {id:'ID-98112',portal:'Idealista',title:'Piso reformado en Plaza de Vigo',price:365000,surface:98,rooms:3,floor:2,hasElevator:true,hasGarage:false,hasTerrace:true,isExterior:true,conditionHint:'reformado',lastSeen:'2026-09-20',distanceM:210,radiusM:300,ang:75},
+ {id:'HB-5520',portal:'Habitaclia',title:'Piso para reformar, calle Fernando Macías',price:255000,surface:90,rooms:3,floor:1,hasElevator:false,hasGarage:false,hasTerrace:null,isExterior:false,conditionHint:'reformar',lastSeen:'2026-08-15',distanceM:280,radiusM:300,ang:140},
+ {id:'PC-7781',portal:'pisos.com',title:'Piso con garaje en Ramón de la Sagra',price:349000,surface:105,rooms:4,floor:5,hasElevator:true,hasGarage:true,hasTerrace:null,isExterior:true,conditionHint:null,lastSeen:'2026-09-28',distanceM:260,radiusM:300,ang:200},
+ {id:'FC-20902',portal:'Fotocasa',title:'Ático a estrenar, Juan Flórez',price:420000,surface:110,rooms:3,floor:6,hasElevator:true,hasGarage:true,hasTerrace:true,isExterior:true,conditionHint:'nuevo',lastSeen:'2026-10-05',distanceM:150,radiusM:300,ang:250},
+ {id:'ID-98440',portal:'Idealista',title:'Piso en Alfredo Vicenti',price:320000,surface:92,rooms:2,floor:3,hasElevator:true,hasGarage:false,hasTerrace:null,isExterior:true,conditionHint:'buen estado',lastSeen:'2026-09-30',distanceM:300,radiusM:300,ang:300},
+ {id:'FC-21010',portal:'Fotocasa',title:'Piso interior en Rosalía de Castro',price:299000,surface:85,rooms:3,floor:2,hasElevator:true,hasGarage:false,hasTerrace:null,isExterior:false,conditionHint:null,lastSeen:'2026-09-10',distanceM:240,radiusM:300,ang:330},
+ {id:'HB-5611',portal:'Habitaclia',title:'Piso amplio en Juana de Vega',price:390000,surface:120,rooms:4,floor:3,hasElevator:true,hasGarage:true,hasTerrace:null,isExterior:true,conditionHint:'buen estado',lastSeen:'2026-10-02',distanceM:190,radiusM:300,ang:105},
+].map(c=>({...c,pricePerM2:+(c.price/c.surface).toFixed(0)}));
+
+const ENV={positives:[
+  {label:'Parada de bus Juan Flórez a 90 m (líneas 1, 5, 7)',pts:6,src:'GTFS Compañía de Tranvías'},
+  {label:'42 comercios y servicios a 500 m',pts:6,src:'OSM'},
+  {label:'Supermercado a 180 m',pts:5,src:'OSM'},
+  {label:'CEIP a 400 m',pts:5,src:'Registro Estatal de Centros Docentes'},
+  {label:'Centro de salud a 500 m',pts:5,src:'Catálogo SERGAS'},
+  {label:'Parque de Santa Margarita a 350 m',pts:3,src:'OSM'},
+ ],negatives:[
+  {label:'Ruido de tráfico: 68 dB Lden en Juan Flórez',pts:-6,src:'Mapa estratégico de ruido, Concello da Coruña'},
+  {label:'5 locales de ocio nocturno a menos de 150 m',pts:-5,src:'OSM'},
+ ],flags:[
+  {kind:'info',label:'Sin zona inundable (T10, T100, T500)',src:'SNCZI (MITECO)'},
+  {kind:'info',label:'Sección censal no incluida en el catálogo de barrios vulnerables',src:'Observatorio de la Vulnerabilidad Urbana'},
+  {kind:'info',label:'Criminalidad municipal: 46,2 infracciones / 1.000 hab. (media de ciudades > 200.000 hab.: 58,1)',src:'Ministerio del Interior, 2T 2026'},
+  {kind:'warn',label:'Aviso del equipo: obras de peatonalización en Juan Flórez hasta marzo de 2027 (Adrián, 2 oct 2026)',src:'Conocimiento local · solo aviso'},
+ ]};
+ENV.score=clamp(50+ENV.positives.reduce((a,p)=>a+p.pts,0)+ENV.negatives.reduce((a,p)=>a+p.pts,0),0,100);
+
+/* ============================ ZONA INTERNA: render ============================ */
+function renderCRM(){
+  document.getElementById('crm-date').textContent=new Date().toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'});
+  const V=valueFromComparables(SUBJECT,COMPS,{discountPct:7,zone:ZONE});
+  const prec=precision(SUBJECT);
+  const sources=[
+    {layer:'geocoding',label:'Geocodificación · Google (proxy, sessiontoken)',status:'primary'},
+    {layer:'property',label:'Inmueble · Catastro, Sede en vivo con caché (copia INSPIRE pendiente)',status:'fallback'},
+    {layer:'market',label:'Mercado · market_listings, código postal',status:'primary'},
+    {layer:'comparables',label:`Comparables · ${COMPS.length} en 300 m, 6 meses`,status:'primary'},
+    {layer:'close_series',label:'Cierre · Notariado provincia (sin ventas propias aún)',status:'fallback'},
+    {layer:'environment',label:'Entorno · capas locales (OSM, GTFS, ruido, SNCZI)',status:'primary'},
+  ];
+  const {confidence:conf,penalties}=confidence(sources,V.used,prec);
+  const gy=4.3, rent=R(V.valueMid*gy/100/12/10)*10;
+
+  const tiles=[
+    {label:'Valor estimado (cierre)',value:eur(V.valueMid),foot:`rango P25–P75 ${eur(V.valueLow)} – ${eur(V.valueHigh)}`,lg:true},
+    {label:'€/m² ajustado',value:num(V.ppm2Mid)+' €',foot:`zona: ${num(ZONE.medianPpm2)} € oferta · ${num(ZONE.closePpm2)} € cierre`},
+    {label:'Confianza',value:conf+' %',foot:`precisión del formulario ${prec} %`},
+    {label:'Alquiler estimado',value:num(rent)+' €/mes',foot:`rentabilidad bruta ${num(gy,1)} %`},
+  ];
+  document.getElementById('crm-tiles').innerHTML=tiles.map(t=>`<div class="tile"><div class="label">${t.label}</div><div class="value num${t.lg?' lg':''}">${t.value}</div><div class="foot">${t.foot}</div></div>`).join('');
+
+  const cls={primary:'good',fallback:'warn',degraded:'warn',missing:'bad'};
+  const txt={primary:'principal',fallback:'respaldo',degraded:'degradada',missing:'sin dato'};
+  document.getElementById('crm-sources').innerHTML=sources.map(s=>`<span class="tag ${cls[s.status]}">${s.label} · ${txt[s.status]}</span>`).join('');
+  document.getElementById('crm-penalties').innerHTML=(penalties.length?penalties:[{reason:'todas las fuentes principales, 8 comparables a menos de 300 m',points:0}]).map(p=>`<div>${p.points?`<b style="color:var(--bad)">−${p.points}</b> `:'<b style="color:var(--good)">0</b> '}${p.reason}</div>`).join('');
+
+  const t=SUBJECT; const cat='<span class="tag" style="font-size:11px;padding:1px 7px">Catastro</span>';
+  const kv=[['Referencia catastral',`<span class="mono">${t.address.catastralRef}</span> ${cat}`],['Tipo','Piso · piso'],['Superficie construida',`${t.builtSurface} m² ${cat}`],['Año de construcción',`${t.constructionYear} ${cat}`],['Planta',`${t.floorOfFlat}ª de ${t.numberOfFloors} ${cat}`],['Orientación','Exterior'],['Estado','Bueno (4/5) · reformado en 2018'],['Dormitorios / baños','3 / 2'],['Garaje','1 plaza cubierta'],['Extras','Ascensor, trastero, balcón 6 m²']];
+  document.getElementById('crm-twin').innerHTML=kv.map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('');
+
+  // Comparables table
+  document.getElementById('crm-comp-count').textContent=`${COMPS.length} anuncios, ${V.used.length} usados`;
+  const rows=[...V.all].sort((a,b)=>b.weight-a.weight);
+  document.getElementById('crm-comps').innerHTML=`<thead><tr><th>Anuncio</th><th class="r">Precio</th><th class="r">m²</th><th class="r">€/m²</th><th>Ajustes</th><th class="r">€/m² aj.</th><th class="r">Peso</th></tr></thead><tbody>`+
+    rows.map(c=>{const used=V.used.includes(c);const adj=Object.entries(c.adjustments).filter(([,f])=>Math.abs(f-1)>.004).map(([k,f])=>`<span class="${f>1?'up':'down'}">${k} ${f>1?'+':''}${R((f-1)*100)}%</span>`).join('')||'<span>sin ajustes</span>';
+      return `<tr style="${used?'':'opacity:.45'}"><td><div>${c.title}</div><div class="small muted">${c.portal} · ${c.id} · ${c.distanceM} m · ${c.rooms} hab · ${c.floor===0?'bajo':c.floor+'ª'}${c.hasElevator===false?' sin asc.':''}${used?'':' · recortado'}</div></td><td class="r num">${eur(c.price)}</td><td class="r num">${c.surface}</td><td class="r num">${num(c.pricePerM2)}</td><td><div class="adj">${adj}</div></td><td class="r num"><b>${num(c.adjustedPpm2)}</b></td><td class="r num">${c.weight.toFixed(2)}</td></tr>`;}).join('')+`</tbody>`;
+
+  // Map
+  const cx=160,cy=160,scale=140/300;
+  let svg=`<rect width="320" height="320" fill="transparent"/>`;
+  [100,200,300].forEach(r=>{svg+=`<circle cx="${cx}" cy="${cy}" r="${r*scale}" fill="none" stroke="var(--border-strong)" stroke-dasharray="3 4"/><text x="${cx+4}" y="${cy-r*scale-4}" font-size="9" fill="var(--dim)">${r} m</text>`;});
+  rows.forEach(c=>{const a=c.ang*Math.PI/180,x=cx+Math.cos(a)*c.distanceM*scale,y=cy+Math.sin(a)*c.distanceM*scale,rr=4+c.weight*9;
+    svg+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rr.toFixed(1)}" fill="var(--info)" fill-opacity="${V.used.includes(c)?.85:.3}"><title>${c.title} · ${eur(c.price)} · ${c.distanceM} m</title></circle><text x="${(x+rr+4).toFixed(1)}" y="${(y+3).toFixed(1)}" font-size="9" fill="var(--muted)">${K(c.price)}</text>`;});
+  svg+=`<circle cx="${cx}" cy="${cy}" r="7" fill="var(--fg)"/><circle cx="${cx}" cy="${cy}" r="11" fill="none" stroke="var(--fg)" stroke-opacity=".35"/>`;
+  document.getElementById('crm-map').innerHTML=svg;
+
+  // History chart
+  const H=ZONE.history,W=420,Hh=170,pl=40,pr=12,pt=14,pb=26,lo=2200,hi=3700;
+  const X=i=>pl+i*(W-pl-pr)/(H.length-1), Y=v=>pt+(hi-v)/(hi-lo)*(Hh-pt-pb);
+  let ch='';
+  [2400,2800,3200,3600].forEach(v=>{ch+=`<line x1="${pl}" x2="${W-pr}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--border)"/><text x="${pl-6}" y="${Y(v)+3}" text-anchor="end" font-size="10" fill="var(--dim)">${num(v)}</text>`;});
+  H.forEach((h,i)=>{ch+=`<text x="${X(i)}" y="${Hh-8}" text-anchor="middle" font-size="10" fill="var(--muted)">${h.y}</text>`;});
+  const path=(key)=>H.map((h,i)=>`${i?'L':'M'}${X(i).toFixed(1)} ${Y(h[key]).toFixed(1)}`).join(' ');
+  ch+=`<path d="${path('close')}" fill="none" stroke="var(--muted)" stroke-width="2"/><path d="${path('offer')}" fill="none" stroke="var(--fg)" stroke-width="2"/>`;
+  H.forEach((h,i)=>{ch+=`<circle cx="${X(i)}" cy="${Y(h.offer)}" r="3" fill="var(--fg)"/><circle cx="${X(i)}" cy="${Y(h.close)}" r="3" fill="var(--muted)"/>`;});
+  const last=H.length-1; ch+=`<text x="${X(last)-4}" y="${Y(H[last].offer)-8}" text-anchor="end" font-size="10" font-weight="600" fill="var(--fg)">${num(H[last].offer)} €</text><text x="${X(last)-4}" y="${Y(H[last].close)+14}" text-anchor="end" font-size="10" fill="var(--muted)">${num(H[last].close)} €</text>`;
+  document.getElementById('crm-history').innerHTML=ch;
+
+  // Environment
+  document.getElementById('env-score').textContent=ENV.score;
+  document.getElementById('env-marker').style.left=ENV.score+'%';
+  const li=(x,cl,mark)=>`<div class="li ${cl}"><span class="mark">${mark}</span><div class="t"><div>${x.label}</div><div class="s">${x.src}</div></div>${x.pts!==undefined?`<span class="pts num">${x.pts>0?'+':''}${x.pts}</span>`:''}</div>`;
+  document.getElementById('env-pos').innerHTML=ENV.positives.map(x=>li(x,'good','+')).join('');
+  document.getElementById('env-neg').innerHTML=ENV.negatives.map(x=>li(x,'bad','−')).join('');
+  document.getElementById('env-flags').innerHTML=ENV.flags.map(x=>li(x,x.kind,x.kind==='warn'?'!':'i')).join('');
+
+  document.getElementById('crm-rent').innerHTML=`<dt>Rentabilidad bruta de la zona (alquiler / venta, anuncios 15004)</dt><dd class="num">${num(gy,1)} %</dd><dt>Alquiler mensual estimado</dt><dd class="num"><b>${num(rent)} €</b></dd><dt>Renta anual</dt><dd class="num">${num(rent*12)} €</dd><dt>Método</dt><dd>valor × rentabilidad de zona (fase 1)</dd>`;
+
+  const expl=[...V.explanation,`Valor de cierre: ${num(SUBJECT.builtSurface*V.ppm2Mid)} € × (1 − 0,07) = ${eur(V.valueMid)}; rango P25–P75 ${eur(V.valueLow)} – ${eur(V.valueHigh)}.`,
+    `Confianza ${conf} %: ${penalties.filter(p=>p.points).map(p=>`${p.reason} (−${p.points})`).join('; ')||'sin penalizaciones'}.`,
+    `Entorno: puntuación ${ENV.score}/100 (${ENV.positives.length} a favor, ${ENV.negatives.length} en contra, ${ENV.flags.length} avisos). No altera el precio: los comparables a menos de 300 m ya lo recogen.`,
+    `Alquiler: ${eur(V.valueMid)} × ${num(gy,1)} % / 12 ≈ ${num(rent)} €/mes.`];
+  document.getElementById('crm-explain').textContent=expl.map((l,i)=>`${i+1}. ${l}`).join('\n');
+  return {V,conf,prec,rent};
+}
+
+/* ============================ LANDING: flujo ============================ */
+const L={twin:emptyTwin(),step:0,history:[],prefilled:new Set(),email:'',done:false};
+const CATASTRO={builtSurface:95,constructionYear:1975,floorOfFlat:3,numberOfFloors:6,catastralRef:'8044512NJ4984S0012XY'};
+
+const choice=(key,opts,{after}={})=>({type:'choice',key,opts,after});
+const STEPS_L=[
+ {id:'address',title:'¿Dónde está tu vivienda?',hint:'Escribe la dirección. También vale la referencia catastral.',type:'address'},
+ {id:'catastro',title:'Hemos encontrado tu vivienda',hint:'Catastro nos da estos datos. Confírmalos o corrígelos.',type:'catastro'},
+ {id:'propertyType',title:'¿Qué tipo de vivienda es?',hint:'Nos ayuda a elegir las ventas y anuncios comparables.',type:'type'},
+ {id:'side',title:'¿A qué lado da?',hint:'La orientación a la calle o al patio afecta al valor.',when:t=>t.mainType==='apartment',...choice('side',[['exterior','Exterior','Da a la calle'],['interior','Interior','Da al patio']])},
+ {id:'condition',title:'¿En qué estado está?',hint:'Sé sincero: solo hará la valoración más precisa.',...choice('buildingCondition',[[5,'Excelente','Nueva o reformada recientemente'],[4,'Bueno','Bien mantenida'],[3,'Aceptable','Necesita reparaciones'],[2,'Malo','Problemas importantes'],[1,'Ruina','No habitable']])},
+ {id:'renovated',title:'¿Se ha reformado?',hint:'Las reformas suben el valor.',...choice('isRenovated',[[true,'Sí'],[false,'No'],[null,'No lo sé']])},
+ {id:'renovationYear',title:'¿Cuándo fue la última reforma?',hint:'Un año aproximado basta.',when:t=>t.isRenovated===true,type:'number',fields:[['renovationYear','Año de la reforma','']],optional:true},
+ {id:'hasBalcony',title:'¿Tiene balcón o terraza?',hint:'El espacio exterior añade un valor cuantificable.',when:t=>t.mainType==='apartment',...choice('hasBalcony',[[true,'Sí'],[false,'No']])},
+ {id:'balconySurface',title:'¿Qué tamaño tiene?',hint:'Superficie del balcón o terraza.',when:t=>t.hasBalcony===true,type:'number',fields:[['balconySurface','Superficie','m²']],optional:true},
+ {id:'counters',title:'Dormitorios, baños y aparcamiento',hint:'',type:'counters',fields:[['numberOfBedrooms','Dormitorios',1],['numberOfBathrooms','Baños',1],['numberOfIndoorParkings','Plazas cubiertas',0],['numberOfOutdoorParkings','Plazas exteriores',0]]},
+ {id:'features',title:'¿Qué más tiene?',hint:'Marca todo lo que corresponda; cada una afina la valoración.',type:'multi',fields:[['hasView','Vistas despejadas'],['hasSwimmingPool','Piscina'],['hasGarden','Jardín'],['hasElevator','Ascensor'],['hasStorageRoom','Trastero'],['hasFireplace','Chimenea']]},
+ {id:'relationship',title:'¿Cuál es tu relación con la vivienda?',hint:'Nos ayuda a adaptar el informe.',...choice('relationship',[['owner','Propietario'],['buyer','Comprador'],['tenant','Inquilino'],['agent','Agente'],['other','Otro']])},
+ {id:'horizon',title:'¿Estás pensando en vender?',hint:'Sin compromiso. Solo nos ayuda a personalizar.',when:t=>t.relationship==='owner',...choice('saleHorizon',[['asap','Sí, lo antes posible'],['from_6_to_12_months','Sí, en 6 a 12 meses'],['from_1_to_2_years','Sí, en 1 a 2 años'],['from_2_years','Sí, en 2 años o más'],['already_for_sale','Ya está a la venta'],['not_selling','No tengo intención de vender']])},
+ {id:'email',title:'Tu valoración está lista',hint:'Déjanos tu email para verla y recibir el informe. Sin spam, sin compromiso.',type:'email'},
+ {id:'result',title:'',hint:'',type:'result'},
+];
+const flowL=()=>STEPS_L.filter(s=>!s.when||s.when(L.twin));
+const el=id=>document.getElementById(id);
+
+function liveUpdate(){
+  const t=L.twin, hasAddr=!!t.address.lat;
+  const e=liveEstimate(t,hasAddr?ZONE.medianPpm2:null);
+  const p=hasAddr?precision(t):0;
+  el('l-prec').textContent=p+' %'; el('l-meter').style.width=p+'%';
+  const rng=el('l-range'); rng.classList.toggle('blur',!hasAddr);
+  rng.textContent=hasAddr?`${K(e.low)} – ${K(e.high)} €`:'— €';
+  el('l-unc').textContent=hasAddr?`±${e.uncertainty} % · ${e.basis==='zone_median'?'con el €/m² real de tu zona':'estimación base'}`:'Introduce la dirección para empezar.';
+  const answered=flowL().filter(s=>s.key?t[s.key]!==null&&t[s.key]!==undefined||(s.id==='renovated'&&t._renovAnswered):s.type==='counters'?t.numberOfBedrooms!==null:s.type==='multi'?t._featAnswered:s.type==='catastro'?L.prefilled.size>0:s.type==='number'?t[s.fields[0][0]]!==null:false).length;
+  el('l-count').textContent=answered;
+  el('l-zone').hidden=!hasAddr; el('l-zone-label').textContent=ZONE.label;
+  el('l-catastro').hidden=!L.prefilled.size;
+}
+
+function render(){
+  const flow=flowL(); const s=flow[L.step]; const q=el('l-q');
+  el('l-progress').textContent=s.type==='result'?'Resultado':`Paso ${L.step+1} de ${flow.length}`;
+  el('l-back').hidden=L.step===0||s.type==='result';
+  const head=s.title?`<h2>${s.title}</h2><p class="hint">${s.hint}</p>`:'';
+  const t=L.twin;
+  const nav=(label='Siguiente',enabled=true,extra='')=>`<div class="qnav">${extra||'<span></span>'}<button class="btn primary" id="l-next" ${enabled?'':'disabled'}>${label}</button></div>`;
+  if(s.type==='address'){
+    q.innerHTML=head+`<div class="field"><div class="input"><span class="muted">⌕</span><input id="l-addr" placeholder="Buscar dirección o referencia catastral" value="${t.address.formattedAddress??'Rúa Juan Flórez 30'}" autocomplete="off"></div></div><div class="suggest" id="l-sugg"></div>`;
+    const sugg=el('l-sugg'), inp=el('l-addr');
+    const draw=()=>{const v=inp.value.trim();sugg.innerHTML=v.length<3?'':[['Rúa Juan Flórez 30, 15004 A Coruña','A Coruña, España'],['Rúa Juan Flórez 30, 15570 Narón','A Coruña, España'],['Rúa Juan Flórez 30, 15400 Ferrol','A Coruña, España']].map(([a,b],i)=>`<button class="chip" data-i="${i}"><span>${a}</span><span class="muted small">${b}</span></button>`).join('');
+      sugg.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{t.address={formattedAddress:c.querySelector('span').textContent,postcode:'15004',locality:'A Coruña',lat:43.3654271,lng:-8.408791,catastralRef:CATASTRO.catastralRef};
+        Object.assign(t,{builtSurface:CATASTRO.builtSurface,constructionYear:CATASTRO.constructionYear,floorOfFlat:CATASTRO.floorOfFlat,numberOfFloors:CATASTRO.numberOfFloors});
+        ['builtSurface','constructionYear','floorOfFlat','numberOfFloors'].forEach(k=>L.prefilled.add(k));next();});};
+    inp.oninput=draw; draw(); inp.focus();
+  } else if(s.type==='catastro'){
+    q.innerHTML=head+`<div class="row" style="margin-bottom:6px"><span class="tag fg">${t.address.formattedAddress}</span><span class="tag">ref. <span class="mono">${t.address.catastralRef}</span></span></div>
+      <div class="prefill">
+        <div class="item"><div class="l">Superficie construida</div><div class="v num">${t.builtSurface} m² <span class="tag good">Catastro</span></div></div>
+        <div class="item"><div class="l">Año de construcción</div><div class="v num">${t.constructionYear} <span class="tag good">Catastro</span></div></div>
+        <div class="item"><div class="l">Planta</div><div class="v num">${t.floorOfFlat}ª <span class="tag good">Catastro</span></div></div>
+        <div class="item"><div class="l">Plantas del edificio</div><div class="v num">${t.numberOfFloors} <span class="tag good">Catastro</span></div></div>
+      </div>
+      <p class="small muted">Si Catastro no respondiera, te pediríamos estos cuatro datos y la valoración saldría con menos confianza. Nunca se bloquea.</p>`+nav('Es correcto, continuar',true,'<button class="linkbtn" id="l-fix">Corregir datos</button>');
+    el('l-fix').onclick=()=>toast('En el producto final abre los cuatro campos para editarlos.'); el('l-next').onclick=next;
+  } else if(s.type==='type'){
+    const main=[['apartment','Piso'],['house','Casa'],['land','Terreno'],['building','Edificio']], sub={apartment:[['apartment','Piso'],['studio','Estudio'],['duplex','Dúplex'],['penthouse','Ático']],house:[['house','Casa'],['villa','Chalet'],['townhouse','Adosado']],land:[['land','Terreno']],building:[['building','Edificio']]};
+    q.innerHTML=head+`<div class="chips" id="l-main">${main.map(([v,l])=>`<button class="chip wide" data-v="${v}" aria-pressed="${t.mainType===v}">${l}</button>`).join('')}</div><div id="l-sub" style="margin-top:18px"></div>`;
+    const drawSub=()=>{el('l-sub').innerHTML=t.mainType?`<div class="kicker">Tipo de ${main.find(m=>m[0]===t.mainType)[1].toLowerCase()}</div><div class="chips">${sub[t.mainType].map(([v,l])=>`<button class="chip" data-v="${v}" aria-pressed="${t.propertyType===v}">${l}</button>`).join('')}</div>`:'';
+      el('l-sub').querySelectorAll('.chip').forEach(c=>c.onclick=()=>{t.propertyType=c.dataset.v;next();});};
+    el('l-main').querySelectorAll('.chip').forEach(c=>c.onclick=()=>{t.mainType=c.dataset.v;t.propertyType=null;el('l-main').querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',x===c));drawSub();liveUpdate();});
+    drawSub();
+  } else if(s.type==='choice'){
+    q.innerHTML=head+`<div class="chips">${s.opts.map(([v,l,sub],i)=>`<button class="chip wide" data-i="${i}" aria-pressed="${t[s.key]===v}">${l}${sub?`<span class="sub">${sub}</span>`:''}</button>`).join('')}</div>`;
+    q.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{t[s.key]=s.opts[+c.dataset.i][0];if(s.id==='renovated')t._renovAnswered=true;next();});
+  } else if(s.type==='number'){
+    const [k,label,unit]=s.fields[0];
+    q.innerHTML=head+`<div class="field"><label for="l-n">${label}</label><div class="input"><input id="l-n" inputmode="numeric" value="${t[k]??''}">${unit?`<span class="unit">${unit}</span>`:''}</div></div>`+nav('Siguiente',t[k]!==null,s.optional?'<button class="linkbtn" id="l-skip">No lo sé</button>':'');
+    const inp=el('l-n'); inp.oninput=()=>{const v=parseInt(inp.value,10);t[k]=isNaN(v)?null:v;el('l-next').disabled=t[k]===null;liveUpdate();};
+    inp.onkeydown=e=>{if(e.key==='Enter'&&t[k]!==null)next();};
+    el('l-next').onclick=next; if(s.optional)el('l-skip').onclick=()=>{t[k]=null;next();}; inp.focus();
+  } else if(s.type==='counters'){
+    s.fields.forEach(([k,,d])=>{if(t[k]===null)t[k]=d;});
+    q.innerHTML=head+`<div class="grid g2">${s.fields.map(([k,l])=>`<div class="field"><label>${l}</label><div class="stepper" data-k="${k}"><button data-d="-1" aria-label="Menos ${l}">−</button><span class="v num">${t[k]}</span><button data-d="1" aria-label="Más ${l}">+</button></div></div>`).join('')}</div>`+nav();
+    q.querySelectorAll('.stepper button').forEach(b=>b.onclick=()=>{const st=b.parentElement,k=st.dataset.k;t[k]=Math.max(0,t[k]+parseInt(b.dataset.d,10));st.querySelector('.v').textContent=t[k];liveUpdate();});
+    el('l-next').onclick=next;
+  } else if(s.type==='multi'){
+    s.fields.forEach(([k])=>{if(t[k]===null)t[k]=false;});
+    q.innerHTML=head+`<div class="chips">${s.fields.map(([k,l])=>`<button class="chip wide" data-k="${k}" aria-pressed="${!!t[k]}">${t[k]?'✓ ':''}${l}</button>`).join('')}</div>`+nav();
+    q.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{const k=c.dataset.k;t[k]=!t[k];c.setAttribute('aria-pressed',t[k]);c.textContent=(t[k]?'✓ ':'')+s.fields.find(f=>f[0]===k)[1];liveUpdate();});
+    el('l-next').onclick=()=>{t._featAnswered=true;next();};
+  } else if(s.type==='email'){
+    const e=liveEstimate(t,ZONE.medianPpm2);
+    q.innerHTML=head+`<div class="card" style="background:var(--surface-2);margin-bottom:18px"><div class="row" style="justify-content:space-between"><div><div class="muted small">Tu valoración</div><div class="range num blur" aria-hidden="true">${eur(e.mid)}</div></div><span class="tag good">precisión ${precision(t)} %</span></div><div class="small muted" style="margin-top:8px">Desbloquea el valor, el rango, el análisis de tu zona y el informe PDF.</div></div>
+      <div class="field"><label for="l-email">Correo electrónico</label><div class="input"><input id="l-email" type="email" placeholder="tu@email.com" value="${L.email}"></div></div>
+      <label class="row small muted" style="margin-top:12px;gap:8px"><input type="checkbox" id="l-consent"> Acepto que Inmobiliaria Atlántica me contacte sobre esta valoración. Puedo retirar el consentimiento cuando quiera.</label>`
+      +nav('Ver mi valoración',false);
+    const inp=el('l-email'),cb=el('l-consent'); const chk=()=>{L.email=inp.value;el('l-next').disabled=!(/.+@.+\..+/.test(inp.value)&&cb.checked);};
+    inp.oninput=chk; cb.onchange=chk; el('l-next').onclick=next; inp.focus();
+  } else if(s.type==='result'){
+    const V=valueFromComparables(t,COMPS,{discountPct:7,zone:ZONE}); const prec=precision(t);
+    const {confidence:conf}=confidence([{layer:'market',label:'',status:'primary'},{layer:'comparables',label:'',status:'primary'}],V.used,prec);
+    const rent=R(V.valueMid*4.3/100/12/10)*10; const lbl=conf>=75?'alta':conf>=50?'media':'baja';
+    q.innerHTML=`<div class="result">
+      <div class="row" style="justify-content:space-between;margin-bottom:6px"><span class="tag fg">${t.address.formattedAddress}</span><span class="tag ${lbl==='alta'?'good':lbl==='media'?'warn':'bad'}">precisión ${lbl} · ${conf} %</span></div>
+      <div class="muted small">Valor estimado de venta</div>
+      <div class="big num">${eur(V.valueMid)}</div>
+      <div class="rng num">entre ${eur(V.valueLow)} y ${eur(V.valueHigh)} · ${num(V.ppm2Mid)} €/m²</div>
+      <div class="grid g3" style="margin:20px 0 18px">
+        <div class="tile" style="padding:12px 14px"><div class="label">Alquiler estimado</div><div class="value num" style="font-size:20px">${num(rent)} €/mes</div><div class="foot">rentabilidad bruta 4,3 %</div></div>
+        <div class="tile" style="padding:12px 14px"><div class="label">Tu zona · 15004</div><div class="value num" style="font-size:20px">3.547 €/m²</div><div class="foot">194 anuncios · +7,1 % en 12 m</div></div>
+        <div class="tile" style="padding:12px 14px"><div class="label">Base del cálculo</div><div class="value num" style="font-size:20px">${V.used.length} comparables</div><div class="foot">a menos de 300 m, últimos 6 meses</div></div>
+      </div>
+      <div class="grid g2" style="margin-bottom:18px">
+        <div><div class="kicker">Tu entorno · a favor</div><div class="list">${ENV.positives.slice(0,4).map(x=>`<div class="li good"><span class="mark">+</span><div class="t">${x.label}</div></div>`).join('')}</div></div>
+        <div><div class="kicker">Tu entorno · en contra</div><div class="list">${ENV.negatives.map(x=>`<div class="li bad"><span class="mark">−</span><div class="t">${x.label}</div></div>`).join('')}<div class="li info"><span class="mark">i</span><div class="t">Sin riesgo de inundación</div></div></div></div>
+      </div>
+      <div class="qnav"><button class="btn" data-toast="El informe PDF llega por email tras verificarlo (fase 2).">Informe PDF</button><button class="btn primary" data-toast="Se crea el lead en el CRM de la agencia y una tarea para el comercial de la zona.">Hablar con Inmobiliaria Atlántica</button></div>
+      <p class="small dim" style="margin-top:14px">Cada mes recalculamos el valor y te avisamos si cambia. Los comparables y los ajustes los ve el comercial en su visita.</p>
+    </div>`;
+    bindToasts(q);
+  }
+  liveUpdate();
+}
+function next(){const flow=flowL();if(L.step<flow.length-1){L.history.push(L.step);L.step++;render();window.scrollTo({top:0,behavior:'smooth'});}}
+el('l-back').onclick=()=>{if(L.history.length){L.step=L.history.pop();render();}};
+
+/* ============================ CÓMO VALORAMOS: render ============================ */
+/* En el CRM, STATS lo devuelve avm_method_stats(); aquí son las cifras de la primera pasada real de A Coruña (12 oct 2026) y cifras de ejemplo para las valoraciones. */
+const STATS={asOf:'2026-10-12',
+  listings:{active:1635,clusters:1226,sale:1331,rent:304,lastRun:'2026-10-12',portals:[['Fotocasa',662],['Habitaclia',550],['pisos.com',423]],municipalities:['A Coruña (15030)'],months:1},
+  geo:{sections:878,sectionsYear:2025,postcodes:'en carga',geocoder:'CartoCiudad'},
+  catastro:{cached:412,inspire:0},
+  valuations:{total:128,bands:[['≥ 80 %',41,'var(--good)'],['60–79 %',37,'var(--fg)'],['40–59 %',17,'var(--warn)'],['< 40 %',5,'var(--bad)']],
+    layers:[['Geocodificación',97,3,0],['Inmueble (Catastro)',71,24,5],['Mercado de zona',94,6,0],['Comparables',88,9,3],['Serie de cierre',0,100,0]]},
+  closings:{n:0,needed:20}};
+
+function renderMethod(){
+  const S=STATS; const d=s=>new Date(s).toLocaleDateString('es-ES',{day:'numeric',month:'short'});
+  el('m-asof').textContent=new Date(S.asOf).toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'});
+  el('m-tiles').innerHTML=[
+    {label:'Anuncios activos',value:num(S.listings.active),foot:`${num(S.listings.clusters)} inmuebles distintos · ${S.listings.portals.length} portales`},
+    {label:'Municipios cubiertos',value:S.listings.municipalities.length,foot:S.listings.municipalities.join(', ')+' · pasada semanal'},
+    {label:'Secciones censales',value:num(S.geo.sections),foot:`INE ${S.geo.sectionsYear} · provincia 15`},
+    {label:'Valoraciones hechas',value:num(S.valuations.total),foot:`${S.closings.n} cierres para calibrar`},
+  ].map(t=>`<div class="tile"><div class="label">${t.label}</div><div class="value num">${t.value}</div><div class="foot">${t.foot}</div></div>`).join('');
+
+  const st={on:['good','activa'],fb:['warn','respaldo'],soon:['','próximamente']};
+  const sources=[
+    {s:'on',title:'Mercado · portales',what:'Tarjetas de listado de Fotocasa, Habitaclia y pisos.com de municipios enteros: precio, m², planta, ascensor, exterior, garaje. Sin fichas, sin fotos, sin datos de anunciantes.',kv:[['Anuncios activos',num(S.listings.active)],['Inmuebles distintos',num(S.listings.clusters)],['Venta / alquiler',`${num(S.listings.sale)} / ${num(S.listings.rent)}`],...S.listings.portals.map(([p,n])=>[p,num(n)]),['Última pasada',d(S.listings.lastRun)],['Frecuencia','semanal']]},
+    {s:'on',title:'Inmueble · Catastro',what:'Sede Electrónica del Catastro: superficie construida, año, planta, plantas del edificio, unidades de la parcela y referencia. El usuario confirma; no vuelve a teclear lo que Catastro ya sabe.',kv:[['Acceso','Sede en vivo, caché 90 días'],['Consultas en caché',num(S.catastro.cached)],['Copia local INSPIRE',S.catastro.inspire?`${S.catastro.inspire} municipios`:'pendiente'],['Respaldo','formulario manual']]},
+    {s:'on',title:'Geografía · INE y CartoCiudad',what:'Geocodificación de la dirección, sección censal y código postal del punto. Es lo que permite medir el mercado al nivel más fino que tenga datos.',kv:[['Geocodificador',S.geo.geocoder+' (IGN)'],['Respaldo','centroide del código postal'],['Secciones censales',`${num(S.geo.sections)} · INE ${S.geo.sectionsYear}`],['Polígonos de CP',S.geo.postcodes]]},
+    {s:'fb',title:'Cierres propios · CRM',what:'Ventas cerradas por la agencia frente a su último precio de oferta: el descuento oferta → cierre real por zona. Hasta tenerlos, un valor por defecto etiquetado como tal.',kv:[['Cierres registrados',num(S.closings.n)],['Se activa con',`${S.closings.needed} cierres`],['Descuento actual','8 % por defecto']]},
+    {s:'fb',title:'Serie de cierre · Notariado',what:'€/m² de compraventas reales por provincia y trimestre. Sirve para contrastar la oferta con el cierre y seguir la tendencia cuando el histórico propio aún es corto.',kv:[['Nivel','provincia'],['Frecuencia','trimestral'],['Uso','respaldo de tendencia y descuento']]},
+    {s:'soon',title:'Entorno · capas públicas',what:'OpenStreetMap, GTFS, mapas de ruido, zonas inundables, centros docentes y sanitarios. A favor y en contra, con la fuente de cada dato. No cambia el precio: informa.',kv:[['Estado','fase 2'],['Efecto en el precio','ninguno'],['Datos sobre personas','nunca']]},
+  ];
+  el('m-sources').innerHTML=sources.map(x=>{const [c,t]=st[x.s];return `<div class="card src"><div class="row" style="justify-content:space-between"><h3>${x.title}</h3><span class="tag ${c}">${t}</span></div><div class="what">${x.what}</div><dl class="kv">${x.kv.map(([k,v])=>`<dt>${k}</dt><dd class="num">${v}</dd>`).join('')}</dl></div>`;}).join('');
+
+  el('m-steps').innerHTML=[
+    ['Dirección','CartoCiudad la sitúa; el INE dice sección censal y municipio. Si falla, centroide del código postal.'],
+    ['Gemelo del inmueble','Catastro rellena superficie, año, planta y plantas. Si la parcela tiene varias unidades, se elige una; nunca se adivina.'],
+    ['Mercado de la zona','Mediana, P25 y P75 del €/m² de oferta al nivel más fino con datos: sección → código postal → municipio.'],
+    ['Comparables','Anuncios activos del mismo tipo a menos de 300 m (hasta 3 km si hacen falta), superficie ±30 %, un anuncio por inmueble aunque esté en tres portales.'],
+    ['Ajustes','Cada comparable se corrige solo por lo que es distinto del inmueble: tamaño, planta, exterior, estado, garaje, terraza, reforma. Nada de zona: eso ya está en el precio.'],
+    ['Mediana ponderada recortada','Pesan más los cercanos, los recientes y los de tamaño parecido. Se recortan las colas. De ahí el €/m² central y el rango P25–P75.'],
+    ['Cierre y confianza','Descuento oferta → cierre (propio cuando haya cierres; si no, por defecto y etiquetado). La confianza resta puntos por cada respaldo usado, por pocos comparables o por dispersión.'],
+  ].map(([t,s],i)=>`<div class="step"><div class="n">${i+1}</div><div><b>${t}</b><div class="s">${s}</div></div></div>`).join('');
+
+  const pct=v=>`${v>0?'+':'−'}${num(Math.abs(v)*100)} %`;
+  el('m-adj').innerHTML=`<tr><th>Ajuste</th><th>Valor</th><th>Cómo se aplica</th></tr>`+[
+    ['Tamaño',`elasticidad ${num(ADJ.sizeElasticity,2)}`,'el €/m² baja al crecer la superficie: (m² comparable / m² sujeto)^'+num(ADJ.sizeElasticity,2)],
+    ['Planta con ascensor',pct(ADJ.floorWithElevatorPerFloor)+' por planta','hasta la 6ª'],
+    ['Planta sin ascensor',pct(ADJ.floorNoElevatorPerFloor)+' por planta','a partir de la 1ª'],
+    ['Bajo',pct(ADJ.groundFloor),'frente a planta tipo'],
+    ['Exterior frente a interior',pct(ADJ.exteriorVsInterior),'en el sentido que corresponda'],
+    ['Estado',Object.values(ADJ.condition).map(v=>'×'+num(v,2)).join(' · '),'de ruina a excelente; el comparable se lee de su título'],
+    ['Garaje',pct(ADJ.garage),'si uno lo tiene y el otro no'],
+    ['Terraza',pct(ADJ.terrace),'si uno la tiene y el otro no'],
+    ['Reforma reciente',pct(ADJ.renovatedRecent),'menos de 8 años'],
+    ['Peso por distancia',`½ cada ${num(ADJ.distanceHalfLifeM)} m`,'los cercanos pesan más'],
+    ['Peso por antigüedad',`½ cada ${num(ADJ.ageHalfLifeDays)} días`,'los recientes pesan más'],
+    ['Recorte de colas',`${num(ADJ.trimPct*100)} % por lado`,'antes de la mediana'],
+    ['Factor total','0,60 – 1,60','ningún comparable se corrige más de eso'],
+  ].map(r=>`<tr><td>${r[0]}</td><td class="mono">${r[1]}</td><td class="muted">${r[2]}</td></tr>`).join('');
+
+  const lbl={geocoding:'Geocodificación',property:'Inmueble',market:'Mercado de zona',comparables:'Comparables',close_series:'Serie de cierre'};
+  el('m-pen').innerHTML=`<tr><th>Capa</th><th class="r">Respaldo</th><th class="r">Degradada</th><th class="r">Sin dato</th></tr>`+Object.entries(PEN).filter(([k])=>lbl[k]).map(([k,v])=>`<tr><td>${lbl[k]}</td><td class="r num">−${v.fallback}</td><td class="r num">−${v.degraded}</td><td class="r num">−${v.missing}</td></tr>`).join('');
+  el('m-pen-extra').textContent='Además: −3 por cada comparable que falte hasta 8 · dispersión de comparables por encima del 15 %, hasta −20 · radio de búsqueda mayor de 1.500 m, −8 · formulario por debajo del 60 %, −1 por cada 4 puntos. Mínimo 5, máximo 100.';
+
+  const wl={address:'dirección',propertyType:'tipo',builtSurface:'superficie',numberOfBedrooms:'dormitorios',buildingCondition:'estado',landSurface:'parcela',numberOfResidentialUnits:'viviendas',constructionYear:'año',floorOfFlat:'planta',numberOfBathrooms:'baños',numberOfIndoorParkings:'garaje',side:'orientación',numberOfOutdoorParkings:'plaza exterior',hasView:'vistas',renovationYear:'reforma',hasSwimmingPool:'piscina',hasElevator:'ascensor',balconySurface:'balcón',gardenSurface:'jardín'};
+  el('m-weights').innerHTML=WEIGHTS.map(([k,w])=>`<span class="tag">${wl[k]} <b class="num">${w}</b></span>`).join('');
+
+  el('m-dist').innerHTML=S.valuations.bands.map(([,p,c])=>`<i style="width:${p}%;background:${c}"></i>`).join('');
+  el('m-dist-legend').innerHTML=S.valuations.bands.map(([l,p,c])=>`<span><i style="background:${c}"></i>${l}: ${p} %</span>`).join('');
+
+  el('m-val-count').textContent=`${num(S.valuations.total)} valoraciones`;
+  el('m-layers').innerHTML=`<tr><th>Capa</th><th class="r">Principal</th><th class="r">Respaldo</th><th class="r">Sin dato</th></tr>`+S.valuations.layers.map(([l,a,b,c])=>`<tr><td>${l}</td><td class="r num" style="color:var(--good)">${a} %</td><td class="r num" style="color:${b?'var(--warn)':'inherit'}">${b} %</td><td class="r num" style="color:${c?'var(--bad)':'inherit'}">${c} %</td></tr>`).join('');
+  el('m-error').innerHTML=S.closings.n>=S.closings.needed?`<span>Error mediano absoluto frente a cierres: <b>${S.closings.mape} %</b></span>`:`<span>Todavía no se mide. Se activa con los primeros <b>${S.closings.needed}</b> cierres registrados en el CRM (hoy, ${S.closings.n}): cada venta cerrada se compara con la valoración que se hizo antes de cerrarla.</span>`;
+
+  el('m-not').innerHTML=[
+    ['No inventamos coordenadas','sin ubicación fiable, la valoración lo dice y baja la confianza.'],
+    ['No guardamos datos personales de los portales','ni teléfonos ni nombres de anunciante: solo la tarjeta del inmueble.'],
+    ['El entorno no cambia el precio','se informa a favor y en contra, con fuente; el precio sale de los comparables.'],
+    ['Nunca usamos atributos de las personas de una zona','solo indicadores objetivos: ruido, inundabilidad, servicios, transporte.'],
+    ['Las marcas del equipo solo avisan','una obra o un conflicto conocidos aparecen como aviso con fecha y autor, no tocan la cifra.'],
+    ['No es una tasación oficial','es una estimación automática; una tasación ECO/805/2003 la hace una sociedad homologada.'],
+  ].map(([t,s])=>`<div class="li info"><div class="mark">·</div><div class="t"><b>${t}</b><div class="s">${s}</div></div></div>`).join('');
+
+  el('m-diff').innerHTML=[
+    ['El €/m² de la zona desde la primera pregunta','la estimación en vivo arranca con la mediana real de la zona, no con una base nacional.'],
+    ['Catastro rellena, el usuario confirma','menos preguntas y menos errores de superficie o año.'],
+    ['Comparables visibles, con sus ajustes y pesos','la cifra se puede discutir con el propietario línea a línea.'],
+    ['Rango real (P25–P75), no un ±5 % fijo','el rango es el que da el mercado de esa zona para ese inmueble.'],
+    ['Oferta y cierre por separado','se ve el precio de los anuncios y el de las ventas reales, y la distancia entre ambos.'],
+    ['Confianza explicada','cada punto que falta tiene un motivo escrito.'],
+  ].map(([t,s])=>`<div class="li good"><div class="mark">✓</div><div class="t"><b>${t}</b><div class="s">${s}</div></div></div>`).join('');
+  bindToasts(el('view-method'));
+}
+
+/* ============================ Vistas, toasts ============================ */
+const VIEWS=['crm','landing','method'];
+function showView(v){if(!VIEWS.includes(v))v='crm';document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.view===v));VIEWS.forEach(x=>el('view-'+x).hidden=x!==v);try{history.replaceState(null,'','#'+v);}catch(e){}}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>showView(t.dataset.view));
+let toastT; function toast(msg){const x=el('toast');x.textContent=msg;x.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>x.classList.remove('show'),2800);}
+function bindToasts(root){root.querySelectorAll('[data-toast]').forEach(b=>b.onclick=()=>toast(b.dataset.toast));}
+bindToasts(document);
+
+renderCRM(); render(); renderMethod();
+showView(location.hash.slice(1));
+</script>

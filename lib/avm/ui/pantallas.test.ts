@@ -40,9 +40,10 @@ describe("ficha", () => {
       address: { ...emptyTwin().address, catastralRef: "8018007NJ4081N0007LP", formattedAddress: "Rúa Juan Flórez 30" },
     };
     const filas = filasFicha(twin, { builtSurface: "catastro_sede", constructionYear: "catastro_sede", floorOfFlat: "catastro_sede", mainType: "catastro_sede" });
-    expect(filas.find((f) => f.label === "Superficie construida")).toMatchObject({ value: "86 m²", catastro: true });
-    expect(filas.find((f) => f.label === "Año de construcción")?.catastro).toBe(true);
+    expect(filas.find((f) => f.label === "Superficie")).toMatchObject({ value: "86 m²", catastro: true });
+    expect(filas.find((f) => f.label === "Año y reforma")?.catastro).toBe(true);
     expect(filas.find((f) => f.label === "Referencia catastral")?.catastro).toBe(true);
+    expect(filas.some((f) => f.label === "Dirección")).toBe(true);
   });
 });
 
@@ -86,8 +87,11 @@ describe("informe", () => {
     expect(html).toContain("€/m² ajustado");
     expect(html).toContain("Confianza");
     expect(html).toContain("Alquiler");
-    expect(html).toContain("catastro_sede");
+    expect(html).toContain("Catastro, Sede en vivo");
+    expect(html).not.toContain("catastro_sede");
     expect(html).toContain("270.000");
+    expect(html).toContain("Ficha del inmueble");
+    expect(html).toContain("Comparables · 1");
     expect(html).not.toContain("data-testid=\"entorno\"");
   });
 });

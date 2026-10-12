@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { ValoracionesNav } from "@/components/avm/ValoracionesNav";
@@ -20,6 +20,8 @@ type Ok = Extract<Gemelo, { ok: true }>;
 
 export default function NuevaValoracionPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const fromId = searchParams.get("from");
   const [consulta, setConsulta] = useState("");
   const [sugerencias, setSugerencias] = useState<{ address: string; lat: number; lng: number }[]>([]);
   const [referencia, setReferencia] = useState("");
@@ -42,6 +44,37 @@ export default function NuevaValoracionPage() {
   const confirmados = twin ? confirmedCount(twin, "crm", prefilled) : 0;
   const precision = twin ? computePrecision(twin) : 0;
   const estimado = twin ? computeLiveEstimate(twin, mediana?.median ?? null) : null;
+
+  useEffect(() => {
+    if (!fromId || built) return;
+    const supabase = createClient();
+    void supabase
+      .from("avm_valuations")
+      .select("inputs, method_version")
+      .eq("id", fromId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data?.inputs) return;
+        const inputs = data.inputs as {
+          twin?: Twin;
+          fieldSources?: Ok["fieldSources"];
+          prefilledFields?: string[];
+        };
+        if (!inputs.twin) return;
+        setBuilt({
+          ok: true,
+          twin: inputs.twin,
+          fieldSources: inputs.fieldSources ?? {},
+          prefilledFields: [],
+          propertySource: "manual",
+          geocodingSource: "catastro",
+          warnings: [],
+          units: [],
+        });
+        setVistos([]);
+        setCorrigiendo(null);
+      });
+  }, [fromId, built]);
 
   useEffect(() => {
     if (!twin?.address.lat || !twin.address.lng) return;

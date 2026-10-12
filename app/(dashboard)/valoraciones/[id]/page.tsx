@@ -6,14 +6,21 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { ValoracionesNav } from "@/components/avm/ValoracionesNav";
 import { InformeValoracion } from "@/components/avm/InformeValoracion";
-import { MapaValoracion } from "@/components/avm/MapaValoracion";
 import { createClient } from "@/lib/supabase/client";
 import type { Twin, ValuationResult } from "@/lib/avm/types";
+import { migaInforme, subtituloInforme, tituloInforme } from "@/lib/avm/ui/labels";
 
 export default function InformePage() {
   const params = useParams();
   const id = String(params.id);
-  const [dato, setDato] = useState<{ result: ValuationResult; twin: Twin; fieldSources: Record<string, string>; creada: string; comercial: string | null; canal: string } | null>(null);
+  const [dato, setDato] = useState<{
+    result: ValuationResult;
+    twin: Twin;
+    fieldSources: Record<string, string>;
+    creada: string;
+    mesesHistorico: number;
+    primerMes: string | null;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -29,10 +36,23 @@ export default function InformePage() {
           return;
         }
         const inputs = (data.inputs ?? {}) as { twin?: Twin; fieldSources?: Record<string, string> };
-        let comercial: string | null = null;
-        if (data.created_by) {
-          const { data: perfil } = await supabase.from("profiles").select("nombre_completo").eq("id", data.created_by).maybeSingle();
-          comercial = perfil?.nombre_completo ?? null;
+        const twin = inputs.twin ?? ({ address: { formattedAddress: null, lat: null, lng: null, postcode: null, catastralRef: null, countryCode: "es" } } as Twin);
+        const zone = data.zone_stats as ValuationResult["zoneStats"];
+        let mesesHistorico = 0;
+        let primerMes: string | null = null;
+        if (zone?.zoneKey && zone.zoneLevel) {
+          const { data: meses } = await supabase
+            .from("market_zone_stats")
+            .select("month")
+            .eq("zone_key", zone.zoneKey)
+            .eq("zone_level", zone.zoneLevel)
+            .eq("operation", data.operation ?? "sale")
+            .eq("main_type", twin.mainType ?? "apartment")
+            .order("month", { ascending: true });
+          if (meses?.length) {
+            mesesHistorico = meses.length;
+            primerMes = meses[0].month;
+          }
         }
         const result: ValuationResult = {
           methodVersion: data.method_version,
@@ -49,45 +69,61 @@ export default function InformePage() {
           precisionScore: data.precision_score,
           sourcesUsed: data.sources_used ?? [],
           comparables: data.comparables ?? [],
-          zoneStats: data.zone_stats,
+          zoneStats: zone,
           environment: data.environment,
           explanation: data.explanation ?? [],
         };
         setDato({
           result,
-          twin: inputs.twin ?? ({ address: { formattedAddress: null, lat: null, lng: null, postcode: null, catastralRef: null } } as Twin),
+          twin,
           fieldSources: inputs.fieldSources ?? {},
           creada: new Date(data.created_at).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" }),
-          comercial,
-          canal: data.channel,
+          mesesHistorico,
+          primerMes,
         });
       });
   }, [id]);
 
+  const twin = dato?.twin;
+
   return (
-    <div>
+    <div className="mx-auto max-w-[1240px] pb-16">
       <PageHeader
-        title="Informe"
-        breadcrumb={[{ label: "Valoraciones", href: "/valoraciones" }, { label: "Informe" }]}
+        breadcrumb={[
+          { label: "Valoraciones", href: "/valoraciones" },
+          { label: twin ? migaInforme(twin) : "Informe" },
+        ]}
+        title={twin ? tituloInforme(twin) : "Informe"}
+        description={dato ? subtituloInforme(dato.twin, dato.creada, dato.result.methodVersion) : undefined}
         actions={
-          <div className="flex gap-2">
-            <Button type="button" size="sm" variant="secondary" disabled title="fase 2">Marcar zona</Button>
-            <Button type="button" size="sm" variant="secondary" disabled title="fase 2">Informe PDF</Button>
-            <Button type="button" size="sm" variant="secondary" disabled title="fase 2">Enviar al propietario</Button>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" size="sm" variant="secondary" disabled title="Disponible en fase 2">
+              Marcar zona
+            </Button>
+            <Button type="button" size="sm" variant="secondary" disabled title="Disponible en fase 2">
+              Informe PDF
+            </Button>
+            <Button type="button" size="sm" disabled title="Disponible en fase 2">
+              Enviar al propietario
+            </Button>
           </div>
         }
+        className="mb-5"
       />
       <ValoracionesNav actual="" />
       {error ? <p className="text-[13px] text-red-600">{error}</p> : null}
       {dato ? (
-        <>
-          <InformeValoracion creada={dato.creada} result={dato.result} twin={dato.twin} fieldSources={dato.fieldSources} comercial={dato.comercial} canal={dato.canal} />
-          {dato.twin.address?.lat != null && dato.twin.address.lng != null ? (
-            <div className="mt-6">
-              <MapaValoracion lat={dato.twin.address.lat} lng={dato.twin.address.lng} comparables={dato.result.comparables} />
-            </div>
-          ) : null}
-        </>
+        <InformeValoracion
+          creada={dato.creada}
+          result={dato.result}
+          twin={dato.twin}
+          fieldSources={dato.fieldSources}
+          valuationId={id}
+          mesesHistoricoZona={dato.mesesHistorico}
+          primerMesZona={dato.primerMes}
+        />
+      ) : !error ? (
+        <p className="text-[13px] text-[var(--text-3)]">Cargando informe…</p>
       ) : null}
     </div>
   );
