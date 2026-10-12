@@ -5,6 +5,7 @@
  * npx tsx scripts/env-load/osm.ts
  * npx tsx scripts/env-load/osm.ts --region spain
  * npx tsx scripts/env-load/osm.ts --region acoruna --pbf ~/Downloads/galicia-latest.osm.pbf
+ * npx tsx scripts/env-load/osm.ts --geofabrik spain/galicia
  */
 import { execSync } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
@@ -23,6 +24,7 @@ import {
   setEnvLoadRegion,
   type LayerRow,
 } from "./_shared";
+import { GEOFABRIK as GEOFABRIK_REGIONS, resolveGeofabrikScope } from "../../lib/avm/geofabrik";
 
 const SOURCE = "OSM";
 const LOADED_AT = new Date().toISOString();
@@ -46,25 +48,16 @@ function asegurarOsmium(): void {
   }
 }
 
-const GEOFABRIK = {
-  spain: {
-    url: "https://download.geofabrik.de/europe/spain-latest.osm.pbf",
-    file: "spain-latest.osm.pbf",
-    label: "España (península e islas)",
-  },
-  acoruna: {
-    url: "https://download.geofabrik.de/europe/spain/galicia-latest.osm.pbf",
-    file: "galicia-latest.osm.pbf",
-    label: "Galicia (recorte OSM)",
-  },
+const GEOFABRIK_LEGACY = {
+  spain: GEOFABRIK_REGIONS.spain,
+  acoruna: GEOFABRIK_REGIONS["spain/galicia"],
 } as const;
 
-function descargarPbf(dest: string, region: keyof typeof GEOFABRIK): void {
+function descargarPbf(dest: string, spec: { url: string; file: string; label: string }): void {
   if (existsSync(dest)) return;
   mkdirSync(path.dirname(dest), { recursive: true });
-  const g = GEOFABRIK[region];
-  console.log(`Descargando ${g.file} (${g.label})…`);
-  execSync(`curl -L -o "${dest}" "${g.url}"`, { stdio: "inherit" });
+  console.log(`Descargando ${spec.file} (${spec.label})…`);
+  execSync(`curl -L -o "${dest}" "${spec.url}"`, { stdio: "inherit" });
 }
 
 function filtrarExportar(pbf: string, work: string, name: string, filterArgs: string[]): string {
@@ -188,13 +181,18 @@ function filaDesdeFeature(f: GeoFeature): LayerRow | null {
 
 async function main(): Promise<void> {
   asegurarOsmium();
+  const geofabrikArg = arg("--geofabrik") ?? process.env.AVM_GEOFABRIK_SCOPE;
+  const geofScope = geofabrikArg ? resolveGeofabrikScope(geofabrikArg) : null;
   const region = parseRegionArg();
-  setEnvLoadRegion(region);
-  const geof = region === "acoruna" ? "acoruna" : "spain";
+  setEnvLoadRegion(geofScope && geofScope !== "spain" ? "spain" : region);
+  const spec = geofScope
+    ? GEOFABRIK_REGIONS[geofScope]
+    : region === "acoruna"
+      ? GEOFABRIK_LEGACY.acoruna
+      : GEOFABRIK_LEGACY.spain;
   const work = dataDir("osm-work");
-  const pbf =
-    arg("--pbf") ?? path.join(dataDir("osm"), GEOFABRIK[geof].file);
-  descargarPbf(pbf, geof);
+  const pbf = arg("--pbf") ?? path.join(dataDir("osm"), spec.file);
+  descargarPbf(pbf, spec);
 
   const t0 = Date.now();
   const pois = filtrarExportar(pbf, work, "pois", [
@@ -248,8 +246,13 @@ async function main(): Promise<void> {
 
   const porCat = new Map<string, number>();
   const db = await adminClient();
-  console.log("Borrando capa OSM previa…");
-  await borrarCapa(db, { source: SOURCE });
+  const reemplazoTotal = !geofScope || geofScope === "spain";
+  if (reemplazoTotal) {
+    console.log("Borrando capa OSM previa (España completa)…");
+    await borrarCapa(db, { source: SOURCE });
+  } else {
+    console.log(`Carga OSM parcial (${geofScope}): no se borra el resto de España.`);
+  }
 
   const lote = 2500;
   let buffer: LayerRow[] = [];
@@ -301,7 +304,8 @@ async function main(): Promise<void> {
   await flush();
 
   const seg = ((Date.now() - t0) / 1000).toFixed(0);
-  console.log(`OSM listo (${region}): ${n} filas en ${seg}s`);
+  console.log(`OSM listo (${geofScope ?? region}): ${n} filas en ${seg}s`);
+  process.env.AVM_LAST_ROWS = String(n);
   for (const [k, c] of [...porCat.entries()].sort()) console.log(`  ${k}: ${c}`);
 }
 

@@ -42,7 +42,10 @@ function leerZipStops(zipPath: string): LayerRow[] {
   const routesFile = path.join(dir, "routes.txt");
   const tripsFile = path.join(dir, "trips.txt");
   const stopTimesFile = path.join(dir, "stop_times.txt");
-  if (!existsSync(stopsFile)) throw new Error(`No encuentro stops.txt en ${dir}`);
+  if (!existsSync(stopsFile)) {
+    console.warn(`No encuentro stops.txt en ${dir}; sin cambios en GTFS.`);
+    return [];
+  }
 
   const stops = parseCsv(readFileSync(stopsFile, "utf8"));
   const routeByTrip = new Map<string, string>();

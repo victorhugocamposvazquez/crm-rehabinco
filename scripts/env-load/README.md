@@ -1,8 +1,47 @@
 # Cargadores de entorno AVM (Fase G)
 
-Scripts **idempotentes** (borran y recargan su capa). Ejecutar desde el Mac con `.env.local` o `crawler/.env` (`SUPABASE_SERVICE_ROLE_KEY`, URL Supabase).
+Scripts **idempotentes** (borran y recargan su capa). En producción se ejecutan en **GitHub Actions** (`.github/workflows/avm-data.yml`); en local puedes usar `.env.local` o `crawler/.env` (`SUPABASE_SERVICE_ROLE_KEY`, URL Supabase).
 
-**Antes:** aplicar migración `supabase/migrations/20261013050000_avm_environment_phase_g.sql`.
+**Antes:** migraciones `20261013050000_avm_environment_phase_g.sql` y `20261013150000_avm_data_jobs_health.sql`.
+
+## GitHub Actions (recomendado)
+
+Repositorio → **Actions** → **AVM · cargas de datos** → **Run workflow**.
+
+| Parámetro | Valores |
+|-----------|---------|
+| **layer** | **`entorno_completo`** (crime + OVU + SNCZI + ruido + GTFS si hay feed + OSM), o una capa suelta |
+| **scope** | `spain`, `spain/galicia`, provincia (`15`), municipio (`15030`) |
+
+Cada ejecución registra una fila en `avm_jobs` (`job_type` = `data:<capa>`, `scope`, `started_at`, `finished_at`, `rows`, `error`).
+
+**Secrets del repo:** `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL`.
+
+**Vercel (onboarding municipio):** `GITHUB_AVM_DATA_TOKEN` (PAT con scope `workflow` en este repo) y opcional `GITHUB_REPOSITORY=victorhugocamposvazquez/crm-rehabinco`.
+
+### Calendario automático (UTC 05:00)
+
+| Cuándo | Capas | Alcance |
+|--------|-------|---------|
+| Día **1** ene/abr/jul/oct | OSM + GTFS | `spain` |
+| Día **15** ene/abr/jul/oct | Criminalidad | `spain` |
+| **1 febrero** | SNCZI, ruido, vulnerabilidad | `spain` |
+| **20 enero** | Secciones INE | `spain` |
+| Día **5** ene/abr/jul/oct | INSPIRE | municipios `market_crawl_targets` |
+
+### Tiempos orientativos en el runner (ubuntu, sin caché PBF)
+
+| Capa | Duración |
+|------|----------|
+| OSM `spain` | 45–120 min |
+| OSM CCAA (p. ej. Galicia) | 15–40 min |
+| GTFS Coruña | 1–3 min |
+| Criminalidad / OVU | 1–5 min |
+| SNCZI (sin T10) + ruido | 20–60 min |
+| Secciones INE (España) | 30–90 min |
+| INSPIRE (por municipio mercado) | 5–30 min/municipio |
+
+Orquestador: `npx tsx scripts/avm-data/run.ts --layer osm --scope spain/galicia`.
 
 ## España completa (recomendado)
 

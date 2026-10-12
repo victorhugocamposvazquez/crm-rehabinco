@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { provinciaCatastroPorCodigo, ineProvinciaDeMunicipio } from "../catastro/provincias-espana";
+import { ineProvinciaDeMunicipio } from "../catastro/provincias-espana";
+import { geofabrikScopeFromProvince } from "./geofabrik";
+import { dispatchAvmDataWorkflow } from "./github-dispatch";
 import { rastrearMercado } from "./crawl/market-listings-crawl";
 import { resolverSlugsPortal } from "./crawl/portal-slugs";
 
@@ -39,9 +41,13 @@ export async function runMunicipalityOnboard(db: SupabaseClient, ineCode: string
     const informes = await rastrearMercado(db, { municipalityCode: code });
     if (jobId) await logJob(db, jobId, "crawl_first", { informes: informes.length });
 
-    const region = geofabrikPorProvincia(prov);
-    if (jobId) {
-      await logJob(db, jobId, "env_queue", { geofabrik: region, note: "Ejecutar scripts/env-load/osm.ts --region … manual o cron" });
+    const region = geofabrikScopeFromProvince(prov);
+    try {
+      await dispatchAvmDataWorkflow({ layer: "osm", scope: region });
+      if (jobId) await logJob(db, jobId, "env_queue", { geofabrik: region, github: "avm-data-load" });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (jobId) await logJob(db, jobId, "env_queue", { geofabrik: region, github_error: msg });
     }
 
     if (jobId) {
@@ -63,24 +69,7 @@ export async function runMunicipalityOnboard(db: SupabaseClient, ineCode: string
   }
 }
 
-/** Extracto Geofabrik por comunidad (OSM entorno). */
-export function geofabrikPorProvincia(provinceCode: string): string {
-  const p = provinceCode.padStart(2, "0");
-  const galicia = new Set(["15", "27", "32", "36"]);
-  const catalunya = new Set(["08", "17", "25", "43"]);
-  const madrid = p === "28";
-  const andalucia = new Set(["04", "11", "14", "18", "21", "23", "29", "41"]);
-  const paisVasco = new Set(["01", "20", "48"]);
-  if (galicia.has(p)) return "spain/galicia";
-  if (catalunya.has(p)) return "spain/cataluna";
-  if (madrid) return "spain/madrid";
-  if (andalucia.has(p)) return "spain/andalucia";
-  if (paisVasco.has(p)) return "spain/pais-vasco";
-  if (p === "46") return "spain/valencia";
-  if (p === "31") return "spain/navarra";
-  const name = provinciaCatastroPorCodigo(p);
-  return name ? `spain/province-${p}` : "spain";
-}
+export { geofabrikScopeFromProvince as geofabrikPorProvincia } from "./geofabrik";
 
 export async function procesarJobsOnboardPendientes(db: SupabaseClient, limit = 1): Promise<number> {
   const { data: jobs, error } = await db

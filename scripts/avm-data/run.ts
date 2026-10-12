@@ -32,28 +32,29 @@ async function main(): Promise<void> {
   }
 
   const { rows } = await withAvmDataJob(layer, scope, async () => {
+    delete process.env.AVM_LAST_ROWS;
     switch (layer) {
       case "crime":
         sh("npx tsx scripts/env-load/crime.ts --fetch");
-        return { rows: 0 };
+        return { rows: Number(process.env.AVM_LAST_ROWS ?? 0) };
       case "vulnerability":
         sh("npx tsx scripts/env-load/vulnerability.ts --fetch-spain");
-        return { rows: 0 };
+        return { rows: Number(process.env.AVM_LAST_ROWS ?? 0) };
       case "snczi":
         sh("npx tsx scripts/env-load/sncsi.ts --fetch-spain --skip-t10");
-        return { rows: 0 };
+        return { rows: Number(process.env.AVM_LAST_ROWS ?? 0) };
       case "noise":
         sh("npx tsx scripts/env-load/noise.ts --fetch-spain");
-        return { rows: 0 };
+        return { rows: Number(process.env.AVM_LAST_ROWS ?? 0) };
       case "osm": {
         process.env.AVM_GEOFABRIK_SCOPE = scope;
         sh(`npx tsx scripts/env-load/osm.ts --geofabrik ${scope}`);
-        return { rows: 0 };
+        return { rows: Number(process.env.AVM_LAST_ROWS ?? 0) };
       }
       case "gtfs": {
         const zip = process.env.GTFS_STOPS_DIR ?? "data/env/gtfs/tranvias-coruna";
         sh(`npx tsx scripts/env-load/gtfs.ts --zip ${zip}`);
-        return { rows: 0 };
+        return { rows: Number(process.env.AVM_LAST_ROWS ?? 0) };
       }
       case "ine_sections":
         sh("npx tsx scripts/avm-data/load-ine-sections.ts");

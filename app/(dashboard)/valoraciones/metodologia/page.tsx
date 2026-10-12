@@ -10,6 +10,11 @@ import { createClient } from "@/lib/supabase/client";
 import { DEFAULT_ADJUSTMENTS } from "@/lib/avm/comparables";
 import { PENALTIES } from "@/lib/avm/confidence";
 import { PRECISION_WEIGHTS } from "@/lib/avm/estimate";
+import {
+  AVM_DATA_LAYER_LABELS,
+  evaluarCaducidadCapa,
+  type AvmDataLayer,
+} from "@/lib/avm/data-health";
 
 type Stats = {
   listings: { portal: string; operation: string; active: number; clusters: number }[];
@@ -31,6 +36,7 @@ type Stats = {
 export default function MetodologiaPage() {
   const { user } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
+  const [dataHealth, setDataHealth] = useState<{ layer: AvmDataLayer; loaded_at: string | null }[] | null>(null);
   const permitido = isAdmin(user?.role);
 
   useEffect(() => {
@@ -38,6 +44,9 @@ export default function MetodologiaPage() {
     const supabase = createClient();
     void supabase.rpc("avm_method_stats", { p_empty: false }).then(({ data }) => {
       if (data) setStats(data as Stats);
+    });
+    void supabase.rpc("avm_data_health").then(({ data }) => {
+      if (Array.isArray(data)) setDataHealth(data as { layer: AvmDataLayer; loaded_at: string | null }[]);
     });
   }, [permitido]);
 
@@ -113,6 +122,31 @@ export default function MetodologiaPage() {
             <p className="text-[var(--text-3)]">
               Sin capas cargadas. Ejecuta los scripts en <code className="text-[12px]">scripts/env-load/</code> (ver README).
             </p>
+          )}
+        </Seccion>
+        <Seccion titulo="Salud de datos AVM" id="salud-datos">
+          <p className="text-[var(--text-2)]">
+            Cargas automáticas en GitHub Actions (<code className="text-[12px]">.github/workflows/avm-data.yml</code>).
+            Alerta si la última carga supera el plazo (OSM, criminalidad e INSPIRE: 4 meses; INE: 14 meses; resto: 13 meses).
+          </p>
+          {dataHealth?.length ? (
+            <Tabla
+              columnas={["Capa", "Última carga", "Plazo", "Estado"]}
+              filas={dataHealth.map((row) => {
+                const check = evaluarCaducidadCapa(row.layer, row.loaded_at);
+                const label = AVM_DATA_LAYER_LABELS[row.layer] ?? row.layer;
+                const fecha = row.loaded_at ? new Date(row.loaded_at).toLocaleString("es-ES") : "Sin dato";
+                const plazo = `${check.maxMonths} meses`;
+                const estado = check.stale
+                  ? "Caducada"
+                  : row.loaded_at
+                    ? "Al día"
+                    : "Pendiente";
+                return [label, fecha, plazo, estado];
+              })}
+            />
+          ) : (
+            <p className="text-[var(--text-3)]">Cargando salud de datos…</p>
           )}
         </Seccion>
         <Seccion titulo="Ajustes">

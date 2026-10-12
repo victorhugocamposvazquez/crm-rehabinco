@@ -1,0 +1,128 @@
+name: AVM · cargas de datos
+
+on:
+  workflow_dispatch:
+    inputs:
+      layer:
+        description: Capa a cargar
+        required: true
+        type: choice
+        options:
+          - entorno_completo
+          - osm
+          - gtfs
+          - crime
+          - vulnerability
+          - snczi
+          - noise
+          - ine_sections
+          - inspire
+      scope:
+        description: Alcance (spain, spain/galicia, código provincia 15, municipio 15030, all)
+        required: true
+        default: spain
+        type: string
+  repository_dispatch:
+    types: [avm-data-load]
+  schedule:
+    # Día 1 · cada 3 meses · OSM + GTFS (España)
+    - cron: "0 5 1 1,4,7,10 *"
+    # Día 15 · ene/abr/jul/oct · criminalidad
+    - cron: "0 5 15 1,4,7,10 *"
+    # 1 febrero · SNCZI, ruido, vulnerabilidad
+    - cron: "0 5 1 2 *"
+    # 20 enero · secciones INE
+    - cron: "0 5 20 1 *"
+    # Día 5 · cada 3 meses · INSPIRE (market_crawl_targets)
+    - cron: "0 5 5 1,4,7,10 *"
+
+concurrency:
+  group: avm-data-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  load:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependencias del sistema (osmium, GDAL)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y osmium-tool gdal-bin curl unzip
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Resolver capa y alcance
+        id: meta
+        env:
+          EVENT: ${{ github.event_name }}
+          CRON: ${{ github.event.schedule }}
+          IN_LAYER: ${{ github.event.inputs.layer }}
+          IN_SCOPE: ${{ github.event.inputs.scope }}
+          RD_LAYER: ${{ github.event.client_payload.layer }}
+          RD_SCOPE: ${{ github.event.client_payload.scope }}
+        run: |
+          set -euo pipefail
+          layers=""
+          scope="spain"
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            if [ "$IN_LAYER" = "entorno_completo" ]; then
+              layers="crime vulnerability snczi noise gtfs osm"
+            else
+              layers="$IN_LAYER"
+            fi
+            scope="${IN_SCOPE:-spain}"
+          elif [ "$EVENT" = "repository_dispatch" ]; then
+            layers="$RD_LAYER"
+            scope="${RD_SCOPE:-spain}"
+          elif [ "$EVENT" = "schedule" ]; then
+            case "$CRON" in
+              "0 5 1 1,4,7,10 *") layers="osm gtfs" ;;
+              "0 5 15 1,4,7,10 *") layers="crime" ;;
+              "0 5 1 2 *") layers="snczi noise vulnerability" ;;
+              "0 5 20 1 *") layers="ine_sections" ;;
+              "0 5 5 1,4,7,10 *") layers="inspire" ;;
+              *) echo "Cron no reconocido: $CRON"; exit 1 ;;
+            esac
+          fi
+          echo "layers=$layers" >> "$GITHUB_OUTPUT"
+          echo "scope=$scope" >> "$GITHUB_OUTPUT"
+
+      - name: GTFS Coruña (opcional)
+        if: contains(steps.meta.outputs.layers, 'gtfs')
+        run: |
+          set +e
+          mkdir -p data/env/gtfs/tranvias-coruna
+          meta="$(curl -fsSL "https://datos.coruna.gal/api/3/action/package_show?id=compania-de-tranvias-de-la-coruna" 2>/dev/null || true)"
+          url="$(echo "$meta" | grep -Eo 'https://[^"]+\.zip' | head -1 || true)"
+          if [ -n "$url" ]; then
+            curl -fsSL -o /tmp/gtfs.zip "$url" && unzip -o /tmp/gtfs.zip -d data/env/gtfs/tranvias-coruna
+          fi
+          if [ ! -f data/env/gtfs/tranvias-coruna/stops.txt ]; then
+            echo "GTFS no disponible; las paradas siguen en OSM."
+          fi
+
+      - name: Ejecutar cargadores
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          GTFS_STOPS_DIR: data/env/gtfs/tranvias-coruna
+        run: |
+          set -euo pipefail
+          scope="${{ steps.meta.outputs.scope }}"
+          for layer in ${{ steps.meta.outputs.layers }}; do
+            echo "========== $layer ($scope) =========="
+            if [ "$layer" = "gtfs" ] && [ ! -f data/env/gtfs/tranvias-coruna/stops.txt ]; then
+              echo "Omitiendo GTFS (sin stops.txt)."
+              continue
+            fi
+            npx tsx scripts/avm-data/run.ts --layer "$layer" --scope "$scope"
+          done
