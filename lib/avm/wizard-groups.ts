@@ -256,6 +256,7 @@ export function canContinueScreen(
   opts: { email?: string; consent?: boolean; channel: Channel },
 ): boolean {
   if (!twin && screen !== "address") return false;
+  if (screen === "address") return false;
   if (screen === "building") return groupIsValid("building", twin!, unknown);
   if (screen === "state") return true;
   if (screen === "about") return groupIsValid("about", twin!, unknown);

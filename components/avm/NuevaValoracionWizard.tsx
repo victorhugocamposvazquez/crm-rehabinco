@@ -44,6 +44,14 @@ type Candidato = Awaited<ReturnType<typeof candidatosDireccion>>[number];
 
 const CENTRO_AGENCIA = { lat: 43.3665, lng: -8.406, label: "A Coruña" };
 
+function normalizarEntryTab(tab: string): EntryTab {
+  if (tab === "address" || tab === "direccion") return "direccion";
+  if (tab === "ref" || tab === "referencia") return "referencia";
+  if (tab === "pin" || tab === "mapa") return "mapa";
+  if (tab === "crm") return "crm";
+  return "direccion";
+}
+
 export function NuevaValoracionWizard({
   channel = "crm",
   landingSlug = "rehabinco",
@@ -59,6 +67,7 @@ export function NuevaValoracionWizard({
   const [pantalla, setPantalla] = useState<WizardScreenId>("address");
   const [historial, setHistorial] = useState<WizardScreenId[]>([]);
   const [entryTab, setEntryTab] = useState<EntryTab>("direccion");
+  const setEntryTabSafe = useCallback((t: EntryTab) => setEntryTab(normalizarEntryTab(t)), []);
   const [origen, setOrigen] = useState("direccion");
   const [needsUnit, setNeedsUnit] = useState(false);
   const [unknown, setUnknown] = useState<Set<string>>(() => new Set());
@@ -147,7 +156,7 @@ export function NuevaValoracionWizard({
     if (!b?.built) return;
     setBuilt(b.built as GemeloOk);
     setOrigen(b.origen);
-    setEntryTab(b.entryTab as EntryTab);
+    setEntryTab(normalizarEntryTab(b.entryTab));
     setPantalla((b.pantalla as WizardScreenId) ?? "address");
     setHistorial((b.historial ?? []) as WizardScreenId[]);
     setUnknown(new Set((b as { unknown?: string[] }).unknown ?? []));
@@ -216,8 +225,8 @@ export function NuevaValoracionWizard({
       if (e.key !== "Enter" || e.defaultPrevented) return;
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === "TEXTAREA") return;
+      if (pantalla === "address" || pantalla === "valorar") return;
       if (!puedeContinuar || ocupado) return;
-      if (pantalla === "valorar") return;
       e.preventDefault();
       siguiente();
     };
@@ -360,12 +369,13 @@ export function NuevaValoracionWizard({
               <Entrada
                 channel={channel}
                 tab={entryTab}
-                setTab={setEntryTab}
+                setTab={setEntryTabSafe}
                 consulta={consulta}
                 setConsulta={setConsulta}
                 sugerencias={sugerencias}
                 elegida={elegida}
                 onElegirDireccion={(s) => {
+                  setConsulta(s.address);
                   setElegida(s);
                   setPinMapa({ lat: s.lat, lng: s.lng, label: CENTRO_AGENCIA.label });
                 }}
@@ -385,9 +395,12 @@ export function NuevaValoracionWizard({
                   if (r.tipo === "anuncio") void cargar({ listingId: r.id }, "crm");
                   else void cargar({ crmPropertyId: r.id }, "crm");
                 }}
-                onContinuarDireccion={() => {
-                  if (!elegida) return;
-                  void cargar({ address: elegida.address, lat: pinMapa.lat, lng: pinMapa.lng }, "direccion");
+                onContinuarDireccion={(s) => {
+                  void cargar({ address: s.address, lat: s.lat, lng: s.lng }, "direccion");
+                }}
+                onMoverPin={(lat, lng) => {
+                  setPinMapa((p) => ({ ...p, lat, lng }));
+                  setElegida((e) => (e ? { ...e, lat, lng } : e));
                 }}
               />
             ) : null}
@@ -520,8 +533,13 @@ function Entrada(props: {
   setCrmQ: (v: string) => void;
   crmRes: ResultadoBusquedaCrm[];
   onElegirCrm: (r: ResultadoBusquedaCrm) => void;
-  onContinuarDireccion: () => void;
+  onContinuarDireccion: (s: Candidato) => void;
+  onMoverPin: (lat: number, lng: number) => void;
 }) {
+  const continuarDireccion = () => {
+    if (!props.elegida || props.ocupado) return;
+    props.onContinuarDireccion(props.elegida);
+  };
   const tabs: { id: EntryTab; label: string }[] = [
     { id: "direccion", label: "Dirección" },
     { id: "referencia", label: "Referencia catastral" },
@@ -539,38 +557,65 @@ function Entrada(props: {
             <input
               value={props.consulta}
               onChange={(e) => {
-                props.setConsulta(e.target.value);
-                if (!e.target.value.trim()) props.onLimpiarElegida();
+                const v = e.target.value;
+                props.setConsulta(v);
+                if (!v.trim()) props.onLimpiarElegida();
+                else if (props.elegida && v.trim() !== props.elegida.address) props.onLimpiarElegida();
               }}
               placeholder="Calle, número y municipio"
               className="min-w-0 flex-1 bg-transparent text-[15px] outline-none"
               autoComplete="off"
+              onKeyDown={(e) => {
+                if (e.key !== "Enter" || props.ocupado) return;
+                if (props.elegida) {
+                  e.preventDefault();
+                  continuarDireccion();
+                  return;
+                }
+                const unica = props.sugerencias.length === 1 ? props.sugerencias[0] : null;
+                if (unica) {
+                  e.preventDefault();
+                  props.onElegirDireccion(unica);
+                  props.onContinuarDireccion(unica);
+                }
+              }}
             />
           </CampoEntrada>
-          <div className="flex flex-col gap-1.5">
-            {props.sugerencias.slice(0, 8).map((s) => (
-              <SugerenciaChip
-                key={`${s.lat}-${s.lng}`}
-                titulo={s.address}
-                subtitulo={[s.municipality, s.province ? `prov. ${s.province}` : null].filter(Boolean).join(" · ")}
-                onClick={() => props.onElegirDireccion(s)}
-              />
-            ))}
-          </div>
+          {!props.elegida ? (
+            <div className="flex flex-col gap-1.5">
+              {props.sugerencias.slice(0, 8).map((s) => (
+                <SugerenciaChip
+                  key={`${s.lat}-${s.lng}-${s.address}`}
+                  titulo={s.address}
+                  subtitulo={[s.municipality, s.province ? `prov. ${s.province}` : null].filter(Boolean).join(" · ")}
+                  onClick={() => props.onElegirDireccion(s)}
+                />
+              ))}
+            </div>
+          ) : null}
           {props.elegida ? (
             <div className="mt-3 space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <TagAvm className="text-foreground">{props.elegida.address}</TagAvm>
-                <span className="text-[12px] text-[var(--text-3)]">CartoCiudad · arrastra el marcador si hace falta</span>
+                <button
+                  type="button"
+                  className="text-[12px] text-[var(--text-3)] underline underline-offset-2"
+                  onClick={() => {
+                    props.onLimpiarElegida();
+                  }}
+                >
+                  Cambiar
+                </button>
               </div>
+              <QNav disabled={props.ocupado || !props.elegida} onContinuar={continuarDireccion} />
+              <p className="text-[12px] text-[var(--text-3)]">CartoCiudad · arrastra el marcador si hace falta</p>
               <MapaAvm
                 className="h-[220px] w-full overflow-hidden rounded-lg border border-[var(--border)]"
                 lat={props.pinMapa.lat}
                 lng={props.pinMapa.lng}
                 arrastrable
-                onMover={(lat, lng) => props.setPinMapa((p) => ({ ...p, lat, lng }))}
+                onMover={props.onMoverPin}
               />
-              <QNav disabled={props.ocupado} onContinuar={props.onContinuarDireccion} />
             </div>
           ) : null}
         </div>
