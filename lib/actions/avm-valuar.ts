@@ -39,7 +39,7 @@ export async function construirGemelo(input: {
 
 export async function candidatosDireccion(q: string) {
   const consulta = q.trim();
-  if (consulta.length < 3) return [];
+  if (consulta.length < 4) return [];
   const url = `https://www.cartociudad.es/geocoder/api/geocoder/candidates?limit=6&q=${encodeURIComponent(consulta)}`;
   const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
   if (!res.ok) return [];
@@ -53,6 +53,54 @@ export async function candidatosDireccion(q: string) {
       lng: c.lng as number,
       postcode: c.postalCode ?? null,
     }));
+}
+
+export type ResultadoBusquedaCrm = {
+  id: string;
+  tipo: "inmueble" | "anuncio";
+  titulo: string;
+  subtitulo: string;
+};
+
+export async function buscarEnCrm(q: string): Promise<ResultadoBusquedaCrm[]> {
+  const consulta = q.trim();
+  if (consulta.length < 2) return [];
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  const like = `%${consulta.replace(/%/g, "")}%`;
+  const [propiedades, anuncios] = await Promise.all([
+    supabase
+      .from("propiedades")
+      .select("id, titulo, direccion, referencia, codigo_postal")
+      .or(`direccion.ilike.${like},titulo.ilike.${like},referencia.ilike.${like}`)
+      .limit(6),
+    supabase
+      .from("captacion_anuncios")
+      .select("id, titulo, direccion, referencia_catastral")
+      .or(`titulo.ilike.${like},direccion.ilike.${like},referencia_catastral.ilike.${like}`)
+      .limit(6),
+  ]);
+  const filas: ResultadoBusquedaCrm[] = [];
+  for (const row of propiedades.data ?? []) {
+    filas.push({
+      id: String(row.id),
+      tipo: "inmueble",
+      titulo: row.direccion ?? row.titulo ?? "Inmueble",
+      subtitulo: [row.codigo_postal, row.referencia].filter(Boolean).join(" · ") || row.id,
+    });
+  }
+  for (const row of anuncios.data ?? []) {
+    filas.push({
+      id: String(row.id),
+      tipo: "anuncio",
+      titulo: row.titulo ?? row.direccion ?? "Anuncio captado",
+      subtitulo: [row.direccion, row.referencia_catastral].filter(Boolean).join(" · ") || row.id,
+    });
+  }
+  return filas.slice(0, 8);
 }
 
 export async function valorarInmueble(body: unknown) {

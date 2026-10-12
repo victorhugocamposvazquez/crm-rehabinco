@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from "react";
 import "leaflet/dist/leaflet.css";
 import type { AdjustedComparable } from "../../lib/avm/types";
 import { fmtEuros, fmtEurosPorM2, fmtNumero } from "../../lib/avm/ui/format";
+import { htmlMarcadorSujeto, TILES_CARTO_OSCURO } from "../../lib/avm/ui/mapa-leaflet";
 
 type Props = {
   lat: number;
@@ -39,9 +40,9 @@ export function MapaValoracion({ lat, lng, comparables = [], arrastrable = false
       const L = (await import("leaflet")).default;
       if (!vivo || !ref.current) return;
       const m = L.map(ref.current, { zoomControl: true, attributionControl: true }).setView([lat, lng], 16);
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-        attribution: "&copy; OpenStreetMap &copy; CARTO",
-        subdomains: "abcd",
+      L.tileLayer(TILES_CARTO_OSCURO.url, {
+        attribution: TILES_CARTO_OSCURO.attribution,
+        subdomains: TILES_CARTO_OSCURO.subdomains,
         maxZoom: 20,
       }).addTo(m);
 
@@ -53,7 +54,7 @@ export function MapaValoracion({ lat, lng, comparables = [], arrastrable = false
 
       const sujetoIcon = L.divIcon({
         className: "",
-        html: '<div style="width:14px;height:14px;border-radius:50%;background:#f3f3f1;border:2px solid rgba(243,243,241,.35);box-shadow:0 0 0 2px #0a0a0b"></div>',
+        html: htmlMarcadorSujeto(),
         iconSize: [14, 14],
         iconAnchor: [7, 7],
       });

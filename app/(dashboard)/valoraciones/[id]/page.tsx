@@ -8,7 +8,7 @@ import { ValoracionesNav } from "@/components/avm/ValoracionesNav";
 import { InformeValoracion } from "@/components/avm/InformeValoracion";
 import { createClient } from "@/lib/supabase/client";
 import type { Twin, ValuationResult } from "@/lib/avm/types";
-import { migaInforme, subtituloInforme, tituloInforme } from "@/lib/avm/ui/labels";
+import { subtituloInforme, tituloInforme } from "@/lib/avm/ui/labels";
 
 export default function InformePage() {
   const params = useParams();
@@ -89,10 +89,6 @@ export default function InformePage() {
   return (
     <div className="mx-auto max-w-[1240px] pb-16">
       <PageHeader
-        breadcrumb={[
-          { label: "Valoraciones", href: "/valoraciones" },
-          { label: twin ? migaInforme(twin) : "Informe" },
-        ]}
         title={twin ? tituloInforme(twin) : "Informe"}
         description={dato ? subtituloInforme(dato.twin, dato.creada, dato.result.methodVersion) : undefined}
         actions={

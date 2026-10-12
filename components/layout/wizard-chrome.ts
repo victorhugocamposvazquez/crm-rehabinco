@@ -1,5 +1,6 @@
 /** Rutas de altas/edición con barra Atrás/Siguiente (sin menú inferior). */
 export function isWizardRoute(pathname: string) {
+  if (pathname.startsWith("/valoraciones")) return false;
   if (/\/(nuevo|nueva|editar)(\/|$)/.test(pathname)) return true;
   if (/^\/contratos-arras\/[^/]+$/.test(pathname)) return true;
   return false;
