@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { buildTwin, type PropertySource, type TwinBuild, type TwinUnit } from "./twin-builder";
 import type { Channel, Comparable, Operation, Twin, ZoneLevel, ZoneStats } from "./types";
+import { buildEnvironment, type RawEnvironment } from "./environment";
 import { publicView, valuate, type ValuateDeps, type ValuateOptions } from "./valuate";
 
 const TENANT = "00000000-0000-4000-8000-000000000001";
@@ -170,7 +171,28 @@ export function depsMercado(db: SupabaseClient): ValuateDeps {
       }
       return null;
     },
-    environment: async () => null,
+    environment: async (twin) => {
+      const lat = twin.address.lat;
+      const lng = twin.address.lng;
+      if (lat == null || lng == null) return null;
+      const { data, error } = await db.rpc("avm_environment", {
+        p_lat: lat,
+        p_lng: lng,
+        p_census_section: twin.address.censusSection ?? null,
+        p_municipality_code: twin.address.municipalityCode ?? null,
+      });
+      if (error) throw new Error(error.message);
+      const payload = data as {
+        nearest?: RawEnvironment["nearest"];
+        counts_500m?: Record<string, number>;
+        meta?: { has_osm?: boolean };
+      } | null;
+      if (!payload?.meta?.has_osm) return null;
+      return buildEnvironment({
+        nearest: payload.nearest ?? [],
+        counts_500m: payload.counts_500m ?? {},
+      });
+    },
   };
 }
 

@@ -86,6 +86,9 @@ Con el 15004 anterior al clúster: 13,71 × 12 / 4.125 = 3,99 %.
 5. Ruta `POST /api/avm/valuate` en Next que construye el `twin` (Catastro → anuncio → formulario) y
    llama a `valuate()` con los `deps` conectados a Supabase (`avm_zone_median`, `avm_comparables`,
    `market_discount`, `avm_environment`).
+6. **Entorno (fase G):** cargadores en `scripts/env-load/README.md` → `environment_layers` +
+   `avm_environment()` → `buildEnvironment()` en la valoración (`sourcesUsed.environment` =
+   `primary` si hay OSM en la zona).
 6. Formulario progresivo con `resolveFlow()` + `computeLiveEstimate()` + `computePrecision()`.
 7. Guardar cada resultado en `avm_valuations` (entradas, fuentes, comparables, explicación) y medir el
    error contra ventas cerradas antes de abrir la landing pública.

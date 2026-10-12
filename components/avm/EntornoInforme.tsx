@@ -131,6 +131,9 @@ export function EntornoInforme({ environment }: { environment: Environment }) {
           no cambia el precio en fase 1
         </span>
       </div>
+      <p className="mb-3 text-[12px] leading-snug text-[var(--text-3)]">
+        Cada fila lleva icono por tipo (transporte, comercio, salud, ruido…), insignia de puntos si aplica y la fuente con fecha de carga del dato.
+      </p>
       {environment.score != null ? (
         <div className="mb-3.5 flex flex-wrap items-center gap-4">
           <p className="text-[40px] font-bold leading-none tracking-[-0.03em] tabular-nums">{environment.score}</p>

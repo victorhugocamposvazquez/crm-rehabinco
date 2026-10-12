@@ -28,3 +28,6 @@ next-env.d.ts
 
 # maplibre worker (scripts/copy-maplibre-worker.mjs en predev/prebuild)
 public/maplibre/
+
+# datos brutos de entorno (OSM pbf, shapefiles…)
+data/env/

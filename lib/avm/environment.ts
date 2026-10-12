@@ -49,7 +49,7 @@ export const RULES: Rule[] = [
 
   // En contra
   { layer: 'noise', label: (r) => `Ruido ${r.props.lden ?? '?'} dB Lden (${r.props.source_type ?? 'vía'}) a ${r.distance_m} m`, points: (r) => { const l = Number(r.props.lden ?? 0); return l >= 70 ? -10 : l >= 65 ? -6 : l >= 60 ? -3 : null; }, sense: 'negative', source: 'Mapa estratégico de ruido' },
-  { layer: 'osm_poi', category: 'motorway', label: (r) => `Vía rápida a ${r.distance_m} m`, points: (r) => (r.distance_m <= 150 ? -6 : r.distance_m <= 300 ? -3 : null), sense: 'negative', source: 'OSM' },
+  { layer: 'osm_poi', category: 'main_road', label: (r) => `Vía principal a ${r.distance_m} m`, points: (r) => (r.distance_m <= 40 ? -6 : r.distance_m <= 150 ? -3 : null), sense: 'negative', source: 'OSM' },
   { layer: 'osm_poi', category: 'railway', label: (r) => `Vía férrea a ${r.distance_m} m`, points: (r) => (r.distance_m <= 100 ? -6 : r.distance_m <= 250 ? -3 : null), sense: 'negative', source: 'OSM' },
   { layer: 'osm_poi', category: 'nightlife', label: (r, ) => `Ocio nocturno a ${r.distance_m} m`, points: (r, c) => ((c.nightlife ?? 0) >= 5 && r.distance_m <= 150 ? -5 : (c.nightlife ?? 0) >= 3 && r.distance_m <= 100 ? -3 : null), sense: 'negative', source: 'OSM' },
   { layer: 'osm_poi', category: 'industrial', label: (r) => `Zona industrial a ${r.distance_m} m`, points: (r) => (r.distance_m <= 200 ? -6 : r.distance_m <= 500 ? -3 : null), sense: 'negative', source: 'OSM' },
@@ -65,7 +65,11 @@ export const RULES: Rule[] = [
 const FLAG_RULES: Omit<Rule, 'points'>[] = [
   { layer: 'flood', label: (r) => `Zona inundable ${r.props.period ?? 'T500'}`, sense: 'negative', source: 'SNCZI (MITECO)' },
   { layer: 'vulnerable_section', label: () => 'Sección censal en el catálogo de barrios vulnerables', sense: 'negative', source: 'Observatorio de la Vulnerabilidad Urbana' },
-  { layer: 'crime_municipality', label: (r) => `Criminalidad municipal: ${r.props.rate_per_1000 ?? '?'} infracciones / 1.000 hab.`, sense: 'info', source: 'Ministerio del Interior' },
+  { layer: 'crime_municipality', label: (r) => {
+    const rate = r.props.rate_per_1000 ?? '?';
+    const peer = r.props.peer_avg != null ? ` (media ciudades similares: ${r.props.peer_avg})` : '';
+    return `Criminalidad municipal: ${rate} infracciones / 1.000 hab.${peer}`;
+  }, sense: 'info', source: 'Ministerio del Interior' },
   { layer: 'air_station', label: (r) => `Calidad del aire (estación a ${r.distance_m} m): ${r.props.index_label ?? '?'}`, sense: 'info', source: 'MITECO' },
   { layer: 'zone_mark', label: (r) => `Aviso del equipo: ${r.name ?? r.category} (${r.props.note ?? ''})`, sense: 'info', source: 'Conocimiento local' },
 ];
@@ -75,6 +79,20 @@ export function buildEnvironment(raw: RawEnvironment): Environment {
   const negatives: EnvironmentItem[] = [];
   const flags: EnvironmentItem[] = [];
   let score = 50;
+
+  const tieneRuido = raw.nearest.some((r) => r.layer === 'noise');
+  if (!tieneRuido) {
+    const via = raw.nearest.find((r) => r.layer === 'osm_poi' && r.category === 'main_road');
+    if (via && via.distance_m <= 40) {
+      raw.nearest.push({
+        ...via,
+        layer: 'noise',
+        category: null,
+        props: { lden: 66, source_type: 'tráfico (respaldo OSM)' },
+        distance_m: via.distance_m,
+      });
+    }
+  }
 
   for (const row of raw.nearest) {
     const rule = RULES.find((x) => x.layer === row.layer && (!x.category || x.category === row.category));

@@ -23,6 +23,7 @@ type Stats = {
   valuations: number;
   confidenceBands: { baja: number; media: number; alta: number };
   layers: Record<string, Record<string, number>>;
+  environmentLayers: { layer: string; source: string; category: string | null; n: number; loaded_at: string }[];
   closes: number;
   medianAbsError: number | null;
 };
@@ -87,6 +88,32 @@ export default function MetodologiaPage() {
               <p>{stats.closes} filas en el descuento de cierre.{stats.closes >= 20 && stats.medianAbsError != null ? ` Error mediano absoluto ${stats.medianAbsError} %.` : " El error frente a cierres posteriores se publica a partir de 20."}</p>
             </>
           ) : null}
+        </Seccion>
+        <Seccion titulo="Entorno · capas públicas">
+          {stats?.environmentLayers?.length ? (
+            <>
+              <p className="text-[var(--text-2)]">
+                <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[12px] font-medium text-emerald-700 dark:text-emerald-400">
+                  activa
+                </span>{" "}
+                Indicadores objetivos (OSM, transporte, ruido, inundabilidad…). No cambian el precio ni la confianza.
+              </p>
+              <Tabla
+                columnas={["Capa", "Fuente", "Categoría", "Elementos", "Cargado"]}
+                filas={stats.environmentLayers.map((e) => [
+                  e.layer,
+                  e.source,
+                  e.category ?? "—",
+                  String(e.n),
+                  e.loaded_at ? new Date(e.loaded_at).toLocaleString("es-ES") : "—",
+                ])}
+              />
+            </>
+          ) : (
+            <p className="text-[var(--text-3)]">
+              Sin capas cargadas. Ejecuta los scripts en <code className="text-[12px]">scripts/env-load/</code> (ver README).
+            </p>
+          )}
         </Seccion>
         <Seccion titulo="Ajustes">
           <Tabla

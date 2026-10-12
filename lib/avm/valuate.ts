@@ -180,7 +180,9 @@ export function publicView(r: ValuationResult) {
     grossYield: r.grossYield,
     precision: r.confidence,                 // al propietario se le llama "precisión"
     zone: r.zoneStats ? { label: r.zoneStats.label, medianPpm2: r.zoneStats.medianPpm2, n: r.zoneStats.n, trend12mPct: r.zoneStats.trend12mPct } : null,
-    environment: r.environment ? { score: r.environment.score, positives: r.environment.positives, negatives: r.environment.negatives } : null,
+    environment: r.environment
+      ? { positives: r.environment.positives, negatives: r.environment.negatives, flags: r.environment.flags }
+      : null,
     comparablesCount: r.comparables.length, // sin la lista
   };
 }

@@ -1,0 +1,14 @@
+{
+  "nearest": [
+    { "layer": "gtfs_stop", "category": "bus", "sense": "positive", "name": "Juan Flórez", "props": { "routes": ["1", "3"] }, "distance_m": 85 },
+    { "layer": "gtfs_stop", "category": "rail", "sense": "positive", "name": "Estación de A Coruña", "props": {}, "distance_m": 950 },
+    { "layer": "school", "category": "school", "sense": "positive", "name": "CEIP Juan Flórez", "props": {}, "distance_m": 220 },
+    { "layer": "health", "category": "health_center", "sense": "positive", "name": "Centro de saúde Juan Flórez", "props": {}, "distance_m": 410 },
+    { "layer": "osm_poi", "category": "supermarket", "sense": "positive", "name": "Mercadona", "props": {}, "distance_m": 140 },
+    { "layer": "osm_poi", "category": "pharmacy", "sense": "positive", "name": "Farmacia", "props": {}, "distance_m": 95 },
+    { "layer": "osm_poi", "category": "park", "sense": "positive", "name": "Parque de San Rosendo", "props": {}, "distance_m": 280 },
+    { "layer": "osm_poi", "category": "nightlife", "sense": "negative", "name": "Bar", "props": {}, "distance_m": 120 },
+    { "layer": "osm_poi", "category": "main_road", "sense": "negative", "name": "Av. de Fisterra", "props": {}, "distance_m": 35 }
+  ],
+  "counts_500m": { "shop": 28, "restaurant": 14, "nightlife": 6, "gym": 2 }
+}
