@@ -487,7 +487,7 @@ export default function DetalleFacturaPage() {
             <CardContent className="space-y-2 text-sm">
               {facturaOriginal && (
                 <p>
-                  <span className="text-neutral-500">Rectifica factura:</span>{" "}
+                  <span className="text-[var(--text-2)]">Rectifica factura:</span>{" "}
                   <Link href={`/facturas/${factura.factura_original_id}`} className="font-medium hover:underline">
                     {facturaOriginal.numero}
                   </Link>
@@ -495,7 +495,7 @@ export default function DetalleFacturaPage() {
               )}
               {factura.causa_rectificacion && (
                 <p>
-                  <span className="text-neutral-500">Causa:</span>{" "}
+                  <span className="text-[var(--text-2)]">Causa:</span>{" "}
                   {factura.causa_rectificacion}
                 </p>
               )}
@@ -526,7 +526,7 @@ export default function DetalleFacturaPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>
-              <span className="text-neutral-500">Cliente:</span>{" "}
+              <span className="text-[var(--text-2)]">Cliente:</span>{" "}
               {factura.clientes ? (
                 <FichaLink tipo="cliente" id={factura.clientes.id} className="font-medium">
                   {factura.clientes.nombre}
@@ -536,11 +536,11 @@ export default function DetalleFacturaPage() {
               )}
             </p>
             <p>
-              <span className="text-neutral-500">Emisión:</span>{" "}
+              <span className="text-[var(--text-2)]">Emisión:</span>{" "}
               {factura.fecha_emision ?? "—"}
             </p>
             <p>
-              <span className="text-neutral-500">Vencimiento:</span>{" "}
+              <span className="text-[var(--text-2)]">Vencimiento:</span>{" "}
               {factura.fecha_vencimiento ?? "—"}
             </p>
           </CardContent>
@@ -551,7 +551,7 @@ export default function DetalleFacturaPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-semibold">{totalConIva.toFixed(2)} €</p>
-            <p className="mt-2 text-sm text-neutral-500">
+            <p className="mt-2 text-sm text-[var(--text-2)]">
               Base: {baseImponible.toFixed(2)} € · IVA: {ivaImporte.toFixed(2)} € · IRPF: -{irpfImporte.toFixed(2)} €
             </p>
           </CardContent>

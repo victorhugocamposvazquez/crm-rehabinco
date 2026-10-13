@@ -350,7 +350,11 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
 }
 .dark .bg-neutral-50,
 .dark .bg-neutral-100,
+.dark .bg-neutral-200,
 .dark .bg-neutral-50\/70,
+.dark .bg-neutral-50\/80,
+.dark .bg-neutral-50\/60,
+.dark .bg-neutral-50\/50,
 .dark .hover\:bg-neutral-50:hover,
 .dark .hover\:bg-neutral-100:hover,
 .dark .hover\:bg-white:hover {

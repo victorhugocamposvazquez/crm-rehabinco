@@ -135,7 +135,7 @@ export function PagosCard({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
-          <Banknote className="h-5 w-5 text-neutral-500" strokeWidth={1.5} />
+          <Banknote className="h-5 w-5 text-[var(--text-3)]" strokeWidth={1.5} />
           Pagos
         </CardTitle>
         {puedeAnadirPago && (
@@ -153,18 +153,18 @@ export function PagosCard({
       <CardContent className="space-y-4">
         {loading ? (
           <div className="space-y-2">
-            <div className="h-4 w-24 animate-pulse rounded bg-neutral-100" />
-            <div className="h-4 w-32 animate-pulse rounded bg-neutral-100" />
+            <div className="h-4 w-24 animate-pulse rounded bg-[var(--surface-soft)]" />
+            <div className="h-4 w-32 animate-pulse rounded bg-[var(--surface-soft)]" />
           </div>
         ) : (
           <>
-            <div className="flex flex-wrap gap-4 rounded-xl bg-neutral-50/80 px-4 py-3 text-sm">
+            <div className="flex flex-wrap gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm">
               <span>
-                <span className="text-neutral-500">Pagado:</span>{" "}
-                <span className="font-semibold">{formatCurrency(totalPagado)}</span>
+                <span className="text-[var(--text-2)]">Pagado:</span>{" "}
+                <span className="font-semibold text-foreground">{formatCurrency(totalPagado)}</span>
               </span>
               <span>
-                <span className="text-neutral-500">Pendiente:</span>{" "}
+                <span className="text-[var(--text-2)]">Pendiente:</span>{" "}
                 <span className={pendiente > 0 ? "font-semibold text-[var(--amber)]" : "font-semibold text-foreground"}>
                   {formatCurrency(pendiente)}
                 </span>
@@ -239,7 +239,7 @@ export function PagosCard({
             )}
 
             {pagos.length === 0 && !showForm ? (
-              <p className="text-sm text-neutral-500">
+              <p className="text-sm text-[var(--text-2)]">
                 {estado === "borrador"
                   ? "Emite la factura para poder registrar pagos."
                   : "Sin pagos registrados."}
@@ -252,11 +252,11 @@ export function PagosCard({
                     className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-4 py-2 text-sm"
                   >
                     <span className="font-medium">{formatCurrency(Number(p.importe))}</span>
-                    <span className="text-neutral-500">
+                    <span className="text-[var(--text-2)]">
                       {p.fecha} · {labelMetodo(p.metodo_pago)}
                     </span>
                     {p.notas && (
-                      <span className="w-full text-xs text-neutral-400">{p.notas}</span>
+                      <span className="w-full text-xs text-[var(--text-3)]">{p.notas}</span>
                     )}
                   </li>
                 ))}
