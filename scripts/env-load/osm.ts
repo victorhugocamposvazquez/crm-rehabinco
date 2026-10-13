@@ -148,6 +148,14 @@ function clasificar(tags: Record<string, string | undefined>): (Omit<LayerRow, "
     return { layer: "osm_poi", category: "hospitality", sense: "info", source: SOURCE };
   }
   if (amenity === "pub" || amenity === "nightclub") {
+    const nombre = `${tags.name ?? ""} ${tags["name:es"] ?? ""}`;
+    if (/jamoner[ií]a/i.test(nombre)) {
+      return { layer: "osm_poi", category: "shop", sense: "positive", source: SOURCE };
+    }
+    // Mesón La Dehesa (Juan Flórez): OSM lo marca pub y es jamonería.
+    if (/^la dehesa$/i.test((tags.name ?? "").trim())) {
+      return { layer: "osm_poi", category: "hospitality", sense: "info", source: SOURCE };
+    }
     return { layer: "osm_poi", category: "nightlife", sense: "negative", source: SOURCE };
   }
   if (amenity === "school" || amenity === "kindergarten") {

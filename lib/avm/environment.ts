@@ -103,9 +103,10 @@ function sumar(
   categoria: string,
   puntos: number,
   sentido: EnvironmentItem['sense'],
+  motivo?: string,
 ): void {
   score.n += puntos;
-  dest.push(presentar(row, categoria, origenDe(row), puntos, sentido));
+  dest.push({ ...presentar(row, categoria, origenDe(row), puntos, sentido), motivo });
 }
 
 function etiquetaSeccion(row: NearestRow): string {
@@ -219,7 +220,7 @@ export function buildEnvironment(raw: RawEnvironment): Environment {
       distance_m: 100,
     };
     if (pubs === 1 && fila.name?.trim()) {
-      sumar(score, negatives, fila, ETIQUETA.nightlife, puntos, 'negative');
+      sumar(score, negatives, fila, ETIQUETA.nightlife, puntos, 'negative', 'Resta porque está marcado como pub a menos de 100 m');
     } else {
       score.n += puntos;
       negatives.push({
@@ -228,6 +229,7 @@ export function buildEnvironment(raw: RawEnvironment): Environment {
         value: puntos,
         sense: 'negative',
         source: 'OSM',
+        motivo: 'Resta porque hay pubs o discotecas a menos de 100 m',
       });
     }
   }
@@ -248,18 +250,19 @@ export function buildEnvironment(raw: RawEnvironment): Environment {
         distanceM: ruido.distance_m > 0 ? ruido.distance_m : undefined,
         sense: 'negative',
         source: nombre ? `ruido · ${ORIGEN.noise}` : ORIGEN.noise,
+        motivo: `Resta porque el ruido Lden llega a ${lden} dB`,
       });
     }
   }
 
   const via = closest(rows, (r) => r.category === 'main_road');
   if (via && via.distance_m <= 40) {
-    sumar(score, negatives, via, ETIQUETA.main_road, -4, 'negative');
+    sumar(score, negatives, via, ETIQUETA.main_road, -4, 'negative', 'Resta porque hay una vía principal a menos de 40 m');
   }
 
   const industria = closest(rows, (r) => r.category === 'industrial');
   if (industria && industria.distance_m <= 200) {
-    sumar(score, negatives, industria, ETIQUETA.industrial, -4, 'negative');
+    sumar(score, negatives, industria, ETIQUETA.industrial, -4, 'negative', 'Resta porque hay industria a menos de 200 m');
   }
 
   for (const row of rows) {
@@ -276,6 +279,7 @@ export function buildEnvironment(raw: RawEnvironment): Environment {
           value: puntos,
           sense: 'negative',
           source: ORIGEN.flood,
+          motivo: `Resta porque el portal está en zona inundable ${periodo}`,
         });
       }
       flags.push({

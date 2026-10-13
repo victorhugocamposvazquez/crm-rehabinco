@@ -109,7 +109,9 @@ describe("entorno fase G", () => {
     expect(indicadores).toEqual(expect.arrayContaining(["gtfs_stop:bus", "osm_poi:supermarket", "osm_poi:park", "school:school"]));
     expect(env.positives.find((p) => p.indicator === "osm_poi:supermarket")?.label).toBe("Supermercado");
     expect(env.positives.find((p) => p.indicator === "osm_poi:park")?.source).toBe("parque · OSM");
-    expect(env.negatives.some((n) => n.indicator === "osm_poi:nightlife")).toBe(true);
+    expect(env.negatives.find((n) => n.indicator === "osm_poi:nightlife")?.motivo).toBe(
+      "Resta porque está marcado como pub a menos de 100 m",
+    );
     expect(JSON.stringify(env)).not.toContain("Bar Y");
     expect(env.flags.length).toBeLessThanOrEqual(3);
     expect(env.flags.map((f) => f.label)).toContain("Sección 1503003003 fuera del catálogo de áreas vulnerables · Atlas 2021");
@@ -124,8 +126,12 @@ describe("entorno fase G", () => {
     expect(env.positives.find((p) => p.indicator === "osm_poi:supermarket")?.source).toBe("supermercado · OSM");
     expect(env.positives.find((p) => p.indicator === "osm_poi:park")?.label).toBe("Praza de Recife");
     expect(env.negatives.some((n) => n.label.includes("ocio nocturno"))).toBe(true);
-    expect(env.negatives.find((n) => n.indicator === "osm_poi:nightlife")?.value).toBe(-6);
+    expect(env.negatives.find((n) => n.indicator === "osm_poi:nightlife")?.value).toBe(-4);
+    expect(env.negatives.find((n) => n.indicator === "osm_poi:nightlife")?.motivo).toBe(
+      "Resta porque hay pubs o discotecas a menos de 100 m",
+    );
     const texto = JSON.stringify(env);
+    expect(texto).not.toContain("La Dehesa");
     expect(texto).not.toContain("El Pinar");
     expect(texto).not.toContain("Fantini");
     expect(texto).not.toContain("Miramar");

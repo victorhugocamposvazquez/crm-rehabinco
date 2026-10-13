@@ -167,6 +167,8 @@ export interface EnvironmentItem {
   distanceM?: number;
   sense: 'positive' | 'negative' | 'both' | 'info';
   source: string;
+  /** Por qué resta, en los puntos en contra. */
+  motivo?: string;
 }
 
 export interface Environment {

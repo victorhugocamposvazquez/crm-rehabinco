@@ -95,8 +95,13 @@ function SubtituloEntorno({ item }: { item: EnvironmentItem }) {
   const distancia = muestraDistancia(item) && item.distanceM != null ? `a ${fmtNumero(item.distanceM)} m` : null;
   const fuente = item.source && !item.label.includes(item.source) ? item.source : null;
   const texto = [distancia, fuente].filter(Boolean).join(" · ");
-  if (!texto) return null;
-  return <p className="mt-0.5 text-[12px] text-[var(--text-3)]">{texto}</p>;
+  if (!texto && !item.motivo) return null;
+  return (
+    <div className="mt-0.5 text-[12px] leading-snug text-[var(--text-3)]">
+      {item.motivo ? <p>{item.motivo}</p> : null}
+      {texto ? <p>{texto}</p> : null}
+    </div>
+  );
 }
 
 function FilaEntorno({

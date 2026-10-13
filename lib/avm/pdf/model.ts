@@ -204,8 +204,9 @@ function esMarcaEquipo(item: EnvironmentItem): boolean {
 function subEntorno(item: EnvironmentItem): string {
   const metros = item.distanceM != null && item.distanceM > 0 ? `a ${Math.round(item.distanceM)} m` : null;
   const fuente = item.source?.trim();
-  if (metros && fuente && !item.label.includes(fuente)) return `${metros} · ${fuente}`;
-  return metros ?? fuente ?? "";
+  const pie = metros && fuente && !item.label.includes(fuente) ? `${metros} · ${fuente}` : metros ?? fuente ?? "";
+  if (item.motivo && pie) return `${item.motivo} · ${pie}`;
+  return item.motivo || pie;
 }
 
 function tonoDe(item: EnvironmentItem): TonoChip {

@@ -8,7 +8,7 @@
     { "layer": "osm_poi", "category": "fuel", "sense": "negative", "name": "Miramar Oil", "props": { "amenity": "fuel" }, "distance_m": 1337 },
     { "layer": "osm_poi", "category": "hospitality", "sense": "info", "name": "El Pinar", "props": { "amenity": "restaurant" }, "distance_m": 23 },
     { "layer": "osm_poi", "category": "main_road", "sense": "negative", "name": "Avenida Linares Rivas", "props": {}, "distance_m": 303 },
-    { "layer": "osm_poi", "category": "nightlife", "sense": "negative", "name": "La Dehesa", "props": { "amenity": "pub" }, "distance_m": 46 },
+    { "layer": "osm_poi", "category": "nightlife", "sense": "negative", "name": "Auria Bar", "props": { "amenity": "pub" }, "distance_m": 71 },
     { "layer": "osm_poi", "category": "park", "sense": "positive", "name": "Praza de Recife", "props": {}, "distance_m": 27 },
     { "layer": "osm_poi", "category": "pharmacy", "sense": "positive", "name": null, "props": {}, "distance_m": 7 },
     { "layer": "osm_poi", "category": "power_line", "sense": "negative", "name": null, "props": {}, "distance_m": 1394 },
@@ -27,11 +27,11 @@
     "school": 6,
     "pharmacy": 18,
     "main_road": 15,
-    "nightlife": 27,
+    "nightlife": 26,
     "hospitality": 118,
     "supermarket": 11,
     "health_private": 13
   },
   "counts_300m": { "hospitality": 59 },
-  "counts_100m": { "nightlife": 3 }
+  "counts_100m": { "nightlife": 2 }
 }
