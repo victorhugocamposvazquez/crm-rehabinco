@@ -9,6 +9,7 @@ export const FACTURA_LINE = "#E2E8F0";
 export const FACTURA_SURFACE = "#F8FAFC";
 
 export const INVOICE_REHABINCO_LOGO = "/images/logo-web.png";
+export const INVOICE_REHABINCO_ICON = "/images/icono.png";
 
 export function facturaDocumentStyles(): string {
   return `
@@ -103,5 +104,17 @@ export function facturaDocumentStyles(): string {
       .inv-footer p { margin: 0; font-size: 12px; color: ${FACTURA_MUTED}; line-height: 1.5; }
       .inv-footer p + p { margin-top: 8px; font-size: 10px; }
       .inv-footer strong { color: ${FACTURA_INK}; font-weight: 600; }
+      .inv-brand-mark {
+        margin: 36px 0 0 0;
+        padding-top: 24px;
+        text-align: center;
+      }
+      .inv-brand-mark img {
+        display: inline-block;
+        width: 40px;
+        height: 40px;
+        object-fit: contain;
+        opacity: 0.85;
+      }
     `;
 }

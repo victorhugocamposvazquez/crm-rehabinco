@@ -5,7 +5,12 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { fetchEmisorFacturacion, resolveInvoiceLogoUrl } from "@/lib/empresa-facturacion";
-import { FACTURA_HEADER_H, FACTURA_PAGE_W, facturaDocumentStyles } from "@/lib/factura-pdf";
+import {
+  FACTURA_HEADER_H,
+  FACTURA_PAGE_W,
+  INVOICE_REHABINCO_ICON,
+  facturaDocumentStyles,
+} from "@/lib/factura-pdf";
 import { fetchAsDataUrl, composeInvoiceHeaderImage, saveHtmlDocumentPdf } from "@/lib/html-document-pdf";
 import { toast } from "sonner";
 import { FacturaDetailSkeleton } from "@/components/facturas/FacturaDetailSkeleton";
@@ -267,7 +272,10 @@ export default function DetalleFacturaPage() {
       : "—";
     const esRectificativa = factura.tipo_factura === "rectificativa";
     const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const logoUrl = await fetchAsDataUrl(resolveInvoiceLogoUrl(emisor.logo_url, origin));
+    const [logoUrl, iconoUrl] = await Promise.all([
+      fetchAsDataUrl(resolveInvoiceLogoUrl(emisor.logo_url, origin)),
+      fetchAsDataUrl(`${origin}${INVOICE_REHABINCO_ICON}`),
+    ]);
     const headerUrl = await composeInvoiceHeaderImage({
       logoDataUrl: logoUrl,
       numeroLabel: `${esRectificativa ? "Factura rectificativa nº" : "Factura nº"} ${factura.numero}`,
@@ -362,6 +370,9 @@ export default function DetalleFacturaPage() {
             <div class="inv-footer">
               <p>El pago se realizará mediante <strong>transferencia bancaria</strong>. ${pagoBancoLines}</p>
               <p>Documento emitido conforme al Reglamento por el que se regulan las obligaciones de facturación (Real Decreto 1619/2012).</p>
+            </div>
+            <div class="inv-brand-mark">
+              <img src=${JSON.stringify(iconoUrl)} alt="" width="40" height="40" />
             </div>
           </div>
     `;
