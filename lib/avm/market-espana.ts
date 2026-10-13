@@ -6,19 +6,47 @@ import type { PortalRastreo } from "./market/card";
 const PORTALES: PortalRastreo[] = ["fotocasa", "habitaclia", "pisos"];
 const MIN_POR_PORTAL = 12;
 
+export type PuntoMercado = {
+  municipalityCode?: string | null;
+  censusSection?: string | null;
+  locality?: string | null;
+  formattedAddress?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+};
+
+/** Municipio para el slug del portal: el paréntesis de CartoCiudad es el municipio, no la parroquia. */
+export function nombreDesdeDireccion(locality?: string | null, formatted?: string | null): string | null {
+  const paren = formatted?.match(/\(([^)]+)\)/)?.[1]?.trim();
+  if (paren && !/^\d+$/.test(paren)) return paren;
+  const loc = locality?.trim();
+  if (loc && !/^\d+$/.test(loc)) return loc;
+  return null;
+}
+
+async function nombreDesdePunto(lat: number, lng: number): Promise<string | null> {
+  const url = new URL("https://www.cartociudad.es/geocoder/api/geocoder/reverseGeocode");
+  url.searchParams.set("lat", String(lat));
+  url.searchParams.set("lon", String(lng));
+  const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+  if (!res.ok) return null;
+  const json = (await res.json()) as { muni?: string; municipality?: string; address?: string };
+  return nombreDesdeDireccion(json.muni ?? json.municipality ?? null, json.address ?? null);
+}
+
 /**
- * Cualquier municipio INE entra en el rastreo la primera vez que se valora.
- * La pasada de esa petición baja una página de Fotocasa, Habitaclia y Pisos
- * (venta y alquiler) para poder devolver ofertas en la misma valoración.
+ * Se llama dentro de la valoración, antes de calcular el precio.
+ * Si el municipio todavía no tiene anuncios, esa misma petición da de alta
+ * el pueblo y baja una página de Fotocasa, Habitaclia y Pisos.
  * Idealista no se rastrea: solo entra si ya está en captación.
  */
-export async function asegurarMercadoMunicipio(
-  db: SupabaseClient,
-  municipalityCode: string | null | undefined,
-  nombre: string | null | undefined,
-): Promise<string | null> {
-  const code = (municipalityCode ?? "").replace(/\D/g, "");
+export async function asegurarMercadoMunicipio(db: SupabaseClient, punto: PuntoMercado): Promise<string | null> {
+  const code = (punto.municipalityCode ?? punto.censusSection ?? "").replace(/\D/g, "").slice(0, 5);
   if (code.length !== 5) return null;
+  let nombre = nombreDesdeDireccion(punto.locality, punto.formattedAddress);
+  if (!nombre && punto.lat != null && punto.lng != null) {
+    nombre = await nombreDesdePunto(punto.lat, punto.lng).catch(() => null);
+  }
 
   const { data: target, error: leer } = await db
     .from("market_crawl_targets")

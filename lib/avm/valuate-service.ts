@@ -358,9 +358,14 @@ export async function valorar(solicitud: SolicitudValoracion, ctx: Ctx): Promise
   const { avisoMunicipioSinRastreo, estadoMercadoMunicipio, mensajeMercadoEnCarga } = await import("./market-loading");
   const { asegurarMercadoMunicipio } = await import("./market-espana");
   const codigoMercado = built.twin.address.municipalityCode ?? built.zone.municipalityCode;
-  const avisoCarga = await asegurarMercadoMunicipio(ctx.admin, codigoMercado, built.twin.address.locality).catch(
-    () => "No se han podido leer los anuncios de este municipio.",
-  );
+  const avisoCarga = await asegurarMercadoMunicipio(ctx.admin, {
+    municipalityCode: codigoMercado,
+    censusSection: built.twin.address.censusSection ?? built.zone.censusSection,
+    locality: built.twin.address.locality,
+    formattedAddress: built.twin.address.formattedAddress,
+    lat: built.twin.address.lat,
+    lng: built.twin.address.lng,
+  }).catch(() => "No se han podido leer los anuncios de este municipio.");
   const mercado = await estadoMercadoMunicipio(ctx.admin, codigoMercado);
   const result = await valuate(built.twin, deps, {
     channel: solicitud.channel,
