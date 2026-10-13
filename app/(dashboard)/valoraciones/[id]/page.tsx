@@ -112,7 +112,7 @@ export default function InformePage() {
         description={dato ? subtituloInforme(dato.twin, dato.creada, dato.result.methodVersion) : undefined}
         actions={
           <div className="hidden items-center gap-2 min-[820px]:flex">
-            <InformeAcciones />
+            <InformeAcciones valuationId={id} />
             <Button type="button" size="sm" variant="secondary" className="gap-1.5" onClick={() => setConfirmar(true)}>
               <Trash2 className="h-4 w-4" strokeWidth={1.7} />
               Papelera

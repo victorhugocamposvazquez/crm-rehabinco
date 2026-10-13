@@ -2,8 +2,9 @@
 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { InformePdfMenu } from "@/components/avm/InformePdfMenu";
 
-export function InformeAcciones({ className }: { className?: string }) {
+export function InformeAcciones({ className, valuationId }: { className?: string; valuationId?: string }) {
   return (
     <div className={`flex flex-wrap gap-2 print:hidden ${className ?? ""}`} data-testid="informe-acciones">
       <Button
@@ -18,14 +19,7 @@ export function InformeAcciones({ className }: { className?: string }) {
       >
         Marcar zona
       </Button>
-      <Button
-        type="button"
-        size="sm"
-        variant="secondary"
-        onClick={() => toast.message("Informe PDF", { description: "El PDF se genera en el CRM (fase 2)." })}
-      >
-        Informe PDF
-      </Button>
+      {valuationId ? <InformePdfMenu valuationId={valuationId} /> : null}
       <Button
         type="button"
         size="sm"

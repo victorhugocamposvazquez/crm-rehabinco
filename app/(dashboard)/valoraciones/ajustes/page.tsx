@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { MarcaAgenciaForm } from "@/components/avm/MarcaAgenciaForm";
 import { ValoracionesNav } from "@/components/avm/ValoracionesNav";
+import type { MarcaGuardada } from "@/lib/actions/agency-branding";
 import { useAuth } from "@/lib/auth/auth-context";
 import { isAdmin } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/client";
@@ -43,6 +45,7 @@ export default function AjustesValoradorPage() {
   const permitido = isAdmin(user?.role);
   const [health, setHealth] = useState<HealthRow[] | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [marca, setMarca] = useState<MarcaGuardada | null>(null);
 
   useEffect(() => {
     if (!permitido) return;
@@ -53,6 +56,23 @@ export default function AjustesValoradorPage() {
     void supabase.rpc("avm_method_stats", { p_empty: false }).then(({ data }) => {
       if (data) setStats(data as Stats);
     });
+    void supabase
+      .from("agency_branding")
+      .select("name, color, pdf_theme, phone, email, web, logo_light_path, logo_dark_path")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return;
+        setMarca({
+          name: data.name,
+          color: data.color,
+          pdf_theme: data.pdf_theme === "dark" ? "dark" : "light",
+          phone: data.phone,
+          email: data.email,
+          web: data.web,
+          logo_light_path: data.logo_light_path,
+          logo_dark_path: data.logo_dark_path,
+        });
+      });
   }, [permitido]);
 
   const porCapa = useMemo(() => {
@@ -95,6 +115,7 @@ export default function AjustesValoradorPage() {
         description="Qué datos usa una valoración, cada cuánto se renuevan y si la última carga sigue dentro de plazo."
       />
       <ValoracionesNav actual="/valoraciones/ajustes" />
+      {marca ? <MarcaAgenciaForm marca={marca} /> : null}
 
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
         <Resumen n={listo ? alDia : null} etiqueta="Al día" detalle="Última carga dentro del plazo" tono="ok" />
