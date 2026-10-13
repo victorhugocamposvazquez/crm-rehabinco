@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { ValoracionesNav } from "@/components/avm/ValoracionesNav";
@@ -127,7 +128,7 @@ export default function MetodologiaPage() {
         <Seccion titulo="Salud de datos AVM" id="salud-datos">
           <p className="text-[var(--text-2)]">
             El estado de cada servicio, la frecuencia de GitHub Actions y si la carga está al día está en{" "}
-            <a href="/valoraciones/ajustes" className="underline underline-offset-2">Ajustes del valorador</a>.
+            <Link href="/valoraciones/ajustes" className="underline underline-offset-2">Ajustes del valorador</Link>.
           </p>
           {dataHealth?.length ? (
             <Tabla

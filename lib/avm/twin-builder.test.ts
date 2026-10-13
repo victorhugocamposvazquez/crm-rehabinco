@@ -104,6 +104,7 @@ describe("hitDesdeConsulta", () => {
         operacion: "Consulta_DNPRC",
         tipo: "detalle",
         control: { inmuebles: 1, construcciones: null, errores: null },
+        error: null,
         results: [inmueble],
         raw: null,
       },
