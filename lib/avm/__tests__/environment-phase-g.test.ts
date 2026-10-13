@@ -37,6 +37,15 @@ describe("entorno fase G", () => {
     expect(env.score).toBeLessThanOrEqual(100);
   });
 
+  it("gasolinera a 180 m sale en avisos aunque no reste puntos", () => {
+    const env = buildEnvironment({
+      nearest: [{ layer: "osm_poi", category: "fuel", sense: "negative", name: "Repsol", props: {}, distance_m: 180 }],
+      counts_500m: {},
+    });
+    expect(env.negatives.some((n) => n.label.includes("Gasolinera"))).toBe(false);
+    expect(env.flags.some((f) => f.label.includes("Gasolinera") && f.distanceM === 180)).toBe(true);
+  });
+
   it("punto en polígono T500 devuelve bandera de inundación", () => {
     const env = buildEnvironment({
       nearest: [{ layer: "flood", category: "T500", sense: "negative", name: null, props: { period: "T500" }, distance_m: 0 }],

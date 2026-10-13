@@ -93,14 +93,16 @@ function centroideLinea(coords: unknown): [number, number] | null {
 
 function clasificar(tags: Record<string, string | undefined>): Omit<LayerRow, "geom" | "name" | "props" | "loaded_at"> | null {
   const shop = tags.shop;
-  if (shop === "fuel") {
+  const amenity = tags.amenity;
+  if (shop === "fuel" || amenity === "fuel") {
     return { layer: "osm_poi", category: "fuel", sense: "negative", source: SOURCE };
+  }
+  if (shop === "supermarket" || amenity === "supermarket") {
+    return { layer: "osm_poi", category: "supermarket", sense: "positive", source: SOURCE };
   }
   if (shop) {
     return { layer: "osm_poi", category: "shop", sense: "positive", source: SOURCE };
   }
-  const amenity = tags.amenity;
-  if (amenity === "supermarket") return { layer: "osm_poi", category: "supermarket", sense: "positive", source: SOURCE };
   if (amenity === "restaurant" || amenity === "cafe") {
     return { layer: "osm_poi", category: "restaurant", sense: "positive", source: SOURCE };
   }
@@ -114,21 +116,27 @@ function clasificar(tags: Record<string, string | undefined>): Omit<LayerRow, "g
     return { layer: "health", category: "health_center", sense: "positive", source: SOURCE };
   }
   if (amenity === "pharmacy") return { layer: "osm_poi", category: "pharmacy", sense: "positive", source: SOURCE };
-  if (amenity === "fuel") {
-    return { layer: "osm_poi", category: "fuel", sense: "negative", source: SOURCE };
-  }
   if (tags.leisure === "park" || tags.leisure === "playground" || tags.leisure === "garden") {
     return { layer: "osm_poi", category: "park", sense: "positive", source: SOURCE };
   }
   if (tags.natural === "beach") return { layer: "osm_poi", category: "beach", sense: "positive", source: SOURCE };
-  if (tags.leisure === "sports_centre" || tags.leisure === "pitch" || tags.leisure === "swimming_pool") {
+  if (
+    amenity === "gym" ||
+    tags.leisure === "fitness_centre" ||
+    tags.leisure === "sports_centre" ||
+    tags.leisure === "pitch" ||
+    tags.leisure === "swimming_pool"
+  ) {
     return { layer: "osm_poi", category: "gym", sense: "positive", source: SOURCE };
   }
   if (tags.highway === "bus_stop" || tags.public_transport === "platform") {
     return { layer: "gtfs_stop", category: "bus", sense: "positive", source: SOURCE };
   }
-  if (tags.railway === "station" || tags.railway === "tram_stop") {
+  if (tags.railway === "station" || tags.railway === "tram_stop" || tags.railway === "halt") {
     return { layer: "gtfs_stop", category: "rail", sense: "positive", source: SOURCE };
+  }
+  if (tags.railway === "rail" || tags.railway === "light_rail") {
+    return { layer: "osm_poi", category: "railway", sense: "negative", source: SOURCE };
   }
   if (tags.highway === "primary" || tags.highway === "trunk" || tags.highway === "motorway") {
     return { layer: "osm_poi", category: "main_road", sense: "negative", source: SOURCE };
@@ -207,52 +215,44 @@ async function main(): Promise<void> {
   descargarPbf(pbf, spec);
 
   const t0 = Date.now();
-  const pois = filtrarExportar(pbf, work, "pois", [
-    "n/shop",
-    "n/amenity=supermarket",
-    "n/amenity=restaurant",
-    "n/amenity=cafe",
-    "n/amenity=bar",
-    "n/amenity=pub",
-    "n/amenity=nightclub",
-    "n/amenity=school",
-    "n/amenity=kindergarten",
-    "n/amenity=hospital",
-    "n/amenity=clinic",
-    "n/amenity=doctors",
-    "n/amenity=pharmacy",
-    "n/amenity=fuel",
-    "n/shop=fuel",
-    "n/amenity=bus_stop",
-    "n/amenity=station",
-    "n/way/shop",
-    "n/way/amenity=supermarket",
-    "n/way/amenity=restaurant",
-    "n/way/amenity=cafe",
-    "n/way/amenity=bar",
-    "n/way/amenity=pub",
-    "n/way/amenity=nightclub",
-    "n/way/amenity=school",
-    "n/way/amenity=kindergarten",
-    "n/way/amenity=hospital",
-    "n/way/amenity=clinic",
-    "n/way/amenity=doctors",
-    "n/way/amenity=pharmacy",
-    "n/way/amenity=fuel",
-    "n/way/shop=fuel",
-    "n/way/leisure=park",
-    "n/way/leisure=playground",
-    "n/way/leisure=garden",
-    "n/way/natural=beach",
-    "n/way/leisure=sports_centre",
-    "n/way/leisure=pitch",
-    "n/way/leisure=swimming_pool",
-    "n/way/highway=bus_stop",
-    "n/way/public_transport=platform",
-    "n/way/railway=station",
-    "n/way/railway=tram_stop",
-    "n/way/landuse=industrial",
-  ]);
+  const poiTags = [
+    "shop",
+    "amenity=supermarket",
+    "amenity=restaurant",
+    "amenity=cafe",
+    "amenity=bar",
+    "amenity=pub",
+    "amenity=nightclub",
+    "amenity=school",
+    "amenity=kindergarten",
+    "amenity=hospital",
+    "amenity=clinic",
+    "amenity=doctors",
+    "amenity=pharmacy",
+    "amenity=fuel",
+    "amenity=bus_stop",
+    "amenity=gym",
+    "leisure=park",
+    "leisure=playground",
+    "leisure=garden",
+    "leisure=fitness_centre",
+    "leisure=sports_centre",
+    "leisure=pitch",
+    "leisure=swimming_pool",
+    "natural=beach",
+    "highway=bus_stop",
+    "public_transport=platform",
+    "railway=station",
+    "railway=halt",
+    "railway=tram_stop",
+    "landuse=industrial",
+  ];
+  const pois = filtrarExportar(
+    pbf,
+    work,
+    "pois",
+    poiTags.flatMap((tag) => [`n/${tag}`, `w/${tag}`])
+  );
   const vias = filtrarExportar(pbf, work, "roads", [
     "w/highway=primary",
     "w/highway=trunk",
@@ -298,22 +298,6 @@ async function main(): Promise<void> {
   };
 
   const ingest = async (f: GeoFeature) => {
-    const tags = f.properties ?? {};
-    if (tags.railway === "rail") {
-      const railRow = filaDesdeFeature({ ...f, properties: { ...tags, highway: undefined } });
-      if (railRow) {
-        const row: LayerRow = {
-          ...railRow,
-          layer: "osm_poi",
-          category: "railway",
-          sense: "negative",
-        };
-        contar(row);
-        buffer.push(row);
-        if (buffer.length >= lote) await flush();
-      }
-      return;
-    }
     await push(f);
   };
 

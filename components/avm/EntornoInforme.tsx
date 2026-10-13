@@ -231,7 +231,7 @@ export function EntornoInforme({
         <div>
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-3)]">A favor</p>
           <div className="flex flex-col gap-2">
-            {positivos.slice(0, 6).map((p) => (
+            {positivos.map((p) => (
               <FilaEntorno key={p.label} item={p} variant="good" />
             ))}
           </div>

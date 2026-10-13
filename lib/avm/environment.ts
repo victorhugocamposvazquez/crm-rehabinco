@@ -36,6 +36,24 @@ interface Rule {
 
 const near = (d: number, a: number, b: number) => (d <= a ? 1 : d <= b ? 0.5 : 0);
 
+/** Si no puntúa, igual se enseña en avisos cuando está a esta distancia. */
+const AVISO_HASTA_M: Record<string, number> = {
+  fuel: 400,
+  power_line: 250,
+  industrial: 800,
+  main_road: 300,
+  railway: 400,
+  nightlife: 250,
+  supermarket: 800,
+  pharmacy: 800,
+  park: 1000,
+  beach: 2000,
+  bus: 800,
+  rail: 1500,
+  health_center: 1500,
+  school: 1200,
+};
+
 export const RULES: Rule[] = [
   // A favor
   { layer: 'gtfs_stop', category: 'bus', label: (r) => `Parada de bus a ${r.distance_m} m`, points: (r) => 6 * near(r.distance_m, 300, 600) || null, sense: 'positive', source: 'GTFS' },
@@ -63,8 +81,8 @@ export const RULES: Rule[] = [
 
 /** Riesgos y avisos: no puntúan, se enseñan siempre. */
 const FLAG_RULES: Omit<Rule, 'points'>[] = [
-  { layer: 'flood', label: (r) => `Zona inundable ${r.props.period ?? 'T500'}`, sense: 'negative', source: 'SNCZI (MITECO)' },
-  { layer: 'vulnerable_section', label: () => 'Sección censal en el catálogo de barrios vulnerables', sense: 'negative', source: 'Observatorio de la Vulnerabilidad Urbana' },
+  { layer: 'flood', label: (r) => (r.props.clear ? 'Sin zona inundable (T10, T100, T500)' : `Zona inundable ${r.props.period ?? 'T500'}`), sense: 'negative', source: 'SNCZI (MITECO)' },
+  { layer: 'vulnerable_section', label: (r) => (r.props.clear ? 'Sección censal fuera del catálogo de barrios vulnerables' : 'Sección censal en el catálogo de barrios vulnerables'), sense: 'negative', source: 'Observatorio de la Vulnerabilidad Urbana' },
   { layer: 'crime_municipality', label: (r) => {
     const rate = r.props.rate_per_1000 ?? '?';
     const peerN = Number(r.props.peer_avg);
@@ -100,10 +118,23 @@ export function buildEnvironment(raw: RawEnvironment): Environment {
     const rule = RULES.find((x) => x.layer === row.layer && (!x.category || x.category === row.category));
     if (rule) {
       const pts = rule.points(row, raw.counts_500m);
-      if (pts === null || pts === 0) continue;
+      const indicator = `${row.layer}${row.category ? ':' + row.category : ''}`;
+      if (pts === null || pts === 0) {
+        const tope = AVISO_HASTA_M[row.category ?? row.layer] ?? 600;
+        if (row.distance_m <= tope) {
+          flags.push({
+            indicator,
+            label: rule.label(row),
+            distanceM: row.distance_m,
+            sense: rule.sense === 'negative' ? 'negative' : 'info',
+            source: rule.source,
+          });
+        }
+        continue;
+      }
       score += pts;
       const item: EnvironmentItem = {
-        indicator: `${row.layer}${row.category ? ':' + row.category : ''}`,
+        indicator,
         label: rule.label(row),
         value: pts,
         distanceM: row.distance_m,
@@ -115,7 +146,14 @@ export function buildEnvironment(raw: RawEnvironment): Environment {
     }
     const flag = FLAG_RULES.find((x) => x.layer === row.layer);
     if (flag) {
-      flags.push({ indicator: row.layer, label: flag.label(row), distanceM: row.distance_m, sense: flag.sense, source: flag.source });
+      const claro = row.props.clear === true;
+      flags.push({
+        indicator: row.layer,
+        label: flag.label(row),
+        distanceM: row.distance_m,
+        sense: claro ? 'info' : flag.sense,
+        source: flag.source,
+      });
     }
   }
 
