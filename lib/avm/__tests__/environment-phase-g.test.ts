@@ -43,7 +43,7 @@ describe("entorno fase G", () => {
       counts_500m: {},
     });
     expect(env.negatives.some((n) => n.label.includes("Gasolinera"))).toBe(false);
-    expect(env.flags.some((f) => f.label.includes("Gasolinera") && f.distanceM === 180)).toBe(true);
+    expect(env.flags.some((f) => f.label === "Repsol" && f.distanceM === 180)).toBe(true);
   });
 
   it("punto en polígono T500 devuelve bandera de inundación", () => {

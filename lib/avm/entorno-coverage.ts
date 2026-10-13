@@ -6,10 +6,18 @@ export type CapaConsultada = {
   loaded_at: string;
 };
 
+export type CapaCargada = {
+  layer: string;
+  source: string;
+  n: number;
+  loaded_at: string;
+};
+
 export type EntornoCoverage = {
   municipality_has_layers: boolean;
   elements_within_600m: number;
   layers_consulted: CapaConsultada[];
+  layers_loaded?: CapaCargada[];
   /** Criminalidad u OVU cargadas para el municipio/sección (sin distancia). */
   municipal_stats_loaded?: boolean;
 };
@@ -22,10 +30,22 @@ export function parseEntornoCoverage(data: unknown): EntornoCoverage | null {
   if (!data || typeof data !== "object") return null;
   const o = data as Record<string, unknown>;
   const layers = Array.isArray(o.layers_consulted) ? o.layers_consulted : [];
+  const loaded = Array.isArray(o.layers_loaded) ? o.layers_loaded : [];
   return {
     municipality_has_layers: Boolean(o.municipality_has_layers),
     elements_within_600m: Number(o.elements_within_600m ?? 0),
     municipal_stats_loaded: Boolean(o.municipal_stats_loaded),
+    layers_loaded: loaded
+      .map((row) => {
+        const r = row as Record<string, unknown>;
+        return {
+          layer: String(r.layer ?? ""),
+          source: String(r.source ?? ""),
+          n: Number(r.n ?? 0),
+          loaded_at: String(r.loaded_at ?? ""),
+        };
+      })
+      .filter((r) => r.layer),
     layers_consulted: layers
       .map((row) => {
         const r = row as Record<string, unknown>;

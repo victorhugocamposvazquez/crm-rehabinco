@@ -3,39 +3,15 @@
 import React from "react";
 import Link from "next/link";
 import type { Environment, EnvironmentItem } from "../../lib/avm/types";
-import { fmtNumero } from "../../lib/avm/ui/format";
+import { fmtFechaCorta, fmtNumero } from "../../lib/avm/ui/format";
 import {
   avisoEntornoVacio,
   fmtCapaEntorno,
+  type CapaCargada,
   type EntornoCoverage,
   type AvisoEntornoVacio,
 } from "../../lib/avm/entorno-coverage";
-import {
-  AlertTriangle,
-  Bus,
-  Car,
-  Construction,
-  Factory,
-  Fuel,
-  GraduationCap,
-  HeartPulse,
-  Info,
-  Minus,
-  Pill,
-  Plus,
-  Shield,
-  ShoppingCart,
-  Siren,
-  Store,
-  TrainFront,
-  Trees,
-  Umbrella,
-  Volume2,
-  Waves,
-  Wine,
-  Zap,
-  type LucideIcon,
-} from "lucide-react";
+import { iconoEntorno } from "../../lib/avm/ui/icons";
 
 function palabraEntorno(score: number): string {
   if (score >= 80) return "muy bueno";
@@ -43,39 +19,6 @@ function palabraEntorno(score: number): string {
   if (score >= 40) return "normal";
   return "flojo";
 }
-
-/** Misma categoría que el prototipo (`valorador.html`): bus, carrito, colegio, escudo, sirena… */
-const ICONO_POR_CLAVE: Record<string, LucideIcon> = {
-  bus: Bus,
-  gtfs_stop: Bus,
-  rail: TrainFront,
-  railway: TrainFront,
-  supermarket: ShoppingCart,
-  cart: ShoppingCart,
-  shop: Store,
-  store: Store,
-  daily_services: Store,
-  school: GraduationCap,
-  health: HeartPulse,
-  health_center: HeartPulse,
-  park: Trees,
-  beach: Umbrella,
-  pharmacy: Pill,
-  noise: Volume2,
-  nightlife: Wine,
-  main_road: Car,
-  traffic: Car,
-  fuel: Fuel,
-  power_line: Zap,
-  industrial: Factory,
-  flood: Waves,
-  vulnerable_section: Shield,
-  shield: Shield,
-  crime_municipality: Siren,
-  siren: Siren,
-  works: Construction,
-  zone_mark: Construction,
-};
 
 const AMENIDAD = new Set([
   "bus",
@@ -120,15 +63,8 @@ function clavesDe(item: EnvironmentItem): string[] {
   return [category, layer, ...desdeEtiqueta].filter((k): k is string => Boolean(k));
 }
 
-function iconoItem(item: EnvironmentItem, variant: "good" | "bad" | "info" | "warn"): LucideIcon {
-  for (const clave of clavesDe(item)) {
-    const ico = ICONO_POR_CLAVE[clave];
-    if (ico) return ico;
-  }
-  if (variant === "good") return Plus;
-  if (variant === "bad") return Minus;
-  if (variant === "warn") return AlertTriangle;
-  return Info;
+function iconoItem(item: EnvironmentItem) {
+  return iconoEntorno(item.indicator);
 }
 
 function esRiesgoMunicipal(item: EnvironmentItem): boolean {
@@ -146,49 +82,24 @@ function muestraDistancia(item: EnvironmentItem): boolean {
   return true;
 }
 
-function introCerca(items: EnvironmentItem[]): string {
-  const hayColegio = items.some((i) => clavesDe(i).includes("school"));
-  const hayVia = items.some((i) => clavesDe(i).includes("main_road"));
-  if (hayColegio && hayVia) {
-    return "No son riesgos. El colegio está demasiado lejos para sumar puntos, y la vía principal demasiado lejos para restar.";
-  }
-  return "No son riesgos. Están en el radio y no han sumado ni restado puntos a la nota del entorno.";
-}
-
-function glosaCerca(item: EnvironmentItem): string {
-  if (esAmenidad(item)) return "Está en el radio, pero demasiado lejos para sumar puntos a la nota del entorno.";
-  return "Está en el radio, pero demasiado lejos o es demasiado leve para restar puntos.";
-}
-
-function glosaRiesgo(item: EnvironmentItem): string | null {
-  const claves = clavesDe(item);
-  if (claves.includes("vulnerable_section")) {
-    return item.sense === "info"
-      ? "La sección censal de este inmueble no figura en ese catálogo."
-      : "La sección censal de este inmueble figura en ese catálogo. Es un aviso: no resta puntos ni cambia el precio.";
-  }
-  if (claves.includes("crime_municipality")) return "Dato del municipio entero, no de la calle. No cambia el precio.";
-  if (claves.includes("flood")) {
-    return item.sense === "info"
-      ? "El punto no cae en una zona inundable cartografiada."
-      : "El punto cae dentro de una zona inundable. Es un aviso: no resta puntos ni cambia el precio.";
-  }
-  if (claves.includes("zone_mark")) return "Aviso del equipo. No cambia el precio.";
-  return null;
+function SubtituloEntorno({ item }: { item: EnvironmentItem }) {
+  const distancia = muestraDistancia(item) && item.distanceM != null ? `a ${fmtNumero(item.distanceM)} m` : null;
+  const fuente = item.source && !item.label.includes(item.source) ? item.source : null;
+  const texto = [distancia, fuente].filter(Boolean).join(" · ");
+  if (!texto) return null;
+  return <p className="mt-0.5 text-[12px] text-[var(--text-3)]">{texto}</p>;
 }
 
 function FilaEntorno({
   item,
   variant,
-  glosa,
   badge,
 }: {
   item: EnvironmentItem;
   variant: "good" | "bad" | "info" | "warn";
-  glosa?: string | null;
   badge?: string;
 }) {
-  const Ico = iconoItem(item, variant);
+  const Ico = iconoItem(item);
   const pts = typeof item.value === "number" ? item.value : null;
   const bg =
     variant === "good"
@@ -207,11 +118,7 @@ function FilaEntorno({
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-[13px] leading-snug">{item.label}</p>
-        {glosa ? <p className="mt-0.5 text-[12px] leading-snug text-[var(--text-2)]">{glosa}</p> : null}
-        <p className="mt-0.5 text-[12px] text-[var(--text-3)]">
-          {muestraDistancia(item) && item.distanceM != null ? `a ${fmtNumero(item.distanceM)} m · ` : ""}
-          {item.source}
-        </p>
+        <SubtituloEntorno item={item} />
       </div>
       {pts != null && pts !== 0 ? (
         <span
@@ -220,7 +127,7 @@ function FilaEntorno({
           }`}
         >
           {pts > 0 ? "+" : "−"}
-          {Math.abs(pts)}
+          {Math.round(Math.abs(pts))}
         </span>
       ) : etiqueta ? (
         <span className="shrink-0 rounded-full border border-[var(--border)] px-2 py-0.5 text-[11px] text-[var(--text-3)]">
@@ -231,9 +138,10 @@ function FilaEntorno({
   );
 }
 
-function ReglaDistancias({ items }: { items: EnvironmentItem[] }) {
-  const conDist = items.filter((i) => i.distanceM != null && i.distanceM <= 600);
-  if (conDist.length < 2) return null;
+function ReglaDistancias({ items, visible }: { items: EnvironmentItem[]; visible: boolean }) {
+  const conDist = items.filter((i) => i.distanceM != null && i.distanceM > 0 && i.distanceM <= 600);
+  const lejos = items.filter((i) => i.distanceM != null && i.distanceM > 600);
+  if (!visible && conDist.length + lejos.length === 0) return null;
   const W = 600;
   const maxD = 600;
   const yLine = 77;
@@ -289,7 +197,7 @@ function ReglaDistancias({ items }: { items: EnvironmentItem[] }) {
       </svg>
       {marcas.map(({ it, x, y }) => {
         const favorable = it.sense === "positive" || (typeof it.value === "number" && it.value > 0);
-        const Ico = iconoItem(it, favorable ? "good" : "bad");
+        const Ico = iconoItem(it);
         return (
           <span
             key={`i-${it.label}`}
@@ -305,6 +213,15 @@ function ReglaDistancias({ items }: { items: EnvironmentItem[] }) {
           </span>
         );
       })}
+      {lejos.length ? (
+        <span
+          title={lejos.map((i) => i.label).join(", ")}
+          className="absolute -translate-x-1/2 whitespace-nowrap text-[11px] text-[var(--text-3)]"
+          style={{ left: `${((W - 40) / W) * 100}%`, top: yLine + 28 }}
+        >
+          +{lejos.length} a más de 600 m
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -370,7 +287,14 @@ export function EntornoInforme({
   const aviso = sinPuntuables ? avisoEntornoVacio(environment, coverage ?? null, municipalityLabel) : null;
   const score = environment?.score ?? 0;
   const positivos = [...(environment?.positives ?? [])].sort((a, b) => Number(b.value ?? 0) - Number(a.value ?? 0));
-  const todos = [...(environment?.positives ?? []), ...(environment?.negatives ?? [])];
+  const todos = [...(environment?.positives ?? []), ...(environment?.negatives ?? []), ...(environment?.flags ?? [])];
+  const hayCapas = Boolean(
+    coverage?.municipality_has_layers || coverage?.layers_consulted.length || coverage?.layers_loaded?.length,
+  );
+  const hayRegla = hayCapas || todos.some((i) => i.distanceM != null);
+  const nombresCapas = [
+    ...new Set((coverage?.layers_loaded?.length ? coverage.layers_loaded : coverage?.layers_consulted ?? []).map((c) => fmtCapaEntorno(c.layer))),
+  ];
 
   return (
     <section className="rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-5" data-testid="entorno">
@@ -393,10 +317,10 @@ export function EntornoInforme({
           <span className="text-[13px] whitespace-nowrap text-[var(--text-3)]">{palabraEntorno(score)}</span>
         </div>
       ) : null}
-      {!sinPuntuables ? (
+      {hayRegla ? (
         <>
       <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-3)]">A tu alrededor</p>
-      <ReglaDistancias items={todos} />
+      <ReglaDistancias items={todos} visible />
       <div className="mb-3 flex flex-wrap gap-3 text-[12px] text-[var(--text-3)]">
         <span>
           <i className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 align-middle" />
@@ -420,15 +344,31 @@ export function EntornoInforme({
         <div>
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-3)]">En contra</p>
           <div className="flex flex-col gap-2">
-            {(environment?.negatives ?? []).map((p) => (
-              <FilaEntorno key={p.label} item={p} variant="bad" />
-            ))}
+            {(environment?.negatives ?? []).length ? (
+              (environment?.negatives ?? []).map((p) => (
+                <FilaEntorno key={p.label} item={p} variant="bad" />
+              ))
+            ) : (
+              <p className="text-[13px] leading-snug text-[var(--text-3)]">
+                Nada en contra con las capas cargadas{nombresCapas.length ? `: ${nombresCapas.join(", ")}` : ""}.
+              </p>
+            )}
           </div>
         </div>
       </div>
+      <PieCapas capas={coverage?.layers_loaded ?? []} />
         </>
       ) : null}
     </section>
+  );
+}
+
+export function PieCapas({ capas }: { capas: CapaCargada[] }) {
+  if (!capas.length) return null;
+  return (
+    <p className="mt-3 text-[12px] leading-relaxed text-[var(--text-3)]">
+      {capas.map((c) => `${fmtCapaEntorno(c.layer)} · ${fmtNumero(c.n)} elementos · ${c.loaded_at ? fmtFechaCorta(c.loaded_at) : "sin fecha"}`).join(" · ")}
+    </p>
   );
 }
 
@@ -441,38 +381,17 @@ export function FlagsEntorno({ flags }: { flags: EnvironmentItem[] }) {
   return (
     <div className="flex flex-col gap-4" data-testid="entorno-flags">
       {riesgos.length ? (
-        <div>
-          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-3)]">Del barrio y del municipio</p>
-          <p className="mb-2 text-[12px] leading-snug text-[var(--text-3)]">
-            No cambian el precio. Dicen si la sección censal está en un catálogo de riesgo y cómo está el municipio.
-          </p>
-          <div className="flex flex-col gap-2">
-            {riesgos.map((f) => (
-              <FilaEntorno
-                key={f.label}
-                item={f}
-                variant={f.sense === "negative" ? "warn" : "info"}
-                glosa={glosaRiesgo(f)}
-              />
-            ))}
-          </div>
+        <div className="flex flex-col gap-2">
+          {riesgos.map((f) => (
+            <FilaEntorno key={f.label} item={f} variant={f.sense === "negative" ? "warn" : "info"} />
+          ))}
         </div>
       ) : null}
       {cerca.length ? (
-        <div>
-          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-3)]">Cerca, pero fuera de la nota</p>
-          <p className="mb-2 text-[12px] leading-snug text-[var(--text-3)]">{introCerca(cerca)}</p>
-          <div className="flex flex-col gap-2">
-            {cerca.map((f) => (
-              <FilaEntorno
-                key={f.label}
-                item={f}
-                variant={esAmenidad(f) ? "good" : "warn"}
-                glosa={glosaCerca(f)}
-                badge="sin puntos"
-              />
-            ))}
-          </div>
+        <div className="flex flex-col gap-2">
+          {cerca.map((f) => (
+            <FilaEntorno key={f.label} item={f} variant={esAmenidad(f) ? "good" : "warn"} badge="sin puntos" />
+          ))}
         </div>
       ) : null}
     </div>

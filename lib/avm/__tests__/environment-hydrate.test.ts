@@ -12,15 +12,16 @@ describe("hydrate entorno informe", () => {
           category: null,
           sense: "info",
           name: null,
-          props: { rate_per_1000: 49.037, peer_avg: 45.05, period: "2025" },
+          props: { rate_per_1000: 49.037, peer_avg: 45.05, peer_band: "200.000–500.000", period: "2025" },
           distance_m: 0,
         },
       ],
       counts_500m: {},
       meta: { has_osm: false },
     });
-    expect(fresh?.flags.some((f) => f.label.includes("Criminalidad del municipio"))).toBe(true);
-    expect(fresh?.flags.some((f) => /un poco por encima/.test(f.label) && /45,1/.test(f.label))).toBe(true);
+    expect(fresh?.flags[0]?.label).toBe(
+      "Criminalidad municipal: 49,0 infracciones por 1.000 hab. · media de ciudades de 200.000–500.000 hab.: 45,1 · Ministerio del Interior, 2025",
+    );
     expect(fresh?.flags[0]?.distanceM).toBeUndefined();
 
     const merged = mergeEnvironmentInforme(null, fresh);

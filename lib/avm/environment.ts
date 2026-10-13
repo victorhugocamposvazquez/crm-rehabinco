@@ -8,6 +8,7 @@
  *   - Solo hechos objetivos y documentados; nunca atributos de las personas.
  *   - No toca el precio en fase 1-2; lo hará el hedónico, acotado a ±10 %.
  */
+import { etiquetaCriminalidad } from './crime-rate';
 import type { Environment, EnvironmentItem } from './types';
 
 interface NearestRow {
@@ -54,44 +55,65 @@ const AVISO_HASTA_M: Record<string, number> = {
   school: 1200,
 };
 
+const CATEGORIA: Record<string, string> = {
+  bus: 'Parada de bus',
+  rail: 'Estación de tren o metro',
+  school: 'Colegio',
+  kindergarten: 'Escuela infantil',
+  health: 'Centro de salud',
+  health_center: 'Centro de salud',
+  supermarket: 'Supermercado',
+  pharmacy: 'Farmacia',
+  park: 'Parque o zona verde',
+  beach: 'Playa',
+  noise: 'Ruido',
+  main_road: 'Vía principal',
+  railway: 'Vía férrea',
+  nightlife: 'Ocio nocturno',
+  industrial: 'Zona industrial',
+  fuel: 'Gasolinera',
+  power_line: 'Línea de alta tensión',
+  shop: 'Comercio',
+  restaurant: 'Restauración',
+  gym: 'Gimnasio',
+};
+
+function tituloDe(row: NearestRow, categoria: string): string {
+  const nombre = row.name?.trim();
+  return nombre || categoria;
+}
+
 export const RULES: Rule[] = [
   // A favor
-  { layer: 'gtfs_stop', category: 'bus', label: (r) => `Parada de bus a ${r.distance_m} m`, points: (r) => 6 * near(r.distance_m, 300, 600) || null, sense: 'positive', source: 'GTFS' },
-  { layer: 'gtfs_stop', category: 'rail', label: (r) => `Estación de tren o metro a ${r.distance_m} m`, points: (r) => 8 * near(r.distance_m, 600, 1200) || null, sense: 'positive', source: 'GTFS' },
-  { layer: 'school', label: (r) => `Colegio a ${r.distance_m} m`, points: (r) => 5 * near(r.distance_m, 500, 1000) || null, sense: 'positive', source: 'Registro Estatal de Centros Docentes' },
-  { layer: 'health', category: 'health_center', label: (r) => `Centro de salud a ${r.distance_m} m`, points: (r) => 5 * near(r.distance_m, 600, 1200) || null, sense: 'positive', source: 'Catálogo sanitario' },
-  { layer: 'osm_poi', category: 'supermarket', label: (r) => `Supermercado a ${r.distance_m} m`, points: (r) => 5 * near(r.distance_m, 300, 600) || null, sense: 'positive', source: 'OSM' },
-  { layer: 'osm_poi', category: 'pharmacy', label: (r) => `Farmacia a ${r.distance_m} m`, points: (r) => 3 * near(r.distance_m, 300, 600) || null, sense: 'positive', source: 'OSM' },
-  { layer: 'osm_poi', category: 'park', label: (r) => `Parque o zona verde a ${r.distance_m} m`, points: (r) => 6 * near(r.distance_m, 300, 700) || null, sense: 'positive', source: 'OSM' },
-  { layer: 'osm_poi', category: 'beach', label: (r) => `Playa a ${r.distance_m} m`, points: (r) => 8 * near(r.distance_m, 500, 1500) || null, sense: 'positive', source: 'OSM' },
+  { layer: 'gtfs_stop', category: 'bus', label: (r) => tituloDe(r, CATEGORIA.bus), points: (r) => 6 * near(r.distance_m, 300, 600) || null, sense: 'positive', source: 'GTFS' },
+  { layer: 'gtfs_stop', category: 'rail', label: (r) => tituloDe(r, CATEGORIA.rail), points: (r) => 8 * near(r.distance_m, 600, 1200) || null, sense: 'positive', source: 'GTFS' },
+  { layer: 'school', label: (r) => tituloDe(r, CATEGORIA[r.category ?? 'school'] ?? 'Colegio'), points: (r) => 5 * near(r.distance_m, 500, 1000) || null, sense: 'positive', source: 'Registro Estatal de Centros Docentes' },
+  { layer: 'health', category: 'health_center', label: (r) => tituloDe(r, CATEGORIA.health_center), points: (r) => 5 * near(r.distance_m, 600, 1200) || null, sense: 'positive', source: 'Catálogo SERGAS' },
+  { layer: 'osm_poi', category: 'supermarket', label: (r) => tituloDe(r, CATEGORIA.supermarket), points: (r) => 5 * near(r.distance_m, 300, 600) || null, sense: 'positive', source: 'OSM' },
+  { layer: 'osm_poi', category: 'pharmacy', label: (r) => tituloDe(r, CATEGORIA.pharmacy), points: (r) => 3 * near(r.distance_m, 300, 600) || null, sense: 'positive', source: 'OSM' },
+  { layer: 'osm_poi', category: 'park', label: (r) => tituloDe(r, CATEGORIA.park), points: (r) => 6 * near(r.distance_m, 300, 700) || null, sense: 'positive', source: 'OSM' },
+  { layer: 'osm_poi', category: 'beach', label: (r) => tituloDe(r, CATEGORIA.beach), points: (r) => 8 * near(r.distance_m, 500, 1500) || null, sense: 'positive', source: 'OSM' },
 
   // En contra
-  { layer: 'noise', label: (r) => `Ruido ${r.props.lden ?? '?'} dB Lden (${r.props.source_type ?? 'vía'}) a ${r.distance_m} m`, points: (r) => { const l = Number(r.props.lden ?? 0); return l >= 70 ? -10 : l >= 65 ? -6 : l >= 60 ? -3 : null; }, sense: 'negative', source: 'Mapa estratégico de ruido' },
-  { layer: 'osm_poi', category: 'main_road', label: (r) => `Vía principal a ${r.distance_m} m`, points: (r) => (r.distance_m <= 40 ? -6 : r.distance_m <= 150 ? -3 : null), sense: 'negative', source: 'OSM' },
-  { layer: 'osm_poi', category: 'railway', label: (r) => `Vía férrea a ${r.distance_m} m`, points: (r) => (r.distance_m <= 100 ? -6 : r.distance_m <= 250 ? -3 : null), sense: 'negative', source: 'OSM' },
-  { layer: 'osm_poi', category: 'nightlife', label: (r, ) => `Ocio nocturno a ${r.distance_m} m`, points: (r, c) => ((c.nightlife ?? 0) >= 5 && r.distance_m <= 150 ? -5 : (c.nightlife ?? 0) >= 3 && r.distance_m <= 100 ? -3 : null), sense: 'negative', source: 'OSM' },
-  { layer: 'osm_poi', category: 'industrial', label: (r) => `Zona industrial a ${r.distance_m} m`, points: (r) => (r.distance_m <= 200 ? -6 : r.distance_m <= 500 ? -3 : null), sense: 'negative', source: 'OSM' },
-  { layer: 'osm_poi', category: 'fuel', label: (r) => `Gasolinera a ${r.distance_m} m`, points: (r) => (r.distance_m <= 100 ? -3 : null), sense: 'negative', source: 'OSM' },
-  { layer: 'osm_poi', category: 'power_line', label: (r) => `Línea de alta tensión a ${r.distance_m} m`, points: (r) => (r.distance_m <= 100 ? -4 : null), sense: 'negative', source: 'OSM' },
+  { layer: 'noise', label: (r) => tituloDe(r, `Ruido ${r.props.lden ?? '?'} dB Lden (${r.props.source_type ?? 'vía'})`), points: (r) => { const l = Number(r.props.lden ?? 0); return l >= 70 ? -10 : l >= 65 ? -6 : l >= 60 ? -3 : null; }, sense: 'negative', source: 'Mapa estratégico de ruido' },
+  { layer: 'osm_poi', category: 'main_road', label: (r) => tituloDe(r, CATEGORIA.main_road), points: (r) => (r.distance_m <= 40 ? -6 : r.distance_m <= 150 ? -3 : null), sense: 'negative', source: 'OSM' },
+  { layer: 'osm_poi', category: 'railway', label: (r) => tituloDe(r, CATEGORIA.railway), points: (r) => (r.distance_m <= 100 ? -6 : r.distance_m <= 250 ? -3 : null), sense: 'negative', source: 'OSM' },
+  { layer: 'osm_poi', category: 'nightlife', label: (r) => tituloDe(r, CATEGORIA.nightlife), points: (r, c) => ((c.nightlife ?? 0) >= 5 && r.distance_m <= 150 ? -5 : (c.nightlife ?? 0) >= 3 && r.distance_m <= 100 ? -3 : null), sense: 'negative', source: 'OSM' },
+  { layer: 'osm_poi', category: 'industrial', label: (r) => tituloDe(r, CATEGORIA.industrial), points: (r) => (r.distance_m <= 200 ? -6 : r.distance_m <= 500 ? -3 : null), sense: 'negative', source: 'OSM' },
+  { layer: 'osm_poi', category: 'fuel', label: (r) => tituloDe(r, CATEGORIA.fuel), points: (r) => (r.distance_m <= 100 ? -3 : null), sense: 'negative', source: 'OSM' },
+  { layer: 'osm_poi', category: 'power_line', label: (r) => tituloDe(r, CATEGORIA.power_line), points: (r) => (r.distance_m <= 100 ? -4 : null), sense: 'negative', source: 'OSM' },
 
   // En los dos sentidos
   { layer: 'income_section', label: (r) => `Renta media de la sección: ${r.props.income_eur ?? '?'} €`, points: (r) => { const q = Number(r.props.quintile ?? 3); return (q - 3) * 3; }, sense: 'both', source: 'INE, Atlas de renta' },
   { layer: 'building_age', label: (r) => `Edificios del entorno: media de ${r.props.mean_year ?? '?'}`, points: (r) => { const y = Number(r.props.mean_year ?? 0); return y >= 2000 ? 3 : y <= 1960 ? -3 : 0; }, sense: 'both', source: 'Catastro INSPIRE' },
 ];
 
-function fmtEs1(n: number): string {
-  return n.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-}
-
-/** Lectura en castellano de la tasa frente a la media de ciudades parecidas. */
-function lecturaCriminalidad(rate: number, peer: number): string {
-  const ratio = peer > 0 ? rate / peer : 1;
-  const media = `la media de ciudades parecidas (${fmtEs1(peer)})`;
-  if (ratio >= 1.25) return `bastante por encima de ${media}`;
-  if (ratio >= 1.08) return `un poco por encima de ${media}`;
-  if (ratio <= 0.75) return `bastante por debajo de ${media}`;
-  if (ratio <= 0.92) return `por debajo de ${media}`;
-  return `en línea con ${media}`;
+function etiquetaSeccion(r: NearestRow): string {
+  const code = String(r.props.census_section ?? '').trim();
+  const edition = String(r.props.edition ?? '').trim();
+  if (code && edition) return `sección ${code} · Atlas ${edition}`;
+  if (code) return `sección ${code}`;
+  return r.props.clear ? 'Sección censal fuera del catálogo de barrios vulnerables' : 'Sección censal en el catálogo de barrios vulnerables';
 }
 
 /** Capas de barrio o municipio: la distancia 0 no es un metro, es “el punto está dentro”. */
@@ -105,13 +127,17 @@ function distanciaDe(layer: string, metros: number): number | undefined {
 /** Riesgos y avisos: no puntúan, se enseñan siempre. */
 const FLAG_RULES: Omit<Rule, 'points'>[] = [
   { layer: 'flood', label: (r) => (r.props.clear ? 'Sin zona inundable (T10, T100, T500)' : `Zona inundable ${r.props.period ?? 'T500'}`), sense: 'negative', source: 'SNCZI (MITECO)' },
-  { layer: 'vulnerable_section', label: (r) => (r.props.clear ? 'Esta sección censal no está en el catálogo de barrios vulnerables' : 'Esta sección censal está en el catálogo de barrios vulnerables'), sense: 'negative', source: 'Observatorio de la Vulnerabilidad Urbana' },
+  { layer: 'vulnerable_section', label: (r) => etiquetaSeccion(r), sense: 'negative', source: 'Observatorio de la Vulnerabilidad Urbana' },
   { layer: 'crime_municipality', label: (r) => {
     const rateN = Number(r.props.rate_per_1000);
     const peerN = Number(r.props.peer_avg);
-    const tasa = Number.isFinite(rateN) ? fmtEs1(rateN) : '?';
-    const lectura = Number.isFinite(rateN) && Number.isFinite(peerN) ? `, ${lecturaCriminalidad(rateN, peerN)}` : '';
-    return `Criminalidad del municipio: ${tasa} infracciones por cada 1.000 habitantes${lectura}`;
+    if (!Number.isFinite(rateN) || rateN < 0 || rateN > 200) return '';
+    return etiquetaCriminalidad({
+      rate: rateN,
+      peer: Number.isFinite(peerN) ? peerN : null,
+      peerBand: typeof r.props.peer_band === 'string' ? r.props.peer_band : null,
+      period: r.props.period != null ? String(r.props.period) : null,
+    });
   }, sense: 'info', source: 'Ministerio del Interior' },
   { layer: 'air_station', label: (r) => `Calidad del aire (estación a ${r.distance_m} m): ${r.props.index_label ?? '?'}`, sense: 'info', source: 'MITECO' },
   { layer: 'zone_mark', label: (r) => `Aviso del equipo: ${r.name ?? r.category} (${r.props.note ?? ''})`, sense: 'info', source: 'Conocimiento local' },
@@ -140,7 +166,8 @@ export function buildEnvironment(raw: RawEnvironment): Environment {
   for (const row of raw.nearest) {
     const rule = RULES.find((x) => x.layer === row.layer && (!x.category || x.category === row.category));
     if (rule) {
-      const pts = rule.points(row, raw.counts_500m);
+      const crudo = rule.points(row, raw.counts_500m);
+      const pts = crudo == null ? null : Math.round(crudo);
       const indicator = `${row.layer}${row.category ? ':' + row.category : ''}`;
       if (pts === null || pts === 0) {
         const tope = AVISO_HASTA_M[row.category ?? row.layer] ?? 600;
@@ -169,10 +196,12 @@ export function buildEnvironment(raw: RawEnvironment): Environment {
     }
     const flag = FLAG_RULES.find((x) => x.layer === row.layer);
     if (flag) {
+      const texto = flag.label(row);
+      if (!texto) continue;
       const claro = row.props.clear === true;
       flags.push({
         indicator: row.layer,
-        label: flag.label(row),
+        label: texto,
         distanceM: distanciaDe(row.layer, row.distance_m),
         sense: claro ? 'info' : flag.sense,
         source: flag.source,

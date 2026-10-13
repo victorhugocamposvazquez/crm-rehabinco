@@ -7,6 +7,7 @@
  * npx tsx scripts/env-load/osm.ts --region acoruna --pbf ~/Downloads/galicia-latest.osm.pbf
  * npx tsx scripts/env-load/osm.ts --geofabrik spain/galicia
  */
+import type { EnvCategory } from "../../lib/avm/ui/icons";
 import { execFileSync, execSync } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
@@ -91,7 +92,7 @@ function centroideLinea(coords: unknown): [number, number] | null {
   return n ? [lng / n, lat / n] : null;
 }
 
-function clasificar(tags: Record<string, string | undefined>): Omit<LayerRow, "geom" | "name" | "props" | "loaded_at"> | null {
+function clasificar(tags: Record<string, string | undefined>): (Omit<LayerRow, "geom" | "name" | "props" | "loaded_at" | "category"> & { category: EnvCategory }) | null {
   const shop = tags.shop;
   const amenity = tags.amenity;
   if (shop === "fuel" || amenity === "fuel") {

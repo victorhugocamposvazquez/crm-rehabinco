@@ -16,6 +16,8 @@ import {
   evaluarCaducidadCapa,
   type AvmDataLayer,
 } from "@/lib/avm/data-health";
+import { PieCapas } from "@/components/avm/EntornoInforme";
+import type { CapaCargada } from "@/lib/avm/entorno-coverage";
 
 type Stats = {
   listings: { portal: string; operation: string; active: number; clusters: number }[];
@@ -29,7 +31,7 @@ type Stats = {
   valuations: number;
   confidenceBands: { baja: number; media: number; alta: number };
   layers: Record<string, Record<string, number>>;
-  environmentLayers: { layer: string; source: string; category: string | null; n: number; loaded_at: string }[];
+  environmentLayers: { layer: string; source: string; category?: string | null; n: number; loaded_at: string }[];
   closes: number;
   medianAbsError: number | null;
 };
@@ -101,24 +103,7 @@ export default function MetodologiaPage() {
         </Seccion>
         <Seccion titulo="Entorno · capas públicas" id="entorno-capas">
           {stats?.environmentLayers?.length ? (
-            <>
-              <p className="text-[var(--text-2)]">
-                <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[12px] font-medium text-emerald-700 dark:text-emerald-400">
-                  activa
-                </span>{" "}
-                Indicadores objetivos (OSM, transporte, ruido, inundabilidad…). No cambian el precio ni la confianza.
-              </p>
-              <Tabla
-                columnas={["Capa", "Fuente", "Categoría", "Elementos", "Cargado"]}
-                filas={stats.environmentLayers.map((e) => [
-                  e.layer,
-                  e.source,
-                  e.category ?? "—",
-                  String(e.n),
-                  e.loaded_at ? new Date(e.loaded_at).toLocaleString("es-ES") : "—",
-                ])}
-              />
-            </>
+            <PieCapas capas={resumenCapas(stats.environmentLayers)} />
           ) : (
             <p className="text-[var(--text-3)]">
               Sin capas cargadas. Ejecuta los scripts en <code className="text-[12px]">scripts/env-load/</code> (ver README).
@@ -191,6 +176,22 @@ function Seccion({ titulo, id, children }: { titulo: string; id?: string; childr
       <div className="space-y-3">{children}</div>
     </section>
   );
+}
+
+function resumenCapas(filas: { layer: string; source: string; n: number; loaded_at: string }[]): CapaCargada[] {
+  const map = new Map<string, CapaCargada>();
+  for (const fila of filas) {
+    const clave = `${fila.layer}|${fila.source}`;
+    const previa = map.get(clave);
+    const loaded = fila.loaded_at ?? "";
+    if (!previa) {
+      map.set(clave, { layer: fila.layer, source: fila.source, n: fila.n, loaded_at: loaded });
+      continue;
+    }
+    previa.n += fila.n;
+    if (loaded > previa.loaded_at) previa.loaded_at = loaded;
+  }
+  return [...map.values()];
 }
 
 function Tabla({ columnas, filas }: { columnas: string[]; filas: string[][] }) {

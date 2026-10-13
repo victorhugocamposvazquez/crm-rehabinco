@@ -7,6 +7,7 @@
  * CSV manual: municipality_code,period,rate_per_1000,peer_avg
  */
 import { readFileSync } from "node:fs";
+import { bandaPoblacion, tasaPorMil } from "../../lib/avm/crime-rate";
 import { adminClient, dataDir } from "./_shared";
 
 const LOADED_AT = new Date().toISOString();
@@ -28,14 +29,69 @@ type CrimeRow = {
   period: string;
   rate_per_1000: number;
   peer_avg: number | null;
+  peer_band: string | null;
+  population: number | null;
+  offenses: number | null;
   loaded_at: string;
 };
 
-async function parseDatosCrimenCsv(text: string): Promise<CrimeRow[]> {
+type Crudo = { period: string; count: number; pop: number; municipality_code: string };
+
+function filasDesdeCrudos(crudos: Crudo[], rechazadas: Rechazo[]): CrimeRow[] {
+  const validas: { municipality_code: string; period: string; rate: number; pop: number; count: number; band: string }[] = [];
+  for (const row of crudos) {
+    const rate = tasaPorMil(row.count, row.pop);
+    if (rate == null) {
+      const bruta = row.pop > 0 ? (row.count * 1000) / row.pop : null;
+      rechazadas.push({
+        municipality_code: row.municipality_code,
+        period: row.period,
+        rate: bruta,
+        population: row.pop,
+        offenses: row.count,
+      });
+      continue;
+    }
+    validas.push({
+      municipality_code: row.municipality_code,
+      period: row.period,
+      rate,
+      pop: row.pop,
+      count: row.count,
+      band: bandaPoblacion(row.pop),
+    });
+  }
+
+  const porBanda = new Map<string, number[]>();
+  for (const v of validas) {
+    const lista = porBanda.get(v.band) ?? [];
+    lista.push(v.rate);
+    porBanda.set(v.band, lista);
+  }
+  const mediaBanda = new Map<string, number>();
+  for (const [band, rates] of porBanda) {
+    mediaBanda.set(band, rates.reduce((a, b) => a + b, 0) / rates.length);
+  }
+
+  return validas.map((v) => ({
+    municipality_code: v.municipality_code,
+    period: v.period,
+    rate_per_1000: v.rate,
+    peer_avg: mediaBanda.get(v.band) ?? null,
+    peer_band: v.band,
+    population: v.pop,
+    offenses: v.count,
+    loaded_at: LOADED_AT,
+  }));
+}
+
+type Rechazo = { municipality_code: string; period: string; rate: number | null; population: number; offenses: number };
+
+async function parseDatosCrimenCsv(text: string): Promise<{ filas: CrimeRow[]; rechazadas: Rechazo[] }> {
   const lines = text.split(/\r?\n/).filter(Boolean);
   const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
   const idx = (name: string) => headers.indexOf(name);
-  const byMuniYear = new Map<string, { year: number; rate100k: number; pop: number }>();
+  const byMuniYear = new Map<string, Crudo>();
 
   for (const line of lines.slice(1)) {
     const cols = line.includes('"') ? parseCsvLine(line) : line.split(",");
@@ -43,25 +99,15 @@ async function parseDatosCrimenCsv(text: string): Promise<CrimeRow[]> {
     if (type !== TOTAL_TYPE) continue;
     const year = Number(cols[idx("year")]);
     const mun = normMuni(cols[idx("mun_code")] ?? "");
-    const rate100k = Number(cols[idx("rate")]);
-    if (!mun || !Number.isFinite(year) || !Number.isFinite(rate100k)) continue;
+    const count = Number(cols[idx("count")]);
+    const pop = Number(cols[idx("pop")]);
+    if (!mun || !Number.isFinite(year) || !Number.isFinite(count) || !Number.isFinite(pop)) continue;
     const prev = byMuniYear.get(mun);
-    if (!prev || year > prev.year) {
-      byMuniYear.set(mun, { year, rate100k, pop: Number(cols[idx("pop")]) });
-    }
+    if (!prev || year > Number(prev.period)) byMuniYear.set(mun, { period: String(year), count, pop, municipality_code: mun });
   }
 
-  const rates = [...byMuniYear.values()].map((v) => v.rate100k / 100);
-  rates.sort((a, b) => a - b);
-  const peerAvg = rates.length ? rates[Math.floor(rates.length / 2)] : null;
-
-  return [...byMuniYear.entries()].map(([municipality_code, v]) => ({
-    municipality_code,
-    period: String(v.year),
-    rate_per_1000: Math.round((v.rate100k / 100) * 1000) / 1000,
-    peer_avg: peerAvg,
-    loaded_at: LOADED_AT,
-  }));
+  const rechazadas: Rechazo[] = [];
+  return { filas: filasDesdeCrudos([...byMuniYear.values()], rechazadas), rechazadas };
 }
 
 /** CSV con comillas y campos con comas. */
@@ -96,7 +142,22 @@ async function fetchCsv(dest: string): Promise<string> {
   return buf.toString("utf8");
 }
 
-async function insertFilas(filas: CrimeRow[]): Promise<void> {
+async function registrarRechazos(rechazadas: Rechazo[]): Promise<void> {
+  if (!rechazadas.length) return;
+  const db = await adminClient();
+  const filas = rechazadas.map((r) => ({
+    kind: "crime_rate_out_of_range",
+    layer: "crime_municipality",
+    municipality_code: r.municipality_code,
+    message: `Tasa de criminalidad fuera de 0–200 (${r.rate ?? "sin tasa"}) en ${r.municipality_code}, periodo ${r.period}. No se muestra.`,
+    payload: r,
+  }));
+  const { error } = await db.from("avm_alerts").insert(filas);
+  if (error) throw new Error(error.message);
+  console.log(`Criminalidad: ${rechazadas.length} municipios fuera de 0–200, registrados en avm_alerts`);
+}
+
+async function insertFilas(filas: CrimeRow[], rechazadas: Rechazo[]): Promise<void> {
   const db = await adminClient();
   const { error: delErr } = await db.from("crime_stats").delete().neq("municipality_code", "");
   if (delErr) throw new Error(delErr.message);
@@ -105,6 +166,7 @@ async function insertFilas(filas: CrimeRow[]): Promise<void> {
     const { error } = await db.from("crime_stats").insert(filas.slice(i, i + chunk));
     if (error) throw new Error(error.message);
   }
+  await registrarRechazos(rechazadas);
   console.log(`Criminalidad: ${filas.length} municipios (último año disponible por municipio)`);
 }
 
@@ -112,8 +174,8 @@ async function main(): Promise<void> {
   if (process.argv.includes("--fetch")) {
     const dest = dataDir("crime") + "/crime_mun_prod.csv";
     const text = await fetchCsv(dest);
-    const filas = await parseDatosCrimenCsv(text);
-    await insertFilas(filas);
+    const { filas, rechazadas } = await parseDatosCrimenCsv(text);
+    await insertFilas(filas, rechazadas);
     return;
   }
 
@@ -125,18 +187,37 @@ async function main(): Promise<void> {
   const lines = readFileSync(file, "utf8").split(/\r?\n/).filter(Boolean);
   const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
   const idx = (name: string) => headers.indexOf(name);
-  const filas = lines.slice(1).map((line) => {
+  const rechazadas: Rechazo[] = [];
+  const crudos: Crudo[] = [];
+  const manuales: CrimeRow[] = [];
+  for (const line of lines.slice(1)) {
     const cols = line.split(",");
-    return {
-      municipality_code: normMuni(cols[idx("municipality_code")]?.trim() ?? ""),
-      period: cols[idx("period")]?.trim(),
-      rate_per_1000: Number(cols[idx("rate_per_1000")]),
+    const mun = normMuni(cols[idx("municipality_code")]?.trim() ?? "");
+    const period = cols[idx("period")]?.trim() ?? "";
+    const pop = Number(cols[idx("population")] ?? cols[idx("pop")]);
+    const count = Number(cols[idx("offenses")] ?? cols[idx("count")]);
+    if (!mun || !period) continue;
+    if (Number.isFinite(pop) && pop > 0 && Number.isFinite(count)) {
+      crudos.push({ period, count, pop, municipality_code: mun });
+      continue;
+    }
+    const rate = Number(cols[idx("rate_per_1000")]);
+    if (!Number.isFinite(rate) || rate < 0 || rate > 200) {
+      rechazadas.push({ municipality_code: mun, period, rate: Number.isFinite(rate) ? rate : null, population: Number.isFinite(pop) ? pop : 0, offenses: Number.isFinite(count) ? count : 0 });
+      continue;
+    }
+    manuales.push({
+      municipality_code: mun,
+      period,
+      rate_per_1000: rate,
       peer_avg: cols[idx("peer_avg")] ? Number(cols[idx("peer_avg")]) : null,
+      peer_band: cols[idx("peer_band")]?.trim() || null,
+      population: Number.isFinite(pop) ? pop : null,
+      offenses: Number.isFinite(count) ? count : null,
       loaded_at: LOADED_AT,
-    };
-  }).filter((r) => r.municipality_code && r.period);
-
-  await insertFilas(filas);
+    });
+  }
+  await insertFilas([...filasDesdeCrudos(crudos, rechazadas), ...manuales], rechazadas);
 }
 
 main().catch((e) => {
