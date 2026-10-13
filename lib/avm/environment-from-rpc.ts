@@ -4,6 +4,8 @@ import type { Environment } from "./types";
 export type AvmEnvironmentRpc = {
   nearest?: RawEnvironment["nearest"];
   counts_500m?: Record<string, number>;
+  counts_300m?: Record<string, number>;
+  counts_100m?: Record<string, number>;
   meta?: { has_osm?: boolean; osm_loaded_at?: string | null };
 };
 
@@ -14,5 +16,10 @@ export function environmentFromAvmRpc(data: unknown): Environment | null {
   const nearest = Array.isArray(payload.nearest) ? payload.nearest : [];
   const counts = payload.counts_500m ?? {};
   if (!nearest.length && !Object.keys(counts).length && !payload.meta?.has_osm) return null;
-  return buildEnvironment({ nearest, counts_500m: counts });
+  return buildEnvironment({
+    nearest,
+    counts_500m: counts,
+    counts_300m: payload.counts_300m,
+    counts_100m: payload.counts_100m,
+  });
 }

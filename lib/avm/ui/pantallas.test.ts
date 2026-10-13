@@ -87,11 +87,23 @@ describe("informe", () => {
     expect(html).toContain("€/m² ajustado");
     expect(html).toContain("Confianza");
     expect(html).toContain("Alquiler");
+    expect(html).toContain("1.030 €/mes");
+    expect(html).toContain("comparables de alquiler");
     expect(html).toContain("Catastro, Sede en vivo");
     expect(html).not.toContain("catastro_sede");
     expect(html).toContain("270.000");
     expect(html).toContain("Ficha del inmueble");
     expect(html).toContain("Comparables · 1");
     expect(html).not.toContain("data-testid=\"entorno\"");
+    const antiguo = renderToStaticMarkup(
+      createElement(InformeValoracion, {
+        creada: "12 de octubre de 2026",
+        result: { ...result, methodVersion: "comparables-1.0", rentSource: null, rentMonthly: 1030 },
+        twin,
+        fieldSources: { builtSurface: "catastro_sede" },
+      }),
+    );
+    expect(antiguo).toContain("1.030 €/mes");
+    expect(antiguo).toContain("rentabilidad bruta de la zona (método 1.0)");
   });
 });

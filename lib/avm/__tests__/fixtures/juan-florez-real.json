@@ -1,0 +1,37 @@
+{
+  "nearest": [
+    { "layer": "gtfs_stop", "category": "bus", "sense": "positive", "name": "Juan Flórez, 18", "props": { "respaldo_gtfs": true }, "distance_m": 65 },
+    { "layer": "gtfs_stop", "category": "rail", "sense": "positive", "name": "A Coruña", "props": {}, "distance_m": 1437 },
+    { "layer": "health", "category": "health_center", "sense": "positive", "name": "Centro de Saúde Federico Tapia", "props": { "publico": true, "amenity": "clinic" }, "distance_m": 615 },
+    { "layer": "health", "category": "health_private", "sense": "info", "name": "Clinica Neurológica Fantini", "props": { "publico": false, "amenity": "clinic" }, "distance_m": 183 },
+    { "layer": "osm_poi", "category": "beach", "sense": "positive", "name": "Praia de Riazor", "props": {}, "distance_m": 353 },
+    { "layer": "osm_poi", "category": "fuel", "sense": "negative", "name": "Miramar Oil", "props": { "amenity": "fuel" }, "distance_m": 1337 },
+    { "layer": "osm_poi", "category": "hospitality", "sense": "info", "name": "El Pinar", "props": { "amenity": "restaurant" }, "distance_m": 23 },
+    { "layer": "osm_poi", "category": "main_road", "sense": "negative", "name": "Avenida Linares Rivas", "props": {}, "distance_m": 303 },
+    { "layer": "osm_poi", "category": "nightlife", "sense": "negative", "name": "La Dehesa", "props": { "amenity": "pub" }, "distance_m": 46 },
+    { "layer": "osm_poi", "category": "park", "sense": "positive", "name": "Praza de Recife", "props": {}, "distance_m": 27 },
+    { "layer": "osm_poi", "category": "pharmacy", "sense": "positive", "name": null, "props": {}, "distance_m": 7 },
+    { "layer": "osm_poi", "category": "power_line", "sense": "negative", "name": null, "props": {}, "distance_m": 1394 },
+    { "layer": "osm_poi", "category": "sport", "sense": "positive", "name": null, "props": {}, "distance_m": 67 },
+    { "layer": "osm_poi", "category": "supermarket", "sense": "positive", "name": "Gadis", "props": {}, "distance_m": 98 },
+    { "layer": "school", "category": "school", "sense": "positive", "name": "IES Plurilingüe Eusebio da Guarda", "props": { "tipo": "IES" }, "distance_m": 325 },
+    { "layer": "vulnerable_section", "category": null, "sense": "info", "name": null, "props": { "clear": true, "census_section": "1503003003", "edition": "2021" }, "distance_m": 0 },
+    { "layer": "crime_municipality", "category": null, "sense": "info", "name": null, "props": { "rate_per_1000": 49.03734152808864, "peer_avg": 53.31851506069867, "peer_band": "200.000–500.000", "period": "2025" }, "distance_m": 0 }
+  ],
+  "counts_500m": {
+    "bus": 28,
+    "park": 7,
+    "shop": 264,
+    "beach": 2,
+    "sport": 4,
+    "school": 6,
+    "pharmacy": 18,
+    "main_road": 15,
+    "nightlife": 27,
+    "hospitality": 118,
+    "supermarket": 11,
+    "health_private": 13
+  },
+  "counts_300m": { "hospitality": 59 },
+  "counts_100m": { "nightlife": 3 }
+}

@@ -6,7 +6,7 @@ import {
   chipFuenteCapa,
   ETIQUETA_ESTADO_FUENTE,
   ETIQUETA_RANGE_METHOD,
-  ETIQUETA_RENT_SOURCE,
+  etiquetaMetodoAlquiler,
   ETIQUETA_AJUSTE,
   etiquetaPenalizacion,
   humanizarExplicacion,
@@ -95,7 +95,7 @@ export function InformeValoracion({
           value={result.rentMonthly != null ? `${fmtNumero(result.rentMonthly)} €/mes` : "—"}
           foot={
             [
-              result.rentSource ? ETIQUETA_RENT_SOURCE[result.rentSource] : null,
+              etiquetaMetodoAlquiler(result.methodVersion, result.rentSource),
               result.grossYield != null ? `rentabilidad ${fmtPorcentaje(result.grossYield)}` : null,
             ]
               .filter(Boolean)
@@ -295,7 +295,7 @@ export function InformeValoracion({
                 </div>
                 <div className="grid grid-cols-[1fr_auto] gap-x-4">
                   <dt className="text-[var(--text-3)]">Método</dt>
-                  <dd>{result.rentSource ? ETIQUETA_RENT_SOURCE[result.rentSource] : "—"}</dd>
+                  <dd>{etiquetaMetodoAlquiler(result.methodVersion, result.rentSource)}</dd>
                 </div>
               </dl>
             </div>

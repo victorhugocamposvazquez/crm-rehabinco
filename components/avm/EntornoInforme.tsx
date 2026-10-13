@@ -29,20 +29,29 @@ const AMENIDAD = new Set([
   "store",
   "daily_services",
   "school",
+  "nursery",
+  "kindergarten",
   "health",
   "health_center",
+  "hospital",
+  "sport",
+  "hospitality",
   "park",
   "beach",
   "pharmacy",
 ]);
 
-const RIESGO_MUNICIPAL = new Set(["flood", "vulnerable_section", "crime_municipality", "air_station", "zone_mark"]);
+const RIESGO_MUNICIPAL = new Set(["flood", "vulnerable_section", "crime_municipality", "zone_mark"]);
 
 function clavesDe(item: EnvironmentItem): string[] {
   const [layer, category] = item.indicator.split(":");
   const desdeEtiqueta: string[] = [];
   const t = item.label.toLowerCase();
-  if (/colegio|escuela|centro docente/.test(t)) desdeEtiqueta.push("school");
+  if (/escuela infantil/.test(t)) desdeEtiqueta.push("nursery");
+  if (/colegio|centro docente/.test(t)) desdeEtiqueta.push("school");
+  if (/deporte|polideportivo/.test(t)) desdeEtiqueta.push("sport");
+  if (/hosteler/.test(t)) desdeEtiqueta.push("hospitality");
+  if (/hospital/.test(t)) desdeEtiqueta.push("hospital");
   if (/supermercado/.test(t)) desdeEtiqueta.push("supermarket");
   if (/farmacia/.test(t)) desdeEtiqueta.push("pharmacy");
   if (/parada de bus|buses/.test(t)) desdeEtiqueta.push("bus");

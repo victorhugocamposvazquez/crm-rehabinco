@@ -65,6 +65,16 @@ export const ETIQUETA_RENT_SOURCE: Record<NonNullable<ValuationResult["rentSourc
   yield: "rentabilidad bruta de la zona",
 };
 
+/** Método de alquiler visible. Las valoraciones anteriores a comparables-1.1 no guardaban la fuente. */
+export function etiquetaMetodoAlquiler(
+  methodVersion: string | null | undefined,
+  rentSource: ValuationResult["rentSource"],
+): string {
+  if (!methodVersion?.includes("1.1")) return "rentabilidad bruta de la zona (método 1.0)";
+  if (rentSource) return ETIQUETA_RENT_SOURCE[rentSource];
+  return "—";
+}
+
 export const ETIQUETA_GEOCODING: Record<GeocodingSource, string> = {
   google: "Google (geocodificación)",
   cartociudad: "CartoCiudad",

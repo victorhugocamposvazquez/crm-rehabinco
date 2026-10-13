@@ -183,7 +183,7 @@ describe('entorno', () => {
       counts_500m: { shop: 30, restaurant: 12 },
     });
     expect(env.positives.length).toBeGreaterThanOrEqual(3);
-    expect(env.negatives.length).toBe(1);
+    expect(env.negatives.length).toBe(2);
     expect(env.flags.length).toBe(1);
     expect(env.score).toBeGreaterThan(50);
   });

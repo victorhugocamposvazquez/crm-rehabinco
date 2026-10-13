@@ -1,5 +1,5 @@
-const entero = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 0 });
-const euro = new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+const entero = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 0, useGrouping: true });
+const euro = new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0, useGrouping: true });
 
 export function fmtEuros(n: number): string {
   return euro.format(n);
@@ -7,6 +7,7 @@ export function fmtEuros(n: number): string {
 
 export function fmtNumero(n: number, decimales = 0): string {
   return new Intl.NumberFormat("es-ES", {
+    useGrouping: true,
     minimumFractionDigits: decimales,
     maximumFractionDigits: decimales,
   }).format(n);

@@ -1,15 +1,15 @@
 /**
- * statecrm · AVM · Entorno justo (fase 2)
+ * statecrm · AVM · Entorno (env-1.1)
  *
- * Convierte la salida de avm_environment() (vecinos más cercanos por capa y
- * conteos a 500 m) en una lista a favor / en contra / avisos, con una
- * puntuación informativa 0..100. Reglas:
- *   - Simetría: cada indicador tiene recorrido en los dos sentidos.
- *   - Solo hechos objetivos y documentados; nunca atributos de las personas.
- *   - No toca el precio en fase 1-2; lo hará el hedónico, acotado a ±10 %.
+ * Puntuación informativa, base 50, acotada a 0–100. No toca el precio.
+ * Solo puntúan las reglas de esta versión. Criminalidad, vulnerabilidad y
+ * las marcas del equipo son banderas, sin puntos. Un elemento de una capa
+ * de puntos que no puntúa no se muestra.
  */
 import { etiquetaCriminalidad } from './crime-rate';
 import type { Environment, EnvironmentItem } from './types';
+
+export const ENV_RULES_VERSION = 'env-1.1';
 
 interface NearestRow {
   layer: string;
@@ -23,209 +23,317 @@ interface NearestRow {
 export interface RawEnvironment {
   nearest: NearestRow[];
   counts_500m: Record<string, number>;
+  counts_300m?: Record<string, number>;
+  counts_100m?: Record<string, number>;
 }
 
-interface Rule {
-  layer: string;
-  category?: string;
-  label: (r: NearestRow) => string;
-  /** Devuelve puntos (+ a favor, − en contra) o null si no aplica. */
-  points: (r: NearestRow, counts: Record<string, number>) => number | null;
-  sense: EnvironmentItem['sense'];
-  source: string;
-}
-
-const near = (d: number, a: number, b: number) => (d <= a ? 1 : d <= b ? 0.5 : 0);
-
-/** Si no puntúa, igual se enseña en avisos cuando está a esta distancia. */
-const AVISO_HASTA_M: Record<string, number> = {
-  fuel: 400,
-  power_line: 250,
-  industrial: 800,
-  main_road: 300,
-  railway: 400,
-  nightlife: 250,
-  supermarket: 800,
-  pharmacy: 800,
-  park: 1000,
-  beach: 2000,
-  bus: 800,
-  rail: 1500,
-  health_center: 1500,
-  school: 1200,
-};
-
-const CATEGORIA: Record<string, string> = {
+const ETIQUETA: Record<string, string> = {
   bus: 'Parada de bus',
-  rail: 'Estación de tren o metro',
+  rail: 'Estación de tren o tranvía',
   school: 'Colegio',
+  nursery: 'Escuela infantil',
   kindergarten: 'Escuela infantil',
-  health: 'Centro de salud',
   health_center: 'Centro de salud',
+  health: 'Centro de salud',
+  pac: 'Centro de salud',
+  hospital: 'Hospital',
   supermarket: 'Supermercado',
   pharmacy: 'Farmacia',
-  park: 'Parque o zona verde',
+  park: 'Parque',
   beach: 'Playa',
+  sport: 'Deporte',
   noise: 'Ruido',
   main_road: 'Vía principal',
-  railway: 'Vía férrea',
   nightlife: 'Ocio nocturno',
-  industrial: 'Zona industrial',
-  fuel: 'Gasolinera',
-  power_line: 'Línea de alta tensión',
+  industrial: 'Industria',
   shop: 'Comercio',
-  restaurant: 'Restauración',
-  gym: 'Gimnasio',
+  hospitality: 'Hostelería',
 };
 
-function tituloDe(row: NearestRow, categoria: string): string {
+const ORIGEN: Record<string, string> = {
+  bus: 'GTFS',
+  rail: 'GTFS',
+  school: 'Registro Estatal de Centros Docentes',
+  nursery: 'Registro Estatal de Centros Docentes',
+  kindergarten: 'Registro Estatal de Centros Docentes',
+  health_center: 'Catálogo SERGAS',
+  health: 'Catálogo SERGAS',
+  pac: 'Catálogo SERGAS',
+  hospital: 'Catálogo SERGAS',
+  noise: 'Mapa estratégico de ruido',
+  flood: 'SNCZI (MITECO)',
+  vulnerable_section: 'Observatorio de la Vulnerabilidad Urbana',
+  crime_municipality: 'Ministerio del Interior',
+  zone_mark: 'Conocimiento local',
+};
+
+function origenDe(row: NearestRow): string {
+  const cat = row.category ?? row.layer;
+  if (cat === 'bus' && row.props.respaldo_gtfs === true) return 'OSM (respaldo GTFS)';
+  if ((cat === 'school' || cat === 'nursery' || cat === 'kindergarten') && row.props.tipo == null && row.props.fuente == null) {
+    return 'OSM';
+  }
+  if ((cat === 'health_center' || cat === 'health' || cat === 'hospital' || cat === 'pac') && row.props.publico !== true) {
+    return 'OSM';
+  }
+  return ORIGEN[cat] ?? 'OSM';
+}
+
+/** Con nombre: el nombre es el título y la categoría va en la fuente. Sin nombre: el título es la categoría. */
+function presentar(row: NearestRow, categoria: string, origen: string, puntos: number, sentido: EnvironmentItem['sense']): EnvironmentItem {
   const nombre = row.name?.trim();
-  return nombre || categoria;
+  return {
+    indicator: `${row.layer}${row.category ? ':' + row.category : ''}`,
+    label: nombre || categoria,
+    value: puntos,
+    distanceM: row.distance_m,
+    sense: sentido,
+    source: nombre ? `${categoria.toLowerCase()} · ${origen}` : origen,
+  };
 }
 
-export const RULES: Rule[] = [
-  // A favor
-  { layer: 'gtfs_stop', category: 'bus', label: (r) => tituloDe(r, CATEGORIA.bus), points: (r) => 6 * near(r.distance_m, 300, 600) || null, sense: 'positive', source: 'GTFS' },
-  { layer: 'gtfs_stop', category: 'rail', label: (r) => tituloDe(r, CATEGORIA.rail), points: (r) => 8 * near(r.distance_m, 600, 1200) || null, sense: 'positive', source: 'GTFS' },
-  { layer: 'school', label: (r) => tituloDe(r, CATEGORIA[r.category ?? 'school'] ?? 'Colegio'), points: (r) => 5 * near(r.distance_m, 500, 1000) || null, sense: 'positive', source: 'Registro Estatal de Centros Docentes' },
-  { layer: 'health', category: 'health_center', label: (r) => tituloDe(r, CATEGORIA.health_center), points: (r) => 5 * near(r.distance_m, 600, 1200) || null, sense: 'positive', source: 'Catálogo SERGAS' },
-  { layer: 'osm_poi', category: 'supermarket', label: (r) => tituloDe(r, CATEGORIA.supermarket), points: (r) => 5 * near(r.distance_m, 300, 600) || null, sense: 'positive', source: 'OSM' },
-  { layer: 'osm_poi', category: 'pharmacy', label: (r) => tituloDe(r, CATEGORIA.pharmacy), points: (r) => 3 * near(r.distance_m, 300, 600) || null, sense: 'positive', source: 'OSM' },
-  { layer: 'osm_poi', category: 'park', label: (r) => tituloDe(r, CATEGORIA.park), points: (r) => 6 * near(r.distance_m, 300, 700) || null, sense: 'positive', source: 'OSM' },
-  { layer: 'osm_poi', category: 'beach', label: (r) => tituloDe(r, CATEGORIA.beach), points: (r) => 8 * near(r.distance_m, 500, 1500) || null, sense: 'positive', source: 'OSM' },
-
-  // En contra
-  { layer: 'noise', label: (r) => tituloDe(r, `Ruido ${r.props.lden ?? '?'} dB Lden (${r.props.source_type ?? 'vía'})`), points: (r) => { const l = Number(r.props.lden ?? 0); return l >= 70 ? -10 : l >= 65 ? -6 : l >= 60 ? -3 : null; }, sense: 'negative', source: 'Mapa estratégico de ruido' },
-  { layer: 'osm_poi', category: 'main_road', label: (r) => tituloDe(r, CATEGORIA.main_road), points: (r) => (r.distance_m <= 40 ? -6 : r.distance_m <= 150 ? -3 : null), sense: 'negative', source: 'OSM' },
-  { layer: 'osm_poi', category: 'railway', label: (r) => tituloDe(r, CATEGORIA.railway), points: (r) => (r.distance_m <= 100 ? -6 : r.distance_m <= 250 ? -3 : null), sense: 'negative', source: 'OSM' },
-  { layer: 'osm_poi', category: 'nightlife', label: (r) => tituloDe(r, CATEGORIA.nightlife), points: (r, c) => ((c.nightlife ?? 0) >= 5 && r.distance_m <= 150 ? -5 : (c.nightlife ?? 0) >= 3 && r.distance_m <= 100 ? -3 : null), sense: 'negative', source: 'OSM' },
-  { layer: 'osm_poi', category: 'industrial', label: (r) => tituloDe(r, CATEGORIA.industrial), points: (r) => (r.distance_m <= 200 ? -6 : r.distance_m <= 500 ? -3 : null), sense: 'negative', source: 'OSM' },
-  { layer: 'osm_poi', category: 'fuel', label: (r) => tituloDe(r, CATEGORIA.fuel), points: (r) => (r.distance_m <= 100 ? -3 : null), sense: 'negative', source: 'OSM' },
-  { layer: 'osm_poi', category: 'power_line', label: (r) => tituloDe(r, CATEGORIA.power_line), points: (r) => (r.distance_m <= 100 ? -4 : null), sense: 'negative', source: 'OSM' },
-
-  // En los dos sentidos
-  { layer: 'income_section', label: (r) => `Renta media de la sección: ${r.props.income_eur ?? '?'} €`, points: (r) => { const q = Number(r.props.quintile ?? 3); return (q - 3) * 3; }, sense: 'both', source: 'INE, Atlas de renta' },
-  { layer: 'building_age', label: (r) => `Edificios del entorno: media de ${r.props.mean_year ?? '?'}`, points: (r) => { const y = Number(r.props.mean_year ?? 0); return y >= 2000 ? 3 : y <= 1960 ? -3 : 0; }, sense: 'both', source: 'Catastro INSPIRE' },
-];
-
-function etiquetaSeccion(r: NearestRow): string {
-  const code = String(r.props.census_section ?? '').trim();
-  const edition = String(r.props.edition ?? '').trim();
-  if (code && edition) return `sección ${code} · Atlas ${edition}`;
-  if (code) return `sección ${code}`;
-  return r.props.clear ? 'Sección censal fuera del catálogo de barrios vulnerables' : 'Sección censal en el catálogo de barrios vulnerables';
+function closest(rows: NearestRow[], pred: (row: NearestRow) => boolean): NearestRow | undefined {
+  return rows.filter(pred).sort((a, b) => a.distance_m - b.distance_m)[0];
 }
 
-/** Capas de barrio o municipio: la distancia 0 no es un metro, es “el punto está dentro”. */
-const SIN_DISTANCIA = new Set(['flood', 'vulnerable_section', 'crime_municipality', 'income_section', 'zone_mark']);
-
-function distanciaDe(layer: string, metros: number): number | undefined {
-  if (SIN_DISTANCIA.has(layer)) return undefined;
-  return metros;
+function sumar(
+  score: { n: number },
+  dest: EnvironmentItem[],
+  row: NearestRow,
+  categoria: string,
+  puntos: number,
+  sentido: EnvironmentItem['sense'],
+): void {
+  score.n += puntos;
+  dest.push(presentar(row, categoria, origenDe(row), puntos, sentido));
 }
 
-/** Riesgos y avisos: no puntúan, se enseñan siempre. */
-const FLAG_RULES: Omit<Rule, 'points'>[] = [
-  { layer: 'flood', label: (r) => (r.props.clear ? 'Sin zona inundable (T10, T100, T500)' : `Zona inundable ${r.props.period ?? 'T500'}`), sense: 'negative', source: 'SNCZI (MITECO)' },
-  { layer: 'vulnerable_section', label: (r) => etiquetaSeccion(r), sense: 'negative', source: 'Observatorio de la Vulnerabilidad Urbana' },
-  { layer: 'crime_municipality', label: (r) => {
-    const rateN = Number(r.props.rate_per_1000);
-    const peerN = Number(r.props.peer_avg);
-    if (!Number.isFinite(rateN) || rateN < 0 || rateN > 200) return '';
-    return etiquetaCriminalidad({
-      rate: rateN,
-      peer: Number.isFinite(peerN) ? peerN : null,
-      peerBand: typeof r.props.peer_band === 'string' ? r.props.peer_band : null,
-      period: r.props.period != null ? String(r.props.period) : null,
-    });
-  }, sense: 'info', source: 'Ministerio del Interior' },
-  { layer: 'air_station', label: (r) => `Calidad del aire (estación a ${r.distance_m} m): ${r.props.index_label ?? '?'}`, sense: 'info', source: 'MITECO' },
-  { layer: 'zone_mark', label: (r) => `Aviso del equipo: ${r.name ?? r.category} (${r.props.note ?? ''})`, sense: 'info', source: 'Conocimiento local' },
-];
+function etiquetaSeccion(row: NearestRow): string {
+  const code = String(row.props.census_section ?? '').trim() || 'censal';
+  const edition = String(row.props.edition ?? '').trim() || '2021';
+  const indicator = String(row.props.indicator ?? '').trim();
+  if (row.props.clear === true || !indicator) {
+    return `Sección ${code} fuera del catálogo de áreas vulnerables · Atlas ${edition}`;
+  }
+  return `Sección ${code} en el catálogo (indicador: ${indicator})`;
+}
 
 export function buildEnvironment(raw: RawEnvironment): Environment {
   const positives: EnvironmentItem[] = [];
   const negatives: EnvironmentItem[] = [];
   const flags: EnvironmentItem[] = [];
-  let score = 50;
+  const score = { n: 50 };
+  const rows = raw.nearest ?? [];
 
-  const tieneRuido = raw.nearest.some((r) => r.layer === 'noise');
-  if (!tieneRuido) {
-    const via = raw.nearest.find((r) => r.layer === 'osm_poi' && r.category === 'main_road');
-    if (via && via.distance_m <= 40) {
-      raw.nearest.push({
-        ...via,
-        layer: 'noise',
-        category: null,
-        props: { lden: 66, source_type: 'tráfico (respaldo OSM)' },
-        distance_m: via.distance_m,
+  const bus = closest(rows, (r) => r.category === 'bus');
+  if (bus && bus.distance_m <= 300) {
+    sumar(score, positives, bus, ETIQUETA.bus, bus.distance_m <= 150 ? 6 : 3, 'positive');
+  }
+
+  const rail = closest(rows, (r) => r.category === 'rail');
+  if (rail && rail.distance_m <= 500) {
+    sumar(score, positives, rail, ETIQUETA.rail, 4, 'positive');
+  }
+
+  const super_ = closest(rows, (r) => r.category === 'supermarket');
+  if (super_ && super_.distance_m <= 600) {
+    sumar(score, positives, super_, ETIQUETA.supermarket, super_.distance_m <= 300 ? 5 : 2, 'positive');
+  }
+
+  const comercios = raw.counts_500m.shop ?? 0;
+  if (comercios >= 20) {
+    const puntos = comercios >= 50 ? 6 : 3;
+    score.n += puntos;
+    positives.push({
+      indicator: 'osm_poi:shop',
+      label: `${comercios} comercios y servicios a 500 m`,
+      value: puntos,
+      sense: 'positive',
+      source: 'OSM',
+    });
+  }
+
+  const hosteleria = raw.counts_300m?.hospitality ?? 0;
+  if (hosteleria >= 10) {
+    score.n += 2;
+    positives.push({
+      indicator: 'osm_poi:hospitality',
+      label: `${hosteleria} locales de hostelería a 300 m`,
+      value: 2,
+      sense: 'positive',
+      source: 'OSM',
+    });
+  }
+
+  const colegio = closest(rows, (r) => r.layer === 'school' && r.category !== 'nursery' && r.category !== 'kindergarten');
+  if (colegio && colegio.distance_m <= 500) {
+    sumar(score, positives, colegio, ETIQUETA.school, 4, 'positive');
+  }
+
+  const infantil = closest(rows, (r) => r.category === 'nursery' || r.category === 'kindergarten');
+  if (infantil && infantil.distance_m <= 500) {
+    sumar(score, positives, infantil, ETIQUETA.nursery, 2, 'positive');
+  }
+
+  const salud = closest(rows, (r) => r.category === 'health_center' || r.category === 'health' || r.category === 'pac');
+  if (salud && salud.distance_m <= 500) {
+    sumar(score, positives, salud, ETIQUETA.health_center, 4, 'positive');
+  }
+
+  const hospital = closest(rows, (r) => r.category === 'hospital');
+  if (hospital && hospital.distance_m <= 1000) {
+    sumar(score, positives, hospital, ETIQUETA.hospital, 3, 'positive');
+  }
+
+  const farmacia = closest(rows, (r) => r.category === 'pharmacy');
+  if (farmacia && farmacia.distance_m <= 200) {
+    sumar(score, positives, farmacia, ETIQUETA.pharmacy, 2, 'positive');
+  }
+
+  const parque = closest(rows, (r) => r.category === 'park');
+  if (parque && parque.distance_m <= 300) {
+    sumar(score, positives, parque, ETIQUETA.park, 4, 'positive');
+  }
+
+  const playa = closest(rows, (r) => r.category === 'beach');
+  if (playa && playa.distance_m <= 500) {
+    sumar(score, positives, playa, ETIQUETA.beach, 4, 'positive');
+  }
+
+  const deporte = closest(rows, (r) => r.category === 'sport');
+  if (deporte && deporte.distance_m <= 500) {
+    sumar(score, positives, deporte, ETIQUETA.sport, 2, 'positive');
+  }
+
+  const pubs = raw.counts_100m?.nightlife
+    ?? rows.filter((r) => r.category === 'nightlife' && r.distance_m <= 100).length;
+  if (pubs > 0) {
+    const puntos = -Math.min(6, pubs * 2);
+    const cercano = closest(rows, (r) => r.category === 'nightlife' && r.distance_m <= 100);
+    const fila: NearestRow = cercano ?? {
+      layer: 'osm_poi',
+      category: 'nightlife',
+      sense: 'negative',
+      name: null,
+      props: {},
+      distance_m: 100,
+    };
+    if (pubs === 1 && fila.name?.trim()) {
+      sumar(score, negatives, fila, ETIQUETA.nightlife, puntos, 'negative');
+    } else {
+      score.n += puntos;
+      negatives.push({
+        indicator: 'osm_poi:nightlife',
+        label: `${pubs} ${pubs === 1 ? 'local de ocio nocturno' : 'locales de ocio nocturno'} a 100 m`,
+        value: puntos,
+        sense: 'negative',
+        source: 'OSM',
       });
     }
   }
 
-  for (const row of raw.nearest) {
-    const rule = RULES.find((x) => x.layer === row.layer && (!x.category || x.category === row.category));
-    if (rule) {
-      const crudo = rule.points(row, raw.counts_500m);
-      const pts = crudo == null ? null : Math.round(crudo);
-      const indicator = `${row.layer}${row.category ? ':' + row.category : ''}`;
-      if (pts === null || pts === 0) {
-        const tope = AVISO_HASTA_M[row.category ?? row.layer] ?? 600;
-        if (row.distance_m <= tope) {
-          flags.push({
-            indicator,
-            label: rule.label(row),
-            distanceM: distanciaDe(row.layer, row.distance_m),
-            sense: rule.sense === 'negative' ? 'negative' : 'info',
-            source: rule.source,
-          });
-        }
-        continue;
+  const ruido = rows
+    .filter((r) => r.layer === 'noise')
+    .sort((a, b) => Number(b.props.lden ?? 0) - Number(a.props.lden ?? 0))[0];
+  if (ruido) {
+    const lden = Number(ruido.props.lden ?? 0);
+    if (lden >= 65) {
+      const puntos = lden >= 70 ? -8 : -6;
+      const nombre = ruido.name?.trim();
+      score.n += puntos;
+      negatives.push({
+        indicator: 'noise',
+        label: nombre || `Ruido ${lden} dB Lden`,
+        value: puntos,
+        distanceM: ruido.distance_m > 0 ? ruido.distance_m : undefined,
+        sense: 'negative',
+        source: nombre ? `ruido · ${ORIGEN.noise}` : ORIGEN.noise,
+      });
+    }
+  }
+
+  const via = closest(rows, (r) => r.category === 'main_road');
+  if (via && via.distance_m <= 40) {
+    sumar(score, negatives, via, ETIQUETA.main_road, -4, 'negative');
+  }
+
+  const industria = closest(rows, (r) => r.category === 'industrial');
+  if (industria && industria.distance_m <= 200) {
+    sumar(score, negatives, industria, ETIQUETA.industrial, -4, 'negative');
+  }
+
+  for (const row of rows) {
+    if (row.layer === 'flood') {
+      const periodo = String(row.props.period ?? row.category ?? '');
+      const claro = row.props.clear === true || periodo === 'fuera';
+      if (!claro && (periodo === 'T100' || periodo === 'T10')) score.n += -6;
+      else if (!claro && periodo === 'T500') score.n += -2;
+      if (!claro && (periodo === 'T100' || periodo === 'T10' || periodo === 'T500')) {
+        const puntos = periodo === 'T500' ? -2 : -6;
+        negatives.push({
+          indicator: 'flood',
+          label: `Zona inundable ${periodo}`,
+          value: puntos,
+          sense: 'negative',
+          source: ORIGEN.flood,
+        });
       }
-      score += pts;
-      const item: EnvironmentItem = {
-        indicator,
-        label: rule.label(row),
-        value: pts,
-        distanceM: row.distance_m,
-        sense: rule.sense,
-        source: rule.source,
-      };
-      (pts > 0 ? positives : negatives).push(item);
+      flags.push({
+        indicator: 'flood',
+        label: claro ? 'Sin zona inundable (T10, T100, T500)' : `Zona inundable ${periodo || 'T500'}`,
+        sense: claro ? 'info' : 'negative',
+        source: ORIGEN.flood,
+      });
       continue;
     }
-    const flag = FLAG_RULES.find((x) => x.layer === row.layer);
-    if (flag) {
-      const texto = flag.label(row);
-      if (!texto) continue;
-      const claro = row.props.clear === true;
+    if (row.layer === 'vulnerable_section') {
       flags.push({
-        indicator: row.layer,
-        label: texto,
-        distanceM: distanciaDe(row.layer, row.distance_m),
-        sense: claro ? 'info' : flag.sense,
-        source: flag.source,
+        indicator: 'vulnerable_section',
+        label: etiquetaSeccion(row),
+        sense: row.props.clear === true ? 'info' : 'negative',
+        source: ORIGEN.vulnerable_section,
+      });
+      continue;
+    }
+    if (row.layer === 'crime_municipality') {
+      const rateN = Number(row.props.rate_per_1000);
+      const peerN = Number(row.props.peer_avg);
+      if (!Number.isFinite(rateN) || rateN < 0 || rateN > 200) continue;
+      flags.push({
+        indicator: 'crime_municipality',
+        label: etiquetaCriminalidad({
+          rate: rateN,
+          peer: Number.isFinite(peerN) ? peerN : null,
+          peerBand: typeof row.props.peer_band === 'string' ? row.props.peer_band : null,
+          period: row.props.period != null ? String(row.props.period) : null,
+        }),
+        sense: 'info',
+        source: ORIGEN.crime_municipality,
+      });
+      continue;
+    }
+    if (row.layer === 'zone_mark') {
+      flags.push({
+        indicator: 'zone_mark',
+        label: `Aviso del equipo: ${row.name ?? row.category ?? 'marca'} (${row.props.note ?? ''})`,
+        sense: 'info',
+        source: ORIGEN.zone_mark,
       });
     }
   }
-
-  // Densidad de servicios diarios a 500 m (comercio, restauración, gimnasio…)
-  const daily = (raw.counts_500m.shop ?? 0) + (raw.counts_500m.restaurant ?? 0) + (raw.counts_500m.gym ?? 0);
-  if (daily >= 20) { score += 6; positives.push({ indicator: 'daily_services', label: `${daily} comercios y servicios a 500 m`, value: 6, sense: 'positive', source: 'OSM' }); }
-  else if (daily <= 3) { score -= 4; negatives.push({ indicator: 'daily_services', label: `Solo ${daily} comercios y servicios a 500 m`, value: -4, sense: 'negative', source: 'OSM' }); }
 
   positives.sort((a, b) => Number(b.value) - Number(a.value));
   negatives.sort((a, b) => Number(a.value) - Number(b.value));
 
   return {
-    score: Math.max(0, Math.min(100, Math.round(score))),
+    score: Math.max(0, Math.min(100, Math.round(score.n))),
     positives,
     negatives,
     flags,
   };
 }
 
-/** Filas RPC de capas sin distancia → banderas (por si el informe hidrata solo flags). */
+/** Filas RPC de capas sin distancia → banderas. */
 export function flagsFromNearest(nearest: NearestRow[]): EnvironmentItem[] {
   return buildEnvironment({ nearest, counts_500m: {} }).flags;
 }

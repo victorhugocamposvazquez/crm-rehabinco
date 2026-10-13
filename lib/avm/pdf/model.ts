@@ -11,6 +11,7 @@ import {
   etiquetaTipoInmueble,
   humanizarExplicacion,
   chipFuenteCapa,
+  etiquetaMetodoAlquiler,
 } from "../ui/labels";
 
 export const AVISO_LEGAL_PDF =
@@ -75,6 +76,7 @@ export type InformePdfModel = {
   pricePerM2: number | null;
   zoneMedian: number | null;
   rentMonthly: number | null;
+  rentMethod: string;
   grossYield: number | null;
   comparablesCount: number;
   confidenceLabel: string;
@@ -428,6 +430,7 @@ export function modeloInformePdf(input: {
     pricePerM2: ppm2,
     zoneMedian: zona?.medianPpm2 ?? null,
     rentMonthly: result.rentMonthly,
+    rentMethod: etiquetaMetodoAlquiler(result.methodVersion, result.rentSource),
     grossYield: result.grossYield,
     comparablesCount: result.comparables.length,
     confidenceLabel: etiquetaConfianzaCorta(result.confidence).toLowerCase(),

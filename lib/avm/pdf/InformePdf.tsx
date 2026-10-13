@@ -418,7 +418,11 @@ function Interno({ model, t }: { model: InformePdfModel; t: Tokens }) {
             t={t}
             label="Alquiler"
             value={model.rentMonthly != null ? `${fmtNumero(model.rentMonthly)} €/mes` : "sin dato"}
-            foot={model.grossYield != null ? `comparables de alquiler · ${fmtNumero(model.grossYield, 1)} % bruto` : ""}
+            foot={
+              model.rentMonthly != null
+                ? [model.rentMethod, model.grossYield != null ? `${fmtNumero(model.grossYield, 1)} % bruto` : null].filter(Boolean).join(" · ")
+                : ""
+            }
           />
           <Tile t={t} label="Precio de oferta sugerido" value={eurosPdf(model.offerPrice)} foot={model.offerNote} />
         </View>

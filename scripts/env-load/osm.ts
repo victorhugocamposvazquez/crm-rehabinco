@@ -69,6 +69,27 @@ function filtrarExportar(pbf: string, work: string, name: string, filterArgs: st
   return geo;
 }
 
+function cerrar(ring: [number, number][]): [number, number][] {
+  if (ring.length < 3) return ring;
+  const a = ring[0];
+  const b = ring[ring.length - 1];
+  if (a[0] === b[0] && a[1] === b[1]) return ring;
+  return [...ring, a];
+}
+
+function areaAnilloM2(ring: [number, number][]): number {
+  if (ring.length < 3) return 0;
+  const lat0 = (ring[0][1] * Math.PI) / 180;
+  const mLng = 111320 * Math.cos(lat0);
+  const mLat = 110540;
+  let area = 0;
+  for (let i = 0; i < ring.length; i++) {
+    const j = (i + 1) % ring.length;
+    area += ring[i][0] * mLng * ring[j][1] * mLat - ring[j][0] * mLng * ring[i][1] * mLat;
+  }
+  return Math.abs(area) / 2;
+}
+
 function coordsPunto(c: unknown): [number, number] | null {
   if (!Array.isArray(c) || c.length < 2) return null;
   const lng = Number(c[0]);
@@ -92,6 +113,25 @@ function centroideLinea(coords: unknown): [number, number] | null {
   return n ? [lng / n, lat / n] : null;
 }
 
+function textoSalud(tags: Record<string, string | undefined>): string {
+  return `${tags.name ?? ""} ${tags["name:es"] ?? ""} ${tags.operator ?? ""} ${tags.healthcare ?? ""}`.toLowerCase();
+}
+
+function clasificarSalud(
+  tags: Record<string, string | undefined>,
+  amenity: string,
+): (Omit<LayerRow, "geom" | "name" | "props" | "loaded_at" | "category"> & { category: EnvCategory }) | null {
+  const blob = textoSalud(tags);
+  const privado = /quir[oó]n|sanitas|dental|dentista|privado|cl[ií]nica/.test(blob) && !/sergas|centro de sa/.test(blob);
+  if (amenity === "hospital" && !privado) {
+    return { layer: "health", category: "hospital", sense: "positive", source: SOURCE };
+  }
+  if (/centro de sa[uú]de|centro de salud|\bpac\b|punto de atenci[oó]n|sergas/.test(blob)) {
+    return { layer: "health", category: "health_center", sense: "positive", source: SOURCE };
+  }
+  return { layer: "health", category: "health_private", sense: "info", source: SOURCE };
+}
+
 function clasificar(tags: Record<string, string | undefined>): (Omit<LayerRow, "geom" | "name" | "props" | "loaded_at" | "category"> & { category: EnvCategory }) | null {
   const shop = tags.shop;
   const amenity = tags.amenity;
@@ -104,33 +144,39 @@ function clasificar(tags: Record<string, string | undefined>): (Omit<LayerRow, "
   if (shop) {
     return { layer: "osm_poi", category: "shop", sense: "positive", source: SOURCE };
   }
-  if (amenity === "restaurant" || amenity === "cafe") {
-    return { layer: "osm_poi", category: "restaurant", sense: "positive", source: SOURCE };
+  if (amenity === "restaurant" || amenity === "cafe" || amenity === "bar") {
+    return { layer: "osm_poi", category: "hospitality", sense: "info", source: SOURCE };
   }
-  if (amenity === "bar" || amenity === "pub" || amenity === "nightclub") {
+  if (amenity === "pub" || amenity === "nightclub") {
     return { layer: "osm_poi", category: "nightlife", sense: "negative", source: SOURCE };
   }
   if (amenity === "school" || amenity === "kindergarten") {
-    return { layer: "school", category: amenity, sense: "positive", source: SOURCE };
+    const nombre = `${tags.name ?? ""} ${tags["name:es"] ?? ""}`;
+    if (/academia|autoescuela|ludoteca|no reglada/i.test(nombre)) return null;
+    const infantil = amenity === "kindergarten" || /escola infantil|escuela infantil/i.test(nombre);
+    return { layer: "school", category: infantil ? "nursery" : "school", sense: "positive", source: SOURCE };
+  }
+  if (amenity === "dentist") {
+    return { layer: "health", category: "health_private", sense: "info", source: SOURCE };
   }
   if (amenity === "hospital" || amenity === "clinic" || amenity === "doctors") {
-    return { layer: "health", category: "health_center", sense: "positive", source: SOURCE };
+    return clasificarSalud(tags, amenity);
   }
   if (amenity === "pharmacy") return { layer: "osm_poi", category: "pharmacy", sense: "positive", source: SOURCE };
-  if (tags.leisure === "park" || tags.leisure === "playground" || tags.leisure === "garden") {
+  if (tags.leisure === "park" || tags.leisure === "garden") {
     return { layer: "osm_poi", category: "park", sense: "positive", source: SOURCE };
   }
   if (tags.natural === "beach") return { layer: "osm_poi", category: "beach", sense: "positive", source: SOURCE };
   if (
-    amenity === "gym" ||
-    tags.leisure === "fitness_centre" ||
+    amenity === "sports_centre" ||
     tags.leisure === "sports_centre" ||
     tags.leisure === "pitch" ||
-    tags.leisure === "swimming_pool"
+    tags.leisure === "stadium" ||
+    tags.leisure === "track"
   ) {
-    return { layer: "osm_poi", category: "gym", sense: "positive", source: SOURCE };
+    return { layer: "osm_poi", category: "sport", sense: "positive", source: SOURCE };
   }
-  if (tags.highway === "bus_stop" || tags.public_transport === "platform") {
+  if (tags.highway === "bus_stop") {
     return { layer: "gtfs_stop", category: "bus", sense: "positive", source: SOURCE };
   }
   if (tags.railway === "station" || tags.railway === "tram_stop" || tags.railway === "halt") {
@@ -158,9 +204,16 @@ function filaDesdeFeature(f: GeoFeature): LayerRow | null {
   if (!meta) return null;
   const name = tags.name ?? tags["name:es"] ?? null;
   const props: Record<string, unknown> = { ...tags };
+  if (meta.category === "bus") {
+    props.respaldo_gtfs = true;
+    props.nota = "highway=bus_stop de OSM. El feed GTFS del NAP no está disponible sin token.";
+  }
+  if (meta.category === "school" || meta.category === "nursery") props.tipo = tags.amenity ?? meta.category;
+  if (meta.category === "health_center" || meta.category === "hospital") props.publico = true;
 
   let geom: string | null = null;
   if (f.geometry.type === "Point") {
+    if (meta.category === "park") return null;
     const p = coordsPunto(f.geometry.coordinates);
     if (!p || !enBbox(p[1], p[0])) return null;
     geom = puntoWkt(p[0], p[1]);
@@ -184,7 +237,15 @@ function filaDesdeFeature(f: GeoFeature): LayerRow | null {
       }
     }
     if (!rings.length) return null;
-    geom = poligonoWkt(rings[0]);
+    if (meta.category === "park") {
+      const mayor = rings.reduce((a, b) => (areaAnilloM2(b) > areaAnilloM2(a) ? b : a));
+      if (areaAnilloM2(mayor) < 2000) return null;
+      geom = poligonoWkt(cerrar(mayor));
+    } else {
+      geom = poligonoWkt(cerrar(rings[0]));
+    }
+  } else if (meta.category === "park") {
+    return null;
   } else {
     const mid = centroideLinea(f.geometry.type === "MultiLineString" ? (f.geometry.coordinates as unknown[])[0] : f.geometry.coordinates);
     if (!mid || !enBbox(mid[1], mid[0])) return null;
