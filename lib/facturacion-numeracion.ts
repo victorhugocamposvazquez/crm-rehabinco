@@ -64,16 +64,32 @@ function maxFromMatches(numeros: string[], re: RegExp): number {
 }
 
 /**
+ * Siguiente número a partir de los `numero` ya guardados (p. ej. tras editar una factura a 16/2026,
+ * el máximo del ejercicio pasa a 16 y la propuesta será 17/2026). No mira fecha de creación ni huecos.
+ */
+export function siguienteNumeroFacturaDesdeLista(
+  numeros: string[],
+  options: { year: number; esRectificativa: boolean }
+): string {
+  const { year, esRectificativa } = options;
+  const y = String(year);
+  if (esRectificativa) {
+    const next = maxFromMatches(numeros, reRectificativa(year)) + 1;
+    return `FR-${next}/${y}`;
+  }
+  const next = maxFromMatches(numeros, reOrdinaria(year)) + 1;
+  return `${next}/${y}`;
+}
+
+/**
  * Calcula el siguiente número de factura (ordinaria o rectificativa) en el ejercicio `year`.
- * El correlativo se obtiene de los `numero` existentes cuyo formato coincide; no se usa orden
- * lexicográfico del texto.
+ * Lee todos los `numero` visibles en BD para el tipo; el correlativo es max(N)+1 del año en el texto.
  */
 export async function siguienteNumeroFactura(
   supabase: SupabaseClient<Database>,
   options: { year: number; esRectificativa: boolean }
 ): Promise<string> {
-  const { year, esRectificativa } = options;
-  const y = String(year);
+  const { esRectificativa } = options;
 
   if (esRectificativa) {
     const { data, error } = await supabase
@@ -83,8 +99,7 @@ export async function siguienteNumeroFactura(
 
     if (error) throw new Error(error.message);
     const numeros = (data ?? []).map((r) => (r as { numero: string }).numero);
-    const next = maxFromMatches(numeros, reRectificativa(year)) + 1;
-    return `FR-${next}/${y}`;
+    return siguienteNumeroFacturaDesdeLista(numeros, options);
   }
 
   const { data, error } = await supabase
@@ -94,6 +109,5 @@ export async function siguienteNumeroFactura(
 
   if (error) throw new Error(error.message);
   const numeros = (data ?? []).map((r) => (r as { numero: string }).numero);
-  const next = maxFromMatches(numeros, reOrdinaria(year)) + 1;
-  return `${next}/${y}`;
+  return siguienteNumeroFacturaDesdeLista(numeros, options);
 }

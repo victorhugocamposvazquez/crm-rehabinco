@@ -553,8 +553,9 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
                     ) : null}
                   </div>
                   <p className="text-xs text-neutral-500">
-                    {esRectificativa ? "Formato FR-N/AAAA." : "Formato N/AAAA."} Puedes corregirlo si hace falta; al
-                    cambiar la fecha de emisión se propone el siguiente libre salvo que lo hayas editado a mano.
+                    {esRectificativa ? "Formato FR-N/AAAA." : "Formato N/AAAA."} «Siguiente libre» usa el número más
+                    alto del ejercicio en el CRM (también si alguna factura se editó a mano), no rellena huecos. Puedes
+                    cambiarlo antes de guardar.
                   </p>
                 </div>
                 <div className="space-y-2">
