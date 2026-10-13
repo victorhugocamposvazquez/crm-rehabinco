@@ -91,20 +91,24 @@ export default function ValoracionesPage() {
   const paginas = Math.max(1, Math.ceil(total / PAGE));
 
   return (
-    <div>
+    <div className="flex min-w-0 max-w-full flex-col max-[819px]:h-[calc(100dvh-4rem-1.25rem-var(--mobile-content-pb))] max-[819px]:overflow-hidden">
       <PageHeader
         title="Valoraciones"
+        className="shrink-0"
         actions={<Button asChild size="sm"><Link href="/valoraciones/nueva">Nueva valoración</Link></Button>}
       />
-      <ValoracionesNav actual="/valoraciones" />
-      <div className="mb-3 flex gap-2 text-[13px]">
+      <div className="shrink-0">
+        <ValoracionesNav actual="/valoraciones" />
+      </div>
+      <div className="mb-3 flex shrink-0 gap-2 text-[13px]">
         {["", "crm", "landing"].map((c) => (
           <button key={c || "todas"} type="button" className={canal === c ? "font-medium" : "text-[var(--text-3)]"} onClick={() => router.push(c ? `/valoraciones?canal=${c}` : "/valoraciones")}>
             {c || "Todas"}
           </button>
         ))}
       </div>
-      <table className="w-full text-left text-[13px]">
+      <div className="min-w-0 max-w-full overflow-x-auto overscroll-x-contain bg-[var(--background)] max-[819px]:min-h-0 max-[819px]:flex-1 max-[819px]:overflow-y-auto max-[819px]:overscroll-contain">
+      <table className="w-max min-w-full text-left text-[13px]">
         <thead>
           <tr className="text-[var(--text-3)]">
             <th className="py-2 pr-3 font-medium">Dirección</th>
@@ -149,7 +153,8 @@ export default function ValoracionesPage() {
           ))}
         </tbody>
       </table>
-      <div className="mt-4 flex items-center gap-3 text-[13px]">
+      </div>
+      <div className="mt-4 flex shrink-0 items-center gap-3 text-[13px]">
         <span>{total} valoraciones</span>
         {pagina > 1 ? <Link href={`/valoraciones?pagina=${pagina - 1}${canal ? `&canal=${canal}` : ""}`}>Anterior</Link> : null}
         <span>{pagina} / {paginas}</span>

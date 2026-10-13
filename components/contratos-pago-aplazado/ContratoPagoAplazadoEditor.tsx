@@ -45,7 +45,7 @@ import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
 import type { Json } from "@/lib/supabase/types";
 
 const area =
-  "mt-1.5 min-h-[5.5rem] w-full resize-y rounded-[9px] border border-[var(--input)] bg-white px-3 py-2.5 text-[13.5px] outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15 max-[819px]:text-base";
+  "mt-1.5 min-h-[5.5rem] w-full resize-y rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-3 py-2.5 text-[13.5px] text-foreground outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15 max-[819px]:text-base";
 
 function personasVacias(personas: PersonaArras[]) {
   return personas.every((p) => altaCamposVacios(p.nombre, p.estado_civil, p.domicilio, p.dni));
@@ -486,7 +486,7 @@ export function ContratoPagoAplazadoEditor({ contratoId }: { contratoId?: string
 
       {imprimir.dialogo}
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 flex gap-2 border-t border-border bg-white/95 px-4 py-3 min-[820px]:hidden">
+      <div className="fixed bottom-0 left-0 right-0 z-40 flex gap-2 border-t border-border bg-[var(--surface)]/95 px-4 py-3 backdrop-blur-sm min-[820px]:hidden">
         {contratoId ? (
           <Button type="button" variant="secondary" className="shrink-0 text-red-600" onClick={() => setShowDeleteConfirm(true)} aria-label="Eliminar">
             <Trash2 className="h-4 w-4" strokeWidth={1.5} />

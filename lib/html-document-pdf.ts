@@ -1,7 +1,9 @@
-const PAGE_W_PX = 794;
+import { FACTURA_HEADER_H, FACTURA_INK, FACTURA_MUTED, FACTURA_PAGE_W } from "@/lib/factura-pdf";
+
+const PAGE_W_PX = FACTURA_PAGE_W;
 const PAGE_H_PX = 1123;
-const HEADER_W_PX = 794;
-const HEADER_H_PX = 210;
+const HEADER_W_PX = FACTURA_PAGE_W;
+const HEADER_H_PX = FACTURA_HEADER_H;
 
 export async function fetchAsDataUrl(url: string): Promise<string> {
   const res = await fetch(url);
@@ -26,9 +28,8 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-/** Cabecera de la 1.ª hoja: Torre de Hércules + logo blanco, ya recortados. */
+/** Cabecera minimal de la 1.ª hoja (logo + número + fecha). */
 export async function composeInvoiceHeaderImage(params: {
-  fondoDataUrl: string;
   logoDataUrl: string;
   numeroLabel: string;
   fecha: string;
@@ -36,10 +37,8 @@ export async function composeInvoiceHeaderImage(params: {
   const scale = 2;
   const W = HEADER_W_PX * scale;
   const H = HEADER_H_PX * scale;
-  const [fondo, logo] = await Promise.all([
-    loadImage(params.fondoDataUrl),
-    loadImage(params.logoDataUrl),
-  ]);
+  const padX = 48 * scale;
+  const logo = await loadImage(params.logoDataUrl);
 
   const canvas = document.createElement("canvas");
   canvas.width = W;
@@ -47,23 +46,11 @@ export async function composeInvoiceHeaderImage(params: {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("No se pudo generar la cabecera de la factura.");
 
-  ctx.fillStyle = "#0B1D2E";
+  ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, W, H);
 
-  const cover = Math.max(W / fondo.naturalWidth, H / fondo.naturalHeight);
-  const fw = fondo.naturalWidth * cover;
-  const fh = fondo.naturalHeight * cover;
-  ctx.drawImage(fondo, (W - fw) / 2, (H - fh) / 2, fw, fh);
-
-  const overlay = ctx.createLinearGradient(0, 0, 0, H);
-  overlay.addColorStop(0, "rgba(11,29,46,0.04)");
-  overlay.addColorStop(0.75, "rgba(11,29,46,0.16)");
-  overlay.addColorStop(1, "rgba(11,29,46,0.32)");
-  ctx.fillStyle = overlay;
-  ctx.fillRect(0, 0, W, H);
-
-  const maxLogoH = 180;
-  const maxLogoW = 248;
+  const maxLogoH = 52 * scale;
+  const maxLogoW = 200 * scale;
   const ratio = logo.naturalWidth / Math.max(logo.naturalHeight, 1);
   let lh = maxLogoH;
   let lw = lh * ratio;
@@ -71,19 +58,22 @@ export async function composeInvoiceHeaderImage(params: {
     lw = maxLogoW;
     lh = lw / ratio;
   }
-  ctx.drawImage(logo, 56, (H - lh) / 2, lw, lh);
+  const contentH = H - 4 * scale;
+  ctx.drawImage(logo, padX, (contentH - lh) / 2, lw, lh);
 
-  ctx.fillStyle = "#ffffff";
   ctx.textAlign = "right";
-  ctx.textBaseline = "middle";
-  ctx.font = "600 28px Helvetica, Arial, sans-serif";
-  ctx.fillText(params.numeroLabel, W - 56, H / 2 - 16);
-  ctx.globalAlpha = 0.9;
-  ctx.font = "400 24px Helvetica, Arial, sans-serif";
-  ctx.fillText(params.fecha, W - 56, H / 2 + 22);
-  ctx.globalAlpha = 1;
+  ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = FACTURA_INK;
+  ctx.font = `600 ${13 * scale}px "Segoe UI", system-ui, Helvetica, Arial, sans-serif`;
+  ctx.fillText(params.numeroLabel.toUpperCase(), W - padX, contentH / 2 - 2 * scale);
+  ctx.fillStyle = FACTURA_MUTED;
+  ctx.font = `400 ${12 * scale}px "Segoe UI", system-ui, Helvetica, Arial, sans-serif`;
+  ctx.fillText(params.fecha, W - padX, contentH / 2 + 16 * scale);
 
-  return canvas.toDataURL("image/jpeg", 0.92);
+  ctx.fillStyle = FACTURA_INK;
+  ctx.fillRect(0, H - 3 * scale, W, 3 * scale);
+
+  return canvas.toDataURL("image/png");
 }
 
 function waitForImages(doc: Document): Promise<void> {
@@ -193,7 +183,8 @@ export async function saveHtmlDocumentPdf(params: {
       if (page > 0) pdf.addPage("a4", "portrait");
       pdf.addImage(img, "JPEG", 0, 0, 210, 297, undefined, "FAST");
       if (page === 0 && params.firstPageBanner) {
-        pdf.addImage(params.firstPageBanner, "JPEG", 0, 0, 210, headerMm);
+        const bannerFmt = params.firstPageBanner.startsWith("data:image/png") ? "PNG" : "JPEG";
+        pdf.addImage(params.firstPageBanner, bannerFmt, 0, 0, 210, headerMm);
       }
       srcY += take;
       page += 1;

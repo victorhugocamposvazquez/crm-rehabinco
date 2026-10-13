@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,7 +12,13 @@ import {
 } from "@/lib/validations/factura";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { anioEmisionFecha, siguienteNumeroFactura } from "@/lib/facturacion-numeracion";
+import {
+  anioEmisionFecha,
+  normalizarNumeroFactura,
+  numeroFacturaEnUso,
+  siguienteNumeroFactura,
+  validarFormatoNumeroFactura,
+} from "@/lib/facturacion-numeracion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,7 +59,8 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
   const [estadoInicial, setEstadoInicial] = useState<EstadoFactura>("emitida");
   const [clientes, setClientes] = useState<Array<{ id: string; nombre: string }>>([]);
   const [loading, setLoading] = useState(!!facturaId || !!facturaOriginalId);
-  const [numero, setNumero] = useState<string | null>(null);
+  const [numero, setNumero] = useState("");
+  const numeroEditadoManual = useRef(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [irpfPorcentaje, setIrpfPorcentaje] = useState<number>(0);
@@ -85,6 +92,29 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
       causaRectificacion: "",
     },
   });
+
+  const fechaEmisionWatch = formStep1.watch("fechaEmision");
+
+  const aplicarSiguienteNumero = useCallback(async () => {
+    const supabase = createClient();
+    const year = anioEmisionFecha(fechaEmisionWatch || today);
+    try {
+      const n = await siguienteNumeroFactura(supabase, {
+        year,
+        esRectificativa,
+      });
+      setNumero(n);
+      numeroEditadoManual.current = false;
+    } catch {
+      /* el guardado mostrará el error si falla */
+    }
+  }, [esRectificativa, fechaEmisionWatch, today]);
+
+  useEffect(() => {
+    if (facturaId || loading) return;
+    if (numeroEditadoManual.current) return;
+    void aplicarSiguienteNumero();
+  }, [aplicarSiguienteNumero, facturaId, loading]);
 
   useEffect(() => {
     if (!initialClienteId || facturaId) return;
@@ -177,6 +207,7 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
         return;
       }
       setNumero(factura.numero);
+      numeroEditadoManual.current = true;
       const step1Values = {
         clienteId: factura.cliente_id ?? "",
         concepto: factura.concepto ?? "",
@@ -310,6 +341,25 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
       setCreating(false);
       return;
     }
+    const numeroFinal = normalizarNumeroFactura(numero);
+    const errorFormato = validarFormatoNumeroFactura(numeroFinal, esRectificativa);
+    if (errorFormato) {
+      setCreateError(errorFormato);
+      setCreating(false);
+      return;
+    }
+    try {
+      if (await numeroFacturaEnUso(supabase, numeroFinal, facturaId ?? undefined)) {
+        setCreateError("Ese número de factura ya existe. Elige otro.");
+        setCreating(false);
+        return;
+      }
+    } catch (e) {
+      setCreateError(e instanceof Error ? e.message : "No se ha podido comprobar el número.");
+      setCreating(false);
+      return;
+    }
+
     const clienteId = data.clienteId || null;
     const lineasNetas = commitLineasDrafts((data.lineas ?? lineas) as LineaConBorrador[]);
     const lineasToSave = lineasNetas.map((l, orden) => ({
@@ -324,6 +374,7 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
       const { data: guardada, error: errFactura } = await supabase
         .from("facturas")
         .update({
+          numero: numeroFinal,
           cliente_id: clienteId,
           estado: estadoInicial,
           concepto: data.concepto || null,
@@ -363,23 +414,10 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
       return;
     }
 
-    const year = anioEmisionFecha(data.fechaEmision);
-    let numero: string;
-    try {
-      numero = await siguienteNumeroFactura(supabase, {
-        year,
-        esRectificativa: esRectificativa,
-      });
-    } catch (e) {
-      setCreateError(e instanceof Error ? e.message : "Error al asignar el número de factura");
-      setCreating(false);
-      return;
-    }
-
     const insertPayload: Record<string, unknown> = {
       user_id: user.id,
       cliente_id: clienteId,
-      numero,
+      numero: numeroFinal,
       estado: estadoInicial,
       concepto: data.concepto || null,
       fecha_emision: data.fechaEmision || null,
@@ -480,9 +518,6 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
           <Card>
             <CardHeader>
               <CardTitle>{esRectificativa ? "Rectificativa" : "Cliente y fechas"}</CardTitle>
-              {numero && (
-                <p className="text-sm font-medium text-neutral-500">{numero}</p>
-              )}
               {esRectificativa && facturaOriginalNumero && (
                 <p className="text-sm text-neutral-600">
                   Rectifica factura: <span className="font-medium">{facturaOriginalNumero}</span>
@@ -491,6 +526,37 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
             </CardHeader>
             <CardContent className="min-w-0 overflow-x-hidden">
               <form id="factura-step1-form" onSubmit={onStep1} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="numero-factura">Número de factura</Label>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <Input
+                      id="numero-factura"
+                      value={numero}
+                      onChange={(e) => {
+                        numeroEditadoManual.current = true;
+                        setNumero(e.target.value);
+                      }}
+                      placeholder={esRectificativa ? "FR-1/2026" : "1/2026"}
+                      autoComplete="off"
+                      className="font-medium tabular-nums sm:max-w-[12rem]"
+                    />
+                    {!facturaId ? (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="shrink-0"
+                        onClick={() => void aplicarSiguienteNumero()}
+                      >
+                        Siguiente libre
+                      </Button>
+                    ) : null}
+                  </div>
+                  <p className="text-xs text-neutral-500">
+                    {esRectificativa ? "Formato FR-N/AAAA." : "Formato N/AAAA."} Puedes corregirlo si hace falta; al
+                    cambiar la fecha de emisión se propone el siguiente libre salvo que lo hayas editado a mano.
+                  </p>
+                </div>
                 <div className="space-y-2">
                   <Label>Cliente *</Label>
                   <Selector
@@ -801,6 +867,10 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
             </CardHeader>
             <CardContent className="space-y-4">
               <dl className="grid gap-2 text-sm">
+                <div>
+                  <dt className="text-neutral-500">Número</dt>
+                  <dd className="font-medium tabular-nums">{numero || "—"}</dd>
+                </div>
                 <div>
                   <dt className="text-neutral-500">Cliente</dt>
                   <dd className="font-medium">{clienteNombre}</dd>

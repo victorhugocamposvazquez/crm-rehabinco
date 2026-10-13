@@ -16,6 +16,41 @@ export function anioEmisionFecha(fechaEmision: string | null | undefined): numbe
 const reOrdinaria = (year: number) => new RegExp(`^(\\d+)/${year}$`);
 const reRectificativa = (year: number) => new RegExp(`^FR-(\\d+)/${year}$`);
 
+const RE_FORMATO_ORDINARIA = /^\d+\/\d{4}$/;
+const RE_FORMATO_RECTIFICATIVA = /^FR-\d+\/\d{4}$/;
+
+/** Devuelve mensaje de error o null si el formato es válido. */
+export function validarFormatoNumeroFactura(numero: string, esRectificativa: boolean): string | null {
+  const n = numero.trim();
+  if (!n) return "Indica el número de factura.";
+  const ok = esRectificativa ? RE_FORMATO_RECTIFICATIVA.test(n) : RE_FORMATO_ORDINARIA.test(n);
+  if (!ok) {
+    return esRectificativa
+      ? "Formato: FR-N/AAAA (ej. FR-3/2026)."
+      : "Formato: N/AAAA (ej. 12/2026).";
+  }
+  return null;
+}
+
+export function normalizarNumeroFactura(numero: string): string {
+  return numero.trim();
+}
+
+/** True si ya existe otra factura con ese número (cualquier usuario del CRM). */
+export async function numeroFacturaEnUso(
+  supabase: SupabaseClient<Database>,
+  numero: string,
+  excludeFacturaId?: string
+): Promise<boolean> {
+  const n = normalizarNumeroFactura(numero);
+  if (!n) return false;
+  let query = supabase.from("facturas").select("id").eq("numero", n).limit(1);
+  if (excludeFacturaId) query = query.neq("id", excludeFacturaId);
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  return (data?.length ?? 0) > 0;
+}
+
 function maxFromMatches(numeros: string[], re: RegExp): number {
   let max = 0;
   for (const n of numeros) {

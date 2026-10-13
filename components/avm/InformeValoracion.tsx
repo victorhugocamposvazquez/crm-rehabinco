@@ -126,7 +126,7 @@ export function InformeValoracion({
               {penalizacionesVisibles.length ? (
                 penalizacionesVisibles.map((p) => (
                   <li key={p.reason} className="flex gap-2">
-                    <span className="shrink-0 font-medium tabular-nums text-red-500">−{p.points}</span>
+                    <span className="shrink-0 font-medium tabular-nums text-red-500 dark:text-red-400">−{p.points}</span>
                     <span>{etiquetaPenalizacion(p.reason, ctx)}</span>
                   </li>
                 ))

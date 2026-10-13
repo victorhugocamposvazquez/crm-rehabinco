@@ -11,7 +11,9 @@
   --label: #6B6B6B;
   --text-3: #8A8A8A;
   --border: #ECECEC;
+  --border-strong: #c9c9c3;
   --border-soft: #F2F2F2;
+  --pdf-desk: #d9d6cf;
   --border-row: #F4F4F4;
   --input: #E0E0E0;
   --accent: #111111;
@@ -55,7 +57,9 @@
   --label: #b0b0b0;
   --text-3: #9a9a9a;
   --border: #2a2a2a;
+  --border-strong: #36363d;
   --border-soft: #222222;
+  --pdf-desk: #2a2826;
   --border-row: #222222;
   --input: #383838;
   --accent: #ffffff;
@@ -383,7 +387,6 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
 .dark .text-\[\#8A9692\] {
   color: var(--foreground);
 }
-.dark .bg-\[\#d9d6cf\],
 .dark .bg-\[\#F6F5F1\],
 .dark .bg-\[\#f7f5f2\],
 .dark .bg-\[\#e8e5df\],
@@ -434,6 +437,60 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
 .dark .avatar-comercial[data-gris="3"] { background: #b0b0b0 !important; color: #141414 !important; }
 .dark .avatar-comercial[data-gris="4"] { background: #9c9c9c !important; color: #141414 !important; }
 .dark .avatar-comercial[data-gris="5"] { background: #8a8a8a !important; color: #141414 !important; }
+
+/* Visor PDF: mesa alrededor del papel (no confundir con el documento). */
+.pdf-preview-visor {
+  background-color: var(--pdf-desk);
+}
+
+/* El documento en pantalla imita papel A4 aunque el CRM esté en oscuro. */
+.documento-papel {
+  color-scheme: light;
+  color: #111111;
+}
+.dark .documento-papel.bg-white,
+.dark .documento-papel .bg-white,
+.dark .documento-papel .bg-white\/80,
+.dark .documento-papel .bg-white\/95 {
+  background-color: #ffffff !important;
+}
+.dark .documento-papel .bg-\[\#f7f5f2\],
+.dark .documento-papel .bg-\[\#F5F8FA\],
+.dark .documento-papel .bg-neutral-50,
+.dark .documento-papel .bg-neutral-100 {
+  background-color: #f7f5f2 !important;
+}
+.dark .documento-papel .bg-neutral-900 {
+  background-color: #171717 !important;
+  color: #ffffff !important;
+}
+.dark .documento-papel .text-neutral-900,
+.dark .documento-papel .text-neutral-800,
+.dark .documento-papel .text-neutral-700 {
+  color: #171717 !important;
+}
+.dark .documento-papel .text-neutral-600,
+.dark .documento-papel .text-neutral-500,
+.dark .documento-papel .text-neutral-400 {
+  color: #525252 !important;
+}
+.dark .documento-papel .border-neutral-100,
+.dark .documento-papel .border-neutral-200 {
+  border-color: #e5e5e5 !important;
+}
+.dark .documento-papel .bg-\[\#E7EEF2\] {
+  background-color: #e7eef2 !important;
+  color: #3a6a82 !important;
+}
+
+/* Vista previa de logotipos sobre fondo claro en ajustes. */
+.logo-preview-plate {
+  display: inline-block;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #ffffff !important;
+  padding: 12px 16px;
+}
 
 /* Caja abierta encima del contenido: un tono por encima de las tarjetas, para que no se funda. */
 .caja-flotante {

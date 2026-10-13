@@ -76,14 +76,16 @@ function EmisorForm({
           autoComplete="off"
         />
         {form.logo_url.trim() && typeof window !== "undefined" ? (
-          <img
-            src={resolveInvoiceLogoUrl(form.logo_url, window.location.origin)}
-            alt={`Vista previa logo ${form.nombre_corto}`}
-            className="mt-2 h-12 w-auto max-w-[200px] object-contain"
-            onError={(ev) => {
-              (ev.target as HTMLImageElement).style.display = "none";
-            }}
-          />
+          <span className="logo-preview-plate mt-2">
+            <img
+              src={resolveInvoiceLogoUrl(form.logo_url, window.location.origin)}
+              alt={`Vista previa logo ${form.nombre_corto}`}
+              className="h-10 w-auto max-w-[200px] object-contain"
+              onError={(ev) => {
+                (ev.target as HTMLImageElement).style.display = "none";
+              }}
+            />
+          </span>
         ) : null}
       </div>
       <div className="space-y-2">

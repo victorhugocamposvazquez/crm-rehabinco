@@ -347,7 +347,7 @@ export function PresupuestoCopiloto({
           <div className="grid min-h-0 flex-1 md:grid-cols-[minmax(20rem,24.5rem)_minmax(0,1fr)]">
             <section
               className={cn(
-                "flex h-full min-h-0 flex-col bg-[#f3f1ed]",
+                "flex h-full min-h-0 flex-col bg-[var(--surface-soft)]",
                 mobilePane === "canvas" ? "hidden md:flex" : "flex"
               )}
             >
@@ -603,7 +603,7 @@ function DocumentoVivo({
   return (
     <section
       className={cn(
-        "flex h-full min-h-0 flex-col bg-[#e8e5df]",
+        "pdf-preview-visor flex h-full min-h-0 flex-col",
         hiddenOnMobile ? "hidden md:flex" : "flex"
       )}
     >
@@ -647,7 +647,7 @@ function DocumentoVivo({
       <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4 pt-1 md:px-8 md:pb-8 md:pt-2">
         {empty ? (
           <div className="flex h-full min-h-[280px] items-center justify-center">
-            <div className="max-w-sm rounded-[1.75rem] bg-white/80 px-8 py-12 text-center shadow-[0_12px_40px_rgba(28,25,23,0.06)]">
+            <div className="documento-papel max-w-sm rounded-[1.75rem] bg-white/80 px-8 py-12 text-center shadow-[0_12px_40px_rgba(28,25,23,0.06)]">
               <LogoRehabinco className="mx-auto mb-6 h-10 w-auto max-w-[200px]" />
               <p className="text-[17px] font-medium tracking-tight">El documento sale aquí</p>
               <p className="mt-2 text-[14px] leading-relaxed text-neutral-500">
@@ -656,7 +656,7 @@ function DocumentoVivo({
             </div>
           </div>
         ) : (
-          <article className="mx-auto min-h-full max-w-[52rem] rounded-[1.5rem] bg-white px-6 py-8 shadow-[0_16px_50px_rgba(28,25,23,0.08)] md:px-12 md:py-12">
+          <article className="documento-papel mx-auto min-h-full max-w-[52rem] rounded-[1.5rem] bg-white px-6 py-8 shadow-[0_16px_50px_rgba(28,25,23,0.08)] md:px-12 md:py-12">
             <div className="mb-8 flex items-start justify-between gap-4">
               <img
                 src={estado.emisor === "garal" ? LOGO_GARAL : LOGO_REHABINCO}

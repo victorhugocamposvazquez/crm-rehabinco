@@ -156,17 +156,19 @@ export default function EmpresaFacturacionPage() {
                   autoComplete="off"
                 />
                 <p className="text-xs text-neutral-500">
-                  URL pública o ruta bajo el mismo sitio. Vacío o el logo web de Rehabinco: en la factura se usa el logotipo blanco sobre la cabecera azul con la Torre de Hércules.
+                  URL pública o ruta bajo el mismo sitio. Vacío: logo Rehabinco sobre cabecera clara en el PDF de factura.
                 </p>
-                {form.logo_url.trim() && typeof window !== "undefined" ? (
-                  <img
-                    src={resolveInvoiceLogoUrl(form.logo_url, window.location.origin)}
-                    alt="Vista previa logo"
-                    className="mt-2 h-12 w-auto max-w-[200px] object-contain"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
+                {typeof window !== "undefined" ? (
+                  <span className="logo-preview-plate mt-2">
+                    <img
+                      src={resolveInvoiceLogoUrl(form.logo_url, window.location.origin)}
+                      alt="Vista previa logo"
+                      className="h-10 w-auto max-w-[200px] object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  </span>
                 ) : null}
               </div>
               <div className="space-y-2">

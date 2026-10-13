@@ -101,7 +101,7 @@ export function GaralPartidasEditor({
         <strong>partida</strong> (1.01, 1.02…).
       </p>
       {caps.map((cap) => (
-        <div key={cap.indices[0]} className="overflow-hidden rounded-xl border border-border bg-white">
+        <div key={cap.indices[0]} className="overflow-hidden rounded-xl border border-border bg-[var(--surface)]">
           <div className="space-y-2 border-b border-border bg-neutral-50 px-4 py-3">
             <div className="flex items-end gap-2">
               <div className="min-w-0 flex-1 space-y-1.5">
@@ -154,7 +154,7 @@ export function GaralPartidasEditor({
                   <div className="space-y-1.5">
                     <Label>Descripción de la partida</Label>
                     <textarea
-                      className="flex min-h-[72px] w-full rounded-lg border border-border bg-white px-4 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="flex min-h-[72px] w-full rounded-lg border border-border bg-[var(--field)] px-4 py-2 text-base text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       placeholder="Ej. Limpieza, lijado y desoxidado manual de barandilla metálica"
                       value={l.descripcion}
                       onChange={(e) => patch(i, { descripcion: e.target.value })}

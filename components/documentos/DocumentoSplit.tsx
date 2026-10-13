@@ -98,7 +98,7 @@ export function PdfFrame({
           )}
         </div>
       </div>
-      <div ref={caja} className="overflow-auto bg-[#d9d6cf] p-3 min-[820px]:max-h-[calc(100dvh-9.5rem)]">
+      <div ref={caja} className="pdf-preview-visor overflow-auto p-3 min-[820px]:max-h-[calc(100dvh-9.5rem)]">
         <div style={{ height: alto * scale, width: "100%" }}>
           <iframe
             ref={iframeRef}

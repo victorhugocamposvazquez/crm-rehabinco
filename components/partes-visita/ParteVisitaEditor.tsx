@@ -36,7 +36,7 @@ import { cn } from "@/lib/utils";
 import { Selector } from "@/components/ui/selector";
 
 const area =
-  "mt-1.5 min-h-[5rem] w-full resize-y rounded-[9px] border border-[var(--input)] bg-white px-3 py-2.5 text-[13.5px] outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15 max-[819px]:text-base";
+  "mt-1.5 min-h-[5rem] w-full resize-y rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-3 py-2.5 text-[13.5px] text-foreground outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15 max-[819px]:text-base";
 
 type Snap = {
   propiedadId: string;
@@ -475,11 +475,11 @@ export function ParteVisitaEditor({
                 </div>
                 <div>
                   <Label htmlFor="hora">Desde</Label>
-                  <TimeInput id="hora" className="mt-1.5 flex h-9 w-full rounded-[9px] border border-[var(--input)] bg-white px-3 py-2 text-[13.5px]" value={horaVisita} onChange={setHoraVisita} />
+                  <TimeInput id="hora" className="mt-1.5 flex h-9 w-full rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-3 py-2 text-[13.5px] text-foreground" value={horaVisita} onChange={setHoraVisita} />
                 </div>
                 <div>
                   <Label htmlFor="hora-fin">Hasta</Label>
-                  <TimeInput id="hora-fin" className="mt-1.5 flex h-9 w-full rounded-[9px] border border-[var(--input)] bg-white px-3 py-2 text-[13.5px]" value={horaFin} onChange={setHoraFin} />
+                  <TimeInput id="hora-fin" className="mt-1.5 flex h-9 w-full rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-3 py-2 text-[13.5px] text-foreground" value={horaFin} onChange={setHoraFin} />
                 </div>
               </div>
             </section>
@@ -549,7 +549,7 @@ export function ParteVisitaEditor({
 
       {imprimir.dialogo}
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 flex gap-2 border-t border-border bg-white/95 px-4 py-3 min-[820px]:hidden">
+      <div className="fixed bottom-0 left-0 right-0 z-40 flex gap-2 border-t border-border bg-[var(--surface)]/95 px-4 py-3 backdrop-blur-sm min-[820px]:hidden">
         <Button type="button" variant="secondary" className="flex-1" onClick={imprimir.pedirImprimir}>
           Imprimir
         </Button>

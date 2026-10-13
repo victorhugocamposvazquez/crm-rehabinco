@@ -118,7 +118,7 @@ export function PrintOverlay({ html, onClose }: { html: string; onClose: () => v
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex flex-col bg-white" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-[9999] flex flex-col bg-[var(--surface)]" role="dialog" aria-modal="true">
       <div className="flex items-center justify-between border-b border-border px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <div>
           <h2 className="text-[15px] font-semibold">Vista de impresión</h2>
@@ -131,9 +131,9 @@ export function PrintOverlay({ html, onClose }: { html: string; onClose: () => v
         </Button>
       </div>
 
-      <div ref={cajaRef} className="relative min-h-0 flex-1 overflow-auto bg-[#d9d6cf] p-2">
+      <div ref={cajaRef} className="pdf-preview-visor relative min-h-0 flex-1 overflow-auto p-2">
         {cargando ? (
-          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-[#d9d6cf]/80">
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-[var(--pdf-desk)]/80">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-foreground" />
           </div>
         ) : null}

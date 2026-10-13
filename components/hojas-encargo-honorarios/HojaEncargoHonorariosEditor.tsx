@@ -421,7 +421,7 @@ export function HojaEncargoHonorariosEditor({ documentoId }: { documentoId?: str
 
       {imprimir.dialogo}
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 flex gap-2 border-t border-border bg-white/95 px-4 py-3 min-[820px]:hidden">
+      <div className="fixed bottom-0 left-0 right-0 z-40 flex gap-2 border-t border-border bg-[var(--surface)]/95 px-4 py-3 backdrop-blur-sm min-[820px]:hidden">
         {documentoId ? (
           <Button
             type="button"

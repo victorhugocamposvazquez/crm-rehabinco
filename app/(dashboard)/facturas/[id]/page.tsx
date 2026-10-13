@@ -4,11 +4,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import {
-  fetchEmisorFacturacion,
-  invoiceFondoUrl,
-  resolveInvoiceLogoUrl,
-} from "@/lib/empresa-facturacion";
+import { fetchEmisorFacturacion, resolveInvoiceLogoUrl } from "@/lib/empresa-facturacion";
+import { FACTURA_HEADER_H, FACTURA_PAGE_W, facturaDocumentStyles } from "@/lib/factura-pdf";
 import { fetchAsDataUrl, composeInvoiceHeaderImage, saveHtmlDocumentPdf } from "@/lib/html-document-pdf";
 import { toast } from "sonner";
 import { FacturaDetailSkeleton } from "@/components/facturas/FacturaDetailSkeleton";
@@ -249,14 +246,13 @@ export default function DetalleFacturaPage() {
         const ivaPct = Number(l.iva_porcentaje ?? 21) || 0;
         const ivaLinea = base * (ivaPct / 100);
         const totalLinea = base + ivaLinea;
-        const bg = i % 2 === 1 ? "background:#f5f5f5;" : "";
         return `
-        <tr style="${bg}">
-          <td style="padding:12px 10px;border-bottom:1px solid #e5e5e5;">${htmlEsc(l.descripcion)}</td>
-          <td style="padding:12px 10px;border-bottom:1px solid #e5e5e5;text-align:right;">${Number(l.cantidad).toFixed(2)}</td>
-          <td style="padding:12px 10px;border-bottom:1px solid #e5e5e5;text-align:right;">${formatCurrency(base)}</td>
-          <td style="padding:12px 10px;border-bottom:1px solid #e5e5e5;text-align:right;">${formatCurrency(ivaLinea)}</td>
-          <td style="padding:12px 10px;border-bottom:1px solid #e5e5e5;text-align:right;">${formatCurrency(totalLinea)}</td>
+        <tr>
+          <td>${htmlEsc(l.descripcion)}</td>
+          <td class="num">${Number(l.cantidad).toFixed(2)}</td>
+          <td class="num">${formatCurrency(base)}</td>
+          <td class="num">${formatCurrency(ivaLinea)}</td>
+          <td class="num">${formatCurrency(totalLinea)}</td>
         </tr>
       `;
       })
@@ -271,14 +267,10 @@ export default function DetalleFacturaPage() {
       : "—";
     const esRectificativa = factura.tipo_factura === "rectificativa";
     const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const [logoUrl, fondoUrl] = await Promise.all([
-      fetchAsDataUrl(resolveInvoiceLogoUrl(emisor.logo_url, origin)),
-      fetchAsDataUrl(invoiceFondoUrl(origin)),
-    ]);
+    const logoUrl = await fetchAsDataUrl(resolveInvoiceLogoUrl(emisor.logo_url, origin));
     const headerUrl = await composeInvoiceHeaderImage({
-      fondoDataUrl: fondoUrl,
       logoDataUrl: logoUrl,
-      numeroLabel: `${esRectificativa ? "FACTURA RECTIFICATIVA Nº" : "FACTURA Nº"}: ${factura.numero}`,
+      numeroLabel: `${esRectificativa ? "Factura rectificativa nº" : "Factura nº"} ${factura.numero}`,
       fecha: fechaFormateada,
     });
     const fechaOriginalFormateada = facturaOriginal?.fecha_emision
@@ -308,76 +300,68 @@ export default function DetalleFacturaPage() {
       return;
     }
 
-    const empresaEmailLine = emisor.email
-      ? `<p style="margin:4px 0 0 0; font-weight:600;">${htmlEsc(emisor.email)}</p>`
-      : "";
-    const empresaTelLine = emisor.telefono
-      ? `<p style="margin:4px 0 0 0; font-weight:600;">Tel. ${htmlEsc(emisor.telefono)}</p>`
-      : "";
+    const empresaEmailLine = emisor.email ? `<p>${htmlEsc(emisor.email)}</p>` : "";
+    const empresaTelLine = emisor.telefono ? `<p>Tel. ${htmlEsc(emisor.telefono)}</p>` : "";
 
     const facturaBodyInner = `
-          <img class="invoice-header" src=${JSON.stringify(headerUrl)} alt="" width="794" height="210" />
+          <img class="invoice-header" src=${JSON.stringify(headerUrl)} alt="" width="${FACTURA_PAGE_W}" height="${FACTURA_HEADER_H}" />
           <div class="invoice-body">
             ${esRectificativa && (facturaOriginal || factura.causa_rectificacion) ? `
-            <div style="margin-bottom:24px; padding:12px 16px; background:#fef3c7; border:1px solid #fcd34d; border-radius:8px;">
-              <p style="margin:0 0 6px 0; font-size:12px; font-weight:700; color:#92400e;">DOCUMENTO RECTIFICATIVO</p>
-              ${facturaOriginal ? `<p style="margin:0; font-size:12px; color:#78350f;">Rectifica la factura nº ${htmlEsc(facturaOriginal.numero)}${fechaOriginalFormateada ? `, de fecha ${htmlEsc(fechaOriginalFormateada)}` : ""}.</p>` : ""}
-              ${factura.causa_rectificacion ? `<p style="margin:6px 0 0 0; font-size:12px; color:#78350f;"><strong>Causa:</strong> ${htmlEsc(factura.causa_rectificacion)}</p>` : ""}
+            <div class="inv-rect">
+              <p class="inv-rect-title">Documento rectificativo</p>
+              ${facturaOriginal ? `<p>Rectifica la factura nº ${htmlEsc(facturaOriginal.numero)}${fechaOriginalFormateada ? `, de fecha ${htmlEsc(fechaOriginalFormateada)}` : ""}.</p>` : ""}
+              ${factura.causa_rectificacion ? `<p style="margin-top:6px;"><strong>Causa:</strong> ${htmlEsc(factura.causa_rectificacion)}</p>` : ""}
             </div>
             ` : ""}
 
-            <table style="width:100%; margin-bottom:24px; border-collapse:collapse;">
-              <tr>
-                <td style="vertical-align:top; width:50%; padding-right:20px;">
-                  <p style="margin:0 0 8px 0; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#333;">Datos empresa</p>
-                  <p style="margin:0; font-weight:600;">${htmlEsc(emisor.razon_social)}</p>
-                  <p style="margin:0; font-weight:600;">${htmlEsc(emisor.direccion)}</p>
-                  <p style="margin:0; font-weight:600;">${htmlEsc(emisor.codigo_postal)} ${htmlEsc(emisor.localidad)} (${htmlEsc(emisor.provincia)})</p>
-                  <p style="margin:0; font-weight:600;">${htmlEsc(emisor.nif)}</p>
+            <div class="inv-block inv-grid">
+              <div class="inv-grid-row">
+                <div class="inv-grid-cell inv-party">
+                  <p class="inv-label">Emisor</p>
+                  <p><strong>${htmlEsc(emisor.razon_social)}</strong></p>
+                  <p>${htmlEsc(emisor.direccion)}</p>
+                  <p>${htmlEsc(emisor.codigo_postal)} ${htmlEsc(emisor.localidad)} · ${htmlEsc(emisor.provincia)}</p>
+                  <p>${htmlEsc(emisor.nif)}</p>
                   ${empresaEmailLine}
                   ${empresaTelLine}
-                </td>
-                <td style="vertical-align:top; width:50%; text-align:right;">
-                  <p style="margin:0 0 8px 0; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#333;">Datos cliente</p>
-                  <p style="margin:0; font-weight:600;">${clienteNombre}</p>
-                  <p style="margin:0; font-weight:600;">${clienteDireccion}</p>
-                  <p style="margin:0; font-weight:600;">${docLabel}: ${clienteDoc}</p>
-                  <p style="margin:0; font-weight:600;">${clienteEmail}</p>
-                  ${clienteTelefono ? `<p style="margin:0; font-weight:600;">${clienteTelefono}</p>` : ""}
-                </td>
-              </tr>
-            </table>
+                </div>
+                <div class="inv-grid-cell inv-grid-cell--right inv-party">
+                  <p class="inv-label">Cliente</p>
+                  <p><strong>${clienteNombre}</strong></p>
+                  <p>${clienteDireccion}</p>
+                  <p>${docLabel}: ${clienteDoc}</p>
+                  <p>${clienteEmail}</p>
+                  ${clienteTelefono ? `<p>${clienteTelefono}</p>` : ""}
+                </div>
+              </div>
+            </div>
 
-            <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+            <table class="inv-table">
               <thead>
                 <tr>
-                  <th style="padding:10px 8px; border-bottom:1px solid #ccc; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#444;">Descripción / Producto</th>
-                  <th style="padding:10px 8px; border-bottom:1px solid #ccc; text-align:right; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#444;">Cantidad</th>
-                  <th style="padding:10px 8px; border-bottom:1px solid #ccc; text-align:right; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#444;">Base</th>
-                  <th style="padding:10px 8px; border-bottom:1px solid #ccc; text-align:right; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#444;">IVA</th>
-                  <th style="padding:10px 8px; border-bottom:1px solid #ccc; text-align:right; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#444;">Total</th>
+                  <th>Concepto</th>
+                  <th class="num">Cant.</th>
+                  <th class="num">Base</th>
+                  <th class="num">IVA</th>
+                  <th class="num">Total</th>
                 </tr>
               </thead>
               <tbody>${lineasHtml}</tbody>
             </table>
 
-            <div style="margin-left:auto; width:260px; font-size:14px;">
-              <p style="display:flex; justify-content:space-between; margin:6px 0;"><span>Base Imponible</span><span>${formatCurrency(baseImponible)}</span></p>
-              <p style="display:flex; justify-content:space-between; margin:6px 0;"><span>IVA</span><span>${formatCurrency(ivaImporte)}</span></p>
-              ${porcentajeDescuento > 0 ? `<p style="display:flex; justify-content:space-between; margin:6px 0;"><span>Descuento (${porcentajeDescuento}%)</span><span>- ${formatCurrency(descuentoImporte)}</span></p>` : ""}
-              ${irpfPorcentaje > 0 ? `<p style="display:flex; justify-content:space-between; margin:6px 0;"><span>Retención (${irpfPorcentaje}%)</span><span>- ${formatCurrency(irpfImporte)}</span></p>` : ""}
-              <p style="display:flex; justify-content:space-between; margin:12px 0 0 0; padding-top:10px; border-top:1px solid #ccc; font-weight:700; font-size:16px;">
-                <span>Total</span><span>${formatCurrency(totalConIva)}</span>
-              </p>
+            <div class="inv-totals-wrap">
+              <div class="inv-totals">
+                <p class="inv-totals-row"><span>Base imponible</span><span>${formatCurrency(baseImponible)}</span></p>
+                <p class="inv-totals-row"><span>IVA</span><span>${formatCurrency(ivaImporte)}</span></p>
+                ${porcentajeDescuento > 0 ? `<p class="inv-totals-row"><span>Descuento (${porcentajeDescuento}%)</span><span>− ${formatCurrency(descuentoImporte)}</span></p>` : ""}
+                ${irpfPorcentaje > 0 ? `<p class="inv-totals-row"><span>Retención (${irpfPorcentaje}%)</span><span>− ${formatCurrency(irpfImporte)}</span></p>` : ""}
+                <p class="inv-totals-total"><span>Total</span><span>${formatCurrency(totalConIva)}</span></p>
+              </div>
             </div>
 
-            <div style="margin-top:48px; padding-top:20px; border-top:1px solid #ddd;">
-              <p style="margin:0; font-size:12px; color:#444; font-weight:500;">
-                El pago se realizará mediante <strong>transferencia bancaria</strong>. ${pagoBancoLines}
-              </p>
-              <p style="margin:10px 0 0 0; font-size:11px; color:#666;">
-                Documento emitido conforme al Reglamento por el que se regulan las obligaciones de facturación (Real Decreto 1619/2012).
-              </p>
+            <div class="inv-footer">
+              <p>El pago se realizará mediante <strong>transferencia bancaria</strong>. ${pagoBancoLines}</p>
+              <p>Documento emitido conforme al Reglamento por el que se regulan las obligaciones de facturación (Real Decreto 1619/2012).</p>
             </div>
           </div>
     `;
@@ -387,13 +371,7 @@ export default function DetalleFacturaPage() {
   <head>
     <meta charset="utf-8" />
     <title>${htmlEsc(factura.numero)}</title>
-    <style>
-      * { box-sizing: border-box; }
-      html, body { margin:0; padding:0; }
-      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color:#222; font-size:14px; line-height:1.5; background:#fff; width:794px; }
-      .invoice-header { display:block; width:794px; height:210px; border:0; margin:0; padding:0; }
-      .invoice-body { padding:28px 32px 40px; width:794px; }
-    </style>
+    <style>${facturaDocumentStyles()}</style>
   </head>
   <body>
     ${facturaBodyInner}

@@ -46,12 +46,20 @@ export function MarcaAgenciaForm({ marca }: { marca: MarcaGuardada }) {
         <label className="flex flex-col gap-1 text-[12px] text-[var(--text-2)]">
           Logo para papel claro
           <input name="logo_light" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" className="text-[13px]" />
-          {marca.logo_light_path ? <span className="text-[11px] text-[var(--text-3)]">{marca.logo_light_path}</span> : null}
+          {marca.logo_light_path ? (
+            <span className="logo-preview-plate mt-1">
+              <img src={marca.logo_light_path} alt="" className="h-8 max-w-[160px] object-contain" />
+            </span>
+          ) : null}
         </label>
         <label className="flex flex-col gap-1 text-[12px] text-[var(--text-2)]">
           Logo para papel oscuro
           <input name="logo_dark" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" className="text-[13px]" />
-          {marca.logo_dark_path ? <span className="text-[11px] text-[var(--text-3)]">{marca.logo_dark_path}</span> : null}
+          {marca.logo_dark_path ? (
+            <span className="mt-1 inline-block rounded-lg border border-[var(--border)] bg-[#0B1D2E] px-4 py-3">
+              <img src={marca.logo_dark_path} alt="" className="h-8 max-w-[160px] object-contain" />
+            </span>
+          ) : null}
         </label>
       </div>
       <button

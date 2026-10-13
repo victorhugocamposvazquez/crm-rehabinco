@@ -12,12 +12,14 @@ export type EmisorFacturacion = {
   email: string;
   iban: string;
   numero_cuenta_bancaria: string;
-  /** URL absoluta o ruta con /; vacío = logo blanco Rehabinco (factura) */
+  /** URL absoluta o ruta con /; vacío = logo Rehabinco sobre fondo claro */
   logo_url: string;
 };
 
+/** Logo por defecto en facturas (fondo claro). */
+export const INVOICE_REHABINCO_LOGO = "/images/logo-web.png";
+/** @deprecated Usar INVOICE_REHABINCO_LOGO */
 export const INVOICE_REHABINCO_LOGO_BLANCO = "/images/facturas/rehabinco-blanco.png";
-export const INVOICE_REHABINCO_FONDO = "/images/facturas/fondo-torre-header.jpg";
 
 export function isDefaultRehabincoLogo(url: string) {
   const u = url.trim();
@@ -93,14 +95,10 @@ export async function fetchEmisorFacturacion(
 
 /** Construye la URL final del logotipo en la ventana de impresión. */
 export function resolveInvoiceLogoUrl(logoUrl: string, origin: string): string {
-  const fallback = `${origin}${INVOICE_REHABINCO_LOGO_BLANCO}`;
+  const fallback = `${origin}${INVOICE_REHABINCO_LOGO}`;
   const raw = logoUrl.trim();
   if (!raw || isDefaultRehabincoLogo(raw)) return fallback;
   if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
   if (raw.startsWith("/")) return `${origin}${raw}`;
   return fallback;
-}
-
-export function invoiceFondoUrl(origin: string): string {
-  return `${origin}${INVOICE_REHABINCO_FONDO}`;
 }
