@@ -19,8 +19,9 @@ describe("hydrate entorno informe", () => {
       counts_500m: {},
       meta: { has_osm: false },
     });
-    expect(fresh?.flags.some((f) => f.label.includes("Criminalidad municipal"))).toBe(true);
-    expect(fresh?.flags.some((f) => /similares:\s*45/.test(f.label))).toBe(true);
+    expect(fresh?.flags.some((f) => f.label.includes("Criminalidad del municipio"))).toBe(true);
+    expect(fresh?.flags.some((f) => /un poco por encima/.test(f.label) && /45,1/.test(f.label))).toBe(true);
+    expect(fresh?.flags[0]?.distanceM).toBeUndefined();
 
     const merged = mergeEnvironmentInforme(null, fresh);
     expect(merged?.flags.length).toBe(1);

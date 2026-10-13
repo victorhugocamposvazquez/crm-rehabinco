@@ -79,16 +79,39 @@ export const RULES: Rule[] = [
   { layer: 'building_age', label: (r) => `Edificios del entorno: media de ${r.props.mean_year ?? '?'}`, points: (r) => { const y = Number(r.props.mean_year ?? 0); return y >= 2000 ? 3 : y <= 1960 ? -3 : 0; }, sense: 'both', source: 'Catastro INSPIRE' },
 ];
 
+function fmtEs1(n: number): string {
+  return n.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}
+
+/** Lectura en castellano de la tasa frente a la media de ciudades parecidas. */
+function lecturaCriminalidad(rate: number, peer: number): string {
+  const ratio = peer > 0 ? rate / peer : 1;
+  const media = `la media de ciudades parecidas (${fmtEs1(peer)})`;
+  if (ratio >= 1.25) return `bastante por encima de ${media}`;
+  if (ratio >= 1.08) return `un poco por encima de ${media}`;
+  if (ratio <= 0.75) return `bastante por debajo de ${media}`;
+  if (ratio <= 0.92) return `por debajo de ${media}`;
+  return `en línea con ${media}`;
+}
+
+/** Capas de barrio o municipio: la distancia 0 no es un metro, es “el punto está dentro”. */
+const SIN_DISTANCIA = new Set(['flood', 'vulnerable_section', 'crime_municipality', 'income_section', 'zone_mark']);
+
+function distanciaDe(layer: string, metros: number): number | undefined {
+  if (SIN_DISTANCIA.has(layer)) return undefined;
+  return metros;
+}
+
 /** Riesgos y avisos: no puntúan, se enseñan siempre. */
 const FLAG_RULES: Omit<Rule, 'points'>[] = [
   { layer: 'flood', label: (r) => (r.props.clear ? 'Sin zona inundable (T10, T100, T500)' : `Zona inundable ${r.props.period ?? 'T500'}`), sense: 'negative', source: 'SNCZI (MITECO)' },
-  { layer: 'vulnerable_section', label: (r) => (r.props.clear ? 'Sección censal fuera del catálogo de barrios vulnerables' : 'Sección censal en el catálogo de barrios vulnerables'), sense: 'negative', source: 'Observatorio de la Vulnerabilidad Urbana' },
+  { layer: 'vulnerable_section', label: (r) => (r.props.clear ? 'Esta sección censal no está en el catálogo de barrios vulnerables' : 'Esta sección censal está en el catálogo de barrios vulnerables'), sense: 'negative', source: 'Observatorio de la Vulnerabilidad Urbana' },
   { layer: 'crime_municipality', label: (r) => {
-    const rate = r.props.rate_per_1000 ?? '?';
+    const rateN = Number(r.props.rate_per_1000);
     const peerN = Number(r.props.peer_avg);
-    const peer =
-      Number.isFinite(peerN) ? ` (media ciudades similares: ${peerN.toFixed(1)})` : '';
-    return `Criminalidad municipal: ${rate} infracciones / 1.000 hab.${peer}`;
+    const tasa = Number.isFinite(rateN) ? fmtEs1(rateN) : '?';
+    const lectura = Number.isFinite(rateN) && Number.isFinite(peerN) ? `, ${lecturaCriminalidad(rateN, peerN)}` : '';
+    return `Criminalidad del municipio: ${tasa} infracciones por cada 1.000 habitantes${lectura}`;
   }, sense: 'info', source: 'Ministerio del Interior' },
   { layer: 'air_station', label: (r) => `Calidad del aire (estación a ${r.distance_m} m): ${r.props.index_label ?? '?'}`, sense: 'info', source: 'MITECO' },
   { layer: 'zone_mark', label: (r) => `Aviso del equipo: ${r.name ?? r.category} (${r.props.note ?? ''})`, sense: 'info', source: 'Conocimiento local' },
@@ -125,7 +148,7 @@ export function buildEnvironment(raw: RawEnvironment): Environment {
           flags.push({
             indicator,
             label: rule.label(row),
-            distanceM: row.distance_m,
+            distanceM: distanciaDe(row.layer, row.distance_m),
             sense: rule.sense === 'negative' ? 'negative' : 'info',
             source: rule.source,
           });
@@ -150,7 +173,7 @@ export function buildEnvironment(raw: RawEnvironment): Environment {
       flags.push({
         indicator: row.layer,
         label: flag.label(row),
-        distanceM: row.distance_m,
+        distanceM: distanciaDe(row.layer, row.distance_m),
         sense: claro ? 'info' : flag.sense,
         source: flag.source,
       });
