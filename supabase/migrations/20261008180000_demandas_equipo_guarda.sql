@@ -23,10 +23,12 @@ set search_path = public
 as $$
 declare
   persona uuid;
+  fila jsonb;
 begin
+  fila := to_jsonb(new);
   persona := case TG_TABLE_NAME
-    when 'propiedades' then new.ofertante_id
-    else new.cliente_id
+    when 'propiedades' then nullif(fila ->> 'ofertante_id', '')::uuid
+    else nullif(fila ->> 'cliente_id', '')::uuid
   end;
   if persona is not null then
     begin
