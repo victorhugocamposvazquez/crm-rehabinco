@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AlertDialog } from "@/components/ui/alert-dialog";
+import { enviarValoracionAPapelera } from "@/lib/actions/avm-papelera";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ValoracionesNav } from "@/components/avm/ValoracionesNav";
 import { InformeValoracion } from "@/components/avm/InformeValoracion";
@@ -13,7 +18,10 @@ import { subtituloInforme, tituloInforme } from "@/lib/avm/ui/labels";
 
 export default function InformePage() {
   const params = useParams();
+  const router = useRouter();
   const id = String(params.id);
+  const [confirmar, setConfirmar] = useState(false);
+  const [enviando, setEnviando] = useState(false);
   const [dato, setDato] = useState<{
     result: ValuationResult;
     twin: Twin;
@@ -29,12 +37,16 @@ export default function InformePage() {
     const supabase = createClient();
     void supabase
       .from("avm_valuations")
-      .select("created_at, channel, method_version, operation, value_mid, value_low, value_high, price_per_m2, rent_monthly, gross_yield, confidence, precision_score, sources_used, comparables, zone_stats, environment, explanation, inputs, range_method, rent_source, created_by")
+      .select("created_at, deleted_at, channel, method_version, operation, value_mid, value_low, value_high, price_per_m2, rent_monthly, gross_yield, confidence, precision_score, sources_used, comparables, zone_stats, environment, explanation, inputs, range_method, rent_source, created_by")
       .eq("id", id)
       .single()
       .then(async ({ data, error: err }) => {
         if (err || !data) {
           setError(err?.message ?? "No está la valoración");
+          return;
+        }
+        if (data.deleted_at) {
+          setError("Esta valoración está en la papelera.");
           return;
         }
         const inputs = (data.inputs ?? {}) as { twin?: Twin; fieldSources?: Record<string, string> };
@@ -98,7 +110,15 @@ export default function InformePage() {
       <PageHeader
         title={twin ? tituloInforme(twin) : "Informe"}
         description={dato ? subtituloInforme(dato.twin, dato.creada, dato.result.methodVersion) : undefined}
-        actions={<InformeAcciones className="hidden min-[820px]:flex" />}
+        actions={
+          <div className="hidden items-center gap-2 min-[820px]:flex">
+            <InformeAcciones />
+            <Button type="button" size="sm" variant="secondary" className="gap-1.5" onClick={() => setConfirmar(true)}>
+              <Trash2 className="h-4 w-4" strokeWidth={1.7} />
+              Papelera
+            </Button>
+          </div>
+        }
         className="mb-5"
       />
       <ValoracionesNav actual="" />
@@ -117,6 +137,27 @@ export default function InformePage() {
       ) : !error ? (
         <p className="text-[13px] text-[var(--text-3)]">Cargando informe…</p>
       ) : null}
+      <AlertDialog
+        open={confirmar}
+        onOpenChange={setConfirmar}
+        title="Enviar a la papelera"
+        description="Dejará de verse en el listado. Puedes restaurarla desde la papelera."
+        confirmLabel="Enviar a la papelera"
+        variant="destructive"
+        loading={enviando}
+        onConfirm={async () => {
+          setEnviando(true);
+          const result = await enviarValoracionAPapelera(id);
+          setEnviando(false);
+          if (!result.ok) {
+            toast.error(result.error);
+            return;
+          }
+          toast.success("Enviada a la papelera.");
+          window.dispatchEvent(new Event("avm-papelera"));
+          router.push("/valoraciones/papelera");
+        }}
+      />
     </div>
   );
 }

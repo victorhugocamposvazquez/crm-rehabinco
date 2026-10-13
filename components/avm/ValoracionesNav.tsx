@@ -5,6 +5,7 @@ const ENLACES = [
   { href: "/valoraciones/nueva", label: "Nueva valoración" },
   { href: "/valoraciones/metodologia", label: "Cómo valoramos" },
   { href: "/valoraciones/ajustes", label: "Ajustes" },
+  { href: "/valoraciones/papelera", label: "Papelera" },
 ];
 
 export function ValoracionesNav({ actual }: { actual: string }) {
