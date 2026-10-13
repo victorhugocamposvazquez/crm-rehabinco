@@ -117,6 +117,10 @@ jobs:
           GTFS_STOPS_DIR: data/env/gtfs/tranvias-coruna
         run: |
           set -euo pipefail
+          if [ -z "${NEXT_PUBLIC_SUPABASE_URL}" ] || [ -z "${SUPABASE_SERVICE_ROLE_KEY}" ]; then
+            echo "::error::Faltan los secrets NEXT_PUBLIC_SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY en el repositorio (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
           scope="${{ steps.meta.outputs.scope }}"
           for layer in ${{ steps.meta.outputs.layers }}; do
             echo "========== $layer ($scope) =========="
