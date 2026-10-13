@@ -5,12 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { fetchEmisorFacturacion, resolveInvoiceLogoUrl } from "@/lib/empresa-facturacion";
-import {
-  FACTURA_HEADER_H,
-  FACTURA_PAGE_W,
-  INVOICE_REHABINCO_ICON,
-  facturaDocumentStyles,
-} from "@/lib/factura-pdf";
+import { FACTURA_HEADER_H, FACTURA_PAGE_W, facturaDocumentStyles } from "@/lib/factura-pdf";
 import { fetchAsDataUrl, composeInvoiceHeaderImage, saveHtmlDocumentPdf } from "@/lib/html-document-pdf";
 import { toast } from "sonner";
 import { FacturaDetailSkeleton } from "@/components/facturas/FacturaDetailSkeleton";
@@ -272,10 +267,7 @@ export default function DetalleFacturaPage() {
       : "—";
     const esRectificativa = factura.tipo_factura === "rectificativa";
     const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const [logoUrl, iconoUrl] = await Promise.all([
-      fetchAsDataUrl(resolveInvoiceLogoUrl(emisor.logo_url, origin)),
-      fetchAsDataUrl(`${origin}${INVOICE_REHABINCO_ICON}`),
-    ]);
+    const logoUrl = await fetchAsDataUrl(resolveInvoiceLogoUrl(emisor.logo_url, origin));
     const headerUrl = await composeInvoiceHeaderImage({
       logoDataUrl: logoUrl,
       numeroLabel: `${esRectificativa ? "Factura rectificativa nº" : "Factura nº"} ${factura.numero}`,
@@ -314,6 +306,7 @@ export default function DetalleFacturaPage() {
     const facturaBodyInner = `
           <img class="invoice-header" src=${JSON.stringify(headerUrl)} alt="" width="${FACTURA_PAGE_W}" height="${FACTURA_HEADER_H}" />
           <div class="invoice-body">
+            <div class="inv-main">
             ${esRectificativa && (facturaOriginal || factura.causa_rectificacion) ? `
             <div class="inv-rect">
               <p class="inv-rect-title">Documento rectificativo</p>
@@ -371,8 +364,9 @@ export default function DetalleFacturaPage() {
               <p>El pago se realizará mediante <strong>transferencia bancaria</strong>. ${pagoBancoLines}</p>
               <p>Documento emitido conforme al Reglamento por el que se regulan las obligaciones de facturación (Real Decreto 1619/2012).</p>
             </div>
+            </div>
             <div class="inv-brand-mark">
-              <img src=${JSON.stringify(iconoUrl)} alt="" width="40" height="40" />
+              <img src=${JSON.stringify(logoUrl)} alt="" height="36" />
             </div>
           </div>
     `;

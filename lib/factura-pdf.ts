@@ -1,7 +1,11 @@
 /** Maquetación HTML del PDF de facturas (794px = A4). */
 
 export const FACTURA_PAGE_W = 794;
+/** Altura A4 a 96 dpi (igual que documentos-pdf). */
+export const FACTURA_PAGE_H = 1123;
 export const FACTURA_HEADER_H = 132;
+/** Zona útil bajo la cabecera en la 1.ª hoja del PDF. */
+export const FACTURA_BODY_MIN_H = FACTURA_PAGE_H - FACTURA_HEADER_H;
 
 export const FACTURA_INK = "#0B1D2E";
 export const FACTURA_MUTED = "#64748B";
@@ -9,8 +13,6 @@ export const FACTURA_LINE = "#E2E8F0";
 export const FACTURA_SURFACE = "#F8FAFC";
 
 export const INVOICE_REHABINCO_LOGO = "/images/logo-web.png";
-export const INVOICE_REHABINCO_ICON = "/images/icono.png";
-
 export function facturaDocumentStyles(): string {
   return `
       * { box-sizing: border-box; }
@@ -25,7 +27,14 @@ export function facturaDocumentStyles(): string {
         -webkit-font-smoothing: antialiased;
       }
       .invoice-header { display:block; width:${FACTURA_PAGE_W}px; height:${FACTURA_HEADER_H}px; border:0; margin:0; padding:0; }
-      .invoice-body { padding: 32px 48px 48px; width: ${FACTURA_PAGE_W}px; }
+      .invoice-body {
+        display: flex;
+        flex-direction: column;
+        min-height: ${FACTURA_BODY_MIN_H}px;
+        padding: 32px 48px 40px;
+        width: ${FACTURA_PAGE_W}px;
+      }
+      .inv-main { flex: 0 0 auto; }
       .inv-block { margin-bottom: 28px; }
       .inv-grid { display: table; width: 100%; border-collapse: collapse; }
       .inv-grid-row { display: table-row; }
@@ -105,16 +114,18 @@ export function facturaDocumentStyles(): string {
       .inv-footer p + p { margin-top: 8px; font-size: 10px; }
       .inv-footer strong { color: ${FACTURA_INK}; font-weight: 600; }
       .inv-brand-mark {
-        margin: 36px 0 0 0;
-        padding-top: 24px;
+        margin-top: auto;
+        flex-shrink: 0;
+        padding-top: 32px;
         text-align: center;
       }
       .inv-brand-mark img {
         display: inline-block;
-        width: 40px;
-        height: 40px;
+        height: 36px;
+        width: auto;
+        max-width: 220px;
         object-fit: contain;
-        opacity: 0.85;
+        opacity: 0.9;
       }
     `;
 }
