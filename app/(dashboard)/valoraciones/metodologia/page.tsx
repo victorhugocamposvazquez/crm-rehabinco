@@ -126,8 +126,8 @@ export default function MetodologiaPage() {
         </Seccion>
         <Seccion titulo="Salud de datos AVM" id="salud-datos">
           <p className="text-[var(--text-2)]">
-            Cargas automáticas en GitHub Actions (<code className="text-[12px]">.github/workflows/avm-data.yml</code>).
-            Alerta si la última carga supera el plazo (OSM, criminalidad e INSPIRE: 4 meses; INE: 14 meses; resto: 13 meses).
+            El estado de cada servicio, la frecuencia de GitHub Actions y si la carga está al día está en{" "}
+            <a href="/valoraciones/ajustes" className="underline underline-offset-2">Ajustes del valorador</a>.
           </p>
           {dataHealth?.length ? (
             <Tabla
