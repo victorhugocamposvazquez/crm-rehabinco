@@ -54,8 +54,10 @@ export function candidatosFotocasaDeNombre(nombre: string): string[] {
   return [base, `${base}-capital`];
 }
 
-function candidatosHabitaclia(provSlug: string, muniSlug: string): string[] {
-  return [`${provSlug}-provincia/${muniSlug}-capital`, `${provSlug}-provincia/${muniSlug}`];
+function candidatosHabitaclia(provSlug: string, muniSlug: string, capitalPrimero = true): string[] {
+  const pueblo = `${provSlug}-provincia/${muniSlug}`;
+  const capital = `${pueblo}-capital`;
+  return capitalPrimero ? [capital, pueblo] : [pueblo, capital];
 }
 
 function candidatosPisos(muniSlug: string): string[] {
@@ -100,7 +102,7 @@ export async function resolverSlugsPortal(
             ? candidatosFotocasaDeNombre(nombreLibre ?? nameCatastro)
             : candidatosFotocasa(nameCatastro, nameIne)
           : portal === "habitaclia"
-            ? candidatosHabitaclia(provSlug, muniSlug)
+            ? candidatosHabitaclia(provSlug, muniSlug, !porNombre)
             : candidatosPisos(muniSlug);
 
       for (const t of tries) {
