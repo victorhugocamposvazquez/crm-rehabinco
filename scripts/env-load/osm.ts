@@ -93,6 +93,9 @@ function centroideLinea(coords: unknown): [number, number] | null {
 
 function clasificar(tags: Record<string, string | undefined>): Omit<LayerRow, "geom" | "name" | "props" | "loaded_at"> | null {
   const shop = tags.shop;
+  if (shop === "fuel") {
+    return { layer: "osm_poi", category: "fuel", sense: "negative", source: SOURCE };
+  }
   if (shop) {
     return { layer: "osm_poi", category: "shop", sense: "positive", source: SOURCE };
   }
@@ -111,6 +114,9 @@ function clasificar(tags: Record<string, string | undefined>): Omit<LayerRow, "g
     return { layer: "health", category: "health_center", sense: "positive", source: SOURCE };
   }
   if (amenity === "pharmacy") return { layer: "osm_poi", category: "pharmacy", sense: "positive", source: SOURCE };
+  if (amenity === "fuel") {
+    return { layer: "osm_poi", category: "fuel", sense: "negative", source: SOURCE };
+  }
   if (tags.leisure === "park" || tags.leisure === "playground" || tags.leisure === "garden") {
     return { layer: "osm_poi", category: "park", sense: "positive", source: SOURCE };
   }
@@ -130,6 +136,10 @@ function clasificar(tags: Record<string, string | undefined>): Omit<LayerRow, "g
   if (tags.landuse === "industrial") {
     return { layer: "osm_poi", category: "industrial", sense: "negative", source: SOURCE };
   }
+  const power = tags.power;
+  if (power === "line" || power === "cable" || power === "minor_line") {
+    return { layer: "osm_poi", category: "power_line", sense: "negative", source: SOURCE };
+  }
   return null;
 }
 
@@ -145,7 +155,10 @@ function filaDesdeFeature(f: GeoFeature): LayerRow | null {
     const p = coordsPunto(f.geometry.coordinates);
     if (!p || !enBbox(p[1], p[0])) return null;
     geom = puntoWkt(p[0], p[1]);
-  } else if (f.geometry.type === "LineString" && meta.category === "main_road") {
+  } else if (
+    f.geometry.type === "LineString" &&
+    (meta.category === "main_road" || meta.category === "power_line" || meta.category === "railway")
+  ) {
     const coords = f.geometry.coordinates as [number, number][];
     const mid = centroideLinea(coords);
     if (!mid || !enBbox(mid[1], mid[0])) return null;
@@ -208,6 +221,8 @@ async function main(): Promise<void> {
     "n/amenity=clinic",
     "n/amenity=doctors",
     "n/amenity=pharmacy",
+    "n/amenity=fuel",
+    "n/shop=fuel",
     "n/amenity=bus_stop",
     "n/amenity=station",
     "n/way/shop",
@@ -223,6 +238,8 @@ async function main(): Promise<void> {
     "n/way/amenity=clinic",
     "n/way/amenity=doctors",
     "n/way/amenity=pharmacy",
+    "n/way/amenity=fuel",
+    "n/way/shop=fuel",
     "n/way/leisure=park",
     "n/way/leisure=playground",
     "n/way/leisure=garden",
@@ -241,6 +258,9 @@ async function main(): Promise<void> {
     "w/highway=trunk",
     "w/highway=motorway",
     "w/railway=rail",
+    "w/power=line",
+    "w/power=cable",
+    "w/power=minor_line",
   ]);
 
   const porCat = new Map<string, number>();
