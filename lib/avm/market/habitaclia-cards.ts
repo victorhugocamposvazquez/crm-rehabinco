@@ -35,7 +35,6 @@ type Item = {
   transaction?: { type?: string; price?: { amount?: number; hidden?: boolean } };
 };
 
-const MUNICIPIO = "15030";
 
 export { urlListadoHabitaclia } from "./portal-urls";
 
@@ -112,7 +111,11 @@ function clase(item: Item): { main: "apartment" | "house"; property: string } | 
   return null;
 }
 
-export function parseListingCardsHabitaclia(html: string, operation: OperacionMercado): PaginaTarjetas {
+export function parseListingCardsHabitaclia(
+  html: string,
+  operation: OperacionMercado,
+  municipalityCode: string | null = null,
+): PaginaTarjetas {
   const { items, page, totalPages } = itemsDe(html);
   const cards: MarketListingCard[] = [];
   for (const item of items) {
@@ -156,7 +159,7 @@ export function parseListingCardsHabitaclia(html: string, operation: OperacionMe
       lng: typeof lng === "number" ? lng : null,
       locationPrecision: precision,
       postcode: null,
-      municipalityCode: MUNICIPIO,
+      municipalityCode,
     });
   }
   return { cards, hasMore: page < totalPages && items.length > 0, total: null, pageSize: items.length };

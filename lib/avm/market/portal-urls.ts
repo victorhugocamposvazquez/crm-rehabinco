@@ -12,6 +12,20 @@ const DEFAULT: SlugsMercado = {
   pisos: "a_coruna_capital",
 };
 
+/** Solo A Coruña tiene slug conocido si el catálogo de portales está vacío. */
+export function slugsSiFaltan(municipalityCode: string, slugs: SlugsMercado): SlugsMercado {
+  if (municipalityCode !== "15030") return slugs;
+  return {
+    fotocasa: slugs.fotocasa ?? DEFAULT.fotocasa,
+    habitaclia: slugs.habitaclia ?? DEFAULT.habitaclia,
+    pisos: slugs.pisos ?? DEFAULT.pisos,
+  };
+}
+
+export function portalTieneSlug(portal: "fotocasa" | "habitaclia" | "pisos", slugs: SlugsMercado): boolean {
+  return Boolean(slugs[portal]);
+}
+
 export function urlListadoFotocasa(operation: OperacionMercado, pagina: number, slugs?: SlugsMercado): string {
   const slug = slugs?.fotocasa ?? DEFAULT.fotocasa!;
   const op = operation === "rent" ? "alquiler" : "comprar";

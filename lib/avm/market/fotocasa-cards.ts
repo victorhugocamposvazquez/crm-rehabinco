@@ -28,8 +28,6 @@ export type PaginaTarjetas = {
   pageSize: number;
 };
 
-const MUNICIPIO = "15030";
-
 export { urlListadoFotocasa } from "./portal-urls";
 
 function feature(item: Item, key: string): number | undefined {
@@ -51,7 +49,11 @@ function tipo(item: Item): { main: "apartment" | "house"; property: string } | n
 }
 
 
-export function parseListingCardsFotocasa(html: string, operation: OperacionMercado): PaginaTarjetas {
+export function parseListingCardsFotocasa(
+  html: string,
+  operation: OperacionMercado,
+  municipalityCode: string | null = null,
+): PaginaTarjetas {
   const m = html.match(/<script[^>]*id="__initial_props__"[^>]*>([\s\S]*?)<\/script>/);
   if (!m) return { cards: [], hasMore: false, total: null, pageSize: 0 };
   let data: { initialSearch?: { result?: { realEstates?: Item[]; counters?: { realEstates?: number } } } };
@@ -101,7 +103,7 @@ export function parseListingCardsFotocasa(html: string, operation: OperacionMerc
       lng,
       locationPrecision: precision,
       postcode: item.address?.zipCode ?? null,
-      municipalityCode: MUNICIPIO,
+      municipalityCode,
     });
   }
   return { cards, hasMore: false, total, pageSize: items.length };

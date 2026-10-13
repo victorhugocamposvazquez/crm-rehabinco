@@ -1,4 +1,6 @@
 import { valorar, solicitudValoracion } from "@/lib/avm/valuate-service";
+
+export const maxDuration = 60;
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 

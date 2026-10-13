@@ -48,5 +48,5 @@ export function mensajeMercadoEnCarga(estado: EstadoMercadoZona): string | null 
 /** Municipio fuera del rastreo y sin mediana ni comparables: el €/m² nacional no es un precio de zona. */
 export function avisoMunicipioSinRastreo(enRastreo: boolean, comparables: number, hayZona: boolean): string | null {
   if (enRastreo || comparables > 0 || hayZona) return null;
-  return "No hay ofertas similares: este municipio todavía no entra en el rastreo de anuncios. El importe es una estimación nacional, no un precio de la zona.";
+  return "No hay ofertas similares en el radio de esta vivienda. El importe es una estimación nacional, no un precio de la zona.";
 }

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { ineProvinciaDeMunicipio, provinciaCatastroPorCodigo } from "../../catastro/provincias-espana";
 
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
@@ -46,6 +47,13 @@ function candidatosFotocasa(nameCatastro: string, nameIne: string | null): strin
   return [...out];
 }
 
+/** Nombre que escribe el usuario o CartoCiudad: primero el municipio, luego «-capital». */
+export function candidatosFotocasaDeNombre(nombre: string): string[] {
+  const base = slugify(nombre);
+  if (!base || /^\d+$/.test(base)) return [];
+  return [base, `${base}-capital`];
+}
+
 function candidatosHabitaclia(provSlug: string, muniSlug: string): string[] {
   return [`${provSlug}-provincia/${muniSlug}-capital`, `${provSlug}-provincia/${muniSlug}`];
 }
@@ -55,7 +63,11 @@ function candidatosPisos(muniSlug: string): string[] {
   return [`${u}_capital`, u];
 }
 
-export async function resolverSlugsPortal(db: SupabaseClient, ineCode: string): Promise<PortalSlugRow[]> {
+export async function resolverSlugsPortal(
+  db: SupabaseClient,
+  ineCode: string,
+  nombreLibre?: string | null,
+): Promise<PortalSlugRow[]> {
   const { data: muni, error: eM } = await db
     .from("catastro_municipios")
     .select("ine_code, name_catastro, name_ine, province_name")
@@ -63,10 +75,13 @@ export async function resolverSlugsPortal(db: SupabaseClient, ineCode: string): 
     .maybeSingle();
   if (eM) throw new Error(eM.message);
 
-  const nameCatastro = String(muni?.name_catastro ?? ineCode);
+  const nameCatastro = String(muni?.name_catastro ?? nombreLibre ?? ineCode);
   const nameIne = muni?.name_ine == null ? null : String(muni.name_ine);
-  const provSlug = slugify(String(muni?.province_name ?? "espana"));
+  const provSlug = slugify(
+    String(muni?.province_name ?? provinciaCatastroPorCodigo(ineProvinciaDeMunicipio(ineCode)) ?? "espana"),
+  );
   const muniSlug = slugify(nameIne ?? nameCatastro);
+  const porNombre = !muni && candidatosFotocasaDeNombre(nombreLibre ?? "").length > 0;
 
   const portales: PortalSlugRow[] = [];
 
@@ -74,14 +89,16 @@ export async function resolverSlugsPortal(db: SupabaseClient, ineCode: string): 
     let slug: string | null = null;
     let url_base: string | null = null;
     let status: PortalSlugRow["status"] = "manual";
-    let notes: string | null = "Sin catálogo catastro_municipios; rellenar slug a mano.";
+    let notes: string | null = "Sin nombre de municipio; rellenar slug a mano.";
 
-    if (muni) {
+    if (muni || porNombre) {
       notes = null;
       status = "failed";
       const tries =
         portal === "fotocasa"
-          ? candidatosFotocasa(nameCatastro, nameIne)
+          ? porNombre
+            ? candidatosFotocasaDeNombre(nombreLibre ?? nameCatastro)
+            : candidatosFotocasa(nameCatastro, nameIne)
           : portal === "habitaclia"
             ? candidatosHabitaclia(provSlug, muniSlug)
             : candidatosPisos(muniSlug);

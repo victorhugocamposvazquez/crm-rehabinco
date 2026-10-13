@@ -24,6 +24,9 @@
     },
     "app/api/avm/crawl/route.ts": {
       "maxDuration": 300
+    },
+    "app/api/avm/valuate/route.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [

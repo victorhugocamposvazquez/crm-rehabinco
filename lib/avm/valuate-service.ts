@@ -356,7 +356,12 @@ export async function valorar(solicitud: SolicitudValoracion, ctx: Ctx): Promise
 
   const deps = depsMercado(ctx.admin);
   const { avisoMunicipioSinRastreo, estadoMercadoMunicipio, mensajeMercadoEnCarga } = await import("./market-loading");
-  const mercado = await estadoMercadoMunicipio(ctx.admin, built.twin.address.municipalityCode ?? built.zone.municipalityCode);
+  const { asegurarMercadoMunicipio } = await import("./market-espana");
+  const codigoMercado = built.twin.address.municipalityCode ?? built.zone.municipalityCode;
+  const avisoCarga = await asegurarMercadoMunicipio(ctx.admin, codigoMercado, built.twin.address.locality).catch(
+    () => "No se han podido leer los anuncios de este municipio.",
+  );
+  const mercado = await estadoMercadoMunicipio(ctx.admin, codigoMercado);
   const result = await valuate(built.twin, deps, {
     channel: solicitud.channel,
     operation: "sale",
@@ -368,7 +373,8 @@ export async function valorar(solicitud: SolicitudValoracion, ctx: Ctx): Promise
   });
   if (op === "rent") result.operation = "rent";
   const sinMercado = avisoMunicipioSinRastreo(mercado.enRastreo, result.comparables.length, result.zoneStats != null);
-  if (sinMercado) result.explanation.unshift(sinMercado);
+  if (avisoCarga) result.explanation.unshift(avisoCarga);
+  else if (sinMercado) result.explanation.unshift(sinMercado);
 
   const valuationId = await guardar(
     ctx.admin,

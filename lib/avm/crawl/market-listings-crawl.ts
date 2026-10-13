@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { MarketListingCard, PortalRastreo } from "../market/card";
 import { fotocasaTieneMas, parseListingCardsFotocasa, urlListadoFotocasa } from "../market/fotocasa-cards";
 import { parseListingCardsHabitaclia, urlListadoHabitaclia } from "../market/habitaclia-cards";
-import { slugsDesdePortalMap } from "../market/portal-urls";
+import { portalTieneSlug, slugsDesdePortalMap, slugsSiFaltan } from "../market/portal-urls";
 import { parseListingCardsPisos, pisosTieneMas, urlListadoPisos } from "../market/pisos-cards";
 import { slugsPortalPorMunicipio } from "./portal-slugs";
 import { guardarTarjetas, retirarNoVistos } from "./upsert";
@@ -15,6 +15,12 @@ export type FiltroRastreo = {
   municipalityCode?: string;
   portal?: PortalRastreo;
   operation?: "sale" | "rent";
+  /** Tope de páginas por listado. El cron usa 60. */
+  maxPages?: number;
+  /** Espera entre páginas. Por defecto 1,5–3 s. */
+  pausaMs?: number;
+  /** La pasada corta de una valoración no recalcula todas las zonas. */
+  skipDerive?: boolean;
 };
 
 export type InformePasada = {
@@ -43,7 +49,12 @@ function esPortal(value: string): value is PortalRastreo {
   return (PORTALES as string[]).includes(value);
 }
 
-function consultas(portal: PortalRastreo, operation: "sale" | "rent", slugs = slugsDesdePortalMap(new Map())): Consulta[] {
+function consultas(
+  portal: PortalRastreo,
+  operation: "sale" | "rent",
+  municipalityCode: string,
+  slugs = slugsDesdePortalMap(new Map()),
+): Consulta[] {
   if (portal === "fotocasa") {
     let vistos = 0;
     return [
@@ -51,7 +62,7 @@ function consultas(portal: PortalRastreo, operation: "sale" | "rent", slugs = sl
         kind: "viviendas",
         url: (pagina) => urlListadoFotocasa(operation, pagina, slugs),
         parse: (html) => {
-          const page = parseListingCardsFotocasa(html, operation);
+          const page = parseListingCardsFotocasa(html, operation, municipalityCode);
           vistos += page.pageSize;
           return { cards: page.cards, hasMore: fotocasaTieneMas(page.total, vistos, page.pageSize) };
         },
@@ -63,7 +74,7 @@ function consultas(portal: PortalRastreo, operation: "sale" | "rent", slugs = sl
       kind,
       url: (pagina: number) => urlListadoHabitaclia(operation, kind, pagina, slugs),
       parse: (html: string) => {
-        const page = parseListingCardsHabitaclia(html, operation);
+        const page = parseListingCardsHabitaclia(html, operation, municipalityCode);
         return { cards: page.cards, hasMore: page.hasMore };
       },
     }));
@@ -74,7 +85,7 @@ function consultas(portal: PortalRastreo, operation: "sale" | "rent", slugs = sl
       kind,
       url: (pagina: number) => urlListadoPisos(operation, kind, pagina, slugs),
       parse: (html: string) => {
-        const page = parseListingCardsPisos(html, operation, kind);
+        const page = parseListingCardsPisos(html, operation, kind, municipalityCode);
         vistos += page.pageSize;
         return { cards: page.cards, hasMore: pisosTieneMas(page.total, vistos, page.pageSize) };
       },
@@ -106,8 +117,8 @@ function conZona(cards: MarketListingCard[], zonas: Map<string, Zona>): MarketLi
   });
 }
 
-function pausa(): Promise<void> {
-  const ms = 1500 + Math.floor(Math.random() * 1501);
+function pausa(fija?: number): Promise<void> {
+  const ms = fija ?? 1500 + Math.floor(Math.random() * 1501);
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
@@ -167,6 +178,7 @@ export async function rastrearMercado(
   onPage?: (linea: string) => void
 ): Promise<InformePasada[]> {
   const hoy = new Date().toISOString().slice(0, 10);
+  const tope = Math.min(TOPE_PAGINAS, Math.max(1, filtro.maxPages ?? TOPE_PAGINAS));
   let consulta = db.from("market_crawl_targets").select("municipality_code, portals, operations").eq("active", true);
   if (filtro.municipalityCode) consulta = consulta.eq("municipality_code", filtro.municipalityCode);
   const { data: targets, error } = await consulta;
@@ -175,7 +187,7 @@ export async function rastrearMercado(
   const informes: InformePasada[] = [];
   for (const target of targets ?? []) {
     const municipalityCode = String(target.municipality_code);
-    const portalSlugs = slugsDesdePortalMap(await slugsPortalPorMunicipio(db, municipalityCode));
+    const portalSlugs = slugsSiFaltan(municipalityCode, slugsDesdePortalMap(await slugsPortalPorMunicipio(db, municipalityCode)));
     const zonas = await centroides(db, municipalityCode);
     const portales = (target.portals as string[]).filter(esPortal).filter((p) => !filtro.portal || p === filtro.portal);
     const operations = ((target.operations as string[]) ?? ["sale", "rent"]).filter(
@@ -185,6 +197,21 @@ export async function rastrearMercado(
     const completos = new Map<PortalRastreo, boolean>();
 
     for (const portal of portales) {
+      if (!portalTieneSlug(portal, portalSlugs)) {
+        informes.push({
+          municipalityCode,
+          portal,
+          operation: operations[0] ?? "sale",
+          pages: 0,
+          cardsSeen: 0,
+          cardsUpserted: 0,
+          cardsExact: 0,
+          cardsZone: 0,
+          cardsUnlocated: 0,
+          error: "Sin slug del portal para este municipio",
+        });
+        continue;
+      }
       let portalOk = true;
       for (const operation of operations) {
         const runId = await abrirRun(db, municipalityCode, portal, operation);
@@ -198,10 +225,10 @@ export async function rastrearMercado(
         let fallo: string | null = bloqueados.has(portal) ? "Portal parado por bloqueo" : null;
 
         if (!fallo) {
-          for (const consultaPortal of consultas(portal, operation, portalSlugs)) {
-            if (fallo || pages >= TOPE_PAGINAS) break;
-            for (let pagina = 1; pagina <= TOPE_PAGINAS && pages < TOPE_PAGINAS; pagina += 1) {
-              if (pagina > 1 || pages > 0) await pausa();
+          for (const consultaPortal of consultas(portal, operation, municipalityCode, portalSlugs)) {
+            if (fallo || pages >= tope) break;
+            for (let pagina = 1; pagina <= tope && pages < tope; pagina += 1) {
+              if (pagina > 1 || pages > 0) await pausa(filtro.pausaMs);
               let status = 0;
               let html = "";
               try {
@@ -231,10 +258,10 @@ export async function rastrearMercado(
               cardsUpserted += await guardarTarjetas(db, nuevas, hoy);
               onPage?.(`${portal} ${operation} ${consultaPortal.kind} p${pagina} ${nuevas.length}`);
               if (page.cards.length === 0 || !page.hasMore) break;
-              if (pages >= TOPE_PAGINAS) recortado = true;
+              if (pages >= tope) recortado = true;
             }
           }
-          if (!fallo && recortado) fallo = "Tope de 60 páginas";
+          if (!fallo && recortado && tope >= TOPE_PAGINAS) fallo = "Tope de 60 páginas";
         }
         if (fallo) portalOk = false;
         await cerrarRun(db, runId, {
@@ -267,7 +294,9 @@ export async function rastrearMercado(
     const { error: marca } = await db.from("market_crawl_targets").update({ last_run: new Date().toISOString() }).eq("municipality_code", municipalityCode);
     if (marca) throw new Error(marca.message);
   }
-  const derivado = await db.rpc("market_zones_derive");
-  if (derivado.error) throw new Error(derivado.error.message);
+  if (!filtro.skipDerive) {
+    const derivado = await db.rpc("market_zones_derive");
+    if (derivado.error) throw new Error(derivado.error.message);
+  }
   return informes;
 }

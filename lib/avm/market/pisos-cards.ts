@@ -7,7 +7,6 @@ import {
 } from "./card";
 import type { PaginaTarjetas } from "./fotocasa-cards";
 
-const MUNICIPIO = "15030";
 
 export { urlListadoPisos } from "./portal-urls";
 
@@ -62,7 +61,12 @@ function fichas(html: string): Map<string, Ficha> {
   return map;
 }
 
-export function parseListingCardsPisos(html: string, operation: OperacionMercado, kind: "piso" | "casas"): PaginaTarjetas {
+export function parseListingCardsPisos(
+  html: string,
+  operation: OperacionMercado,
+  kind: "piso" | "casas",
+  municipalityCode: string | null = null,
+): PaginaTarjetas {
   const mainType: TipoPrincipal = kind === "casas" ? "house" : "apartment";
   const porId = fichas(html);
   const cards: MarketListingCard[] = [];
@@ -120,7 +124,7 @@ export function parseListingCardsPisos(html: string, operation: OperacionMercado
       lng: coords ? lng : null,
       locationPrecision: coords ? "exact" : null,
       postcode: ld.address?.postalCode ?? urlPath.match(/(\d{5})/)?.[1] ?? null,
-      municipalityCode: MUNICIPIO,
+      municipalityCode,
     });
   }
   const total = entero(html.match(/([\d.]+)\s+resultados/i)?.[1]);

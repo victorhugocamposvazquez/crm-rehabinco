@@ -3,7 +3,7 @@ import { avisoMunicipioSinRastreo } from "../market-loading";
 
 describe("aviso de municipio sin rastreo", () => {
   it("avisa cuando no hay anuncios ni mediana y el municipio no se rastrea", () => {
-    expect(avisoMunicipioSinRastreo(false, 0, false)).toMatch(/no entra en el rastreo/);
+    expect(avisoMunicipioSinRastreo(false, 0, false)).toMatch(/estimación nacional/);
   });
 
   it("calla si el municipio se rastrea, hay comparables o hay mediana", () => {
