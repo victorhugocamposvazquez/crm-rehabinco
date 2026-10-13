@@ -217,7 +217,7 @@ export default function DetallePropiedadPage() {
       />
       {alta ? (
         <p className="mb-4 rounded-xl border border-[#111111]/30 bg-[#F0F0F0] px-4 py-3 text-sm text-[#000000]">
-          Inmueble creado. Sube fotos y, si va a salir fuera, marca web o Idealista. Idealista pide precio, dirección, código postal, superficie, descripción y certificado.
+          Inmueble creado. Sube fotos, planos o un tour 3D. Publicar en la web y en Idealista llega muy pronto.
         </p>
       ) : null}
       <div className="mb-6 print:hidden">

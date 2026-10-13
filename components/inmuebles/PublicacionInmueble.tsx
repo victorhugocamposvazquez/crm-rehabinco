@@ -29,18 +29,8 @@ export function PublicacionInmueble({
 
   return (
     <div className="space-y-3">
-      <Check
-        titulo="Publicar en la web"
-        detalle="Saldrá en la web de la agencia cuando la conectemos."
-        checked={values.publicar_web}
-        onChange={(publicar_web) => onChange({ publicar_web })}
-      />
-      <Check
-        titulo="Publicar en Idealista"
-        detalle="Queda marcado para el volcado. Aún no se envía solo."
-        checked={values.publicar_idealista}
-        onChange={(publicar_idealista) => onChange({ publicar_idealista })}
-      />
+      <Check titulo="Publicar en la web" checked={values.publicar_web} />
+      <Check titulo="Publicar en Idealista" checked={values.publicar_idealista} />
       <label className="block text-[13px]">
         <span className="mb-1.5 block font-medium text-[var(--text-2)]">Certificado energético</span>
         <Selector
@@ -67,27 +57,17 @@ export function PublicacionInmueble({
   );
 }
 
-function Check({
-  titulo,
-  detalle,
-  checked,
-  onChange,
-}: {
-  titulo: string;
-  detalle: string;
-  checked: boolean;
-  onChange: (valor: boolean) => void;
-}) {
+function Check({ titulo, checked }: { titulo: string; checked: boolean }) {
   return (
-    <label className="flex items-center justify-between gap-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3.5">
+    <label className="flex cursor-not-allowed items-center justify-between gap-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3.5 opacity-70">
       <span>
         <span className="block text-[14px] font-semibold">{titulo}</span>
-        <span className="text-[12.5px] text-[var(--text-2)]">{detalle}</span>
+        <span className="text-[12.5px] text-[var(--text-2)]">Muy pronto</span>
       </span>
       <input
         type="checkbox"
         checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
+        disabled
         className="h-4 w-4 accent-[var(--accent)]"
       />
     </label>
