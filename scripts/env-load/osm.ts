@@ -8,6 +8,7 @@
  * npx tsx scripts/env-load/osm.ts --geofabrik spain/galicia
  */
 import type { EnvCategory } from "../../lib/avm/ui/icons";
+import { correccionDeLugar, esJamoneria } from "../../lib/avm/osm-correcciones";
 import { execFileSync, execSync } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
@@ -149,12 +150,8 @@ function clasificar(tags: Record<string, string | undefined>): (Omit<LayerRow, "
   }
   if (amenity === "pub" || amenity === "nightclub") {
     const nombre = `${tags.name ?? ""} ${tags["name:es"] ?? ""}`;
-    if (/jamoner[ií]a/i.test(nombre)) {
+    if (esJamoneria(nombre)) {
       return { layer: "osm_poi", category: "shop", sense: "positive", source: SOURCE };
-    }
-    // Mesón La Dehesa (Juan Flórez): OSM lo marca pub y es jamonería.
-    if (/^la dehesa$/i.test((tags.name ?? "").trim())) {
-      return { layer: "osm_poi", category: "hospitality", sense: "info", source: SOURCE };
     }
     return { layer: "osm_poi", category: "nightlife", sense: "negative", source: SOURCE };
   }
@@ -220,10 +217,14 @@ function filaDesdeFeature(f: GeoFeature): LayerRow | null {
   if (meta.category === "health_center" || meta.category === "hospital") props.publico = true;
 
   let geom: string | null = null;
+  let lat: number | null = null;
+  let lng: number | null = null;
   if (f.geometry.type === "Point") {
     if (meta.category === "park") return null;
     const p = coordsPunto(f.geometry.coordinates);
     if (!p || !enBbox(p[1], p[0])) return null;
+    lng = p[0];
+    lat = p[1];
     geom = puntoWkt(p[0], p[1]);
   } else if (
     f.geometry.type === "LineString" &&
@@ -232,16 +233,18 @@ function filaDesdeFeature(f: GeoFeature): LayerRow | null {
     const coords = f.geometry.coordinates as [number, number][];
     const mid = centroideLinea(coords);
     if (!mid || !enBbox(mid[1], mid[0])) return null;
+    lng = mid[0];
+    lat = mid[1];
     geom = lineaWkt(coords.filter((c) => enBbox(c[1], c[0])).length >= 2 ? coords : [mid, mid]);
   } else if (f.geometry.type === "Polygon" || f.geometry.type === "MultiPolygon") {
     const rings: [number, number][][] = [];
     if (f.geometry.type === "Polygon") {
       const ring = (f.geometry.coordinates as [number, number][][])[0];
-      if (ring?.some(([lng, lat]) => enBbox(lat, lng))) rings.push(ring);
+      if (ring?.some(([x, y]) => enBbox(y, x))) rings.push(ring);
     } else {
       for (const poly of f.geometry.coordinates as [number, number][][][]) {
         const ring = poly[0];
-        if (ring?.some(([lng, lat]) => enBbox(lat, lng))) rings.push(ring);
+        if (ring?.some(([x, y]) => enBbox(y, x))) rings.push(ring);
       }
     }
     if (!rings.length) return null;
@@ -249,15 +252,30 @@ function filaDesdeFeature(f: GeoFeature): LayerRow | null {
       const mayor = rings.reduce((a, b) => (areaAnilloM2(b) > areaAnilloM2(a) ? b : a));
       if (areaAnilloM2(mayor) < 2000) return null;
       geom = poligonoWkt(cerrar(mayor));
+      lng = mayor[0][0];
+      lat = mayor[0][1];
     } else {
       geom = poligonoWkt(cerrar(rings[0]));
+      lng = rings[0][0][0];
+      lat = rings[0][0][1];
     }
   } else if (meta.category === "park") {
     return null;
   } else {
     const mid = centroideLinea(f.geometry.type === "MultiLineString" ? (f.geometry.coordinates as unknown[])[0] : f.geometry.coordinates);
     if (!mid || !enBbox(mid[1], mid[0])) return null;
+    lng = mid[0];
+    lat = mid[1];
     geom = puntoWkt(mid[0], mid[1]);
+  }
+
+  const ajuste = lat != null && lng != null ? correccionDeLugar(name, tags.amenity, lat, lng) : null;
+  if (ajuste) {
+    meta.layer = ajuste.layer;
+    meta.category = ajuste.category;
+    meta.sense = ajuste.sense;
+    props.amenity = ajuste.amenityCorregido;
+    props.correccion = ajuste.nota;
   }
 
   return {
