@@ -9,6 +9,7 @@ import { UserPlus } from "lucide-react";
 import { ClienteQuickSheet } from "@/components/clientes/ClienteQuickSheet";
 import { BuscadorLocalidad } from "@/components/geo/BuscadorLocalidad";
 import { Selector } from "@/components/ui/selector";
+import { PublicacionInmueble } from "@/components/inmuebles/PublicacionInmueble";
 import {
   ESTADOS_INMUEBLE,
   ESTADO_INMUEBLE_LABEL,
@@ -31,6 +32,7 @@ export function InmuebleForm({
   error,
   submitLabel,
   onSubmit,
+  fotos = 0,
 }: {
   values: InmuebleFormValues;
   onChange: (patch: Partial<InmuebleFormValues>) => void;
@@ -41,6 +43,7 @@ export function InmuebleForm({
   error: string | null;
   submitLabel: string;
   onSubmit: () => void;
+  fotos?: number;
 }) {
   const [showQuickClient, setShowQuickClient] = useState(false);
   const set = (patch: Partial<InmuebleFormValues>) => onChange(patch);
@@ -278,15 +281,7 @@ export function InmuebleForm({
             </Selector>
           </div>
         </div>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={values.publicado}
-            onChange={(e) => set({ publicado: e.target.checked })}
-            className="h-4 w-4 rounded border-border"
-          />
-          Visible para el equipo
-        </label>
+        <PublicacionInmueble values={values} onChange={set} fotos={fotos} />
       </section>
 
       <section className="space-y-4">

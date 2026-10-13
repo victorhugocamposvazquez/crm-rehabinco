@@ -111,6 +111,9 @@ export type Inmueble = {
   tour_url: string | null;
   comercial_id: string | null;
   publicado: boolean;
+  publicar_web?: boolean;
+  publicar_idealista?: boolean;
+  certificado_energetico?: string | null;
   created_at?: string | null;
 };
 
@@ -155,6 +158,9 @@ export type InmuebleFormValues = {
   video_url: string;
   tour_url: string;
   publicado: boolean;
+  publicar_web: boolean;
+  publicar_idealista: boolean;
+  certificado_energetico: string;
 };
 
 export const INMUEBLE_FORM_VACIO: InmuebleFormValues = {
@@ -188,6 +194,9 @@ export const INMUEBLE_FORM_VACIO: InmuebleFormValues = {
   video_url: "",
   tour_url: "",
   publicado: false,
+  publicar_web: false,
+  publicar_idealista: false,
+  certificado_energetico: "",
 };
 
 export function triSiNo(valor: boolean | null | undefined): string {
@@ -244,7 +253,10 @@ export function inmuebleDesdeForm(values: InmuebleFormValues) {
     descripcion: values.descripcion.trim() || null,
     video_url: values.video_url.trim() || null,
     tour_url: values.tour_url.trim() || null,
-    publicado: values.publicado,
+    publicar_web: values.publicar_web,
+    publicar_idealista: values.publicar_idealista,
+    certificado_energetico: values.certificado_energetico.trim() || null,
+    publicado: values.publicar_web || values.publicar_idealista,
   };
 }
 
@@ -281,5 +293,8 @@ export function formDesdeInmueble(p: Partial<Inmueble>, fallbackOfertante = ""):
     video_url: p.video_url ?? "",
     tour_url: p.tour_url ?? "",
     publicado: Boolean(p.publicado),
+    publicar_web: Boolean(p.publicar_web),
+    publicar_idealista: Boolean(p.publicar_idealista),
+    certificado_energetico: p.certificado_energetico ?? "",
   };
 }

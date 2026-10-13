@@ -22,6 +22,7 @@ import {
   type InmuebleMedia,
 } from "@/lib/inmuebles/catalogo";
 import { useAuth } from "@/lib/auth/auth-context";
+import { avisoPublicacion } from "@/lib/inmuebles/publicacion";
 
 export default function EditarPropiedadPage() {
   const params = useParams();
@@ -70,6 +71,12 @@ export default function EditarPropiedadPage() {
 
   const handleSubmit = async () => {
     setError(null);
+    const fotos = media.filter((m) => m.tipo === "foto").length;
+    const faltaPublicar = avisoPublicacion(values, fotos);
+    if (faltaPublicar) {
+      setError(faltaPublicar);
+      return;
+    }
     setSaving(true);
     const supabase = createClient();
     const { data, error: err } = await supabase
@@ -128,6 +135,7 @@ export default function EditarPropiedadPage() {
           </CardHeader>
           <CardContent>
             <InmuebleForm
+              fotos={media.filter((m) => m.tipo === "foto").length}
               values={values}
               onChange={(patch) => setValues((v) => ({ ...v, ...patch }))}
               clientes={clientes}

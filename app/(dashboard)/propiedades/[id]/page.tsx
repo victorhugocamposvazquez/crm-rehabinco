@@ -217,7 +217,7 @@ export default function DetallePropiedadPage() {
       />
       {alta ? (
         <p className="mb-4 rounded-xl border border-[#111111]/30 bg-[#F0F0F0] px-4 py-3 text-sm text-[#000000]">
-          Inmueble creado. Sube fotos, planos o un tour 3D y marca «publicado» para matching.
+          Inmueble creado. Sube fotos y, si va a salir fuera, marca web o Idealista. Idealista pide precio, dirección, código postal, superficie, descripción y certificado.
         </p>
       ) : null}
       <div className="mb-6 print:hidden">
@@ -227,7 +227,8 @@ export default function DetallePropiedadPage() {
         <Badge variant="default">{labelEstadoInmueble(propiedad.estado)}</Badge>
         <Badge variant="default">{labelTipoOperacion(propiedad.tipo_operacion)}</Badge>
         {propiedad.tipo_inmueble ? <Badge variant="default">{labelTipoInmueble(propiedad.tipo_inmueble)}</Badge> : null}
-        {propiedad.publicado ? <Badge variant="default">Matching</Badge> : null}
+        {propiedad.publicar_web ? <Badge variant="default">Web</Badge> : null}
+        {propiedad.publicar_idealista ? <Badge variant="default">Idealista</Badge> : null}
         {esOrigenCatastroExplorer(propiedad.origen) && fincaReference ? (
           <CatastroPropertyFicha
             fincaReference={fincaReference}

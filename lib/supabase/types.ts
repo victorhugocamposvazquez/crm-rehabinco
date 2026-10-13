@@ -264,6 +264,9 @@ export interface Database {
           tour_url: string | null;
           comercial_id: string | null;
           publicado: boolean;
+          publicar_web: boolean;
+          publicar_idealista: boolean;
+          certificado_energetico: string | null;
           origen: string;
           created_at: string;
           updated_at: string;
@@ -302,6 +305,9 @@ export interface Database {
           tour_url?: string | null;
           comercial_id?: string | null;
           publicado?: boolean;
+          publicar_web?: boolean;
+          publicar_idealista?: boolean;
+          certificado_energetico?: string | null;
           origen?: string;
         };
         Update: {
@@ -337,6 +343,9 @@ export interface Database {
           tour_url?: string | null;
           comercial_id?: string | null;
           publicado?: boolean;
+          publicar_web?: boolean;
+          publicar_idealista?: boolean;
+          certificado_energetico?: string | null;
           origen?: string;
           updated_at?: string;
         };

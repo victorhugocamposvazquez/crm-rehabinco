@@ -26,6 +26,8 @@ import { Selector } from "@/components/ui/selector";
 import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { proponerInmuebleADemandas } from "@/lib/demandas/proponer-stock";
 import { siNoDe, triSiNo } from "@/lib/inmuebles/catalogo";
+import { avisoPublicacion } from "@/lib/inmuebles/publicacion";
+import { PublicacionInmueble } from "@/components/inmuebles/PublicacionInmueble";
 
 type InmuebleAltaSnap = {
   values: InmuebleFormValues;
@@ -127,6 +129,11 @@ export function NuevoInmueblePanel({
   const crear = async () => {
     if (!values.titulo.trim() && !values.direccion.trim()) {
       toast.error("Pon un título o una dirección.");
+      return;
+    }
+    const faltaPublicar = avisoPublicacion(values, pendientesFoto.length);
+    if (faltaPublicar) {
+      toast.error(faltaPublicar);
       return;
     }
     const supabase = createClient();
@@ -334,13 +341,7 @@ export function NuevoInmueblePanel({
               </Selector>
             </AltaField>
           </div>
-          <label className="flex items-center justify-between gap-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3.5">
-            <span>
-              <span className="block text-[14px] font-semibold">Visible para el equipo</span>
-              <span className="text-[12.5px] text-[var(--text-2)]">No lo publica en portales. El cruce con demandas usa los inmuebles disponibles.</span>
-            </span>
-            <input type="checkbox" checked={values.publicado} onChange={(e) => set({ publicado: e.target.checked })} className="h-4 w-4 accent-[var(--accent)]" />
-          </label>
+          <PublicacionInmueble values={values} onChange={set} fotos={pendientesFoto.length} controlClassName={altaControl} />
         </div>
       </AltaSection>
 
@@ -395,6 +396,12 @@ export function NuevoInmueblePanel({
             <input value={values.tour_url} onChange={(e) => set({ tour_url: e.target.value })} placeholder="https://my.matterport.com/show/?m=…" className={altaControl} />
           </AltaField>
         </div>
+      </AltaSection>
+
+      <AltaSection title="Descripción" hint="Es el texto de la web y de Idealista. Las notas de abajo no salen." wide>
+        <AltaField label="Descripción" optional>
+          <textarea value={values.descripcion} onChange={(e) => set({ descripcion: e.target.value })} rows={4} className={`${altaControl} h-auto min-h-[6.5rem] resize-none py-2.5`} />
+        </AltaField>
       </AltaSection>
 
       <AltaSection title="Notas internas" hint="Quedan en el CRM. No salen al portal ni a la ficha pública." wide>
