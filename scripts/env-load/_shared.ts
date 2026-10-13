@@ -139,7 +139,7 @@ export async function leerNdjson<T>(
   const { createInterface } = await import("node:readline");
   const rl = createInterface({ input: createReadStream(file), crlfDelay: Infinity });
   for await (const line of rl) {
-    const t = line.trim();
+    const t = line.trim().replace(/^\u001e/, "");
     if (!t) continue;
     await onLine(JSON.parse(t) as T);
   }

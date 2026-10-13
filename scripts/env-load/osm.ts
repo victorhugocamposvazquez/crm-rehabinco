@@ -7,7 +7,7 @@
  * npx tsx scripts/env-load/osm.ts --region acoruna --pbf ~/Downloads/galicia-latest.osm.pbf
  * npx tsx scripts/env-load/osm.ts --geofabrik spain/galicia
  */
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import {
@@ -63,9 +63,8 @@ function descargarPbf(dest: string, spec: { url: string; file: string; label: st
 function filtrarExportar(pbf: string, work: string, name: string, filterArgs: string[]): string {
   const filtered = path.join(work, `${name}.osm.pbf`);
   const geo = path.join(work, `${name}.geojsonseq`);
-  const filter = ["osmium", "tags-filter", pbf, ...filterArgs, "-o", filtered, "--overwrite"].join(" ");
-  execSync(filter, { stdio: "inherit" });
-  execSync(`osmium export -f geojsonseq -o "${geo}" "${filtered}" --overwrite`, { stdio: "inherit" });
+  execFileSync("osmium", ["tags-filter", pbf, ...filterArgs, "-o", filtered, "--overwrite"], { stdio: "inherit" });
+  execFileSync("osmium", ["export", "-f", "geojsonseq", "-o", geo, filtered, "--overwrite"], { stdio: "inherit" });
   return geo;
 }
 

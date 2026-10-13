@@ -7,12 +7,14 @@ import {
   buildTwin,
   conCache,
   condicionDesdePista,
+  hitDesdeConsulta,
   partirDireccion,
   type CatastroHit,
   type FichaOrigen,
   type GeoHit,
   type TwinDeps,
 } from "./twin-builder";
+import type { InmuebleNormalizado } from "../catastro/types";
 
 const ctx = { tenantId: "00000000-0000-4000-8000-000000000001" };
 const punto: GeoHit = { lat: 43.37, lng: -8.41, postcode: "15004", locality: "A Coruña" };
@@ -67,7 +69,86 @@ describe("partirDireccion", () => {
   });
 });
 
+describe("hitDesdeConsulta", () => {
+  it("incluye calle y municipio de la unidad consultada", () => {
+    const inmueble: InmuebleNormalizado = {
+      referenciaCatastral: "2749704YJ0624N0001DI",
+      referenciaParcela: "2749704YJ0624N",
+      cargo: null,
+      tipoBien: null,
+      direccion: {
+        tipoVia: "CL",
+        via: "GUAYANA-MOJONERA",
+        numero: "3",
+        numero2: null,
+        bloque: null,
+        escalera: null,
+        planta: null,
+        puerta: null,
+        codigoPostal: "46388",
+        provincia: "VALENCIA",
+        municipio: "GODELLETA",
+        literal: null,
+      },
+      superficie: 120,
+      anio: 1990,
+      uso: "Vivienda",
+      coeficienteParticipacion: null,
+      finca: null,
+      unidades: [],
+      raw: null,
+    };
+    const hit = hitDesdeConsulta(
+      {
+        query: {},
+        operacion: "Consulta_DNPRC",
+        tipo: "detalle",
+        control: { inmuebles: 1, construcciones: null, errores: null },
+        results: [inmueble],
+        raw: null,
+      },
+      "2749704YJ0624N0001DI"
+    );
+    expect(hit?.route).toBe("GUAYANA-MOJONERA");
+    expect(hit?.streetNumber).toBe("3");
+    expect(hit?.locality).toBe("GODELLETA");
+    expect(hit?.postcode).toBe("46388");
+    expect(hit?.formattedAddress).toContain("GUAYANA-MOJONERA");
+  });
+});
+
 describe("buildTwin", () => {
+  it("solo referencia catastral rellena la dirección desde la Sede", async () => {
+    const out = await buildTwin(
+      { catastralRef: "2749704YJ0624N0001DI" },
+      ctx,
+      deps({
+        catastroSede: async () => ({
+          hit: sede({
+            unitRef: "2749704YJ0624N0001DI",
+            route: "GUAYANA-MOJONERA",
+            streetNumber: "3",
+            locality: "GODELLETA",
+            province: "VALENCIA",
+            postcode: "46388",
+            formattedAddress: "CL GUAYANA-MOJONERA 3, 46388, GODELLETA",
+            centroid: { lat: 39.18, lng: -0.52 },
+            builtSurface: 120,
+            constructionYear: 1990,
+            mainType: "apartment",
+            propertyType: "apartment",
+          }),
+        }),
+      })
+    );
+    expect(out.twin.address.route).toBe("GUAYANA-MOJONERA");
+    expect(out.twin.address.streetNumber).toBe("3");
+    expect(out.twin.address.locality).toBe("GODELLETA");
+    expect(out.twin.address.formattedAddress).toContain("GUAYANA-MOJONERA");
+    expect(out.twin.address.lat).toBe(39.18);
+    expect(out.geocodingSource).toBe("catastro");
+  });
+
   it("candidato CartoCiudad envía vía AV MONSERRAT 12 a la Sede (no texto del usuario)", async () => {
     let viaEnviada: unknown;
     await buildTwin(
