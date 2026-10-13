@@ -183,6 +183,35 @@ describe("buildTwin", () => {
     });
   });
 
+  it("una rúa gallega consulta la Sede con sigla RU y la parcela de CartoCiudad", async () => {
+    let consulta: { ref?: string; via?: { sigla: string; calle: string; municipio: string } } | null = null;
+    await buildTwin(
+      {
+        carto: {
+          address: "RUA DOCTOR FLEMING 47, Carballo",
+          lat: 43.21609,
+          lng: -8.68664,
+          postcode: "15100",
+          municipality: "Carballo",
+          province: "15",
+          streetType: "RUA",
+          streetName: "DOCTOR FLEMING",
+          streetNumber: "47",
+          catastralRef: "5651209NH2855S",
+        },
+      },
+      ctx,
+      deps({
+        catastroSede: async (q) => {
+          consulta = q;
+          return { hit: null };
+        },
+      }),
+    );
+    expect(consulta?.ref).toBe("5651209NH2855S");
+    expect(consulta?.via).toMatchObject({ sigla: "RU", calle: "DOCTOR FLEMING", municipio: "CARBALLO" });
+  });
+
   it("geocodifica con CartoCiudad y deja Google para cuando esa no responde", async () => {
     const out = await buildTwin(
       { address: "Rúa Juan Flórez 30, 15004 A Coruña" },

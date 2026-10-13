@@ -24,6 +24,8 @@ export type CartoCandidatoNormalizado = {
   streetName: string | null;
   streetNumber: string | null;
   muniCode?: string;
+  /** Parcela que ya trae CartoCiudad (14 caracteres). */
+  catastralRef?: string | null;
 };
 
 export function normalizarNumeroPortal(raw: string | null | undefined): string | null {

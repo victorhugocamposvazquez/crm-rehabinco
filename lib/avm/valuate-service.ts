@@ -355,7 +355,7 @@ export async function valorar(solicitud: SolicitudValoracion, ctx: Ctx): Promise
   }
 
   const deps = depsMercado(ctx.admin);
-  const { estadoMercadoMunicipio, mensajeMercadoEnCarga } = await import("./market-loading");
+  const { avisoMunicipioSinRastreo, estadoMercadoMunicipio, mensajeMercadoEnCarga } = await import("./market-loading");
   const mercado = await estadoMercadoMunicipio(ctx.admin, built.twin.address.municipalityCode ?? built.zone.municipalityCode);
   const result = await valuate(built.twin, deps, {
     channel: solicitud.channel,
@@ -367,6 +367,8 @@ export async function valorar(solicitud: SolicitudValoracion, ctx: Ctx): Promise
     marketLoadingMessage: mensajeMercadoEnCarga(mercado),
   });
   if (op === "rent") result.operation = "rent";
+  const sinMercado = avisoMunicipioSinRastreo(mercado.enRastreo, result.comparables.length, result.zoneStats != null);
+  if (sinMercado) result.explanation.unshift(sinMercado);
 
   const valuationId = await guardar(
     ctx.admin,

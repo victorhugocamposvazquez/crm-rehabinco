@@ -408,6 +408,8 @@ export function NuevaValoracionWizard({
                         streetType: s.streetType,
                         streetName: s.streetName,
                         streetNumber: s.streetNumber,
+                        ...(s.muniCode ? { muniCode: s.muniCode } : {}),
+                        ...(s.catastralRef ? { catastralRef: s.catastralRef } : {}),
                       },
                     },
                     "direccion",

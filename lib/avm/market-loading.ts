@@ -4,11 +4,13 @@ export type EstadoMercadoZona = {
   loading: boolean;
   firstRunAt: string | null;
   listingsCount: number;
+  /** El municipio está en la lista que rastrea el CRM. */
+  enRastreo: boolean;
 };
 
 export async function estadoMercadoMunicipio(db: SupabaseClient, municipalityCode: string | null | undefined): Promise<EstadoMercadoZona> {
   const code = (municipalityCode ?? "").replace(/\D/g, "");
-  if (code.length !== 5) return { loading: false, firstRunAt: null, listingsCount: 0 };
+  if (code.length !== 5) return { loading: false, firstRunAt: null, listingsCount: 0, enRastreo: false };
 
   const { count: listingsCount } = await db
     .from("market_listings")
@@ -34,11 +36,17 @@ export async function estadoMercadoMunicipio(db: SupabaseClient, municipalityCod
   const firstRunAt = firstRun?.started_at ? String(firstRun.started_at).slice(0, 10) : target?.last_run ? String(target.last_run).slice(0, 10) : null;
   const loading = n === 0 && Boolean(target);
 
-  return { loading, firstRunAt, listingsCount: n };
+  return { loading, firstRunAt, listingsCount: n, enRastreo: Boolean(target) };
 }
 
 export function mensajeMercadoEnCarga(estado: EstadoMercadoZona): string | null {
   if (!estado.loading) return null;
   const fecha = estado.firstRunAt ?? "próximos días";
   return `Mercado de esta zona en carga: primera pasada el ${fecha}.`;
+}
+
+/** Municipio fuera del rastreo y sin mediana ni comparables: el €/m² nacional no es un precio de zona. */
+export function avisoMunicipioSinRastreo(enRastreo: boolean, comparables: number, hayZona: boolean): string | null {
+  if (enRastreo || comparables > 0 || hayZona) return null;
+  return "No hay ofertas similares: este municipio todavía no entra en el rastreo de anuncios. El importe es una estimación nacional, no un precio de la zona.";
 }

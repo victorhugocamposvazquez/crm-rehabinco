@@ -11,6 +11,8 @@ export type CandidatoCarto = {
   /** Nombre de vía sin tipo ni portal (ej. MONSERRAT). */
   streetName: string | null;
   streetNumber: string | null;
+  /** Referencia de parcela que devuelve CartoCiudad, si viene. */
+  catastralRef?: string | null;
 };
 
 export type ContextoGeocoder = {
@@ -34,6 +36,7 @@ type RawCarto = {
   provinceCode?: string;
   tip_via?: string;
   portalNumber?: string | number;
+  refCatastral?: string;
 };
 
 /** Nombre de calle sin tipología ni número (alineado con pedirCartociudad en twin-builder). */
@@ -61,6 +64,7 @@ export function parseCartoRow(c: RawCarto): CandidatoCarto | null {
   const streetType = typeof c.tip_via === "string" ? c.tip_via : null;
   const streetNumber = c.portalNumber == null ? null : String(c.portalNumber);
   const streetName = calleDesdeCarto(c);
+  const ref = typeof c.refCatastral === "string" ? c.refCatastral.replace(/\s/g, "") : "";
   return {
     address,
     lat: c.lat,
@@ -71,6 +75,7 @@ export function parseCartoRow(c: RawCarto): CandidatoCarto | null {
     streetType,
     streetName,
     streetNumber,
+    catastralRef: ref.length >= 14 ? ref : null,
     ...(c.muniCode ? { muniCode: c.muniCode } : {}),
   };
 }

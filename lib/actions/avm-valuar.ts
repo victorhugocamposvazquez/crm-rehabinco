@@ -67,6 +67,8 @@ export async function candidatosDireccion(q: string) {
     streetType: c.streetType,
     streetName: c.streetName,
     streetNumber: c.streetNumber,
+    ...(c.muniCode ? { muniCode: c.muniCode } : {}),
+    ...(c.catastralRef ? { catastralRef: c.catastralRef } : {}),
   }));
 }
 

@@ -14,6 +14,8 @@ import {
 import { emptyTwin, type MainType, type PropertyType, type Twin } from "./types";
 
 const TOPE_MS = 3000;
+/** La ficha de un portal con muchas unidades no cabe en el tope del geocoder. */
+const TOPE_SEDE_MS = 8000;
 const TTL_CATASTRO_MS = 90 * 24 * 60 * 60 * 1000;
 const GANA_CATASTRO = new Set<keyof Twin>([
   "builtSurface",
@@ -782,42 +784,54 @@ async function conCentroide(client: ReturnType<typeof createCatastroClient>, hit
   }
 }
 
-async function pedirSede(q: { ref?: string; address?: string; via?: ViaCatastro; lat?: number; lng?: number }): Promise<CatastroHit | null> {
-  const client = createCatastroClient({ timeoutMs: TOPE_MS, minIntervalMs: 0 });
-  const ref = q.ref?.replace(/\s/g, "");
-  if (ref && ref.length >= 20) {
-    const parcela = await client.consultarReferencia({ refCat: ref.slice(0, 14) });
-    const hit = hitDesdeConsulta(parcela, ref);
-    return conCentroide(client, hit);
+async function intentarSede(fn: () => Promise<CatastroHit | null>): Promise<CatastroHit | null> {
+  try {
+    return await fn();
+  } catch {
+    return null;
   }
-  if (ref) {
-    const raw = await client.consultarReferencia({ refCat: ref.slice(0, 14) });
-    return conCentroide(client, hitDesdeConsulta(raw));
+}
+
+async function pedirSede(q: { ref?: string; address?: string; via?: ViaCatastro; lat?: number; lng?: number }): Promise<CatastroHit | null> {
+  const client = createCatastroClient({ timeoutMs: TOPE_SEDE_MS, minIntervalMs: 0 });
+  const ref = q.ref?.replace(/\s/g, "");
+  if (ref && ref.length >= 14) {
+    const hit = await intentarSede(async () => {
+      const raw = await client.consultarReferencia({ refCat: ref.slice(0, 14) });
+      return conCentroide(client, hitDesdeConsulta(raw, ref.length >= 20 ? ref : null));
+    });
+    if (hit) return hit;
   }
   if (q.via?.calle && q.via.numero) {
-    const raw = await client.consultarDireccion({
-      provincia: q.via.provincia,
-      municipio: q.via.municipio,
-      sigla: siglaOficial(q.via.sigla),
-      calle: q.via.calle,
-      numero: q.via.numero,
+    const hit = await intentarSede(async () => {
+      const raw = await client.consultarDireccion({
+        provincia: q.via!.provincia,
+        municipio: q.via!.municipio,
+        sigla: siglaOficial(q.via!.sigla),
+        calle: q.via!.calle,
+        numero: q.via!.numero,
+      });
+      return conCentroide(client, hitDesdeConsulta(raw));
     });
-    return conCentroide(client, hitDesdeConsulta(raw));
-  }
-  if (q.address) {
+    if (hit) return hit;
+  } else if (q.address) {
     const dir = partirDireccion(q.address);
     if (dir.calle && dir.numero) {
-      const raw = await client.consultarDireccion(dir);
-      const hit = await conCentroide(client, hitDesdeConsulta(raw));
+      const hit = await intentarSede(async () => {
+        const raw = await client.consultarDireccion(dir);
+        return conCentroide(client, hitDesdeConsulta(raw));
+      });
       if (hit) return hit;
     }
   }
   if (q.lat == null || q.lng == null) return null;
-  const crudo = await client.consultarReferenciaPorCoordenadas(q.lat, q.lng);
-  const porPunto = referenciaDesdeRccoor(crudo);
-  if (!porPunto) return null;
-  const detalle = await client.consultarReferencia({ refCat: porPunto });
-  return conCentroide(client, hitDesdeConsulta(detalle));
+  return intentarSede(async () => {
+    const crudo = await client.consultarReferenciaPorCoordenadas(q.lat!, q.lng!);
+    const porPunto = referenciaDesdeRccoor(crudo);
+    if (!porPunto) return null;
+    const detalle = await client.consultarReferencia({ refCat: porPunto });
+    return conCentroide(client, hitDesdeConsulta(detalle));
+  });
 }
 
 function fichaMercado(row: Record<string, unknown>): FichaOrigen {
@@ -987,6 +1001,9 @@ async function ejecutar(input: TwinInput, ctx: TwinCtx, deps: TwinDeps): Promise
     twin.address.postcode = input.carto.postcode ?? twin.address.postcode;
     twin.address.locality = input.carto.municipality;
     twin.address.province = input.carto.province;
+    twin.address.route = input.carto.streetName;
+    twin.address.streetNumber = input.carto.streetNumber;
+    if (input.carto.catastralRef) twin.address.catastralRef = input.carto.catastralRef.replace(/\s/g, "");
     geo = {
       lat: input.carto.lat,
       lng: input.carto.lng,
@@ -1059,7 +1076,9 @@ async function ejecutar(input: TwinInput, ctx: TwinCtx, deps: TwinDeps): Promise
     twin.address.lng = lng;
   }
 
-  const refExplicita = input.catastralRef?.replace(/\s/g, "") || null;
+  const refUsuario = input.catastralRef?.replace(/\s/g, "") || null;
+  const refCarto = input.carto?.catastralRef?.replace(/\s/g, "") || null;
+  const refExplicita = refUsuario || refCarto;
   const dbTwin = ctx.db ?? adminONull();
   let cartoParaCatastro = input.carto;
   if (cartoParaCatastro && lat != null && lng != null && !cartoParaCatastro.muniCode) {
@@ -1074,7 +1093,7 @@ async function ejecutar(input: TwinInput, ctx: TwinCtx, deps: TwinDeps): Promise
   }
   const viaCarto =
     cartoParaCatastro && dbTwin ? await viaCatastroDesdeCandidato(cartoParaCatastro, dbTwin) : null;
-  const via = refExplicita ? null : viaCarto ?? viaDesde(geo, input.carto ? null : direccion);
+  const via = refUsuario ? null : viaCarto ?? viaDesde(geo, input.carto ? null : direccion);
   let unidades: TwinUnit[] | undefined;
   try {
     const local = await deps.catastroLocal({ ref: refExplicita ?? undefined, lat: lat ?? undefined, lng: lng ?? undefined });
@@ -1091,6 +1110,9 @@ async function ejecutar(input: TwinInput, ctx: TwinCtx, deps: TwinDeps): Promise
       lng: lng ?? undefined,
     });
     if (sede.warning) warnings.push(sede.warning);
+    else if (!sede.hit && (refExplicita || via || (lat != null && lng != null))) {
+      warnings.push("La Sede del Catastro no ha encontrado la parcela.");
+    }
     if (sede.hit) {
       if (sede.hit.centroid) {
         lat = sede.hit.centroid.lat;

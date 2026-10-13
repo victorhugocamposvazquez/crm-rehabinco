@@ -16,6 +16,8 @@ describe("CartoCiudad → sigla Catastro", () => {
     expect(siglaViaCartoCiudad("PARTIDA")).toBe("PD");
     expect(siglaViaCartoCiudad("DISEMINADO")).toBe("DS");
     expect(siglaViaCartoCiudad("CUESTA")).toBe("CT");
+    expect(siglaViaCartoCiudad("RUA")).toBe("RU");
+    expect(siglaViaCartoCiudad("Rúa")).toBe("RU");
   });
 
   it("no deja etiquetas del catálogo sin sigla oficial", () => {

@@ -17,8 +17,9 @@ function norm(s: string): string {
 export const CARTO_VIA_A_CATASTRO: Readonly<Record<string, string>> = {
   CALLE: "CL",
   CARRER: "CL",
-  RUA: "CL",
-  RÚA: "CL",
+  // En el Anexo II, RUA es la sigla RU (Galicia). CL hace que la Sede responda «la vía no existe».
+  RUA: "RU",
+  RÚA: "RU",
   KALEA: "CL",
   AVENIDA: "AV",
   AVINGUDA: "AV",
