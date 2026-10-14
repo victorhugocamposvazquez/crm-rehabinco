@@ -1,10 +1,13 @@
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { Font } from "@react-pdf/renderer";
 
 let registradas = false;
 
+/** Data URL: en Vercel la ruta del archivo no llega al generador y la fuente queda vacía. */
 function ttf(nombre: string): string {
-  return path.join(process.cwd(), "lib/avm/pdf/fonts", nombre);
+  const bytes = readFileSync(path.join(process.cwd(), "lib/avm/pdf/fonts", nombre));
+  return `data:font/ttf;base64,${bytes.toString("base64")}`;
 }
 
 /** Inter (regular, medium, semibold, bold) y JetBrains Mono embebidas. */
