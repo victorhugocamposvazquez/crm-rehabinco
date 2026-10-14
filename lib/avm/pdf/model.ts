@@ -204,7 +204,8 @@ function esMarcaEquipo(item: EnvironmentItem): boolean {
 function subEntorno(item: EnvironmentItem): string {
   const metros = item.distanceM != null && item.distanceM > 0 ? `a ${Math.round(item.distanceM)} m` : null;
   const fuente = item.source?.trim();
-  const pie = metros && fuente && !item.label.includes(fuente) ? `${metros} · ${fuente}` : metros ?? fuente ?? "";
+  const titulo = item.label ?? "";
+  const pie = metros && fuente && !titulo.includes(fuente) ? `${metros} · ${fuente}` : metros ?? fuente ?? "";
   if (item.motivo && pie) return `${item.motivo} · ${pie}`;
   return item.motivo || pie;
 }
@@ -218,7 +219,7 @@ function tonoDe(item: EnvironmentItem): TonoChip {
 
 function filaEntorno(item: EnvironmentItem, conPuntos: boolean): FilaEntornoPdf {
   const points = conPuntos && item.value != null && Number.isFinite(Number(item.value)) ? Math.round(Number(item.value)) : undefined;
-  return { title: item.label, sub: subEntorno(item), points, tone: tonoDe(item) };
+  return { title: item.label || "Entorno", sub: subEntorno(item), points, tone: tonoDe(item) };
 }
 
 function palabraEntorno(score: number): string {
@@ -228,7 +229,8 @@ function palabraEntorno(score: number): string {
   return "flojo";
 }
 
-function portalDe(portal: string): string {
+function portalDe(portal: string | null | undefined): string {
+  if (!portal) return "Anuncio";
   return PORTAL[portal.toLowerCase()] ?? portal;
 }
 
@@ -399,7 +401,7 @@ export function modeloInformePdf(input: {
     price: c.price,
     m2: Math.round(c.surface),
     ppm2: Math.round(c.pricePerM2),
-    adjustments: Object.entries(c.adjustments)
+    adjustments: Object.entries(c.adjustments ?? {})
       .map(([k, v]) => ajusteTexto(k, v))
       .filter((a): a is { text: string; up: boolean } => Boolean(a)),
     adjustedPpm2: Math.round(c.adjustedPpm2),

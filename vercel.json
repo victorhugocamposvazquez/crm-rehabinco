@@ -27,6 +27,9 @@
     },
     "app/api/avm/valuate/route.ts": {
       "maxDuration": 60
+    },
+    "app/api/avm/valuations/[id]/pdf/route.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [

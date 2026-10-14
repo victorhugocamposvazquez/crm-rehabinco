@@ -1,13 +1,13 @@
 import { z } from "zod";
 import { marcaDeAgencia, BUCKET_INFORMES } from "@/lib/avm/pdf/branding";
-import { nombreDescargaPdf, rutaPdfGuardado, type PdfThemeName, type PdfVariant } from "@/lib/avm/pdf/model";
+import { nombreDescargaPdf, rutaPdfGuardado, type MarcaPdf, type PdfThemeName, type PdfVariant } from "@/lib/avm/pdf/model";
 import { renderInformePdf } from "@/lib/avm/pdf/render";
 import { hydrateEnvironmentForInforme } from "@/lib/avm/environment-hydrate";
 import type { Environment, Twin, ValuationResult } from "@/lib/avm/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 const cuerpo = z.object({
   variant: z.enum(["propietario", "interno"]),
@@ -39,7 +39,6 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   if (error || !data) return Response.json({ error: "No está la valoración" }, { status: 404 });
   if (data.deleted_at) return Response.json({ error: "La valoración está en la papelera" }, { status: 410 });
 
-  const admin = createAdminClient();
   const variant = parsed.data.variant;
   let agente: { nombre: string | null; telefono: string | null } | null = null;
   if (data.created_by) {
@@ -50,23 +49,32 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       .maybeSingle();
     agente = perfil ? { nombre: perfil.nombre_completo, telefono: perfil.telefono } : null;
   }
-  const marca = await marcaDeAgencia(admin, tenantId, agente);
+  const marcaBase: MarcaPdf = {
+    name: "REHABINCO, S.L.",
+    phone: null,
+    email: null,
+    web: null,
+    color: "#121214",
+    pdfTheme: "dark",
+    logoLight: null,
+    logoDark: null,
+    agentName: agente?.nombre?.trim() || "Comercial de la agencia",
+    agentPhone: agente?.telefono ?? null,
+  };
+  let admin: ReturnType<typeof createAdminClient> | null = null;
+  let marca = marcaBase;
+  try {
+    admin = createAdminClient();
+    marca = await marcaDeAgencia(admin, tenantId, agente);
+  } catch (err) {
+    console.error("pdf marca", err instanceof Error ? err.message : err);
+  }
   const theme: PdfThemeName = parsed.data.theme ?? marca.pdfTheme;
   const ruta = rutaPdfGuardado(tenantId, id, variant, theme);
-  const nombreObjeto = ruta.split("/").pop() ?? "";
-
-  const { data: ya } = await admin.storage.from(BUCKET_INFORMES).list(tenantId, { search: nombreObjeto });
-  const existe = (ya ?? []).some((f) => f.name === nombreObjeto);
   const twin = ((data.inputs as { twin?: Twin } | null)?.twin ?? {
     address: { formattedAddress: null, route: null, streetNumber: null, countryCode: "es" },
   }) as Twin;
   const filename = nombreDescargaDe(twin, data.created_at);
-
-  if (existe) {
-    const firmada = await firmar(admin, ruta, filename);
-    if (!firmada) return Response.json({ error: "No se ha podido abrir el PDF" }, { status: 500 });
-    return Response.json({ url: firmada, filename, cached: true });
-  }
 
   const stored = data.environment as Environment | null;
   const hydrated = await hydrateEnvironmentForInforme(supabase, twin, stored).catch(() => ({
@@ -74,39 +82,47 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     coverage: null,
   }));
   const result = filaAResultado(data, hydrated.environment);
-  const { buffer } = await renderInformePdf({
-    variant: variant as PdfVariant,
-    theme,
-    marca,
-    valuationId: id,
-    createdAt: data.created_at,
-    result,
-    twin,
-    fieldSources: (data.inputs as { fieldSources?: Record<string, string> } | null)?.fieldSources ?? {},
-    layers: hydrated.coverage?.layers_loaded,
-    channel: data.channel,
-  });
+  let buffer: Buffer;
+  try {
+    ({ buffer } = await renderInformePdf({
+      variant: variant as PdfVariant,
+      theme,
+      marca,
+      valuationId: id,
+      createdAt: data.created_at,
+      result,
+      twin,
+      fieldSources: (data.inputs as { fieldSources?: Record<string, string> } | null)?.fieldSources ?? {},
+      layers: hydrated.coverage?.layers_loaded,
+      channel: data.channel,
+    }));
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "No se ha podido generar el PDF";
+    return Response.json({ error: message }, { status: 500 });
+  }
 
-  const { error: upError } = await admin.storage.from(BUCKET_INFORMES).upload(ruta, buffer, {
-    contentType: "application/pdf",
-    upsert: true,
-  });
-  if (upError) return Response.json({ error: upError.message }, { status: 500 });
+  if (admin) {
+    void admin.storage
+      .from(BUCKET_INFORMES)
+      .upload(ruta, buffer, { contentType: "application/pdf", upsert: true })
+      .then(({ error }) => {
+        if (error) console.error("pdf upload", error.message);
+      });
+  }
 
-  const firmada = await firmar(admin, ruta, filename);
-  if (!firmada) return Response.json({ error: "No se ha podido abrir el PDF" }, { status: 500 });
-  return Response.json({ url: firmada, filename, cached: false });
+  const encoded = encodeURIComponent(filename);
+  return new Response(new Uint8Array(buffer), {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="valoracion.pdf"; filename*=UTF-8''${encoded}`,
+      "Cache-Control": "private, no-store",
+    },
+  });
 }
 
 function nombreDescargaDe(twin: Twin, createdAt: string): string {
   const calle = [twin.address?.route, twin.address?.streetNumber].filter(Boolean).join(" ");
   return nombreDescargaPdf(calle || twin.address?.formattedAddress || "valoracion", createdAt);
-}
-
-async function firmar(admin: ReturnType<typeof createAdminClient>, ruta: string, filename: string): Promise<string | null> {
-  const { data, error } = await admin.storage.from(BUCKET_INFORMES).createSignedUrl(ruta, 60 * 60, { download: filename });
-  if (error || !data?.signedUrl) return null;
-  return data.signedUrl;
 }
 
 function filaAResultado(

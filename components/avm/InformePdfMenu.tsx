@@ -30,12 +30,22 @@ export function InformePdfMenu({ valuationId }: { valuationId: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(theme ? { variant, theme } : { variant }),
       });
-      const body = (await res.json().catch(() => null)) as { url?: string; error?: string } | null;
-      if (!res.ok || !body?.url) {
+      const tipo = res.headers.get("content-type") ?? "";
+      if (!res.ok || !tipo.includes("application/pdf")) {
+        const body = (await res.json().catch(() => null)) as { error?: string } | null;
         toast.error(body?.error ?? "No se ha podido generar el PDF");
         return;
       }
-      window.open(body.url, "_blank", "noopener");
+      const blob = await res.blob();
+      const dispo = res.headers.get("content-disposition") ?? "";
+      const encoded = /filename\*=UTF-8''([^;]+)/.exec(dispo)?.[1];
+      const nombre = encoded ? decodeURIComponent(encoded) : "valoracion.pdf";
+      const url = URL.createObjectURL(blob);
+      const enlace = document.createElement("a");
+      enlace.href = url;
+      enlace.download = nombre;
+      enlace.click();
+      URL.revokeObjectURL(url);
     } catch {
       toast.error("No se ha podido generar el PDF");
     } finally {

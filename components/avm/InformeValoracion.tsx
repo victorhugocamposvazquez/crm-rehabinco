@@ -81,7 +81,7 @@ export function InformeValoracion({
 
   return (
     <article className="flex flex-col gap-4" data-testid="informe">
-      <InformeAcciones className="min-[820px]:hidden" />
+      <InformeAcciones className="min-[820px]:hidden" valuationId={valuationId} />
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" data-testid="tiles">
         <Tile label="Valor de cierre" value={fmtEuros(result.valueMid)} foot={`rango ${rangoPie}`} grande />
         <Tile

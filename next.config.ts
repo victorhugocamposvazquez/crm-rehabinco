@@ -5,6 +5,13 @@ const buildId = process.env.VERCEL_GIT_COMMIT_SHA ?? "dev";
 const nextConfig: NextConfig = {
   transpilePackages: ["maplibre-gl"],
   serverExternalPackages: ["@react-pdf/renderer"],
+  outputFileTracingIncludes: {
+    "/api/avm/valuations/[id]/pdf": [
+      "./lib/avm/pdf/fonts/**/*.ttf",
+      "./public/images/logo-web.png",
+      "./public/images/facturas/rehabinco-blanco.png",
+    ],
+  },
   env: {
     NEXT_PUBLIC_BUILD_ID: buildId,
   },
