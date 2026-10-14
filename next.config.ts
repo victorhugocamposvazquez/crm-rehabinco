@@ -7,7 +7,8 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["@react-pdf/renderer"],
   outputFileTracingIncludes: {
     "/api/avm/valuations/[id]/pdf": [
-      "./lib/avm/pdf/fonts/**/*.ttf",
+      "./node_modules/pdfkit/js/standard-fonts/**/*",
+      "./node_modules/pdfkit/js/data/sRGB_IEC61966_2_1.icc",
       "./public/images/logo-web.png",
       "./public/images/facturas/rehabinco-blanco.png",
     ],
