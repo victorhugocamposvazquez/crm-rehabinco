@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { SitioPublico } from "@/components/web/SitioPublico";
 import { cargarWebPublica } from "@/lib/web/cargar";
+import { enDominioPublico } from "@/lib/web/en-dominio";
 
 export const dynamic = "force-dynamic";
 
@@ -23,5 +24,5 @@ export default async function WebPublicaPage() {
       </main>
     );
   }
-  return <SitioPublico web={web} />;
+  return <SitioPublico web={web} enDominio={await enDominioPublico()} />;
 }

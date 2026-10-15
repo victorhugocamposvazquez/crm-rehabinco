@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { isAdmin, parseRole } from "@/lib/auth/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { dominioParaGuardar } from "@/lib/web/dominio";
 import { contenidoDe, esDiseno, esTipoBloque, type ContenidoBloque, type DisenoWeb } from "@/lib/web/modelo";
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -41,6 +42,21 @@ export async function cambiarDisenoWeb(diseno: DisenoWeb): Promise<Result> {
   const { error } = await supabase
     .from("web_sitio")
     .update({ diseno, updated_at: new Date().toISOString() })
+    .eq("tenant_id", sesion.tenantId);
+  if (error) return { ok: false, error: error.message };
+  refrescar();
+  return { ok: true };
+}
+
+export async function guardarDominioWeb(valor: string): Promise<Result> {
+  const parsed = dominioParaGuardar(valor);
+  if (!parsed.ok) return parsed;
+  const sesion = await sesionAdmin();
+  if (fallo(sesion)) return sesion;
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("web_sitio")
+    .update({ dominio: parsed.dominio, updated_at: new Date().toISOString() })
     .eq("tenant_id", sesion.tenantId);
   if (error) return { ok: false, error: error.message };
   refrescar();

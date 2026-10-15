@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { FichaPublica } from "@/components/web/FichaPublica";
 import { cargarWebPublica } from "@/lib/web/cargar";
+import { enDominioPublico } from "@/lib/web/en-dominio";
 
 export const dynamic = "force-dynamic";
 
@@ -30,5 +31,5 @@ export default async function FichaWebPage({
   const item = web?.inmuebles[0];
   if (!web?.sitio.publicado || !item) notFound();
   const pie = web.bloques.find((b) => b.tipo === "pie")?.contenido.texto ?? web.sitio.marca.nombre;
-  return <FichaPublica diseno={web.sitio.diseno} marca={web.sitio.marca} pie={pie} item={item} />;
+  return <FichaPublica diseno={web.sitio.diseno} marca={web.sitio.marca} pie={pie} item={item} enDominio={await enDominioPublico()} />;
 }

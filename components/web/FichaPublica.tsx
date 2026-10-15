@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { TIPO_INMUEBLE_LABEL, type TipoInmueble } from "@/lib/inmuebles/catalogo";
+import { hrefInicio } from "@/lib/web/dominio";
 import { precioPublico, TEMAS_WEB, type InmuebleWeb, type MarcaWeb, type DisenoWeb } from "@/lib/web/modelo";
 import { CabeceraWeb, MarcoWeb, PieWeb } from "./MarcoWeb";
 
@@ -8,11 +9,13 @@ export function FichaPublica({
   marca,
   pie,
   item,
+  enDominio = false,
 }: {
   diseno: DisenoWeb;
   marca: MarcaWeb;
   pie: string;
   item: InmuebleWeb;
+  enDominio?: boolean;
 }) {
   const tema = TEMAS_WEB[diseno];
   const tipo = item.tipo_inmueble && item.tipo_inmueble in TIPO_INMUEBLE_LABEL
@@ -27,9 +30,9 @@ export function FichaPublica({
 
   return (
     <MarcoWeb tema={tema}>
-      <CabeceraWeb marca={marca} tema={tema} />
+      <CabeceraWeb marca={marca} tema={tema} enDominio={enDominio} />
       <main className="mx-auto max-w-4xl px-5 py-6">
-        <Link href="/web#inmuebles" className="text-[13px] font-medium" style={{ color: tema.acento }}>
+        <Link href={`${hrefInicio(enDominio)}#inmuebles`} className="text-[13px] font-medium" style={{ color: tema.acento }}>
           Todos los inmuebles
         </Link>
         <p className="mt-4 text-[13px]" style={{ color: tema.suave }}>{item.localidad}</p>

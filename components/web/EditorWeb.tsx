@@ -13,6 +13,7 @@ import {
   cambiarVisibleBloque,
   cambiarWebPublicada,
   guardarBloqueWeb,
+  guardarDominioWeb,
   moverBloqueWeb,
   quitarFotoBloque,
   subirFotoBloque,
@@ -33,9 +34,14 @@ const campo = "mt-1 w-full rounded-lg border border-border bg-[var(--surface)] p
 export function EditorWeb({ datos }: { datos: EditorWebDatos }) {
   const router = useRouter();
   const [pendiente, arrancar] = useTransition();
+  const [dominio, setDominio] = useState(datos.dominio ?? "");
   const [borradores, setBorradores] = useState<Record<string, ContenidoBloque>>(() =>
     Object.fromEntries(datos.bloques.map((b) => [b.id, b.contenido]))
   );
+
+  useEffect(() => {
+    setDominio(datos.dominio ?? "");
+  }, [datos.dominio]);
 
   useEffect(() => {
     setBorradores((prev) => {
@@ -75,12 +81,22 @@ export function EditorWeb({ datos }: { datos: EditorWebDatos }) {
         title="Web"
         description="Elige un diseño, cambia los textos y mueve los bloques. Los inmuebles salen de los que marques en su ficha."
         actions={
-          <Button variant="secondary" size="sm" asChild>
-            <a href="/web" target="_blank" rel="noreferrer">
-              <ExternalLink className="h-4 w-4" />
-              Ver la web
-            </a>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" asChild>
+              <a href="/web" target="_blank" rel="noreferrer">
+                <ExternalLink className="h-4 w-4" />
+                Vista previa
+              </a>
+            </Button>
+            {datos.dominio ? (
+              <Button variant="secondary" size="sm" asChild>
+                <a href={`https://${datos.dominio}`} target="_blank" rel="noreferrer">
+                  <ExternalLink className="h-4 w-4" />
+                  {datos.dominio}
+                </a>
+              </Button>
+            ) : null}
+          </div>
         }
       />
 
@@ -118,7 +134,11 @@ export function EditorWeb({ datos }: { datos: EditorWebDatos }) {
         <span>
           <span className="block text-[14px] font-semibold">Web visible</span>
           <span className="text-[12.5px] text-[var(--text-2)]">
-            {datos.publicado ? "Quien entre en /web ve la página." : "La página pública dice que aún no está publicada."}
+            {datos.publicado
+              ? datos.dominio
+                ? `Quien entre en ${datos.dominio} ve la página.`
+                : "Quien entre en /web ve la página."
+              : "La página pública dice que aún no está publicada."}
           </span>
         </span>
         <input
@@ -129,6 +149,33 @@ export function EditorWeb({ datos }: { datos: EditorWebDatos }) {
           onChange={(e) => actuar(cambiarWebPublicada(e.target.checked), e.target.checked ? "Web visible." : "Web oculta.")}
         />
       </label>
+
+      <form
+        className="mt-3 rounded-2xl border border-border bg-[var(--surface)] px-4 py-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          actuar(guardarDominioWeb(dominio), dominio.trim() ? "Dominio guardado." : "Dominio quitado.");
+        }}
+      >
+        <Label htmlFor="dominio-web">Dominio de la web</Label>
+        <Input
+          id="dominio-web"
+          value={dominio}
+          disabled={pendiente}
+          placeholder="web.rehabinco.es"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          onChange={(e) => setDominio(e.target.value)}
+          className="mt-1"
+        />
+        <p className="mt-2 text-[12.5px] text-[var(--text-2)]">
+          Puede ser un dominio o un subdominio. El CRM sigue en crm.rehabinco.es. Si lo dejas vacío, la vista previa queda en /web.
+        </p>
+        <Button type="submit" size="sm" className="mt-3" disabled={pendiente}>
+          Guardar dominio
+        </Button>
+      </form>
 
       <section className="mt-8 space-y-3">
         {datos.bloques.map((bloque, indice) => (

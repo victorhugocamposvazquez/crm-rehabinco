@@ -72,6 +72,7 @@ export type WebPublica = {
 export type EditorWebDatos = {
   diseno: DisenoWeb;
   publicado: boolean;
+  dominio: string | null;
   marca: { nombre: string; telefono: string | null; email: string | null };
   bloques: BloqueWeb[];
 };

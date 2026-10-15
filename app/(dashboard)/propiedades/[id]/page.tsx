@@ -63,6 +63,13 @@ export default function DetallePropiedadPage() {
   const [fincaReference, setFincaReference] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [dominioWeb, setDominioWeb] = useState<string | null>(null);
+
+  useEffect(() => {
+    createClient().rpc("web_dominio").then(({ data }) => {
+      setDominioWeb(typeof data === "string" && data.trim() ? data.trim() : null);
+    });
+  }, []);
 
   useEffect(() => {
     const supabase = createClient();
@@ -238,7 +245,13 @@ export default function DetallePropiedadPage() {
           precio_alquiler: propiedad.precio_alquiler,
           estado: propiedad.estado,
         }) ? (
-          <Link href={`/web/inmuebles/${encodeURIComponent(propiedad.referencia)}`}>
+          <Link
+            href={
+              dominioWeb
+                ? `https://${dominioWeb}/inmuebles/${encodeURIComponent(propiedad.referencia)}`
+                : `/web/inmuebles/${encodeURIComponent(propiedad.referencia)}`
+            }
+          >
             <Badge variant="default">Web</Badge>
           </Link>
         ) : propiedad.publicar_web ? <Badge variant="default">Web</Badge> : null}

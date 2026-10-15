@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { TIPO_INMUEBLE_LABEL, type TipoInmueble } from "@/lib/inmuebles/catalogo";
+import { hrefInmueble } from "@/lib/web/dominio";
 import { precioPublico, TEMAS_WEB, type InmuebleWeb, type WebPublica } from "@/lib/web/modelo";
 import { CabeceraWeb, MarcoWeb, PieWeb } from "./MarcoWeb";
 
@@ -12,7 +13,15 @@ function enlaceTelefono(telefono: string): string {
   return `tel:${telefono.replace(/\s/g, "")}`;
 }
 
-export function TarjetaInmueble({ item, tema }: { item: InmuebleWeb; tema: (typeof TEMAS_WEB)["claro"] }) {
+export function TarjetaInmueble({
+  item,
+  tema,
+  enDominio = false,
+}: {
+  item: InmuebleWeb;
+  tema: (typeof TEMAS_WEB)["claro"];
+  enDominio?: boolean;
+}) {
   const foto = item.fotos[0];
   const tipo = tipoDe(item.tipo_inmueble);
   const datos = [
@@ -23,7 +32,7 @@ export function TarjetaInmueble({ item, tema }: { item: InmuebleWeb; tema: (type
   ].filter(Boolean);
   return (
     <Link
-      href={`/web/inmuebles/${encodeURIComponent(item.referencia)}`}
+      href={hrefInmueble(enDominio, item.referencia)}
       className="overflow-hidden rounded-2xl border"
       style={{ background: tema.tarjeta, borderColor: tema.linea }}
     >
@@ -42,7 +51,7 @@ export function TarjetaInmueble({ item, tema }: { item: InmuebleWeb; tema: (type
   );
 }
 
-export function SitioPublico({ web }: { web: WebPublica }) {
+export function SitioPublico({ web, enDominio = false }: { web: WebPublica; enDominio?: boolean }) {
   const tema = TEMAS_WEB[web.sitio.diseno];
   const marca = web.sitio.marca;
   if (!web.sitio.publicado) {
@@ -60,7 +69,7 @@ export function SitioPublico({ web }: { web: WebPublica }) {
     <MarcoWeb tema={tema}>
       {web.bloques.map((bloque) => {
         const c = bloque.contenido;
-        if (bloque.tipo === "cabecera") return <CabeceraWeb key={bloque.id} marca={marca} tema={tema} />;
+        if (bloque.tipo === "cabecera") return <CabeceraWeb key={bloque.id} marca={marca} tema={tema} enDominio={enDominio} />;
         if (bloque.tipo === "hero") {
           return (
             <section key={bloque.id} className="mx-auto grid max-w-6xl items-center gap-8 px-5 py-8 min-[820px]:grid-cols-2 min-[820px]:py-16">
@@ -90,7 +99,7 @@ export function SitioPublico({ web }: { web: WebPublica }) {
                 <p className="mt-4 text-[15px]" style={{ color: tema.suave }}>Todavía no hay inmuebles publicados.</p>
               ) : (
                 <div className="mt-6 grid gap-4 min-[700px]:grid-cols-2 min-[1100px]:grid-cols-3">
-                  {web.inmuebles.map((item) => <TarjetaInmueble key={item.referencia} item={item} tema={tema} />)}
+                  {web.inmuebles.map((item) => <TarjetaInmueble key={item.referencia} item={item} tema={tema} enDominio={enDominio} />)}
                 </div>
               )}
             </section>

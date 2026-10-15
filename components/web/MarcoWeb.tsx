@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
+import { hrefInicio } from "@/lib/web/dominio";
 import type { MarcaWeb, TemaWeb } from "@/lib/web/modelo";
 
 export function marcoEstilo(tema: TemaWeb): CSSProperties {
@@ -10,10 +11,10 @@ export function marcoEstilo(tema: TemaWeb): CSSProperties {
   };
 }
 
-export function CabeceraWeb({ marca, tema }: { marca: MarcaWeb; tema: TemaWeb }) {
+export function CabeceraWeb({ marca, tema, enDominio = false }: { marca: MarcaWeb; tema: TemaWeb; enDominio?: boolean }) {
   return (
     <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 py-5">
-      <Link href="/web" className="flex min-w-0 items-center gap-3">
+      <Link href={hrefInicio(enDominio)} className="flex min-w-0 items-center gap-3">
         {marca.logo ? (
           <img src={marca.logo} alt="" className="h-9 w-auto max-w-[9rem] object-contain" />
         ) : null}
