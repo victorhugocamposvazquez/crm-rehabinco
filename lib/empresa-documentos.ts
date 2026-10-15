@@ -9,7 +9,7 @@ export const EMPRESA_DOCUMENTOS = {
   localidad: "A Coruña",
   direccionCompleta: "Rúa da Merced nº 57, Bajo, 15009 A Coruña",
   telefono: "664 859 306",
-  email: "oficina@rehabinco.com",
+  email: "info@rehabinco.es",
   web: "www.rehabinco.com",
   lugar: "A Coruña",
 } as const;

@@ -47,7 +47,7 @@ describe("documentos Rehabinco 2026", () => {
       assert.equal(/conchado|conchadopuente|B70101449/i.test(html), false);
       assert.match(html, /REHABINCO/);
       assert.match(html, /B22834005/);
-      assert.match(html, /oficina@rehabinco\.com/);
+      assert.match(html, /info@rehabinco\.es/);
     }
     assert.equal(EMPRESA_DOCUMENTOS.razonSocial.includes("CONCHADO"), false);
     assert.match(lopd, /^NOVENA\.- PROTECCIÓN DE DATOS/);
