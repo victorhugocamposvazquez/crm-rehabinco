@@ -77,16 +77,35 @@ const MUNICIPIOS_NUEVOS = [
   "Valdoviño", "Vedra", "Vilarmaior", "Vilasantar", "Vimianzo", "Zas",
 ];
 
-/** Barrio de Moncloa. Idealista lo lista aparte del municipio (~98 anuncios, oct 2026). */
-const ZONAS_MADRID: ZonaIdealista[] = [
-  {
-    id: "aravaca",
+function barrioMoncloa(nombre: string, id: string, anuncios: number): ZonaIdealista {
+  return {
+    id,
     grupo: "Madrid",
-    nombre: "Aravaca",
-    anuncios: 98,
+    nombre,
+    anuncios,
     porDefecto: false,
     operacion: "venta",
-    url: "https://www.idealista.com/venta-viviendas/madrid/moncloa/aravaca/",
+    url: `https://www.idealista.com/venta-viviendas/madrid/moncloa/${id}/`,
+  };
+}
+
+/** Cifras del mapa de Moncloa y de Pozuelo en Idealista, octubre 2026. */
+const ZONAS_MADRID: ZonaIdealista[] = [
+  barrioMoncloa("Aravaca", "aravaca", 98),
+  barrioMoncloa("Valdemarín", "valdemarin", 59),
+  barrioMoncloa("El Plantío", "el-plantio", 63),
+  barrioMoncloa("Casa de Campo", "casa-de-campo", 24),
+  barrioMoncloa("Ciudad Universitaria", "ciudad-universitaria", 65),
+  barrioMoncloa("Valdezarza", "valdezarza", 43),
+  barrioMoncloa("Argüelles", "arguelles", 160),
+  {
+    id: "pozuelo-de-alarcon",
+    grupo: "Madrid",
+    nombre: "Pozuelo de Alarcón",
+    anuncios: 479,
+    porDefecto: false,
+    operacion: "venta",
+    url: "https://www.idealista.com/venta-viviendas/pozuelo-de-alarcon-madrid/",
   },
 ];
 

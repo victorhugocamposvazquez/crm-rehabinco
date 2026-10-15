@@ -39,6 +39,18 @@ describe("zonas Idealista", () => {
       zonaIdDeListado("https://www.idealista.com/venta-viviendas/madrid/moncloa/aravaca/con-publicado_ultimas-48-horas/"),
       "aravaca"
     );
+    assert.equal(
+      zonaIdDeListado("https://www.idealista.com/venta-viviendas/madrid/moncloa/valdemarin/"),
+      "valdemarin"
+    );
+    assert.equal(
+      urlsDeZonas(["pozuelo-de-alarcon"])[0],
+      "https://www.idealista.com/venta-viviendas/pozuelo-de-alarcon-madrid/"
+    );
+    assert.equal(
+      urlsDeZonas(["el-plantio"])[0],
+      "https://www.idealista.com/venta-viviendas/madrid/moncloa/el-plantio/"
+    );
     assert.equal(zonaSuperaCorte(1500), false);
     assert.equal(zonaSuperaCorte(1501), true);
     assert.equal(
