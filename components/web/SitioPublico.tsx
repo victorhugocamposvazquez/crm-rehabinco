@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { EMPRESA_DOCUMENTOS } from "@/lib/empresa-documentos";
 import { TIPO_INMUEBLE_LABEL, type TipoInmueble } from "@/lib/inmuebles/catalogo";
 import { hrefInmueble } from "@/lib/web/dominio";
 import { precioPublico, TEMAS_WEB, type InmuebleWeb, type WebPublica } from "@/lib/web/modelo";
 import { EditableText } from "./EditableText";
 import { BotonQuitarFoto, EdicionBloque, type EdicionSitio } from "./EdicionBloque";
-import { CabeceraWeb, MarcoWeb, PieWeb } from "./MarcoWeb";
+import { CabeceraWeb, lineaContactoMarca, MarcoWeb, PieWeb } from "./MarcoWeb";
 
 function tipoDe(valor: string | null): string | null {
   if (!valor) return null;
@@ -345,6 +346,7 @@ export function SitioPublico({
                     </>
                   )}
                   <div className="mt-5 flex flex-col gap-2 text-[15px]">
+                    {/rehabinco/i.test(marca.nombre) ? <p>CIF {EMPRESA_DOCUMENTOS.cif}</p> : null}
                     {marca.telefono ? <a href={enlaceTelefono(marca.telefono)} style={{ color: tema.acento }}>{marca.telefono}</a> : null}
                     {marca.email ? <a href={`mailto:${marca.email}`} style={{ color: tema.acento }}>{marca.email}</a> : null}
                   </div>
@@ -374,7 +376,7 @@ export function SitioPublico({
                       style={{ color: tema.tinta }}
                     />
                     <p className="mt-2 text-[13px]" style={{ color: tema.suave }}>
-                      {[marca.telefono, marca.email].filter(Boolean).join(" · ")}
+                      {lineaContactoMarca(marca)}
                     </p>
                   </div>
                 </footer>

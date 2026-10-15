@@ -1,5 +1,6 @@
 import React, { type ReactNode } from "react";
 import { Circle, Document, Image, Page, Rect, Svg, Text, View } from "@react-pdf/renderer";
+import { EMPRESA_DOCUMENTOS } from "@/lib/empresa-documentos";
 import { AVISO_LEGAL_PDF, eurosPdf, inicialesMarca, type FilaEntornoPdf, type FilaFicha, type InformePdfModel, type TonoChip } from "./model";
 import { fmtNumero } from "../ui/format";
 
@@ -84,7 +85,8 @@ const base = {
 
 function Cabecera({ model, t }: { model: InformePdfModel; t: Tokens }) {
   const logo = model.theme === "dark" ? model.marca.logoDark ?? model.marca.logoLight : model.marca.logoLight ?? model.marca.logoDark;
-  const contacto = [model.marca.phone, model.marca.email, model.marca.web].filter(Boolean).join(" · ");
+  const cif = /rehabinco/i.test(model.marca.name) ? `CIF ${EMPRESA_DOCUMENTOS.cif}` : null;
+  const contacto = [cif, model.marca.phone, model.marca.email, model.marca.web].filter(Boolean).join(" · ");
   return (
     <View style={{ ...base.between, borderBottomWidth: 0.6, borderBottomColor: t.line, paddingBottom: 8, marginBottom: 10 }}>
       <View style={{ ...base.row, alignItems: "center", gap: 8, flex: 1 }}>

@@ -42,8 +42,23 @@ describe("escaparate web", () => {
       inmuebles: [PISO, { ...PISO, referencia: "RHB-2026-0002", descripcion: "" }],
     });
     assert.equal(web?.sitio.diseno, "noche");
+    assert.equal(web?.sitio.marca.telefono, null);
     assert.equal(web?.inmuebles.length, 1);
     assert.equal(web?.bloques[0]?.contenido.titulo, "Portada");
+  });
+
+  it("el contacto antiguo de la marca pasa a ser el de Rehabinco", () => {
+    const web = webPublicaDe({
+      sitio: {
+        diseno: "claro",
+        publicado: true,
+        marca: { nombre: "Rehabinco", telefono: "664 859 306", email: "oficina@rehabinco.com" },
+      },
+      bloques: [],
+      inmuebles: [],
+    });
+    assert.equal(web?.sitio.marca.telefono, "664 85 93 06");
+    assert.equal(web?.sitio.marca.email, "info@rehabinco.es");
   });
 
   it("la vista previa usa el borrador y omite el bloque oculto", () => {
