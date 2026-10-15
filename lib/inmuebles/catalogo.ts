@@ -1,9 +1,12 @@
+import { idealistaTipoDesdeTipoInmueble, parseIdealistaVisibilidad } from "./idealista";
+
 export const TIPOS_INMUEBLE = [
   "piso",
   "atico",
   "bajo",
   "chalet",
   "adosado",
+  "edificio",
   "local",
   "oficina",
   "nave",
@@ -20,6 +23,7 @@ export const TIPO_INMUEBLE_LABEL: Record<TipoInmueble, string> = {
   bajo: "Bajo",
   chalet: "Chalet",
   adosado: "Adosado",
+  edificio: "Edificio",
   local: "Local",
   oficina: "Oficina",
   nave: "Nave",
@@ -114,6 +118,8 @@ export type Inmueble = {
   publicar_web?: boolean;
   publicar_idealista?: boolean;
   certificado_energetico?: string | null;
+  idealista_tipo?: string | null;
+  idealista_visibilidad_direccion?: string | null;
   created_at?: string | null;
 };
 
@@ -161,6 +167,8 @@ export type InmuebleFormValues = {
   publicar_web: boolean;
   publicar_idealista: boolean;
   certificado_energetico: string;
+  idealista_tipo: string;
+  idealista_visibilidad_direccion: string;
 };
 
 export const INMUEBLE_FORM_VACIO: InmuebleFormValues = {
@@ -197,6 +205,8 @@ export const INMUEBLE_FORM_VACIO: InmuebleFormValues = {
   publicar_web: false,
   publicar_idealista: false,
   certificado_energetico: "",
+  idealista_tipo: "piso",
+  idealista_visibilidad_direccion: "exacta",
 };
 
 export function triSiNo(valor: boolean | null | undefined): string {
@@ -256,6 +266,8 @@ export function inmuebleDesdeForm(values: InmuebleFormValues) {
     publicar_web: values.publicar_web,
     publicar_idealista: values.publicar_idealista,
     certificado_energetico: values.certificado_energetico.trim() || null,
+    idealista_tipo: values.idealista_tipo.trim() || null,
+    idealista_visibilidad_direccion: values.idealista_visibilidad_direccion.trim() || "exacta",
     publicado: values.publicar_web || values.publicar_idealista,
   };
 }
@@ -296,5 +308,7 @@ export function formDesdeInmueble(p: Partial<Inmueble>, fallbackOfertante = ""):
     publicar_web: Boolean(p.publicar_web),
     publicar_idealista: Boolean(p.publicar_idealista),
     certificado_energetico: p.certificado_energetico ?? "",
+    idealista_tipo: p.idealista_tipo ?? idealistaTipoDesdeTipoInmueble(p.tipo_inmueble) ?? "piso",
+    idealista_visibilidad_direccion: parseIdealistaVisibilidad(p.idealista_visibilidad_direccion),
   };
 }

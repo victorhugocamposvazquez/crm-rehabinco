@@ -4,6 +4,8 @@ import { avisoPublicacion, faltasIdealista, type DatosPublicacion } from "./publ
 
 const PISO: DatosPublicacion = {
   tipo_inmueble: "piso",
+  idealista_tipo: "piso",
+  idealista_visibilidad_direccion: "exacta",
   tipo_operacion: "venta",
   precio_venta: "250000",
   precio_alquiler: "",
@@ -44,6 +46,19 @@ describe("publicación Idealista", () => {
     const faltas = faltasIdealista({
       ...PISO,
       tipo_inmueble: "garaje",
+      idealista_tipo: "garaje",
+      habitaciones: "",
+      banos: "",
+      certificado_energetico: "",
+    });
+    assert.deepEqual(faltas, []);
+  });
+
+  it("un edificio no pide habitaciones ni certificado", () => {
+    const faltas = faltasIdealista({
+      ...PISO,
+      tipo_inmueble: "edificio",
+      idealista_tipo: "edificio",
       habitaciones: "",
       banos: "",
       certificado_energetico: "",

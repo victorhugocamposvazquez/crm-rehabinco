@@ -1,4 +1,10 @@
 import type { InmuebleFormValues } from "./catalogo";
+import {
+  esTerrenoIdealista,
+  esViviendaIdealista,
+  requiereCertificadoIdealista,
+  tipoIdealistaEfectivo,
+} from "./idealista";
 
 /** Lo que Idealista rechaza en el volcado de vivienda, local y oficina. */
 export const CERTIFICADOS_ENERGETICOS = ["A", "B", "C", "D", "E", "F", "G", "en_tramite", "exento"] as const;
@@ -16,11 +22,10 @@ export const CERTIFICADO_LABEL: Record<CertificadoEnergetico, string> = {
   exento: "Exento",
 };
 
-const VIVIENDA = new Set(["piso", "atico", "bajo", "chalet", "adosado"]);
-const CON_CERTIFICADO = new Set(["piso", "atico", "bajo", "chalet", "adosado", "local", "oficina", "nave"]);
-
 export type DatosPublicacion = {
   tipo_inmueble: string;
+  idealista_tipo: string;
+  idealista_visibilidad_direccion: string;
   tipo_operacion: InmuebleFormValues["tipo_operacion"];
   precio_venta: string;
   precio_alquiler: string;
@@ -52,7 +57,8 @@ function precioOk(datos: DatosPublicacion): boolean {
 }
 
 function superficieOk(datos: DatosPublicacion): boolean {
-  if (datos.tipo_inmueble === "solar") {
+  const tipoIdealista = tipoIdealistaEfectivo(datos.idealista_tipo, datos.tipo_inmueble);
+  if (esTerrenoIdealista(tipoIdealista) || datos.tipo_inmueble === "solar") {
     const parcela = numero(datos.superficie_parcela) ?? numero(datos.superficie_m2);
     return parcela != null && parcela > 0;
   }
@@ -72,20 +78,23 @@ export function faltasWeb(datos: DatosPublicacion): string[] {
 /** Campos que el volcado de Idealista no acepta vacíos. */
 export function faltasIdealista(datos: DatosPublicacion): string[] {
   const faltas: string[] = [];
-  if (!datos.tipo_inmueble.trim()) faltas.push("tipo de inmueble");
+  const tipoIdealista = tipoIdealistaEfectivo(datos.idealista_tipo, datos.tipo_inmueble);
+  if (!tipoIdealista) faltas.push("tipo de vivienda (Idealista)");
+  if (!datos.idealista_visibilidad_direccion.trim()) faltas.push("visibilidad en portales");
   if (!precioOk(datos)) faltas.push("precio");
   if (!datos.direccion.trim()) faltas.push("dirección");
   if (!/^\d{5}$/.test(datos.codigo_postal.trim())) faltas.push("código postal de 5 cifras");
   if (!datos.localidad.trim()) faltas.push("localidad");
-  if (!superficieOk(datos)) faltas.push(datos.tipo_inmueble === "solar" ? "superficie de parcela" : "superficie construida");
-  if (VIVIENDA.has(datos.tipo_inmueble)) {
+  const terreno = esTerrenoIdealista(tipoIdealista) || datos.tipo_inmueble === "solar";
+  if (!superficieOk(datos)) faltas.push(terreno ? "superficie de parcela" : "superficie construida");
+  if (esViviendaIdealista(tipoIdealista)) {
     if (numero(datos.habitaciones) == null) faltas.push("habitaciones");
     const banos = numero(datos.banos);
     if (banos == null || banos < 1) faltas.push("baños");
   }
   if (datos.descripcion.trim().length < 50) faltas.push("descripción de al menos 50 caracteres");
   if (datos.fotos < 1) faltas.push("al menos una foto");
-  if (CON_CERTIFICADO.has(datos.tipo_inmueble) && !datos.certificado_energetico.trim()) {
+  if (requiereCertificadoIdealista(tipoIdealista) && !datos.certificado_energetico.trim()) {
     faltas.push("certificado energético");
   }
   return faltas;
@@ -111,6 +120,8 @@ export function avisoPublicacion(
     | "banos"
     | "descripcion"
     | "certificado_energetico"
+    | "idealista_tipo"
+    | "idealista_visibilidad_direccion"
   >,
   fotos: number
 ): string | null {
