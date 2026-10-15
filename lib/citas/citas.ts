@@ -1,3 +1,5 @@
+import { urlPortadaDeMedia } from "@/lib/inmuebles/portada";
+
 export const TIPOS_CITA = ["visita", "llamada", "firma", "tasacion", "evento", "captacion", "recordatorio", "tarea", "otro"] as const;
 export type TipoCita = (typeof TIPOS_CITA)[number];
 
@@ -265,10 +267,9 @@ export function enlaceGoogleMaps(input: {
 }
 
 export function portadaDeMedia(
-  media: Array<{ url: string; portada?: boolean | null; tipo?: string | null }> | null | undefined
+  media: Array<{ url: string; portada?: boolean | null; tipo?: string | null; orden?: number | null }> | null | undefined
 ): string | null {
-  const fotos = (media ?? []).filter((item) => !item.tipo || item.tipo === "foto");
-  return fotos.find((item) => item.portada)?.url ?? fotos[0]?.url ?? null;
+  return urlPortadaDeMedia(media ?? []);
 }
 
 export const MIN_CHARS_BUSQUEDA_INMUEBLE = 2;

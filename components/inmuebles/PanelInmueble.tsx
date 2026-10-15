@@ -18,6 +18,7 @@ import { FichaLink } from "@/components/crm/FichaPeek";
 import { InmuebleMultimedia } from "@/components/inmuebles/InmuebleMultimedia";
 import { useAuth } from "@/lib/auth/auth-context";
 import type { InmuebleMedia } from "@/lib/inmuebles/catalogo";
+import { urlPortadaDeMedia } from "@/lib/inmuebles/portada";
 import { cn } from "@/lib/utils";
 
 type MatchVista = {
@@ -328,11 +329,11 @@ export function PanelInmueble({
               media={media}
               onChange={(next) => {
                 setMedia(next);
-                const fotos = next.filter((m) => m.tipo === "foto").sort((a, b) => a.orden - b.orden);
+                const fotos = next.filter((m) => m.tipo === "foto");
                 onCambio?.({
                   nFotos: fotos.length,
                   nPlanos: next.filter((m) => m.tipo === "plano").length,
-                  portadaUrl: fotos.find((f) => f.portada)?.url ?? fotos[0]?.url ?? null,
+                  portadaUrl: urlPortadaDeMedia(fotos),
                 });
               }}
               videoUrl={inmueble.video_url ?? ""}

@@ -3,12 +3,13 @@
 import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, ImagePlus, Star, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, ImagePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { InmuebleMedia } from "@/lib/inmuebles/catalogo";
 import { acceptMedia, esPathExterno, moverMedia, type TipoMediaInmueble } from "@/lib/inmuebles/media";
-import { arrastrandoArchivos } from "@/lib/inmuebles/archivos-pendientes";
+import { activarSolturaArchivos, arrastrandoArchivos } from "@/lib/inmuebles/archivos-pendientes";
 import { cn } from "@/lib/utils";
+import { sincronizarPortadaEnDb, sincronizarPortadaMemoria } from "@/lib/inmuebles/portada";
 import { subirArchivosMedia } from "@/lib/inmuebles/subir-media";
 
 function esImagen(item: InmuebleMedia) {
@@ -60,20 +61,18 @@ export function InmuebleGaleria({
     }
   };
 
-  const setPortada = async (id: string) => {
-    const supabase = createClient();
-    await supabase.from("inmueble_media").update({ portada: false }).eq("propiedad_id", propiedadId);
-    await supabase.from("inmueble_media").update({ portada: true }).eq("id", id);
-    onChange(media.map((m) => ({ ...m, portada: m.id === id })));
-  };
-
   const remove = async (item: InmuebleMedia) => {
     const supabase = createClient();
     await supabase.from("inmueble_media").delete().eq("id", item.id);
     if (!esPathExterno(item.path)) {
       await supabase.storage.from("inmuebles").remove([item.path]);
     }
-    onChange(media.filter((m) => m.id !== item.id));
+    let next = media.filter((m) => m.id !== item.id);
+    if (tipo === "foto") {
+      await sincronizarPortadaEnDb(propiedadId);
+      next = sincronizarPortadaMemoria(next);
+    }
+    onChange(next);
   };
 
   const mover = async (id: string, dir: -1 | 1) => {
@@ -82,13 +81,42 @@ export function InmuebleGaleria({
     const supabase = createClient();
     await Promise.all(nextItems.map((item) => supabase.from("inmueble_media").update({ orden: item.orden }).eq("id", item.id)));
     const porId = new Map(nextItems.map((item) => [item.id, item.orden]));
-    onChange(media.map((m) => (porId.has(m.id) ? { ...m, orden: porId.get(m.id)! } : m)));
+    let next = media.map((m) => (porId.has(m.id) ? { ...m, orden: porId.get(m.id)! } : m));
+    if (tipo === "foto") {
+      await sincronizarPortadaEnDb(propiedadId);
+      next = sincronizarPortadaMemoria(next);
+    }
+    onChange(next);
   };
 
   const visorItem = visor != null ? imagenes[visor] : null;
 
+  const soltarArchivos = (e: React.DragEvent) => {
+    activarSolturaArchivos(e);
+    setSueltaActiva(false);
+    if (!arrastrandoArchivos(e.dataTransfer)) return;
+    void upload(e.dataTransfer.files);
+  };
+
   return (
-    <div>
+    <div
+      onDragEnter={(e) => {
+        if (!arrastrandoArchivos(e.dataTransfer)) return;
+        activarSolturaArchivos(e);
+        setSueltaActiva(true);
+      }}
+      onDragOver={(e) => {
+        if (!arrastrandoArchivos(e.dataTransfer)) return;
+        activarSolturaArchivos(e);
+        setSueltaActiva(true);
+      }}
+      onDragLeave={(e) => {
+        if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+        setSueltaActiva(false);
+      }}
+      onDrop={soltarArchivos}
+      className={cn(sueltaActiva && items.length > 0 && "rounded-2xl bg-accent-soft/40 p-2 ring-2 ring-accent/25")}
+    >
       <div className="mb-3 flex items-center justify-between gap-3">
         <p className="text-sm text-neutral-500">
           {items.length} {items.length === 1 ? etiqueta : etiquetaPlural}
@@ -112,23 +140,19 @@ export function InmuebleGaleria({
           onClick={() => inputRef.current?.click()}
           onDragEnter={(e) => {
             if (!arrastrandoArchivos(e.dataTransfer)) return;
-            e.preventDefault();
+            activarSolturaArchivos(e);
             setSueltaActiva(true);
           }}
           onDragOver={(e) => {
             if (!arrastrandoArchivos(e.dataTransfer)) return;
-            e.preventDefault();
+            activarSolturaArchivos(e);
             setSueltaActiva(true);
           }}
           onDragLeave={(e) => {
             if (e.currentTarget.contains(e.relatedTarget as Node)) return;
             setSueltaActiva(false);
           }}
-          onDrop={(e) => {
-            e.preventDefault();
-            setSueltaActiva(false);
-            void upload(e.dataTransfer.files);
-          }}
+          onDrop={soltarArchivos}
           className={cn(
             "flex w-full flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-12 text-sm transition-[border,background]",
             sueltaActiva ? "border-accent bg-accent-soft text-foreground" : "border-border bg-white text-neutral-500 hover:bg-neutral-50"
@@ -160,7 +184,7 @@ export function InmuebleGaleria({
                   Abrir plano PDF
                 </a>
               )}
-              {f.portada && tipo === "foto" ? (
+              {tipo === "foto" && i === 0 ? (
                 <span className="absolute left-2 top-2 rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
                   Portada
                 </span>
@@ -174,11 +198,6 @@ export function InmuebleGaleria({
                 {i < items.length - 1 ? (
                   <button type="button" onClick={() => void mover(f.id, 1)} className="rounded-full bg-white/90 p-1.5 text-neutral-800" aria-label="Siguiente">
                     <ChevronRight className="h-3.5 w-3.5" strokeWidth={1.75} />
-                  </button>
-                ) : null}
-                {tipo === "foto" && !f.portada ? (
-                  <button type="button" onClick={() => void setPortada(f.id)} className="rounded-full bg-white/90 p-1.5 text-neutral-800" aria-label="Marcar portada">
-                    <Star className="h-3.5 w-3.5" strokeWidth={1.75} />
                   </button>
                 ) : null}
                 <button type="button" onClick={() => void remove(f)} className="rounded-full bg-white/90 p-1.5 text-red-700" aria-label="Quitar">

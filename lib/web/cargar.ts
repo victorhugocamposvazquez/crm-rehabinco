@@ -129,6 +129,6 @@ function fotosDe(media: unknown): string[] {
         orden: typeof foto.orden === "number" ? foto.orden : 0,
       }];
     })
-    .sort((a, b) => Number(b.portada) - Number(a.portada) || a.orden - b.orden)
+    .sort((a, b) => a.orden - b.orden)
     .map((foto) => foto.url);
 }

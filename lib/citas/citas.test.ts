@@ -112,8 +112,8 @@ describe("citas", () => {
     assert.equal(enlaceGoogleMaps({}), null);
     assert.equal(
       portadaDeMedia([
-        { url: "b.jpg", portada: false, tipo: "foto" },
-        { url: "a.jpg", portada: true, tipo: "foto" },
+        { url: "b.jpg", orden: 1, tipo: "foto" },
+        { url: "a.jpg", orden: 0, tipo: "foto" },
       ]),
       "a.jpg"
     );

@@ -1,12 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { altaControl } from "@/components/ui/alta-form";
 import { InmuebleGaleria } from "@/components/inmuebles/InmuebleGaleria";
+import { GaleriaMediaRevision } from "@/components/inmuebles/GaleriaMediaRevision";
 import type { InmuebleMedia } from "@/lib/inmuebles/catalogo";
 import { presentacionDeUrl } from "@/lib/inmuebles/media";
+import {
+  aplicarRevisionMedia,
+  revisionDesdeMedia,
+  revisionTieneCambios,
+  type RevisionMedia,
+} from "@/lib/inmuebles/revision-media";
 import { cn } from "@/lib/utils";
 
 type Pestaña = "fotos" | "planos" | "video" | "tour";
@@ -45,6 +52,7 @@ export function InmuebleMultimedia({
   videoUrl,
   tourUrl,
   onUrlsChange,
+  guardadoFotos = "manual",
 }: {
   propiedadId: string;
   userId: string;
@@ -53,15 +61,46 @@ export function InmuebleMultimedia({
   videoUrl: string;
   tourUrl: string;
   onUrlsChange: (patch: { video_url?: string; tour_url?: string }) => void;
+  /** manual: arrastra, reordena y pulsa Guardar cambios. inmediato: sube al soltar (solo vídeo/archivo suelto). */
+  guardadoFotos?: "manual" | "inmediato";
 }) {
   const [pestaña, setPestaña] = useState<Pestaña>("fotos");
   const [videoDraft, setVideoDraft] = useState(videoUrl);
   const [tourDraft, setTourDraft] = useState(tourUrl);
   const [guardando, setGuardando] = useState(false);
+  const [revisionBase, setRevisionBase] = useState<RevisionMedia>(() => revisionDesdeMedia(media));
+  const [revision, setRevision] = useState<RevisionMedia>(() => revisionDesdeMedia(media));
+  const revisionSuciaRef = useRef(false);
+
   useEffect(() => setVideoDraft(videoUrl), [videoUrl]);
   useEffect(() => setTourDraft(tourUrl), [tourUrl]);
-  const fotos = media.filter((m) => m.tipo === "foto").length;
-  const planos = media.filter((m) => m.tipo === "plano").length;
+
+  const firmaMedia = useMemo(
+    () => media.map((m) => `${m.id}:${m.orden}:${m.portada ? 1 : 0}`).join("|"),
+    [media]
+  );
+
+  useEffect(() => {
+    revisionSuciaRef.current = false;
+    const base = revisionDesdeMedia(media);
+    setRevisionBase(base);
+    setRevision(base);
+  }, [propiedadId]);
+
+  useEffect(() => {
+    if (revisionSuciaRef.current) return;
+    const base = revisionDesdeMedia(media);
+    setRevisionBase(base);
+    setRevision(base);
+  }, [firmaMedia, media, propiedadId]);
+
+  const hayCambiosFotos = useMemo(
+    () => guardadoFotos === "manual" && revisionTieneCambios(revision, revisionBase),
+    [guardadoFotos, revision, revisionBase]
+  );
+
+  const fotos = guardadoFotos === "manual" ? revision.foto.filas.length : media.filter((m) => m.tipo === "foto").length;
+  const planos = guardadoFotos === "manual" ? revision.plano.filas.length : media.filter((m) => m.tipo === "plano").length;
   const videos = media.filter((m) => m.tipo === "video").length;
 
   const guardarUrl = async (campo: "video_url" | "tour_url", valor: string) => {
@@ -78,6 +117,39 @@ export function InmuebleMultimedia({
     }
     onUrlsChange({ [campo]: valor.trim() });
     toast.success("Enlace guardado.");
+  };
+
+  const guardarRevision = async () => {
+    if (!hayCambiosFotos) return;
+    setGuardando(true);
+    const { media: next, errores } = await aplicarRevisionMedia({
+      propiedadId,
+      userId,
+      mediaBase: media,
+      revision,
+    });
+    setGuardando(false);
+    for (const err of errores) toast.error(err);
+    if (errores.length && next.length === media.length && !revision.foto.borrarIds.size && !revision.plano.borrarIds.size) {
+      return;
+    }
+    revisionSuciaRef.current = false;
+    onChange(next);
+    const base = revisionDesdeMedia(next);
+    setRevisionBase(base);
+    setRevision(base);
+    toast.success("Fotos y planos guardados.");
+  };
+
+  const descartarRevision = () => {
+    revisionSuciaRef.current = false;
+    setRevision(revisionBase);
+    toast.message("Cambios descartados.");
+  };
+
+  const actualizarRevision = (parche: (prev: RevisionMedia) => RevisionMedia) => {
+    revisionSuciaRef.current = true;
+    setRevision(parche);
   };
 
   const tabs: Array<{ id: Pestaña; label: string; cuenta?: number }> = [
@@ -106,12 +178,44 @@ export function InmuebleMultimedia({
         ))}
       </div>
 
+      {guardadoFotos === "manual" && hayCambiosFotos ? (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[var(--amber)] bg-[var(--amber-bg)] px-4 py-3">
+          <p className="text-[13px] font-medium text-[var(--amber-ink)]">Tienes cambios en fotos o planos sin guardar.</p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={guardando}
+              onClick={descartarRevision}
+              className="h-9 rounded-[10px] border border-[var(--input)] bg-white px-3 text-[13px] font-semibold disabled:opacity-45"
+            >
+              Descartar
+            </button>
+            <button
+              type="button"
+              disabled={guardando}
+              onClick={() => void guardarRevision()}
+              className="h-9 rounded-[10px] bg-accent px-3.5 text-[13px] font-semibold text-accent-foreground disabled:opacity-45"
+            >
+              {guardando ? "Guardando…" : "Guardar cambios"}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {pestaña === "fotos" ? (
-        <InmuebleGaleria propiedadId={propiedadId} userId={userId} media={media} onChange={onChange} tipo="foto" />
+        guardadoFotos === "manual" ? (
+          <GaleriaMediaRevision tipo="foto" revision={revision.foto} onChange={(foto) => actualizarRevision((r) => ({ ...r, foto }))} />
+        ) : (
+          <InmuebleGaleria propiedadId={propiedadId} userId={userId} media={media} onChange={onChange} tipo="foto" />
+        )
       ) : null}
 
       {pestaña === "planos" ? (
-        <InmuebleGaleria propiedadId={propiedadId} userId={userId} media={media} onChange={onChange} tipo="plano" />
+        guardadoFotos === "manual" ? (
+          <GaleriaMediaRevision tipo="plano" revision={revision.plano} onChange={(plano) => actualizarRevision((r) => ({ ...r, plano }))} />
+        ) : (
+          <InmuebleGaleria propiedadId={propiedadId} userId={userId} media={media} onChange={onChange} tipo="plano" />
+        )
       ) : null}
 
       {pestaña === "video" ? (

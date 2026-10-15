@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
 import type { InmuebleMedia } from "./catalogo";
 import { validarArchivoMedia, type TipoMediaInmueble } from "./media";
+import { sincronizarPortadaEnDb, sincronizarPortadaMemoria } from "./portada";
 
 const SELECT_MEDIA = "id, propiedad_id, tipo, path, url, orden, portada";
 
@@ -33,7 +34,6 @@ export async function subirArchivosMedia(input: {
     }
     const { data: pub } = supabase.storage.from("inmuebles").getPublicUrl(path);
     const delTipo = next.filter((m) => m.tipo === input.tipo);
-    const portada = input.tipo === "foto" && delTipo.length === 0;
     const { data, error } = await supabase
       .from("inmueble_media")
       .insert({
@@ -43,7 +43,7 @@ export async function subirArchivosMedia(input: {
         path,
         url: pub.publicUrl,
         orden: delTipo.length,
-        portada,
+        portada: false,
       })
       .select(SELECT_MEDIA)
       .single();
@@ -52,6 +52,10 @@ export async function subirArchivosMedia(input: {
       continue;
     }
     next.push(data as InmuebleMedia);
+  }
+  if (input.tipo === "foto") {
+    await sincronizarPortadaEnDb(input.propiedadId);
+    return { media: sincronizarPortadaMemoria(next), errores };
   }
   return { media: next, errores };
 }

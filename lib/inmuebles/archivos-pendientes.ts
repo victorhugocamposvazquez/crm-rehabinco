@@ -1,3 +1,4 @@
+import type { DragEvent } from "react";
 import { validarArchivoMedia, type TipoMediaInmueble } from "./media";
 
 export function claveArchivo(file: File): string {
@@ -44,6 +45,19 @@ export function esPdfArchivo(file: File): boolean {
 }
 
 export function arrastrandoArchivos(dataTransfer: DataTransfer | null): boolean {
-  if (!dataTransfer?.types?.length) return false;
-  return [...dataTransfer.types].includes("Files");
+  if (!dataTransfer) return false;
+  const types = [...dataTransfer.types];
+  if (types.includes("Files")) return true;
+  // Safari a veces no expone "Files" hasta el dragover; si hay items, asumimos archivos.
+  if (dataTransfer.items?.length) {
+    return [...dataTransfer.items].some((item) => item.kind === "file");
+  }
+  return false;
+}
+
+/** Necesario en dragenter/dragover para que el drop funcione (Chrome, Safari, Firefox). */
+export function activarSolturaArchivos(evento: DragEvent): void {
+  evento.preventDefault();
+  evento.stopPropagation();
+  if (evento.dataTransfer) evento.dataTransfer.dropEffect = "copy";
 }

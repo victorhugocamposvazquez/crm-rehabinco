@@ -5,6 +5,7 @@ import { ImagePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { acceptMedia, type TipoMediaInmueble } from "@/lib/inmuebles/media";
 import {
+  activarSolturaArchivos,
   arrastrandoArchivos,
   claveArchivo,
   esImagenArchivo,
@@ -59,14 +60,13 @@ export function ZonaArchivosPendientes({
   };
 
   const soltarEnZona = (e: React.DragEvent) => {
-    e.preventDefault();
+    activarSolturaArchivos(e);
     setSueltaActiva(false);
     if (arrastrandoArchivos(e.dataTransfer)) ingestar(e.dataTransfer.files);
   };
 
   const soltarEnMiniatura = (e: React.DragEvent, idx: number) => {
-    e.preventDefault();
-    e.stopPropagation();
+    activarSolturaArchivos(e);
     setDestinoIdx(null);
     if (arrastrandoIdx != null && arrastrandoIdx !== idx) {
       onChange(reordenarIndice(files, arrastrandoIdx, idx));
@@ -77,7 +77,24 @@ export function ZonaArchivosPendientes({
   };
 
   return (
-    <div className="mt-2">
+    <div
+      className="mt-2"
+      onDragEnter={(e) => {
+        if (!arrastrandoArchivos(e.dataTransfer)) return;
+        activarSolturaArchivos(e);
+        setSueltaActiva(true);
+      }}
+      onDragOver={(e) => {
+        if (!arrastrandoArchivos(e.dataTransfer)) return;
+        activarSolturaArchivos(e);
+        setSueltaActiva(true);
+      }}
+      onDragLeave={(e) => {
+        if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+        setSueltaActiva(false);
+      }}
+      onDrop={soltarEnZona}
+    >
       {files.length ? (
         <ul className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
           {files.map((file, idx) => {
@@ -95,9 +112,12 @@ export function ZonaArchivosPendientes({
                   setDestinoIdx(null);
                 }}
                 onDragOver={(e) => {
-                  if (arrastrandoIdx == null) return;
-                  e.preventDefault();
-                  setDestinoIdx(idx);
+                  if (arrastrandoIdx != null) {
+                    activarSolturaArchivos(e);
+                    setDestinoIdx(idx);
+                    return;
+                  }
+                  if (arrastrandoArchivos(e.dataTransfer)) activarSolturaArchivos(e);
                 }}
                 onDragLeave={() => {
                   if (destinoIdx === idx) setDestinoIdx(null);
@@ -144,21 +164,6 @@ export function ZonaArchivosPendientes({
             inputRef.current?.click();
           }
         }}
-        onDragEnter={(e) => {
-          if (!arrastrandoArchivos(e.dataTransfer)) return;
-          e.preventDefault();
-          setSueltaActiva(true);
-        }}
-        onDragOver={(e) => {
-          if (!arrastrandoArchivos(e.dataTransfer)) return;
-          e.preventDefault();
-          setSueltaActiva(true);
-        }}
-        onDragLeave={(e) => {
-          if (e.currentTarget.contains(e.relatedTarget as Node)) return;
-          setSueltaActiva(false);
-        }}
-        onDrop={soltarEnZona}
         className={cn(
           "flex w-full flex-col items-center justify-center rounded-[12px] border border-dashed px-4 py-8 text-center transition-[border,background]",
           sueltaActiva

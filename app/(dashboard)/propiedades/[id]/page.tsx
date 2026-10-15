@@ -25,6 +25,7 @@ import {
   type Inmueble,
   type InmuebleMedia,
 } from "@/lib/inmuebles/catalogo";
+import { fotosOrdenadas } from "@/lib/inmuebles/portada";
 import { useAuth } from "@/lib/auth/auth-context";
 import { FichaLink, useFichaPeek } from "@/components/crm/FichaPeek";
 import { ClipboardPenLine, Pencil, Printer, Trash2 } from "lucide-react";
@@ -158,7 +159,7 @@ export default function DetallePropiedadPage() {
   };
 
   const titulo = propiedad.titulo || propiedad.direccion || propiedad.referencia || "Sin título";
-  const portada = media.find((m) => m.portada) ?? media.find((m) => m.tipo === "foto");
+  const portada = fotosOrdenadas(media)[0];
   const hoy = new Date().toISOString().slice(0, 10);
   const { proximas, historial } = partirVisitasPorFecha(visitas, hoy);
   const ficha = completitudFicha({

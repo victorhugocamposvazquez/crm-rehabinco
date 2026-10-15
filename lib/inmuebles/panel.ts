@@ -1,8 +1,9 @@
 import { createClient } from "@/lib/supabase/client";
 import { relacionUno } from "@/lib/citas/citas";
+import { urlPortadaDeMedia } from "@/lib/inmuebles/portada";
 
 export const SELECT_INMUEBLE_PANEL =
-  "id, user_id, titulo, direccion, localidad, codigo_postal, tipo_operacion, precio_venta, precio_alquiler, estado, referencia, tipo_inmueble, origen, superficie_m2, superficie_util, ascensor, anio_construccion, referencia_catastral, descripcion, notas, publicado, ofertante_id, comercial_id, habitaciones, banos, planta, video_url, tour_url, clientes:ofertante_id(nombre), profiles:comercial_id(nombre_completo, color), inmueble_media(url, portada, tipo), catastro_property_links(finca_reference)";
+  "id, user_id, titulo, direccion, localidad, codigo_postal, tipo_operacion, precio_venta, precio_alquiler, estado, referencia, tipo_inmueble, origen, superficie_m2, superficie_util, ascensor, anio_construccion, referencia_catastral, descripcion, notas, publicado, ofertante_id, comercial_id, habitaciones, banos, planta, video_url, tour_url, clientes:ofertante_id(nombre), profiles:comercial_id(nombre_completo, color), inmueble_media(url, portada, tipo, orden), catastro_property_links(finca_reference)";
 
 /** Listado: sin descripción, notas ni todas las fotos. La ficha completa se pide al abrir. */
 export const SELECT_INMUEBLE_LISTA =
@@ -83,7 +84,7 @@ export type InmueblePanelRow = {
     | { nombre_completo: string | null; color: string | null }
     | { nombre_completo: string | null; color: string | null }[]
     | null;
-  inmueble_media?: Array<{ url: string; portada: boolean; tipo?: string | null }> | null;
+  inmueble_media?: Array<{ url: string; portada: boolean; tipo?: string | null; orden?: number | null }> | null;
   catastro_property_links: { finca_reference: string } | { finca_reference: string }[] | null;
 };
 
@@ -93,7 +94,7 @@ export function mapInmueblePanel(r: InmueblePanelRow, dhPorFinca?: Map<string, s
   const media = r.inmueble_media ?? [];
   const fotos = media.filter((f) => !f.tipo || f.tipo === "foto");
   const planos = media.filter((f) => f.tipo === "plano");
-  const portada = fotos.find((f) => f.portada) ?? fotos[0];
+  const portadaUrl = urlPortadaDeMedia(fotos);
   const link = relacionUno(r.catastro_property_links);
   const fincaReference = link?.finca_reference ?? null;
   return {
@@ -109,7 +110,7 @@ export function mapInmueblePanel(r: InmueblePanelRow, dhPorFinca?: Map<string, s
     ofertanteNombre: c?.nombre ?? "—",
     referencia: r.referencia,
     tipo_inmueble: r.tipo_inmueble,
-    portadaUrl: portada?.url ?? null,
+    portadaUrl,
     nFotos: fotos.length,
     nPlanos: planos.length,
     video_url: r.video_url ?? null,
@@ -172,21 +173,15 @@ type MediaPortada = {
   tipo: string | null;
 };
 
-/** Una foto por inmueble: la marcada como portada, o la de menor orden. */
+/** Una foto por inmueble: siempre la de menor orden (primera). */
 export function idsPortada(filas: MediaPortada[]): Map<string, string> {
   const mejor = new Map<string, MediaPortada>();
   for (const fila of filas) {
     if (fila.tipo && fila.tipo !== "foto") continue;
     const previa = mejor.get(fila.propiedad_id);
-    if (!previa) {
+    if (!previa || (fila.orden ?? 999) < (previa.orden ?? 999)) {
       mejor.set(fila.propiedad_id, fila);
-      continue;
     }
-    if (fila.portada !== previa.portada) {
-      if (fila.portada) mejor.set(fila.propiedad_id, fila);
-      continue;
-    }
-    if ((fila.orden ?? 999) < (previa.orden ?? 999)) mejor.set(fila.propiedad_id, fila);
   }
   return new Map([...mejor.entries()].map(([propiedadId, fila]) => [propiedadId, fila.id]));
 }
