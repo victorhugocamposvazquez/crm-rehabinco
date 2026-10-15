@@ -48,6 +48,8 @@ describe("documentos Rehabinco 2026", () => {
       assert.match(html, /REHABINCO/);
       assert.match(html, /B22834005/);
       assert.match(html, /info@rehabinco\.es/);
+      assert.match(html, /664 85 93 06/);
+      assert.equal(html.includes("664 859 306"), false);
     }
     assert.equal(EMPRESA_DOCUMENTOS.razonSocial.includes("CONCHADO"), false);
     assert.match(lopd, /^NOVENA\.- PROTECCIÓN DE DATOS/);

@@ -8,7 +8,7 @@ export const EMPRESA_DOCUMENTOS = {
   codigoPostal: "15009",
   localidad: "A Coruña",
   direccionCompleta: "Rúa da Merced nº 57, Bajo, 15009 A Coruña",
-  telefono: "664 859 306",
+  telefono: "664 85 93 06",
   email: "info@rehabinco.es",
   web: "www.rehabinco.com",
   lugar: "A Coruña",
