@@ -96,7 +96,7 @@ export function EditorWeb({ datos }: { datos: EditorWebDatos }) {
   return (
     <div>
       <PageHeader
-        title="Web"
+        title="Diseño Web"
         description="La vista previa se actualiza mientras escribes. Guardar deja el cambio en la web."
         actions={
           datos.dominio ? (

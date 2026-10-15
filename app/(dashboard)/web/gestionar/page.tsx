@@ -11,7 +11,7 @@ export default async function GestionarWebPage() {
   if (!carga.ok) {
     return (
       <div className="mx-auto max-w-xl py-10">
-        <h1 className="text-2xl font-semibold">Web</h1>
+        <h1 className="text-2xl font-semibold">Diseño Web</h1>
         <p className="mt-3 text-[14px] text-[var(--text-2)]">
           Falta aplicar la migración de la web. Cuando esté en la base, aquí salen el diseño y los bloques.
         </p>

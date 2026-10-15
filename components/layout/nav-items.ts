@@ -33,7 +33,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/captacion", label: "Captación", icon: Radar },
   { href: "/catastro", label: "Catastro", icon: Search },
   { href: "/propiedades", label: "Inmuebles", icon: Building2 },
-  { href: "/web/gestionar", label: "Web", icon: Globe },
+  { href: "/web/gestionar", label: "Diseño Web", icon: Globe },
   { href: "/valoraciones", label: "Valoraciones", icon: Scale },
   { href: "/demandas", label: "Demandas", icon: Users },
   { href: "/clientes", label: "Contactos", icon: Users },
