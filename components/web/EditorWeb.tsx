@@ -8,6 +8,8 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FichaPublica } from "@/components/web/FichaPublica";
+import { SitioPublico } from "@/components/web/SitioPublico";
 import {
   cambiarDisenoWeb,
   cambiarVisibleBloque,
@@ -24,9 +26,12 @@ import {
   ETIQUETA_DISENO,
   TEMAS_WEB,
   contenidoDe,
+  logoMarca,
+  vistaPreviaDe,
   type BloqueWeb,
   type ContenidoBloque,
   type EditorWebDatos,
+  type WebPublica,
 } from "@/lib/web/modelo";
 
 const campo = "mt-1 w-full rounded-lg border border-border bg-[var(--surface)] px-3 py-2 text-sm";
@@ -35,13 +40,17 @@ export function EditorWeb({ datos }: { datos: EditorWebDatos }) {
   const router = useRouter();
   const [pendiente, arrancar] = useTransition();
   const [dominio, setDominio] = useState(datos.dominio ?? "");
+  const [diseno, setDiseno] = useState(datos.diseno);
+  const [bloques, setBloques] = useState(datos.bloques);
   const [borradores, setBorradores] = useState<Record<string, ContenidoBloque>>(() =>
     Object.fromEntries(datos.bloques.map((b) => [b.id, b.contenido]))
   );
 
   useEffect(() => {
     setDominio(datos.dominio ?? "");
-  }, [datos.dominio]);
+    setDiseno(datos.diseno);
+    setBloques(datos.bloques);
+  }, [datos]);
 
   useEffect(() => {
     setBorradores((prev) => {
@@ -64,6 +73,7 @@ export function EditorWeb({ datos }: { datos: EditorWebDatos }) {
       const resultado = await trabajo;
       if (!resultado.ok) {
         toast.error(resultado.error ?? "No se ha podido guardar.");
+        router.refresh();
         return;
       }
       toast.success(hecho);
@@ -75,44 +85,52 @@ export function EditorWeb({ datos }: { datos: EditorWebDatos }) {
     setBorradores((prev) => ({ ...prev, [id]: { ...(prev[id] ?? contenidoDe(null)), ...cambio } }));
   };
 
+  const vista = vistaPreviaDe({
+    diseno,
+    marca: { ...datos.marca, logo: logoMarca(diseno, datos.logoClaro, datos.logoOscuro) },
+    bloques,
+    borradores,
+    inmuebles: datos.inmuebles,
+  });
+
   return (
-    <div className="mx-auto max-w-3xl">
+    <div>
       <PageHeader
         title="Web"
-        description="Elige un diseño, cambia los textos y mueve los bloques. Los inmuebles salen de los que marques en su ficha."
+        description="La vista previa se actualiza mientras escribes. Guardar deja el cambio en la web."
         actions={
-          <div className="flex gap-2">
+          datos.dominio ? (
             <Button variant="secondary" size="sm" asChild>
-              <a href="/web" target="_blank" rel="noreferrer">
+              <a href={`https://${datos.dominio}`} target="_blank" rel="noreferrer">
                 <ExternalLink className="h-4 w-4" />
-                Vista previa
+                {datos.dominio}
               </a>
             </Button>
-            {datos.dominio ? (
-              <Button variant="secondary" size="sm" asChild>
-                <a href={`https://${datos.dominio}`} target="_blank" rel="noreferrer">
-                  <ExternalLink className="h-4 w-4" />
-                  {datos.dominio}
-                </a>
-              </Button>
-            ) : null}
-          </div>
+          ) : null
         }
       />
 
-      <section className="mt-6">
+      <div className="mt-6 grid items-start gap-6 min-[1100px]:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
+        <div className="min-w-0">
+      <a href="#vista-web" className="mb-4 inline-flex text-[13px] font-medium text-[var(--accent)] min-[1100px]:hidden">
+        Ver la vista previa
+      </a>
+
+      <section>
         <h2 className="text-[13px] font-medium text-[var(--text-2)]">Diseño</h2>
         <div className="mt-2 grid gap-2 min-[700px]:grid-cols-3">
-          {DISENOS_WEB.map((diseno) => {
-            const tema = TEMAS_WEB[diseno];
-            const activo = datos.diseno === diseno;
+          {DISENOS_WEB.map((opcion) => {
+            const tema = TEMAS_WEB[opcion];
+            const activo = diseno === opcion;
             return (
               <button
-                key={diseno}
+                key={opcion}
                 type="button"
                 disabled={pendiente}
                 onClick={() => {
-                  if (diseno !== datos.diseno) actuar(cambiarDisenoWeb(diseno), "Diseño cambiado.");
+                  if (opcion === diseno) return;
+                  setDiseno(opcion);
+                  actuar(cambiarDisenoWeb(opcion), "Diseño cambiado.");
                 }}
                 className="rounded-2xl border p-3 text-left"
                 style={{
@@ -122,7 +140,7 @@ export function EditorWeb({ datos }: { datos: EditorWebDatos }) {
                   outline: activo ? `2px solid ${tema.acento}` : undefined,
                 }}
               >
-                <span className="block text-[15px] font-semibold" style={{ fontFamily: tema.titulo }}>{ETIQUETA_DISENO[diseno]}</span>
+                <span className="block text-[15px] font-semibold" style={{ fontFamily: tema.titulo }}>{ETIQUETA_DISENO[opcion]}</span>
                 <span className="mt-2 block h-2 w-10 rounded-full" style={{ background: tema.acento }} />
               </button>
             );
@@ -170,7 +188,7 @@ export function EditorWeb({ datos }: { datos: EditorWebDatos }) {
           className="mt-1"
         />
         <p className="mt-2 text-[12.5px] text-[var(--text-2)]">
-          Puede ser un dominio o un subdominio. El CRM sigue en crm.rehabinco.es. Si lo dejas vacío, la vista previa queda en /web.
+          Puede ser un dominio o un subdominio. El CRM sigue en crm.rehabinco.es. La vista de al lado no depende de este dominio.
         </p>
         <Button type="submit" size="sm" className="mt-3" disabled={pendiente}>
           Guardar dominio
@@ -178,19 +196,25 @@ export function EditorWeb({ datos }: { datos: EditorWebDatos }) {
       </form>
 
       <section className="mt-8 space-y-3">
-        {datos.bloques.map((bloque, indice) => (
+        {bloques.map((bloque, indice) => (
           <BloqueCard
             key={bloque.id}
             bloque={bloque}
             borrador={borradores[bloque.id] ?? bloque.contenido}
             primero={indice === 0}
-            ultimo={indice === datos.bloques.length - 1}
+            ultimo={indice === bloques.length - 1}
             pendiente={pendiente}
             marca={datos.marca}
             onPatch={(cambio) => patch(bloque.id, cambio)}
             onGuardar={() => actuar(guardarBloqueWeb(bloque.id, borradores[bloque.id] ?? bloque.contenido), "Bloque guardado.")}
-            onVisible={(visible) => actuar(cambiarVisibleBloque(bloque.id, visible), visible ? "Bloque visible." : "Bloque oculto.")}
-            onMover={(direccion) => actuar(moverBloqueWeb(bloque.id, direccion), "Orden cambiado.")}
+            onVisible={(visible) => {
+              setBloques((prev) => prev.map((item) => item.id === bloque.id ? { ...item, visible } : item));
+              actuar(cambiarVisibleBloque(bloque.id, visible), visible ? "Bloque visible." : "Bloque oculto.");
+            }}
+            onMover={(direccion) => {
+              setBloques((prev) => moverBloque(prev, bloque.id, direccion));
+              actuar(moverBloqueWeb(bloque.id, direccion), "Orden cambiado.");
+            }}
             onFoto={(archivo) => {
               const datosFoto = new FormData();
               datosFoto.set("foto", archivo);
@@ -208,7 +232,50 @@ export function EditorWeb({ datos }: { datos: EditorWebDatos }) {
           />
         ))}
       </section>
+        </div>
+        <VistaPrevia web={vista} />
+      </div>
     </div>
+  );
+}
+
+function moverBloque(bloques: BloqueWeb[], id: string, direccion: "arriba" | "abajo"): BloqueWeb[] {
+  const indice = bloques.findIndex((bloque) => bloque.id === id);
+  const destino = direccion === "arriba" ? indice - 1 : indice + 1;
+  if (indice < 0 || destino < 0 || destino >= bloques.length) return bloques;
+  const next = bloques.slice();
+  const [item] = next.splice(indice, 1);
+  if (!item) return bloques;
+  next.splice(destino, 0, item);
+  return next;
+}
+
+function VistaPrevia({ web }: { web: WebPublica }) {
+  const [referencia, setReferencia] = useState<string | null>(null);
+  const item = referencia ? web.inmuebles.find((inmueble) => inmueble.referencia === referencia) ?? null : null;
+  const pie = web.bloques.find((bloque) => bloque.tipo === "pie")?.contenido.texto ?? web.sitio.marca.nombre;
+
+  return (
+    <aside id="vista-web" className="order-first min-w-0 scroll-mt-20 min-[1100px]:sticky min-[1100px]:top-[4.5rem] min-[1100px]:order-none">
+      <p className="mb-2 text-[13px] font-medium text-[var(--text-2)]">Vista previa</p>
+      <div
+        data-vista-web
+        className="h-[42vh] overflow-auto rounded-2xl border border-border min-[1100px]:h-[calc(100dvh-8rem)]"
+      >
+        {item ? (
+          <FichaPublica
+            diseno={web.sitio.diseno}
+            marca={web.sitio.marca}
+            pie={pie}
+            item={item}
+            onVolver={() => setReferencia(null)}
+            onInicio={() => setReferencia(null)}
+          />
+        ) : (
+          <SitioPublico web={web} anclar onAbrirInmueble={setReferencia} />
+        )}
+      </div>
+    </aside>
   );
 }
 

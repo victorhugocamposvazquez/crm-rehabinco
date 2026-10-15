@@ -10,12 +10,16 @@ export function FichaPublica({
   pie,
   item,
   enDominio = false,
+  onVolver,
+  onInicio,
 }: {
   diseno: DisenoWeb;
   marca: MarcaWeb;
   pie: string;
   item: InmuebleWeb;
   enDominio?: boolean;
+  onVolver?: () => void;
+  onInicio?: () => void;
 }) {
   const tema = TEMAS_WEB[diseno];
   const tipo = item.tipo_inmueble && item.tipo_inmueble in TIPO_INMUEBLE_LABEL
@@ -30,11 +34,17 @@ export function FichaPublica({
 
   return (
     <MarcoWeb tema={tema}>
-      <CabeceraWeb marca={marca} tema={tema} enDominio={enDominio} />
+      <CabeceraWeb marca={marca} tema={tema} enDominio={enDominio} onInicio={onInicio} onInmuebles={onVolver} />
       <main className="mx-auto max-w-4xl px-5 py-6">
-        <Link href={`${hrefInicio(enDominio)}#inmuebles`} className="text-[13px] font-medium" style={{ color: tema.acento }}>
-          Todos los inmuebles
-        </Link>
+        {onVolver ? (
+          <button type="button" onClick={onVolver} className="text-[13px] font-medium" style={{ color: tema.acento }}>
+            Todos los inmuebles
+          </button>
+        ) : (
+          <Link href={`${hrefInicio(enDominio)}#inmuebles`} className="text-[13px] font-medium" style={{ color: tema.acento }}>
+            Todos los inmuebles
+          </Link>
+        )}
         <p className="mt-4 text-[13px]" style={{ color: tema.suave }}>{item.localidad}</p>
         <h1 className="mt-1 text-3xl font-semibold leading-tight" style={{ fontFamily: tema.titulo }}>{item.titulo}</h1>
         <p className="mt-3 text-xl font-semibold" style={{ color: tema.acento }}>{precioPublico(item)}</p>

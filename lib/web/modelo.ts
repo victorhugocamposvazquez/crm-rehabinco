@@ -73,9 +73,35 @@ export type EditorWebDatos = {
   diseno: DisenoWeb;
   publicado: boolean;
   dominio: string | null;
-  marca: { nombre: string; telefono: string | null; email: string | null };
+  marca: MarcaWeb;
+  logoClaro: string | null;
+  logoOscuro: string | null;
   bloques: BloqueWeb[];
+  inmuebles: InmuebleWeb[];
 };
+
+export function logoMarca(diseno: DisenoWeb, claro: string | null, oscuro: string | null): string | null {
+  const elegido = diseno === "noche" ? oscuro || claro : claro || oscuro;
+  return elegido || null;
+}
+
+/** La web tal como está en el editor, aunque no esté publicada ni guardada. */
+export function vistaPreviaDe(input: {
+  diseno: DisenoWeb;
+  marca: MarcaWeb;
+  bloques: BloqueWeb[];
+  borradores: Record<string, ContenidoBloque | undefined>;
+  inmuebles: InmuebleWeb[];
+}): WebPublica {
+  return {
+    sitio: { diseno: input.diseno, publicado: true, marca: input.marca },
+    bloques: input.bloques.filter((bloque) => bloque.visible).map((bloque) => ({
+      ...bloque,
+      contenido: input.borradores[bloque.id] ?? bloque.contenido,
+    })),
+    inmuebles: input.inmuebles,
+  };
+}
 
 export type TemaWeb = {
   fondo: string;

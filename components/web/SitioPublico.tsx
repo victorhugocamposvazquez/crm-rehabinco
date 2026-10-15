@@ -17,10 +17,12 @@ export function TarjetaInmueble({
   item,
   tema,
   enDominio = false,
+  onAbrir,
 }: {
   item: InmuebleWeb;
   tema: (typeof TEMAS_WEB)["claro"];
   enDominio?: boolean;
+  onAbrir?: () => void;
 }) {
   const foto = item.fotos[0];
   const tipo = tipoDe(item.tipo_inmueble);
@@ -30,12 +32,10 @@ export function TarjetaInmueble({
     item.habitaciones != null ? `${item.habitaciones} hab.` : null,
     item.banos != null ? `${item.banos} baños` : null,
   ].filter(Boolean);
-  return (
-    <Link
-      href={hrefInmueble(enDominio, item.referencia)}
-      className="overflow-hidden rounded-2xl border"
-      style={{ background: tema.tarjeta, borderColor: tema.linea }}
-    >
+  const clase = "block w-full overflow-hidden rounded-2xl border text-left";
+  const estilo = { background: tema.tarjeta, borderColor: tema.linea };
+  const cuerpo = (
+    <>
       {foto ? (
         <img src={foto} alt="" className="aspect-[4/3] w-full object-cover" />
       ) : (
@@ -47,11 +47,37 @@ export function TarjetaInmueble({
         <p className="text-[15px] font-semibold" style={{ color: tema.acento }}>{precioPublico(item)}</p>
         {datos.length ? <p className="text-[13px]" style={{ color: tema.suave }}>{datos.join(" · ")}</p> : null}
       </div>
+    </>
+  );
+  if (onAbrir) {
+    return (
+      <button type="button" onClick={onAbrir} className={clase} style={estilo}>
+        {cuerpo}
+      </button>
+    );
+  }
+  return (
+    <Link
+      href={hrefInmueble(enDominio, item.referencia)}
+      className={clase}
+      style={estilo}
+    >
+      {cuerpo}
     </Link>
   );
 }
 
-export function SitioPublico({ web, enDominio = false }: { web: WebPublica; enDominio?: boolean }) {
+export function SitioPublico({
+  web,
+  enDominio = false,
+  onAbrirInmueble,
+  anclar = false,
+}: {
+  web: WebPublica;
+  enDominio?: boolean;
+  onAbrirInmueble?: (referencia: string) => void;
+  anclar?: boolean;
+}) {
   const tema = TEMAS_WEB[web.sitio.diseno];
   const marca = web.sitio.marca;
   if (!web.sitio.publicado) {
@@ -69,12 +95,14 @@ export function SitioPublico({ web, enDominio = false }: { web: WebPublica; enDo
     <MarcoWeb tema={tema}>
       {web.bloques.map((bloque) => {
         const c = bloque.contenido;
-        if (bloque.tipo === "cabecera") return <CabeceraWeb key={bloque.id} marca={marca} tema={tema} enDominio={enDominio} />;
+        if (bloque.tipo === "cabecera") {
+          return <CabeceraWeb key={bloque.id} marca={marca} tema={tema} enDominio={enDominio} anclar={anclar} />;
+        }
         if (bloque.tipo === "hero") {
           return (
-            <section key={bloque.id} className="mx-auto grid max-w-6xl items-center gap-8 px-5 py-8 min-[820px]:grid-cols-2 min-[820px]:py-16">
+            <section key={bloque.id} className="web-hero mx-auto max-w-6xl px-5 py-8">
               <div>
-                <h1 className="text-4xl font-semibold leading-tight min-[820px]:text-5xl" style={{ fontFamily: tema.titulo }}>
+                <h1 className="text-4xl font-semibold leading-tight" style={{ fontFamily: tema.titulo }}>
                   {c.titulo || marca.nombre}
                 </h1>
                 {c.subtitulo ? <p className="mt-4 max-w-xl text-[17px] leading-7" style={{ color: tema.suave }}>{c.subtitulo}</p> : null}
@@ -98,8 +126,16 @@ export function SitioPublico({ web, enDominio = false }: { web: WebPublica; enDo
               {web.inmuebles.length === 0 ? (
                 <p className="mt-4 text-[15px]" style={{ color: tema.suave }}>Todavía no hay inmuebles publicados.</p>
               ) : (
-                <div className="mt-6 grid gap-4 min-[700px]:grid-cols-2 min-[1100px]:grid-cols-3">
-                  {web.inmuebles.map((item) => <TarjetaInmueble key={item.referencia} item={item} tema={tema} enDominio={enDominio} />)}
+                <div className="web-cards mt-6">
+                  {web.inmuebles.map((item) => (
+                    <TarjetaInmueble
+                      key={item.referencia}
+                      item={item}
+                      tema={tema}
+                      enDominio={enDominio}
+                      onAbrir={onAbrirInmueble ? () => onAbrirInmueble(item.referencia) : undefined}
+                    />
+                  ))}
                 </div>
               )}
             </section>
@@ -110,7 +146,7 @@ export function SitioPublico({ web, enDominio = false }: { web: WebPublica; enDo
           return (
             <section key={bloque.id} className="mx-auto max-w-6xl px-5 py-8">
               {c.titulo ? <h2 className="mb-5 text-2xl font-semibold" style={{ fontFamily: tema.titulo }}>{c.titulo}</h2> : null}
-              <div className="grid gap-3 min-[700px]:grid-cols-3">
+              <div className="web-galeria">
                 {c.imagenes.map((foto) => (
                   <img key={foto.url} src={foto.url} alt={foto.alt} className="aspect-[4/3] w-full rounded-2xl object-cover" />
                 ))}

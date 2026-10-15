@@ -505,3 +505,47 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
 .velo-flotante {
   background-color: rgb(0 0 0 / 0.45);
 }
+
+/* La web pública responde al ancho de su marco, también dentro de la vista previa. */
+.web-marco {
+  container-type: inline-size;
+  container-name: web;
+}
+.web-marco .web-hero,
+.web-marco .web-cards,
+.web-marco .web-galeria {
+  display: grid;
+}
+.web-marco .web-hero {
+  align-items: center;
+  gap: 2rem;
+}
+.web-marco .web-cards,
+.web-marco .web-galeria {
+  gap: 0.75rem;
+}
+@container web (min-width: 700px) {
+  .web-marco .web-cards {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  .web-marco .web-galeria {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+@container web (min-width: 820px) {
+  .web-marco .web-hero {
+    grid-template-columns: 1fr 1fr;
+    padding-top: 4rem;
+    padding-bottom: 4rem;
+  }
+  .web-marco .web-hero h1 {
+    font-size: 3rem;
+    line-height: 1.1;
+  }
+}
+@container web (min-width: 1100px) {
+  .web-marco .web-cards {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { aptoParaWeb, contenidoDe, precioPublico, webPublicaDe } from "./modelo";
+import { aptoParaWeb, contenidoDe, precioPublico, vistaPreviaDe, webPublicaDe, type BloqueWeb } from "./modelo";
 
 const PISO = {
   referencia: "RHB-2026-0001",
@@ -44,5 +44,26 @@ describe("escaparate web", () => {
     assert.equal(web?.sitio.diseno, "noche");
     assert.equal(web?.inmuebles.length, 1);
     assert.equal(web?.bloques[0]?.contenido.titulo, "Portada");
+  });
+
+  it("la vista previa usa el borrador y omite el bloque oculto", () => {
+    const hero: BloqueWeb = {
+      id: "hero",
+      tipo: "hero",
+      orden: 1,
+      visible: true,
+      contenido: contenidoDe({ titulo: "Guardado" }),
+    };
+    const texto: BloqueWeb = { ...hero, id: "texto", tipo: "texto", visible: false };
+    const vista = vistaPreviaDe({
+      diseno: "claro",
+      marca: { nombre: "Rehabinco", telefono: null, email: null, web: null, logo: null },
+      bloques: [hero, texto],
+      borradores: { hero: contenidoDe({ titulo: "Al escribir" }) },
+      inmuebles: [],
+    });
+    assert.equal(vista.sitio.publicado, true);
+    assert.equal(vista.bloques.length, 1);
+    assert.equal(vista.bloques[0]?.contenido.titulo, "Al escribir");
   });
 });
