@@ -20,8 +20,8 @@ import {
 import { BuscadorLocalidad } from "@/components/geo/BuscadorLocalidad";
 import { altaCamposVacios, leerAltaBorrador } from "@/lib/ui/alta-borrador";
 import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
-import { acceptMedia, validarArchivoMedia } from "@/lib/inmuebles/media";
 import { subirArchivosMedia } from "@/lib/inmuebles/subir-media";
+import { ZonaArchivosPendientes } from "@/components/inmuebles/ZonaArchivosPendientes";
 import { Selector } from "@/components/ui/selector";
 import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { proponerInmuebleADemandas } from "@/lib/demandas/proponer-stock";
@@ -348,46 +348,10 @@ export function NuevoInmueblePanel({
       <AltaSection wide title="Fotos y visita virtual" hint="Puedes dejarlo vacío y completarlo en la ficha. Los archivos de esta sesión no entran en el borrador del navegador.">
         <div className="flex flex-col gap-4">
           <AltaField label="Fotos" optional>
-            <input
-              type="file"
-              accept={acceptMedia("foto")}
-              multiple
-              className={`${altaControl} mt-2 cursor-pointer py-2.5 file:mr-3 file:rounded-md file:border-0 file:bg-[var(--surface-soft)] file:px-3 file:py-1.5 file:text-[12.5px] file:font-semibold`}
-              onChange={(e) => {
-                const files = Array.from(e.target.files ?? []);
-                const ok: File[] = [];
-                for (const file of files) {
-                  const fallo = validarArchivoMedia("foto", file);
-                  if (fallo) toast.error(fallo);
-                  else ok.push(file);
-                }
-                setPendientesFoto(ok);
-              }}
-            />
-            {pendientesFoto.length ? (
-              <p className="mt-1.5 text-[12.5px] text-[var(--text-2)]">{pendientesFoto.length} foto{pendientesFoto.length === 1 ? "" : "s"} listas para subir</p>
-            ) : null}
+            <ZonaArchivosPendientes tipo="foto" files={pendientesFoto} onChange={setPendientesFoto} />
           </AltaField>
           <AltaField label="Planos" optional>
-            <input
-              type="file"
-              accept={acceptMedia("plano")}
-              multiple
-              className={`${altaControl} mt-2 cursor-pointer py-2.5 file:mr-3 file:rounded-md file:border-0 file:bg-[var(--surface-soft)] file:px-3 file:py-1.5 file:text-[12.5px] file:font-semibold`}
-              onChange={(e) => {
-                const files = Array.from(e.target.files ?? []);
-                const ok: File[] = [];
-                for (const file of files) {
-                  const fallo = validarArchivoMedia("plano", file);
-                  if (fallo) toast.error(fallo);
-                  else ok.push(file);
-                }
-                setPendientesPlano(ok);
-              }}
-            />
-            {pendientesPlano.length ? (
-              <p className="mt-1.5 text-[12.5px] text-[var(--text-2)]">{pendientesPlano.length} plano{pendientesPlano.length === 1 ? "" : "s"} listos</p>
-            ) : null}
+            <ZonaArchivosPendientes tipo="plano" files={pendientesPlano} onChange={setPendientesPlano} />
           </AltaField>
           <AltaField label="Vídeo (YouTube / Vimeo)" optional>
             <input value={values.video_url} onChange={(e) => set({ video_url: e.target.value })} placeholder="https://" className={altaControl} />

@@ -7,6 +7,8 @@ import { ChevronLeft, ChevronRight, ImagePlus, Star, Trash2 } from "lucide-react
 import { toast } from "sonner";
 import type { InmuebleMedia } from "@/lib/inmuebles/catalogo";
 import { acceptMedia, esPathExterno, moverMedia, type TipoMediaInmueble } from "@/lib/inmuebles/media";
+import { arrastrandoArchivos } from "@/lib/inmuebles/archivos-pendientes";
+import { cn } from "@/lib/utils";
 import { subirArchivosMedia } from "@/lib/inmuebles/subir-media";
 
 function esImagen(item: InmuebleMedia) {
@@ -30,6 +32,7 @@ export function InmuebleGaleria({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [sueltaActiva, setSueltaActiva] = useState(false);
   const [visor, setVisor] = useState<number | null>(null);
   const items = media.filter((m) => m.tipo === tipo).sort((a, b) => a.orden - b.orden);
   const imagenes = items.filter(esImagen);
@@ -107,13 +110,35 @@ export function InmuebleGaleria({
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="flex w-full flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-white px-6 py-12 text-sm text-neutral-500 hover:bg-neutral-50"
+          onDragEnter={(e) => {
+            if (!arrastrandoArchivos(e.dataTransfer)) return;
+            e.preventDefault();
+            setSueltaActiva(true);
+          }}
+          onDragOver={(e) => {
+            if (!arrastrandoArchivos(e.dataTransfer)) return;
+            e.preventDefault();
+            setSueltaActiva(true);
+          }}
+          onDragLeave={(e) => {
+            if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+            setSueltaActiva(false);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            setSueltaActiva(false);
+            void upload(e.dataTransfer.files);
+          }}
+          className={cn(
+            "flex w-full flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-12 text-sm transition-[border,background]",
+            sueltaActiva ? "border-accent bg-accent-soft text-foreground" : "border-border bg-white text-neutral-500 hover:bg-neutral-50"
+          )}
         >
           {tipo === "plano"
-            ? "PDF o imagen del plano. Puedes arrastrar varios."
+            ? "Arrastra planos aquí o pulsa para subir (PDF o imagen)."
             : tipo === "video"
               ? "Sube un MP4 o WebM, o pega la URL en Vídeo."
-              : "Suelta fotos o pulsa para subir. La primera será la portada."}
+              : "Arrastra fotos aquí o pulsa para subir. La primera será la portada."}
         </button>
       ) : (
         <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
