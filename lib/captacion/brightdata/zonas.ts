@@ -77,9 +77,23 @@ const MUNICIPIOS_NUEVOS = [
   "Valdoviño", "Vedra", "Vilarmaior", "Vilasantar", "Vimianzo", "Zas",
 ];
 
+/** Barrio de Moncloa. Idealista lo lista aparte del municipio (~98 anuncios, oct 2026). */
+const ZONAS_MADRID: ZonaIdealista[] = [
+  {
+    id: "aravaca",
+    grupo: "Madrid",
+    nombre: "Aravaca",
+    anuncios: 98,
+    porDefecto: false,
+    operacion: "venta",
+    url: "https://www.idealista.com/venta-viviendas/madrid/moncloa/aravaca/",
+  },
+];
+
 export const ZONAS_IDEALISTA: ZonaIdealista[] = [
   ...MUNICIPIOS_DEFECTO.map(([nombre, anuncios, url]) => municipio(nombre, anuncios, true, url)),
   ...MUNICIPIOS_NUEVOS.map((nombre) => municipio(nombre)),
+  ...ZONAS_MADRID,
 ];
 
 const POR_ID = new Map(ZONAS_IDEALISTA.map((zona) => [zona.id, zona]));

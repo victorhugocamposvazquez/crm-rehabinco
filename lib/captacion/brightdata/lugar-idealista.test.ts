@@ -93,5 +93,10 @@ describe("lugar de un anuncio Idealista", () => {
     assert.equal(esListadoDeDistrito("https://www.idealista.com/venta-viviendas/oleiros-a-coruna/"), false);
     assert.equal(esListadoDeDistrito("https://www.idealista.com/venta-viviendas/a-coruna/a-coruna/"), false);
     assert.equal(esListadoDeDistrito("https://www.idealista.com/venta-viviendas/a-coruna-provincia/"), false);
+    assert.equal(esListadoDeDistrito("https://www.idealista.com/venta-viviendas/madrid/moncloa/aravaca/"), true);
+    assert.deepEqual(lugarDeTituloIdealista("Piso en calle del Carril de los Caleros, Aravaca, Madrid"), {
+      municipio: "Madrid",
+      barrio: "Aravaca",
+    });
   });
 });

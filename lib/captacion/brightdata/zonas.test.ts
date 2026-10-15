@@ -30,6 +30,15 @@ describe("zonas Idealista", () => {
     assert.equal(paginasListadoEstimadas(zonasPorDefecto()), 143);
     assert.ok(ZONAS_IDEALISTA.some((zona) => zona.id === "carballo" && zona.porDefecto === false));
     assert.equal(urlsDeZonas(["oleiros"])[0], "https://www.idealista.com/venta-viviendas/oleiros-a-coruna/");
+    const aravaca = ZONAS_IDEALISTA.find((zona) => zona.id === "aravaca");
+    assert.equal(aravaca?.grupo, "Madrid");
+    assert.equal(aravaca?.anuncios, 98);
+    assert.equal(aravaca?.porDefecto, false);
+    assert.equal(urlsDeZonas(["aravaca"])[0], "https://www.idealista.com/venta-viviendas/madrid/moncloa/aravaca/");
+    assert.equal(
+      zonaIdDeListado("https://www.idealista.com/venta-viviendas/madrid/moncloa/aravaca/con-publicado_ultimas-48-horas/"),
+      "aravaca"
+    );
     assert.equal(zonaSuperaCorte(1500), false);
     assert.equal(zonaSuperaCorte(1501), true);
     assert.equal(
