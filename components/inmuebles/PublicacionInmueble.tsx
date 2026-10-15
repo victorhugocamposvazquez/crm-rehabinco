@@ -29,7 +29,11 @@ export function PublicacionInmueble({
 
   return (
     <div className="space-y-3">
-      <Check titulo="Publicar en la web" checked={values.publicar_web} />
+      <Check
+        titulo="Publicar en la web"
+        checked={values.publicar_web}
+        onChange={(checked) => onChange({ publicar_web: checked })}
+      />
       <Check titulo="Publicar en Idealista" checked={values.publicar_idealista} />
       <label className="block text-[13px]">
         <span className="mb-1.5 block font-medium text-[var(--text-2)]">Certificado energético</span>
@@ -57,17 +61,29 @@ export function PublicacionInmueble({
   );
 }
 
-function Check({ titulo, checked }: { titulo: string; checked: boolean }) {
+function Check({
+  titulo,
+  checked,
+  onChange,
+}: {
+  titulo: string;
+  checked: boolean;
+  onChange?: (checked: boolean) => void;
+}) {
+  const pronto = !onChange;
   return (
-    <label className="flex cursor-not-allowed items-center justify-between gap-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3.5 opacity-70">
+    <label
+      className={`flex items-center justify-between gap-3 rounded-[12px] border border-[var(--border)] px-4 py-3.5 ${pronto ? "cursor-not-allowed bg-[var(--surface-soft)] opacity-70" : "cursor-pointer bg-[var(--surface)]"}`}
+    >
       <span>
         <span className="block text-[14px] font-semibold">{titulo}</span>
-        <span className="text-[12.5px] text-[var(--text-2)]">Muy pronto</span>
+        <span className="text-[12.5px] text-[var(--text-2)]">{pronto ? "Muy pronto" : "Sale en la web pública si la ficha está completa."}</span>
       </span>
       <input
         type="checkbox"
         checked={checked}
-        disabled
+        disabled={pronto}
+        onChange={(e) => onChange?.(e.target.checked)}
         className="h-4 w-4 accent-[var(--accent)]"
       />
     </label>

@@ -95,6 +95,7 @@ const EDITOR_BLOCKED_PREFIXES = [
   "/settings/empresa",
   "/settings/emisores-presupuesto",
   "/settings/portales",
+  "/web",
 ];
 
 export function editorHomePath(): string {
@@ -120,6 +121,7 @@ const COMERCIAL_BLOCKED_PREFIXES = [
   "/settings/empresa",
   "/settings/emisores-presupuesto",
   "/settings/portales",
+  "/web",
 ];
 
 export function comercialHomePath(): string {
@@ -144,6 +146,7 @@ const NAV_DIRECCION = [
   "/captacion",
   "/catastro",
   "/propiedades",
+  "/web/gestionar",
   "/valoraciones",
   "/demandas",
   "/calendario",

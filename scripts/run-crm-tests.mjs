@@ -18,6 +18,7 @@ const patterns = [
   "lib/citas/**/*.test.ts",
   "lib/tareas/**/*.test.ts",
   "lib/inmuebles/**/*.test.ts",
+  "lib/web/**/*.test.ts",
   "lib/geo/**/*.test.ts",
   "lib/alertas/**/*.test.ts",
   "lib/partes-visita.test.ts",

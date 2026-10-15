@@ -14,6 +14,7 @@ import { InmuebleDocumentos, type DocInmueble } from "@/components/inmuebles/Inm
 import { InmuebleMatching } from "@/components/inmuebles/InmuebleMatching";
 import { FichaCompletitudBarra } from "@/components/inmuebles/FichaCompletitudBarra";
 import { completitudFicha } from "@/lib/inmuebles/completitud";
+import { aptoParaWeb } from "@/lib/web/modelo";
 import { rutaNuevaCita } from "@/lib/citas/citas";
 import {
   formatPrecioInmueble,
@@ -217,7 +218,7 @@ export default function DetallePropiedadPage() {
       />
       {alta ? (
         <p className="mb-4 rounded-xl border border-[#111111]/30 bg-[#F0F0F0] px-4 py-3 text-sm text-[#000000]">
-          Inmueble creado. Sube fotos, planos o un tour 3D. Publicar en la web y en Idealista llega muy pronto.
+          Inmueble creado. Sube fotos, planos o un tour 3D. Idealista llega muy pronto.
         </p>
       ) : null}
       <div className="mb-6 print:hidden">
@@ -227,7 +228,20 @@ export default function DetallePropiedadPage() {
         <Badge variant="default">{labelEstadoInmueble(propiedad.estado)}</Badge>
         <Badge variant="default">{labelTipoOperacion(propiedad.tipo_operacion)}</Badge>
         {propiedad.tipo_inmueble ? <Badge variant="default">{labelTipoInmueble(propiedad.tipo_inmueble)}</Badge> : null}
-        {propiedad.publicar_web ? <Badge variant="default">Web</Badge> : null}
+        {propiedad.publicar_web && propiedad.referencia && aptoParaWeb({
+          referencia: propiedad.referencia,
+          titulo: propiedad.titulo || propiedad.direccion,
+          localidad: propiedad.localidad,
+          descripcion: propiedad.descripcion,
+          tipo_operacion: propiedad.tipo_operacion,
+          precio_venta: propiedad.precio_venta,
+          precio_alquiler: propiedad.precio_alquiler,
+          estado: propiedad.estado,
+        }) ? (
+          <Link href={`/web/inmuebles/${encodeURIComponent(propiedad.referencia)}`}>
+            <Badge variant="default">Web</Badge>
+          </Link>
+        ) : propiedad.publicar_web ? <Badge variant="default">Web</Badge> : null}
         {propiedad.publicar_idealista ? <Badge variant="default">Idealista</Badge> : null}
         {esOrigenCatastroExplorer(propiedad.origen) && fincaReference ? (
           <CatastroPropertyFicha
