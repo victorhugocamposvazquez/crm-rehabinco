@@ -86,19 +86,25 @@ export function logoMarca(diseno: DisenoWeb, claro: string | null, oscuro: strin
 }
 
 /** La web tal como está en el editor, aunque no esté publicada ni guardada. */
-export function vistaPreviaDe(input: {
-  diseno: DisenoWeb;
-  marca: MarcaWeb;
-  bloques: BloqueWeb[];
-  borradores: Record<string, ContenidoBloque | undefined>;
-  inmuebles: InmuebleWeb[];
-}): WebPublica {
-  return {
-    sitio: { diseno: input.diseno, publicado: true, marca: input.marca },
-    bloques: input.bloques.filter((bloque) => bloque.visible).map((bloque) => ({
+export function vistaPreviaDe(
+  input: {
+    diseno: DisenoWeb;
+    marca: MarcaWeb;
+    bloques: BloqueWeb[];
+    borradores: Record<string, ContenidoBloque | undefined>;
+    inmuebles: InmuebleWeb[];
+  },
+  opts?: { editor?: boolean }
+): WebPublica {
+  const lista = input.bloques
+    .filter((bloque) => opts?.editor || bloque.visible)
+    .map((bloque) => ({
       ...bloque,
       contenido: input.borradores[bloque.id] ?? bloque.contenido,
-    })),
+    }));
+  return {
+    sitio: { diseno: input.diseno, publicado: true, marca: input.marca },
+    bloques: lista,
     inmuebles: input.inmuebles,
   };
 }

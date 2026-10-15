@@ -18,5 +18,9 @@ export default async function GestionarWebPage() {
       </div>
     );
   }
-  return <EditorWeb datos={carga.datos} />;
+  return (
+    <div className="max-w-none px-0 pb-0 pt-0 min-[820px]:px-0 min-[820px]:pb-0">
+      <EditorWeb datos={carga.datos} />
+    </div>
+  );
 }
