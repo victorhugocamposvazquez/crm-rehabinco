@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, type ReactNode } from "react";
+import { type FormEvent, type ReactNode, type Ref } from "react";
 import { Sheet } from "@/components/ui/sheet";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { horaAltaBorrador } from "@/lib/ui/alta-borrador";
@@ -20,6 +20,7 @@ export function AltaShell({
   disablePrimary,
   onSubmit,
   footerHint = "Cerrar guarda un borrador en este navegador. Crear lo pasa al listado.",
+  primaryHint,
   dangerAction,
   borrador,
   elevated = false,
@@ -34,6 +35,7 @@ export function AltaShell({
   disablePrimary?: boolean;
   onSubmit: () => void | Promise<void>;
   footerHint?: string;
+  primaryHint?: string;
   dangerAction?: { label: string; onClick: () => void; disabled?: boolean };
   elevated?: boolean;
   borrador?: {
@@ -44,7 +46,8 @@ export function AltaShell({
 }) {
   const enviar = (evento?: FormEvent) => {
     evento?.preventDefault();
-    if (saving || disablePrimary) return;
+    if (saving) return;
+    if (disablePrimary && !primaryHint) return;
     void onSubmit();
   };
 
@@ -107,8 +110,11 @@ export function AltaShell({
           <div className="flex gap-2.5">
             <button
               type="submit"
-              disabled={saving || disablePrimary}
-              className="h-11 flex-1 rounded-[10px] bg-accent text-[14px] font-medium text-accent-foreground disabled:opacity-45"
+              disabled={saving || (disablePrimary && !primaryHint)}
+              className={cn(
+                "h-11 flex-1 rounded-[10px] bg-accent text-[14px] font-medium text-accent-foreground disabled:opacity-45",
+                disablePrimary && primaryHint && "opacity-80"
+              )}
             >
               {saving ? "Guardando…" : primaryLabel}
             </button>
@@ -130,7 +136,14 @@ export function AltaShell({
               {dangerAction.label}
             </button>
           ) : null}
-          <p className="mt-2.5 text-[12px] text-[var(--text-3)]">{footerHint}</p>
+          <p
+            className={cn(
+              "mt-2.5 text-[12.5px] leading-5",
+              primaryHint ? "font-medium text-[var(--amber-ink)]" : "text-[12px] text-[var(--text-3)]"
+            )}
+          >
+            {primaryHint ?? footerHint}
+          </p>
         </footer>
       </form>
     </Sheet>
@@ -142,18 +155,23 @@ export function AltaSection({
   hint,
   children,
   wide,
+  required,
   className,
 }: {
   title: string;
   hint?: string;
   children: ReactNode;
   wide?: boolean;
+  required?: boolean;
   className?: string;
 }) {
   return (
     <section className={cn("min-w-0", wide && "min-[820px]:col-span-2", className)}>
       <div className="mb-3.5">
-        <h3 className="text-[14px] font-semibold text-foreground">{title}</h3>
+        <h3 className="text-[14px] font-semibold text-foreground">
+          {title}
+          {required ? <span className="ml-1.5 font-normal text-[var(--text-3)]">obligatorio</span> : null}
+        </h3>
         {hint ? <p className="mt-1 text-[12.5px] leading-5 text-[var(--text-2)]">{hint}</p> : null}
       </div>
       {children}
@@ -195,6 +213,8 @@ export function AltaPersona({
   sugeridos,
   onAltaNueva,
   autoFocus,
+  aviso,
+  inputRef,
 }: {
   fijo?: boolean;
   fijoNombre?: string;
@@ -207,6 +227,8 @@ export function AltaPersona({
   sugeridos: PersonaOpcion[];
   onAltaNueva: (nombreSugerido?: string) => void;
   autoFocus?: boolean;
+  aviso?: boolean;
+  inputRef?: Ref<HTMLInputElement>;
 }) {
   if (fijo) {
     return (
@@ -226,7 +248,7 @@ export function AltaPersona({
             setQ("");
           }}
         >
-          De la agenda
+          Cliente existente
         </ToggleChip>
         <ToggleChip
           on={false}
@@ -261,6 +283,7 @@ export function AltaPersona({
       ) : (
         <div className="mt-4">
           <input
+            ref={inputRef}
             autoFocus={autoFocus}
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -272,11 +295,17 @@ export function AltaPersona({
                 setQ("");
               }
             }}
-            placeholder="Escribe un nombre o teléfono"
-            className={altaControl}
+            placeholder="Busca y pulsa un nombre"
+            aria-invalid={aviso || undefined}
+            className={cn(altaControl, aviso && "border-[var(--amber)] focus:border-[var(--amber)] focus:ring-[var(--amber)]/25")}
           />
           {q.trim() ? (
             <div className="mt-2 overflow-hidden rounded-[12px] border border-[var(--border)]">
+              {sugeridos.length > 0 ? (
+                <p className="border-b border-[var(--border-soft)] bg-[var(--surface-soft)] px-4 py-2 text-[12px] text-[var(--text-2)]">
+                  {sugeridos.length === 1 ? "Pulsa el nombre para elegirlo. Enter también vale." : "Pulsa un nombre para elegirlo. Escribirlo no basta."}
+                </p>
+              ) : null}
               {sugeridos.map((persona) => (
                 <button
                   key={persona.id}
@@ -287,8 +316,11 @@ export function AltaPersona({
                   }}
                   className="flex w-full items-center justify-between gap-3 border-b border-[var(--border-soft)] px-4 py-3 text-left last:border-0 hover:bg-[var(--surface-soft)]"
                 >
-                  <span className="truncate text-[14px] font-medium">{persona.nombre}</span>
-                  <span className="shrink-0 font-mono text-[12px] text-[var(--text-2)]">{persona.telefono || ""}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-[14px] font-medium">{persona.nombre}</span>
+                    {persona.telefono ? <span className="mt-0.5 block font-mono text-[12px] text-[var(--text-2)]">{persona.telefono}</span> : null}
+                  </span>
+                  <span className="shrink-0 text-[12.5px] font-semibold text-accent">Elegir</span>
                 </button>
               ))}
               {sugeridos.length === 0 ? (
@@ -305,7 +337,11 @@ export function AltaPersona({
               ) : null}
             </div>
           ) : (
-            <p className="mt-2.5 text-[12.5px] leading-5 text-[var(--text-3)]">La agenda no se lista entera: busca y elige, o pulsa Nuevo para la ficha completa.</p>
+            <p className={cn("mt-2.5 text-[12.5px] leading-5", aviso ? "font-medium text-[var(--amber-ink)]" : "text-[var(--text-3)]")}>
+              {aviso
+                ? "Falta elegir a alguien: pulsa un resultado o Nuevo."
+                : "La agenda no se lista entera: busca y pulsa un nombre, o Nuevo para la ficha completa."}
+            </p>
           )}
         </div>
       )}

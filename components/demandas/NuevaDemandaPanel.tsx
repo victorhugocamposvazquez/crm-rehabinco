@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -24,6 +24,7 @@ import {
 import { SelectorZonas } from "@/components/demandas/SelectorZonas";
 import type { ComercialFiltro } from "@/components/captacion/FiltroComercial";
 import { altaCamposVacios, leerAltaBorrador } from "@/lib/ui/alta-borrador";
+import { mensajePersonaAlta, resolverPersonaAlta } from "@/lib/ui/alta-persona";
 import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
 
 const BORRADOR_VACIO: Omit<BorradorNuevaDemanda, "comercialId"> = {
@@ -97,6 +98,8 @@ export function NuevaDemandaPanel({
   const [altaClienteNombre, setAltaClienteNombre] = useState("");
   const [zonaExtra, setZonaExtra] = useState("");
   const [saving, setSaving] = useState(false);
+  const [avisoCliente, setAvisoCliente] = useState(false);
+  const clienteInputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState<BorradorNuevaDemanda>({
     ...BORRADOR_VACIO,
     comercialId: user?.id ?? "",
@@ -118,10 +121,12 @@ export function NuevaDemandaPanel({
     setAltaClienteOpen(false);
     setAltaClienteNombre("");
     setZonaExtra("");
+    setAvisoCliente(false);
   };
 
   useEffect(() => {
     if (!open) return;
+    setAvisoCliente(false);
     const supabase = createClient();
     void Promise.all([
       supabase.from("clientes").select("id, nombre, telefono").eq("activo", true).order("nombre"),
@@ -168,6 +173,7 @@ export function NuevaDemandaPanel({
           setAltaClienteNombre("");
           setZonaExtra("");
           setQCliente("");
+          setAvisoCliente(false);
         });
       return;
     }
@@ -205,12 +211,33 @@ export function NuevaDemandaPanel({
     });
   };
 
+  const pedirCliente = (mensaje: string) => {
+    setAvisoCliente(true);
+    toast.error(mensaje);
+    clienteInputRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    clienteInputRef.current?.focus();
+  };
+
   const crear = async () => {
     if (!user) return;
-    const clienteId = draft.clienteId;
+    let clienteId = draft.clienteId;
     if (!clienteId) {
-      toast.error("Elige o crea un cliente.");
-      return;
+      const paso = resolverPersonaAlta("", qCliente, sugeridos);
+      if (paso.tipo === "unico") {
+        clienteId = paso.persona.id;
+        set("clienteId", clienteId);
+        setQCliente("");
+        setAvisoCliente(false);
+      } else if (paso.tipo === "alta") {
+        setAvisoCliente(true);
+        setAltaClienteNombre(paso.nombre);
+        setAltaClienteOpen(true);
+        toast.message("Ese contacto no está en la agenda. Créalo para ligarlo a la demanda.");
+        return;
+      } else {
+        pedirCliente(mensajePersonaAlta(paso));
+        return;
+      }
     }
     const paraCrear = { ...draft, clienteId, comercialId: draft.comercialId || user.id };
     const fallo = validarNuevaDemanda(paraCrear);
@@ -243,7 +270,7 @@ export function NuevaDemandaPanel({
       hint={editarId ? "Cambia criterios sin recrear la demanda." : "Lo que busca esta persona. El cruce mira el stock disponible que encaja."}
       primaryLabel={editarId ? "Guardar demanda" : "Crear demanda"}
       saving={saving}
-      disablePrimary={faltaCliente}
+      primaryHint={faltaCliente ? "Falta el cliente: pulsa un nombre de la lista, o crea uno nuevo." : undefined}
       onSubmit={crear}
       borrador={{
         activo: altaBorrador.hayBorrador,
@@ -255,12 +282,24 @@ export function NuevaDemandaPanel({
         },
       }}
     >
-      <AltaSection wide title="Cliente" hint="Primero quién busca. Si no está en la agenda, abre la misma ficha completa de Contactos.">
+      <AltaSection
+        wide
+        title="Cliente"
+        required={!clienteFijo}
+        hint={
+          clienteFijo
+            ? "Este es quien busca."
+            : "Primero quién busca. Escribe y pulsa el nombre; si no está, créalo."
+        }
+      >
         <AltaPersona
           fijo={clienteFijo}
           fijoNombre={clienteNombre}
           seleccionado={clienteSel}
-          onSeleccionar={(persona) => set("clienteId", persona.id)}
+          onSeleccionar={(persona) => {
+            set("clienteId", persona.id);
+            setAvisoCliente(false);
+          }}
           onLimpiar={() => set("clienteId", "")}
           q={qCliente}
           setQ={setQCliente}
@@ -270,6 +309,8 @@ export function NuevaDemandaPanel({
             setAltaClienteOpen(true);
           }}
           autoFocus={!clienteFijo}
+          aviso={avisoCliente && faltaCliente}
+          inputRef={clienteInputRef}
         />
       </AltaSection>
 
@@ -395,6 +436,7 @@ export function NuevaDemandaPanel({
         });
         set("clienteId", id);
         setQCliente("");
+        setAvisoCliente(false);
       }}
     />
     </>
