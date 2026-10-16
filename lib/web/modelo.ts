@@ -1,3 +1,5 @@
+import { emailEmpresaVisible, telefonoEmpresaVisible } from "@/lib/empresa-documentos";
+
 export const DISENOS_WEB = ["claro", "noche", "editorial"] as const;
 export type DisenoWeb = (typeof DISENOS_WEB)[number];
 
@@ -301,8 +303,8 @@ export function webPublicaDe(raw: unknown): WebPublica | null {
       publicado: s.publicado,
       marca: {
         nombre: texto(marcaRaw.nombre).trim() || "Rehabinco",
-        telefono: texto(marcaRaw.telefono).trim() || null,
-        email: texto(marcaRaw.email).trim() || null,
+        telefono: telefonoEmpresaVisible(texto(marcaRaw.telefono)),
+        email: emailEmpresaVisible(texto(marcaRaw.email)),
         web: texto(marcaRaw.web).trim() || null,
         logo: texto(marcaRaw.logo).trim() || null,
       },
