@@ -10,6 +10,7 @@ import {
   HUMAN_FILL,
   QUIENES_FILL,
   REFORMAS,
+  REFORMAS_CIERRA,
   REVIEWS,
   SERVICIOS_DETALLE,
   SERVICIOS_RESUMEN,
@@ -474,6 +475,7 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
                 <span className="max-w-[52ch] text-[15px] leading-relaxed text-[#6b6b6b]">{r.texto}</span>
               </button>
             ))}
+            <p className="border-b border-[rgba(8,8,8,.14)] py-5 text-[17px] font-medium tracking-[-0.01em] text-[#6b6b6b]">{REFORMAS_CIERRA}</p>
           </div>
           <Link href="#contacto" className="corp-btn self-start">
             Pide presupuesto de reforma

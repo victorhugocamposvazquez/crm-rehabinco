@@ -183,7 +183,13 @@ export const REFORMAS = [
   { titulo: "Baños en piedra y latón", texto: "Travertino, platos a ras de suelo y grifería empotrada. Impermeabilización garantizada.", img: `${A}/bano.jpg` },
   { titulo: "Suelos y carpintería de roble", texto: "Tarima de roble natural, puertas lacadas y armarios empotrados hasta el techo.", img: `${A}/dormitorio.jpg` },
   { titulo: "Reforma integral llave en mano", texto: "Distribución, instalaciones, aislamiento y acabados. Entregamos el piso listo para vivir.", img: `${A}/dormitorio-2.jpg` },
+  { titulo: "Instalaciones completas", texto: "Fontanería, electricidad, climatización y saneamiento. Todo al día de la normativa y coordinado con el resto de la obra.", img: `${A}/obra-1.jpg` },
+  { titulo: "Ventanas y aislamiento", texto: "Carpintería exterior, doble acristalamiento y soluciones térmicas y acústicas para ganar confort y eficiencia.", img: `${A}/obra-2.jpg` },
+  { titulo: "Iluminación y pintura", texto: "Proyecto de luz, pintura al agua, revestimientos y el detalle de acabado en cada estancia.", img: `${A}/salon.jpg` },
+  { titulo: "Terrazas y exteriores", texto: "Suelos técnicos, barandillas, impermeabilización y acondicionamiento de porches y terrazas.", img: `${A}/terraza.jpg` },
 ];
+
+export const REFORMAS_CIERRA = "Y mucho más...";
 
 export const FASES_360 = [
   ["Búsqueda o valoración", "Personal shopper o precio realista para vender", "Incluido"],
