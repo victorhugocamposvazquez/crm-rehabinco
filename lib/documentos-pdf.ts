@@ -1,3 +1,5 @@
+import { sanitizarTextoMarcaConchado } from "./empresa-documentos";
+
 const PAGE_W_PX = 794;
 const PAGE_H_PX = 1123;
 
@@ -91,7 +93,7 @@ export function envolverDocumentoHtml(params: {
   serif?: boolean;
   extraCss?: string;
 }): string {
-  return `<!DOCTYPE html>
+  const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
@@ -100,6 +102,7 @@ export function envolverDocumentoHtml(params: {
 </head>
 <body><!-- ${params.title.replace(/</g, "")} -->${params.body}</body>
 </html>`;
+  return sanitizarTextoMarcaConchado(html);
 }
 
 function waitForImages(doc: Document): Promise<void> {
@@ -136,9 +139,10 @@ function waitForLayout(doc: Document): Promise<void> {
 }
 
 function normalizarHtmlImpresion(html: string): string {
-  const trimmed = html.trimStart();
-  if (trimmed.startsWith("<!DOCTYPE") || trimmed.startsWith("<html")) return html;
-  return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8" /></head><body>${html}</body></html>`;
+  const seguro = sanitizarTextoMarcaConchado(html);
+  const trimmed = seguro.trimStart();
+  if (trimmed.startsWith("<!DOCTYPE") || trimmed.startsWith("<html")) return seguro;
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8" /></head><body>${seguro}</body></html>`;
 }
 
 /** Captura un documento continuo y lo trocea en hojas A4 según la altura real del contenido. */
@@ -169,7 +173,7 @@ export async function downloadFlowingHtmlPdf(params: {
     throw new Error("No se pudo generar el PDF. Inténtalo de nuevo.");
   }
   idoc.open();
-  idoc.write(params.html);
+  idoc.write(sanitizarTextoMarcaConchado(params.html));
   idoc.close();
 
   await waitForImages(idoc);
@@ -259,7 +263,7 @@ export async function downloadPagedHtmlPdf(params: {
     throw new Error("No se pudo generar el PDF. Inténtalo de nuevo.");
   }
   idoc.open();
-  idoc.write(params.html);
+  idoc.write(sanitizarTextoMarcaConchado(params.html));
   idoc.close();
 
   await waitForImages(idoc);

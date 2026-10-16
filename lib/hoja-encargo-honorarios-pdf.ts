@@ -1,5 +1,6 @@
 import {
   EMPRESA_DOCUMENTOS,
+  aplicarClausulaPersonalizada,
   clausulaProteccionDatosContrato,
   formatFechaEncabezado,
   htmlEsc,
@@ -41,8 +42,7 @@ function aplicarPersonalizacion(
   generado: string,
   personalizadas: ClausulasPersonalizadasHonorarios
 ): string {
-  const custom = personalizadas[key]?.trim();
-  return custom || generado;
+  return aplicarClausulaPersonalizada(key, generado, personalizadas);
 }
 
 function h(texto: string, extraStyle = "") {

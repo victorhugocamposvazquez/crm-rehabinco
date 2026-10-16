@@ -8,6 +8,7 @@ import {
   repaginarDocumento,
   unirTextoFragmentos,
 } from "./documentos-paginacion";
+import { textoTieneDatosConchado } from "./empresa-documentos";
 import type { ClausulaArrasKey, ClausulasPersonalizadasArras } from "./contrato-arras";
 
 /**
@@ -51,7 +52,7 @@ export function clausulasPersonalizadasDesdeEdicion<K extends string>(
   for (const [key, texto] of Object.entries(editadas) as Array<[K, string]>) {
     const editado = normalizarTextoClausula(texto);
     const auto = normalizarTextoClausula(generadas[key] ?? "");
-    if (editado && editado !== auto) out[key] = editado;
+    if (editado && editado !== auto && !textoTieneDatosConchado(editado)) out[key] = editado;
   }
   return out;
 }

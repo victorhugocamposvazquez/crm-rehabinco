@@ -14,6 +14,46 @@ export const EMPRESA_DOCUMENTOS = {
   lugar: "A Coruña",
 } as const;
 
+/** CIF, dominio y razón social de Conchado Puente. No el apellido suelto (p. ej. Adrián Conchado). */
+const RE_DATOS_CONCHADO = /conchadopuente|b70101449|conchado\s+puente/i;
+
+export function textoTieneDatosConchado(texto: string | null | undefined): boolean {
+  return RE_DATOS_CONCHADO.test(texto ?? "");
+}
+
+/** Sustituye identificadores de Conchado Puente por los de Rehabinco. */
+export function sanitizarTextoMarcaConchado(texto: string): string {
+  if (!textoTieneDatosConchado(texto)) return texto;
+  const e = EMPRESA_DOCUMENTOS;
+  return texto
+    .replace(/[\w.+-]+@conchadopuente\.com/gi, e.email)
+    .replace(/conchadopuente\.com/gi, "rehabinco.com")
+    .replace(/\bB70101449\b/gi, e.cif)
+    .replace(/conchado\s+puente(?:\s*,?\s*s\.?\s*l\.?)?/gi, e.razonSocial)
+    .replace(/conchadopuente/gi, e.razonSocial);
+}
+
+export function omitirClausulasConchado<K extends string>(
+  clausulas: Partial<Record<K, string>> | null | undefined
+): Partial<Record<K, string>> {
+  const out: Partial<Record<K, string>> = {};
+  if (!clausulas) return out;
+  for (const [k, v] of Object.entries(clausulas) as Array<[K, string | undefined]>) {
+    if (typeof v === "string" && v.trim() && !textoTieneDatosConchado(v)) out[k] = v;
+  }
+  return out;
+}
+
+export function aplicarClausulaPersonalizada<K extends string>(
+  key: K,
+  generado: string,
+  personalizadas: Partial<Record<K, string>>
+): string {
+  const custom = personalizadas[key]?.trim();
+  if (!custom || textoTieneDatosConchado(custom)) return sanitizarTextoMarcaConchado(generado);
+  return sanitizarTextoMarcaConchado(custom);
+}
+
 export function htmlEsc(s: string) {
   return s
     .replace(/&/g, "&amp;")

@@ -1,4 +1,4 @@
-import { EMPRESA_DOCUMENTOS, formatFechaEncabezado } from "./empresa-documentos";
+import { EMPRESA_DOCUMENTOS, formatFechaEncabezado, omitirClausulasConchado } from "./empresa-documentos";
 
 export type TratamientoPersona = "Don" | "Doña";
 
@@ -68,7 +68,7 @@ export function parseClausulasPersonalizadas(value: unknown): ClausulasPersonali
   for (const [k, v] of Object.entries(raw)) {
     if (typeof v === "string" && v.trim()) out[k as ClausulaArrasKey] = v;
   }
-  return out;
+  return omitirClausulasConchado(out);
 }
 
 export type ContratoArrasDatos = {
@@ -328,7 +328,7 @@ export function encabezadoContratoArras(datos: Pick<ContratoArrasDatos, "lugar" 
 }
 
 export function contratoArrasTieneConchado(texto: string): boolean {
-  return /conchado|conchadopuente|B70101449/i.test(texto);
+  return /conchadopuente|b70101449|conchado\s+puente/i.test(texto);
 }
 
 export function contratoDesdeFila(row: {

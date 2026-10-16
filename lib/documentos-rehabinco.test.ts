@@ -3,9 +3,13 @@ import { describe, it } from "node:test";
 import {
   ANIO_DOCUMENTO,
   EMPRESA_DOCUMENTOS,
+  aplicarClausulaPersonalizada,
   clausulaProteccionDatosContrato,
   formatFechaDocumento,
   formatFechaEncabezado,
+  omitirClausulasConchado,
+  sanitizarTextoMarcaConchado,
+  textoTieneDatosConchado,
 } from "./empresa-documentos";
 import { htmlParteVisita, lineaFechaVisita, textoCuerpoParteVisita } from "./parte-visita-pdf";
 import {
@@ -14,6 +18,7 @@ import {
   eurosEnPalabras,
   listarPersonasArras,
   etiquetaEstadoCivil,
+  parseClausulasPersonalizadas,
   parrafoReunidos,
   restoPrecio,
 } from "./contrato-arras";
@@ -44,7 +49,8 @@ describe("documentos Rehabinco 2026", () => {
     const arrendamiento = htmlContratoArrendamiento(contratoArrendamientoVacio());
     const lopd = clausulaProteccionDatosContrato({ prefijo: "NOVENA.-" });
     for (const html of [visita, arras, honorarios, aplazado, arrendamiento, lopd]) {
-      assert.equal(/conchado|conchadopuente|B70101449/i.test(html), false);
+      assert.equal(textoTieneDatosConchado(html), false);
+      assert.equal(/conchadopuente|B70101449|lopd@/i.test(html), false);
       assert.match(html, /REHABINCO/);
       assert.match(html, /B22834005/);
       assert.match(html, /info@rehabinco\.es/);
@@ -300,6 +306,37 @@ describe("documentos Rehabinco 2026", () => {
     assert.match(html, /@media print/);
     assert.match(html, /class="pdf-flow"/);
     assert.match(htmlHojaEncargoHonorarios(datos), /data-clausula="honorarios"[^>]*>[^<]*cliente presentado por REHABINCO, S\.L\./);
+  });
+
+  it("ignora cláusulas pegadas con datos de Conchado Puente al imprimir", () => {
+    const sucio =
+      "PROTECCIÓN DE DATOS. Responsable: CONCHADO PUENTE, S.L. CIF: B70101449. Correo electrónico: lopd@conchadopuente.com.";
+    assert.equal(textoTieneDatosConchado(sucio), true);
+    assert.equal(textoTieneDatosConchado("DON Adrián Conchado, con DNI 12345678A"), false);
+    assert.match(sanitizarTextoMarcaConchado(sucio), /info@rehabinco\.es/);
+    assert.match(sanitizarTextoMarcaConchado(sucio), /B22834005/);
+    assert.equal(textoTieneDatosConchado(sanitizarTextoMarcaConchado(sucio)), false);
+    assert.deepEqual(omitirClausulasConchado({ lopd: sucio, cierre: "Y en prueba de conformidad." }), {
+      cierre: "Y en prueba de conformidad.",
+    });
+    assert.deepEqual(parseClausulasPersonalizadas({ lopd: sucio, honorarios: "Honorarios al 3 %." }), {
+      honorarios: "Honorarios al 3 %.",
+    });
+    const datos = hojaEncargoHonorariosVacia();
+    datos.clausulas_personalizadas = { lopd: sucio };
+    const textos = textosHojaEncargoHonorarios(datos);
+    assert.equal(textos.lopd.includes("lopd@conchadopuente.com"), false);
+    assert.match(textos.lopd, /info@rehabinco\.es/);
+    assert.match(textos.lopd, /REHABINCO, S\.L\./);
+    const html = htmlHojaEncargoHonorarios(datos, { editable: false });
+    assert.equal(textoTieneDatosConchado(html), false);
+    assert.equal(html.includes("lopd@conchadopuente.com"), false);
+    assert.equal(
+      aplicarClausulaPersonalizada("lopd", clausulaProteccionDatosContrato(), { lopd: sucio }),
+      clausulaProteccionDatosContrato()
+    );
+    const generadas = textosHojaEncargoHonorarios({ ...datos, clausulas_personalizadas: {} });
+    assert.equal(clausulasPersonalizadasDesdeEdicion({ lopd: sucio }, generadas).lopd, undefined);
   });
 
   it("pasa cantidades a euros en palabras", () => {

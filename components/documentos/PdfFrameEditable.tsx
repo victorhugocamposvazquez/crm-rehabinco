@@ -7,6 +7,7 @@ import { DOCUMENTO_PAGE_H, DOCUMENTO_PAGE_W } from "@/lib/documentos-pdf";
 import { esperarLayoutDocumento, repaginarDocumento } from "@/lib/documentos-paginacion";
 import { extraerClausulasDesdeDocumento } from "@/lib/contrato-arras-preview";
 import type { ClausulasPersonalizadasArras } from "@/lib/contrato-arras";
+import { sanitizarTextoMarcaConchado } from "@/lib/empresa-documentos";
 
 export function PdfFrameEditable({
   html,
@@ -88,7 +89,15 @@ export function PdfFrameEditable({
 
   const onLoad = () => {
     const doc = iframeRef.current?.contentDocument;
+    const win = iframeRef.current?.contentWindow;
     if (!doc) return;
+    if (win) {
+      win.addEventListener("beforeprint", () => {
+        const actual = doc.body?.innerHTML ?? "";
+        const limpio = sanitizarTextoMarcaConchado(actual);
+        if (limpio !== actual && doc.body) doc.body.innerHTML = limpio;
+      });
+    }
     void (async () => {
       await esperarLayoutDocumento(doc);
       repaginarDocumento(doc, { fraccionar: true });

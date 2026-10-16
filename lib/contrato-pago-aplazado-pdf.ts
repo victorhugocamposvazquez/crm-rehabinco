@@ -1,4 +1,4 @@
-import { EMPRESA_DOCUMENTOS, clausulaProteccionDatosContrato, htmlEsc } from "./empresa-documentos";
+import { EMPRESA_DOCUMENTOS, aplicarClausulaPersonalizada, clausulaProteccionDatosContrato, htmlEsc } from "./empresa-documentos";
 import { cssExportContratoArras, cssPreviewEditableArras } from "./contrato-arras-preview";
 import { envolverFlujoDocumento } from "./documentos-paginacion";
 import { envolverDocumentoHtml, slugArchivo } from "./documentos-pdf";
@@ -35,8 +35,7 @@ function aplicarPersonalizacion(
   generado: string,
   personalizadas: ClausulasPersonalizadasPagoAplazado
 ): string {
-  const custom = personalizadas[key]?.trim();
-  return custom || generado;
+  return aplicarClausulaPersonalizada(key, generado, personalizadas);
 }
 
 function h(texto: string) {
