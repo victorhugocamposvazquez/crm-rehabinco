@@ -184,7 +184,7 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
               </g>
             </svg>
             <div data-iz-cap="" className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-5 text-center text-[#fefefe]" style={{ opacity: 0, translate: "0 28px" }}>
-              <h2 className="text-[clamp(44px,7.4vw,124px)] font-medium leading-[0.92] tracking-[-0.045em] [text-shadow:0_2px_40px_rgba(8,8,8,.25)]">
+              <h2 className="text-[clamp(44px,7.4vw,124px)] font-medium leading-[0.92] tracking-[-0.045em] text-[#fefefe] [text-shadow:0_2px_40px_rgba(8,8,8,.25)]">
                 TU PRÓXIMO HOGAR
                 <br />
                 EMPIEZA AQUÍ

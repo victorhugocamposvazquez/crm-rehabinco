@@ -52,20 +52,43 @@ export function FichaCorporativa({
   return (
     <>
       <div className="bg-[#fefefe] pb-16">
-        <section className="relative overflow-hidden bg-[#080808] pb-10 pt-24 text-[#fefefe]">
-          <NavCorporativa enDominio={enDominio} />
-          <div className="corp-pad">
-            <Link href={hrefInicio(enDominio)} className="text-[13px] text-[rgba(254,254,254,.65)]">
-              Inicio / Inmuebles / {item.titulo}
-            </Link>
-            <div className="mt-4 flex flex-wrap gap-2 text-[12px] uppercase tracking-[0.06em]">
-              <span className="rounded-full border border-[rgba(254,254,254,.2)] px-3 py-1">{item.tipo}</span>
-              {item.estadoLabel ? <span className="rounded-full border border-[rgba(254,254,254,.2)] px-3 py-1">{item.estadoLabel}</span> : null}
-              {item.origen === "crm" ? <span className="rounded-full bg-[#c9a27a] px-3 py-1 text-[#080808]">Stock Rehabinco</span> : null}
+        <section className="relative bg-[#fefefe] pb-2 pt-24 text-[#080808]">
+          <NavCorporativa enDominio={enDominio} clara />
+          <div className="corp-pad flex flex-col gap-4">
+            <p className="flex flex-wrap items-center gap-2 text-[13px] text-[#6b6b6b]">
+              <Link href={hrefInicio(enDominio)} className="font-medium text-[#080808]">
+                ← Volver
+              </Link>
+              <span className="opacity-50">/</span>
+              <span>{item.modo === "venta" ? "Comprar" : "Alquilar"}</span>
+              <span className="opacity-50">/</span>
+              <span>{item.zona}</span>
+              {item.ref ? (
+                <>
+                  <span className="opacity-50">/</span>
+                  <span>{item.ref}</span>
+                </>
+              ) : null}
+            </p>
+            <div className="flex flex-wrap items-end justify-between gap-6">
+              <div className="flex max-w-[820px] flex-col gap-3">
+                <div className="flex flex-wrap gap-2 text-[12px] font-medium">
+                  <span className="inline-flex items-center gap-2 rounded-full bg-[#f4f3f1] px-3 py-1.5">
+                    <span className="h-[7px] w-[7px] rounded-full bg-[#c9a27a]" />
+                    {item.tipo} en {item.modo === "venta" ? "venta" : "alquiler"}
+                  </span>
+                  {item.estadoLabel ? <span className="rounded-full border border-[rgba(8,8,8,.12)] px-3 py-1.5">{item.estadoLabel}</span> : null}
+                </div>
+                <h1 className="text-[clamp(30px,4.6vw,68px)] font-medium leading-[0.95] tracking-[-0.04em] text-[#080808]">{item.titulo}</h1>
+                <p className="text-[15px] text-[#6b6b6b]">{item.zona}</p>
+              </div>
+              <div className="flex flex-col items-start gap-0.5 md:items-end">
+                <p className="text-[clamp(26px,3.4vw,48px)] font-medium tabular-nums leading-[1.05] tracking-[-0.035em] text-[#6b6b6b]">{formatoPrecio(item)}</p>
+                {item.m2 > 0 && item.modo === "venta" ? (
+                  <p className="text-[13px] text-[#6b6b6b]">{fmtEuro(Math.round(item.precio / item.m2))} / m²</p>
+                ) : null}
+              </div>
             </div>
-            <h1 className="mt-4 max-w-4xl text-[clamp(30px,4.6vw,68px)] font-medium leading-[0.98] tracking-[-0.04em]">{item.titulo}</h1>
-            <p className="mt-3 text-[16px] text-[rgba(254,254,254,.72)]">{item.zona}</p>
-            <p className="mt-6 text-[clamp(26px,3.4vw,48px)] font-medium tabular-nums text-[#c9a27a]">{formatoPrecio(item)}</p>
           </div>
         </section>
 
@@ -85,12 +108,14 @@ export function FichaCorporativa({
               ))}
             </div>
 
-            <section className="mt-10 flex flex-col gap-4">
-              <p className="corp-kicker">(01) Descripción</p>
-              <p className="max-w-[30ch] text-[clamp(22px,2vw,28px)] font-medium leading-[1.2] tracking-[-0.025em]">{item.descripcion}</p>
-              <div className={`flex flex-col gap-3.5 text-[16px] leading-relaxed text-[#6b6b6b] ${desc ? "" : "line-clamp-6"}`}>
-                {item.descripcionLarga?.map((p) => (
-                  <p key={p.slice(0, 24)} className="max-w-[62ch]">
+            <section className="mt-10 flex flex-col gap-[18px]">
+              <p className="text-[12px] uppercase tracking-[0.06em] text-[#6b6b6b]">(01) Descripción</p>
+              {item.descripcionLarga?.length ? (
+                <p className="max-w-[30ch] text-[clamp(22px,2vw,28px)] font-medium leading-[1.2] tracking-[-0.025em] text-[#080808]">{item.descripcion}</p>
+              ) : null}
+              <div className={`flex flex-col gap-3.5 ${desc || !item.descripcionLarga?.length ? "" : "line-clamp-6"}`}>
+                {(item.descripcionLarga?.length ? item.descripcionLarga : [item.descripcion]).map((p) => (
+                  <p key={p.slice(0, 32)} className="max-w-[62ch] text-[16px] font-normal leading-[1.6] text-[#6b6b6b]">
                     {p}
                   </p>
                 ))}
