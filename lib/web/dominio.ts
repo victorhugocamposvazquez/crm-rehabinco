@@ -63,3 +63,9 @@ export function hrefInmueble(enDominio: boolean, referencia: string): string {
   const ref = encodeURIComponent(referencia);
   return enDominio ? `/inmuebles/${ref}` : `/web/inmuebles/${ref}`;
 }
+
+export function hrefInmuebles(enDominio: boolean, modo?: "venta" | "alquiler"): string {
+  const base = enDominio ? "/inmuebles" : "/web/inmuebles";
+  if (!modo) return base;
+  return `${base}?modo=${modo}`;
+}

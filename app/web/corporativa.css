@@ -1,0 +1,67 @@
+.web-corp {
+  --ink: #080808;
+  --paper: #fefefe;
+  --surface: #f4f3f1;
+  --muted: #6b6b6b;
+  --accent: #c9a27a;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  color: var(--ink);
+  background: var(--paper);
+  font-feature-settings: "tnum";
+  overflow-x: clip;
+}
+
+.web-corp a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.web-corp .corp-pad {
+  padding-left: clamp(16px, 2.6vw, 40px);
+  padding-right: clamp(16px, 2.6vw, 40px);
+}
+
+.web-corp .corp-h2 {
+  margin: 0;
+  font-size: clamp(40px, 4.6vw, 64px);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+.web-corp .corp-kicker {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.web-corp .corp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 13px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 5px 5px 5px 16px;
+  transition: transform 250ms var(--ease), background 250ms var(--ease);
+}
+
+.web-corp .corp-btn:hover {
+  transform: translateY(-1px);
+}
+
+.web-corp .corp-btn-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 14px;
+}

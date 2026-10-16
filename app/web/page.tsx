@@ -1,28 +1,27 @@
 import type { Metadata } from "next";
-import { SitioPublico } from "@/components/web/SitioPublico";
-import { cargarWebPublica } from "@/lib/web/cargar";
+import { HomeCorporativa } from "@/components/web/corporativa/HomeCorporativa";
+import { cargarCatalogoCorporativa } from "@/lib/web/corporativa/cargar";
 import { enDominioPublico } from "@/lib/web/en-dominio";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const web = await cargarWebPublica();
-  const nombre = web?.sitio.marca.nombre ?? "Rehabinco";
   return {
-    title: nombre,
-    description: "Inmuebles de la agencia",
-    robots: web?.sitio.publicado ? { index: true, follow: true } : { index: false, follow: false },
+    title: "Rehabinco · Inmobiliaria y reformas en A Coruña",
+    description: "Compramos, vendemos, alquilamos y reformamos inmuebles en A Coruña y Mallorca.",
+    robots: { index: true, follow: true },
   };
 }
 
 export default async function WebPublicaPage() {
-  const web = await cargarWebPublica();
-  if (!web) {
+  const enDominio = await enDominioPublico();
+  const { inmuebles, publicado } = await cargarCatalogoCorporativa();
+  if (enDominio && !publicado) {
     return (
-      <main className="flex min-h-dvh items-center justify-center bg-[#F6F4EF] px-6 text-[#1A1A1A]">
-        <p className="max-w-md text-center text-lg">La web no está disponible.</p>
+      <main className="corp-pad flex min-h-dvh items-center justify-center">
+        <p className="max-w-md text-center text-lg">La web todavía no está publicada.</p>
       </main>
     );
   }
-  return <SitioPublico web={web} enDominio={await enDominioPublico()} />;
+  return <HomeCorporativa inmuebles={inmuebles} enDominio={enDominio} />;
 }
