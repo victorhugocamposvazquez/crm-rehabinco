@@ -53,12 +53,12 @@ export function ListadoCorporativa({
 
   return (
     <div ref={rootRef} className="corp-page">
-      <section className="corp-inset-x relative mt-3 min-h-[380px] overflow-hidden rounded-[28px] bg-[#1b2340] text-[#fefefe] md:mt-4 md:min-h-[clamp(520px,66vh,680px)]">
+      <section className="corp-inset relative min-h-[380px] overflow-hidden rounded-[28px] bg-[#1b2340] text-[#fefefe] md:min-h-[clamp(520px,66vh,680px)]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/web/assets/hero-bg.jpg" alt="" className="absolute inset-0 h-full w-full object-cover object-[center_70%]" />
         <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(8,8,8,.78),rgba(8,8,8,.12)_60%,rgba(8,8,8,.3))]" />
         <NavCorporativa enDominio={enDominio} />
-        <div className="corp-pad relative z-[2] flex min-h-[inherit] w-full min-w-0 flex-col justify-end gap-5 pb-5 pt-24 md:gap-8 md:pb-[clamp(20px,2.6vw,36px)] md:pt-28">
+        <div className="corp-pad relative z-[2] flex min-h-[inherit] w-full min-w-0 flex-col justify-end gap-5 pb-[clamp(16px,2.6vw,40px)] pt-24 md:gap-8 md:pt-28">
           <div className="min-w-0 max-w-full">
             <p className="text-[12px] uppercase tracking-[0.06em] text-[rgba(254,254,254,.82)]">(Inmuebles) {modo === "venta" ? "en venta" : "en alquiler"}</p>
             <h1 className="mt-2 max-w-full text-[clamp(36px,12vw,168px)] font-medium leading-[0.9] tracking-[-0.05em]">
