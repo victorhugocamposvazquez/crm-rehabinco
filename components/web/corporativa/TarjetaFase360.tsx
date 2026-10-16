@@ -49,7 +49,7 @@ export function TarjetaFase360({ item, index }: { item: Fase360Item; index: numb
 
 export function GridFases360({ items }: { items: Fase360Item[] }) {
   return (
-    <div className="grid items-stretch gap-4 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:gap-3 lg:gap-4">
+    <div className="grid w-full min-w-0 grid-cols-1 items-stretch gap-4 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:gap-3 lg:gap-4">
       {items.map((item, i) => (
         <div key={item.titulo} className="contents">
           <TarjetaFase360 item={item} index={i} />

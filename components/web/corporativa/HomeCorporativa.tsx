@@ -360,7 +360,7 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
         </p>
       </section>
 
-      <section className="relative mx-2 flex min-h-[clamp(520px,70vh,760px)] overflow-hidden rounded-[28px] bg-[#080808] text-[#fefefe] md:mx-4">
+      <section className="corp-inset-x relative flex min-h-[clamp(520px,70vh,760px)] overflow-hidden rounded-[28px] bg-[#080808] text-[#fefefe]">
         <div data-px="" className="absolute inset-0 overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={`${A}/edificio-noche.jpg`} alt="" className="h-full w-full object-cover" style={{ transform: "scale(1.12)" }} />
@@ -430,24 +430,24 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
         </div>
       </section>
 
-      <section className="mx-2 mt-[clamp(80px,10vw,150px)] flex flex-col gap-10 rounded-[28px] bg-[#080808] p-[clamp(56px,7vw,110px)] text-[#fefefe] md:mx-4 md:gap-[clamp(40px,5vw,72px)]">
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <div>
+      <section className="corp-band flex w-full min-w-0 flex-col gap-8 bg-[#080808] text-[#fefefe] md:gap-[clamp(40px,5vw,72px)]">
+        <div className="flex w-full min-w-0 flex-col gap-6 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between">
+          <div className="min-w-0 max-w-full">
             <p className="text-[12px] uppercase tracking-[0.06em] text-[#9a9a9a]">(08) Servicio 360°</p>
-            <h2 className="mt-3 text-[clamp(36px,4vw,55px)] font-medium uppercase leading-[0.95] tracking-[-0.03em]">
+            <h2 className="corp-h2 mt-3 max-w-full min-w-0">
               <SplitLine name="o1" text="DE LA BÚSQUEDA" />
               <SplitLine name="o2" text="A LAS LLAVES" />
             </h2>
           </div>
-          <p className="max-w-[40ch] text-[15px] leading-relaxed text-[#9a9a9a]">
+          <p className="min-w-0 max-w-[40ch] text-[15px] leading-relaxed text-[#9a9a9a]">
             Compraventa, hipoteca, reforma, suministros y trámites. Todo lo hace el mismo equipo, para que tú solo tengas que elegir.
           </p>
         </div>
-        <div className="grid items-start gap-10 lg:grid-cols-2">
-          <div data-count-trigger="" className="flex flex-col gap-3.5">
-            <div className="flex items-start gap-1 font-medium tabular-nums leading-[0.9] tracking-[-0.045em]">
-              <span data-count-value="" className="text-[clamp(96px,12vw,180px)]">0</span>
-              <span className="mt-[-0.02em] text-[clamp(56px,6vw,96px)] text-[#c9a27a]">°</span>
+        <div className="grid w-full min-w-0 items-start gap-10 lg:grid-cols-2">
+          <div data-count-trigger="" className="flex min-w-0 flex-col gap-3.5">
+            <div className="flex min-w-0 items-start gap-1 font-medium tabular-nums leading-[0.9] tracking-[-0.045em]">
+              <span data-count-value="" className="text-[clamp(72px,22vw,180px)]">0</span>
+              <span className="mt-[-0.02em] text-[clamp(44px,12vw,96px)] text-[#c9a27a]">°</span>
             </div>
             <span className="text-[15px]">Servicio integral · Un solo interlocutor</span>
             <span className="text-[13px] text-[#9a9a9a]">Te acompañamos antes, durante y después de la firma</span>
@@ -455,18 +455,21 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
               <div data-count-bar="" className="h-full rounded-full bg-[#c9a27a]" style={{ width: "0%" }} />
             </div>
           </div>
-          <div className="border-t border-[rgba(254,254,254,.14)]">
+          <div className="min-w-0 border-t border-[rgba(254,254,254,.14)]">
             {FASES_360.map(([titulo, fecha, estado], i) => {
               const opt = estado === "Opcional";
               return (
-                <div key={titulo} className="grid grid-cols-[44px_1fr_auto] items-center gap-3 border-b border-[rgba(254,254,254,.14)] py-[18px]">
+                <div
+                  key={titulo}
+                  className="grid grid-cols-1 gap-2 border-b border-[rgba(254,254,254,.14)] py-4 sm:grid-cols-[44px_1fr_auto] sm:items-center sm:gap-3 sm:py-[18px]"
+                >
                   <span className="text-[13px] text-[#9a9a9a]">{String(i + 1).padStart(2, "0")}</span>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-[18px] font-medium tracking-[-0.01em]">{titulo}</p>
                     <p className="text-[13px] text-[#9a9a9a]">{fecha}</p>
                   </div>
                   <span
-                    className={`whitespace-nowrap rounded-full border px-2.5 py-1.5 text-[12px] uppercase tracking-[0.06em] ${opt ? "border-[rgba(201,162,122,.6)] text-[#c9a27a]" : "border-[rgba(254,254,254,.3)] text-[#fefefe]"}`}
+                    className={`w-fit rounded-full border px-2.5 py-1.5 text-[12px] uppercase tracking-[0.06em] sm:whitespace-nowrap ${opt ? "border-[rgba(201,162,122,.6)] text-[#c9a27a]" : "border-[rgba(254,254,254,.3)] text-[#fefefe]"}`}
                   >
                     {estado}
                   </span>
@@ -478,30 +481,30 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
         <GridFases360 items={UPDATES_360} />
       </section>
 
-      <section id="resenas" className="mx-2 mt-[clamp(80px,10vw,150px)] flex flex-col gap-10 rounded-[28px] bg-[#f4f3f1] p-[clamp(56px,7vw,110px)] md:mx-4 md:gap-[clamp(40px,5vw,72px)]">
-        <div className="flex flex-wrap items-end justify-between gap-7">
-          <div>
+      <section id="resenas" className="corp-band flex w-full min-w-0 flex-col gap-8 bg-[#f4f3f1] md:gap-[clamp(40px,5vw,72px)]">
+        <div className="flex w-full min-w-0 flex-col gap-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+          <div className="min-w-0 max-w-full">
             <p data-enter="0" className="corp-kicker">(09) Reseñas</p>
-            <h2 className="corp-h2 mt-3">
+            <h2 className="corp-h2 mt-3 max-w-full min-w-0">
               <SplitLine name="s1" text="LO QUE DICEN" />
               <SplitLine name="s2" text="DE NOSOTROS" />
             </h2>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-[clamp(56px,6vw,88px)] font-medium leading-[0.9] tracking-[-0.05em]">4,9</span>
+          <div className="flex shrink-0 items-center gap-4">
+            <span className="text-[clamp(48px,14vw,88px)] font-medium leading-[0.9] tracking-[-0.05em]">4,9</span>
             <div className="flex flex-col gap-1.5">
               <span className="tracking-wide text-[#c9a27a]">★★★★★</span>
               <span className="text-[13px] text-[#6b6b6b]">Valoración media · 48 reseñas en Google</span>
             </div>
           </div>
         </div>
-        <div className="flex flex-wrap items-stretch gap-4">
-          <div className="relative flex min-h-[360px] min-w-0 flex-[2_1_560px] flex-col justify-between gap-9 overflow-hidden rounded-[24px] bg-[#fefefe] p-[clamp(28px,3.4vw,52px)]">
+        <div className="flex w-full min-w-0 flex-col items-stretch gap-4 lg:flex-row">
+          <div className="relative flex min-h-[320px] w-full min-w-0 flex-col justify-between gap-9 overflow-hidden rounded-[24px] bg-[#fefefe] p-6 sm:min-h-[360px] sm:p-[clamp(28px,3.4vw,52px)] lg:flex-[2]">
             <span aria-hidden className="pointer-events-none absolute right-6 top-2 text-[clamp(140px,16vw,240px)] font-medium leading-none text-[#f4f3f1]">
               ”
             </span>
             <p className="relative max-w-[28ch] text-[clamp(24px,2.6vw,38px)] font-medium leading-[1.15] tracking-[-0.03em]">“{reviewActive.texto}”</p>
-            <div className="relative flex flex-wrap items-center justify-between gap-5">
+            <div className="relative flex w-full min-w-0 flex-col gap-5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
               <div className="flex items-center gap-3.5">
                 <span className="grid h-12 w-12 place-items-center rounded-[15px] bg-[#080808] text-[15px] font-medium text-[#fefefe]">{reviewActive.ini}</span>
                 <div>
@@ -526,7 +529,7 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
               </div>
             </div>
           </div>
-          <div className="flex min-w-[300px] flex-1 flex-col gap-4">
+          <div className="flex w-full min-w-0 flex-col gap-4 lg:min-w-[280px] lg:flex-1">
             <div className="relative min-h-[220px] flex-1 overflow-hidden rounded-[24px] bg-[#e9e6e1]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={`${A}/dormitorio.jpg`} alt="" className="h-full w-full object-cover" />

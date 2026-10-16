@@ -88,7 +88,7 @@ export function SeccionDiferenciaRehabinco() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 md:gap-5">
+      <div className="grid w-full min-w-0 grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
         {hero ? <TarjetaHero pilar={hero} /> : null}
         {compactaA ? <TarjetaCompacta pilar={compactaA} index={1} /> : null}
         {compactaB ? <TarjetaCompacta pilar={compactaB} index={2} /> : null}

@@ -1,6 +1,6 @@
 export function SplitLine({ name, text }: { name: string; text: string }) {
   return (
-    <span data-split={name} className="flex overflow-hidden" style={{ paddingTop: ".14em", marginTop: "-.14em" }}>
+    <span data-split={name} className="flex max-w-full min-w-0 overflow-hidden" style={{ paddingTop: ".14em", marginTop: "-.14em" }}>
       {[...text].map((ch, i) => (
         <span key={`${name}-${i}`} className="inline-block">
           {ch === " " ? "\u00A0" : ch}

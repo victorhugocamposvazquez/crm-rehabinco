@@ -19,7 +19,7 @@ export function ContactoFooter({ enDominio }: { enDominio: boolean }) {
   }, [interes]);
 
   return (
-    <footer id="contacto" className="relative mx-2 mb-2 overflow-hidden rounded-[28px] bg-[#080808] text-[#fefefe] md:mx-4">
+    <footer id="contacto" className="corp-inset-x relative mb-2 mt-0 overflow-hidden rounded-[28px] bg-[#080808] text-[#fefefe]">
       <div className="absolute inset-0 overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/web/assets/jardin.jpg" alt="" className="h-full w-full scale-[1.12] object-cover opacity-[0.42]" />
