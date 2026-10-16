@@ -1,10 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
+import { BUSQUEDAS } from "@/lib/web/corporativa/contenido";
 import type { InmuebleCorporativa, ModoCorporativa } from "@/lib/web/corporativa/types";
-import { TarjetaInmuebleCorporativa } from "./TarjetaInmuebleCorporativa";
+import { hrefInicio } from "@/lib/web/dominio";
 import { NavCorporativa } from "./NavCorporativa";
 import { PieCorporativa } from "./PieCorporativa";
+import { TarjetaInmuebleCorporativa } from "./TarjetaInmuebleCorporativa";
 
 const TIPOS = ["Todos", "Piso", "Casa", "Dúplex", "Terreno", "Nave"] as const;
 const ZONAS = ["Todas las zonas", "A Coruña", "Oleiros", "Culleredo", "Bergondo", "Betanzos", "Vimianzo", "Puebla del Caramiñal", "Cala d'Or"] as const;
@@ -13,15 +16,17 @@ export function ListadoCorporativa({
   inmuebles,
   enDominio,
   modoInicial,
+  qInicial = "",
 }: {
   inmuebles: InmuebleCorporativa[];
   enDominio: boolean;
   modoInicial: ModoCorporativa;
+  qInicial?: string;
 }) {
   const [modo, setModo] = useState<ModoCorporativa>(modoInicial);
   const [tipo, setTipo] = useState<(typeof TIPOS)[number]>("Todos");
   const [zona, setZona] = useState<(typeof ZONAS)[number]>("Todas las zonas");
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(qInicial);
   const [view, setView] = useState<"grid" | "list">("grid");
   const [more, setMore] = useState(false);
 
@@ -138,6 +143,31 @@ export function ListadoCorporativa({
           </div>
         )}
       </main>
+
+      <section className="corp-pad pb-16">
+        <div className="grid items-center gap-8 rounded-[28px] bg-[#080808] p-[clamp(28px,4vw,48px)] text-[#fefefe] md:grid-cols-[1fr_auto]">
+          <div>
+            <p className="text-[12px] uppercase tracking-[0.06em] text-[#9a9a9a]">Personal shopper</p>
+            <h2 className="mt-2 max-w-lg text-[clamp(28px,3.4vw,40px)] font-medium leading-[1.05] tracking-[-0.03em]">¿No encuentras lo que buscas? Lo buscamos por ti.</h2>
+            <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[rgba(254,254,254,.82)]">
+              Acceso a oportunidades fuera del mercado publicado, visitas preseleccionadas y negociación en tu interés.
+            </p>
+          </div>
+          <Link href={`${hrefInicio(enDominio)}#contacto`} className="corp-btn !bg-[#fefefe] !text-[#080808] shrink-0">
+            Cuéntanos qué buscas
+            <span className="corp-btn-icon !bg-[#080808] !text-[#fefefe]">↗</span>
+          </Link>
+        </div>
+        <div className="mt-8 flex flex-wrap items-baseline gap-x-5 gap-y-2 text-[14px] text-[#6b6b6b]">
+          <span className="text-[12px] uppercase tracking-[0.06em]">Búsquedas frecuentes</span>
+          {BUSQUEDAS.map((b) => (
+            <button key={b} type="button" className="hover:text-[#080808]" onClick={() => setQ(b.split("–")[0]?.trim() ?? b)}>
+              {b}
+            </button>
+          ))}
+        </div>
+      </section>
+
       <PieCorporativa enDominio={enDominio} />
     </>
   );

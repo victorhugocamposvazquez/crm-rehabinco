@@ -17,15 +17,18 @@ export function NavCorporativa({ enDominio }: { enDominio: boolean }) {
         <Link href={inicio} className="relative z-10 block h-[clamp(30px,2.3vw,38px)] w-[140px]">
           <Image src="/web/assets/rh-logo-blanco.svg" alt="Rehabinco" fill className="object-contain object-left" priority />
         </Link>
-        <nav className="hidden items-center gap-8 text-[14px] font-medium md:flex">
+        <nav className="hidden items-center gap-7 text-[15px] font-medium md:flex">
           <Link href={venta} className="underline decoration-transparent underline-offset-4 transition hover:decoration-[#fefefe]">
-            Comprar
+            Inmuebles
           </Link>
-          <Link href={alquiler} className="underline decoration-transparent underline-offset-4 transition hover:decoration-[#fefefe]">
-            Alquilar
+          <Link href={`${inicio}#reformas`} className="underline decoration-transparent underline-offset-4 transition hover:decoration-[#fefefe]">
+            Reformas
           </Link>
           <Link href={`${inicio}#servicios`} className="underline decoration-transparent underline-offset-4 transition hover:decoration-[#fefefe]">
             Servicios
+          </Link>
+          <Link href={`${inicio}#servicios`} className="underline decoration-transparent underline-offset-4 transition hover:decoration-[#fefefe]">
+            Vende tu inmueble
           </Link>
           <Link href={`${inicio}#contacto`} className="corp-btn !bg-[#fefefe] !text-[#080808]">
             Pide una visita
@@ -57,6 +60,15 @@ export function NavCorporativa({ enDominio }: { enDominio: boolean }) {
             </Link>
             <Link href={alquiler} onClick={() => setMenu(false)}>
               Alquilar
+            </Link>
+            <Link href={`${inicio}#servicios`} onClick={() => setMenu(false)}>
+              Servicios
+            </Link>
+            <Link href={`${inicio}#reformas`} onClick={() => setMenu(false)}>
+              Reformas
+            </Link>
+            <Link href={`${inicio}#servicios`} onClick={() => setMenu(false)}>
+              Vende tu inmueble
             </Link>
             <Link href={`${inicio}#contacto`} onClick={() => setMenu(false)}>
               Contacto

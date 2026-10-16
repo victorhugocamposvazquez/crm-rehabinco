@@ -65,3 +65,9 @@
   color: var(--ink);
   font-size: 14px;
 }
+
+.web-corp .corp-range {
+  width: 100%;
+  accent-color: var(--ink);
+  cursor: pointer;
+}

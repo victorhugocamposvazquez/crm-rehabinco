@@ -16,10 +16,11 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function InmueblesWebPage({
   searchParams,
 }: {
-  searchParams: Promise<{ modo?: string }>;
+  searchParams: Promise<{ modo?: string; q?: string }>;
 }) {
   const params = await searchParams;
   const modo: ModoCorporativa = params.modo === "alquiler" ? "alquiler" : "venta";
+  const qInicial = typeof params.q === "string" ? params.q : "";
   const enDominio = await enDominioPublico();
   const { inmuebles, publicado } = await cargarCatalogoCorporativa();
   if (enDominio && !publicado) {
@@ -29,5 +30,5 @@ export default async function InmueblesWebPage({
       </main>
     );
   }
-  return <ListadoCorporativa inmuebles={inmuebles} enDominio={enDominio} modoInicial={modo} />;
+  return <ListadoCorporativa inmuebles={inmuebles} enDominio={enDominio} modoInicial={modo} qInicial={qInicial} />;
 }
