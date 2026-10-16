@@ -7,7 +7,7 @@ import { formatoPrecio, similares, specsCortas } from "@/lib/web/corporativa/cat
 import type { InmuebleCorporativa } from "@/lib/web/corporativa/types";
 import { hrefInicio } from "@/lib/web/dominio";
 import { NavCorporativa } from "./NavCorporativa";
-import { PieCorporativa } from "./PieCorporativa";
+import { ContactoFooter } from "./ContactoFooter";
 import { TarjetaInmuebleCorporativa } from "./TarjetaInmuebleCorporativa";
 
 function cuotaHipoteca(precio: number, entradaPct: number, anos: number, interesPct: number) {
@@ -312,7 +312,7 @@ export function FichaCorporativa({
         </div>
       ) : null}
 
-      <PieCorporativa enDominio={enDominio} />
+      <ContactoFooter enDominio={enDominio} />
     </>
   );
 }

@@ -6,7 +6,7 @@ import { BUSQUEDAS } from "@/lib/web/corporativa/contenido";
 import type { InmuebleCorporativa, ModoCorporativa } from "@/lib/web/corporativa/types";
 import { hrefInicio } from "@/lib/web/dominio";
 import { NavCorporativa } from "./NavCorporativa";
-import { PieCorporativa } from "./PieCorporativa";
+import { ContactoFooter } from "./ContactoFooter";
 import { SplitLine } from "./TipografiaMotion";
 import { TarjetaInmuebleCorporativa } from "./TarjetaInmuebleCorporativa";
 import { initWebMotion } from "./motion";
@@ -184,7 +184,7 @@ export function ListadoCorporativa({
         </div>
       </section>
 
-      <PieCorporativa enDominio={enDominio} />
+      <ContactoFooter enDominio={enDominio} />
     </div>
   );
 }
