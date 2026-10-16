@@ -175,6 +175,18 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
   p {
     @apply text-sm leading-6;
   }
+
+  /* Web corporativa: heredar tipografía del diseño, no los defaults del CRM */
+  .web-corp h1,
+  .web-corp h2,
+  .web-corp h3,
+  .web-corp p {
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+  }
 }
 
 @keyframes rise {

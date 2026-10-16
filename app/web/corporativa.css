@@ -32,20 +32,6 @@
   text-decoration: none;
 }
 
-/* El CRM fija h1/h2/p en la capa base. Dentro de la web mandan el color y el tamaño del diseño. */
-@layer base {
-  .web-corp h1,
-  .web-corp h2,
-  .web-corp h3,
-  .web-corp p {
-    font-size: inherit;
-    font-weight: inherit;
-    line-height: inherit;
-    letter-spacing: inherit;
-    color: inherit;
-  }
-}
-
 .web-corp .corp-pad {
   padding-left: clamp(16px, 2.6vw, 40px);
   padding-right: clamp(16px, 2.6vw, 40px);
