@@ -7,8 +7,24 @@
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   color: var(--ink);
   background: var(--paper);
+  font-family: var(--font-web-corp), Inter, system-ui, sans-serif;
   font-feature-settings: "tnum";
+  -webkit-font-smoothing: antialiased;
+  text-wrap: pretty;
   overflow-x: clip;
+}
+
+.web-corp .corp-navlink {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1px;
+  padding-bottom: 2px;
+  transition: background-size 250ms var(--ease);
+}
+
+.web-corp .corp-navlink:hover {
+  background-size: 100% 1px;
 }
 
 .web-corp a {

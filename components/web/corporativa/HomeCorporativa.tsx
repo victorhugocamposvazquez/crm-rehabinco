@@ -20,42 +20,19 @@ import {
 import type { InmuebleCorporativa, ModoCorporativa } from "@/lib/web/corporativa/types";
 import { hrefInmuebles } from "@/lib/web/dominio";
 import { ContactoFooter } from "./ContactoFooter";
-import { IconoLetraA, IconoMarcaCompleto, IconoServicio } from "./IconoMarca";
+import { IconoServicio } from "./IconoMarca";
+import { initWebMotion } from "./motion";
 import { ModalServicio } from "./ModalServicio";
 import { NavCorporativa } from "./NavCorporativa";
+import { FillText, PalabraHero, SplitLine } from "./TipografiaMotion";
 import { TarjetaInmuebleCorporativa } from "./TarjetaInmuebleCorporativa";
 
 const PRECIOS_VENTA = ["Indiferente", "Hasta 150.000 €", "150.000 – 250.000 €", "250.000 – 400.000 €", "400.000 € o más"];
 const PRECIOS_ALQ = ["Indiferente", "Hasta 800 €/mes", "800 – 1.200 €/mes", "1.200 €/mes o más"];
 
-function HeroWord() {
-  const word = "HOGARES";
-  return (
-    <div className="pointer-events-none absolute left-0 right-0 top-[clamp(110px,16vh,190px)] z-[2] px-[clamp(16px,2.6vw,40px)]">
-      <div className="flex overflow-hidden whitespace-nowrap text-[clamp(60px,19.5vw,330px)] font-medium leading-[0.86] tracking-[-0.055em] text-[#fefefe]">
-        {[...word].map((ch, i) =>
-          ch === "A" ? (
-            <IconoLetraA key={i} className="inline-block h-[0.72em] w-[0.7em] align-baseline" stroke="#fefefe" />
-          ) : (
-            <span key={i}>{ch}</span>
-          ),
-        )}
-      </div>
-      <div className="absolute inset-x-[clamp(16px,2.6vw,40px)] top-0 flex overflow-hidden whitespace-nowrap text-[clamp(60px,19.5vw,330px)] font-medium leading-[0.86] tracking-[-0.055em] text-transparent [-webkit-text-stroke:1px_rgba(254,254,254,.55)]">
-        {[...word].map((ch, i) =>
-          ch === "A" ? (
-            <IconoLetraA key={i} className="inline-block h-[0.72em] w-[0.7em] align-baseline" stroke="rgba(254,254,254,.55)" />
-          ) : (
-            <span key={i}>{ch}</span>
-          ),
-        )}
-      </div>
-    </div>
-  );
-}
-
 export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleCorporativa[]; enDominio: boolean }) {
   const router = useRouter();
+  const rootRef = useRef<HTMLDivElement>(null);
   const [modo, setModo] = useState<ModoCorporativa>("venta");
   const [busqueda, setBusqueda] = useState("");
   const [ventajaAbierta, setVentajaAbierta] = useState(0);
@@ -65,36 +42,22 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
   const [servicioHover, setServicioHover] = useState(-1);
   const [modalServicio, setModalServicio] = useState(-1);
   const [review, setReview] = useState(0);
-  const [count360, setCount360] = useState(0);
-  const countRef = useRef<HTMLDivElement>(null);
 
   const destacados = useMemo(() => inmuebles.filter((i) => i.modo === modo).slice(0, 3), [inmuebles, modo]);
   const reviewActive = REVIEWS[review] ?? REVIEWS[0]!;
   const zona = ZONAS[zonaActiva] ?? ZONAS[0]!;
 
   useEffect(() => {
-    const el = countRef.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry?.isIntersecting) return;
-        let n = 0;
-        const step = () => {
-          n += 12;
-          if (n >= 360) {
-            setCount360(360);
-            return;
-          }
-          setCount360(n);
-          requestAnimationFrame(step);
-        };
-        requestAnimationFrame(step);
-        obs.disconnect();
-      },
-      { threshold: 0.35 },
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
+    const root = rootRef.current;
+    if (!root) return;
+    return initWebMotion(root);
+  }, []);
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      if (!document.hidden) setReview((r) => (r + 1) % REVIEWS.length);
+    }, 7000);
+    return () => window.clearInterval(id);
   }, []);
 
   const buscar = (e: React.FormEvent) => {
@@ -105,22 +68,31 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
   };
 
   return (
-    <>
-      <header className="relative min-h-[clamp(640px,100vh,1040px)] overflow-hidden bg-[#1b2340] text-[#fefefe]">
-        <div className="absolute inset-[-4%_0_0_0]">
+    <div ref={rootRef}>
+      <div data-travel="" aria-hidden className="pointer-events-none fixed left-0 top-0 z-30 h-0 w-0" style={{ visibility: "hidden" }}>
+        <div data-tv-line="" className="absolute left-0 top-0 w-px origin-top-left bg-gradient-to-b from-[#080808] to-transparent" style={{ height: 0 }} />
+        <svg data-tv-icon="" viewBox="-3.5 25.5 127 69" className="absolute left-0 top-0 h-[70px] w-[128px] overflow-visible" style={{ transformOrigin: "0 0" }}>
+          <path d="M39 81L60 39L81 81" fill="none" stroke="#080808" strokeWidth="7" strokeLinejoin="miter" />
+          <rect data-tv-bar="" x="6.5" y="80.2" width="22" height="1.6" fill="#080808" />
+          <rect data-tv-bar="" x="91.5" y="80.2" width="22" height="1.6" fill="#080808" />
+        </svg>
+      </div>
+      <header data-hero="" className="relative min-h-[max(540px,78svh)] overflow-hidden bg-[#1b2340] text-[#fefefe] md:min-h-[clamp(640px,100vh,1040px)]">
+        <div data-hero-bg="" className="absolute inset-[-4%_0_0_0]" style={{ willChange: "transform" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/web/assets/hero-bg.jpg" alt="" className="absolute inset-0 h-full w-full object-cover object-bottom" />
         </div>
-        <HeroWord />
-        <div className="pointer-events-none absolute inset-[-4%_0_0_0] z-[1]">
+        <PalabraHero />
+        <div data-hero-fg="" className="pointer-events-none absolute inset-[-4%_0_0_0]" style={{ willChange: "transform" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/web/assets/hero-cutout.png" alt="" className="absolute inset-0 h-full w-full object-cover object-bottom" />
         </div>
+        <PalabraHero outline />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[52%] bg-gradient-to-t from-[rgba(8,8,8,.72)] to-transparent" />
         <NavCorporativa enDominio={enDominio} />
         <div className="absolute bottom-0 left-0 right-0 z-[4] flex flex-col gap-[clamp(40px,6vh,80px)] px-[clamp(16px,2.6vw,40px)] pb-[clamp(20px,2.6vw,36px)]">
           <div className="flex flex-col items-center gap-3.5 text-center">
-            <div className="flex flex-col gap-0.5 text-[clamp(20px,2.3vw,34px)] font-medium leading-[1.05] tracking-[-0.03em] [text-shadow:0_1px_2px_rgba(8,8,8,.55)]">
+            <div data-enter="200" className="flex flex-col gap-0.5 text-[clamp(20px,2.3vw,34px)] font-medium leading-[1.05] tracking-[-0.03em] [text-shadow:0_1px_2px_rgba(8,8,8,.55),0_2px_24px_rgba(8,8,8,.5)]">
               <span>EL PISO QUE BUSCAS.</span>
               <span>LA REFORMA QUE SUEÑAS.</span>
               <span>
@@ -132,7 +104,7 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
               </span>
             </div>
           </div>
-          <form onSubmit={buscar} className="mx-auto flex w-full max-w-[940px] flex-col gap-3">
+          <form data-enter="420" onSubmit={buscar} className="mx-auto flex w-full max-w-[940px] flex-col gap-3">
             <div className="flex gap-5 pl-[22px] text-[14px] font-medium">
               <button type="button" className={`border-b pb-1 ${modo === "venta" ? "border-[#fefefe] text-[#fefefe]" : "border-transparent text-[rgba(254,254,254,.55)]"}`} onClick={() => setModo("venta")}>
                 Comprar
@@ -188,18 +160,32 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
       </header>
 
       <section className="corp-pad flex flex-col gap-[clamp(48px,6vw,88px)] pb-0 pt-[clamp(80px,10vw,150px)]">
-        <div className="grid items-start gap-6 md:grid-cols-[minmax(0,320px)_1fr] md:gap-12">
-          <p className="corp-kicker">(01) Quiénes somos</p>
-          <p className="max-w-[26ch] text-[clamp(26px,3.1vw,44px)] font-medium leading-[1.1] tracking-[-0.03em]">{QUIENES_FILL}</p>
+        <div className="grid items-start gap-6 md:grid-cols-[minmax(0,320px)_1fr_1fr] md:gap-12">
+          <p data-enter="0" className="corp-kicker">(01) Quiénes somos</p>
+          <FillText text={QUIENES_FILL} className="max-w-[26ch] text-[clamp(26px,3.1vw,44px)] font-medium leading-[1.1] tracking-[-0.03em] md:col-span-2" />
         </div>
-        <div className="relative -mx-[clamp(16px,2.6vw,40px)] h-[160vh]">
+        <div data-iconzoom="" className="relative -mx-[clamp(16px,2.6vw,40px)] h-[280vh]">
           <div className="sticky top-0 h-[100svh] overflow-hidden bg-[#080808]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`${A}/aerea.jpg`} alt="Vista aérea" className="absolute inset-0 h-full w-full scale-[1.18] object-cover" />
-            <div className="absolute inset-0 bg-[rgba(8,8,8,.45)]" />
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 px-5 text-center text-[#fefefe]">
-              <IconoMarcaCompleto className="h-16 w-auto text-[#fefefe] md:h-24" />
-              <h2 className="max-w-3xl text-[clamp(44px,7.4vw,124px)] font-medium leading-[0.92] tracking-[-0.045em] [text-shadow:0_2px_40px_rgba(8,8,8,.25)]">
+            <img data-iz-img="" src={`${A}/aerea.jpg`} alt="Vista aérea" className="absolute inset-0 h-full w-full object-cover" style={{ transform: "scale(1.18)" }} />
+            <svg viewBox="-3.5 25.5 127 69" preserveAspectRatio="xMidYMid meet" aria-hidden className="pointer-events-none absolute inset-0 h-full w-full">
+              <defs>
+                <mask id="rh-zoom-mask" maskUnits="userSpaceOnUse" x={-2000} y={-2000} width={4200} height={4200}>
+                  <rect x={-2000} y={-2000} width={4200} height={4200} fill="#fff" />
+                  <g data-iz-g="" transform="translate(60 66) scale(0.75) translate(-60 -66)">
+                    <polygon points="39,81 60,39 81,81" fill="#000" />
+                  </g>
+                </mask>
+              </defs>
+              <rect data-iz-shade="" x={-2000} y={-2000} width={4200} height={4200} fill="#080808" fillOpacity={0.68} mask="url(#rh-zoom-mask)" />
+              <g data-iz-g="" data-iz-stroke="" transform="translate(60 66) scale(0.75) translate(-60 -66)">
+                <path data-iz-roof="" d="M39 81L60 39L81 81" fill="none" stroke="#fefefe" strokeWidth="3.2" strokeLinejoin="miter" strokeDasharray="94" strokeDashoffset="94" />
+                <path data-iz-line="" d="M28.5 81H6.5" fill="none" stroke="#fefefe" strokeWidth="1.2" strokeDasharray="22" strokeDashoffset="22" />
+                <path data-iz-line="" d="M91.5 81H113.5" fill="none" stroke="#fefefe" strokeWidth="1.2" strokeDasharray="22" strokeDashoffset="22" />
+              </g>
+            </svg>
+            <div data-iz-cap="" className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-5 text-center text-[#fefefe]" style={{ opacity: 0, translate: "0 28px" }}>
+              <h2 className="text-[clamp(44px,7.4vw,124px)] font-medium leading-[0.92] tracking-[-0.045em] [text-shadow:0_2px_40px_rgba(8,8,8,.25)]">
                 TU PRÓXIMO HOGAR
                 <br />
                 EMPIEZA AQUÍ
@@ -209,17 +195,20 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
         </div>
       </section>
 
-      <section id="pisos" className="relative z-[3] -mt-[18vh] rounded-t-[28px] bg-[#fefefe] px-0 pb-[clamp(40px,5vw,80px)] pt-[clamp(28px,3vw,40px)] shadow-[0_-40px_90px_rgba(8,8,8,.28)]">
-        <div className="corp-pad flex justify-center overflow-x-clip py-2">
-          <IconoMarcaCompleto className="h-[70px] w-[128px] text-[#080808]" />
+      <section id="pisos" className="relative z-[3] -mt-[34vh] rounded-t-[28px] bg-[#fefefe] px-0 pb-[clamp(40px,5vw,80px)] pt-[clamp(28px,3vw,40px)] shadow-[0_-40px_90px_rgba(8,8,8,.28)]">
+        <div data-roof-return="" aria-hidden className="corp-pad flex justify-center overflow-x-clip py-2">
+          <svg data-rr-icon="" width="128" height="70" viewBox="-3.5 25.5 127 69" className="overflow-visible" style={{ transformOrigin: "50% 80%" }}>
+            <path d="M39 81L60 39L81 81" fill="none" stroke="#080808" strokeWidth="7" strokeLinejoin="miter" />
+            <rect x="6.5" y="80.2" width="22" height="1.6" fill="#080808" />
+            <rect x="91.5" y="80.2" width="22" height="1.6" fill="#080808" />
+          </svg>
         </div>
         <div className="corp-pad flex flex-wrap items-end justify-between gap-6">
           <div>
-            <p className="corp-kicker">(02) Pisos destacados</p>
+            <p data-enter="0" className="corp-kicker">(02) Pisos destacados</p>
             <h2 className="corp-h2 mt-3">
-              PISOS
-              <br />
-              DESTACADOS
+              <SplitLine name="p1" text="PISOS" />
+              <SplitLine name="p2" text="DESTACADOS" />
             </h2>
           </div>
           <div className="flex flex-wrap items-center gap-4">
@@ -244,17 +233,16 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
       </section>
 
       <section className="corp-pad grid items-start gap-12 pb-0 pt-[clamp(80px,10vw,150px)] md:grid-cols-2 md:gap-20">
-        <div className="max-h-[860px] overflow-hidden rounded-[28px] bg-[#f4f3f1] aspect-[4/5]">
+        <div data-px="" className="max-h-[860px] overflow-hidden rounded-[28px] bg-[#f4f3f1] aspect-[4/5]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={`${A}/salon.jpg`} alt="Salón reformado" className="h-full w-full scale-[1.12] object-cover" />
         </div>
         <div className="flex flex-col gap-10">
           <div>
-            <p className="corp-kicker">(03) Te ofrecemos</p>
+            <p data-enter="0" className="corp-kicker">(03) Te ofrecemos</p>
             <h2 className="corp-h2 mt-3">
-              CONFÍA EN
-              <br />
-              LOS QUE SABEN
+              <SplitLine name="v1" text="CONFÍA EN" />
+              <SplitLine name="v2" text="LOS QUE SABEN" />
             </h2>
           </div>
           <div className="border-t border-[rgba(8,8,8,.14)]">
@@ -286,14 +274,13 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
       <section id="servicios" className="corp-pad flex flex-col gap-10 pb-0 pt-[clamp(80px,10vw,150px)]">
         <div className="grid items-end gap-8 md:grid-cols-2">
           <div>
-            <p className="corp-kicker">(04) Servicios</p>
+            <p data-enter="0" className="corp-kicker">(04) Servicios</p>
             <h2 className="corp-h2 mt-3">
-              SIEMPRE A
-              <br />
-              TU SERVICIO
+              <SplitLine name="sv1" text="SIEMPRE A" />
+              <SplitLine name="sv2" text="TU SERVICIO" />
             </h2>
           </div>
-          <p className="max-w-[48ch] text-[16px] leading-relaxed text-[#6b6b6b]">
+          <p data-enter="120" className="max-w-[48ch] text-[16px] leading-relaxed text-[#6b6b6b]">
             Un servicio completo y personalizado: te acompañamos desde el primer contacto hasta mucho después de la firma, con la visión de quienes también invierten en el sector.
           </p>
         </div>
@@ -351,22 +338,34 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
         </div>
       </section>
 
-      <section className="corp-pad flex flex-col items-center gap-6 py-[clamp(110px,14vw,220px)] text-center">
-        <p className="max-w-[24ch] text-[clamp(26px,3.1vw,44px)] font-medium leading-[1.12] tracking-[-0.03em]">{HUMAN_FILL}</p>
-        <p className="flex flex-wrap justify-center gap-0 text-[clamp(34px,6.4vw,104px)] font-medium leading-[0.9] tracking-[-0.05em]">
-          {"HUM".split("").map((c) => (
-            <span key={c}>{c}</span>
+      <section className="corp-pad flex flex-col items-center gap-[clamp(20px,2.4vw,36px)] py-[clamp(110px,14vw,220px)] pb-[clamp(30px,4vw,60px)] text-center">
+        <FillText text={HUMAN_FILL} center className="max-w-[24ch] text-[clamp(26px,3.1vw,44px)] font-medium leading-[1.12] tracking-[-0.03em]" />
+        <p data-reveal="" aria-label="Humanamente." className="m-0 flex max-w-full justify-center whitespace-nowrap px-2 text-[clamp(34px,6.4vw,104px)] font-medium leading-[0.9] tracking-[-0.05em] text-[#080808]">
+          {"HUMAN".split("").map((c, i) => (
+            <span key={`${c}${i}`} className="inline-block" style={{ opacity: 0, filter: "blur(14px)", translate: "0 .35em" }}>
+              {c}
+            </span>
           ))}
-          <IconoLetraA className="relative z-[1] mx-[0.1em] inline-block h-[0.85em] w-[0.86em] align-[-0.1em]" stroke="#080808" />
-          {"NMENTE.".split("").map((c, i) => (
-            <span key={`${c}${i}`}>{c}</span>
+          <span data-hm-wrap="" className="relative z-[1] inline-block" style={{ opacity: 0 }}>
+            <svg data-hm-a="" viewBox="36.5 36 47 46.5" aria-label="A" className="inline-block h-[0.85em] w-[0.86em] overflow-visible align-[-0.1em]">
+              <path d="M39 81L60 39L81 81" fill="none" stroke="#080808" strokeWidth="7" strokeLinejoin="miter" />
+              <rect data-hm-bar="" x="6.5" y="80.2" width="22" height="1.6" fill="#080808" style={{ transformBox: "fill-box", transformOrigin: "100% 50%", transform: "scaleX(0)" }} />
+              <rect data-hm-bar="" x="91.5" y="80.2" width="22" height="1.6" fill="#080808" style={{ transformBox: "fill-box", transformOrigin: "0% 50%", transform: "scaleX(0)" }} />
+            </svg>
+          </span>
+          {"MENTE.".split("").map((c, i) => (
+            <span key={`b${c}${i}`} className="inline-block" style={{ opacity: 0, filter: "blur(14px)", translate: "0 .35em" }}>
+              {c}
+            </span>
           ))}
         </p>
       </section>
 
       <section className="relative mx-2 flex min-h-[clamp(520px,70vh,760px)] overflow-hidden rounded-[28px] bg-[#080808] text-[#fefefe] md:mx-4">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={`${A}/edificio-noche.jpg`} alt="" className="absolute inset-0 h-full w-full scale-[1.12] object-cover" />
+        <div data-px="" className="absolute inset-0 overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`${A}/edificio-noche.jpg`} alt="" className="h-full w-full object-cover" style={{ transform: "scale(1.12)" }} />
+        </div>
         <div className="absolute inset-0 bg-gradient-to-t from-[rgba(8,8,8,.78)] to-[rgba(8,8,8,.25)]" />
         <div className="relative flex flex-1 flex-col justify-between gap-12 p-[clamp(28px,3.4vw,48px)]">
           <p className="text-[12px] uppercase tracking-[0.06em] text-[rgba(254,254,254,.8)]">(05) Nuestro compromiso</p>
@@ -391,8 +390,10 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
       <section id="zonas" className="corp-pad flex flex-col gap-10 pb-0 pt-[clamp(80px,10vw,150px)]">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div>
-            <p className="corp-kicker">(06) Zonas</p>
-            <h2 className="corp-h2 mt-3">ELIGE TU BARRIO</h2>
+            <p data-enter="0" className="corp-kicker">(06) Zonas</p>
+            <h2 className="corp-h2 mt-3">
+              <SplitLine name="zonas" text="ELIGE TU BARRIO" />
+            </h2>
           </div>
           <p className="max-w-[38ch] text-[15px] leading-relaxed text-[#6b6b6b]">Pasa por un barrio para ver lo que tenemos. Selecciónalo para ver todos sus pisos.</p>
         </div>
@@ -423,7 +424,8 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
               </span>
             </div>
           </div>
-          <div className="relative min-h-[380px] overflow-hidden rounded-[28px] bg-[#f4f3f1] lg:min-h-[640px]">
+          <div data-wipe="" className="relative min-h-[380px] overflow-hidden rounded-[28px] bg-[#f4f3f1] lg:min-h-[640px]">
+            <div data-wipe-media="" className="absolute inset-0">
             {ZONAS.map((z, i) => (
               <img
                 key={z.nombre}
@@ -432,6 +434,7 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
                 className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${zonaActiva === i ? "opacity-100 scale-100" : "opacity-0 scale-105"}`}
               />
             ))}
+            </div>
             <div className="absolute bottom-4 left-4 right-4">
               <div className="inline-flex min-w-[220px] flex-col gap-1.5 rounded-[15px] bg-[#fefefe] p-4">
                 <span className="text-[12px] uppercase tracking-[0.06em] text-[#6b6b6b]">
@@ -450,11 +453,10 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
       <section id="reformas" className="corp-pad grid items-start gap-12 pb-0 pt-[clamp(80px,10vw,150px)] md:grid-cols-2 md:gap-20">
         <div className="flex flex-col gap-10">
           <div>
-            <p className="corp-kicker">(07) Reformas</p>
+            <p data-enter="0" className="corp-kicker">(07) Reformas</p>
             <h2 className="corp-h2 mt-3">
-              REFORMAS
-              <br />
-              LLAVE EN MANO
+              <SplitLine name="r1" text="REFORMAS" />
+              <SplitLine name="r2" text="LLAVE EN MANO" />
             </h2>
             <p className="mt-5 max-w-[44ch] text-[16px] leading-relaxed text-[#6b6b6b]">
               Reformamos cualquier vivienda o local, lo compres con nosotros o no. Presupuesto cerrado por escrito y fecha de entrega en el contrato.
@@ -479,22 +481,23 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
             <span className="corp-btn-icon">↗</span>
           </Link>
         </div>
-        <div className="relative sticky top-6 max-h-[860px] overflow-hidden rounded-[28px] bg-[#f4f3f1] aspect-[4/5]">
+        <div data-wipe="" className="relative sticky top-6 max-h-[860px] overflow-hidden rounded-[28px] bg-[#f4f3f1] aspect-[4/5]">
+          <div data-wipe-media="" className="absolute inset-0">
           {REFORMAS.map((r, i) => (
             // eslint-disable-next-line @next/next/no-img-element
             <img key={r.titulo} src={r.img} alt={r.titulo} className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${reformaActiva === i ? "opacity-100" : "opacity-0"}`} />
           ))}
+          </div>
         </div>
       </section>
 
-      <section ref={countRef} className="mx-2 flex flex-col gap-10 rounded-[28px] bg-[#080808] p-[clamp(56px,7vw,110px)] text-[#fefefe] md:mx-4 md:gap-[clamp(40px,5vw,72px)]">
+      <section className="mx-2 mt-[clamp(80px,10vw,150px)] flex flex-col gap-10 rounded-[28px] bg-[#080808] p-[clamp(56px,7vw,110px)] text-[#fefefe] md:mx-4 md:gap-[clamp(40px,5vw,72px)]">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div>
             <p className="text-[12px] uppercase tracking-[0.06em] text-[#9a9a9a]">(08) Servicio 360°</p>
-            <h2 className="mt-3 text-[clamp(36px,4vw,55px)] font-medium leading-[0.95] tracking-[-0.03em]">
-              DE LA BÚSQUEDA
-              <br />
-              A LAS LLAVES
+            <h2 className="mt-3 text-[clamp(36px,4vw,55px)] font-medium uppercase leading-[0.95] tracking-[-0.03em]">
+              <SplitLine name="o1" text="DE LA BÚSQUEDA" />
+              <SplitLine name="o2" text="A LAS LLAVES" />
             </h2>
           </div>
           <p className="max-w-[40ch] text-[15px] leading-relaxed text-[#9a9a9a]">
@@ -502,15 +505,15 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
           </p>
         </div>
         <div className="grid items-start gap-10 lg:grid-cols-2">
-          <div className="flex flex-col gap-3.5">
+          <div data-count-trigger="" className="flex flex-col gap-3.5">
             <div className="flex items-start gap-1 font-medium tabular-nums leading-[0.9] tracking-[-0.045em]">
-              <span className="text-[clamp(96px,12vw,180px)]">{count360}</span>
+              <span data-count-value="" className="text-[clamp(96px,12vw,180px)]">0</span>
               <span className="mt-[-0.02em] text-[clamp(56px,6vw,96px)] text-[#c9a27a]">°</span>
             </div>
             <span className="text-[15px]">Servicio integral · Un solo interlocutor</span>
             <span className="text-[13px] text-[#9a9a9a]">Te acompañamos antes, durante y después de la firma</span>
             <div className="mt-3 h-[3px] overflow-hidden rounded-full bg-[rgba(254,254,254,.14)]">
-              <div className="h-full rounded-full bg-[#c9a27a]" style={{ width: `${(count360 / 360) * 100}%` }} />
+              <div data-count-bar="" className="h-full rounded-full bg-[#c9a27a]" style={{ width: "0%" }} />
             </div>
           </div>
           <div className="border-t border-[rgba(254,254,254,.14)]">
@@ -551,11 +554,10 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
       <section id="resenas" className="mx-2 mt-[clamp(80px,10vw,150px)] flex flex-col gap-10 rounded-[28px] bg-[#f4f3f1] p-[clamp(56px,7vw,110px)] md:mx-4 md:gap-[clamp(40px,5vw,72px)]">
         <div className="flex flex-wrap items-end justify-between gap-7">
           <div>
-            <p className="corp-kicker">(09) Reseñas</p>
+            <p data-enter="0" className="corp-kicker">(09) Reseñas</p>
             <h2 className="corp-h2 mt-3">
-              LO QUE DICEN
-              <br />
-              DE NOSOTROS
+              <SplitLine name="s1" text="LO QUE DICEN" />
+              <SplitLine name="s2" text="DE NOSOTROS" />
             </h2>
           </div>
           <div className="flex items-center gap-4">
@@ -612,11 +614,10 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
 
       <section className="corp-pad grid items-start gap-10 py-[clamp(80px,10vw,150px)] md:grid-cols-2">
         <div>
-          <p className="corp-kicker">(10) Preguntas</p>
+          <p data-enter="0" className="corp-kicker">(10) Preguntas</p>
           <h2 className="corp-h2 mt-3">
-            DUDAS
-            <br />
-            FRECUENTES
+            <SplitLine name="f1" text="DUDAS" />
+            <SplitLine name="f2" text="FRECUENTES" />
           </h2>
         </div>
         <div className="border-t border-[rgba(8,8,8,.14)]">
@@ -651,6 +652,6 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
           onNext={() => setModalServicio((m) => (m + 1) % SERVICIOS_DETALLE.length)}
         />
       ) : null}
-    </>
+    </div>
   );
 }

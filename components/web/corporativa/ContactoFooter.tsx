@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { BUSQUEDAS, INTERESES, OFICINA, WA } from "@/lib/web/corporativa/contenido";
 import { hrefInicio } from "@/lib/web/dominio";
+import { SplitLine } from "./TipografiaMotion";
 
 export function ContactoFooter({ enDominio }: { enDominio: boolean }) {
   const [interes, setInteres] = useState(0);
@@ -26,9 +27,8 @@ export function ContactoFooter({ enDominio }: { enDominio: boolean }) {
         <div className="grid items-start gap-12 md:grid-cols-2 md:gap-20">
           <div className="flex flex-col gap-7">
             <h2 className="corp-h2 !text-[#fefefe]">
-              PIDE UNA
-              <br />
-              VISITA
+              <SplitLine name="c1" text="PIDE UNA" />
+              <SplitLine name="c2" text="VISITA" />
             </h2>
             <div className="grid gap-6 text-[15px] leading-relaxed sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">

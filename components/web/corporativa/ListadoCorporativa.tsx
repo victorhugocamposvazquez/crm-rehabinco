@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BUSQUEDAS } from "@/lib/web/corporativa/contenido";
 import type { InmuebleCorporativa, ModoCorporativa } from "@/lib/web/corporativa/types";
 import { hrefInicio } from "@/lib/web/dominio";
 import { NavCorporativa } from "./NavCorporativa";
 import { PieCorporativa } from "./PieCorporativa";
+import { SplitLine } from "./TipografiaMotion";
 import { TarjetaInmuebleCorporativa } from "./TarjetaInmuebleCorporativa";
+import { initWebMotion } from "./motion";
 
 const TIPOS = ["Todos", "Piso", "Casa", "Dúplex", "Terreno", "Nave"] as const;
 const ZONAS = ["Todas las zonas", "A Coruña", "Oleiros", "Culleredo", "Bergondo", "Betanzos", "Vimianzo", "Puebla del Caramiñal", "Cala d'Or"] as const;
@@ -27,6 +29,7 @@ export function ListadoCorporativa({
   const [tipo, setTipo] = useState<(typeof TIPOS)[number]>("Todos");
   const [zona, setZona] = useState<(typeof ZONAS)[number]>("Todas las zonas");
   const [q, setQ] = useState(qInicial);
+  const rootRef = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<"grid" | "list">("grid");
   const [more, setMore] = useState(false);
 
@@ -42,13 +45,26 @@ export function ListadoCorporativa({
     });
   }, [inmuebles, modo, tipo, zona, q]);
 
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    return initWebMotion(root);
+  }, []);
+
   return (
-    <>
-      <section className="relative min-h-[440px] overflow-hidden bg-[#080808] text-[#fefefe] md:min-h-[clamp(520px,66vh,680px)]">
-        <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(8,8,8,.82),rgba(8,8,8,.35))]" />
+    <div ref={rootRef}>
+      <section className="relative m-2 min-h-[440px] overflow-hidden rounded-[28px] bg-[#1b2340] text-[#fefefe] md:min-h-[clamp(520px,66vh,680px)]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/web/assets/hero-bg.jpg" alt="" className="absolute inset-0 h-full w-full object-cover object-[center_70%]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(8,8,8,.78),rgba(8,8,8,.12)_60%,rgba(8,8,8,.3))]" />
         <NavCorporativa enDominio={enDominio} />
-        <div className="corp-pad relative flex min-h-[inherit] flex-col justify-end pb-12 pt-28">
-          <h1 className="text-[clamp(48px,10vw,120px)] font-medium leading-[0.86] tracking-[-0.055em]">ENCUENTRA</h1>
+        <div className="corp-pad relative z-[2] flex min-h-[inherit] flex-col justify-end gap-8 pb-[clamp(20px,2.6vw,36px)] pt-28">
+          <div>
+            <p className="text-[12px] uppercase tracking-[0.06em] text-[rgba(254,254,254,.82)]">(Inmuebles) {modo === "venta" ? "en venta" : "en alquiler"}</p>
+            <h1 className="mt-3 text-[clamp(44px,15vw,190px)] font-medium leading-[0.86] tracking-[-0.055em]">
+              <SplitLine name="encuentra" text="ENCUENTRA" />
+            </h1>
+          </div>
           <form
             className="mt-8 flex max-w-3xl flex-col gap-3 rounded-[999px] border border-[rgba(254,254,254,.18)] bg-[rgba(254,254,254,.12)] p-2 backdrop-blur-[18px] md:flex-row md:items-center"
             onSubmit={(e) => e.preventDefault()}
@@ -169,6 +185,6 @@ export function ListadoCorporativa({
       </section>
 
       <PieCorporativa enDominio={enDominio} />
-    </>
+    </div>
   );
 }
