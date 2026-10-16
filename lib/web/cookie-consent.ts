@@ -3,6 +3,10 @@ export const COOKIE_CONSENT_MAX_AGE = 60 * 60 * 24 * 365;
 
 export type CategoriaCookie = "necessary" | "preferences" | "analytics" | "marketing";
 
+export type CategoriaCookieOpcional = Exclude<CategoriaCookie, "necessary">;
+
+export const CATEGORIAS_COOKIES_OPCIONALES: CategoriaCookieOpcional[] = ["preferences", "analytics", "marketing"];
+
 export type ConsentimientoCookies = {
   v: 1;
   necessary: true;

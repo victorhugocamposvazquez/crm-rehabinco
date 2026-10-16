@@ -12,12 +12,13 @@ import {
   etiquetaCategoria,
   parseConsentimiento,
   serializarConsentimiento,
-  type CategoriaCookie,
+  CATEGORIAS_COOKIES_OPCIONALES,
+  type CategoriaCookieOpcional,
   type ConsentimientoCookies,
 } from "@/lib/web/cookie-consent";
 import { hrefPoliticaCookies } from "@/lib/web/dominio";
 
-const CATEGORIAS_OPCIONALES: CategoriaCookie[] = ["preferences", "analytics", "marketing"];
+type PrefsOpcionales = Record<CategoriaCookieOpcional, boolean>;
 
 function leerConsentimiento(): ConsentimientoCookies | null {
   if (typeof document === "undefined") return null;
@@ -39,7 +40,7 @@ export function CookieBanner() {
 
   const [visible, setVisible] = useState(false);
   const [panel, setPanel] = useState<"bar" | "config">("bar");
-  const [prefs, setPrefs] = useState({ preferences: false, analytics: false, marketing: false });
+  const [prefs, setPrefs] = useState<PrefsOpcionales>({ preferences: false, analytics: false, marketing: false });
 
   const revisar = useCallback(() => {
     const guardado = leerConsentimiento();
@@ -119,7 +120,7 @@ export function CookieBanner() {
                 </div>
                 <span className="shrink-0 text-[12px] font-medium uppercase tracking-wide text-[#6b6b6b]">Siempre</span>
               </li>
-              {CATEGORIAS_OPCIONALES.map((cat) => (
+              {CATEGORIAS_COOKIES_OPCIONALES.map((cat) => (
                 <li key={cat} className="flex items-start justify-between gap-4 rounded-[14px] border border-[rgba(8,8,8,.08)] px-4 py-3.5">
                   <div>
                     <p className="text-[14px] font-medium">{etiquetaCategoria(cat)}</p>
