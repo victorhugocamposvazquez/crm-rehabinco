@@ -62,9 +62,8 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
 
   const buscar = (e: React.FormEvent) => {
     e.preventDefault();
-    const base = hrefInmuebles(enDominio, modo);
     const q = busqueda.trim();
-    router.push(q ? `${base}?q=${encodeURIComponent(q)}` : base);
+    router.push(hrefInmuebles(enDominio, modo, q || undefined));
   };
 
   return (
@@ -402,7 +401,7 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
             {ZONAS.map((z, i) => (
               <Link
                 key={z.nombre}
-                href={`${hrefInmuebles(enDominio, "venta")}?q=${encodeURIComponent(z.nombre.split("–")[0]?.trim() ?? z.nombre)}`}
+                href={hrefInmuebles(enDominio, "venta", z.nombre.split("–")[0]?.trim() || z.nombre)}
                 className={`grid grid-cols-[44px_1fr_auto] items-baseline gap-3 border-b border-[rgba(8,8,8,.14)] py-5 transition-colors ${zonaActiva === i ? "pl-2.5 text-[#080808]" : "text-[#9a9a9a]"}`}
                 onMouseEnter={() => setZonaActiva(i)}
                 onFocus={() => setZonaActiva(i)}

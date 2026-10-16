@@ -30,9 +30,16 @@ const nextConfig: NextConfig = {
     ];
   },
   async redirects() {
+    const hostsCrm = ["crm.rehabinco.es", "localhost", "127.0.0.1"];
+    const alCrm = hostsCrm.flatMap((host) => {
+      const has = [{ type: "host" as const, value: host }];
+      return [
+        { source: "/inmuebles", destination: "/propiedades", permanent: false, has },
+        { source: "/inmuebles/:path*", destination: "/propiedades/:path*", permanent: false, has },
+      ];
+    });
     return [
-      { source: "/inmuebles", destination: "/propiedades", permanent: false },
-      { source: "/inmuebles/:path*", destination: "/propiedades/:path*", permanent: false },
+      ...alCrm,
       { source: "/visitas", destination: "/partes-visita", permanent: false },
       { source: "/visitas/:path*", destination: "/partes-visita/:path*", permanent: false },
       { source: "/follow-up", destination: "/seguimiento", permanent: false },

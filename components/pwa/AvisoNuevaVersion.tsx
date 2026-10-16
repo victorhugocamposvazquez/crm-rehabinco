@@ -33,6 +33,12 @@ function limpiarParamActualizacion(): void {
   window.history.replaceState(null, "", `${url.pathname}${qs ? `?${qs}` : ""}${url.hash}`);
 }
 
+function esWebPublica(): boolean {
+  const path = window.location.pathname;
+  const host = window.location.hostname;
+  return path === "/web" || path.startsWith("/web/") || host === "web.rehabinco.es" || document.querySelector(".web-corp") !== null;
+}
+
 export function AvisoNuevaVersion() {
   const [open, setOpen] = useState(false);
   const [actualizando, setActualizando] = useState(false);
@@ -62,6 +68,7 @@ export function AvisoNuevaVersion() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (esWebPublica()) return;
 
     void comprobarVersion();
 

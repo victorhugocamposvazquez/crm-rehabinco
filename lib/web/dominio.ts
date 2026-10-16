@@ -64,8 +64,11 @@ export function hrefInmueble(enDominio: boolean, referencia: string): string {
   return enDominio ? `/inmuebles/${ref}` : `/web/inmuebles/${ref}`;
 }
 
-export function hrefInmuebles(enDominio: boolean, modo?: "venta" | "alquiler"): string {
+export function hrefInmuebles(enDominio: boolean, modo?: "venta" | "alquiler", q?: string): string {
   const base = enDominio ? "/inmuebles" : "/web/inmuebles";
-  if (!modo) return base;
-  return `${base}?modo=${modo}`;
+  const params = new URLSearchParams();
+  if (modo) params.set("modo", modo);
+  if (q?.trim()) params.set("q", q.trim());
+  const qs = params.toString();
+  return qs ? `${base}?${qs}` : base;
 }
