@@ -16,10 +16,10 @@ export function PaginaLegalCorporativa({
   enDominio: boolean;
 }) {
   return (
-    <>
-      <header className="relative bg-[#fefefe] pb-4 pt-24 text-[#080808]">
+    <div className="corp-page">
+      <header className="relative w-full min-w-0 bg-[#fefefe] pb-4 pt-24 text-[#080808]">
         <NavCorporativa enDominio={enDominio} clara />
-        <div className="corp-pad mx-auto max-w-[720px]">
+        <div className="corp-pad mx-auto w-full min-w-0 max-w-[720px]">
           <Link href={hrefInicio(enDominio)} className="text-[14px] font-medium text-[#6b6b6b] hover:text-[#080808]">
             ← Inicio
           </Link>
@@ -27,7 +27,7 @@ export function PaginaLegalCorporativa({
           <h1 className="mt-3 text-[clamp(32px,4.2vw,48px)] font-medium leading-[0.95] tracking-[-0.035em]">{titulo}</h1>
         </div>
       </header>
-      <main className="corp-pad mx-auto max-w-[720px] pb-20 pt-6">
+      <main className="corp-pad mx-auto w-full min-w-0 max-w-[720px] pb-20 pt-6">
         <article className="flex flex-col gap-10">
           {bloques.map((b) => (
             <section key={b.id} id={b.id} className="scroll-mt-28">
@@ -44,6 +44,6 @@ export function PaginaLegalCorporativa({
         </article>
       </main>
       <ContactoFooter enDominio={enDominio} />
-    </>
+    </div>
   );
 }

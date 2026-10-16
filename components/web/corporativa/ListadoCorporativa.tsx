@@ -52,21 +52,21 @@ export function ListadoCorporativa({
   }, []);
 
   return (
-    <div ref={rootRef}>
-      <section className="relative m-2 min-h-[440px] overflow-hidden rounded-[28px] bg-[#1b2340] text-[#fefefe] md:min-h-[clamp(520px,66vh,680px)]">
+    <div ref={rootRef} className="corp-page">
+      <section className="corp-inset-x relative min-h-[440px] overflow-hidden rounded-[28px] bg-[#1b2340] text-[#fefefe] md:min-h-[clamp(520px,66vh,680px)]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/web/assets/hero-bg.jpg" alt="" className="absolute inset-0 h-full w-full object-cover object-[center_70%]" />
         <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(8,8,8,.78),rgba(8,8,8,.12)_60%,rgba(8,8,8,.3))]" />
         <NavCorporativa enDominio={enDominio} />
-        <div className="corp-pad relative z-[2] flex min-h-[inherit] flex-col justify-end gap-8 pb-[clamp(20px,2.6vw,36px)] pt-28">
-          <div>
+        <div className="corp-pad relative z-[2] flex min-h-[inherit] w-full min-w-0 flex-col justify-end gap-8 pb-[clamp(20px,2.6vw,36px)] pt-28">
+          <div className="min-w-0 max-w-full">
             <p className="text-[12px] uppercase tracking-[0.06em] text-[rgba(254,254,254,.82)]">(Inmuebles) {modo === "venta" ? "en venta" : "en alquiler"}</p>
-            <h1 className="mt-3 text-[clamp(44px,15vw,190px)] font-medium leading-[0.86] tracking-[-0.055em]">
+            <h1 className="corp-h2 mt-3 max-w-full min-w-0 text-[clamp(36px,14vw,190px)] leading-[0.86] tracking-[-0.055em]">
               <SplitLine name="encuentra" text="ENCUENTRA" />
             </h1>
           </div>
           <form
-            className="mt-8 flex max-w-3xl flex-col gap-3 rounded-[999px] border border-[rgba(254,254,254,.18)] bg-[rgba(254,254,254,.12)] p-2 backdrop-blur-[18px] md:flex-row md:items-center"
+            className="mt-8 flex w-full min-w-0 max-w-3xl flex-col gap-3 rounded-[999px] border border-[rgba(254,254,254,.18)] bg-[rgba(254,254,254,.12)] p-2 backdrop-blur-[18px] md:flex-row md:items-center"
             onSubmit={(e) => e.preventDefault()}
           >
             <input
@@ -83,8 +83,8 @@ export function ListadoCorporativa({
         </div>
       </section>
 
-      <div className="sticky top-0 z-30 border-b border-[rgba(8,8,8,.08)] bg-[rgba(254,254,254,.86)] backdrop-blur-[18px]">
-        <div className="corp-pad flex flex-wrap items-center gap-3 py-4">
+      <div className="sticky top-0 z-30 w-full min-w-0 border-b border-[rgba(8,8,8,.08)] bg-[rgba(254,254,254,.86)] backdrop-blur-[18px]">
+        <div className="corp-pad flex w-full min-w-0 flex-wrap items-center gap-3 py-4">
           <div className="inline-flex rounded-full bg-[#f4f3f1] p-1 text-[13px]">
             <button type="button" className={`rounded-full px-4 py-2 ${modo === "venta" ? "bg-[#fefefe] shadow-sm" : ""}`} onClick={() => setModo("venta")}>
               Comprar
@@ -133,7 +133,7 @@ export function ListadoCorporativa({
         ) : null}
       </div>
 
-      <main id="resultados" className="corp-pad py-10">
+      <main id="resultados" className="corp-pad w-full min-w-0 py-10">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h2 className="text-[clamp(24px,3vw,32px)] font-medium tracking-[-0.03em]">
@@ -160,9 +160,9 @@ export function ListadoCorporativa({
         )}
       </main>
 
-      <section className="corp-pad pb-16">
-        <div className="grid items-center gap-8 rounded-[28px] bg-[#080808] p-[clamp(28px,4vw,48px)] text-[#fefefe] md:grid-cols-[1fr_auto]">
-          <div>
+      <section className="corp-pad w-full min-w-0 pb-16">
+        <div className="grid w-full min-w-0 items-center gap-8 rounded-[28px] bg-[#080808] p-6 text-[#fefefe] sm:p-8 md:grid-cols-[1fr_auto] md:p-[clamp(28px,4vw,48px)]">
+          <div className="min-w-0">
             <p className="text-[12px] uppercase tracking-[0.06em] text-[#9a9a9a]">Personal shopper</p>
             <h2 className="mt-2 max-w-lg text-[clamp(28px,3.4vw,40px)] font-medium leading-[1.05] tracking-[-0.03em]">¿No encuentras lo que buscas? Lo buscamos por ti.</h2>
             <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[rgba(254,254,254,.82)]">

@@ -24,10 +24,10 @@ export function ContactoFooter({ enDominio }: { enDominio: boolean }) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/web/assets/jardin.jpg" alt="" className="h-full w-full scale-[1.12] object-cover opacity-[0.42]" />
       </div>
-      <div className="relative flex flex-col gap-14 px-[clamp(16px,2.6vw,40px)] py-[clamp(56px,7vw,110px)] md:gap-[clamp(56px,7vw,100px)]">
-        <div className="grid items-start gap-12 md:grid-cols-2 md:gap-20">
-          <div className="flex flex-col gap-7">
-            <h2 className="corp-h2 !text-[#fefefe]">
+      <div className="relative flex w-full min-w-0 flex-col gap-10 px-[clamp(16px,4vw,40px)] py-[clamp(28px,6vw,110px)] md:gap-[clamp(56px,7vw,100px)]">
+        <div className="grid w-full min-w-0 items-start gap-12 md:grid-cols-2 md:gap-20">
+          <div className="flex min-w-0 flex-col gap-7">
+            <h2 className="corp-h2 max-w-full min-w-0 !text-[#fefefe]">
               <SplitLine name="c1" text="PIDE UNA" />
               <SplitLine name="c2" text="VISITA" />
             </h2>

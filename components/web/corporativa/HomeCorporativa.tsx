@@ -67,7 +67,7 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
   };
 
   return (
-    <div ref={rootRef}>
+    <div ref={rootRef} className="corp-page">
       <div data-travel="" aria-hidden className="pointer-events-none fixed left-0 top-0 z-30 h-0 w-0" style={{ visibility: "hidden" }}>
         <div data-tv-line="" className="absolute left-0 top-0 w-px origin-top-left bg-gradient-to-b from-[#080808] to-transparent" style={{ height: 0 }} />
         <svg data-tv-icon="" viewBox="-3.5 25.5 127 69" className="absolute left-0 top-0 h-[70px] w-[128px] overflow-visible" style={{ transformOrigin: "0 0" }}>
@@ -158,7 +158,7 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
         </div>
       </header>
 
-      <section className="corp-pad flex flex-col gap-[clamp(48px,6vw,88px)] pb-0 pt-[clamp(80px,10vw,150px)]">
+      <section className="corp-pad flex w-full min-w-0 flex-col gap-[clamp(48px,6vw,88px)] pb-0 pt-[clamp(80px,10vw,150px)]">
         <div className="grid items-start gap-6 md:grid-cols-[minmax(0,320px)_1fr_1fr] md:gap-12">
           <p data-enter="0" className="corp-kicker">(01) Quiénes somos</p>
           <FillText text={QUIENES_FILL} className="max-w-[26ch] md:col-span-2" />
@@ -283,7 +283,7 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
             Un servicio completo y personalizado: te acompañamos desde el primer contacto hasta mucho después de la firma, con la visión de quienes también invierten en el sector.
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex w-full min-w-0 flex-wrap gap-3">
           {SERVICIOS_RESUMEN.map(([titulo, texto], i) => {
             const on = servicioHover === i;
             const big = i === 0 || i === 3 || i === 6;
@@ -293,7 +293,7 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
                 key={titulo}
                 role="button"
                 tabIndex={0}
-                className={`relative flex min-h-[clamp(340px,30vw,440px)] cursor-pointer flex-col overflow-hidden rounded-[22px] bg-[#151515] text-[#fefefe] outline-none ${big ? "min-w-[min(100%,520px)] flex-[2_1_520px]" : "min-w-[min(100%,260px)] flex-[1_1_260px]"}`}
+                className={`relative flex w-full min-w-0 min-h-[clamp(340px,30vw,440px)] cursor-pointer flex-col overflow-hidden rounded-[22px] bg-[#151515] text-[#fefefe] outline-none md:w-auto ${big ? "md:min-w-[min(100%,520px)] md:flex-[2_1_520px]" : "md:min-w-[min(100%,260px)] md:flex-[1_1_260px]"}`}
                 onMouseEnter={() => setServicioHover(i)}
                 onMouseLeave={() => setServicioHover(-1)}
                 onClick={() => setModalServicio(i)}

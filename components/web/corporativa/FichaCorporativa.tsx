@@ -51,10 +51,10 @@ export function FichaCorporativa({
 
   return (
     <>
-      <div className="bg-[#fefefe] pb-16">
-        <section className="relative bg-[#fefefe] pb-2 pt-24 text-[#080808]">
+      <div className="corp-page bg-[#fefefe] pb-16">
+        <section className="relative w-full min-w-0 bg-[#fefefe] pb-2 pt-24 text-[#080808]">
           <NavCorporativa enDominio={enDominio} clara />
-          <div className="corp-pad flex flex-col gap-4">
+          <div className="corp-pad flex w-full min-w-0 flex-col gap-4">
             <p className="flex flex-wrap items-center gap-2 text-[13px] text-[#6b6b6b]">
               <Link href={hrefInicio(enDominio)} className="font-medium text-[#080808]">
                 ← Volver
@@ -70,8 +70,8 @@ export function FichaCorporativa({
                 </>
               ) : null}
             </p>
-            <div className="flex flex-wrap items-end justify-between gap-6">
-              <div className="flex max-w-[820px] flex-col gap-3">
+            <div className="flex w-full min-w-0 flex-wrap items-end justify-between gap-6">
+              <div className="flex min-w-0 max-w-[820px] flex-1 flex-col gap-3">
                 <div className="flex flex-wrap gap-2 text-[12px] font-medium">
                   <span className="inline-flex items-center gap-2 rounded-full bg-[#f4f3f1] px-3 py-1.5">
                     <span className="h-[7px] w-[7px] rounded-full bg-[#c9a27a]" />
@@ -79,7 +79,7 @@ export function FichaCorporativa({
                   </span>
                   {item.estadoLabel ? <span className="rounded-full border border-[rgba(8,8,8,.12)] px-3 py-1.5">{item.estadoLabel}</span> : null}
                 </div>
-                <h1 className="text-[clamp(30px,4.6vw,68px)] font-medium leading-[0.95] tracking-[-0.04em] text-[#080808]">{item.titulo}</h1>
+                <h1 className="max-w-full break-words text-[clamp(30px,4.6vw,68px)] font-medium leading-[0.95] tracking-[-0.04em] text-[#080808]">{item.titulo}</h1>
                 <p className="text-[15px] text-[#6b6b6b]">{item.zona}</p>
               </div>
               <div className="flex flex-col items-start gap-0.5 md:items-end">
@@ -92,8 +92,8 @@ export function FichaCorporativa({
           </div>
         </section>
 
-        <div className="corp-pad grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
-          <div>
+        <div className="corp-pad grid w-full min-w-0 gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)] lg:items-start">
+          <div className="min-w-0">
             <div className="grid gap-2 md:grid-cols-4 md:grid-rows-2">
               {fotos.slice(0, 5).map((foto, i) => (
                 <button
@@ -251,7 +251,7 @@ export function FichaCorporativa({
             </section>
           </div>
 
-          <aside id="visita" className="lg:sticky lg:top-5">
+          <aside id="visita" className="min-w-0 w-full lg:sticky lg:top-5">
             <div className="rounded-[24px] border border-[rgba(8,8,8,.1)] bg-[#fefefe] p-[clamp(20px,2.2vw,28px)] shadow-[0_20px_60px_rgba(8,8,8,.06)]">
               <div className="flex items-baseline justify-between gap-3">
                 <h2 className="text-[22px] font-medium tracking-[-0.02em]">Contacta por este inmueble</h2>
@@ -291,9 +291,9 @@ export function FichaCorporativa({
         </div>
 
         {parecidos.length ? (
-          <section className="corp-pad mt-16">
-            <h2 className="corp-h2 text-[clamp(28px,3vw,40px)]">SIMILARES</h2>
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <section className="corp-pad mt-16 w-full min-w-0">
+            <h2 className="corp-h2 max-w-full min-w-0 text-[clamp(28px,3vw,40px)]">SIMILARES</h2>
+            <div className="mt-6 grid w-full min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
               {parecidos.map((otro) => (
                 <TarjetaInmuebleCorporativa key={otro.slug} item={otro} enDominio={enDominio} />
               ))}

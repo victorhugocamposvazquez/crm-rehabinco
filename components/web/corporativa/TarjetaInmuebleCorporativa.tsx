@@ -17,7 +17,7 @@ export function TarjetaInmuebleCorporativa({
   return (
     <Link
       href={href}
-      className={`group flex h-full flex-col overflow-hidden rounded-[18px] bg-[#fefefe] ${lista ? "md:grid md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:gap-6" : ""}`}
+      className={`group flex h-full w-full min-w-0 flex-col overflow-hidden rounded-[18px] bg-[#fefefe] ${lista ? "md:grid md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:gap-6" : ""}`}
     >
       <div className={`relative overflow-hidden rounded-[18px] bg-[#e9e6e1] ${lista ? "aspect-square md:aspect-[4/3]" : "aspect-[4/3]"}`}>
         {item.fotoPrincipal ? (

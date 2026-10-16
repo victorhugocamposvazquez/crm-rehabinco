@@ -11,7 +11,7 @@ const inter = Inter({
 
 export default function WebLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className={`web-corp min-h-dvh antialiased ${inter.variable} ${inter.className}`}>
+    <div className={`web-corp min-h-dvh w-full min-w-0 max-w-[100vw] antialiased ${inter.variable} ${inter.className}`}>
       {children}
       <CookieBanner />
     </div>

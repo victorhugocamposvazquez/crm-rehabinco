@@ -104,8 +104,17 @@
 }
 
 .web-corp .corp-pad {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
   padding-left: clamp(16px, 2.6vw, 40px);
   padding-right: clamp(16px, 2.6vw, 40px);
+}
+
+.web-corp .corp-page {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .web-corp .corp-h2 {
