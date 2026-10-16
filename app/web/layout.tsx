@@ -1,4 +1,5 @@
 import { Inter } from "next/font/google";
+import { CookieBanner } from "@/components/web/corporativa/CookieBanner";
 import "./corporativa.css";
 
 const inter = Inter({
@@ -12,6 +13,7 @@ export default function WebLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className={`web-corp min-h-dvh antialiased ${inter.variable} ${inter.className}`}>
       {children}
+      <CookieBanner />
     </div>
   );
 }

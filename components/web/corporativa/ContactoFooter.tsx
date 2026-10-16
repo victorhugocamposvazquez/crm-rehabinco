@@ -4,7 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { BUSQUEDAS, INTERESES, OFICINA, WA } from "@/lib/web/corporativa/contenido";
-import { hrefInicio } from "@/lib/web/dominio";
+import { hrefAvisoLegal, hrefInicio, hrefPoliticaCookies } from "@/lib/web/dominio";
+import { abrirConfiguracionCookies } from "./CookieBanner";
 import { SplitLine } from "./TipografiaMotion";
 
 export function ContactoFooter({ enDominio }: { enDominio: boolean }) {
@@ -142,8 +143,15 @@ export function ContactoFooter({ enDominio }: { enDominio: boolean }) {
               <a href={`https://api.whatsapp.com/send?phone=${WA}`} target="_blank" rel="noreferrer" className="hover:text-[#fefefe]">
                 WhatsApp
               </a>
-              <span>Aviso legal</span>
-              <span>Cookies</span>
+              <Link href={hrefAvisoLegal(enDominio)} className="hover:text-[#fefefe]">
+                Aviso legal
+              </Link>
+              <Link href={hrefPoliticaCookies(enDominio)} className="hover:text-[#fefefe]">
+                Política de cookies
+              </Link>
+              <button type="button" className="hover:text-[#fefefe]" onClick={() => abrirConfiguracionCookies()}>
+                Configurar cookies
+              </button>
             </div>
           </div>
         </div>

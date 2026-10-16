@@ -43,8 +43,14 @@ export function decisionHost(host: string, pathname: string, dominio: string | n
   if (pathname === "/web/inmuebles" || pathname.startsWith("/web/inmuebles/")) {
     return { tipo: "canonical", pathname: pathname.slice("/web".length) };
   }
+  if (pathname === "/web/aviso-legal" || pathname === "/web/politica-cookies") {
+    return { tipo: "canonical", pathname: pathname.slice("/web".length) };
+  }
   if (pathname === "/" || pathname === "") return { tipo: "reescribir", pathname: "/web" };
   if (pathname === "/inmuebles" || pathname.startsWith("/inmuebles/")) {
+    return { tipo: "reescribir", pathname: `/web${pathname}` };
+  }
+  if (pathname === "/aviso-legal" || pathname === "/politica-cookies") {
     return { tipo: "reescribir", pathname: `/web${pathname}` };
   }
   if (pathname === "/api" || pathname.startsWith("/api/")) return { tipo: "crm" };
@@ -71,4 +77,12 @@ export function hrefInmuebles(enDominio: boolean, modo?: "venta" | "alquiler", q
   if (q?.trim()) params.set("q", q.trim());
   const qs = params.toString();
   return qs ? `${base}?${qs}` : base;
+}
+
+export function hrefAvisoLegal(enDominio: boolean): string {
+  return enDominio ? "/aviso-legal" : "/web/aviso-legal";
+}
+
+export function hrefPoliticaCookies(enDominio: boolean): string {
+  return enDominio ? "/politica-cookies" : "/web/politica-cookies";
 }
