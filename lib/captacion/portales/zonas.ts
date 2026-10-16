@@ -41,3 +41,36 @@ export function centroDeZonas(
 }
 
 export const CIUDADES_FILTRO = ["A Coruña", "Cambre", "Oleiros", "Culleredo", "Arteixo", "Madrid"] as const;
+
+/** Barrios de Moncloa y el municipio de al lado. Pozuelo no cuelga de Madrid. */
+export const LOCALIDADES_FILTRO = [
+  "Aravaca",
+  "Valdemarín",
+  "El Plantío",
+  "Casa de Campo",
+  "Ciudad Universitaria",
+  "Valdezarza",
+  "Argüelles",
+  "Pozuelo de Alarcón",
+] as const;
+
+function sinAcento(valor: string): string {
+  return valor
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+/** La localidad casa con el barrio o, si es un municipio, con el municipio del anuncio. */
+export function anuncioEnLocalidad(
+  localidad: string,
+  anuncio: { zona?: string | null; municipio?: string | null }
+): boolean {
+  const clave = sinAcento(localidad);
+  if (!clave || clave === "todas") return true;
+  const zona = sinAcento(anuncio.zona ?? "");
+  const municipio = sinAcento(anuncio.municipio ?? "");
+  if (clave.startsWith("pozuelo")) return municipio.startsWith("pozuelo") || zona.startsWith("pozuelo");
+  return zona === clave || municipio === clave;
+}

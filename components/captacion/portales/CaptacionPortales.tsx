@@ -13,7 +13,7 @@ import { FiltroComercial, type ComercialFiltro } from "@/components/captacion/Fi
 import { nombreYApellido, inicialesNombre } from "@/lib/ui/tokens";
 import { normalizarTexto } from "@/lib/captacion/pipeline/normalize";
 import { coincideBusqueda } from "@/lib/captacion/portales/busqueda";
-import { CIUDADES_FILTRO } from "@/lib/captacion/portales/zonas";
+import { anuncioEnLocalidad, CIUDADES_FILTRO, LOCALIDADES_FILTRO } from "@/lib/captacion/portales/zonas";
 import {
   indiciosEncubierta,
   recuentoPorClave,
@@ -224,6 +224,7 @@ export function CaptacionPortales() {
   const [q, setQ] = useState("");
   const [fAlerta, setFAlerta] = useState("todas");
   const [fCiudad, setFCiudad] = useState("todas");
+  const [fLocalidad, setFLocalidad] = useState("todas");
   const [chip, setChip] = useState<ChipCaptacion>("todos");
   const [hayRecogidaCompleta, setHayRecogidaCompleta] = useState(false);
   const [telefonosEnCola, setTelefonosEnCola] = useState<Set<string>>(() => new Set());
@@ -415,7 +416,9 @@ export function CaptacionPortales() {
       if (!matchChip(a, chipActivo)) return false;
       if (!coincideBusqueda(q, [a.titulo, a.zona, a.municipio, a.direccion, a.contacto_nombre, a.externo_id])) return false;
       if (fAlerta !== "todas" && a.alerta_id !== fAlerta) return false;
-      if (fCiudad !== "todas" && !(a.municipio ?? "").startsWith(fCiudad)) return false;
+      if (fLocalidad !== "todas") {
+        if (!anuncioEnLocalidad(fLocalidad, a)) return false;
+      } else if (fCiudad !== "todas" && !(a.municipio ?? "").startsWith(fCiudad)) return false;
       if (filtros.portal !== "todos" && a.fuente !== filtros.portal) return false;
       if (filtros.tipo !== "todos" && a.tipo !== filtros.tipo) return false;
       const pmin = Number(filtros.precioMin);
@@ -428,7 +431,7 @@ export function CaptacionPortales() {
       if (filtros.m2Max && (a.superficie == null || a.superficie > smax)) return false;
       return true;
     },
-    [chip, q, fAlerta, fCiudad, filtros, matchChip]
+    [chip, q, fAlerta, fCiudad, fLocalidad, filtros, matchChip]
   );
 
   const cuentaChip = useCallback(
@@ -682,6 +685,7 @@ export function CaptacionPortales() {
   const nFiltros =
     (fAlerta !== "todas" ? 1 : 0) +
     (fCiudad !== "todas" ? 1 : 0) +
+    (fLocalidad !== "todas" ? 1 : 0) +
     (filtros.portal !== "todos" ? 1 : 0) +
     (filtros.tipo !== "todos" ? 1 : 0) +
     (filtros.precioMin || filtros.precioMax || filtros.m2Min || filtros.m2Max ? 1 : 0);
@@ -803,6 +807,12 @@ export function CaptacionPortales() {
               <Selector value={fCiudad} onChange={(e) => { setFCiudad(e.target.value); setPag(1); }} className="h-9 rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-2.5 text-[13px]">
                 <option value="todas">Ciudad: todas</option>
                 {CIUDADES_FILTRO.map((c) => (
+                  <option key={c}>{c}</option>
+                ))}
+              </Selector>
+              <Selector value={fLocalidad} onChange={(e) => { setFLocalidad(e.target.value); setPag(1); }} className="h-9 rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-2.5 text-[13px]">
+                <option value="todas">Localidad: todas</option>
+                {LOCALIDADES_FILTRO.map((c) => (
                   <option key={c}>{c}</option>
                 ))}
               </Selector>
