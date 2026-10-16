@@ -40,4 +40,4 @@ export function centroDeZonas(
   return { lat, lng, radio };
 }
 
-export const CIUDADES_FILTRO = ["A Coruña", "Cambre", "Oleiros", "Culleredo", "Arteixo"] as const;
+export const CIUDADES_FILTRO = ["A Coruña", "Cambre", "Oleiros", "Culleredo", "Arteixo", "Madrid"] as const;
