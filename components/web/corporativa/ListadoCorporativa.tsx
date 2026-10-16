@@ -53,27 +53,31 @@ export function ListadoCorporativa({
 
   return (
     <div ref={rootRef} className="corp-page">
-      <section className="corp-inset-x relative min-h-[440px] overflow-hidden rounded-[28px] bg-[#1b2340] text-[#fefefe] md:min-h-[clamp(520px,66vh,680px)]">
+      <section className="corp-inset-x relative mt-3 min-h-[380px] overflow-hidden rounded-[28px] bg-[#1b2340] text-[#fefefe] md:mt-4 md:min-h-[clamp(520px,66vh,680px)]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/web/assets/hero-bg.jpg" alt="" className="absolute inset-0 h-full w-full object-cover object-[center_70%]" />
         <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(8,8,8,.78),rgba(8,8,8,.12)_60%,rgba(8,8,8,.3))]" />
         <NavCorporativa enDominio={enDominio} />
-        <div className="corp-pad relative z-[2] flex min-h-[inherit] w-full min-w-0 flex-col justify-end gap-8 pb-[clamp(20px,2.6vw,36px)] pt-28">
+        <div className="corp-pad relative z-[2] flex min-h-[inherit] w-full min-w-0 flex-col justify-end gap-5 pb-5 pt-24 md:gap-8 md:pb-[clamp(20px,2.6vw,36px)] md:pt-28">
           <div className="min-w-0 max-w-full">
             <p className="text-[12px] uppercase tracking-[0.06em] text-[rgba(254,254,254,.82)]">(Inmuebles) {modo === "venta" ? "en venta" : "en alquiler"}</p>
-            <h1 className="corp-h2 mt-3 max-w-full min-w-0 text-[clamp(36px,14vw,190px)] leading-[0.86] tracking-[-0.055em]">
+            <h1 className="mt-2 max-w-full text-[clamp(36px,12vw,168px)] font-medium leading-[0.9] tracking-[-0.05em]">
               <SplitLine name="encuentra" text="ENCUENTRA" />
             </h1>
           </div>
           <form
-            className="mt-8 flex w-full min-w-0 max-w-3xl flex-col gap-3 rounded-[999px] border border-[rgba(254,254,254,.18)] bg-[rgba(254,254,254,.12)] p-2 backdrop-blur-[18px] md:flex-row md:items-center"
+            className="flex w-full min-w-0 max-w-3xl items-center gap-2 rounded-full border border-[rgba(254,254,254,.28)] bg-[rgba(254,254,254,.14)] py-1.5 pl-4 pr-1.5 backdrop-blur-[18px]"
             onSubmit={(e) => e.preventDefault()}
           >
+            <label className="sr-only" htmlFor="busca-inmueble">
+              Buscar por calle, zona o referencia
+            </label>
             <input
+              id="busca-inmueble"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Buscar por calle, zona o referencia"
-              className="min-w-0 flex-1 bg-transparent px-4 py-3 text-[15px] outline-none placeholder:text-[rgba(254,254,254,.55)]"
+              placeholder="Calle, zona o referencia"
+              className="min-w-0 flex-1 bg-transparent py-2.5 text-[16px] text-[#fefefe] outline-none placeholder:text-[rgba(254,254,254,.72)]"
             />
             <button type="submit" className="corp-btn shrink-0">
               Buscar
@@ -84,16 +88,29 @@ export function ListadoCorporativa({
       </section>
 
       <div className="sticky top-0 z-30 w-full min-w-0 border-b border-[rgba(8,8,8,.08)] bg-[rgba(254,254,254,.86)] backdrop-blur-[18px]">
-        <div className="corp-pad flex w-full min-w-0 flex-wrap items-center gap-3 py-4">
-          <div className="inline-flex rounded-full bg-[#f4f3f1] p-1 text-[13px]">
-            <button type="button" className={`rounded-full px-4 py-2 ${modo === "venta" ? "bg-[#fefefe] shadow-sm" : ""}`} onClick={() => setModo("venta")}>
-              Comprar
-            </button>
-            <button type="button" className={`rounded-full px-4 py-2 ${modo === "alquiler" ? "bg-[#fefefe] shadow-sm" : ""}`} onClick={() => setModo("alquiler")}>
-              Alquilar
-            </button>
+        <div className="corp-pad flex w-full min-w-0 flex-col gap-3 py-3 md:flex-row md:flex-wrap md:items-center md:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="inline-flex rounded-full bg-[#f4f3f1] p-1 text-[13px]">
+              <button type="button" className={`rounded-full px-4 py-2 ${modo === "venta" ? "bg-[#fefefe] shadow-sm" : ""}`} onClick={() => setModo("venta")}>
+                Comprar
+              </button>
+              <button type="button" className={`rounded-full px-4 py-2 ${modo === "alquiler" ? "bg-[#fefefe] shadow-sm" : ""}`} onClick={() => setModo("alquiler")}>
+                Alquilar
+              </button>
+            </div>
+            <div className="inline-flex rounded-full border border-[rgba(8,8,8,.14)] p-1 text-[13px] md:hidden">
+              <button type="button" className={`rounded-full px-3 py-1 ${view === "grid" ? "bg-[#f4f3f1]" : ""}`} onClick={() => setView("grid")}>
+                Grid
+              </button>
+              <button type="button" className={`rounded-full px-3 py-1 ${view === "list" ? "bg-[#f4f3f1]" : ""}`} onClick={() => setView("list")}>
+                Lista
+              </button>
+            </div>
           </div>
-          <div className="flex flex-1 gap-2 overflow-x-auto">
+          <div className="flex min-w-0 gap-2 overflow-x-auto [scrollbar-width:none] md:flex-1">
+            <button type="button" className="shrink-0 rounded-full border border-[rgba(8,8,8,.14)] px-3 py-1.5 text-[13px] md:hidden" onClick={() => setMore((v) => !v)}>
+              Filtros
+            </button>
             {TIPOS.map((t) => (
               <button
                 key={t}
@@ -105,14 +122,14 @@ export function ListadoCorporativa({
               </button>
             ))}
           </div>
-          <button type="button" className="rounded-full border border-[rgba(8,8,8,.14)] px-3 py-1.5 text-[13px]" onClick={() => setMore((v) => !v)}>
+          <button type="button" className="hidden shrink-0 rounded-full border border-[rgba(8,8,8,.14)] px-3 py-1.5 text-[13px] md:inline" onClick={() => setMore((v) => !v)}>
             Filtros
           </button>
-          <div className="inline-flex rounded-full border border-[rgba(8,8,8,.14)] p-1 text-[13px]">
-            <button type="button" className={`rounded-full px-3 py-1 ${view === "grid" ? "bg-[#fefefe]" : ""}`} onClick={() => setView("grid")}>
+          <div className="hidden rounded-full border border-[rgba(8,8,8,.14)] p-1 text-[13px] md:inline-flex">
+            <button type="button" className={`rounded-full px-3 py-1 ${view === "grid" ? "bg-[#f4f3f1]" : ""}`} onClick={() => setView("grid")}>
               Grid
             </button>
-            <button type="button" className={`rounded-full px-3 py-1 ${view === "list" ? "bg-[#fefefe]" : ""}`} onClick={() => setView("list")}>
+            <button type="button" className={`rounded-full px-3 py-1 ${view === "list" ? "bg-[#f4f3f1]" : ""}`} onClick={() => setView("list")}>
               Lista
             </button>
           </div>
