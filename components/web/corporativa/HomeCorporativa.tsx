@@ -76,7 +76,7 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
           <rect data-tv-bar="" x="91.5" y="80.2" width="22" height="1.6" fill="#080808" />
         </svg>
       </div>
-      <header data-hero="" className="relative min-h-[max(540px,78svh)] overflow-hidden bg-[#1b2340] text-[#fefefe] md:min-h-[clamp(640px,100vh,1040px)]">
+      <header data-hero="" className="relative h-[100dvh] min-h-[100dvh] overflow-hidden bg-[#1b2340] text-[#fefefe] md:h-auto md:min-h-[clamp(640px,100vh,1040px)]">
         <div data-hero-bg="" className="absolute inset-[-4%_0_0_0]" style={{ willChange: "transform" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/web/assets/hero-bg.jpg" alt="" className="absolute inset-0 h-full w-full object-cover object-bottom" />
@@ -89,8 +89,8 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
         <PalabraHero outline />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[52%] bg-gradient-to-t from-[rgba(8,8,8,.72)] to-transparent" />
         <NavCorporativa enDominio={enDominio} />
-        <div className="absolute bottom-0 left-0 right-0 z-[4] flex flex-col gap-[clamp(40px,6vh,80px)] px-[clamp(16px,2.6vw,40px)] pb-[clamp(20px,2.6vw,36px)]">
-          <div className="flex flex-col items-center gap-3.5 text-center">
+        <div className="absolute inset-0 z-[4] flex flex-col px-[clamp(16px,2.6vw,40px)] pb-[clamp(20px,2.6vw,36px)] pt-[22vh] md:inset-x-0 md:bottom-0 md:top-auto md:gap-[clamp(40px,6vh,80px)] md:pt-0">
+          <div className="flex flex-1 flex-col items-center justify-center gap-3.5 text-center md:flex-none md:justify-end">
             <div data-enter="200" className="flex flex-col gap-0.5 text-[clamp(20px,2.3vw,34px)] font-medium leading-[1.05] tracking-[-0.03em] [text-shadow:0_1px_2px_rgba(8,8,8,.55),0_2px_24px_rgba(8,8,8,.5)]">
               <span>EL PISO QUE BUSCAS.</span>
               <span>LA REFORMA QUE SUEÑAS.</span>
