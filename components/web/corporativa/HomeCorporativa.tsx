@@ -161,7 +161,7 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
       <section className="corp-pad flex flex-col gap-[clamp(48px,6vw,88px)] pb-0 pt-[clamp(80px,10vw,150px)]">
         <div className="grid items-start gap-6 md:grid-cols-[minmax(0,320px)_1fr_1fr] md:gap-12">
           <p data-enter="0" className="corp-kicker">(01) Quiénes somos</p>
-          <FillText text={QUIENES_FILL} className="max-w-[26ch] text-[clamp(26px,3.1vw,44px)] font-medium leading-[1.1] tracking-[-0.03em] md:col-span-2" />
+          <FillText text={QUIENES_FILL} className="max-w-[26ch] md:col-span-2" />
         </div>
         <div data-iconzoom="" className="relative -mx-[clamp(16px,2.6vw,40px)] h-[280vh]">
           <div className="sticky top-0 h-[100svh] overflow-hidden bg-[#080808]">
@@ -184,7 +184,7 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
               </g>
             </svg>
             <div data-iz-cap="" className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-5 text-center text-[#fefefe]" style={{ opacity: 0, translate: "0 28px" }}>
-              <h2 className="text-[clamp(44px,7.4vw,124px)] font-medium leading-[0.92] tracking-[-0.045em] text-[#fefefe] [text-shadow:0_2px_40px_rgba(8,8,8,.25)]">
+              <h2>
                 TU PRÓXIMO HOGAR
                 <br />
                 EMPIEZA AQUÍ
@@ -338,8 +338,8 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
       </section>
 
       <section className="corp-pad flex flex-col items-center gap-[clamp(20px,2.4vw,36px)] py-[clamp(110px,14vw,220px)] pb-[clamp(30px,4vw,60px)] text-center">
-        <FillText text={HUMAN_FILL} center className="max-w-[24ch] text-[clamp(26px,3.1vw,44px)] font-medium leading-[1.12] tracking-[-0.03em]" />
-        <p data-reveal="" aria-label="Humanamente." className="m-0 flex max-w-full justify-center whitespace-nowrap px-2 text-[clamp(34px,6.4vw,104px)] font-medium leading-[0.9] tracking-[-0.05em] text-[#080808]">
+        <FillText text={HUMAN_FILL} center className="max-w-[24ch]" />
+        <p data-reveal="" aria-label="Humanamente." className="m-0 flex max-w-full justify-center whitespace-nowrap px-2">
           {"HUMAN".split("").map((c, i) => (
             <span key={`${c}${i}`} className="inline-block" style={{ opacity: 0, filter: "blur(14px)", translate: "0 .35em" }}>
               {c}

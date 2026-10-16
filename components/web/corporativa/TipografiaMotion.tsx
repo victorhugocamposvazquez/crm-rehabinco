@@ -14,7 +14,7 @@ export function FillText({ text, className, center }: { text: string; className?
   return (
     <p
       data-fill=""
-      className={className}
+      className={[className, center ? "corp-fill--center" : ""].filter(Boolean).join(" ")}
       style={{
         margin: 0,
         display: "flex",
