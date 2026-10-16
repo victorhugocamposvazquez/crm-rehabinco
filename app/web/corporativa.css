@@ -11,7 +11,10 @@
   font-feature-settings: "tnum";
   -webkit-font-smoothing: antialiased;
   text-wrap: pretty;
-  overflow-x: hidden;
+  /* clip no crea scrollport. hidden fuerza overflow-y:auto y anula el sticky
+     del triángulo que abre la foto del edificio, el viaje del icono y la foto de reformas. */
+  overflow-x: clip;
+  overflow-y: visible;
 }
 
 /* Bloques redondeados: mismo inset horizontal que .corp-pad */
@@ -52,7 +55,6 @@
 .web-corp h2 [data-split] {
   display: flex;
   max-width: 100%;
-  min-width: 0;
 }
 
 .web-corp .corp-navlink {
