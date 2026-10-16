@@ -35,3 +35,24 @@ export function IconoServicio({ index, className }: { index: number; className?:
     </svg>
   );
 }
+
+/** Iconos del recorrido 360° (búsqueda → obra → entrega). */
+const ICONS_FASE_360: string[][] = [
+  ["M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z", "M21 21l-4.35-4.35"],
+  [
+    "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z",
+    "M3 21h18",
+  ],
+  ["M21 2l-2 2", "M7.5 11.5a4.5 4.5 0 1 0 0-6.36 4.5 4.5 0 0 0 0 6.36z", "M13 7l4 4"],
+];
+
+export function IconoFase360({ index, className }: { index: number; className?: string }) {
+  const paths = ICONS_FASE_360[index] ?? ICONS_FASE_360[0]!;
+  return (
+    <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>
+      {paths.map((d) => (
+        <path key={d} d={d} />
+      ))}
+    </svg>
+  );
+}

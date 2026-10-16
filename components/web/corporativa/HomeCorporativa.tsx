@@ -26,6 +26,7 @@ import { initWebMotion } from "./motion";
 import { ModalServicio } from "./ModalServicio";
 import { NavCorporativa } from "./NavCorporativa";
 import { FillText, PalabraHero, SplitLine } from "./TipografiaMotion";
+import { GridFases360 } from "./TarjetaFase360";
 import { TarjetaInmuebleCorporativa } from "./TarjetaInmuebleCorporativa";
 
 const PRECIOS_VENTA = ["Indiferente", "Hasta 150.000 €", "150.000 – 250.000 €", "250.000 – 400.000 €", "400.000 € o más"];
@@ -537,19 +538,7 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
             })}
           </div>
         </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          {UPDATES_360.map((u) => (
-            <div key={u.titulo} className="flex flex-col gap-3.5">
-              <div className="aspect-[3/2] overflow-hidden rounded-[18px] bg-[#151515]">
-                <img src={u.img} alt="" className="h-full w-full object-cover transition-transform hover:scale-[1.03]" />
-              </div>
-              <div className="flex flex-wrap justify-between gap-2">
-                <span className="text-[15px] font-medium">{u.titulo}</span>
-                <span className="text-[13px] text-[#9a9a9a]">{u.subtitulo}</span>
-              </div>
-            </div>
-          ))}
-        </div>
+        <GridFases360 items={UPDATES_360} />
       </section>
 
       <section id="resenas" className="mx-2 mt-[clamp(80px,10vw,150px)] flex flex-col gap-10 rounded-[28px] bg-[#f4f3f1] p-[clamp(56px,7vw,110px)] md:mx-4 md:gap-[clamp(40px,5vw,72px)]">
