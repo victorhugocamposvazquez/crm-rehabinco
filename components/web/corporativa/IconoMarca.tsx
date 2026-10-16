@@ -56,3 +56,22 @@ export function IconoFase360({ index, className }: { index: number; className?: 
     </svg>
   );
 }
+
+/** Iconos del bloque «Lo que nos hace diferentes». */
+const ICONS_PILAR_CONFIANZA: string[][] = [
+  ["M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z", "M22 21v-2a4 4 0 0 0-3-3.87", "M16 3.13a4 4 0 0 1 0 7.75"],
+  ["M9 12h6", "M9 16h6", "M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-4-4z", "M14 3v4h4"],
+  ["M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z", "M9 12l2 2 4-4"],
+  ["M3 18v-6a9 9 0 0 1 18 0v6", "M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z", "M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"],
+];
+
+export function IconoPilarConfianza({ index, className }: { index: number; className?: string }) {
+  const paths = ICONS_PILAR_CONFIANZA[index] ?? ICONS_PILAR_CONFIANZA[0]!;
+  return (
+    <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>
+      {paths.map((d) => (
+        <path key={d} d={d} />
+      ))}
+    </svg>
+  );
+}

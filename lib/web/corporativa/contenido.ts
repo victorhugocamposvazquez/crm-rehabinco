@@ -168,14 +168,37 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
   },
 ];
 
-export const ZONAS = [
-  { nombre: "Ciudad Vieja – Centro", count: "4 inmuebles", desde: "245.000 €", img: `${A}/salon.jpg` },
-  { nombre: "Agra del Orzán – Ventorrillo", count: "6 inmuebles", desde: "139.000 €", img: `${A}/edificio-dia.jpg` },
-  { nombre: "Mesoiro", count: "3 inmuebles", desde: "159.000 €", img: `${A}/aerea.jpg` },
-  { nombre: "Bergondo", count: "2 inmuebles", desde: "210.000 €", img: `${A}/jardin.jpg` },
-  { nombre: "Puebla del Caramiñal", count: "2 inmuebles", desde: "175.000 €", img: `${A}/terraza.jpg` },
-  { nombre: "Vimianzo", count: "1 inmueble", desde: "98.000 €", img: `${A}/dormitorio-2.jpg` },
-  { nombre: "Santanyí · Cala d'Or", count: "3 casas", desde: "690.000 €", img: `${A}/edificio-noche.jpg` },
+export type PilarConfianza = {
+  gancho: string;
+  titulo: string;
+  texto: string;
+  img?: string;
+};
+
+export const DIFERENCIA_LEAD = "Menos intermediarios, más claridad en cada paso.";
+
+export const PILARES_CONFIANZA: PilarConfianza[] = [
+  {
+    gancho: "De la primera visita a las llaves",
+    titulo: "Un solo interlocutor",
+    texto: "Compraventa, financiación, reforma y trámites con el mismo equipo. Sin cambiar de teléfono a mitad del camino.",
+    img: `${A}/obra-3.jpg`,
+  },
+  {
+    gancho: "Presupuesto cerrado por escrito",
+    titulo: "Reformas sin sorpresas",
+    texto: "Obra con equipo propio, partidas claras y fecha de entrega en el contrato.",
+  },
+  {
+    gancho: "Sabes con quién hablas",
+    titulo: "Transparencia",
+    texto: "Los honorarios los asume el vendedor; para quien compra, la asesoría y las visitas son gratuitas.",
+  },
+  {
+    gancho: "Postventa de verdad",
+    titulo: "Seguimos después",
+    texto: "Te acompañamos tras la firma con apoyo y soluciones cuando las necesitas.",
+  },
 ];
 
 export const REFORMAS = [
@@ -254,3 +277,6 @@ export const OFICINA = {
 };
 
 export const WA = "34664859306";
+
+/** Perfil oficial: https://www.instagram.com/rehabinco1/ */
+export const INSTAGRAM = "https://www.instagram.com/rehabinco1/";

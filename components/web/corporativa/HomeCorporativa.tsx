@@ -16,7 +16,6 @@ import {
   SERVICIOS_RESUMEN,
   UPDATES_360,
   VENTAJAS,
-  ZONAS,
 } from "@/lib/web/corporativa/contenido";
 import type { InmuebleCorporativa, ModoCorporativa } from "@/lib/web/corporativa/types";
 import { hrefInmuebles } from "@/lib/web/dominio";
@@ -26,6 +25,7 @@ import { initWebMotion } from "./motion";
 import { ModalServicio } from "./ModalServicio";
 import { NavCorporativa } from "./NavCorporativa";
 import { FillText, PalabraHero, SplitLine } from "./TipografiaMotion";
+import { SeccionDiferenciaRehabinco } from "./SeccionDiferenciaRehabinco";
 import { GridFases360 } from "./TarjetaFase360";
 import { TarjetaInmuebleCorporativa } from "./TarjetaInmuebleCorporativa";
 
@@ -39,7 +39,6 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
   const [busqueda, setBusqueda] = useState("");
   const [ventajaAbierta, setVentajaAbierta] = useState(0);
   const [faqAbierta, setFaqAbierta] = useState(0);
-  const [zonaActiva, setZonaActiva] = useState(0);
   const [reformaActiva, setReformaActiva] = useState(0);
   const [servicioHover, setServicioHover] = useState(-1);
   const [modalServicio, setModalServicio] = useState(-1);
@@ -47,7 +46,6 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
 
   const destacados = useMemo(() => inmuebles.filter((i) => i.modo === modo).slice(0, 3), [inmuebles, modo]);
   const reviewActive = REVIEWS[review] ?? REVIEWS[0]!;
-  const zona = ZONAS[zonaActiva] ?? ZONAS[0]!;
 
   useEffect(() => {
     const root = rootRef.current;
@@ -388,68 +386,7 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
         </div>
       </section>
 
-      <section id="zonas" className="corp-pad flex flex-col gap-10 pb-0 pt-[clamp(80px,10vw,150px)]">
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <div>
-            <p data-enter="0" className="corp-kicker">(06) Zonas</p>
-            <h2 className="corp-h2 mt-3">
-              <SplitLine name="zonas" text="ELIGE TU BARRIO" />
-            </h2>
-          </div>
-          <p className="max-w-[38ch] text-[15px] leading-relaxed text-[#6b6b6b]">Pasa por un barrio para ver lo que tenemos. Selecciónalo para ver todos sus pisos.</p>
-        </div>
-        <div className="grid items-stretch gap-8 lg:grid-cols-2">
-          <div className="border-t border-[rgba(8,8,8,.14)]">
-            {ZONAS.map((z, i) => (
-              <Link
-                key={z.nombre}
-                href={hrefInmuebles(enDominio, "venta", z.nombre.split("–")[0]?.trim() || z.nombre)}
-                className={`grid grid-cols-[44px_1fr_auto] items-baseline gap-3 border-b border-[rgba(8,8,8,.14)] py-5 transition-colors ${zonaActiva === i ? "pl-2.5 text-[#080808]" : "text-[#9a9a9a]"}`}
-                onMouseEnter={() => setZonaActiva(i)}
-                onFocus={() => setZonaActiva(i)}
-              >
-                <span className="text-[13px] text-[#9a9a9a]">{String(i + 1).padStart(2, "0")}</span>
-                <span className="text-[clamp(20px,1.8vw,26px)] font-medium tracking-[-0.02em]">{z.nombre}</span>
-                <span className="whitespace-nowrap text-[13px] text-[#6b6b6b]">{z.count}</span>
-              </Link>
-            ))}
-            <div className="flex flex-wrap gap-x-6 gap-y-2 pt-5 text-[13px] text-[#6b6b6b]">
-              <span className="inline-flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-[#c9a27a]" /> En venta 14
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-[#080808]" /> En alquiler 9
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-[#d9d3cb]" /> Reformados este año 16
-              </span>
-            </div>
-          </div>
-          <div data-wipe="" className="relative min-h-[380px] overflow-hidden rounded-[28px] bg-[#f4f3f1] lg:min-h-[640px]">
-            <div data-wipe-media="" className="absolute inset-0">
-            {ZONAS.map((z, i) => (
-              <img
-                key={z.nombre}
-                src={z.img}
-                alt={z.nombre}
-                className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${zonaActiva === i ? "opacity-100 scale-100" : "opacity-0 scale-105"}`}
-              />
-            ))}
-            </div>
-            <div className="absolute bottom-4 left-4 right-4">
-              <div className="inline-flex min-w-[220px] flex-col gap-1.5 rounded-[15px] bg-[#fefefe] p-4">
-                <span className="text-[12px] uppercase tracking-[0.06em] text-[#6b6b6b]">
-                  {String(zonaActiva + 1).padStart(2, "0")} · Zona
-                </span>
-                <span className="text-[22px] font-medium tracking-[-0.02em]">{zona.nombre}</span>
-                <span className="text-[14px] text-[#6b6b6b]">
-                  {zona.count} · desde {zona.desde}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <SeccionDiferenciaRehabinco />
 
       <section id="reformas" className="corp-pad grid items-start gap-12 pb-0 pt-[clamp(80px,10vw,150px)] md:grid-cols-2 md:gap-20">
         <div className="flex flex-col gap-10">

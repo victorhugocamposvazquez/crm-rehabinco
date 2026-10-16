@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { BUSQUEDAS, INTERESES, OFICINA, WA } from "@/lib/web/corporativa/contenido";
+import { BUSQUEDAS, INSTAGRAM, INTERESES, OFICINA, WA } from "@/lib/web/corporativa/contenido";
 import { hrefAvisoLegal, hrefInicio, hrefPoliticaCookies } from "@/lib/web/dominio";
 import { abrirConfiguracionCookies } from "./CookieBanner";
 import { SplitLine } from "./TipografiaMotion";
@@ -137,7 +137,7 @@ export function ContactoFooter({ enDominio }: { enDominio: boolean }) {
           <div className="flex flex-wrap justify-between gap-3 border-t border-[rgba(254,254,254,.16)] pt-5 text-[13px] text-[#9a9a9a]">
             <span>© {new Date().getFullYear()} Rehabinco Gestión Inmobiliaria y Reformas</span>
             <div className="flex flex-wrap gap-5">
-              <a href="https://www.instagram.com/rehabinco1/" target="_blank" rel="noreferrer" className="hover:text-[#fefefe]">
+              <a href={INSTAGRAM} target="_blank" rel="noreferrer" className="hover:text-[#fefefe]">
                 Instagram
               </a>
               <a href={`https://api.whatsapp.com/send?phone=${WA}`} target="_blank" rel="noreferrer" className="hover:text-[#fefefe]">
