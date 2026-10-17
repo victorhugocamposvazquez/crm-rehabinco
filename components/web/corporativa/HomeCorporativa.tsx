@@ -360,7 +360,7 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
         </p>
       </section>
 
-      <section className="corp-inset-x relative flex min-h-[clamp(520px,70vh,760px)] overflow-hidden rounded-[28px] bg-[#080808] text-[#fefefe]">
+      <section className="corp-inset-x relative flex min-h-[clamp(520px,70vh,760px)] overflow-hidden rounded-none bg-[#080808] text-[#fefefe] md:rounded-[28px]">
         <div data-px="" className="absolute inset-0 overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={`${A}/edificio-noche.jpg`} alt="" className="h-full w-full object-cover" style={{ transform: "scale(1.12)" }} />

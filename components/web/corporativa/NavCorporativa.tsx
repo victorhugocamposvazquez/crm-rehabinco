@@ -13,7 +13,7 @@ export function NavCorporativa({ enDominio, clara = false }: { enDominio: boolea
 
   return (
     <>
-      <header className={`corp-pad absolute inset-x-0 top-0 z-40 flex w-full min-w-0 items-center justify-between py-5 ${clara ? "text-[#080808]" : "text-[#fefefe]"}`}>
+      <header className={`corp-pad corp-pad-tight absolute inset-x-0 top-0 z-40 flex w-full min-w-0 items-center justify-between py-5 ${clara ? "text-[#080808]" : "text-[#fefefe]"}`}>
         <Link href={inicio} className="relative z-10 block h-[clamp(30px,2.3vw,38px)] w-[140px]">
           <Image src="/web/assets/rh-logo-blanco.svg" alt="Rehabinco" fill className={`object-contain object-left ${clara ? "invert" : ""}`} priority />
         </Link>

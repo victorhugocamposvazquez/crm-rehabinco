@@ -57,6 +57,34 @@
     font-size: clamp(28px, 7.4vw, 40px);
     letter-spacing: -0.03em;
   }
+
+  /* Cabeceras tipo hero y footer de contacto: a sangre, sin huecos laterales */
+  .web-corp .corp-inset-x,
+  .web-corp .corp-inset,
+  .web-corp .corp-band {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .web-corp .corp-inset {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  .web-corp .corp-inset-x {
+    margin-bottom: 0;
+    border-radius: 0;
+  }
+
+  .web-corp .corp-band {
+    margin-top: clamp(56px, 14vw, 80px);
+    border-radius: 0;
+  }
+
+  .web-corp .corp-pad-tight {
+    padding-left: clamp(12px, 3.8vw, 16px);
+    padding-right: clamp(12px, 3.8vw, 16px);
+  }
 }
 
 .web-corp .corp-h2 [data-split],
