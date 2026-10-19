@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { avisoPublicacion, faltasIdealista, type DatosPublicacion } from "./publicacion";
+import { avisoPublicacion, faltasIdealista, faltasWeb, type DatosPublicacion } from "./publicacion";
 
 const PISO: DatosPublicacion = {
   tipo_inmueble: "piso",
@@ -64,6 +64,10 @@ describe("publicación Idealista", () => {
       certificado_energetico: "",
     });
     assert.deepEqual(faltas, []);
+  });
+
+  it("un precio con punto de miles cuenta para la web", () => {
+    assert.deepEqual(faltasWeb({ ...PISO, precio_venta: "350.000 €" }), []);
   });
 
   it("el aviso solo sale si el check está marcado", () => {

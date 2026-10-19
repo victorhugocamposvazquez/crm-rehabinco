@@ -1,4 +1,5 @@
 import type { InmuebleFormValues } from "./catalogo";
+import { eurosDesdeTexto } from "./euros";
 import {
   esTerrenoIdealista,
   esViviendaIdealista,
@@ -44,8 +45,7 @@ export type DatosPublicacion = {
 };
 
 function numero(valor: string): number | null {
-  const n = Number(valor);
-  return valor.trim() && Number.isFinite(n) ? n : null;
+  return eurosDesdeTexto(valor);
 }
 
 function precioOk(datos: DatosPublicacion): boolean {

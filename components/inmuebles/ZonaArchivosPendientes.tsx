@@ -16,6 +16,7 @@ import {
   reordenarIndice,
   validarArchivosEntrada,
 } from "@/lib/inmuebles/archivos-pendientes";
+import { useReordenarPuntero } from "@/lib/inmuebles/reordenar-puntero";
 import { cn } from "@/lib/utils";
 
 export function ZonaArchivosPendientes({
@@ -30,8 +31,9 @@ export function ZonaArchivosPendientes({
   const filesRef = useRef(files);
   filesRef.current = files;
   const [sueltaActiva, setSueltaActiva] = useState(false);
-  const [arrastrandoIdx, setArrastrandoIdx] = useState<number | null>(null);
-  const [destinoIdx, setDestinoIdx] = useState<number | null>(null);
+  const reordenar = useReordenarPuntero((desde, hasta) => {
+    onChange(reordenarIndice(filesRef.current, desde, hasta));
+  });
 
   const etiqueta = tipo === "plano" ? "plano" : "foto";
   const etiquetaPlural = tipo === "plano" ? "planos" : "fotos";
@@ -72,17 +74,6 @@ export function ZonaArchivosPendientes({
     if (arrastrandoArchivos(e.dataTransfer)) ingestar(e.dataTransfer.files);
   };
 
-  const soltarEnMiniatura = (e: React.DragEvent, idx: number) => {
-    activarSolturaArchivos(e);
-    setDestinoIdx(null);
-    if (arrastrandoIdx != null && arrastrandoIdx !== idx) {
-      onChange(reordenarIndice(files, arrastrandoIdx, idx));
-      setArrastrandoIdx(null);
-      return;
-    }
-    if (arrastrandoArchivos(e.dataTransfer)) ingestar(e.dataTransfer.files);
-  };
-
   return (
     <div
       className="mt-2"
@@ -103,36 +94,24 @@ export function ZonaArchivosPendientes({
       onDrop={soltarEnZona}
     >
       {files.length ? (
-        <ul className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <ul ref={reordenar.listaRef} className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
           {files.map((file, idx) => {
             const key = claveArchivo(file);
             const preview = previews.get(key);
             const esPortada = tipo === "foto" && idx === 0;
-            const resaltada = destinoIdx === idx && arrastrandoIdx != null && arrastrandoIdx !== idx;
+            const resaltada = reordenar.hasta === idx && reordenar.desde != null && reordenar.desde !== idx;
             return (
               <li
                 key={key}
-                draggable
-                onDragStart={() => setArrastrandoIdx(idx)}
-                onDragEnd={() => {
-                  setArrastrandoIdx(null);
-                  setDestinoIdx(null);
-                }}
-                onDragOver={(e) => {
-                  if (arrastrandoIdx != null) {
-                    activarSolturaArchivos(e);
-                    setDestinoIdx(idx);
-                    return;
-                  }
-                  if (arrastrandoArchivos(e.dataTransfer)) activarSolturaArchivos(e);
-                }}
-                onDragLeave={() => {
-                  if (destinoIdx === idx) setDestinoIdx(null);
-                }}
-                onDrop={(e) => soltarEnMiniatura(e, idx)}
+                data-orden-idx={idx}
+                onPointerDown={reordenar.alBajar(idx)}
+                onPointerMove={reordenar.alMover}
+                onPointerUp={reordenar.alLevantar}
+                onPointerCancel={reordenar.alLevantar}
                 className={cn(
-                  "group relative cursor-grab overflow-hidden rounded-[12px] border bg-[var(--surface-soft)] active:cursor-grabbing",
-                  resaltada ? "border-accent ring-2 ring-accent/30" : "border-[var(--border)]"
+                  "group relative cursor-grab touch-none overflow-hidden rounded-[12px] border bg-[var(--surface-soft)] active:cursor-grabbing",
+                  resaltada ? "border-accent ring-2 ring-accent/30" : "border-[var(--border)]",
+                  reordenar.desde === idx && "opacity-70"
                 )}
               >
                 {preview ? (
@@ -150,7 +129,7 @@ export function ZonaArchivosPendientes({
                 <button
                   type="button"
                   onClick={() => quitar(idx)}
-                  className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-black/55 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                  className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-black/55 text-white"
                   aria-label={`Quitar ${etiqueta}`}
                 >
                   <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
@@ -192,7 +171,7 @@ export function ZonaArchivosPendientes({
         </p>
         <p className="mt-1 max-w-[22rem] text-[12.5px] leading-5 text-[var(--text-2)]">
           {tipo === "foto"
-            ? "O pulsa para elegir archivos. La primera es la portada; arrastra las miniaturas para reordenar."
+            ? "O pulsa para elegir. Arrastra una foto con el dedo o el trackpad: la primera es la portada."
             : "PDF o imagen. Puedes soltar varios a la vez."}
         </p>
         {files.length ? (

@@ -16,6 +16,7 @@ import {
   validarArchivosEntrada,
 } from "@/lib/inmuebles/archivos-pendientes";
 import type { RevisionMediaTipo } from "@/lib/inmuebles/revision-media";
+import { useReordenarPuntero } from "@/lib/inmuebles/reordenar-puntero";
 import { anadirArchivosRevision, quitarFilaRevision, reordenarFilasRevision } from "@/lib/inmuebles/revision-media";
 import { cn } from "@/lib/utils";
 
@@ -36,8 +37,9 @@ export function GaleriaMediaRevision({
   const revisionRef = useRef(revision);
   revisionRef.current = revision;
   const [sueltaActiva, setSueltaActiva] = useState(false);
-  const [arrastrandoIdx, setArrastrandoIdx] = useState<number | null>(null);
-  const [destinoIdx, setDestinoIdx] = useState<number | null>(null);
+  const reordenar = useReordenarPuntero((desde, hasta) => {
+    onChange(reordenarFilasRevision(revisionRef.current, desde, hasta));
+  });
 
   const etiqueta = tipo === "plano" ? "plano" : "foto";
   const etiquetaPlural = tipo === "plano" ? "planos" : "fotos";
@@ -78,18 +80,6 @@ export function GaleriaMediaRevision({
     if (arrastrandoArchivos(e.dataTransfer)) ingestar(e.dataTransfer.files);
   };
 
-  const soltarEnFila = (e: React.DragEvent, idx: number) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDestinoIdx(null);
-    if (arrastrandoIdx != null && arrastrandoIdx !== idx) {
-      onChange(reordenarFilasRevision(revision, arrastrandoIdx, idx));
-      setArrastrandoIdx(null);
-      return;
-    }
-    if (arrastrandoArchivos(e.dataTransfer)) ingestar(e.dataTransfer.files);
-  };
-
   return (
     <div
       onDragEnter={(e) => {
@@ -113,9 +103,9 @@ export function GaleriaMediaRevision({
       )}
     >
       {filas.length ? (
-        <ul className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <ul ref={reordenar.listaRef} className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
           {filas.map((fila, idx) => {
-            const resaltada = destinoIdx === idx && arrastrandoIdx != null && arrastrandoIdx !== idx;
+            const resaltada = reordenar.hasta === idx && reordenar.desde != null && reordenar.desde !== idx;
             const esPortada = tipo === "foto" && idx === 0;
             const preview =
               fila.origen === "nuevo"
@@ -126,27 +116,15 @@ export function GaleriaMediaRevision({
             return (
               <li
                 key={fila.id}
-                draggable
-                onDragStart={() => setArrastrandoIdx(idx)}
-                onDragEnd={() => {
-                  setArrastrandoIdx(null);
-                  setDestinoIdx(null);
-                }}
-                onDragOver={(e) => {
-                  if (arrastrandoIdx != null) {
-                    activarSolturaArchivos(e);
-                    setDestinoIdx(idx);
-                    return;
-                  }
-                  if (arrastrandoArchivos(e.dataTransfer)) activarSolturaArchivos(e);
-                }}
-                onDragLeave={() => {
-                  if (destinoIdx === idx) setDestinoIdx(null);
-                }}
-                onDrop={(e) => soltarEnFila(e, idx)}
+                data-orden-idx={idx}
+                onPointerDown={reordenar.alBajar(idx)}
+                onPointerMove={reordenar.alMover}
+                onPointerUp={reordenar.alLevantar}
+                onPointerCancel={reordenar.alLevantar}
                 className={cn(
-                  "group relative cursor-grab overflow-hidden rounded-[12px] border bg-[var(--surface-soft)] active:cursor-grabbing",
+                  "group relative cursor-grab touch-none overflow-hidden rounded-[12px] border bg-[var(--surface-soft)] active:cursor-grabbing",
                   resaltada ? "border-accent ring-2 ring-accent/30" : "border-[var(--border)]",
+                  reordenar.desde === idx && "opacity-70",
                   fila.origen === "nuevo" && "ring-1 ring-dashed ring-[var(--border)]"
                 )}
               >
@@ -167,7 +145,7 @@ export function GaleriaMediaRevision({
                     Portada
                   </span>
                 ) : null}
-                <div className="absolute inset-x-0 bottom-0 flex justify-end gap-1 bg-gradient-to-t from-black/50 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
+                <div className="absolute inset-x-0 bottom-0 flex justify-end gap-1 bg-gradient-to-t from-black/50 to-transparent p-2">
                   <button
                     type="button"
                     onClick={() => onChange(quitarFilaRevision(revision, fila.id))}
@@ -204,7 +182,7 @@ export function GaleriaMediaRevision({
         </p>
         <p className="mt-1 max-w-[24rem] text-[12.5px] leading-5 text-[var(--text-2)]">
           {tipo === "foto"
-            ? "Suelta archivos o pulsa para elegir. La primera miniatura es la portada: arrástrala arriba si hace falta. Guarda los cambios abajo."
+            ? "Pulsa para elegir. Arrastra una foto con el dedo o el trackpad: la primera es la portada. Guarda los cambios abajo."
             : "PDF o imagen. Varios a la vez; guarda los cambios cuando acabes."}
         </p>
       </button>

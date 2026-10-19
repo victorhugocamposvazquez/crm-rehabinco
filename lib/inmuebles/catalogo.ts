@@ -1,3 +1,4 @@
+import { eurosDesdeTexto } from "./euros";
 import { idealistaTipoDesdeTipoInmueble, parseIdealistaVisibilidad } from "./idealista";
 
 export const TIPOS_INMUEBLE = [
@@ -228,8 +229,7 @@ export function etiquetaSiNo(valor: boolean | null | undefined): string {
 }
 
 function numOrNull(v: string) {
-  const n = Number(v);
-  return v.trim() && Number.isFinite(n) ? n : null;
+  return eurosDesdeTexto(v);
 }
 
 export function inmuebleDesdeForm(values: InmuebleFormValues) {
