@@ -10,7 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
-import { UserPlus, Search, X } from "lucide-react";
+import { UserPlus, Search, Trash2, X } from "lucide-react";
+import { toast } from "sonner";
+import { AlertDialog } from "@/components/ui/alert-dialog";
+import { eliminarContacto, textoConfirmarEliminarContacto } from "@/lib/clientes/eliminar-contacto";
 import { inicialesNombre, nombreYApellido } from "@/lib/ui/tokens";
 import { cargarPerfilesEquipo, mapaPerfiles, type PerfilEquipo } from "@/lib/equipo/perfiles";
 import { telWhatsApp } from "@/lib/ui/estados-vista";
@@ -117,6 +120,7 @@ export default function ClientesPage() {
   const [narrow, setNarrow] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nuevaOpen, setNuevaOpen] = useState(false);
+  const [clienteAltaKey, setClienteAltaKey] = useState(0);
   const [demandaOpen, setDemandaOpen] = useState(false);
   const [padreInicial, setPadreInicial] = useState<string | undefined>();
   const [contactoInicial, setContactoInicial] = useState<
@@ -125,6 +129,8 @@ export default function ClientesPage() {
   const [cargaKey, setCargaKey] = useState(0);
   const [listaLista, setListaLista] = useState(0);
   const [pendingSelectedId, setPendingSelectedId] = useState<string | null>(null);
+  const [eliminarId, setEliminarId] = useState<string | null>(null);
+  const [eliminando, setEliminando] = useState(false);
   const hayBorrador = useHayAltaBorrador("cliente");
 
   useEffect(() => {
@@ -335,6 +341,32 @@ export default function ClientesPage() {
   const selected = filtered.find((c) => c.id === selectedId) ?? null;
   const wa = selected ? telWhatsApp(selected.telefono) : null;
 
+  const contactoEliminar = eliminarId ? clientes.find((c) => c.id === eliminarId) ?? null : null;
+  const dialogoEliminar = contactoEliminar
+    ? textoConfirmarEliminarContacto({
+        nombre: contactoEliminar.nombre,
+        tieneOferta: contactoEliminar.tieneOferta,
+        tieneBusqueda: contactoEliminar.tieneBusqueda,
+      })
+    : null;
+
+  const confirmarEliminar = async () => {
+    if (!eliminarId) return;
+    setEliminando(true);
+    const supabase = createClient();
+    const resultado = await eliminarContacto(supabase, eliminarId);
+    setEliminando(false);
+    if (!resultado.ok) {
+      toast.error(resultado.error);
+      return;
+    }
+    toast.success("Contacto eliminado.");
+    setClientes((prev) => prev.filter((c) => c.id !== eliminarId));
+    if (selectedId === eliminarId) setSelectedId(null);
+    setEliminarId(null);
+    setCargaKey((n) => n + 1);
+  };
+
   const pasarACliente = async (id: string) => {
     const supabase = createClient();
     const { data, error: err } = await supabase.from("clientes").update({ es_cliente: true }).eq("id", id).select("id").maybeSingle();
@@ -362,7 +394,17 @@ export default function ClientesPage() {
         description="La agenda. Quien busca, ofrece o tiene obra pasa a cliente; el resto sigue como contacto."
         hideActionsOnMobile
         actions={
-          <Button type="button" size="sm" onClick={() => { setPadreInicial(undefined); setNuevaOpen(true); }} className="gap-2">
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => {
+              setPadreInicial(undefined);
+              setContactoInicial(undefined);
+              if (nuevaOpen) setClienteAltaKey((k) => k + 1);
+              setNuevaOpen(true);
+            }}
+            className="gap-2"
+          >
             <UserPlus className="h-4 w-4" strokeWidth={1.5} />
             {hayBorrador ? "Continuar borrador" : "Nuevo contacto"}
           </Button>
@@ -515,11 +557,21 @@ export default function ClientesPage() {
                     </span>
                   </p>
                 </div>
-                {narrow ? (
-                  <button type="button" onClick={() => setSelectedId(null)} className="grid h-[34px] w-[34px] place-items-center rounded-[9px] border border-border" aria-label="Cerrar">
-                    <X className="h-4 w-4" strokeWidth={2.4} />
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setEliminarId(selected.id)}
+                    className="grid h-[34px] w-[34px] place-items-center rounded-[9px] border border-border text-red-600 hover:bg-red-50"
+                    aria-label="Eliminar contacto"
+                  >
+                    <Trash2 className="h-4 w-4" strokeWidth={2} />
                   </button>
-                ) : null}
+                  {narrow ? (
+                    <button type="button" onClick={() => setSelectedId(null)} className="grid h-[34px] w-[34px] place-items-center rounded-[9px] border border-border" aria-label="Cerrar">
+                      <X className="h-4 w-4" strokeWidth={2.4} />
+                    </button>
+                  ) : null}
+                </div>
               </div>
               <div className="mt-5 flex flex-wrap gap-2 px-5">
                 {selected.telefono ? (
@@ -660,10 +712,17 @@ export default function ClientesPage() {
                   )}
                 </div>
               ))}
-              <div className="px-4 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                 <Link href={`/clientes/${selected.id}`} className="text-[12.5px] font-medium text-accent hover:underline">
                   Abrir ficha completa
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => setEliminarId(selected.id)}
+                  className="text-[12.5px] font-medium text-red-600 hover:underline"
+                >
+                  Eliminar contacto
+                </button>
               </div>
             </aside>
           ) : null}
@@ -681,7 +740,21 @@ export default function ClientesPage() {
           setCargaKey((n) => n + 1);
         }}
       />
+      <AlertDialog
+        open={Boolean(eliminarId && dialogoEliminar)}
+        onOpenChange={(open) => {
+          if (!open) setEliminarId(null);
+        }}
+        title={dialogoEliminar?.title ?? "¿Eliminar contacto?"}
+        description={dialogoEliminar?.description ?? ""}
+        confirmLabel={eliminando ? "Eliminando…" : "Eliminar"}
+        onConfirm={() => void confirmarEliminar()}
+        loading={eliminando}
+        variant="destructive"
+      />
+
       <NuevoClientePanel
+        key={clienteAltaKey}
         open={nuevaOpen}
         onOpenChange={(open) => {
           setNuevaOpen(open);
@@ -693,6 +766,7 @@ export default function ClientesPage() {
         padreId={padreInicial}
         contactoInicial={contactoInicial}
         onCreado={(id) => {
+          setClienteAltaKey((k) => k + 1);
           setPendingSelectedId(id);
           setCargaKey((n) => n + 1);
         }}

@@ -65,6 +65,7 @@ export function NuevoClientePanel({
   const [notas, setNotas] = useState("");
   const [saving, setSaving] = useState(false);
   const nombreRef = useRef<HTMLInputElement>(null);
+  const creandoRef = useRef(false);
 
   const sincronizarAutofill = () => {
     const form = nombreRef.current?.form;
@@ -131,6 +132,7 @@ export function NuevoClientePanel({
   };
 
   const crear = async () => {
+    if (creandoRef.current || saving) return;
     if (!nombre.trim()) {
       toast.error("El nombre es obligatorio.");
       return;
@@ -145,36 +147,44 @@ export function NuevoClientePanel({
     }
     const tipoDoc =
       tipoCliente === "empresa" ? (tipoDocumento === "vat" ? "vat" : "cif") : tipoDocumento === "nie" ? "nie" : "dni";
+    const nombreGuardado = nombre.trim();
+    const telefonoGuardado = telefono.trim() || null;
+    creandoRef.current = true;
     setSaving(true);
-    const { data, error } = await supabase
-      .from("clientes")
-      .insert({
-        user_id: user.id,
-        nombre: nombre.trim(),
-        tipo_cliente: tipoCliente,
-        cliente_padre_id: padreId || null,
-        documento_fiscal: documentoFiscal.trim() || null,
-        tipo_documento: documentoFiscal.trim() ? tipoDoc : null,
-        email: email.trim() || null,
-        telefono: telefono.trim() || null,
-        direccion: direccion.trim() || null,
-        codigo_postal: codigoPostal.trim() || null,
-        localidad: localidad.trim() || null,
-        notas: notas.trim() || null,
-        activo: true,
-      })
-      .select("id")
-      .single();
-    setSaving(false);
-    const aviso = mensajeGuardado(error, "No se ha podido crear el contacto.", data);
-    if (aviso || !data) {
-      toast.error(aviso ?? "No se ha podido crear el contacto.");
-      return;
+    try {
+      const { data, error } = await supabase
+        .from("clientes")
+        .insert({
+          user_id: user.id,
+          nombre: nombreGuardado,
+          tipo_cliente: tipoCliente,
+          cliente_padre_id: padreId || null,
+          documento_fiscal: documentoFiscal.trim() || null,
+          tipo_documento: documentoFiscal.trim() ? tipoDoc : null,
+          email: email.trim() || null,
+          telefono: telefonoGuardado,
+          direccion: direccion.trim() || null,
+          codigo_postal: codigoPostal.trim() || null,
+          localidad: localidad.trim() || null,
+          notas: notas.trim() || null,
+          activo: true,
+        })
+        .select("id")
+        .single();
+      const aviso = mensajeGuardado(error, "No se ha podido crear el contacto.", data);
+      if (aviso || !data) {
+        toast.error(aviso ?? "No se ha podido crear el contacto.");
+        return;
+      }
+      toast.success(empresaAsociada ? "Empresa asociada creada." : "Contacto creado.");
+      altaBorrador.consumir();
+      vaciar();
+      onOpenChange(false);
+      onCreado(data.id, { nombre: nombreGuardado, telefono: telefonoGuardado });
+    } finally {
+      setSaving(false);
+      creandoRef.current = false;
     }
-    toast.success(empresaAsociada ? "Empresa asociada creada." : "Contacto creado.");
-    altaBorrador.consumir();
-    onOpenChange(false);
-    onCreado(data.id, { nombre: nombre.trim(), telefono: telefono.trim() || null });
   };
 
   return (

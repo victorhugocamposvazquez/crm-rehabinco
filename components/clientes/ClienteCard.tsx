@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog } from "@/components/ui/alert-dialog";
+import { eliminarContacto } from "@/lib/clientes/eliminar-contacto";
+import { toast } from "sonner";
 import { MoreVertical, Eye, Pencil, FileText, Trash2 } from "lucide-react";
 
 interface ClienteCardProps {
@@ -75,13 +77,16 @@ export function ClienteCard({ id, nombre, email, telefono, activo, etiqueta, onD
     setDeleting(true);
     const { createClient } = await import("@/lib/supabase/client");
     const supabase = createClient();
-    const { error } = await supabase.from("clientes").delete().eq("id", id);
+    const resultado = await eliminarContacto(supabase, id);
     setDeleting(false);
     setShowDeleteConfirm(false);
-    if (!error) {
-      onDeleted?.();
-      router.refresh();
+    if (!resultado.ok) {
+      toast.error(resultado.error);
+      return;
     }
+    toast.success("Contacto eliminado.");
+    onDeleted?.();
+    router.refresh();
   };
 
   const cardRect = actionsOpen && cardRef.current ? cardRef.current.getBoundingClientRect() : null;

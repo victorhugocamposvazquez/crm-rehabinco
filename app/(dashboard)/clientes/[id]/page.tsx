@@ -18,6 +18,8 @@ import { Pencil, Trash2, FileText, Building2, Plus, Home } from "lucide-react";
 import { rutaNuevaCita } from "@/lib/citas/citas";
 import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
 import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
+import { eliminarContacto, textoConfirmarEliminarContacto } from "@/lib/clientes/eliminar-contacto";
+import { toast } from "sonner";
 import { useAuth } from "@/lib/auth/auth-context";
 import { isAdmin } from "@/lib/auth/roles";
 
@@ -151,16 +153,26 @@ export default function DetalleClientePage() {
     if (!cliente) return;
     setDeleting(true);
     const supabase = createClient();
-    const { error: err } = await supabase.from("clientes").delete().eq("id", id);
+    const resultado = await eliminarContacto(supabase, id);
     setDeleting(false);
-    if (err) {
-      setError(err.message);
+    if (!resultado.ok) {
+      toast.error(resultado.error);
       setShowDeleteConfirm(false);
       return;
     }
+    toast.success("Contacto eliminado.");
     router.push("/clientes");
     router.refresh();
   };
+
+  const copyEliminar =
+    cliente &&
+    textoConfirmarEliminarContacto({
+      nombre: cliente.nombre,
+      tieneOferta: propiedades.length > 0,
+      tieneBusqueda: demandas.length > 0,
+      numFacturas: facturas.length,
+    });
 
   if (loading) return <ClienteDetailSkeleton />;
 
@@ -242,12 +254,8 @@ export default function DetalleClientePage() {
       <AlertDialog
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
-        title={`¿Eliminar contacto ${cliente.nombre}?`}
-        description={
-          facturas.length > 0
-            ? `Tiene ${facturas.length} factura(s) asociada(s). El contacto se eliminará y las facturas quedarán sin cliente asignado.`
-            : "Esta acción no se puede deshacer."
-        }
+        title={copyEliminar?.title ?? `¿Eliminar ${cliente.nombre}?`}
+        description={copyEliminar?.description ?? "Esta acción no se puede deshacer."}
         confirmLabel={deleting ? "Eliminando…" : "Eliminar"}
         onConfirm={handleDelete}
         loading={deleting}

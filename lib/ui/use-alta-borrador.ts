@@ -28,6 +28,7 @@ export function useAltaBorrador<T>({
   const [listo, setListo] = useState(false);
   const vacioRef = useRef(estaVacio);
   const snapshotRef = useRef(snapshot);
+  const omitirGuardadoAlCerrarRef = useRef(false);
   vacioRef.current = estaVacio;
   snapshotRef.current = snapshot;
 
@@ -50,6 +51,10 @@ export function useAltaBorrador<T>({
 
   useEffect(() => {
     if (open || !listo) return;
+    if (omitirGuardadoAlCerrarRef.current) {
+      omitirGuardadoAlCerrarRef.current = false;
+      return;
+    }
     const actual = snapshotRef.current;
     if (vacioRef.current(actual)) return;
     const savedAt = escribirAltaBorrador(tipo, ambito, actual);
@@ -82,11 +87,13 @@ export function useAltaBorrador<T>({
       return sobre.data;
     },
     descartar: () => {
+      omitirGuardadoAlCerrarRef.current = true;
       borrarAltaBorrador(tipo, ambito);
       setHayBorrador(false);
       setGuardadoEn(null);
     },
     consumir: () => {
+      omitirGuardadoAlCerrarRef.current = true;
       borrarAltaBorrador(tipo, ambito);
       setHayBorrador(false);
       setGuardadoEn(null);
