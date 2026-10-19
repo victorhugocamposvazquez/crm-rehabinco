@@ -101,7 +101,7 @@ export function InmuebleGaleria({
     activarSolturaArchivos(e);
     setSueltaActiva(false);
     if (!arrastrandoArchivos(e.dataTransfer)) return;
-    void upload(e.dataTransfer.files);
+    void upload(Array.from(e.dataTransfer.files));
   };
 
   return (
