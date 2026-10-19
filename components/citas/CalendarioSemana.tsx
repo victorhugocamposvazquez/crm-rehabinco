@@ -9,6 +9,8 @@ import {
   horaCita,
   horaDesdeMinutos,
   minutosDesdeOffsetY,
+  columnasEventosSolapados,
+  estiloAnchoEventoSolapado,
   posicionEventoCalendario,
   TIPO_CITA_LABEL,
   type TipoCita,
@@ -81,6 +83,7 @@ export function CalendarioSemana({
   onCrearHueco: (dia: string, minutos: number) => void;
 }) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [focoEventoId, setFocoEventoId] = useState<string | null>(null);
   const [over, setOver] = useState<{ dia: string; minutos: number } | null>(null);
   const arrastroRef = useRef(false);
   const altura = (CAL_HORA_FIN - CAL_HORA_INICIO + 1) * CAL_PX_HORA;
@@ -140,6 +143,7 @@ export function CalendarioSemana({
         </div>
         {semana.map((d) => {
           const lista = porDia.get(d) ?? [];
+          const columnas = columnasEventosSolapados(lista);
           const esHoy = d === hoy;
           const sobre = over?.dia === d;
           return (
@@ -178,16 +182,21 @@ export function CalendarioSemana({
               {sobre ? <GuiaHoraCalendario minutos={over.minutos} /> : null}
               {lista.map((cita) => {
                 const { top, height } = posicionEventoCalendario(cita.empieza, cita.termina);
+                const layout = columnas.get(cita.id);
+                const ancho = estiloAnchoEventoSolapado(layout?.column ?? 0, layout?.columnCount ?? 1);
                 const color = colorComercial(cita.comercial_id, cita.profiles?.color);
                 const prevista = cita.estado === "prevista";
                 const editable = prevista && (puedeGestionar?.(cita.comercial_id) ?? true);
                 const arrastrando = draggingId === cita.id;
+                const enfocado = focoEventoId === cita.id || arrastrando;
                 return (
                   <button
                     key={cita.id}
                     type="button"
                     data-cal-evento
                     draggable={editable}
+                    onMouseEnter={() => setFocoEventoId(cita.id)}
+                    onMouseLeave={() => setFocoEventoId((prev) => (prev === cita.id ? null : prev))}
                     onDragStart={(e) => {
                       arrastroRef.current = true;
                       e.dataTransfer.setData("text/cita", cita.id);
@@ -217,7 +226,7 @@ export function CalendarioSemana({
                       if (editable) onEditar(cita.id);
                     }}
                     className={cn(
-                      "cal-evento absolute inset-x-1 overflow-hidden rounded-[7px] px-1.5 py-0.5 text-left",
+                      "cal-evento absolute overflow-hidden rounded-[7px] px-1.5 py-0.5 text-left",
                       editable && "cursor-grab active:cursor-grabbing",
                       !editable && prevista && "cursor-default",
                       arrastrando && "cal-evento--dragging"
@@ -225,6 +234,9 @@ export function CalendarioSemana({
                     style={{
                       top,
                       height,
+                      left: ancho.left,
+                      width: ancho.width,
+                      zIndex: enfocado ? 30 : (layout?.column ?? 0) + 1,
                       background: `${color}1A`,
                       borderLeft: `3px solid ${color}`,
                     }}

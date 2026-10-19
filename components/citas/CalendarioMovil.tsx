@@ -17,6 +17,8 @@ import {
   CAL_PX_HORA,
   ESTADO_CITA_LABEL,
   horaCita,
+  columnasEventosSolapados,
+  estiloAnchoEventoSolapado,
   minutosDesdeOffsetY,
   posicionEventoCalendario,
   TIPO_CITA_LABEL,
@@ -78,6 +80,7 @@ export function CalendarioMovil({
   const [overDia, setOverDia] = useState<string | null>(null);
   const [ghost, setGhost] = useState<{ x: number; y: number } | null>(null);
   const [snapMinutos, setSnapMinutos] = useState<number | null>(null);
+  const columnas = columnasEventosSolapados(citas);
 
   const diaBajoPunto = (x: number, y: number) => {
     const nodo = document.elementFromPoint(x, y);
@@ -216,9 +219,12 @@ export function CalendarioMovil({
         {snapMinutos != null ? <GuiaHoraCalendario minutos={snapMinutos} /> : null}
         {citas.map((cita) => {
           const { top, height } = posicionEventoCalendario(cita.empieza, cita.termina);
+          const layout = columnas.get(cita.id);
+          const ancho = estiloAnchoEventoSolapado(layout?.column ?? 0, layout?.columnCount ?? 1, 48, 2);
           const color = colorComercial(cita.comercial_id, cita.profiles?.color);
           const prevista = cita.estado === "prevista";
           const editable = prevista && (puedeGestionar?.(cita.comercial_id) ?? true);
+          const activo = draggingId === cita.id;
           return (
             <div
               key={cita.id}
@@ -230,12 +236,15 @@ export function CalendarioMovil({
               onPointerMove={seguir}
               onPointerUp={soltarEnRejilla}
               onPointerCancel={limpiar}
-              className={`cal-evento absolute right-2 left-12 overflow-hidden rounded-[7px] px-2 py-1 touch-none select-none ${
-                draggingId === cita.id ? "cal-evento--dragging" : ""
+              className={`cal-evento absolute overflow-hidden rounded-[7px] px-2 py-1 touch-none select-none ${
+                activo ? "cal-evento--dragging" : ""
               }`}
               style={{
                 top,
                 height,
+                left: ancho.left,
+                width: ancho.width,
+                zIndex: activo ? 30 : (layout?.column ?? 0) + 1,
                 background: `${color}1A`,
                 borderLeft: `3px solid ${color}`,
               }}

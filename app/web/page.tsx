@@ -2,15 +2,20 @@ import type { Metadata } from "next";
 import { HomeCorporativa } from "@/components/web/corporativa/HomeCorporativa";
 import { cargarCatalogoCorporativa } from "@/lib/web/corporativa/cargar";
 import { enDominioPublico } from "@/lib/web/en-dominio";
+import {
+  DESCRIPCION_SITIO,
+  metadataCorporativa,
+  TITULO_SITIO,
+} from "@/lib/web/corporativa/metadata-seo";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return {
-    title: "Rehabinco · Inmobiliaria y reformas en A Coruña",
-    description: "Compramos, vendemos, alquilamos y reformamos inmuebles en A Coruña y Mallorca.",
-    robots: { index: true, follow: true },
-  };
+  return metadataCorporativa({
+    title: TITULO_SITIO,
+    description: DESCRIPCION_SITIO,
+    path: "/",
+  });
 }
 
 export default async function WebPublicaPage() {

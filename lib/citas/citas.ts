@@ -189,6 +189,94 @@ export function posicionEventoCalendario(
   return { top, height: Math.max(30, dur * pxPorHora - 4) };
 }
 
+function minutosFinDeCita(empieza: string, termina: string): number {
+  const startMin = minutosLocalesDeCita(empieza);
+  const end = new Date(termina);
+  if (Number.isNaN(end.getTime())) return startMin + CAL_SNAP_MIN;
+  const endMin = end.getHours() * 60 + end.getMinutes();
+  return Math.max(endMin, startMin + CAL_SNAP_MIN);
+}
+
+function solapanMinutos(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
+  return aStart < bEnd && bStart < aEnd;
+}
+
+export type ColumnaEventoCalendario = {
+  column: number;
+  columnCount: number;
+};
+
+/** Reparte eventos solapados en columnas para que se puedan pulsar y arrastrar por separado. */
+export function columnasEventosSolapados<T extends { id: string; empieza: string; termina: string }>(
+  citas: T[]
+): Map<string, ColumnaEventoCalendario> {
+  const resultado = new Map<string, ColumnaEventoCalendario>();
+  if (citas.length === 0) return resultado;
+
+  type Item = { id: string; start: number; end: number };
+  const items: Item[] = citas.map((cita) => ({
+    id: cita.id,
+    start: minutosLocalesDeCita(cita.empieza),
+    end: minutosFinDeCita(cita.empieza, cita.termina),
+  }));
+
+  const visitados = new Set<string>();
+
+  for (const semilla of items) {
+    if (visitados.has(semilla.id)) continue;
+    const grupo: Item[] = [];
+    const pendientes = [semilla];
+    while (pendientes.length) {
+      const actual = pendientes.pop()!;
+      if (visitados.has(actual.id)) continue;
+      visitados.add(actual.id);
+      grupo.push(actual);
+      for (const otro of items) {
+        if (visitados.has(otro.id)) continue;
+        if (solapanMinutos(actual.start, actual.end, otro.start, otro.end)) pendientes.push(otro);
+      }
+    }
+
+    grupo.sort((a, b) => a.start - b.start || b.end - a.end);
+    const finColumna: number[] = [];
+    const columnaPorId = new Map<string, number>();
+
+    for (const ev of grupo) {
+      let col = finColumna.findIndex((fin) => fin <= ev.start);
+      if (col === -1) {
+        col = finColumna.length;
+        finColumna.push(ev.end);
+      } else {
+        finColumna[col] = ev.end;
+      }
+      columnaPorId.set(ev.id, col);
+    }
+
+    const columnCount = Math.max(1, finColumna.length);
+    for (const ev of grupo) {
+      resultado.set(ev.id, { column: columnaPorId.get(ev.id) ?? 0, columnCount });
+    }
+  }
+
+  return resultado;
+}
+
+export function estiloAnchoEventoSolapado(
+  column: number,
+  columnCount: number,
+  insetPx = 4,
+  gapPx = 2
+): { left: string; width: string } {
+  if (columnCount <= 1) {
+    return { left: `${insetPx}px`, width: `calc(100% - ${insetPx * 2}px)` };
+  }
+  const inner = `100% - ${insetPx * 2}px`;
+  return {
+    left: `calc(${insetPx}px + (${inner}) * ${column / columnCount})`,
+    width: `calc((${inner}) / ${columnCount} - ${gapPx}px)`,
+  };
+}
+
 export function moverCitaADiaHora(input: {
   empieza: string;
   termina: string;

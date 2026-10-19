@@ -2,15 +2,17 @@ import type { Metadata } from "next";
 import { ListadoCorporativa } from "@/components/web/corporativa/ListadoCorporativa";
 import { cargarCatalogoCorporativa } from "@/lib/web/corporativa/cargar";
 import { enDominioPublico } from "@/lib/web/en-dominio";
+import { metadataCorporativa, tituloConMarca } from "@/lib/web/corporativa/metadata-seo";
 import type { ModoCorporativa } from "@/lib/web/corporativa/types";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return {
-    title: "Inmuebles | Rehabinco",
+  return metadataCorporativa({
+    title: tituloConMarca("Inmuebles"),
     description: "Pisos y casas en venta y alquiler en A Coruña y alrededores.",
-  };
+    path: "/inmuebles",
+  });
 }
 
 export default async function InmueblesWebPage({

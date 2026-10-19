@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { celdasMes, citasAgrupadasPorDia, citasDelDia, coincideInmueble, direccionDeInmueble, enlaceGoogleMaps, entradaConNotas, etiquetaInmueble, horaCita, horaDesdeMinutos, minutosDesdeHora, minutosDesdeOffsetY, moverCitaADiaHora, moverMes, moverSemana, orFiltroInmueble, puedeHacerParte, portadaDeMedia, prefillParteDesdeCita, rangoGrillaMes, relacionUno, rutaNuevaCita, rutaNuevaVisitaDesdeCita, semanaDesde, snapMinutos } from "./citas";
+import { celdasMes, citasAgrupadasPorDia, citasDelDia, coincideInmueble, columnasEventosSolapados, direccionDeInmueble, enlaceGoogleMaps, entradaConNotas, etiquetaInmueble, horaCita, horaDesdeMinutos, minutosDesdeHora, minutosDesdeOffsetY, moverCitaADiaHora, moverMes, moverSemana, orFiltroInmueble, puedeHacerParte, portadaDeMedia, prefillParteDesdeCita, rangoGrillaMes, relacionUno, rutaNuevaCita, rutaNuevaVisitaDesdeCita, semanaDesde, snapMinutos } from "./citas";
 
 describe("citas", () => {
   it("el parte se abre prellenado desde la cita, no al revés", () => {
@@ -100,6 +100,20 @@ describe("citas", () => {
     assert.equal(end.getHours(), 12);
     assert.equal(minutosDesdeHora("18:30"), 18 * 60 + 30);
     assert.equal(horaDesdeMinutos(11 * 60 + 7), "11:00");
+  });
+
+  it("reparte citas solapadas en columnas distintas", () => {
+    const citas = [
+      { id: "a", empieza: "2026-09-16T09:00:00", termina: "2026-09-16T10:00:00" },
+      { id: "b", empieza: "2026-09-16T09:15:00", termina: "2026-09-16T10:15:00" },
+      { id: "c", empieza: "2026-09-16T12:00:00", termina: "2026-09-16T13:00:00" },
+    ];
+    const mapa = columnasEventosSolapados(citas);
+    assert.equal(mapa.get("a")?.columnCount, 2);
+    assert.equal(mapa.get("b")?.columnCount, 2);
+    assert.notEqual(mapa.get("a")?.column, mapa.get("b")?.column);
+    assert.equal(mapa.get("c")?.columnCount, 1);
+    assert.equal(mapa.get("c")?.column, 0);
   });
 
   it("arma el enlace de Google Maps y la dirección del inmueble", () => {
