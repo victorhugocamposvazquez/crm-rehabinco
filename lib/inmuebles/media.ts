@@ -49,7 +49,7 @@ export function validarArchivoMedia(tipo: TipoMediaInmueble, file: File): string
 }
 
 export function acceptMedia(tipo: TipoMediaInmueble): string {
-  if (tipo === "foto") return "image/*,.heic,.heif,.jpg,.jpeg,.png,.webp";
+  if (tipo === "foto") return "image/*";
   if (tipo === "video") return "video/mp4,video/webm,video/quicktime";
   return "application/pdf,image/*";
 }

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ImagePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { acceptMedia, type TipoMediaInmueble } from "@/lib/inmuebles/media";
+import { abrirSelectorArchivos } from "@/lib/inmuebles/selector-archivos";
 import { prepararFotosParaSubida } from "@/lib/inmuebles/preparar-foto";
 import {
   activarSolturaArchivos,
@@ -26,7 +27,6 @@ export function ZonaArchivosPendientes({
   files: File[];
   onChange: (next: File[]) => void;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
   const filesRef = useRef(files);
   filesRef.current = files;
   const [sueltaActiva, setSueltaActiva] = useState(false);
@@ -164,11 +164,19 @@ export function ZonaArchivosPendientes({
       <div
         role="button"
         tabIndex={0}
-        onClick={() => inputRef.current?.click()}
+        onClick={() =>
+          abrirSelectorArchivos({
+            accept: acceptMedia(tipo),
+            onFiles: (elegidos) => ingestar(elegidos),
+          })
+        }
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            inputRef.current?.click();
+            abrirSelectorArchivos({
+              accept: acceptMedia(tipo),
+              onFiles: (elegidos) => ingestar(elegidos),
+            });
           }
         }}
         className={cn(
@@ -194,17 +202,6 @@ export function ZonaArchivosPendientes({
         ) : null}
       </div>
 
-      <input
-        ref={inputRef}
-        type="file"
-        accept={acceptMedia(tipo)}
-        multiple
-        className="hidden"
-        onChange={(e) => {
-          ingestar(e.target.files);
-          e.target.value = "";
-        }}
-      />
     </div>
   );
 }

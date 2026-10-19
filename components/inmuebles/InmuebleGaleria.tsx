@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, ImagePlus, Trash2 } from "lucide-react";
@@ -10,6 +10,7 @@ import { acceptMedia, esPathExterno, moverMedia, type TipoMediaInmueble } from "
 import { activarSolturaArchivos, arrastrandoArchivos } from "@/lib/inmuebles/archivos-pendientes";
 import { cn } from "@/lib/utils";
 import { sincronizarPortadaEnDb, sincronizarPortadaMemoria } from "@/lib/inmuebles/portada";
+import { abrirSelectorArchivos } from "@/lib/inmuebles/selector-archivos";
 import { subirArchivosMedia } from "@/lib/inmuebles/subir-media";
 
 function esImagen(item: InmuebleMedia) {
@@ -31,7 +32,6 @@ export function InmuebleGaleria({
   onChange: (next: InmuebleMedia[]) => void;
   tipo?: TipoMediaInmueble;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [sueltaActiva, setSueltaActiva] = useState(false);
   const [visor, setVisor] = useState<number | null>(null);
@@ -42,14 +42,14 @@ export function InmuebleGaleria({
     tipo === "plano" ? "plano" : tipo === "video" ? "vídeo" : "foto";
   const etiquetaPlural = tipo === "plano" ? "planos" : tipo === "video" ? "vídeos" : "fotos";
 
-  const upload = async (files: FileList | null) => {
-    if (!files?.length) return;
+  const upload = async (files: File[]) => {
+    if (!files.length) return;
     setBusy(true);
     try {
       const { media: next, errores } = await subirArchivosMedia({
         propiedadId,
         userId,
-        files: Array.from(files),
+        files,
         tipo,
         media,
       });
@@ -57,8 +57,14 @@ export function InmuebleGaleria({
       onChange(next);
     } finally {
       setBusy(false);
-      if (inputRef.current) inputRef.current.value = "";
     }
+  };
+
+  const elegir = () => {
+    abrirSelectorArchivos({
+      accept: acceptMedia(tipo),
+      onFiles: (elegidos) => void upload(elegidos),
+    });
   };
 
   const remove = async (item: InmuebleMedia) => {
@@ -121,23 +127,15 @@ export function InmuebleGaleria({
         <p className="text-sm text-neutral-500">
           {items.length} {items.length === 1 ? etiqueta : etiquetaPlural}
         </p>
-        <Button type="button" size="sm" variant="secondary" disabled={busy} onClick={() => inputRef.current?.click()}>
+        <Button type="button" size="sm" variant="secondary" disabled={busy} onClick={elegir}>
           <ImagePlus className="mr-1.5 h-4 w-4" strokeWidth={1.5} />
           {busy ? "Subiendo…" : `Añadir ${etiquetaPlural}`}
         </Button>
-        <input
-          ref={inputRef}
-          type="file"
-          accept={acceptMedia(tipo)}
-          multiple
-          className="hidden"
-          onChange={(e) => void upload(e.target.files)}
-        />
       </div>
       {items.length === 0 ? (
         <button
           type="button"
-          onClick={() => inputRef.current?.click()}
+          onClick={elegir}
           onDragEnter={(e) => {
             if (!arrastrandoArchivos(e.dataTransfer)) return;
             activarSolturaArchivos(e);

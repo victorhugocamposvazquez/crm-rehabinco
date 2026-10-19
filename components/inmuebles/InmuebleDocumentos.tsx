@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { FileText, Trash2, Upload } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -12,6 +12,7 @@ import {
   TIPO_DOCUMENTO_LABEL,
   type TipoDocumentoInmueble,
 } from "@/lib/inmuebles/documentos";
+import { abrirSelectorArchivos } from "@/lib/inmuebles/selector-archivos";
 
 export type DocInmueble = {
   id: string;
@@ -32,12 +33,11 @@ export function InmuebleDocumentos({
   documentos: DocInmueble[];
   onChange: (next: DocInmueble[]) => void;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
   const [tipo, setTipo] = useState<TipoDocumentoInmueble>("nota_simple");
   const [busy, setBusy] = useState(false);
 
-  const subir = async (files: FileList | null) => {
-    if (!files?.length) return;
+  const subir = async (files: File[]) => {
+    if (!files.length) return;
     setBusy(true);
     const supabase = createClient();
     const next = [...documentos];
@@ -77,7 +77,6 @@ export function InmuebleDocumentos({
       onChange(next);
     } finally {
       setBusy(false);
-      if (inputRef.current) inputRef.current.value = "";
     }
   };
 
@@ -122,18 +121,21 @@ export function InmuebleDocumentos({
             ))}
           </Selector>
         </label>
-        <Button type="button" size="sm" variant="secondary" disabled={busy} onClick={() => inputRef.current?.click()}>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          disabled={busy}
+          onClick={() =>
+            abrirSelectorArchivos({
+              accept: "image/*,application/pdf",
+              onFiles: (elegidos) => void subir(elegidos),
+            })
+          }
+        >
           <Upload className="mr-1.5 h-4 w-4" strokeWidth={1.5} />
           {busy ? "Subiendo…" : "Subir"}
         </Button>
-        <input
-          ref={inputRef}
-          type="file"
-          className="hidden"
-          accept=".pdf,.jpg,.jpeg,.png,.webp"
-          multiple
-          onChange={(e) => void subir(e.target.files)}
-        />
       </div>
       <ul className="divide-y divide-neutral-100">
         {documentos.map((doc) => (

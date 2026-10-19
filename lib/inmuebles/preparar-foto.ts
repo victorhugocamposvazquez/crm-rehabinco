@@ -1,4 +1,5 @@
 import { esArchivoFoto } from "./media";
+import { esIpadOIphone } from "./selector-archivos";
 
 const LADO_MAX = 2400;
 const CALIDAD = 0.82;
@@ -7,6 +8,8 @@ const CALIDAD = 0.82;
 export async function prepararFotoParaSubida(file: File): Promise<File> {
   if (typeof document === "undefined" || !esArchivoFoto(file)) return file;
   if (file.type === "image/jpeg" && file.size <= 1_500_000) return file;
+  // En iPad, decodificar varias fotos grandes tira Safari. Se suben tal cual.
+  if (esIpadOIphone()) return file;
   try {
     const bitmap = await createImageBitmap(file);
     const escala = Math.min(1, LADO_MAX / Math.max(bitmap.width, bitmap.height, 1));

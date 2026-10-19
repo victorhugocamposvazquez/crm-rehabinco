@@ -5,6 +5,7 @@ import { ImagePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { InmuebleMedia } from "@/lib/inmuebles/catalogo";
 import { acceptMedia, type TipoMediaInmueble } from "@/lib/inmuebles/media";
+import { abrirSelectorArchivos } from "@/lib/inmuebles/selector-archivos";
 import { prepararFotosParaSubida } from "@/lib/inmuebles/preparar-foto";
 import {
   activarSolturaArchivos,
@@ -32,7 +33,6 @@ export function GaleriaMediaRevision({
   revision: RevisionMediaTipo;
   onChange: (next: RevisionMediaTipo) => void;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
   const revisionRef = useRef(revision);
   revisionRef.current = revision;
   const [sueltaActiva, setSueltaActiva] = useState(false);
@@ -185,7 +185,12 @@ export function GaleriaMediaRevision({
 
       <button
         type="button"
-        onClick={() => inputRef.current?.click()}
+        onClick={() =>
+          abrirSelectorArchivos({
+            accept: acceptMedia(tipo),
+            onFiles: (elegidos) => ingestar(elegidos),
+          })
+        }
         className={cn(
           "flex w-full flex-col items-center justify-center rounded-[12px] border border-dashed px-4 py-8 text-center transition-[border,background]",
           sueltaActiva
@@ -204,17 +209,6 @@ export function GaleriaMediaRevision({
         </p>
       </button>
 
-      <input
-        ref={inputRef}
-        type="file"
-        accept={acceptMedia(tipo)}
-        multiple
-        className="hidden"
-        onChange={(e) => {
-          ingestar(e.target.files);
-          e.target.value = "";
-        }}
-      />
     </div>
   );
 }
