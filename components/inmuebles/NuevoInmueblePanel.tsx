@@ -162,6 +162,7 @@ export function NuevoInmueblePanel({
       return;
     }
     await proponerInmuebleADemandas(supabase, data.id);
+    const fallosMedia: string[] = [];
     if (pendientesFoto.length || pendientesPlano.length) {
       let media: Awaited<ReturnType<typeof subirArchivosMedia>>["media"] = [];
       if (pendientesFoto.length) {
@@ -173,7 +174,7 @@ export function NuevoInmueblePanel({
           media,
         });
         media = subida.media;
-        for (const err of subida.errores) toast.error(err);
+        fallosMedia.push(...subida.errores);
       }
       if (pendientesPlano.length) {
         const subida = await subirArchivosMedia({
@@ -183,11 +184,16 @@ export function NuevoInmueblePanel({
           tipo: "plano",
           media,
         });
-        for (const err of subida.errores) toast.error(err);
+        fallosMedia.push(...subida.errores);
       }
     }
     setSaving(false);
-    toast.success("Inmueble creado.");
+    for (const err of fallosMedia) toast.error(err);
+    if (fallosMedia.length) {
+      toast.error("El inmueble se ha creado, pero alguna foto o plano no se ha guardado.");
+    } else {
+      toast.success("Inmueble creado.");
+    }
     altaBorrador.consumir();
     onOpenChange(false);
     onCreado(data.id);

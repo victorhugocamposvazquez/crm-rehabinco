@@ -1,5 +1,5 @@
 import type { DragEvent } from "react";
-import { validarArchivoMedia, type TipoMediaInmueble } from "./media";
+import { esArchivoFoto, validarArchivoMedia, type TipoMediaInmueble } from "./media";
 
 export function claveArchivo(file: File): string {
   return `${file.name}\0${file.size}\0${file.lastModified}`;
@@ -36,8 +36,7 @@ export function reordenarIndice<T>(lista: T[], desde: number, hasta: number): T[
 }
 
 export function esImagenArchivo(file: File): boolean {
-  if (file.type.startsWith("image/")) return true;
-  return /\.(jpe?g|png|gif|webp|heic|heif|avif)$/i.test(file.name);
+  return esArchivoFoto(file);
 }
 
 export function esPdfArchivo(file: File): boolean {

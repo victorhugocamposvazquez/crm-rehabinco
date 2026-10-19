@@ -1,4 +1,13 @@
-export const LIMITE_FOTO_BYTES = 8_000_000;
+export const LIMITE_FOTO_BYTES = 25_000_000;
+
+const EXTENSION_FOTO = /\.(jpe?g|png|gif|webp|heic|heif|avif|bmp)$/i;
+
+/** El carrete del móvil a veces manda la foto sin MIME o como HEIC. */
+export function esArchivoFoto(file: { type?: string; name?: string }): boolean {
+  const mime = (file.type ?? "").toLowerCase();
+  if (mime.startsWith("image/")) return true;
+  return EXTENSION_FOTO.test(file.name ?? "");
+}
 export const LIMITE_PLANO_BYTES = 12_000_000;
 export const LIMITE_VIDEO_BYTES = 50_000_000;
 export const PREFIJO_MEDIA_EXTERNA = "externo/";
@@ -28,7 +37,7 @@ export function validarArchivoMedia(tipo: TipoMediaInmueble, file: File): string
   const mime = file.type.toLowerCase();
   const nombre = file.name.toLowerCase();
   if (tipo === "foto") {
-    if (!mime.startsWith("image/")) return `${file.name} no es una imagen.`;
+    if (!esArchivoFoto(file)) return `${file.name} no es una imagen.`;
     return null;
   }
   if (tipo === "video") {
@@ -40,7 +49,7 @@ export function validarArchivoMedia(tipo: TipoMediaInmueble, file: File): string
 }
 
 export function acceptMedia(tipo: TipoMediaInmueble): string {
-  if (tipo === "foto") return "image/*";
+  if (tipo === "foto") return "image/*,.heic,.heif,.jpg,.jpeg,.png,.webp";
   if (tipo === "video") return "video/mp4,video/webm,video/quicktime";
   return "application/pdf,image/*";
 }

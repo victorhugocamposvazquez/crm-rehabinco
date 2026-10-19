@@ -5,6 +5,7 @@ import { ImagePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { InmuebleMedia } from "@/lib/inmuebles/catalogo";
 import { acceptMedia, type TipoMediaInmueble } from "@/lib/inmuebles/media";
+import { prepararFotosParaSubida } from "@/lib/inmuebles/preparar-foto";
 import {
   activarSolturaArchivos,
   arrastrandoArchivos,
@@ -32,6 +33,8 @@ export function GaleriaMediaRevision({
   onChange: (next: RevisionMediaTipo) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const revisionRef = useRef(revision);
+  revisionRef.current = revision;
   const [sueltaActiva, setSueltaActiva] = useState(false);
   const [arrastrandoIdx, setArrastrandoIdx] = useState<number | null>(null);
   const [destinoIdx, setDestinoIdx] = useState<number | null>(null);
@@ -58,10 +61,14 @@ export function GaleriaMediaRevision({
 
   const ingestar = (lista: FileList | File[] | null) => {
     if (!lista?.length) return;
-    const { ok, errores } = validarArchivosEntrada(tipo, Array.from(lista));
-    for (const err of errores) toast.error(err);
-    if (!ok.length) return;
-    onChange(anadirArchivosRevision(revision, ok));
+    const entrantes = Array.from(lista);
+    void (async () => {
+      const preparados = tipo === "foto" ? await prepararFotosParaSubida(entrantes) : entrantes;
+      const { ok, errores } = validarArchivosEntrada(tipo, preparados);
+      for (const err of errores) toast.error(err);
+      if (!ok.length) return;
+      onChange(anadirArchivosRevision(revisionRef.current, ok));
+    })();
   };
 
   const soltarArchivos = (e: React.DragEvent) => {

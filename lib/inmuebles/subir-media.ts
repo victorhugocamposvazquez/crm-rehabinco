@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
 import type { InmuebleMedia } from "./catalogo";
 import { validarArchivoMedia, type TipoMediaInmueble } from "./media";
+import { prepararFotoParaSubida } from "./preparar-foto";
 import { sincronizarPortadaEnDb, sincronizarPortadaMemoria } from "./portada";
 
 const SELECT_MEDIA = "id, propiedad_id, tipo, path, url, orden, portada";
@@ -15,7 +16,8 @@ export async function subirArchivosMedia(input: {
   const supabase = createClient();
   const next = [...input.media];
   const errores: string[] = [];
-  for (const file of input.files) {
+  for (const original of input.files) {
+    const file = input.tipo === "foto" ? await prepararFotoParaSubida(original) : original;
     const fallo = validarArchivoMedia(input.tipo, file);
     if (fallo) {
       errores.push(fallo);

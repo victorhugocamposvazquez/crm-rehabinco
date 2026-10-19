@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ImagePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { acceptMedia, type TipoMediaInmueble } from "@/lib/inmuebles/media";
+import { prepararFotosParaSubida } from "@/lib/inmuebles/preparar-foto";
 import {
   activarSolturaArchivos,
   arrastrandoArchivos,
@@ -26,6 +27,8 @@ export function ZonaArchivosPendientes({
   onChange: (next: File[]) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const filesRef = useRef(files);
+  filesRef.current = files;
   const [sueltaActiva, setSueltaActiva] = useState(false);
   const [arrastrandoIdx, setArrastrandoIdx] = useState<number | null>(null);
   const [destinoIdx, setDestinoIdx] = useState<number | null>(null);
@@ -49,10 +52,14 @@ export function ZonaArchivosPendientes({
 
   const ingestar = (lista: FileList | File[] | null) => {
     if (!lista?.length) return;
-    const { ok, errores } = validarArchivosEntrada(tipo, Array.from(lista));
-    for (const err of errores) toast.error(err);
-    if (!ok.length) return;
-    onChange(fusionarArchivos(files, ok));
+    const entrantes = Array.from(lista);
+    void (async () => {
+      const preparados = tipo === "foto" ? await prepararFotosParaSubida(entrantes) : entrantes;
+      const { ok, errores } = validarArchivosEntrada(tipo, preparados);
+      for (const err of errores) toast.error(err);
+      if (!ok.length) return;
+      onChange(fusionarArchivos(filesRef.current, ok));
+    })();
   };
 
   const quitar = (idx: number) => {

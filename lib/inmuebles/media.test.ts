@@ -57,6 +57,11 @@ describe("media de inmueble", () => {
     );
   });
 
+  it("acepta una foto HEIC del móvil aunque no traiga tipo", () => {
+    const file = new File(["x"], "IMG_2201.HEIC", { type: "" });
+    assert.equal(validarArchivoMedia("foto", file), null);
+  });
+
   it("rechaza un plano que no es PDF ni imagen", () => {
     const file = new File(["x"], "notas.txt", { type: "text/plain" });
     assert.match(validarArchivoMedia("plano", file) ?? "", /plano/);
