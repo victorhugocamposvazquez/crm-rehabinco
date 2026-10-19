@@ -20,6 +20,7 @@ import { extraAlta } from "@/lib/ui/alta-panel";
 import { NuevoClientePanel } from "@/components/clientes/NuevoClientePanel";
 import { NuevaDemandaPanel } from "@/components/demandas/NuevaDemandaPanel";
 import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
+import { AvisoContinuarBorrador } from "@/components/ui/aviso-borrador";
 import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { rutaNuevaCita } from "@/lib/citas/citas";
 
@@ -366,6 +367,15 @@ export default function ClientesPage() {
             {hayBorrador ? "Continuar borrador" : "Nuevo contacto"}
           </Button>
         }
+      />
+
+      <AvisoContinuarBorrador
+        visible={hayBorrador && !nuevaOpen}
+        que="contacto"
+        onContinuar={() => {
+          setPadreInicial(undefined);
+          setNuevaOpen(true);
+        }}
       />
 
       {error ? <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}

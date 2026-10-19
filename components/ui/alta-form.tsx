@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, type ReactNode, type Ref } from "react";
+import { toast } from "sonner";
 import { Sheet } from "@/components/ui/sheet";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { horaAltaBorrador } from "@/lib/ui/alta-borrador";
@@ -19,7 +20,7 @@ export function AltaShell({
   saving,
   disablePrimary,
   onSubmit,
-  footerHint = "Cerrar guarda un borrador en este navegador. Crear lo pasa al listado.",
+  footerHint = "Cerrar guarda el borrador en este dispositivo. Para seguir, pulsa Seguir editando en el listado.",
   primaryHint,
   dangerAction,
   borrador,
@@ -51,6 +52,15 @@ export function AltaShell({
     void onSubmit();
   };
 
+  const cerrar = () => {
+    if (borrador?.activo) {
+      toast.message("Borrador guardado en este dispositivo", {
+        description: "Para seguir con lo que llevas escrito, pulsa Seguir editando en el listado.",
+      });
+    }
+    onOpenChange(false);
+  };
+
   return (
     <Sheet
       open={open}
@@ -76,7 +86,7 @@ export function AltaShell({
             </div>
             <button
               type="button"
-              onClick={() => onOpenChange(false)}
+              onClick={cerrar}
               className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] text-[20px] leading-none text-[var(--text-2)] hover:bg-[var(--surface-soft)]"
               aria-label="Cerrar"
             >
@@ -87,7 +97,7 @@ export function AltaShell({
         {borrador?.activo ? (
           <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-amber-200 bg-[var(--amber-bg)] px-6 py-2.5 min-[820px]:px-8">
             <p className="text-[12.5px] text-[var(--amber-ink)]">
-              Borrador en este dispositivo{horaAltaBorrador(borrador.guardadoEn) ? ` · ${horaAltaBorrador(borrador.guardadoEn)}` : ""}. Cerrar no lo borra.
+              Borrador guardado{horaAltaBorrador(borrador.guardadoEn) ? ` a las ${horaAltaBorrador(borrador.guardadoEn)}` : ""}. Si cierras, vuelve desde el listado con Seguir editando.
             </p>
             <button
               type="button"
@@ -120,7 +130,7 @@ export function AltaShell({
             </button>
             <button
               type="button"
-              onClick={() => onOpenChange(false)}
+              onClick={cerrar}
               className="h-11 rounded-[10px] border border-[var(--input)] px-4 text-[14px] font-semibold"
             >
               Cerrar

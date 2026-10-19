@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Fab } from "@/components/ui/fab";
 import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
+import { AvisoContinuarBorrador } from "@/components/ui/aviso-borrador";
 
 type Row = {
   id: string;
@@ -74,6 +75,8 @@ export default function HojasEncargoHonorariosPage() {
           </Button>
         }
       />
+
+      <AvisoContinuarBorrador visible={hayBorrador} que="hoja de encargo" href="/hojas-encargo-honorarios/nuevo" />
 
       <section className="mt-5 overflow-hidden rounded-[14px] border border-border bg-[var(--surface)]">
         {loading ? (

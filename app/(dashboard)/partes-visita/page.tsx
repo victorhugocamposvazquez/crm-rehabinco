@@ -20,6 +20,7 @@ import { ESTADO_PARTE_LABELS, buildPublicFirmaUrl } from "@/lib/partes-visita";
 import { colorEstado } from "@/lib/ui/estados-vista";
 import { extraAlta } from "@/lib/ui/alta-panel";
 import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
+import { AvisoContinuarBorrador } from "@/components/ui/aviso-borrador";
 
 type ParteRow = {
   id: string;
@@ -118,6 +119,8 @@ export default function PartesVisitaPage() {
           </div>
         }
       />
+
+      <AvisoContinuarBorrador visible={hayBorrador} que="parte de visita" href="/partes-visita/nuevo" />
 
       <div className="mt-5 flex flex-wrap items-start gap-4">
         <section className="min-w-0 flex-[1_1_380px] overflow-hidden rounded-[14px] border border-border bg-[var(--surface)]">

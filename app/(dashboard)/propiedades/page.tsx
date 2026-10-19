@@ -42,6 +42,7 @@ import { colorEstado } from "@/lib/ui/estados-vista";
 import { cn } from "@/lib/utils";
 import { extraAlta } from "@/lib/ui/alta-panel";
 import { NuevoInmueblePanel } from "@/components/inmuebles/NuevoInmueblePanel";
+import { AvisoContinuarBorrador } from "@/components/ui/aviso-borrador";
 import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
 import { Sheet } from "@/components/ui/sheet";
 import { Selector } from "@/components/ui/selector";
@@ -276,6 +277,16 @@ export default function PropiedadesPage() {
             </Button>
           </div>
         }
+      />
+
+      <AvisoContinuarBorrador
+        visible={hayBorrador && !nuevaOpen}
+        que="inmueble"
+        nota="Las fotos no se guardan en el borrador: al seguir, hay que volver a elegirlas."
+        onContinuar={() => {
+          setOfertanteInicial(undefined);
+          setNuevaOpen(true);
+        }}
       />
 
       {error ? <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}

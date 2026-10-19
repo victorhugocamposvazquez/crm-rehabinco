@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Fab } from "@/components/ui/fab";
 import { listarPersonasArras, parsePersonasArras } from "@/lib/contrato-arras";
 import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
+import { AvisoContinuarBorrador } from "@/components/ui/aviso-borrador";
 
 type Row = {
   id: string;
@@ -77,6 +78,8 @@ export default function ContratosPagoAplazadoPage() {
           </Button>
         }
       />
+
+      <AvisoContinuarBorrador visible={hayBorrador} que="contrato" href="/contratos-pago-aplazado/nuevo" />
 
       <section className="mt-5 overflow-hidden rounded-[14px] border border-border bg-[var(--surface)]">
         {loading ? (

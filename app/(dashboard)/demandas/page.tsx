@@ -20,6 +20,7 @@ import { TIPO_INMUEBLE_LABEL, type TipoInmueble } from "@/lib/inmuebles/catalogo
 import { extraAlta } from "@/lib/ui/alta-panel";
 import { cn } from "@/lib/utils";
 import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
+import { AvisoContinuarBorrador } from "@/components/ui/aviso-borrador";
 import { FILTRO_LISTADO_VACIO, hayFiltroListado, pasaFiltroDemanda, type FiltroListadoDemanda } from "@/lib/demandas/filtros";
 import { FiltrosDemandas, tiposVisibles } from "@/components/demandas/FiltrosDemandas";
 
@@ -247,6 +248,14 @@ export default function DemandasPage() {
             {hayBorrador ? "Continuar borrador" : "Nueva demanda"}
           </Button>
         }
+      />
+      <AvisoContinuarBorrador
+        visible={hayBorrador && !nuevaOpen}
+        que="demanda"
+        onContinuar={() => {
+          setClienteInicial(undefined);
+          setNuevaOpen(true);
+        }}
       />
       <CarrilHorizontal className="mt-4" trackClassName="gap-1.5" label="Estado de la demanda">
         {ESTADOS_DEMANDA.map((item) => (

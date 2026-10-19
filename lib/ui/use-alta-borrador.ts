@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   EVENTO_ALTA_BORRADOR,
   borrarAltaBorrador,
@@ -26,6 +26,10 @@ export function useAltaBorrador<T>({
   const [hayBorrador, setHayBorrador] = useState(false);
   const [guardadoEn, setGuardadoEn] = useState<string | null>(null);
   const [listo, setListo] = useState(false);
+  const vacioRef = useRef(estaVacio);
+  const snapshotRef = useRef(snapshot);
+  vacioRef.current = estaVacio;
+  snapshotRef.current = snapshot;
 
   useEffect(() => {
     if (!open) {
@@ -42,12 +46,21 @@ export function useAltaBorrador<T>({
     }
     const espera = window.setTimeout(() => setListo(true), 120);
     return () => window.clearTimeout(espera);
-  }, [open, tipo, ambito, estaVacio]);
+  }, [open, tipo, ambito]);
+
+  useEffect(() => {
+    if (open || !listo) return;
+    const actual = snapshotRef.current;
+    if (vacioRef.current(actual)) return;
+    const savedAt = escribirAltaBorrador(tipo, ambito, actual);
+    setHayBorrador(true);
+    setGuardadoEn(savedAt);
+  }, [open, listo, tipo, ambito]);
 
   useEffect(() => {
     if (!open || !listo) return;
     const espera = window.setTimeout(() => {
-      if (estaVacio(snapshot)) {
+      if (vacioRef.current(snapshot)) {
         borrarAltaBorrador(tipo, ambito);
         setHayBorrador(false);
         setGuardadoEn(null);
@@ -58,7 +71,7 @@ export function useAltaBorrador<T>({
       setGuardadoEn(savedAt);
     }, 400);
     return () => window.clearTimeout(espera);
-  }, [snapshot, open, listo, tipo, ambito, estaVacio]);
+  }, [snapshot, open, listo, tipo, ambito]);
 
   return {
     hayBorrador,
