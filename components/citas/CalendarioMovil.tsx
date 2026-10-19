@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GripVertical } from "lucide-react";
 import { CitaAcciones } from "@/components/citas/CitaAcciones";
 import { EnlaceMaps } from "@/components/citas/InmueblePreviewCita";
@@ -27,6 +27,10 @@ import {
 } from "@/lib/citas/citas";
 import { colorComercial } from "@/lib/ui/tokens";
 
+const PULSACION_MS = 340;
+const CANCELAR_SCROLL_PX = 14;
+const INICIO_ARRASTRE_PX = 6;
+
 export type CitaMovil = {
   id: string;
   comercial_id: string;
@@ -40,6 +44,8 @@ export type CitaMovil = {
   profiles?: { nombre_completo?: string | null; color?: string | null; email?: string | null } | null;
   propiedades?: { titulo?: string | null; direccion?: string | null; localidad?: string | null; referencia?: string | null } | null;
 };
+
+type ModoArrastre = "rejilla" | "lista";
 
 export function CalendarioMovil({
   semana,
@@ -73,9 +79,21 @@ export function CalendarioMovil({
   onEditar: (id: string) => void;
 }) {
   const gridRef = useRef<HTMLDivElement>(null);
-  const dragIdRef = useRef<string | null>(null);
-  const startRef = useRef<{ x: number; y: number } | null>(null);
-  const movedRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const interaccionRef = useRef<{
+    id: string;
+    pointerId: number;
+    target: HTMLElement;
+    x: number;
+    y: number;
+    modo: ModoArrastre;
+    armado: boolean;
+    movido: boolean;
+  } | null>(null);
+  const listenersRef = useRef<{ move: (e: PointerEvent) => void; up: (e: PointerEvent) => void } | null>(null);
+
+  const [pressingId, setPressingId] = useState<string | null>(null);
+  const [armedId, setArmedId] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overDia, setOverDia] = useState<string | null>(null);
   const [ghost, setGhost] = useState<{ x: number; y: number } | null>(null);
@@ -87,77 +105,176 @@ export function CalendarioMovil({
     return nodo?.closest("[data-cal-dia]")?.getAttribute("data-cal-dia") ?? null;
   };
 
-  const empezar = (id: string, e: React.PointerEvent<HTMLElement>) => {
-    e.preventDefault();
-    e.currentTarget.setPointerCapture(e.pointerId);
-    dragIdRef.current = id;
-    startRef.current = { x: e.clientX, y: e.clientY };
-    movedRef.current = false;
-    setDraggingId(id);
-    setGhost({ x: e.clientX, y: e.clientY });
-  };
-
-  const seguir = (e: React.PointerEvent) => {
-    if (!dragIdRef.current) return;
-    const start = startRef.current;
-    if (start && Math.hypot(e.clientX - start.x, e.clientY - start.y) > 6) movedRef.current = true;
-    setGhost({ x: e.clientX, y: e.clientY });
-    setOverDia(diaBajoPunto(e.clientX, e.clientY));
-    const grid = gridRef.current;
-    if (grid) {
-      const rect = grid.getBoundingClientRect();
-      if (e.clientY >= rect.top && e.clientY <= rect.bottom && e.clientX >= rect.left && e.clientX <= rect.right) {
-        setSnapMinutos(minutosDesdeOffsetY(e.clientY - rect.top));
-      } else {
-        setSnapMinutos(null);
-      }
-    }
-  };
-
-  const soltarEnRejilla = (e: React.PointerEvent) => {
-    const id = dragIdRef.current;
-    if (!id) return;
-    if (!movedRef.current) {
-      onEditar(id);
-      limpiar();
-      return;
-    }
-    const destino = diaBajoPunto(e.clientX, e.clientY);
-    const grid = gridRef.current;
-    if (destino && destino !== dia) {
-      onMover(id, destino);
-    } else if (grid) {
-      const y = e.clientY - grid.getBoundingClientRect().top;
-      if (y >= 0 && y <= grid.getBoundingClientRect().height) {
-        onCambiarHora(id, horaDesdeOffset(y));
-      }
-    }
-    limpiar();
-  };
-
-  const soltarEnLista = (e: React.PointerEvent) => {
-    const id = dragIdRef.current;
-    if (!id) return;
-    if (!movedRef.current) {
-      limpiar();
-      return;
-    }
-    const destino = diaBajoPunto(e.clientX, e.clientY);
-    if (destino) onMover(id, destino);
-    limpiar();
+  const quitarListeners = () => {
+    if (!listenersRef.current) return;
+    window.removeEventListener("pointermove", listenersRef.current.move);
+    window.removeEventListener("pointerup", listenersRef.current.up);
+    window.removeEventListener("pointercancel", listenersRef.current.up);
+    listenersRef.current = null;
   };
 
   const limpiar = () => {
-    dragIdRef.current = null;
-    startRef.current = null;
-    movedRef.current = false;
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    quitarListeners();
+    interaccionRef.current = null;
+    setPressingId(null);
+    setArmedId(null);
     setDraggingId(null);
     setOverDia(null);
     setGhost(null);
     setSnapMinutos(null);
   };
 
-  const arrastrada = citas.find((item) => item.id === draggingId);
+  useEffect(() => () => limpiar(), []);
+
+  const actualizarArrastre = (clientX: number, clientY: number) => {
+    setGhost({ x: clientX, y: clientY });
+    setOverDia(diaBajoPunto(clientX, clientY));
+    const grid = gridRef.current;
+    if (grid) {
+      const rect = grid.getBoundingClientRect();
+      if (clientY >= rect.top && clientY <= rect.bottom && clientX >= rect.left && clientX <= rect.right) {
+        setSnapMinutos(minutosDesdeOffsetY(clientY - rect.top));
+      } else {
+        setSnapMinutos(null);
+      }
+    }
+  };
+
+  const soltar = (e: PointerEvent) => {
+    const inter = interaccionRef.current;
+    if (!inter || e.pointerId !== inter.pointerId) return;
+
+    try {
+      inter.target.releasePointerCapture(e.pointerId);
+    } catch {
+      /* sin captura */
+    }
+
+    const { id, modo, armado, movido } = inter;
+
+    if (modo === "rejilla") {
+      if (!armado) {
+        onEditar(id);
+      } else if (!movido) {
+        onEditar(id);
+      } else {
+        const destino = diaBajoPunto(e.clientX, e.clientY);
+        const grid = gridRef.current;
+        if (destino && destino !== dia) {
+          onMover(id, destino);
+        } else if (grid) {
+          const rect = grid.getBoundingClientRect();
+          const y = e.clientY - rect.top;
+          if (y >= 0 && y <= rect.height) {
+            onCambiarHora(id, horaDesdeOffset(y));
+          }
+        }
+      }
+    } else if (armado && movido) {
+      const destino = diaBajoPunto(e.clientX, e.clientY);
+      if (destino) onMover(id, destino);
+    }
+
+    limpiar();
+  };
+
+  const cancelarPulsacion = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    quitarListeners();
+    interaccionRef.current = null;
+    setPressingId(null);
+    setArmedId(null);
+    setDraggingId(null);
+    setGhost(null);
+    setSnapMinutos(null);
+    setOverDia(null);
+  };
+
+  const iniciarPulsacion = (id: string, e: React.PointerEvent<HTMLElement>, modo: ModoArrastre) => {
+    if (e.button !== 0) return;
+
+    cancelarPulsacion();
+
+    const target = e.currentTarget;
+    interaccionRef.current = {
+      id,
+      pointerId: e.pointerId,
+      target,
+      x: e.clientX,
+      y: e.clientY,
+      modo,
+      armado: false,
+      movido: false,
+    };
+    setPressingId(id);
+
+    const onMove = (ev: PointerEvent) => {
+      const inter = interaccionRef.current;
+      if (!inter || ev.pointerId !== inter.pointerId) return;
+
+      const dist = Math.hypot(ev.clientX - inter.x, ev.clientY - inter.y);
+
+      if (!inter.armado) {
+        if (dist > CANCELAR_SCROLL_PX) {
+          cancelarPulsacion();
+          return;
+        }
+        return;
+      }
+
+      if (!inter.movido && dist > INICIO_ARRASTRE_PX) {
+        inter.movido = true;
+        setDraggingId(inter.id);
+      }
+      if (inter.movido) {
+        actualizarArrastre(ev.clientX, ev.clientY);
+      }
+    };
+
+    const onUp = (ev: PointerEvent) => {
+      if (interaccionRef.current?.pointerId !== ev.pointerId) return;
+      soltar(ev);
+    };
+
+    listenersRef.current = { move: onMove, up: onUp };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+
+    timerRef.current = setTimeout(() => {
+      const inter = interaccionRef.current;
+      if (!inter || inter.id !== id) return;
+      inter.armado = true;
+      setArmedId(id);
+      setPressingId(null);
+      try {
+        target.setPointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        navigator.vibrate(8);
+      }
+    }, PULSACION_MS);
+  };
+
+  const arrastrada = citas.find((item) => item.id === (draggingId ?? armedId));
+
+  const textoAyuda = (() => {
+    if (draggingId) {
+      return overDia && overDia !== dia ? "Suelta para cambiar de día." : "Suelta en la rejilla para cambiar la hora.";
+    }
+    if (armedId) return "Mantén y arrastra para mover la hora o el día.";
+    if (pressingId) return "Sigue pulsando…";
+    return "Un toque abre la edición. Mantén pulsado un momento para mover.";
+  })();
 
   return (
     <div className={soloLista ? "" : "min-[820px]:hidden"}>
@@ -193,20 +310,14 @@ export function CalendarioMovil({
 
       {!soloLista ? (
       <>
-      <p className="mt-3 text-[12.5px] text-[var(--text-2)]">
-        {draggingId
-          ? overDia && overDia !== dia
-            ? "Suelta para cambiar de día."
-            : "Suelta en la rejilla para cambiar la hora."
-          : "Pulsa un evento para editarlo. Arrástralo al día o por la rejilla."}
-      </p>
+      <p className="mt-3 text-[12.5px] text-[var(--text-2)] transition-opacity duration-200">{textoAyuda}</p>
 
       <div
         ref={gridRef}
         className="relative mt-3 overflow-hidden rounded-[14px] border border-border bg-white"
         style={{ height: (CAL_HORA_FIN - CAL_HORA_INICIO + 1) * CAL_PX_HORA }}
         onClick={(e) => {
-          if (draggingId || (e.target as HTMLElement).closest("[data-cal-evento]")) return;
+          if (draggingId || armedId || pressingId || (e.target as HTMLElement).closest("[data-cal-evento]")) return;
           const y = e.clientY - e.currentTarget.getBoundingClientRect().top;
           onCrearHueco?.(minutosDesdeOffsetY(y));
         }}
@@ -224,27 +335,30 @@ export function CalendarioMovil({
           const color = colorComercial(cita.comercial_id, cita.profiles?.color);
           const prevista = cita.estado === "prevista";
           const editable = prevista && (puedeGestionar?.(cita.comercial_id) ?? true);
-          const activo = draggingId === cita.id;
+          const pressing = pressingId === cita.id;
+          const armed = armedId === cita.id;
+          const dragging = draggingId === cita.id;
           return (
             <div
               key={cita.id}
               data-cal-evento
               onPointerDown={(e) => {
                 if (!editable) return;
-                empezar(cita.id, e);
+                iniciarPulsacion(cita.id, e, "rejilla");
               }}
-              onPointerMove={seguir}
-              onPointerUp={soltarEnRejilla}
-              onPointerCancel={limpiar}
-              className={`cal-evento absolute overflow-hidden rounded-[7px] px-2 py-1 touch-none select-none ${
-                activo ? "cal-evento--dragging" : ""
-              }`}
+              className={cn(
+                "cal-evento absolute overflow-hidden rounded-[7px] px-2 py-1 select-none",
+                pressing && "cal-evento--pressing",
+                armed && "cal-evento--armed",
+                dragging && "cal-evento--dragging",
+                armed && "touch-none"
+              )}
               style={{
                 top,
                 height,
                 left: ancho.left,
                 width: ancho.width,
-                zIndex: activo ? 30 : (layout?.column ?? 0) + 1,
+                zIndex: armed || dragging ? 40 : (layout?.column ?? 0) + 1,
                 background: `${color}1A`,
                 borderLeft: `3px solid ${color}`,
               }}
@@ -255,7 +369,7 @@ export function CalendarioMovil({
         })}
       </div>
 
-      {ghost && arrastrada ? (
+      {ghost && arrastrada && draggingId ? (
         <div
           className="cal-ghost pointer-events-none fixed z-[80] w-48 overflow-hidden rounded-[8px] px-2 py-1.5"
           style={{
@@ -292,6 +406,8 @@ export function CalendarioMovil({
             const prevista = cita.estado === "prevista";
             const editable = prevista && (puedeGestionar?.(cita.comercial_id) ?? true);
             const mapsConsulta = cita.lugar?.trim() || cita.propiedades?.direccion;
+            const gripArmed = armedId === cita.id;
+            const gripPressing = pressingId === cita.id;
             return (
               <div
                 key={cita.id}
@@ -302,12 +418,13 @@ export function CalendarioMovil({
                 {editable ? (
                   <button
                     type="button"
-                    aria-label="Arrastrar a otro día"
-                    onPointerDown={(e) => empezar(cita.id, e)}
-                    onPointerMove={seguir}
-                    onPointerUp={soltarEnLista}
-                    onPointerCancel={limpiar}
-                    className="mt-1 grid h-11 w-8 shrink-0 touch-none select-none place-items-center rounded-lg text-[var(--text-3)]"
+                    aria-label="Mantén pulsado para arrastrar a otro día"
+                    onPointerDown={(e) => iniciarPulsacion(cita.id, e, "lista")}
+                    className={cn(
+                      "mt-1 grid h-11 w-8 shrink-0 select-none place-items-center rounded-lg text-[var(--text-3)] transition-[transform,background,box-shadow] duration-200",
+                      gripPressing && "scale-95 bg-[var(--surface-soft)]",
+                      gripArmed && "scale-105 bg-accent-soft shadow-sm touch-none"
+                    )}
                   >
                     <GripVertical size={16} />
                   </button>

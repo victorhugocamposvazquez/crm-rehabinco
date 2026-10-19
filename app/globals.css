@@ -242,10 +242,11 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
 
 .cal-evento {
   transition:
-    transform 0.16s ease,
-    box-shadow 0.16s ease,
-    opacity 0.16s ease,
-    filter 0.16s ease;
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.18s ease,
+    filter 0.18s ease;
+  touch-action: pan-y;
 }
 
 .cal-evento:hover {
@@ -253,11 +254,29 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
   box-shadow: 0 6px 14px rgba(17, 17, 17, 0.1);
 }
 
+.cal-evento--pressing {
+  transform: scale(0.985);
+  box-shadow: inset 0 0 0 1px rgba(17, 17, 17, 0.06);
+}
+
+.cal-evento--armed {
+  transform: scale(1.035);
+  box-shadow:
+    0 10px 24px rgba(17, 17, 17, 0.12),
+    0 0 0 1px rgba(17, 17, 17, 0.06);
+  z-index: 35;
+}
+
 .cal-evento--dragging {
-  opacity: 0.32;
-  filter: saturate(0.55);
-  transform: scale(0.97);
+  opacity: 0.28;
+  filter: saturate(0.5);
+  transform: scale(0.96);
   box-shadow: none;
+}
+
+.cal-evento--armed.cal-evento--dragging {
+  opacity: 0.28;
+  transform: scale(0.96);
 }
 
 .cal-ghost {
