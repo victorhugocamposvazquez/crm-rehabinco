@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ENERGIA, OFICINA } from "@/lib/web/corporativa/contenido";
+import { ENERGIA, OFICINA, WA } from "@/lib/web/corporativa/contenido";
 import { formatoPrecio, similares, specsCortas } from "@/lib/web/corporativa/catalogo";
 import type { InmuebleCorporativa } from "@/lib/web/corporativa/types";
 import { hrefInicio } from "@/lib/web/dominio";
@@ -41,10 +41,26 @@ export function FichaCorporativa({
   const fotos = item.fotos.length ? item.fotos : item.fotoPrincipal ? [item.fotoPrincipal] : [];
   const parecidos = useMemo(() => similares(catalogo, item), [catalogo, item]);
   const url = typeof window !== "undefined" ? window.location.href : "";
-  const wa = `https://api.whatsapp.com/send?phone=34664859306&text=${encodeURIComponent(`Hola. Estoy interesado en hablar del «${item.titulo}».\n${url}`)}`;
+  const wa = `https://api.whatsapp.com/send?phone=${WA}&text=${encodeURIComponent(`Hola. Estoy interesado en hablar del «${item.titulo}».\n${url}`)}`;
+  const hipoteca = item.modo === "venta" ? cuotaHipoteca(item.precio, entrada, anos, interes) : null;
+  const abrirFinanciacion = () => {
+    const pagina = window.location.href;
+    const texto = [
+      "Hola, Rehabinco. Quiero pedir un estudio de financiación gratuito.",
+      "",
+      `Me interesa «${item.titulo}»${item.ref ? ` (ref. ${item.ref})` : ""}.`,
+      [item.tipo, item.zona, formatoPrecio(item)].filter(Boolean).join(" · "),
+      pagina,
+      hipoteca
+        ? `He mirado una simulación orientativa: entrada ${entrada} %, ${anos} años, interés ${interes.toFixed(1)} %, cuota aproximada ${fmtEuro(hipoteca.cuota)} al mes.`
+        : "Me gustaría que me orientéis sobre la financiación de este inmueble.",
+    ]
+      .filter(Boolean)
+      .join("\n");
+    window.open(`https://api.whatsapp.com/send?phone=${WA}&text=${encodeURIComponent(texto)}`, "_blank", "noopener,noreferrer");
+  };
   const letraEnergia = "D";
   const idxEnergia = ENERGIA.findIndex(([l]) => l === letraEnergia);
-  const hipoteca = item.modo === "venta" ? cuotaHipoteca(item.precio, entrada, anos, interes) : null;
   const mapsQ = encodeURIComponent(`${item.zona} A Coruña`);
   const gmaps = `https://www.google.com/maps/search/?api=1&query=${mapsQ}`;
   const amaps = `https://maps.apple.com/?q=${mapsQ}`;
@@ -213,9 +229,9 @@ export function FichaCorporativa({
                     <input type="range" min={1} max={6} step={0.1} value={interes} onChange={(e) => setInteres(Number(e.target.value))} className="corp-range" />
                   </label>
                 </div>
-                <Link href={`${hrefInicio(enDominio)}#servicios`} className="self-start border-b border-[#080808] pb-0.5 text-[14px] font-medium">
+                <button type="button" onClick={abrirFinanciacion} className="self-start border-b border-[#080808] pb-0.5 text-left text-[14px] font-medium">
                   Pide estudio de financiación gratuito ↗
-                </Link>
+                </button>
               </section>
             ) : null}
 
