@@ -39,8 +39,9 @@ export async function cargarEditorWeb(): Promise<
     supabase.from("agency_branding").select("name, phone, email, web, logo_light_path, logo_dark_path").eq("tenant_id", tenantId).maybeSingle(),
     supabase
       .from("propiedades")
-      .select("referencia, titulo, direccion, localidad, tipo_inmueble, tipo_operacion, precio_venta, precio_alquiler, superficie_construida, superficie_m2, habitaciones, banos, descripcion, estado, publicar_web, inmueble_media(url, portada, orden, tipo)")
-      .eq("publicar_web", true),
+      .select("referencia, titulo, direccion, localidad, tipo_inmueble, tipo_operacion, precio_venta, precio_alquiler, superficie_construida, superficie_m2, habitaciones, banos, descripcion, estado, publicar_web, created_at, inmueble_media(url, portada, orden, tipo)")
+      .eq("publicar_web", true)
+      .order("created_at", { ascending: false }),
   ]);
 
   if (sitio.error || !sitio.data || bloques.error) return { ok: false, motivo: "vacio" };
@@ -113,7 +114,7 @@ function inmueblesEditor(filas: unknown): InmuebleWeb[] {
     };
     const estado = typeof row.estado === "string" ? row.estado : null;
     return aptoParaWeb({ ...item, estado }) ? [item] : [];
-  }).sort((a, b) => a.referencia.localeCompare(b.referencia));
+  });
 }
 
 function fotosDe(media: unknown): string[] {
@@ -129,6 +130,6 @@ function fotosDe(media: unknown): string[] {
         orden: typeof foto.orden === "number" ? foto.orden : 0,
       }];
     })
-    .sort((a, b) => a.orden - b.orden)
+    .sort((a, b) => a.orden - b.orden || 0)
     .map((foto) => foto.url);
 }
