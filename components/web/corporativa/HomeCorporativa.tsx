@@ -158,7 +158,7 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
         </div>
       </header>
 
-      <section className="corp-pad flex w-full min-w-0 flex-col gap-[clamp(48px,6vw,88px)] pb-0 pt-[clamp(80px,10vw,150px)]">
+      <section data-scroll-stage="hold" className="corp-pad flex w-full min-w-0 flex-col gap-[clamp(48px,6vw,88px)] pb-0 pt-[clamp(80px,10vw,150px)]">
         <div className="grid items-start gap-6 md:grid-cols-[minmax(0,320px)_1fr_1fr] md:gap-12">
           <p data-enter="0" className="corp-kicker">(01) Quiénes somos</p>
           <FillText text={QUIENES_FILL} className="max-w-[26ch] md:col-span-2" />
@@ -337,7 +337,7 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
         </div>
       </section>
 
-      <section className="corp-pad flex flex-col items-center gap-[clamp(20px,2.4vw,36px)] py-[clamp(110px,14vw,220px)] pb-[clamp(30px,4vw,60px)] text-center">
+      <section data-scroll-stage="hold" className="corp-pad flex flex-col items-center gap-[clamp(20px,2.4vw,36px)] py-[clamp(110px,14vw,220px)] pb-[clamp(30px,4vw,60px)] text-center">
         <FillText text={HUMAN_FILL} center className="max-w-[24ch]" />
         <p data-reveal="" aria-label="Humanamente." className="m-0 flex max-w-full justify-center whitespace-nowrap px-2">
           {"HUMAN".split("").map((c, i) => (

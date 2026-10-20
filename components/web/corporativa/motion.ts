@@ -1,14 +1,27 @@
 /** Motor de scroll del handoff Home.dc.html, acotado al nodo raíz de la web. */
 
 const EASE = "cubic-bezier(.2,.7,.2,1)";
+const SCRUB_HECHO = 0.86;
+const REVEAL_VISIBLE = 0.14;
+const MAX_REENCUADRES = 4;
 
-type Mot = HTMLElement & { __shown?: boolean; __prepped?: boolean; _p?: number; _on?: boolean };
+type Mot = HTMLElement & {
+  __shown?: boolean;
+  __prepped?: boolean;
+  __entered?: boolean;
+  __reencuadrado?: boolean;
+  __maxP?: number;
+  _p?: number;
+  _on?: boolean;
+};
 
 export function initWebMotion(root: HTMLElement) {
   const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
   const q = <T extends Element>(sel: string) => [...root.querySelectorAll<T>(sel)];
   let raf = 0;
   let safety = 0;
+  let scrollEndTimer = 0;
+  let reencuadres = 0;
 
   const fillAll = () => {
     q<HTMLElement>("[data-fill] > span").forEach((s) => {
@@ -75,6 +88,21 @@ export function initWebMotion(root: HTMLElement) {
 
   const vh = () => window.innerHeight || document.documentElement.clientHeight;
 
+  const visibleRatio = (el: Element) => {
+    const r = el.getBoundingClientRect();
+    const h = vh();
+    const visible = Math.min(r.bottom, h) - Math.max(r.top, 0);
+    return visible / Math.max(1, r.height);
+  };
+
+  const reencuadrar = (el: HTMLElement) => {
+    const mot = el as Mot;
+    if (mot.__reencuadrado || reencuadres >= MAX_REENCUADRES) return;
+    mot.__reencuadrado = true;
+    reencuadres += 1;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
   const enter = q<Mot>("[data-enter]");
   enter.forEach((el) => {
     if (el.__prepped) return;
@@ -110,14 +138,36 @@ export function initWebMotion(root: HTMLElement) {
   });
 
   const targets = [...enter, ...wipes, ...splits, ...q<Mot>("[data-count-trigger]")];
+
   const check = () => {
     const h = vh();
     targets.forEach((el) => {
       if (el.__shown) return;
       const r = el.getBoundingClientRect();
-      if (r.top < h * 0.94 && r.bottom > 0) revealEl(el);
+      const ratio = visibleRatio(el);
+      if (ratio >= 0.04) el.__entered = true;
+      if (ratio >= REVEAL_VISIBLE && r.bottom > h * 0.04 && r.top < h * 0.96) revealEl(el);
     });
   };
+
+  const revisarReveladosPerdidos = () => {
+    const h = vh();
+    targets.forEach((el) => {
+      if (el.__shown || !el.__entered) return;
+      const r = el.getBoundingClientRect();
+      if (r.bottom < h * 0.12) revealEl(el);
+      else if (r.top > h * 0.88 && !el.__reencuadrado) reencuadrar(el);
+    });
+  };
+
+  const revisarScrubPerdido = (el: Mot, maxP: number, minHecho = SCRUB_HECHO) => {
+    if (maxP >= minHecho || maxP < 0.05) return;
+    const r = el.getBoundingClientRect();
+    const h = vh();
+    const fuera = r.bottom < h * 0.2 || r.top > h * 0.8;
+    if (fuera) reencuadrar(el);
+  };
+
   safety = window.setTimeout(() => {
     if (!targets.some((el) => el.__shown)) revealAll();
     else check();
@@ -128,15 +178,16 @@ export function initWebMotion(root: HTMLElement) {
   const words = q<HTMLElement>("[data-hero-word]");
   const hero = root.querySelector<HTMLElement>("[data-hero]");
   const pxs = q<HTMLElement>("[data-px]");
-  const fills = q<HTMLElement & { _p?: number }>("[data-fill]");
+  const fills = q<Mot>("[data-fill]");
 
   const fillTick = () => {
     const h = vh();
     fills.forEach((el) => {
       const r = el.getBoundingClientRect();
-      const start = h * 0.85;
-      const end = h * 0.45;
+      const start = h * 0.88;
+      const end = h * 0.38;
       const p = Math.min(1, Math.max(0, (start - r.top) / (start - end + r.height)));
+      el.__maxP = Math.max(el.__maxP ?? 0, p);
       const kids = el.children;
       const n = kids.length;
       for (let i = 0; i < n; i++) {
@@ -171,7 +222,7 @@ export function initWebMotion(root: HTMLElement) {
     });
   };
 
-  const izs = q<HTMLElement>("[data-iconzoom]");
+  const izs = q<Mot>("[data-iconzoom]");
   const izTick = () => {
     const H = vh();
     const seg = (p: number, a: number, b: number) => Math.min(1, Math.max(0, (p - a) / (b - a)));
@@ -179,6 +230,7 @@ export function initWebMotion(root: HTMLElement) {
     izs.forEach((el) => {
       const r = el.getBoundingClientRect();
       const p = Math.min(1, Math.max(0, -r.top / Math.max(1, r.height - H)));
+      el.__maxP = Math.max(el.__maxP ?? 0, p);
       const draw = ease(seg(p, 0, 0.28));
       const zoom = ease(seg(p, 0.3, 0.92));
       const sc = 0.75 * 70 ** zoom;
@@ -231,6 +283,7 @@ export function initWebMotion(root: HTMLElement) {
   const sstep = (t: number) => t * t * (3 - 2 * t);
   const clamp01 = (t: number) => Math.min(1, Math.max(0, t));
   const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+  let travelMax = 0;
 
   const travelTick = () => {
     if (!tv || !tvIcon || !tvLine || !srcIc || !dstA) return;
@@ -247,6 +300,7 @@ export function initWebMotion(root: HTMLElement) {
     const t1 = sstep(clamp01((H * 0.42 - sc) / (H * 0.3)));
     const tc = ar.top + ar.height / 2;
     const t2 = sstep(clamp01((H * 1.02 - tc) / (H * 0.4)));
+    travelMax = Math.max(travelMax, Math.max(t1, t2));
     const active = t1 > 0 && t2 < 1;
     srcIc.style.visibility = t1 > 0 ? "hidden" : "visible";
     if (dstWrap) {
@@ -290,6 +344,19 @@ export function initWebMotion(root: HTMLElement) {
     tvLine.style.opacity = String(Math.min(1, t1) * (1 - t2) * 0.5);
   };
 
+  const alTerminarScroll = () => {
+    revisarReveladosPerdidos();
+    izs.forEach((el) => revisarScrubPerdido(el, el.__maxP ?? 0, 0.72));
+    fills.forEach((el) => {
+      const section = el.closest("section") ?? el;
+      revisarScrubPerdido(section as Mot, el.__maxP ?? 0, 0.92);
+    });
+    if (travelMax > 0.12 && travelMax < 0.82 && dstA) {
+      const human = dstA.closest("section");
+      if (human) revisarScrubPerdido(human as Mot, travelMax, 0.82);
+    }
+  };
+
   const tick = () => {
     check();
     travelTick();
@@ -317,13 +384,30 @@ export function initWebMotion(root: HTMLElement) {
   const onScroll = () => {
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(tick);
+    window.clearTimeout(scrollEndTimer);
+    scrollEndTimer = window.setTimeout(alTerminarScroll, 140);
   };
+
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        const el = entry.target as Mot;
+        if (entry.isIntersecting && entry.intersectionRatio >= REVEAL_VISIBLE) revealEl(el);
+        if (entry.isIntersecting) el.__entered = true;
+      }
+    },
+    { root: null, rootMargin: "0px 0px -8% 0px", threshold: [0, REVEAL_VISIBLE, 0.35, 0.55] }
+  );
+  targets.forEach((el) => io.observe(el));
+
   document.addEventListener("scroll", onScroll, { passive: true, capture: true });
   window.addEventListener("resize", onScroll);
   requestAnimationFrame(() => requestAnimationFrame(tick));
 
   return () => {
     clearTimeout(safety);
+    clearTimeout(scrollEndTimer);
+    io.disconnect();
     document.removeEventListener("scroll", onScroll, true);
     window.removeEventListener("resize", onScroll);
     cancelAnimationFrame(raf);

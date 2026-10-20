@@ -17,6 +17,21 @@
   overflow-y: visible;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  html:has(.web-corp) {
+    scroll-snap-type: y proximity;
+    scroll-behavior: smooth;
+  }
+
+  .web-corp [data-scroll-stage] {
+    scroll-snap-align: start;
+  }
+
+  .web-corp [data-scroll-stage="hold"] {
+    scroll-snap-stop: always;
+  }
+}
+
 /* Bloques redondeados: mismo inset horizontal que .corp-pad */
 .web-corp .corp-inset-x {
   box-sizing: border-box;
