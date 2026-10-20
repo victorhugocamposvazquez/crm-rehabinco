@@ -24,7 +24,7 @@ import { IconoServicio } from "./IconoMarca";
 import { initWebMotion } from "./motion";
 import { ModalServicio } from "./ModalServicio";
 import { NavCorporativa } from "./NavCorporativa";
-import { FillText, PalabraHero, SplitLine } from "./TipografiaMotion";
+import { FillText, FraseScrollStage, PalabraHero, SplitLine } from "./TipografiaMotion";
 import { SeccionDiferenciaRehabinco } from "./SeccionDiferenciaRehabinco";
 import { GridFases360 } from "./TarjetaFase360";
 import { TarjetaInmuebleCorporativa } from "./TarjetaInmuebleCorporativa";
@@ -158,10 +158,12 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
         </div>
       </header>
 
-      <section data-scroll-stage="hold" className="corp-pad flex w-full min-w-0 flex-col gap-[clamp(48px,6vw,88px)] pb-0 pt-[clamp(80px,10vw,150px)]">
+      <section className="corp-pad flex w-full min-w-0 flex-col gap-[clamp(48px,6vw,88px)] pb-0 pt-[clamp(80px,10vw,150px)]">
         <div className="grid items-start gap-6 md:grid-cols-[minmax(0,320px)_1fr_1fr] md:gap-12">
           <p data-enter="0" className="corp-kicker">(01) Quiénes somos</p>
-          <FillText text={QUIENES_FILL} className="max-w-[26ch] md:col-span-2" />
+          <FraseScrollStage className="md:col-span-2">
+            <FillText text={QUIENES_FILL} className="max-w-[26ch]" />
+          </FraseScrollStage>
         </div>
         <div data-iconzoom="" className="relative -mx-[clamp(16px,2.6vw,40px)] h-[280vh]">
           <div className="sticky top-0 h-[100svh] overflow-hidden bg-[#080808]">
@@ -237,13 +239,13 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
           <img src={`${A}/salon.jpg`} alt="Salón reformado" className="h-full w-full scale-[1.12] object-cover" />
         </div>
         <div className="flex flex-col gap-10">
-          <div>
+          <FraseScrollStage compact className="!min-h-[min(80svh,680px)] !py-0">
             <p data-enter="0" className="corp-kicker">(03) Te ofrecemos</p>
             <h2 className="corp-h2 mt-3">
               <SplitLine name="v1" text="CONFÍA EN" />
               <SplitLine name="v2" text="LOS QUE SABEN" />
             </h2>
-          </div>
+          </FraseScrollStage>
           <div className="border-t border-[rgba(8,8,8,.14)]">
             {VENTAJAS.map(([titulo, texto], i) => {
               const open = ventajaAbierta === i;
@@ -337,9 +339,10 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
         </div>
       </section>
 
-      <section data-scroll-stage="hold" className="corp-pad flex flex-col items-center gap-[clamp(20px,2.4vw,36px)] py-[clamp(110px,14vw,220px)] pb-[clamp(30px,4vw,60px)] text-center">
-        <FillText text={HUMAN_FILL} center className="max-w-[24ch]" />
-        <p data-reveal="" aria-label="Humanamente." className="m-0 flex max-w-full justify-center whitespace-nowrap px-2">
+      <section className="corp-pad flex flex-col items-center py-[clamp(48px,6vw,80px)] pb-[clamp(30px,4vw,60px)] text-center">
+        <FraseScrollStage className="w-full items-center gap-[clamp(20px,2.4vw,36px)]">
+          <FillText text={HUMAN_FILL} center className="max-w-[24ch]" />
+          <p data-reveal="" aria-label="Humanamente." className="m-0 flex max-w-full justify-center whitespace-nowrap px-2">
           {"HUMAN".split("").map((c, i) => (
             <span key={`${c}${i}`} className="inline-block" style={{ opacity: 0, filter: "blur(14px)", translate: "0 .35em" }}>
               {c}
@@ -357,7 +360,8 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
               {c}
             </span>
           ))}
-        </p>
+          </p>
+        </FraseScrollStage>
       </section>
 
       <section className="corp-inset-x relative flex min-h-[clamp(520px,70vh,760px)] overflow-hidden rounded-none bg-[#080808] text-[#fefefe] md:rounded-[28px]">
@@ -390,7 +394,7 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
 
       <section id="reformas" className="corp-pad grid items-start gap-12 pb-0 pt-[clamp(80px,10vw,150px)] md:grid-cols-2 md:gap-20">
         <div className="flex flex-col gap-10">
-          <div>
+          <FraseScrollStage compact className="!min-h-[min(78svh,660px)] !py-0">
             <p data-enter="0" className="corp-kicker">(07) Reformas</p>
             <h2 className="corp-h2 mt-3">
               <SplitLine name="r1" text="REFORMAS" />
@@ -399,7 +403,7 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
             <p className="mt-5 max-w-[44ch] text-[16px] leading-relaxed text-[#6b6b6b]">
               Reformamos cualquier vivienda o local, lo compres con nosotros o no. Presupuesto cerrado por escrito y fecha de entrega en el contrato.
             </p>
-          </div>
+          </FraseScrollStage>
           <div className="border-t border-[rgba(8,8,8,.14)]">
             {REFORMAS.map((r, i) => (
               <button
@@ -543,13 +547,13 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
       </section>
 
       <section className="corp-pad grid items-start gap-10 py-[clamp(80px,10vw,150px)] md:grid-cols-2">
-        <div>
+        <FraseScrollStage compact className="!py-0">
           <p data-enter="0" className="corp-kicker">(10) Preguntas</p>
           <h2 className="corp-h2 mt-3">
             <SplitLine name="f1" text="DUDAS" />
             <SplitLine name="f2" text="FRECUENTES" />
           </h2>
-        </div>
+        </FraseScrollStage>
         <div className="border-t border-[rgba(8,8,8,.14)]">
           {FAQS.map(([q, a], i) => {
             const open = faqAbierta === i;

@@ -20,11 +20,10 @@
 @media (prefers-reduced-motion: no-preference) {
   html:has(.web-corp) {
     scroll-snap-type: y proximity;
-    scroll-behavior: smooth;
   }
 
   .web-corp [data-scroll-stage] {
-    scroll-snap-align: start;
+    scroll-snap-align: center;
   }
 
   .web-corp [data-scroll-stage="hold"] {

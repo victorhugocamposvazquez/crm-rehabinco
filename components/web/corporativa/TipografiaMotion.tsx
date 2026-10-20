@@ -1,3 +1,31 @@
+import { cn } from "@/lib/utils";
+
+/** Más altura de scroll para que el fill y el reveal no se salten con un flick. */
+export function FraseScrollStage({
+  children,
+  className,
+  compact,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  /** Titulares h2: menos altura que párrafos fill. */
+  compact?: boolean;
+}) {
+  return (
+    <div
+      data-frase-stage=""
+      data-scroll-stage="hold"
+      className={cn(
+        "flex flex-col justify-center py-[clamp(20px,4vh,56px)]",
+        compact ? "min-h-[min(88svh,760px)]" : "min-h-[min(125svh,980px)]",
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function SplitLine({ name, text }: { name: string; text: string }) {
   return (
     <span data-split={name} className="flex max-w-full overflow-hidden" style={{ paddingTop: ".14em", marginTop: "-.14em" }}>

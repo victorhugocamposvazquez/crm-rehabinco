@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { DIFERENCIA_LEAD, PILARES_CONFIANZA, type PilarConfianza } from "@/lib/web/corporativa/contenido";
 import { IconoPilarConfianza } from "./IconoMarca";
-import { SplitLine } from "./TipografiaMotion";
+import { FraseScrollStage, SplitLine } from "./TipografiaMotion";
 
 function TarjetaCompacta({ pilar, index }: { pilar: PilarConfianza; index: number }) {
   const num = String(index + 1).padStart(2, "0");
@@ -74,7 +74,7 @@ export function SeccionDiferenciaRehabinco() {
   return (
     <section id="por-que-rehabinco" className="corp-pad flex flex-col gap-10 pb-0 pt-[clamp(80px,10vw,150px)]">
       <div className="flex flex-wrap items-end justify-between gap-6">
-        <div>
+        <FraseScrollStage compact className="!py-0">
           <p data-enter="0" className="corp-kicker">
             (06) Por qué Rehabinco
           </p>
@@ -82,7 +82,7 @@ export function SeccionDiferenciaRehabinco() {
             <SplitLine name="dif1" text="LO QUE NOS HACE" />
             <SplitLine name="dif2" text="DIFERENTES" />
           </h2>
-        </div>
+        </FraseScrollStage>
         <p data-enter="120" className="max-w-[38ch] text-[15px] leading-relaxed text-[#6b6b6b]">
           {DIFERENCIA_LEAD}
         </p>

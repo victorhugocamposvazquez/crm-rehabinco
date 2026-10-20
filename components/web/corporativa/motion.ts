@@ -2,8 +2,10 @@
 
 const EASE = "cubic-bezier(.2,.7,.2,1)";
 const SCRUB_HECHO = 0.86;
+const FILL_FRASE_HECHO = 0.78;
 const REVEAL_VISIBLE = 0.14;
-const MAX_REENCUADRES = 4;
+const MAX_REENCUADRES = 8;
+const clamp01 = (t: number) => Math.min(1, Math.max(0, t));
 
 type Mot = HTMLElement & {
   __shown?: boolean;
@@ -88,6 +90,19 @@ export function initWebMotion(root: HTMLElement) {
 
   const vh = () => window.innerHeight || document.documentElement.clientHeight;
 
+  const progresoFill = (el: HTMLElement, h: number) => {
+    const stage = el.closest("[data-frase-stage]") as HTMLElement | null;
+    if (stage) {
+      const r = stage.getBoundingClientRect();
+      const travel = Math.max(h * 1.08, r.height * 0.94);
+      return clamp01((h * 0.96 - r.top) / travel);
+    }
+    const r = el.getBoundingClientRect();
+    const start = h * 0.92;
+    const end = h * 0.32;
+    return clamp01((start - r.top) / (start - end + r.height));
+  };
+
   const visibleRatio = (el: Element) => {
     const r = el.getBoundingClientRect();
     const h = vh();
@@ -145,7 +160,12 @@ export function initWebMotion(root: HTMLElement) {
       if (el.__shown) return;
       const r = el.getBoundingClientRect();
       const ratio = visibleRatio(el);
-      if (ratio >= 0.04) el.__entered = true;
+      if (r.bottom > 0 && r.top < h) el.__entered = true;
+      if (el.hasAttribute("data-split")) {
+        const mid = r.top + r.height / 2;
+        if (mid >= h * 0.2 && mid <= h * 0.88) revealEl(el);
+        return;
+      }
       if (ratio >= REVEAL_VISIBLE && r.bottom > h * 0.04 && r.top < h * 0.96) revealEl(el);
     });
   };
@@ -183,10 +203,7 @@ export function initWebMotion(root: HTMLElement) {
   const fillTick = () => {
     const h = vh();
     fills.forEach((el) => {
-      const r = el.getBoundingClientRect();
-      const start = h * 0.88;
-      const end = h * 0.38;
-      const p = Math.min(1, Math.max(0, (start - r.top) / (start - end + r.height)));
+      const p = progresoFill(el, h);
       el.__maxP = Math.max(el.__maxP ?? 0, p);
       const kids = el.children;
       const n = kids.length;
@@ -199,7 +216,7 @@ export function initWebMotion(root: HTMLElement) {
       el._p = p;
       const rv = el.nextElementSibling as HTMLElement | null;
       if (rv?.hasAttribute("data-reveal")) {
-        const on = p >= 0.985;
+        const on = p >= 0.88;
         const marked = rv as HTMLElement & { _on?: boolean };
         if (marked._on !== on) {
           marked._on = on;
@@ -281,7 +298,6 @@ export function initWebMotion(root: HTMLElement) {
   const dstA = root.querySelector<HTMLElement>("[data-hm-a]");
   const dstWrap = root.querySelector<HTMLElement>("[data-hm-wrap]");
   const sstep = (t: number) => t * t * (3 - 2 * t);
-  const clamp01 = (t: number) => Math.min(1, Math.max(0, t));
   const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
   let travelMax = 0;
 
@@ -344,15 +360,44 @@ export function initWebMotion(root: HTMLElement) {
     tvLine.style.opacity = String(Math.min(1, t1) * (1 - t2) * 0.5);
   };
 
+  const revisarFrasesPerdidas = () => {
+    const h = vh();
+    q<HTMLElement>("[data-frase-stage]").forEach((stage) => {
+      const fill = stage.querySelector<Mot>("[data-fill]");
+      if (fill) {
+        const maxP = fill.__maxP ?? 0;
+        if (maxP > 0.06 && maxP < FILL_FRASE_HECHO) {
+          const r = stage.getBoundingClientRect();
+          const fuera = r.bottom < h * 0.38 || r.top > h * 0.62;
+          if (fuera) reencuadrar(stage);
+        }
+      }
+      stage.querySelectorAll<Mot>("[data-split]").forEach((sp) => {
+        if (sp.__shown || !sp.__entered) return;
+        const r = sp.getBoundingClientRect();
+        if (r.top >= h * 0.22 && r.bottom <= h * 0.78) revealEl(sp);
+        else if (r.bottom < h * 0.28 || r.top > h * 0.72) reencuadrar(stage);
+      });
+    });
+    splits.forEach((sp) => {
+      if (sp.__shown || !sp.__entered) return;
+      const anchor = (sp.closest("[data-frase-stage]") ?? sp.closest("section") ?? sp) as HTMLElement;
+      const r = sp.getBoundingClientRect();
+      if (r.bottom < h * 0.25 || r.top > h * 0.75) reencuadrar(anchor);
+    });
+  };
+
   const alTerminarScroll = () => {
     revisarReveladosPerdidos();
+    revisarFrasesPerdidas();
     izs.forEach((el) => revisarScrubPerdido(el, el.__maxP ?? 0, 0.72));
     fills.forEach((el) => {
-      const section = el.closest("section") ?? el;
-      revisarScrubPerdido(section as Mot, el.__maxP ?? 0, 0.92);
+      const anchor = (el.closest("[data-frase-stage]") ?? el.closest("section") ?? el) as HTMLElement;
+      const minHecho = el.closest("[data-frase-stage]") ? FILL_FRASE_HECHO : 0.92;
+      revisarScrubPerdido(anchor as Mot, el.__maxP ?? 0, minHecho);
     });
     if (travelMax > 0.12 && travelMax < 0.82 && dstA) {
-      const human = dstA.closest("section");
+      const human = dstA.closest("[data-frase-stage]") ?? dstA.closest("section");
       if (human) revisarScrubPerdido(human as Mot, travelMax, 0.82);
     }
   };
@@ -385,7 +430,7 @@ export function initWebMotion(root: HTMLElement) {
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(tick);
     window.clearTimeout(scrollEndTimer);
-    scrollEndTimer = window.setTimeout(alTerminarScroll, 140);
+    scrollEndTimer = window.setTimeout(alTerminarScroll, 200);
   };
 
   const io = new IntersectionObserver(
