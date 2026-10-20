@@ -19,7 +19,7 @@ describe("catálogo corporativa", () => {
       fotos: ["https://example.com/foto.jpg"],
     });
     assert.ok(fila);
-    const lista = combinarCatalogo([fila]);
+    const lista = combinarCatalogo([fila], true);
     assert.equal(lista[0]?.origen, "crm");
     assert.equal(lista[0]?.slug, "RHB-2026-0003");
     assert.ok(lista.length > 1);

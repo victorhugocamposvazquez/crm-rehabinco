@@ -70,8 +70,9 @@ export function inmuebleCrmDe(raw: Record<string, unknown>): InmuebleCorporativa
   };
 }
 
-/** Stock real primero; después los mocks del handoff (sin duplicar referencias). */
-export function combinarCatalogo(crm: InmuebleCorporativa[]): InmuebleCorporativa[] {
+/** Stock del CRM. Los mocks solo en preview local explícita (ver incluirMocks). */
+export function combinarCatalogo(crm: InmuebleCorporativa[], incluirMocks = false): InmuebleCorporativa[] {
+  if (!incluirMocks) return crm;
   const refsCrm = new Set(crm.map((item) => item.slug.toLowerCase()));
   const mocks = INMUEBLES_MOCK.filter((item) => !refsCrm.has(item.slug.toLowerCase()));
   return [...crm, ...mocks];
