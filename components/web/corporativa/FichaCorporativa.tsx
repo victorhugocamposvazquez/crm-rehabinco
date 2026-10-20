@@ -127,11 +127,11 @@ export function FichaCorporativa({
             <section className="mt-10 flex flex-col gap-[18px]">
               <p className="text-[12px] uppercase tracking-[0.06em] text-[#6b6b6b]">(01) Descripción</p>
               {item.descripcionLarga?.length ? (
-                <p className="max-w-[30ch] text-[clamp(22px,2vw,28px)] font-medium leading-[1.2] tracking-[-0.025em] text-[#080808]">{item.descripcion}</p>
+                <p className="w-full max-w-[min(100%,52ch)] text-[clamp(22px,2vw,28px)] font-medium leading-[1.2] tracking-[-0.025em] text-[#080808]">{item.descripcion}</p>
               ) : null}
-              <div className={`flex flex-col gap-3.5 ${desc || !item.descripcionLarga?.length ? "" : "line-clamp-6"}`}>
+              <div className={`flex w-full min-w-0 flex-col gap-3.5 ${desc || !item.descripcionLarga?.length ? "" : "line-clamp-6"}`}>
                 {(item.descripcionLarga?.length ? item.descripcionLarga : [item.descripcion]).map((p) => (
-                  <p key={p.slice(0, 32)} className="max-w-[62ch] text-[16px] font-normal leading-[1.6] text-[#6b6b6b]">
+                  <p key={p.slice(0, 32)} className="w-full min-w-0 text-pretty text-[16px] font-normal leading-[1.65] text-[#6b6b6b]">
                     {p}
                   </p>
                 ))}
@@ -145,7 +145,7 @@ export function FichaCorporativa({
 
             <section className="mt-10 flex flex-col gap-4">
               <p className="corp-kicker">(02) Características</p>
-              <div className="grid gap-1.5 sm:grid-cols-[repeat(auto-fill,minmax(130px,1fr))]">
+              <div className="grid w-full min-w-0 gap-1.5 sm:grid-cols-[repeat(auto-fill,minmax(140px,1fr))]">
                 {[
                   ["Referencia", item.ref || item.slug],
                   ["Tipo", item.tipo],
