@@ -32,6 +32,7 @@ import { ClipboardPenLine, Pencil, Printer, Trash2 } from "lucide-react";
 import { BotonValorar } from "@/components/avm/BotonValorar";
 import { CatastroPropertyFicha } from "@/components/catastro/CatastroPropertyFicha";
 import { esOrigenCatastroExplorer, fincaReferenceDesdeVinculo } from "@/lib/catastro/explorer";
+import { etiquetaEstadoIdealista } from "@/lib/inmuebles/idealista-publicacion/plan";
 import {
   ESTADO_PARTE_LABELS,
   partirVisitasPorFecha,
@@ -226,7 +227,7 @@ export default function DetallePropiedadPage() {
       />
       {alta ? (
         <p className="mb-4 rounded-xl border border-[#111111]/30 bg-[#F0F0F0] px-4 py-3 text-sm text-[#000000]">
-          Inmueble creado. Sube fotos, planos o un tour 3D. Idealista llega muy pronto.
+          Inmueble creado. Sube fotos, planos o un tour 3D. Para Idealista, marca la publicación y completa los datos del portal.
         </p>
       ) : null}
       <div className="mb-6 print:hidden">
@@ -256,7 +257,10 @@ export default function DetallePropiedadPage() {
             <Badge variant="default">Web</Badge>
           </Link>
         ) : propiedad.publicar_web ? <Badge variant="default">Web</Badge> : null}
-        {propiedad.publicar_idealista ? <Badge variant="default">Idealista</Badge> : null}
+        {(() => {
+          const etiqueta = etiquetaEstadoIdealista(propiedad.idealista_sync_estado, Boolean(propiedad.publicar_idealista));
+          return etiqueta ? <Badge variant="default">{etiqueta}</Badge> : null;
+        })()}
         {esOrigenCatastroExplorer(propiedad.origen) && fincaReference ? (
           <CatastroPropertyFicha
             fincaReference={fincaReference}
@@ -264,6 +268,9 @@ export default function DetallePropiedadPage() {
           />
         ) : null}
       </div>
+      {propiedad.publicar_idealista && propiedad.idealista_sync_error ? (
+        <p className="mb-6 text-sm text-amber-800">{propiedad.idealista_sync_error}</p>
+      ) : null}
 
       <AlertDialog
         open={showDeleteConfirm}

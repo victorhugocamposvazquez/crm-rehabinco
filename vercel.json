@@ -28,6 +28,15 @@
     "app/api/avm/valuate/route.ts": {
       "maxDuration": 60
     },
+    "app/api/inmuebles/idealista/volcado/route.ts": {
+      "maxDuration": 120
+    },
+    "app/api/inmuebles/idealista/sincronizar/route.ts": {
+      "maxDuration": 120
+    },
+    "app/api/cron/idealista-volcado/route.ts": {
+      "maxDuration": 120
+    },
     "app/api/avm/valuations/[id]/pdf/route.ts": {
       "maxDuration": 60
     }

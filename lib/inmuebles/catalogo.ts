@@ -121,6 +121,8 @@ export type Inmueble = {
   certificado_energetico?: string | null;
   idealista_tipo?: string | null;
   idealista_visibilidad_direccion?: string | null;
+  idealista_sync_estado?: string | null;
+  idealista_sync_error?: string | null;
   created_at?: string | null;
 };
 

@@ -23,6 +23,7 @@ import {
 } from "@/lib/inmuebles/catalogo";
 import { useAuth } from "@/lib/auth/auth-context";
 import { avisoPublicacion } from "@/lib/inmuebles/publicacion";
+import { pedirSyncIdealista } from "@/lib/inmuebles/idealista-publicacion/pedir-sync";
 
 export default function EditarPropiedadPage() {
   const params = useParams();
@@ -95,6 +96,10 @@ export default function EditarPropiedadPage() {
       return;
     }
     await proponerInmuebleADemandas(supabase, id);
+    const sync = await pedirSyncIdealista(id);
+    if (sync.estado === "publicado" || sync.estado === "despublicado") toast.success(sync.mensaje ?? "Idealista actualizado.");
+    else if (sync.mensaje && (sync.estado === "error" || sync.estado === "incompleto")) toast.error(sync.mensaje);
+    else if (sync.mensaje) toast.message(sync.mensaje);
     toast.success("Inmueble actualizado");
     router.push(`/propiedades/${id}`);
     router.refresh();

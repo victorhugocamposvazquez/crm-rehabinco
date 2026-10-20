@@ -174,6 +174,25 @@ export default function SettingsPage() {
           <Card className="md:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
+                <KeyRound className="h-5 w-5" strokeWidth={1.5} />
+                Publicación Idealista
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-neutral-600">
+                Código ILC y credenciales de la API. Los inmuebles marcados se publican al guardar.
+              </p>
+              <Button className="mt-4" variant="secondary" asChild>
+                <Link href="/settings/publicacion">Configurar Idealista</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {direccion && (
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
                 <Building2 className="h-5 w-5" strokeWidth={1.5} />
                 Emisores de presupuesto
               </CardTitle>

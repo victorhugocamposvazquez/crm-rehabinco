@@ -27,6 +27,7 @@ import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { proponerInmuebleADemandas } from "@/lib/demandas/proponer-stock";
 import { siNoDe, triSiNo } from "@/lib/inmuebles/catalogo";
 import { avisoPublicacion } from "@/lib/inmuebles/publicacion";
+import { pedirSyncIdealista } from "@/lib/inmuebles/idealista-publicacion/pedir-sync";
 import { PublicacionInmueble } from "@/components/inmuebles/PublicacionInmueble";
 
 type InmuebleAltaSnap = {
@@ -187,7 +188,11 @@ export function NuevoInmueblePanel({
         fallosMedia.push(...subida.errores);
       }
     }
+    const sync = await pedirSyncIdealista(data.id);
     setSaving(false);
+    if (sync.estado === "publicado") toast.success(sync.mensaje ?? "Publicado en Idealista.");
+    else if (sync.mensaje && (sync.estado === "error" || sync.estado === "incompleto")) toast.error(sync.mensaje);
+    else if (sync.mensaje) toast.message(sync.mensaje);
     for (const err of fallosMedia) toast.error(err);
     if (fallosMedia.length) {
       toast.error("El inmueble se ha creado, pero alguna foto o plano no se ha guardado.");

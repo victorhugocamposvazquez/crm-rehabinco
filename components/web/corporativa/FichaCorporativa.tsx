@@ -259,10 +259,20 @@ export function FichaCorporativa({
                   <p className="text-[13px] text-[#6b6b6b]">Ubicación aproximada · dirección exacta en la visita</p>
                 </div>
                 <div className="absolute right-4 top-4 flex flex-wrap justify-end gap-1.5">
-                  <a href={gmaps} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-[13px] bg-[#080808] px-3.5 py-2.5 text-[14px] font-medium text-[#fefefe] shadow-lg">
+                  <a
+                    href={gmaps}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="corp-link-on-dark inline-flex items-center gap-2 rounded-[13px] bg-[#080808] px-3.5 py-2.5 text-[14px] font-medium shadow-lg"
+                  >
                     Google Maps
                   </a>
-                  <a href={amaps} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-[13px] bg-[#fefefe] px-3.5 py-2.5 text-[14px] font-medium shadow-lg hover:bg-[#f4f3f1]">
+                  <a
+                    href={amaps}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="corp-link-on-light inline-flex items-center gap-2 rounded-[13px] bg-[#fefefe] px-3.5 py-2.5 text-[14px] font-medium shadow-lg hover:bg-[#f4f3f1]"
+                  >
                     Apple Maps
                   </a>
                 </div>

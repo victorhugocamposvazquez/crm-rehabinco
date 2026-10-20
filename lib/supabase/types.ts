@@ -269,6 +269,11 @@ export interface Database {
           certificado_energetico: string | null;
           idealista_tipo: string | null;
           idealista_visibilidad_direccion: string;
+          idealista_codigo: string | null;
+          idealista_sync_estado: string | null;
+          idealista_sync_error: string | null;
+          idealista_synced_at: string | null;
+          idealista_anuncios: Record<string, string> | null;
           origen: string;
           created_at: string;
           updated_at: string;
@@ -312,6 +317,11 @@ export interface Database {
           certificado_energetico?: string | null;
           idealista_tipo?: string | null;
           idealista_visibilidad_direccion?: string;
+          idealista_codigo?: string | null;
+          idealista_sync_estado?: string | null;
+          idealista_sync_error?: string | null;
+          idealista_synced_at?: string | null;
+          idealista_anuncios?: Record<string, string> | null;
           origen?: string;
         };
         Update: {
@@ -352,6 +362,11 @@ export interface Database {
           certificado_energetico?: string | null;
           idealista_tipo?: string | null;
           idealista_visibilidad_direccion?: string;
+          idealista_codigo?: string | null;
+          idealista_sync_estado?: string | null;
+          idealista_sync_error?: string | null;
+          idealista_synced_at?: string | null;
+          idealista_anuncios?: Record<string, string> | null;
           origen?: string;
           updated_at?: string;
         };

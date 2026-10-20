@@ -42,10 +42,16 @@ export function PublicacionInmueble({
     <div className="space-y-3">
       <Check
         titulo="Publicar en la web"
+        detalle="Sale en la web pública si la ficha está completa."
         checked={values.publicar_web}
         onChange={(checked) => onChange({ publicar_web: checked })}
       />
-      <Check titulo="Publicar en Idealista" checked={values.publicar_idealista} />
+      <Check
+        titulo="Publicar en Idealista"
+        detalle="Se envía al guardar. Si la API aún no está activa, queda marcado."
+        checked={values.publicar_idealista}
+        onChange={(checked) => onChange({ publicar_idealista: checked })}
+      />
 
       <div className="space-y-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-4">
         <p className="text-[13px] font-semibold text-[var(--text-1)]">Datos para Idealista</p>
@@ -140,10 +146,12 @@ function VisibilidadRadio({
 
 function Check({
   titulo,
+  detalle,
   checked,
   onChange,
 }: {
   titulo: string;
+  detalle: string;
   checked: boolean;
   onChange?: (checked: boolean) => void;
 }) {
@@ -154,7 +162,7 @@ function Check({
     >
       <span>
         <span className="block text-[14px] font-semibold">{titulo}</span>
-        <span className="text-[12.5px] text-[var(--text-2)]">{pronto ? "Muy pronto" : "Sale en la web pública si la ficha está completa."}</span>
+        <span className="text-[12.5px] text-[var(--text-2)]">{pronto ? "Muy pronto" : detalle}</span>
       </span>
       <input
         type="checkbox"
