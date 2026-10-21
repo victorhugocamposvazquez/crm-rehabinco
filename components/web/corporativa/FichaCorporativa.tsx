@@ -5,7 +5,8 @@ import { useMemo, useState } from "react";
 import { ENERGIA, OFICINA, WA } from "@/lib/web/corporativa/contenido";
 import { formatoPrecio, similares, specsCortas } from "@/lib/web/corporativa/catalogo";
 import type { InmuebleCorporativa } from "@/lib/web/corporativa/types";
-import { hrefInicio } from "@/lib/web/dominio";
+import { hrefInicio, hrefPoliticaPrivacidad } from "@/lib/web/dominio";
+import { ClausulaFormularioWeb } from "./ClausulaFormularioWeb";
 import { NavCorporativa } from "./NavCorporativa";
 import { ContactoFooter } from "./ContactoFooter";
 import { TarjetaInmuebleCorporativa } from "./TarjetaInmuebleCorporativa";
@@ -38,6 +39,8 @@ export function FichaCorporativa({
   const [entrada, setEntrada] = useState(20);
   const [anos, setAnos] = useState(25);
   const [interes, setInteres] = useState(3.2);
+  const [aceptaPrivacidad, setAceptaPrivacidad] = useState(false);
+  const [mapaCargado, setMapaCargado] = useState(false);
   const fotos = item.fotos.length ? item.fotos : item.fotoPrincipal ? [item.fotoPrincipal] : [];
   const parecidos = useMemo(() => similares(catalogo, item), [catalogo, item]);
   const url = typeof window !== "undefined" ? window.location.href : "";
@@ -247,13 +250,26 @@ export function FichaCorporativa({
             <section className="mt-10 flex flex-col gap-4">
               <p className="corp-kicker">(05) Ubicación</p>
               <div className="relative min-h-[240px] overflow-hidden rounded-[24px] bg-[#f4f3f1] aspect-[16/8]">
-                <iframe
-                  title="Mapa"
-                  className="absolute inset-0 h-full w-full border-0 grayscale-[0.2]"
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  src={`https://www.google.com/maps?q=${mapsQ}&output=embed`}
-                />
+                {mapaCargado ? (
+                  <iframe
+                    title="Mapa"
+                    className="absolute inset-0 h-full w-full border-0 grayscale-[0.2]"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    src={`https://www.google.com/maps?q=${mapsQ}&output=embed`}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setMapaCargado(true)}
+                    className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center"
+                  >
+                    <span className="text-[15px] font-medium text-[#080808]">Cargar mapa</span>
+                    <span className="max-w-sm text-[13px] leading-relaxed text-[#6b6b6b]">
+                      Al cargarlo, Google puede tratar datos técnicos de la petición. Si prefieres, abre el enlace sin incrustar el mapa.
+                    </span>
+                  </button>
+                )}
                 <div className="pointer-events-none absolute bottom-4 left-4 max-w-[calc(100%-32px)] rounded-[15px] bg-[#fefefe] p-4 shadow-[0_8px_24px_rgba(8,8,8,.1)]">
                   <p className="text-[16px] font-medium">{item.zona}</p>
                   <p className="text-[13px] text-[#6b6b6b]">Ubicación aproximada · dirección exacta en la visita</p>
@@ -305,6 +321,7 @@ export function FichaCorporativa({
                   <input placeholder="Nombre" className="w-full rounded-[12px] border border-[rgba(8,8,8,.14)] px-4 py-3.5 text-[15px]" />
                   <input placeholder="Teléfono" className="w-full rounded-[12px] border border-[rgba(8,8,8,.14)] px-4 py-3.5 text-[15px]" />
                   <textarea placeholder="Mensaje" rows={4} className="w-full rounded-[12px] border border-[rgba(8,8,8,.14)] px-4 py-3.5 text-[15px]" defaultValue={`Me interesa ${item.titulo}. ${specsCortas(item)}`} />
+                  <ClausulaFormularioWeb enDominio={enDominio} aceptada={aceptaPrivacidad} onChange={setAceptaPrivacidad} clara />
                   <button type="submit" className="corp-btn w-full justify-center">
                     Solicitar visita
                     <span className="corp-btn-icon">↗</span>
@@ -319,6 +336,13 @@ export function FichaCorporativa({
                     Enviar WhatsApp
                     <span className="corp-btn-icon !bg-white/20 !text-white">↗</span>
                   </a>
+                  <p className="text-[12.5px] leading-relaxed text-[#6b6b6b]">
+                    Al abrir WhatsApp, el mensaje lo trata también Meta.{" "}
+                    <Link href={hrefPoliticaPrivacidad(enDominio)} className="underline underline-offset-2">
+                      Política de privacidad
+                    </Link>
+                    .
+                  </p>
                 </div>
               )}
             </div>

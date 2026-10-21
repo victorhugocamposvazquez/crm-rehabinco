@@ -27,6 +27,10 @@ describe("dominio de la web", () => {
       tipo: "canonical",
       pathname: "/politica-cookies",
     });
+    assert.deepEqual(decisionHost("web.rehabinco.es", "/politica-privacidad", "web.rehabinco.es"), {
+      tipo: "reescribir",
+      pathname: "/web/politica-privacidad",
+    });
     assert.equal(decisionHost("web.rehabinco.es", "/propiedades", "web.rehabinco.es").tipo, "al-crm");
     assert.equal(decisionHost("crm.rehabinco.es", "/", "web.rehabinco.es").tipo, "crm");
     assert.equal(hrefInmueble(true, "RHB-1"), "/inmuebles/RHB-1");

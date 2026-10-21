@@ -4,13 +4,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { BUSQUEDAS, INSTAGRAM, INTERESES, OFICINA, WA } from "@/lib/web/corporativa/contenido";
-import { hrefAvisoLegal, hrefInicio, hrefPoliticaCookies } from "@/lib/web/dominio";
+import { hrefAvisoLegal, hrefInicio, hrefPoliticaCookies, hrefPoliticaPrivacidad } from "@/lib/web/dominio";
+import { ClausulaFormularioWeb } from "./ClausulaFormularioWeb";
 import { abrirConfiguracionCookies } from "./CookieBanner";
 import { SplitLine } from "./TipografiaMotion";
 
 export function ContactoFooter({ enDominio }: { enDominio: boolean }) {
   const [interes, setInteres] = useState(0);
   const [canal, setCanal] = useState<"form" | "wa">("form");
+  const [aceptaPrivacidad, setAceptaPrivacidad] = useState(false);
   const inicio = hrefInicio(enDominio);
 
   const waMsg = useMemo(() => {
@@ -97,6 +99,7 @@ export function ContactoFooter({ enDominio }: { enDominio: boolean }) {
                   placeholder={`Cuéntanos qué buscas (${INTERESES[interes]?.toLowerCase()})…`}
                   className="resize-y rounded-[12px] border-0 bg-[#fefefe] px-4 py-3.5 text-[15px] text-[#080808] outline-none"
                 />
+                <ClausulaFormularioWeb enDominio={enDominio} aceptada={aceptaPrivacidad} onChange={setAceptaPrivacidad} clara />
               </>
             ) : (
               <div className="flex flex-col gap-2 rounded-[16px] border border-dashed border-[rgba(254,254,254,.22)] bg-[rgba(254,254,254,.06)] p-[18px]">
@@ -120,6 +123,15 @@ export function ContactoFooter({ enDominio }: { enDominio: boolean }) {
                 <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-[#080808] text-[#fefefe]">↗</span>
               </a>
             )}
+            {canal === "wa" ? (
+              <p className="text-[12.5px] leading-relaxed text-[rgba(254,254,254,.72)]">
+                Al abrir WhatsApp, el mensaje lo trata también Meta. Cómo usa Rehabinco los datos que nos haces llegar está en la{" "}
+                <Link href={hrefPoliticaPrivacidad(enDominio)} className="underline underline-offset-2">
+                  política de privacidad
+                </Link>
+                .
+              </p>
+            ) : null}
           </form>
         </div>
         <div className="flex flex-col gap-5">
@@ -145,6 +157,9 @@ export function ContactoFooter({ enDominio }: { enDominio: boolean }) {
               </a>
               <Link href={hrefAvisoLegal(enDominio)} className="hover:text-[#fefefe]">
                 Aviso legal
+              </Link>
+              <Link href={hrefPoliticaPrivacidad(enDominio)} className="hover:text-[#fefefe]">
+                Política de privacidad
               </Link>
               <Link href={hrefPoliticaCookies(enDominio)} className="hover:text-[#fefefe]">
                 Política de cookies

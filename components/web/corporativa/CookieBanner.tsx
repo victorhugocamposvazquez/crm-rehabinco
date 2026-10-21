@@ -16,7 +16,7 @@ import {
   type CategoriaCookieOpcional,
   type ConsentimientoCookies,
 } from "@/lib/web/cookie-consent";
-import { hrefPoliticaCookies } from "@/lib/web/dominio";
+import { hrefPoliticaCookies, hrefPoliticaPrivacidad } from "@/lib/web/dominio";
 
 type PrefsOpcionales = Record<CategoriaCookieOpcional, boolean>;
 
@@ -37,6 +37,7 @@ export function CookieBanner() {
   const pathname = usePathname();
   const enDominio = !pathname.startsWith("/web");
   const politicaHref = hrefPoliticaCookies(enDominio);
+  const privacidadHref = hrefPoliticaPrivacidad(enDominio);
 
   const [visible, setVisible] = useState(false);
   const [panel, setPanel] = useState<"bar" | "config">("bar");
@@ -101,7 +102,11 @@ export function CookieBanner() {
                 Usamos cookies necesarias y, con tu permiso, otras para preferencias, analítica y marketing. Puedes aceptar todas,
                 rechazar las opcionales o elegir categorías.{" "}
                 <Link href={politicaHref} className="font-medium text-[#080808] underline underline-offset-2">
-                  Saber más
+                  Política de cookies
+                </Link>
+                {" · "}
+                <Link href={privacidadHref} className="font-medium text-[#080808] underline underline-offset-2">
+                  Privacidad
                 </Link>
               </p>
             ) : (

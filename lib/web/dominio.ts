@@ -43,14 +43,14 @@ export function decisionHost(host: string, pathname: string, dominio: string | n
   if (pathname === "/web/inmuebles" || pathname.startsWith("/web/inmuebles/")) {
     return { tipo: "canonical", pathname: pathname.slice("/web".length) };
   }
-  if (pathname === "/web/aviso-legal" || pathname === "/web/politica-cookies") {
+  if (pathname === "/web/aviso-legal" || pathname === "/web/politica-cookies" || pathname === "/web/politica-privacidad") {
     return { tipo: "canonical", pathname: pathname.slice("/web".length) };
   }
   if (pathname === "/" || pathname === "") return { tipo: "reescribir", pathname: "/web" };
   if (pathname === "/inmuebles" || pathname.startsWith("/inmuebles/")) {
     return { tipo: "reescribir", pathname: `/web${pathname}` };
   }
-  if (pathname === "/aviso-legal" || pathname === "/politica-cookies") {
+  if (pathname === "/aviso-legal" || pathname === "/politica-cookies" || pathname === "/politica-privacidad") {
     return { tipo: "reescribir", pathname: `/web${pathname}` };
   }
   if (pathname === "/api" || pathname.startsWith("/api/")) return { tipo: "crm" };
@@ -85,4 +85,8 @@ export function hrefAvisoLegal(enDominio: boolean): string {
 
 export function hrefPoliticaCookies(enDominio: boolean): string {
   return enDominio ? "/politica-cookies" : "/web/politica-cookies";
+}
+
+export function hrefPoliticaPrivacidad(enDominio: boolean): string {
+  return enDominio ? "/politica-privacidad" : "/web/politica-privacidad";
 }
