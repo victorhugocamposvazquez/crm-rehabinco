@@ -63,16 +63,8 @@ export function entradaConAsistentes(tipo: string): boolean {
   return tipo === "evento" || tipo === "captacion";
 }
 
-export function entradaConNotas(tipo: string): boolean {
-  return (
-    tipo === "visita" ||
-    tipo === "evento" ||
-    tipo === "captacion" ||
-    tipo === "llamada" ||
-    tipo === "tarea" ||
-    tipo === "firma" ||
-    tipo === "tasacion"
-  );
+export function entradaConNotas(_tipo: string): boolean {
+  return true;
 }
 
 export function puedeHacerParte(cita: { tipo: string; estado: string }): boolean {

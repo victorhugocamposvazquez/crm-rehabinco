@@ -78,7 +78,7 @@ describe("citas", () => {
     assert.equal(entradaConNotas("firma"), true);
     assert.equal(entradaConNotas("tasacion"), true);
     assert.equal(entradaConNotas("visita"), true);
-    assert.equal(entradaConNotas("recordatorio"), false);
+    assert.equal(entradaConNotas("recordatorio"), true);
   });
 
   it("calcula la grilla mensual y navega de mes en mes", () => {

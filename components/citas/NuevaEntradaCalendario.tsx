@@ -193,7 +193,7 @@ export function NuevaEntradaCalendario({
               ? "Motivo de la llamada, lo hablado o lo pendiente. No sale en el título del calendario."
               : "Observaciones internas. No salen en el título del calendario."
         }
-        className={tipo === "visita" ? "min-[820px]:col-span-2" : undefined}
+        className="min-[820px]:col-span-2 min-[820px]:row-start-1"
       >
         <textarea
           value={notas}
@@ -270,10 +270,12 @@ export function NuevaEntradaCalendario({
         }
         onSubmit={() => onGuardar(tipo, titulo)}
       >
+        {bloqueNotas}
+
         <AltaSection
           title="Qué"
           hint="Visita, llamada, firma, tasación, evento, captación, recordatorio o tarea. El título es lo que verás en la rejilla."
-          className="min-[820px]:col-start-1 min-[820px]:row-start-1"
+          className="min-[820px]:col-start-1 min-[820px]:row-start-2"
         >
           <div className="flex flex-wrap gap-2">
             {tipos.map((item) => (
@@ -284,9 +286,7 @@ export function NuevaEntradaCalendario({
           </div>
         </AltaSection>
 
-        {tipo === "visita" ? bloqueNotas : null}
-
-        <div className="min-w-0 min-[820px]:col-start-1 min-[820px]:row-start-2">
+        <div className="min-w-0 min-[820px]:col-start-1 min-[820px]:row-start-3">
           <AltaField label="Título" optional>
             <input
               autoFocus
@@ -301,7 +301,7 @@ export function NuevaEntradaCalendario({
         <AltaSection
           title="Cuándo"
           hint="Sale del hueco pulsado. Cámbialo si no encaja."
-          className="min-[820px]:col-start-2 min-[820px]:row-start-1"
+          className="min-[820px]:col-start-2 min-[820px]:row-start-2"
         >
           <div className="grid grid-cols-2 gap-3">
             <AltaField label="Día">
@@ -317,7 +317,7 @@ export function NuevaEntradaCalendario({
           <AltaSection
             title="Comercial"
             hint="Quién aparece asignado a esta entrada. Puedes crearla a nombre de otra persona del equipo."
-            className="min-[820px]:col-start-2 min-[820px]:row-start-2"
+            className="min-[820px]:col-start-2 min-[820px]:row-start-3"
           >
             <div className="flex items-center gap-2">
               <AvatarComercial
@@ -431,8 +431,6 @@ export function NuevaEntradaCalendario({
             </div>
           </AltaSection>
         ) : null}
-
-        {tipo !== "visita" ? bloqueNotas : null}
 
         <AltaSection
           wide
