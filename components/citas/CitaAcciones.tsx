@@ -53,7 +53,7 @@ export function CitaAcciones({
         <Selector
           value={valorSelect}
           onChange={(e) => cambiarEstado(e.target.value)}
-          className="h-9 rounded-[9px] border border-[var(--input)] bg-white px-2 text-[13px]"
+          className="h-10 w-full min-w-[11rem] rounded-[9px] border border-[var(--input)] bg-white px-3 text-[13.5px] font-medium"
           aria-label="Estado de la entrada"
         >
           <option value="prevista">Prevista</option>

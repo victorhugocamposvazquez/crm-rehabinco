@@ -16,6 +16,7 @@ import {
   citaAtenuadaEnCalendario,
   type TipoCita,
 } from "@/lib/citas/citas";
+import { varsEventoCalendario } from "@/lib/ui/calendar-event-style";
 import { colorComercial } from "@/lib/ui/tokens";
 import { cn } from "@/lib/utils";
 
@@ -44,7 +45,6 @@ export function EventoCalendarioChip({
   cita: CitaRejilla;
   compact?: boolean;
 }) {
-  const color = colorComercial(cita.comercial_id, cita.profiles?.color);
   return (
     <>
       <div className="flex items-center gap-1">
@@ -55,7 +55,7 @@ export function EventoCalendarioChip({
           color={cita.profiles?.color}
           size={compact ? 16 : 18}
         />
-        <p className="min-w-0 truncate text-[11px] font-semibold" style={{ color }}>
+        <p className="cal-evento-meta min-w-0 truncate text-[11px] font-semibold">
           {horaCita(cita.empieza)} · {TIPO_CITA_LABEL[(cita.tipo as TipoCita) ?? "otro"] ?? cita.tipo}
         </p>
       </div>
@@ -234,13 +234,12 @@ export function CalendarioSemana({
                       arrastrando && "cal-evento--dragging"
                     )}
                     style={{
+                      ...varsEventoCalendario(color),
                       top,
                       height,
                       left: ancho.left,
                       width: ancho.width,
                       zIndex: enfocado ? 30 : (layout?.column ?? 0) + 1,
-                      background: `${color}1A`,
-                      borderLeft: `3px solid ${color}`,
                     }}
                   >
                     <EventoCalendarioChip cita={cita} compact />

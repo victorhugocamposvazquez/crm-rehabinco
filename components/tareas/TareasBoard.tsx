@@ -193,7 +193,10 @@ export function TareasBoard({
             )}
           >
             <div className="mb-2.5 flex items-center gap-2 px-1 text-[13px]">
-              <span className="h-2 w-2 rounded-full" style={{ background: col.dot }} />
+              <span
+                className="h-2 w-2 shrink-0 rounded-full dark:shadow-[0_0_7px_color-mix(in_srgb,currentColor_55%,transparent)]"
+                style={{ background: col.dot, color: col.dot }}
+              />
               <strong className="font-semibold">{col.label}</strong>
               <span className="text-[12px] text-[var(--text-3)]">{items.length}</span>
               <span className="flex-1" />

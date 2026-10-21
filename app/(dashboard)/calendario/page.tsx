@@ -566,7 +566,9 @@ export default function CalendarioPage() {
     if (estado === "hecha") toast.success("Entrada marcada como finalizada.");
     else if (estado === "cancelada") toast.success("Entrada anulada.");
     else toast.success("Entrada de nuevo como prevista.");
-    if (estado === "cancelada") {
+    setEditando((prev) => (prev?.id === id ? { ...prev, estado } : prev));
+    setCitas((prev) => prev.map((item) => (item.id === id ? { ...item, estado } : item)));
+    if (estado === "cancelada" || estado === "hecha") {
       setSheetOpen(false);
       setEditando(null);
     }
@@ -650,6 +652,86 @@ export default function CalendarioPage() {
         />
       ) : (
         <>
+          <h2 className="mt-6 hidden text-[15px] font-semibold capitalize min-[820px]:block">
+            {new Date(`${dia}T12:00:00`).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}
+          </h2>
+          <ul className="mt-3 hidden space-y-2 min-[820px]:block">
+            {delDia.map((cita) => {
+              const mapsConsulta = cita.lugar?.trim() || direccionDeInmueble(cita.propiedades ?? {});
+              return (
+                <li
+                  key={cita.id}
+                  className={`flex flex-col gap-3 rounded-2xl border border-[#E5E5E5] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
+                    citaAtenuadaEnCalendario(cita.estado) ? "opacity-55" : ""
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <AvatarComercial
+                      id={cita.comercial_id}
+                      nombre={cita.profiles?.nombre_completo}
+                      email={cita.profiles?.email}
+                      color={cita.profiles?.color}
+                      size={28}
+                      className="mt-0.5"
+                    />
+                    <div>
+                      <p className="font-medium">{cita.titulo}</p>
+                      <p className="text-xs text-[#5C5C5C]">
+                        {horaCita(cita.empieza)}
+                        {nombreYApellido(cita.profiles?.nombre_completo, cita.profiles?.email) &&
+                        cita.comercial_id !== user?.id
+                          ? ` · ${nombreYApellido(cita.profiles?.nombre_completo, cita.profiles?.email)}`
+                          : ""}{" "}
+                        · {TIPO_CITA_LABEL[(cita.tipo as TipoCita) ?? "otro"] ?? cita.tipo} ·{" "}
+                        {ESTADO_CITA_LABEL[(cita.estado as EstadoCita) ?? "prevista"] ?? cita.estado}
+                      </p>
+                      {cita.propiedad_id ? (
+                        <FichaLink tipo="propiedad" id={cita.propiedad_id} className="mt-1 inline-block text-xs">
+                          {[cita.propiedades?.referencia, cita.propiedades?.titulo || cita.propiedades?.direccion]
+                            .filter(Boolean)
+                            .join(" · ") || "Ver inmueble"}
+                        </FichaLink>
+                      ) : null}
+                      {mapsConsulta ? (
+                        <p className="mt-1 text-xs">
+                          <EnlaceMaps consulta={mapsConsulta} />
+                        </p>
+                      ) : null}
+                      {entradaConAsistentes(cita.tipo) &&
+                      (cita.clientes?.nombre || (cita.clientes_extra_ids?.length ?? 0) > 0) ? (
+                        <p className="mt-1 text-xs text-[#5C5C5C]">
+                          {[
+                            cita.clientes?.nombre,
+                            ...(cita.clientes_extra_ids ?? []).map((id) => {
+                              const nombre = clientes.find((c) => c.id === id)?.nombre;
+                              return nombre ? `+ ${nombre}` : null;
+                            }),
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
+                        </p>
+                      ) : null}
+                      {cita.notas?.trim() ? (
+                        <p className="mt-1 text-xs italic text-[#5C5C5C]">{cita.notas.trim()}</p>
+                      ) : null}
+                    </div>
+                  </div>
+                  {gestiona(cita.comercial_id) ? (
+                    <CitaAcciones cita={cita} onEstado={cambiarEstado} onEditar={abrirEdicion} />
+                  ) : null}
+                </li>
+              );
+            })}
+            {delDia.length === 0 ? (
+              <li className="rounded-[14px] border border-dashed border-border px-4 py-6 text-center">
+                <p className="text-[13.5px] text-[var(--text-2)]">No hay citas este día.</p>
+                <Button type="button" size="sm" className="mt-3" onClick={() => abrirHueco(dia, minutosDesdeHora("10:00"))}>
+                  Crear en este día
+                </Button>
+              </li>
+            ) : null}
+          </ul>
+
           <div className="mt-4">
             <CalendarioMovil
               semana={semana}
@@ -733,94 +815,17 @@ export default function CalendarioPage() {
                 id: editando.id,
                 tipo: editando.tipo,
                 titulo: editando.titulo,
-                estado: editando.estado,
+                estado: editando.estado ?? "prevista",
                 notas: editando.notas,
               }
             : null
         }
         onGuardar={(tipo, titulo) => void guardar(tipo, titulo)}
         onCancelar={cancelarEntrada}
+        onCambiarEstado={(estado) => {
+          if (editando) void cambiarEstado(editando.id, estado);
+        }}
       />
-
-      <h2 className="mt-8 hidden text-[15px] font-semibold capitalize min-[820px]:block">
-        {new Date(`${dia}T12:00:00`).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}
-      </h2>
-      <ul className="mt-3 hidden space-y-2 min-[820px]:block">
-        {delDia.map((cita) => {
-          const mapsConsulta = cita.lugar?.trim() || direccionDeInmueble(cita.propiedades ?? {});
-          return (
-            <li
-              key={cita.id}
-              className={`flex flex-col gap-3 rounded-2xl border border-[#E5E5E5] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
-                citaAtenuadaEnCalendario(cita.estado) ? "opacity-55" : ""
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                <AvatarComercial
-                  id={cita.comercial_id}
-                  nombre={cita.profiles?.nombre_completo}
-                  email={cita.profiles?.email}
-                  color={cita.profiles?.color}
-                  size={28}
-                  className="mt-0.5"
-                />
-                <div>
-                  <p className="font-medium">{cita.titulo}</p>
-                  <p className="text-xs text-[#5C5C5C]">
-                    {horaCita(cita.empieza)}
-                    {nombreYApellido(cita.profiles?.nombre_completo, cita.profiles?.email) && cita.comercial_id !== user?.id
-                      ? ` · ${nombreYApellido(cita.profiles?.nombre_completo, cita.profiles?.email)}`
-                      : ""}{" "}
-                    ·{" "}
-                    {TIPO_CITA_LABEL[(cita.tipo as TipoCita) ?? "otro"] ?? cita.tipo} ·{" "}
-                    {ESTADO_CITA_LABEL[(cita.estado as EstadoCita) ?? "prevista"] ?? cita.estado}
-                  </p>
-                  {cita.propiedad_id ? (
-                    <FichaLink tipo="propiedad" id={cita.propiedad_id} className="mt-1 inline-block text-xs">
-                      {[cita.propiedades?.referencia, cita.propiedades?.titulo || cita.propiedades?.direccion]
-                        .filter(Boolean)
-                        .join(" · ") || "Ver inmueble"}
-                    </FichaLink>
-                  ) : null}
-                  {mapsConsulta ? (
-                    <p className="mt-1 text-xs">
-                      <EnlaceMaps consulta={mapsConsulta} />
-                    </p>
-                  ) : null}
-                  {entradaConAsistentes(cita.tipo) &&
-                  (cita.clientes?.nombre || (cita.clientes_extra_ids?.length ?? 0) > 0) ? (
-                    <p className="mt-1 text-xs text-[#5C5C5C]">
-                      {[
-                        cita.clientes?.nombre,
-                        ...(cita.clientes_extra_ids ?? []).map((id) => {
-                          const nombre = clientes.find((c) => c.id === id)?.nombre;
-                          return nombre ? `+ ${nombre}` : null;
-                        }),
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
-                    </p>
-                  ) : null}
-                  {cita.notas?.trim() ? (
-                    <p className="mt-1 text-xs italic text-[#5C5C5C]">{cita.notas.trim()}</p>
-                  ) : null}
-                </div>
-              </div>
-              {gestiona(cita.comercial_id) ? (
-                <CitaAcciones cita={cita} onEstado={cambiarEstado} onEditar={abrirEdicion} />
-              ) : null}
-            </li>
-          );
-        })}
-        {delDia.length === 0 ? (
-          <li className="rounded-[14px] border border-dashed border-border px-4 py-6 text-center">
-            <p className="text-[13.5px] text-[var(--text-2)]">No hay citas este día.</p>
-            <Button type="button" size="sm" className="mt-3" onClick={() => abrirHueco(dia, minutosDesdeHora("10:00"))}>
-              Crear en este día
-            </Button>
-          </li>
-        ) : null}
-      </ul>
     </div>
   );
 }

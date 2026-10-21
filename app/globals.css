@@ -70,19 +70,19 @@
   --muted: #c4c4c4;
   --ring: #ffffff;
   --field: #242424;
-  --amber: #e6c36a;
-  --amber-bg: #3a3014;
+  --amber: #f0cc66;
+  --amber-bg: #443810;
   --amber-ink: #f3d48a;
-  --blue: #9eb6ea;
-  --blue-bg: #1a2744;
-  --violet: #c4b8ee;
-  --violet-bg: #2a2644;
+  --blue: #a8c4ff;
+  --blue-bg: #1e2f52;
+  --violet: #d4c2ff;
+  --violet-bg: #322a52;
   --violet-ink: #ddd6f7;
-  --red: #ef8d7c;
-  --red-bg: #3d221c;
-  --green: #3ecf8e;
+  --red: #ff9a88;
+  --red-bg: #4a2820;
+  --green: #5ae8a8;
   --on-green: #06210f;
-  --green-bg: #143024;
+  --green-bg: #163828;
 }
 
 * {
@@ -240,6 +240,35 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
   }
 }
 
+.cal-evento,
+.cal-chip-mes {
+  --ev-hue: #2b4a8a;
+  background: color-mix(in srgb, var(--ev-hue) 18%, var(--surface));
+  border-left: 3px solid var(--ev-hue);
+  color: var(--foreground);
+}
+
+.cal-chip-mes {
+  border-left-width: 2px;
+}
+
+.cal-evento-meta {
+  color: color-mix(in srgb, var(--ev-hue) 88%, var(--foreground));
+}
+
+.dark .cal-evento,
+.dark .cal-chip-mes {
+  background: color-mix(in srgb, var(--ev-hue) 52%, var(--surface-soft));
+  border-left-color: color-mix(in srgb, var(--ev-hue) 72%, white);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--ev-hue) 42%, transparent),
+    0 1px 0 color-mix(in srgb, black 35%, transparent);
+}
+
+.dark .cal-evento-meta {
+  color: color-mix(in srgb, var(--ev-hue) 38%, white);
+}
+
 .cal-evento {
   transition:
     transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
@@ -252,6 +281,12 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
 .cal-evento:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 14px rgba(17, 17, 17, 0.1);
+}
+
+.dark .cal-evento:hover {
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 1px color-mix(in srgb, var(--ev-hue) 55%, transparent);
 }
 
 .cal-evento--pressing {
@@ -287,6 +322,10 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
 
 .cal-col--over {
   background: #F5F5F5 !important;
+}
+
+.dark .cal-col--over {
+  background: var(--accent-soft) !important;
 }
 
 .cal-snap {

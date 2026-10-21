@@ -9,6 +9,7 @@ import { Selector } from "@/components/ui/selector";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { NuevoClientePanel } from "@/components/clientes/NuevoClientePanel";
 import { BuscadorInmuebleCalendario } from "@/components/citas/BuscadorInmuebleCalendario";
+import { CitaAcciones } from "@/components/citas/CitaAcciones";
 import { EnlaceMaps } from "@/components/citas/InmueblePreviewCita";
 import { createClient } from "@/lib/supabase/client";
 import { nombreYApellido } from "@/lib/ui/tokens";
@@ -30,7 +31,7 @@ export type EdicionCalendario = {
   id: string;
   tipo: string;
   titulo: string;
-  estado?: string;
+  estado: string;
   notas?: string | null;
 };
 
@@ -60,6 +61,7 @@ export function NuevaEntradaCalendario({
   edicion,
   onGuardar,
   onCancelar,
+  onCambiarEstado,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -86,6 +88,7 @@ export function NuevaEntradaCalendario({
   edicion?: EdicionCalendario | null;
   onGuardar: (tipo: TipoAltaCalendario, titulo: string) => void;
   onCancelar?: () => void;
+  onCambiarEstado?: (estado: "prevista" | "hecha" | "cancelada") => void;
 }) {
   const equipo = comerciales ?? [];
   const comercialSel = equipo.find((c) => c.id === comercialId) ?? null;
@@ -264,6 +267,24 @@ export function NuevaEntradaCalendario({
             : undefined
         }
       >
+        {edicion && onCambiarEstado ? (
+          <AltaSection
+            wide
+            title="Estado"
+            hint="Marca finalizada cuando acabe la visita o anulada si no se hace. Anulada y finalizada dejan de salir en la rejilla."
+          >
+            <CitaAcciones
+              cita={{
+                id: edicion.id,
+                tipo: edicion.tipo,
+                estado: edicion.estado,
+                propiedad_id: propiedadId || null,
+              }}
+              onEstado={(_, estado) => onCambiarEstado(estado)}
+            />
+          </AltaSection>
+        ) : null}
+
         <AltaSection
           title="Qué"
           hint="Visita, llamada, firma, tasación, evento, captación, recordatorio o tarea. El título es lo que verás en la rejilla."

@@ -26,6 +26,7 @@ import {
   type EstadoCita,
   type TipoCita,
 } from "@/lib/citas/citas";
+import { varsEventoCalendario } from "@/lib/ui/calendar-event-style";
 import { colorComercial } from "@/lib/ui/tokens";
 
 const PULSACION_MS = 340;
@@ -355,13 +356,12 @@ export function CalendarioMovil({
                 armed && "touch-none"
               )}
               style={{
+                ...varsEventoCalendario(color),
                 top,
                 height,
                 left: ancho.left,
                 width: ancho.width,
                 zIndex: armed || dragging ? 40 : (layout?.column ?? 0) + 1,
-                background: `${color}1A`,
-                borderLeft: `3px solid ${color}`,
               }}
             >
               <EventoCalendarioChip cita={cita} />

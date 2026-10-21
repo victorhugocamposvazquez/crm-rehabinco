@@ -1,6 +1,7 @@
 "use client";
 
 import { celdasMes, horaCita, type CeldaMes } from "@/lib/citas/citas";
+import { varsEventoCalendario } from "@/lib/ui/calendar-event-style";
 import { colorComercial } from "@/lib/ui/tokens";
 import { cn } from "@/lib/utils";
 import type { CitaRejilla } from "@/components/citas/CalendarioSemana";
@@ -99,13 +100,13 @@ export function CalendarioMes({
                         if (puedeGestionar?.(cita.comercial_id) ?? true) onEditar(cita.id);
                       }}
                       className={cn(
-                        "w-full truncate rounded px-1 py-0.5 text-left text-[10px] font-medium min-[820px]:text-[11px]",
+                        "cal-chip-mes w-full truncate rounded px-1 py-0.5 text-left text-[10px] font-medium min-[820px]:text-[11px]",
                         cita.estado === "hecha" && "opacity-55"
                       )}
-                      style={{ background: `${color}1A`, color, borderLeft: `2px solid ${color}` }}
+                      style={varsEventoCalendario(color)}
                       title={`${horaCita(cita.empieza)} · ${cita.titulo}`}
                     >
-                      <span className="font-semibold">{horaCita(cita.empieza)}</span> {cita.titulo}
+                      <span className="cal-evento-meta font-semibold">{horaCita(cita.empieza)}</span> {cita.titulo}
                     </button>
                   );
                 })}
