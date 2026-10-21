@@ -140,7 +140,24 @@ Igualmente, podrá ejercer los derechos de acceso, rectificación, cancelación,
 En caso de que no haya obtenido satisfacción en el ejercicio de sus derechos, puede presentar una reclamación ante la Autoridad de Control en materia de Protección de Datos competente.`;
 }
 
+const TELEFONO_ANTIGUO = "664 859 306";
+const EMAIL_ANTIGUO = "oficina@rehabinco.com";
+
+/** Sustituye el teléfono antiguo de las plantillas por el de Rehabinco. */
+export function telefonoEmpresaVisible(valor: string | null | undefined): string | null {
+  const t = valor?.trim() || "";
+  if (!t) return null;
+  return t === TELEFONO_ANTIGUO ? EMPRESA_DOCUMENTOS.telefono : t;
+}
+
+/** Sustituye el correo antiguo de las plantillas por el de Rehabinco. */
+export function emailEmpresaVisible(valor: string | null | undefined): string | null {
+  const t = valor?.trim() || "";
+  if (!t) return null;
+  return t.toLowerCase() === EMAIL_ANTIGUO ? EMPRESA_DOCUMENTOS.email : t;
+}
+
 export function pieContactoEmpresa(): string {
   const e = EMPRESA_DOCUMENTOS;
-  return `(${e.direccion}, ${e.codigoPostal}\n${e.localidad}\nTeléfono ${e.telefono}\n${e.email}\n${e.web})`;
+  return `(${e.razonSocial}\nCIF ${e.cif}\n${e.direccion}, ${e.codigoPostal}\n${e.localidad}\nTeléfono ${e.telefono}\n${e.email}\n${e.web})`;
 }

@@ -5,6 +5,9 @@ import {
   EMPRESA_DOCUMENTOS,
   aplicarClausulaPersonalizada,
   clausulaProteccionDatosContrato,
+  emailEmpresaVisible,
+  pieContactoEmpresa,
+  telefonoEmpresaVisible,
   formatFechaDocumento,
   formatFechaEncabezado,
   omitirClausulasConchado,
@@ -58,6 +61,9 @@ describe("documentos Rehabinco 2026", () => {
       assert.equal(html.includes("664 859 306"), false);
     }
     assert.equal(EMPRESA_DOCUMENTOS.razonSocial.includes("CONCHADO"), false);
+    assert.match(pieContactoEmpresa(), /CIF B22834005/);
+    assert.equal(telefonoEmpresaVisible("664 859 306"), "664 85 93 06");
+    assert.equal(emailEmpresaVisible("oficina@rehabinco.com"), "info@rehabinco.es");
     assert.match(lopd, /^NOVENA\.- PROTECCIÓN DE DATOS/);
   });
 
