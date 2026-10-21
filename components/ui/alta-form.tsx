@@ -23,6 +23,7 @@ export function AltaShell({
   footerHint = "Cerrar guarda el borrador en este dispositivo. Para seguir, pulsa Seguir editando en el listado.",
   primaryHint,
   dangerAction,
+  toolbar,
   borrador,
   elevated = false,
 }: {
@@ -38,6 +39,7 @@ export function AltaShell({
   footerHint?: string;
   primaryHint?: string;
   dangerAction?: { label: string; onClick: () => void; disabled?: boolean };
+  toolbar?: ReactNode;
   elevated?: boolean;
   borrador?: {
     activo: boolean;
@@ -83,6 +85,7 @@ export function AltaShell({
             <div className="min-w-0 flex-1">
               <h2 className="text-[22px] font-medium leading-tight tracking-[-0.03em] text-foreground">{title}</h2>
               <p className="mt-1 max-w-[40rem] text-[13px] leading-5 text-[var(--text-2)]">{hint}</p>
+              {toolbar ? <div className="mt-3">{toolbar}</div> : null}
             </div>
             <button
               type="button"

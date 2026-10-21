@@ -15,7 +15,6 @@ import {
   CAL_HORA_FIN,
   CAL_HORA_INICIO,
   CAL_PX_HORA,
-  ESTADO_CITA_LABEL,
   citaAtenuadaEnCalendario,
   horaCita,
   columnasEventosSolapados,
@@ -23,7 +22,6 @@ import {
   minutosDesdeOffsetY,
   posicionEventoCalendario,
   TIPO_CITA_LABEL,
-  type EstadoCita,
   type TipoCita,
 } from "@/lib/citas/citas";
 import { varsEventoCalendario } from "@/lib/ui/calendar-event-style";
@@ -447,8 +445,6 @@ export function CalendarioMovil({
                       ? `${nombreYApellido(cita.profiles?.nombre_completo, cita.profiles?.email)} · `
                       : ""}
                     {TIPO_CITA_LABEL[(cita.tipo as TipoCita) ?? "otro"] ?? cita.tipo}
-                    {" · "}
-                    {ESTADO_CITA_LABEL[(cita.estado as EstadoCita) ?? "prevista"] ?? cita.estado}
                   </p>
                   {cita.propiedad_id ? (
                     <FichaLink tipo="propiedad" id={cita.propiedad_id} className="mt-1 inline-block text-[12px]">

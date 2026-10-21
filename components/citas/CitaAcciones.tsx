@@ -40,7 +40,7 @@ export function CitaAcciones({
   };
 
   return (
-    <div className="flex flex-wrap items-end gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       {puedeHacerParte(cita) && cita.estado === "prevista" ? (
         <Button asChild size="sm">
           <Link href={rutaNuevaVisitaDesdeCita({ id: cita.id, propiedadId: cita.propiedad_id })}>
@@ -48,12 +48,11 @@ export function CitaAcciones({
           </Link>
         </Button>
       ) : null}
-      <label className="flex min-w-[9.5rem] flex-col gap-1 text-[12px]">
-        <span className="font-medium text-[var(--text-3)]">Estado</span>
+      <label className="min-w-[8.5rem]">
         <Selector
           value={valorSelect}
           onChange={(e) => cambiarEstado(e.target.value)}
-          className="h-10 w-full min-w-[11rem] rounded-[9px] border border-[var(--input)] bg-white px-3 text-[13.5px] font-medium"
+          className="h-8 w-full min-w-[8.5rem] rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-2.5 text-[13px] font-medium"
           aria-label="Estado de la entrada"
         >
           <option value="prevista">Prevista</option>

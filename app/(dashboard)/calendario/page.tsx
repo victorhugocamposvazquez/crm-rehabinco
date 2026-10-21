@@ -18,7 +18,6 @@ import {
   citaAtenuadaEnCalendario,
   citaOcultaEnCalendario,
   direccionDeInmueble,
-  ESTADO_CITA_LABEL,
   horaCita,
   horaDesdeMinutos,
   puedeGestionarCita,
@@ -575,12 +574,6 @@ export default function CalendarioPage() {
     cargar();
   };
 
-  const cancelarEntrada = () => {
-    if (!editando || editando.estado !== "prevista") return;
-    if (!window.confirm("¿Cancelar esta entrada? Dejará de aparecer en el calendario.")) return;
-    void cambiarEstado(editando.id, "cancelada");
-  };
-
   const visibles = filtroComercial ? citas.filter((item) => item.comercial_id === filtroComercial) : citas;
   const citasRejilla = useMemo(
     () => visibles.filter((item) => !citaOcultaEnCalendario(item.estado, mostrarFinalizadas)),
@@ -682,8 +675,7 @@ export default function CalendarioPage() {
                         cita.comercial_id !== user?.id
                           ? ` · ${nombreYApellido(cita.profiles?.nombre_completo, cita.profiles?.email)}`
                           : ""}{" "}
-                        · {TIPO_CITA_LABEL[(cita.tipo as TipoCita) ?? "otro"] ?? cita.tipo} ·{" "}
-                        {ESTADO_CITA_LABEL[(cita.estado as EstadoCita) ?? "prevista"] ?? cita.estado}
+                        · {TIPO_CITA_LABEL[(cita.tipo as TipoCita) ?? "otro"] ?? cita.tipo}
                       </p>
                       {cita.propiedad_id ? (
                         <FichaLink tipo="propiedad" id={cita.propiedad_id} className="mt-1 inline-block text-xs">
@@ -821,7 +813,6 @@ export default function CalendarioPage() {
             : null
         }
         onGuardar={(tipo, titulo) => void guardar(tipo, titulo)}
-        onCancelar={cancelarEntrada}
         onCambiarEstado={(estado) => {
           if (editando) void cambiarEstado(editando.id, estado);
         }}

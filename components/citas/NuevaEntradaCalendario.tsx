@@ -60,7 +60,6 @@ export function NuevaEntradaCalendario({
   saving,
   edicion,
   onGuardar,
-  onCancelar,
   onCambiarEstado,
 }: {
   open: boolean;
@@ -87,7 +86,6 @@ export function NuevaEntradaCalendario({
   saving: boolean;
   edicion?: EdicionCalendario | null;
   onGuardar: (tipo: TipoAltaCalendario, titulo: string) => void;
-  onCancelar?: () => void;
   onCambiarEstado?: (estado: "prevista" | "hecha" | "cancelada") => void;
 }) {
   const equipo = comerciales ?? [];
@@ -256,23 +254,8 @@ export function NuevaEntradaCalendario({
             ? "Cerrar descarta los cambios no guardados. Arrastrar en la rejilla también mueve la hora."
             : "Cerrar no crea nada. La hora sale del hueco que has pulsado y se puede cambiar aquí."
         }
-        onSubmit={() => onGuardar(tipo, titulo)}
-        dangerAction={
-          edicion && edicion.estado === "prevista" && onCancelar
-            ? {
-                label: "Cancelar entrada (desaparece del calendario)",
-                onClick: onCancelar,
-                disabled: saving,
-              }
-            : undefined
-        }
-      >
-        {edicion && onCambiarEstado ? (
-          <AltaSection
-            wide
-            title="Estado"
-            hint="Marca finalizada cuando acabe la visita o anulada si no se hace. Anulada y finalizada dejan de salir en la rejilla."
-          >
+        toolbar={
+          edicion && onCambiarEstado ? (
             <CitaAcciones
               cita={{
                 id: edicion.id,
@@ -282,9 +265,10 @@ export function NuevaEntradaCalendario({
               }}
               onEstado={(_, estado) => onCambiarEstado(estado)}
             />
-          </AltaSection>
-        ) : null}
-
+          ) : null
+        }
+        onSubmit={() => onGuardar(tipo, titulo)}
+      >
         <AltaSection
           title="Qué"
           hint="Visita, llamada, firma, tasación, evento, captación, recordatorio o tarea. El título es lo que verás en la rejilla."

@@ -10,7 +10,7 @@ import { FiltroComercial, type ComercialFiltro } from "@/components/captacion/Fi
 import { CitaAcciones } from "@/components/citas/CitaAcciones";
 import { FichaLink } from "@/components/crm/FichaPeek";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
-import { ESTADO_CITA_LABEL, horaCita, puedeGestionarCita, relacionUno, type EstadoCita } from "@/lib/citas/citas";
+import { horaCita, puedeGestionarCita, relacionUno } from "@/lib/citas/citas";
 import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 
 type CitaAgenda = {
@@ -239,7 +239,6 @@ function ListaGrupo({
                     {cita.profiles?.nombre_completo && cita.comercial_id !== userId
                       ? ` · ${cita.profiles.nombre_completo}`
                       : ""}
-                    {` · ${ESTADO_CITA_LABEL[(cita.estado as EstadoCita) ?? "prevista"] ?? cita.estado}`}
                   </p>
                   <p className="mt-1 text-xs text-[#5C5C5C]">
                     {cita.propiedad_id && cita.propiedades ? (
