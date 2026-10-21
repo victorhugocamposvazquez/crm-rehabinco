@@ -15,6 +15,8 @@ import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import {
   citasAgrupadasPorDia,
   citasDelDia,
+  citaAtenuadaEnCalendario,
+  citaOcultaEnCalendario,
   direccionDeInmueble,
   ESTADO_CITA_LABEL,
   horaCita,
@@ -94,6 +96,7 @@ export default function CalendarioPage() {
   const [lugar, setLugar] = useState("");
   const [comercialAsignado, setComercialAsignado] = useState("");
   const [editando, setEditando] = useState<CitaRow | null>(null);
+  const [mostrarFinalizadas, setMostrarFinalizadas] = useState(false);
   const [propiedades, setPropiedades] = useState<InmuebleCalendario[]>([]);
   const [clientes, setClientes] = useState<Array<{ id: string; nombre: string; telefono: string | null }>>([]);
   const [comerciales, setComerciales] = useState<ComercialFiltro[]>([]);
@@ -540,7 +543,7 @@ export default function CalendarioPage() {
     });
   };
 
-  const cambiarEstado = async (id: string, estado: "hecha" | "cancelada") => {
+  const cambiarEstado = async (id: string, estado: Extract<EstadoCita, "prevista" | "hecha" | "cancelada">) => {
     const cita = citas.find((item) => item.id === id);
     if (cita && !gestiona(cita.comercial_id)) {
       toast.message("Inicia sesión para cambiar esta entrada.");
@@ -560,7 +563,9 @@ export default function CalendarioPage() {
         /* la cita ya cambió; el tablero se refrescará en la próxima visita */
       }
     }
-    toast.success(estado === "hecha" ? "Entrada marcada como hecha." : "Entrada cancelada.");
+    if (estado === "hecha") toast.success("Entrada marcada como finalizada.");
+    else if (estado === "cancelada") toast.success("Entrada anulada.");
+    else toast.success("Entrada de nuevo como prevista.");
     if (estado === "cancelada") {
       setSheetOpen(false);
       setEditando(null);
@@ -575,8 +580,12 @@ export default function CalendarioPage() {
   };
 
   const visibles = filtroComercial ? citas.filter((item) => item.comercial_id === filtroComercial) : citas;
-  const porDia = useMemo(() => citasAgrupadasPorDia(visibles, diasVista), [visibles, diasVista]);
-  const delDia = citasDelDia(visibles, dia);
+  const citasRejilla = useMemo(
+    () => visibles.filter((item) => !citaOcultaEnCalendario(item.estado, mostrarFinalizadas)),
+    [visibles, mostrarFinalizadas]
+  );
+  const porDia = useMemo(() => citasAgrupadasPorDia(citasRejilla, diasVista), [citasRejilla, diasVista]);
+  const delDia = citasDelDia(citasRejilla, dia);
 
   const irAnterior = () => setDia(vista === "mes" ? moverMes(dia, -1) : moverSemana(dia, -1));
   const irSiguiente = () => setDia(vista === "mes" ? moverMes(dia, 1) : moverSemana(dia, 1));
@@ -611,6 +620,15 @@ export default function CalendarioPage() {
           </Button>
         </div>
         <div className="flex items-center gap-2">
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-[9px] border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--text-2)]">
+            <input
+              type="checkbox"
+              checked={mostrarFinalizadas}
+              onChange={(e) => setMostrarFinalizadas(e.target.checked)}
+              className="h-4 w-4 accent-[var(--accent)]"
+            />
+            Mostrar finalizadas
+          </label>
           <Button type="button" size="sm" variant="ghost" onClick={() => setDia(hoy)}>
             Hoy
           </Button>
@@ -734,7 +752,7 @@ export default function CalendarioPage() {
             <li
               key={cita.id}
               className={`flex flex-col gap-3 rounded-2xl border border-[#E5E5E5] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
-                cita.estado !== "prevista" ? "opacity-60" : ""
+                citaAtenuadaEnCalendario(cita.estado) ? "opacity-55" : ""
               }`}
             >
               <div className="flex items-start gap-3">

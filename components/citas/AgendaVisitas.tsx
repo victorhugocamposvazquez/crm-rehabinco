@@ -107,7 +107,7 @@ export function AgendaVisitas({ compact = false }: { compact?: boolean }) {
 
   const gestiona = (comercialId: string) => puedeGestionarCita(comercialId, user?.id, admin);
 
-  const cambiarEstado = async (id: string, estado: "hecha" | "cancelada") => {
+  const cambiarEstado = async (id: string, estado: "prevista" | "hecha" | "cancelada") => {
     const cita = citas.find((item) => item.id === id);
     if (cita && !gestiona(cita.comercial_id)) {
       toast.message("Inicia sesión para cambiar esta visita.");
@@ -120,7 +120,9 @@ export function AgendaVisitas({ compact = false }: { compact?: boolean }) {
       toast.error(aviso);
       return;
     }
-    toast.success(estado === "hecha" ? "Visita marcada como hecha." : "Visita cancelada.");
+    if (estado === "hecha") toast.success("Visita marcada como finalizada.");
+    else if (estado === "cancelada") toast.success("Visita anulada.");
+    else toast.success("Visita de nuevo como prevista.");
     cargar();
   };
 
@@ -164,7 +166,7 @@ function ListaGrupo({
   citas: CitaAgenda[];
   userId?: string;
   gestiona: (comercialId: string) => boolean;
-  onEstado: (id: string, estado: "hecha" | "cancelada") => void;
+  onEstado: (id: string, estado: "prevista" | "hecha" | "cancelada") => void;
   vacio?: string;
   compact?: boolean;
 }) {

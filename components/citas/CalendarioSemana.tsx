@@ -13,6 +13,7 @@ import {
   estiloAnchoEventoSolapado,
   posicionEventoCalendario,
   TIPO_CITA_LABEL,
+  citaAtenuadaEnCalendario,
   type TipoCita,
 } from "@/lib/citas/citas";
 import { colorComercial } from "@/lib/ui/tokens";
@@ -229,6 +230,7 @@ export function CalendarioSemana({
                       "cal-evento absolute overflow-hidden rounded-[7px] px-1.5 py-0.5 text-left",
                       editable && "cursor-grab active:cursor-grabbing",
                       !editable && prevista && "cursor-default",
+                      citaAtenuadaEnCalendario(cita.estado) && "opacity-55",
                       arrastrando && "cal-evento--dragging"
                     )}
                     style={{

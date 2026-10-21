@@ -43,17 +43,36 @@ export const TIPO_CITA_LABEL: Record<TipoCita, string> = {
 
 export const ESTADO_CITA_LABEL: Record<EstadoCita, string> = {
   prevista: "Prevista",
-  hecha: "Hecha",
+  hecha: "Finalizada",
   no_asistio: "No asistió",
-  cancelada: "Cancelada",
+  cancelada: "Anulada",
 };
+
+/** Oculta en rejilla: anuladas siempre; finalizadas solo si no se piden explícitamente. */
+export function citaOcultaEnCalendario(estado: string, mostrarFinalizadas: boolean): boolean {
+  if (estado === "cancelada") return true;
+  if (estado === "hecha") return !mostrarFinalizadas;
+  return false;
+}
+
+export function citaAtenuadaEnCalendario(estado: string): boolean {
+  return estado === "hecha";
+}
 
 export function entradaConAsistentes(tipo: string): boolean {
   return tipo === "evento" || tipo === "captacion";
 }
 
 export function entradaConNotas(tipo: string): boolean {
-  return tipo === "evento" || tipo === "captacion" || tipo === "llamada" || tipo === "tarea" || tipo === "firma" || tipo === "tasacion";
+  return (
+    tipo === "visita" ||
+    tipo === "evento" ||
+    tipo === "captacion" ||
+    tipo === "llamada" ||
+    tipo === "tarea" ||
+    tipo === "firma" ||
+    tipo === "tasacion"
+  );
 }
 
 export function puedeHacerParte(cita: { tipo: string; estado: string }): boolean {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { celdasMes, citasAgrupadasPorDia, citasDelDia, coincideInmueble, columnasEventosSolapados, direccionDeInmueble, enlaceGoogleMaps, entradaConNotas, etiquetaInmueble, horaCita, horaDesdeMinutos, minutosDesdeHora, minutosDesdeOffsetY, moverCitaADiaHora, moverMes, moverSemana, orFiltroInmueble, puedeHacerParte, portadaDeMedia, prefillParteDesdeCita, rangoGrillaMes, relacionUno, rutaNuevaCita, rutaNuevaVisitaDesdeCita, semanaDesde, snapMinutos } from "./citas";
+import { celdasMes, citasAgrupadasPorDia, citasDelDia, citaAtenuadaEnCalendario, citaOcultaEnCalendario, coincideInmueble, columnasEventosSolapados, direccionDeInmueble, enlaceGoogleMaps, entradaConNotas, etiquetaInmueble, horaCita, horaDesdeMinutos, minutosDesdeHora, minutosDesdeOffsetY, moverCitaADiaHora, moverMes, moverSemana, orFiltroInmueble, puedeHacerParte, portadaDeMedia, prefillParteDesdeCita, rangoGrillaMes, relacionUno, rutaNuevaCita, rutaNuevaVisitaDesdeCita, semanaDesde, snapMinutos } from "./citas";
 
 describe("citas", () => {
   it("el parte se abre prellenado desde la cita, no al revés", () => {
@@ -60,6 +60,16 @@ describe("citas", () => {
     assert.equal(puedeHacerParte({ tipo: "visita", estado: "hecha" }), false);
   });
 
+  it("oculta finalizadas y anuladas; solo atenúa finalizadas", () => {
+    assert.equal(citaOcultaEnCalendario("cancelada", true), true);
+    assert.equal(citaOcultaEnCalendario("hecha", false), true);
+    assert.equal(citaOcultaEnCalendario("hecha", true), false);
+    assert.equal(citaOcultaEnCalendario("prevista", false), false);
+    assert.equal(citaAtenuadaEnCalendario("hecha"), true);
+    assert.equal(citaAtenuadaEnCalendario("cancelada"), false);
+    assert.equal(citaAtenuadaEnCalendario("no_asistio"), false);
+  });
+
   it("la tarea guarda notas, igual que evento, llamada y captación", () => {
     assert.equal(entradaConNotas("tarea"), true);
     assert.equal(entradaConNotas("evento"), true);
@@ -67,7 +77,7 @@ describe("citas", () => {
     assert.equal(entradaConNotas("captacion"), true);
     assert.equal(entradaConNotas("firma"), true);
     assert.equal(entradaConNotas("tasacion"), true);
-    assert.equal(entradaConNotas("visita"), false);
+    assert.equal(entradaConNotas("visita"), true);
     assert.equal(entradaConNotas("recordatorio"), false);
   });
 

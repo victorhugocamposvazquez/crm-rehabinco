@@ -181,6 +181,35 @@ export function NuevaEntradaCalendario({
       .filter((c) => !excluir.has(c.id) && `${c.nombre} ${c.telefono ?? ""}`.toLowerCase().includes(q))
       .slice(0, 6);
   }, [agenda, qClienteExtra, clienteId, clientesExtraIds]);
+  const bloqueNotas =
+    conNotas ? (
+      <AltaSection
+        title="Notas"
+        hint={
+          tipo === "visita"
+            ? "Qué ver, llaves, contacto en puerta… No sale en el título del calendario."
+            : tipo === "llamada"
+              ? "Motivo de la llamada, lo hablado o lo pendiente. No sale en el título del calendario."
+              : "Observaciones internas. No salen en el título del calendario."
+        }
+        className={tipo === "visita" ? "min-[820px]:col-span-2" : undefined}
+      >
+        <textarea
+          value={notas}
+          onChange={(e) => onNotas(e.target.value)}
+          placeholder={
+            tipo === "visita"
+              ? "Motivo de la visita, instrucciones, acuerdos…"
+              : tipo === "llamada"
+                ? "Motivo, lo hablado, próximo paso…"
+                : "Detalles, acuerdos, recordatorios…"
+          }
+          rows={3}
+          className="min-h-[5rem] w-full resize-y rounded-[9px] border border-[var(--input)] bg-white px-3 py-2.5 text-[13.5px] outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15 max-[819px]:text-base"
+        />
+      </AltaSection>
+    ) : null;
+
   const elegirInmueble = (inmueble: InmuebleCalendario) => {
     const prev = inmuebleSel ? direccionDeInmueble(inmuebleSel) : "";
     setInmuebleSel(inmueble);
@@ -248,6 +277,8 @@ export function NuevaEntradaCalendario({
             ))}
           </div>
         </AltaSection>
+
+        {tipo === "visita" ? bloqueNotas : null}
 
         <div className="min-w-0 min-[820px]:col-start-1 min-[820px]:row-start-2">
           <AltaField label="Título" optional>
@@ -395,24 +426,7 @@ export function NuevaEntradaCalendario({
           </AltaSection>
         ) : null}
 
-        {conNotas ? (
-          <AltaSection
-            title="Notas"
-            hint={
-              tipo === "llamada"
-                ? "Motivo de la llamada, lo hablado o lo pendiente. No sale en el título del calendario."
-                : "Observaciones internas. No salen en el título del calendario."
-            }
-          >
-            <textarea
-              value={notas}
-              onChange={(e) => onNotas(e.target.value)}
-              placeholder={tipo === "llamada" ? "Motivo, lo hablado, próximo paso…" : "Detalles, acuerdos, recordatorios…"}
-              rows={3}
-              className="min-h-[5rem] w-full resize-y rounded-[9px] border border-[var(--input)] bg-white px-3 py-2.5 text-[13.5px] outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15 max-[819px]:text-base"
-            />
-          </AltaSection>
-        ) : null}
+        {tipo !== "visita" ? bloqueNotas : null}
 
         <AltaSection
           wide

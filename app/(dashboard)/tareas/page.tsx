@@ -79,6 +79,7 @@ export default function TareasPage() {
   const [titulo, setTitulo] = useState("");
   const [comerciales, setComerciales] = useState<ComercialFiltro[]>([]);
   const [vista, setVista] = useState<"tablero" | "lista">("tablero");
+  const [mostrarHechas, setMostrarHechas] = useState(true);
   const [sel, setSel] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -142,6 +143,7 @@ export default function TareasPage() {
     corteHechas.setDate(corteHechas.getDate() - 7);
     const corte = corteHechas.toISOString().slice(0, 10);
     return visibles
+      .filter((t) => mostrarHechas || t.estado !== "hecha")
       .filter((t) => t.estado !== "hecha" || (t.vence ?? t.id) >= corte || !t.vence)
       .map((t) => {
         const v = etiquetaVence(t.vence, hoy);
@@ -172,7 +174,7 @@ export default function TareasPage() {
           asignado: personaDe(t.comercial_id, t.profiles, comerciales, user),
         };
       });
-  }, [visibles, hoy, comerciales, user]);
+  }, [visibles, hoy, comerciales, user, mostrarHechas]);
 
   const crearCon = async (texto: string, col?: ColumnaTarea) => {
     if (!user) return;
@@ -358,6 +360,15 @@ export default function TareasPage() {
               Lista
             </button>
           </div>
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-[9px] border border-border bg-[var(--surface)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--text-2)]">
+            <input
+              type="checkbox"
+              checked={mostrarHechas}
+              onChange={(e) => setMostrarHechas(e.target.checked)}
+              className="h-4 w-4 accent-[var(--accent)]"
+            />
+            Mostrar finalizadas
+          </label>
           </div>
         }
       />
@@ -415,10 +426,10 @@ export default function TareasPage() {
                 <button
                   type="button"
                   onClick={() => setSel(t.id)}
-                  className="flex w-full items-center gap-3 border-b border-[var(--border-row)] px-4 py-2.5 text-left last:border-0 hover:bg-[var(--surface-soft)]"
+                  className={`flex w-full items-center gap-3 border-b border-[var(--border-row)] px-4 py-2.5 text-left last:border-0 hover:bg-[var(--surface-soft)] ${t.hecha ? "opacity-55" : ""}`}
                 >
                   <span className="h-2 w-2 rounded-full" style={{ background: COLUMNAS_TAREA.find((c) => c.id === t.col)?.dot }} />
-                  <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium">{t.titulo}</span>
+                  <span className={`min-w-0 flex-1 truncate text-[13.5px] font-medium ${t.hecha ? "line-through" : ""}`}>{t.titulo}</span>
                   <span className="text-[12px] text-[var(--text-2)]">{t.venceLabel}</span>
                   <AvataresTarea creador={t.creador} asignado={t.asignado} size={20} />
                 </button>

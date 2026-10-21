@@ -16,6 +16,7 @@ import {
   CAL_HORA_INICIO,
   CAL_PX_HORA,
   ESTADO_CITA_LABEL,
+  citaAtenuadaEnCalendario,
   horaCita,
   columnasEventosSolapados,
   estiloAnchoEventoSolapado,
@@ -73,7 +74,7 @@ export function CalendarioMovil({
   soloLista?: boolean;
   onPickDia: (dia: string) => void;
   onMover: (id: string, dia: string) => void;
-  onEstado: (id: string, estado: "hecha" | "cancelada") => void;
+  onEstado: (id: string, estado: "prevista" | "hecha" | "cancelada") => void;
   onCambiarHora: (id: string, hora: string) => void;
   onCrearHueco?: (minutos: number) => void;
   onEditar: (id: string) => void;
@@ -412,7 +413,7 @@ export function CalendarioMovil({
               <div
                 key={cita.id}
                 className={`flex items-start gap-2 border-b border-[var(--border-row)] px-3 py-3 last:border-0 ${
-                  prevista ? "" : "opacity-60"
+                  citaAtenuadaEnCalendario(cita.estado) ? "opacity-55" : ""
                 }`}
               >
                 {editable ? (
@@ -475,7 +476,8 @@ export function CalendarioMovil({
                   ) : (
                     <p className="mt-1 font-mono text-[13px] text-[var(--text-2)]">{horaCita(cita.empieza)}</p>
                   )}
-                  {editable ? (
+                  {(puedeGestionar?.(cita.comercial_id) ?? true) &&
+                  (cita.estado === "prevista" || cita.estado === "hecha" || cita.estado === "no_asistio") ? (
                     <div className="mt-2">
                       <CitaAcciones cita={cita} onEstado={onEstado} onEditar={onEditar} compact />
                     </div>

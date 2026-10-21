@@ -100,7 +100,7 @@ export function CalendarioMes({
                       }}
                       className={cn(
                         "w-full truncate rounded px-1 py-0.5 text-left text-[10px] font-medium min-[820px]:text-[11px]",
-                        cita.estado !== "prevista" && "opacity-55"
+                        cita.estado === "hecha" && "opacity-55"
                       )}
                       style={{ background: `${color}1A`, color, borderLeft: `2px solid ${color}` }}
                       title={`${horaCita(cita.empieza)} · ${cita.titulo}`}
