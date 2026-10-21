@@ -72,7 +72,7 @@ export function SeccionDiferenciaRehabinco() {
   const [hero, compactaA, compactaB, postventa] = PILARES_CONFIANZA;
 
   return (
-    <section id="por-que-rehabinco" className="corp-pad flex flex-col gap-10 pb-0 pt-[clamp(80px,10vw,150px)]">
+    <section id="por-que-rehabinco" className="corp-pad flex flex-col gap-8 pb-0 pt-10 md:gap-10 md:pt-[clamp(80px,10vw,150px)]">
       <div className="flex flex-wrap items-end justify-between gap-6">
         <FraseScrollStage compact className="!py-0">
           <p data-enter="0" className="corp-kicker">

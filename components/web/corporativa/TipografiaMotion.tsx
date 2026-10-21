@@ -16,8 +16,10 @@ export function FraseScrollStage({
       data-frase-stage=""
       data-scroll-stage="hold"
       className={cn(
-        "flex flex-col justify-center py-[clamp(20px,4vh,56px)]",
-        compact ? "min-h-[min(88svh,760px)]" : "min-h-[min(125svh,980px)]",
+        "flex flex-col justify-start md:justify-center",
+        compact
+          ? "min-h-0 py-0 md:min-h-[min(72svh,640px)] md:py-[clamp(16px,3vh,40px)]"
+          : "min-h-0 py-2 md:min-h-[min(100svh,820px)] md:py-[clamp(20px,4vh,56px)]",
         className
       )}
     >

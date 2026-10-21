@@ -158,7 +158,7 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
         </div>
       </header>
 
-      <section className="corp-pad flex w-full min-w-0 flex-col gap-[clamp(48px,6vw,88px)] pb-0 pt-[clamp(80px,10vw,150px)]">
+      <section className="corp-pad flex w-full min-w-0 flex-col gap-8 pb-0 pt-8 md:gap-[clamp(48px,6vw,88px)] md:pt-[clamp(80px,10vw,150px)]">
         <div className="grid items-start gap-6 md:grid-cols-[minmax(0,320px)_1fr_1fr] md:gap-12">
           <p data-enter="0" className="corp-kicker">(01) Quiénes somos</p>
           <FraseScrollStage className="md:col-span-2">
@@ -233,13 +233,13 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
         </div>
       </section>
 
-      <section className="corp-pad grid items-start gap-12 pb-0 pt-[clamp(80px,10vw,150px)] md:grid-cols-2 md:gap-20">
+      <section className="corp-pad grid items-start gap-8 pb-0 pt-10 md:grid-cols-2 md:gap-20 md:pt-[clamp(80px,10vw,150px)]">
         <div data-px="" className="max-h-[860px] overflow-hidden rounded-[28px] bg-[#f4f3f1] aspect-[4/5]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={`${A}/salon.jpg`} alt="Salón reformado" className="h-full w-full scale-[1.12] object-cover" />
         </div>
         <div className="flex flex-col gap-10">
-          <FraseScrollStage compact className="!min-h-[min(80svh,680px)] !py-0">
+          <FraseScrollStage compact className="max-md:!min-h-0 md:!min-h-[min(72svh,640px)] !py-0">
             <p data-enter="0" className="corp-kicker">(03) Te ofrecemos</p>
             <h2 className="corp-h2 mt-3">
               <SplitLine name="v1" text="CONFÍA EN" />
@@ -339,7 +339,7 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
         </div>
       </section>
 
-      <section className="corp-pad flex flex-col items-center py-[clamp(48px,6vw,80px)] pb-[clamp(30px,4vw,60px)] text-center">
+      <section className="corp-pad flex flex-col items-center py-8 text-center md:py-[clamp(48px,6vw,80px)] md:pb-[clamp(30px,4vw,60px)]">
         <FraseScrollStage className="w-full items-center gap-[clamp(20px,2.4vw,36px)]">
           <FillText text={HUMAN_FILL} center className="max-w-[24ch]" />
           <p data-reveal="" aria-label="Humanamente." className="m-0 flex max-w-full justify-center whitespace-nowrap px-2">
@@ -392,9 +392,9 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
 
       <SeccionDiferenciaRehabinco />
 
-      <section id="reformas" className="corp-pad grid items-start gap-12 pb-0 pt-[clamp(80px,10vw,150px)] md:grid-cols-2 md:gap-20">
+      <section id="reformas" className="corp-pad grid items-start gap-8 pb-0 pt-10 md:grid-cols-2 md:gap-20 md:pt-[clamp(80px,10vw,150px)]">
         <div className="flex flex-col gap-10">
-          <FraseScrollStage compact className="!min-h-[min(78svh,660px)] !py-0">
+          <FraseScrollStage compact className="max-md:!min-h-0 md:!min-h-[min(72svh,640px)] !py-0">
             <p data-enter="0" className="corp-kicker">(07) Reformas</p>
             <h2 className="corp-h2 mt-3">
               <SplitLine name="r1" text="REFORMAS" />
@@ -546,7 +546,7 @@ export function HomeCorporativa({ inmuebles, enDominio }: { inmuebles: InmuebleC
         </div>
       </section>
 
-      <section className="corp-pad grid items-start gap-10 py-[clamp(80px,10vw,150px)] md:grid-cols-2">
+      <section className="corp-pad grid items-start gap-8 py-10 md:grid-cols-2 md:gap-10 md:py-[clamp(80px,10vw,150px)]">
         <FraseScrollStage compact className="!py-0">
           <p data-enter="0" className="corp-kicker">(10) Preguntas</p>
           <h2 className="corp-h2 mt-3">
