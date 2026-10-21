@@ -254,9 +254,10 @@ export function NuevaEntradaCalendario({
             ? "Cerrar descarta los cambios no guardados. Arrastrar en la rejilla también mueve la hora."
             : "Cerrar no crea nada. La hora sale del hueco que has pulsado y se puede cambiar aquí."
         }
-        toolbar={
+        footerLeading={
           edicion && onCambiarEstado ? (
             <CitaAcciones
+              enPie
               cita={{
                 id: edicion.id,
                 tipo: edicion.tipo,

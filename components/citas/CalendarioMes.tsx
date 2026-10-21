@@ -29,10 +29,10 @@ export function CalendarioMes({
   const celdas: CeldaMes[] = celdasMes(dia);
 
   return (
-    <div className="cal-mes mt-4 overflow-hidden rounded-[14px] border">
-      <div className="grid grid-cols-7 border-b border-[#eee] bg-[#fafafa]">
+    <div className="cal-mes mt-4 overflow-hidden rounded-[14px] border border-border bg-[var(--surface)] text-foreground">
+      <div className="grid grid-cols-7 border-b border-[var(--border-soft)] bg-[var(--surface-soft)]">
         {DIAS_SEMANA.map((label) => (
-          <div key={label} className="py-2 text-center text-[11px] font-medium uppercase tracking-[.05em] text-[#8a8a8a]">
+          <div key={label} className="py-2 text-center text-[11px] font-medium uppercase tracking-[.05em] text-[var(--label)]">
             {label}
           </div>
         ))}
@@ -57,18 +57,18 @@ export function CalendarioMes({
                 }
               }}
               className={cn(
-                "cal-mes-celda relative flex min-h-[72px] flex-col border-b border-r p-1 text-left min-[820px]:min-h-[96px] min-[820px]:p-1.5",
-                fueraMes && "cal-mes-celda--fuera",
-                activo && "cal-mes-celda--activo z-[1]"
+                "relative flex min-h-[72px] flex-col border-b border-r border-[var(--border-row)] bg-[var(--surface)] p-1 text-left text-foreground outline-none min-[820px]:min-h-[96px] min-[820px]:p-1.5",
+                fueraMes && "bg-[var(--surface-soft)]",
+                activo && "cal-dia--activo z-[1]"
               )}
             >
               <div className="flex items-center justify-between gap-1">
                 <span
                   className={cn(
                     "inline-flex h-6 min-w-6 items-center justify-center rounded-full text-[12px] font-semibold min-[820px]:h-7 min-[820px]:min-w-7 min-[820px]:text-[13px]",
-                    esHoy && "bg-[#111] text-white",
-                    fueraMes && !esHoy && "text-[#b0b0b0]",
-                    !fueraMes && !esHoy && "text-[#111]"
+                    esHoy && "bg-[#e4e4e4] text-[#111] dark:bg-[#3a3a3a] dark:text-[#f4f4f4]",
+                    fueraMes && !esHoy && "text-[var(--text-3)]",
+                    !fueraMes && !esHoy && "text-foreground"
                   )}
                 >
                   {new Date(`${d}T12:00:00`).getDate()}
@@ -80,7 +80,7 @@ export function CalendarioMes({
                       e.stopPropagation();
                       onCrearHueco(d, 10 * 60);
                     }}
-                    className="hidden text-[11px] font-semibold text-[#111] min-[820px]:inline"
+                    className="hidden text-[11px] font-semibold text-foreground min-[820px]:inline"
                   >
                     +
                   </button>
@@ -110,7 +110,7 @@ export function CalendarioMes({
                   );
                 })}
                 {resto > 0 ? (
-                  <span className="truncate px-0.5 text-[10px] font-medium text-[#6b6b6b] min-[820px]:text-[11px]">
+                  <span className="truncate px-0.5 text-[10px] font-medium text-[var(--text-2)] min-[820px]:text-[11px]">
                     +{resto} más
                   </span>
                 ) : null}

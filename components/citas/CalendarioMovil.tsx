@@ -292,9 +292,9 @@ export function CalendarioMovil({
               data-cal-dia={d}
               onClick={() => onPickDia(d)}
               className={cn(
-                "flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 rounded-[11px] border transition-[background,border,transform] duration-150",
-                over || activo ? "scale-[1.04] border-foreground bg-accent-soft" : "border-[var(--border)] bg-[var(--surface)]",
-                esHoy && !activo && "text-foreground"
+                "flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 rounded-[11px] border border-[var(--border)] bg-[var(--surface)] text-foreground outline-none transition-[background,border,transform] duration-150",
+                (over || activo) && "cal-dia--activo scale-[1.04] bg-[#ececec] dark:bg-[#2a2a2a]",
+                esHoy && !activo && "border-[var(--border-strong)]"
               )}
             >
               <span className="text-[10.5px] uppercase tracking-[.05em] text-[var(--label)]">
@@ -314,7 +314,7 @@ export function CalendarioMovil({
 
       <div
         ref={gridRef}
-        className="relative mt-3 overflow-hidden rounded-[14px] border border-border bg-white"
+        className="relative mt-3 overflow-hidden rounded-[14px] border border-border bg-[var(--surface)]"
         style={{ height: (CAL_HORA_FIN - CAL_HORA_INICIO + 1) * CAL_PX_HORA }}
         onClick={(e) => {
           if (draggingId || armedId || pressingId || (e.target as HTMLElement).closest("[data-cal-evento]")) return;

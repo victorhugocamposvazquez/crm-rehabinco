@@ -19,11 +19,13 @@ export function CitaAcciones({
   onEstado,
   onEditar,
   compact = false,
+  enPie = false,
 }: {
   cita: CitaAccionable;
   onEstado: (id: string, estado: EstadoGestion) => void;
   onEditar?: (id: string) => void;
   compact?: boolean;
+  enPie?: boolean;
 }) {
   if (cita.estado !== "prevista" && cita.estado !== "hecha" && cita.estado !== "no_asistio") {
     return null;
@@ -52,7 +54,11 @@ export function CitaAcciones({
         <Selector
           value={valorSelect}
           onChange={(e) => cambiarEstado(e.target.value)}
-          className="h-8 w-full min-w-[8.5rem] rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-2.5 text-[13px] font-medium"
+          className={
+            enPie
+              ? "h-11 w-[11.5rem] rounded-[10px] border border-[var(--input)] bg-[var(--field)] px-3 text-[14px] font-medium"
+              : "h-8 w-full min-w-[8.5rem] rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-2.5 text-[13px] font-medium"
+          }
           aria-label="Estado de la entrada"
         >
           <option value="prevista">Prevista</option>

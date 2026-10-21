@@ -66,6 +66,7 @@ export function EventoCalendarioChip({
 
 export function CalendarioSemana({
   semana,
+  dia,
   hoy,
   porDia,
   puedeGestionar,
@@ -75,6 +76,7 @@ export function CalendarioSemana({
   onCrearHueco,
 }: {
   semana: string[];
+  dia: string;
   hoy: string;
   porDia: Map<string, CitaRejilla[]>;
   puedeGestionar?: (comercialId: string) => boolean;
@@ -97,11 +99,12 @@ export function CalendarioSemana({
   };
 
   return (
-    <div className="mt-4 hidden overflow-hidden rounded-[14px] border border-border bg-[var(--surface)] min-[820px]:block">
-      <div className="grid grid-cols-[52px_repeat(7,minmax(0,1fr))] border-b border-[var(--border-soft)]">
+    <div className="mt-4 hidden overflow-hidden rounded-[14px] border border-border bg-[var(--surface)] text-foreground min-[820px]:block">
+      <div className="grid grid-cols-[52px_repeat(7,minmax(0,1fr))] border-b border-[var(--border-soft)] bg-[var(--surface-soft)]">
         <div />
         {semana.map((d) => {
           const esHoy = d === hoy;
+          const activo = d === dia.slice(0, 10);
           const sobre = over?.dia === d;
           return (
             <button
@@ -120,14 +123,19 @@ export function CalendarioSemana({
                 setOver(null);
               }}
               className={cn(
-                "h-[52px] border-l border-[var(--border-soft)] text-center transition-colors duration-150",
-                sobre && "bg-accent-soft"
+                "h-[52px] border-l border-[var(--border-soft)] bg-[var(--surface-soft)] text-center text-foreground outline-none",
+                (sobre || activo) && "bg-[#ececec] dark:bg-[#2a2a2a]"
               )}
             >
               <p className="text-[11px] uppercase text-[var(--label)]">
                 {new Date(`${d}T12:00:00`).toLocaleDateString("es-ES", { weekday: "short" })}
               </p>
-              <span className={`inline-grid h-7 w-7 place-items-center rounded-full text-[13px] font-semibold ${esHoy ? "bg-accent text-white" : ""}`}>
+              <span
+                className={cn(
+                  "inline-grid h-7 w-7 place-items-center rounded-full text-[13px] font-semibold",
+                  (esHoy || activo) && "bg-[#e4e4e4] text-[#111] dark:bg-[#3a3a3a] dark:text-[#f4f4f4]"
+                )}
+              >
                 {new Date(`${d}T12:00:00`).getDate()}
               </span>
             </button>
@@ -145,7 +153,7 @@ export function CalendarioSemana({
         {semana.map((d) => {
           const lista = porDia.get(d) ?? [];
           const columnas = columnasEventosSolapados(lista);
-          const esHoy = d === hoy;
+          const activo = d === dia.slice(0, 10);
           const sobre = over?.dia === d;
           return (
             <div
@@ -172,10 +180,11 @@ export function CalendarioSemana({
                 setOver(null);
               }}
               className={cn(
-                "relative cursor-pointer border-l border-[var(--border-soft)] transition-colors duration-150",
-                sobre && "cal-col--over"
+                "relative cursor-pointer border-l border-[var(--border-soft)] bg-[var(--surface)] outline-none transition-colors duration-150",
+                sobre && "cal-col--over",
+                activo && "cal-dia--activo"
               )}
-              style={{ height: altura, background: sobre ? undefined : esHoy ? "var(--surface-soft)" : "var(--surface)" }}
+              style={{ height: altura }}
             >
               {Array.from({ length: CAL_HORA_FIN - CAL_HORA_INICIO + 1 }).map((_, i) => (
                 <div key={i} className="absolute inset-x-0 border-t border-[var(--border-row)]" style={{ top: i * CAL_PX_HORA }} />

@@ -744,6 +744,7 @@ export default function CalendarioPage() {
 
           <CalendarioSemana
             semana={semana}
+            dia={dia}
             hoy={hoy}
             porDia={porDia}
             puedeGestionar={gestiona}
