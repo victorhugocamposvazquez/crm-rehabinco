@@ -1,5 +1,19 @@
 import { punchesActivos, replayDia } from "./replay";
-import type { Punch } from "./types";
+import type { Punch, PunchMode } from "./types";
+
+/**
+ * Modalidad del día: la de la última entrada activa.
+ * Así un test temprano en “remote” no pinta todo el viernes como teletrabajo
+ * si luego se fichó en oficina.
+ */
+export function modalidadDia(punches: Punch[]): PunchMode {
+  const activos = punchesActivos(punches);
+  for (let i = activos.length - 1; i >= 0; i--) {
+    if (activos[i].type === "in") return activos[i].mode;
+  }
+  const last = activos[activos.length - 1];
+  return last?.mode ?? "office";
+}
 
 const TZ = "Europe/Madrid";
 const ORDINARY_DAY_MS = 8 * 60 * 60 * 1000;
@@ -89,7 +103,7 @@ export function kpisMes(
     if (list.length > 0) {
       daysWithWork += 1;
       trabajadasMs += r.effectiveMs;
-      if (list.some((p) => p.mode === "remote")) remoteDays += 1;
+      if (modalidadDia(list) === "remote") remoteDays += 1;
     }
   }
 
@@ -156,7 +170,7 @@ export function celdasMes(
       future,
       effectiveMs: r.effectiveMs,
       missingOut: r.missingOut,
-      remote: list.some((p) => p.mode === "remote"),
+      remote: modalidadDia(list) === "remote",
       phase: r.phase,
     };
   });

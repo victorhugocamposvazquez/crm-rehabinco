@@ -539,7 +539,11 @@ export function FichajePwa({ nombre, iniciales }: { nombre: string; iniciales: s
                       <span>
                         {etiquetaPunch(e.type)}
                         <span className={cn("ml-1", TF.dim)}>
-                          · {e.mode === "remote" ? "Teletrabajo" : centroNombre}
+                          ·{" "}
+                          {e.mode === "remote"
+                            ? "Teletrabajo"
+                            : today?.centros.find((c) => c.id === e.work_center_id)?.name ??
+                              centroNombre}
                         </span>
                       </span>
                     </li>
@@ -673,9 +677,12 @@ export function FichajePwa({ nombre, iniciales }: { nombre: string; iniciales: s
                 </div>
                 <ul className="mt-3 flex flex-col gap-2">
                   {dayPunches.map((e) => (
-                    <li key={e.id} className="flex gap-3 text-[14px]">
+                    <li key={e.id} className="flex flex-wrap gap-x-3 gap-y-0.5 text-[14px]">
                       <span className={TF.mono}>{horaCorta(e.at)}</span>
                       <span>{etiquetaPunch(e.type)}</span>
+                      <span className={TF.dim}>
+                        · {e.mode === "remote" ? "Teletrabajo" : "Oficina"}
+                      </span>
                     </li>
                   ))}
                 </ul>
