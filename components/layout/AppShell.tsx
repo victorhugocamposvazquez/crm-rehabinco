@@ -23,6 +23,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const wizard = isWizardRoute(pathname);
+  const fichaje = pathname === "/fichaje" || (pathname?.startsWith("/fichaje/") ?? false);
+  const chromeMinimal = wizard || fichaje;
   const herramientas = esRutaHerramientas(pathname ?? "");
   const { user } = useAuth();
   const [badges, setBadges] = useState<Record<string, number>>({});
@@ -95,27 +97,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         >
           Saltar al contenido
         </a>
-        {!wizard && <Sidebar badges={badges} />}
+        {!chromeMinimal && <Sidebar badges={badges} />}
         <div className="flex min-w-0 flex-1 flex-col">
-          <AppTopBar />
+          {!fichaje && <AppTopBar />}
           <main
             id="main-content"
             className={cn(
-              "mx-auto w-full max-w-[1600px] flex-1 px-3.5 pt-5 min-[820px]:px-6 min-[820px]:pt-6",
-              wizard
-                ? "pb-4 md:pb-10"
-                : herramientas
-                  ? "pb-[var(--herramientas-footer-h)] min-[820px]:pb-[3.25rem]"
-                  : "pb-[var(--mobile-content-pb)] min-[820px]:pb-10"
+              "mx-auto w-full flex-1",
+              fichaje
+                ? "max-w-none p-0"
+                : "max-w-[1600px] px-3.5 pt-5 min-[820px]:px-6 min-[820px]:pt-6",
+              fichaje
+                ? undefined
+                : wizard
+                  ? "pb-4 md:pb-10"
+                  : herramientas
+                    ? "pb-[var(--herramientas-footer-h)] min-[820px]:pb-[3.25rem]"
+                    : "pb-[var(--mobile-content-pb)] min-[820px]:pb-10"
             )}
           >
             {children}
           </main>
-          {herramientas && !wizard ? <HerramientasFooter /> : null}
+          {herramientas && !chromeMinimal ? <HerramientasFooter /> : null}
         </div>
-        {!wizard && <MobileNav />}
+        {!chromeMinimal && <MobileNav />}
       </div>
-      {!wizard ? <PullToRefresh /> : null}
+      {!chromeMinimal ? <PullToRefresh /> : null}
       <AlertasPwaHost />
       </MenuPerfilProvider>
       </FichaPeekProvider>

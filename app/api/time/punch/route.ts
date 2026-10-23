@@ -31,36 +31,49 @@ export async function POST(request: Request) {
   }
 
   const clientId = body?.clientId?.trim() || null;
-  if (clientId) {
-    const { data: prev } = await sesion.supabase
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const hoy = fechaMadrid(nowIso);
+  // Ventana del día civil en Madrid (±14 h de margen DST).
+  const dayStartIso = new Date(`${hoy}T00:00:00+01:00`).toISOString();
+
+  const selectPunch =
+    "id, user_id, type, at, client_at, mode, work_center_id, lat, lng, accuracy, source, client_id, superseded_by, sequence_ok";
+
+  const [prevRes, hoyRes] = await Promise.all([
+    clientId
+      ? sesion.supabase
+          .from("fichaje_punches")
+          .select(selectPunch)
+          .eq("user_id", sesion.userId)
+          .eq("client_id", clientId)
+          .maybeSingle()
+      : Promise.resolve({ data: null as Record<string, unknown> | null }),
+    sesion.supabase
       .from("fichaje_punches")
-      .select("*")
+      .select(selectPunch)
       .eq("user_id", sesion.userId)
-      .eq("client_id", clientId)
-      .maybeSingle();
-    if (prev) {
-      return Response.json({ ok: true, punch: mapPunch(prev as Record<string, unknown>), idempotent: true });
-    }
+      .gte("at", dayStartIso)
+      .order("at", { ascending: true }),
+  ]);
+
+  if (prevRes.data) {
+    return Response.json({
+      ok: true,
+      punch: mapPunch(prevRes.data as Record<string, unknown>),
+      idempotent: true,
+    });
   }
 
-  const now = new Date();
-  const dayStart = `${fechaMadrid(now.toISOString())}T00:00:00.000`;
-  const { data: hoyRows } = await sesion.supabase
-    .from("fichaje_punches")
-    .select("*")
-    .eq("user_id", sesion.userId)
-    .gte("at", new Date(`${dayStart}+02:00`).toISOString())
-    .order("at", { ascending: true });
-
-  const punches = (hoyRows ?? []).map((r) => mapPunch(r as Record<string, unknown>));
-  const estado = replayDia(punches, now.toISOString());
+  const punches = (hoyRes.data ?? []).map((r) => mapPunch(r as Record<string, unknown>));
+  const estado = replayDia(punches, nowIso);
   const sequenceOk = siguienteEstadoValido(estado.phase, type);
 
   const source = (body?.source?.trim() || "pwa").slice(0, 80);
   const row = {
     user_id: sesion.userId,
     type,
-    at: now.toISOString(),
+    at: nowIso,
     client_at: body?.clientAt ?? null,
     mode,
     work_center_id: mode === "office" ? body?.workCenterId ?? null : null,
@@ -72,12 +85,17 @@ export async function POST(request: Request) {
     sequence_ok: sequenceOk,
   };
 
-  const { data: inserted, error } = await sesion.supabase.from("fichaje_punches").insert(row).select("*").single();
+  const { data: inserted, error } = await sesion.supabase
+    .from("fichaje_punches")
+    .insert(row)
+    .select(selectPunch)
+    .single();
   if (error) {
     return Response.json({ ok: false, error: error.message }, { status: 500 });
   }
 
-  await escribirAudit(sesion.supabase, {
+  // No bloquear la respuesta del fichaje.
+  void escribirAudit(sesion.supabase, {
     actorId: sesion.userId,
     actorLabel: sesion.nombre,
     action: type,

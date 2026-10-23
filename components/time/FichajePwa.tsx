@@ -5,11 +5,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { formatoDuracion, formatoRelojCorto, etiquetaPunch } from "@/lib/time/replay";
+import { formatoDuracion, formatoRelojCorto, etiquetaPunch, replayDia } from "@/lib/time/replay";
 import { sugerirModalidad } from "@/lib/time/geo";
 import { encolarPunch, sincronizarPendientes } from "@/lib/time/offline-queue";
 import type { DayReplay, Punch, PunchMode, PunchType, WorkCenter } from "@/lib/time/types";
 import { TF } from "./tokens";
+
+type GeoCache = { lat: number; lng: number; accuracy: number | null; at: number };
 
 type Tab = "hoy" | "mes";
 
@@ -95,21 +97,39 @@ export function FichajePwa({ nombre, iniciales }: { nombre: string; iniciales: s
   const [selDay, setSelDay] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [geo, setGeo] = useState<GeoCache | null>(null);
+  const [monthLoaded, setMonthLoaded] = useState<string | null>(null);
+
+  const aplicarPunchLocal = useCallback((punch: Punch) => {
+    setToday((prev) => {
+      if (!prev) return prev;
+      if (prev.punches.some((p) => p.id === punch.id || (punch.client_id && p.client_id === punch.client_id))) {
+        return prev;
+      }
+      const punches = [...prev.punches, punch];
+      const nowIso = new Date().toISOString();
+      return { ...prev, nowIso, punches, replay: replayDia(punches, nowIso) };
+    });
+  }, []);
 
   const cargarHoy = useCallback(async () => {
     const res = await fetch("/api/time/day?scope=today");
     const json = await res.json();
-    if (json.ok) setToday(json);
+    if (json.ok) setToday(json as TodayPayload);
   }, []);
 
   const cargarMes = useCallback(async (m: string) => {
     const res = await fetch(`/api/time/day?scope=month&month=${m}`);
     const json = await res.json();
     if (json.ok) {
-      setMonth(json);
-      if (!selDay) setSelDay(json.hoy?.startsWith(m) ? json.hoy : `${m}-01`);
+      setMonth(json as MonthPayload);
+      setMonthLoaded(m);
+      setSelDay((prev) => {
+        if (prev?.startsWith(m)) return prev;
+        return json.hoy?.startsWith(m) ? json.hoy : `${m}-01`;
+      });
     }
-  }, [selDay]);
+  }, []);
 
   useEffect(() => {
     void cargarHoy();
@@ -119,8 +139,8 @@ export function FichajePwa({ nombre, iniciales }: { nombre: string; iniciales: s
   }, [cargarHoy]);
 
   useEffect(() => {
-    if (tab === "mes") void cargarMes(monthKey);
-  }, [tab, monthKey, cargarMes]);
+    if (tab === "mes" && monthLoaded !== monthKey) void cargarMes(monthKey);
+  }, [tab, monthKey, monthLoaded, cargarMes]);
 
   useEffect(() => {
     const id = window.setInterval(() => setTick((t) => t + 1), 30_000);
@@ -130,11 +150,17 @@ export function FichajePwa({ nombre, iniciales }: { nombre: string; iniciales: s
   useEffect(() => {
     if (!today?.centros?.length) return;
     if (!navigator.geolocation) {
-      setGeoLabel("Sin GPS · última modalidad");
+      setGeoLabel("Sin GPS · elige modalidad");
       return;
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        setGeo({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+          at: Date.now(),
+        });
         const s = sugerirModalidad(pos.coords.latitude, pos.coords.longitude, today.centros);
         setMode(s.mode);
         setCenterId(s.workCenter?.id ?? today.centros[0]?.id ?? null);
@@ -145,7 +171,7 @@ export function FichajePwa({ nombre, iniciales }: { nombre: string; iniciales: s
         );
       },
       () => setGeoLabel("Sin señal · elige modalidad"),
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60_000 }
+      { enableHighAccuracy: false, timeout: 2500, maximumAge: 120_000 }
     );
   }, [today?.centros]);
 
@@ -154,6 +180,11 @@ export function FichajePwa({ nombre, iniciales }: { nombre: string; iniciales: s
     void tick;
     if (!today) return 0;
     if (phase === "paused") return today.replay.pauseMs;
+    if (phase === "working" && today.replay.openSince) {
+      const base = today.replay.effectiveMs;
+      // replay ya incluye hasta nowIso del payload; recontamos con reloj local.
+      return replayDia(today.punches, new Date().toISOString()).effectiveMs || base;
+    }
     return today.replay.effectiveMs;
   }, [today, phase, tick]);
 
@@ -162,39 +193,34 @@ export function FichajePwa({ nombre, iniciales }: { nombre: string; iniciales: s
   async function fichar(type: PunchType) {
     if (busy) return;
     setBusy(true);
+    setConfirmOut(false);
     const cid = clientId();
-    let lat: number | null = null;
-    let lng: number | null = null;
-    let accuracy: number | null = null;
-    try {
-      const pos = await new Promise<GeolocationPosition | null>((resolve) => {
-        if (!navigator.geolocation) return resolve(null);
-        navigator.geolocation.getCurrentPosition(
-          (p) => resolve(p),
-          () => resolve(null),
-          { timeout: 4000 }
-        );
-      });
-      if (pos) {
-        lat = pos.coords.latitude;
-        lng = pos.coords.longitude;
-        accuracy = pos.coords.accuracy;
-      }
-    } catch {
-      /* ignore */
-    }
-
     const payload = {
       type,
       mode,
       workCenterId: mode === "office" ? centerId : null,
       clientAt: new Date().toISOString(),
       clientId: cid,
-      lat,
-      lng,
-      accuracy,
+      lat: geo?.lat ?? null,
+      lng: geo?.lng ?? null,
+      accuracy: geo?.accuracy ?? null,
       source: navigator.onLine ? "pwa" : "pwa-offline",
     };
+
+    // Refresco GPS en segundo plano (no bloquea el POST).
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) =>
+          setGeo({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+            at: Date.now(),
+          }),
+        () => undefined,
+        { enableHighAccuracy: false, timeout: 2000, maximumAge: 60_000 }
+      );
+    }
 
     try {
       if (!navigator.onLine) throw new Error("offline");
@@ -205,10 +231,11 @@ export function FichajePwa({ nombre, iniciales }: { nombre: string; iniciales: s
       });
       const json = await res.json();
       if (!json.ok) throw new Error(json.error ?? "Error");
-      toast.success(`${etiquetaPunch(type)} registrada a las ${horaCorta(json.punch.at)} · ${mode === "office" ? centroNombre : "Teletrabajo"}`);
-      setConfirmOut(false);
-      await cargarHoy();
-      if (tab === "mes") await cargarMes(monthKey);
+      aplicarPunchLocal(json.punch as Punch);
+      toast.success(
+        `${etiquetaPunch(type)} registrada a las ${horaCorta(json.punch.at)} · ${mode === "office" ? centroNombre : "Teletrabajo"}`
+      );
+      if (tab === "mes") setMonthLoaded(null);
     } catch {
       await encolarPunch(payload);
       toast.message("Sin conexión: fichaje guardado y se enviará al recuperar red.");
@@ -236,8 +263,8 @@ export function FichajePwa({ nombre, iniciales }: { nombre: string; iniciales: s
       if (!json.ok) throw new Error(json.error ?? "Error");
       toast.success("Corrección enviada");
       setCorrOpen(false);
-      await cargarHoy();
-      await cargarMes(monthKey);
+      void cargarHoy();
+      setMonthLoaded(null);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No se pudo enviar");
     } finally {
@@ -258,7 +285,7 @@ export function FichajePwa({ nombre, iniciales }: { nombre: string; iniciales: s
       if (!json.ok) throw new Error(json.error ?? "Error");
       toast.success("Resumen firmado");
       setSignOpen(false);
-      await cargarMes(monthKey);
+      setMonthLoaded(null);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No se pudo firmar");
     } finally {
@@ -283,34 +310,60 @@ export function FichajePwa({ nombre, iniciales }: { nombre: string; iniciales: s
 
   const selCelda = month?.celdas.find((c) => c.date === selDay);
 
+  const fechaHoyLabel = new Date().toLocaleDateString("es-ES", {
+    weekday: "short",
+    day: "numeric",
+    month: "long",
+    timeZone: "Europe/Madrid",
+  });
+
   return (
     <div className={cn("mx-auto flex min-h-[100dvh] max-w-[430px] flex-col", TF.page)}>
-      <header className="flex items-center gap-3 px-4 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <Link href="/" className="text-[15px] text-[#B0B0B5]">
-          ‹ Inicio
-        </Link>
-        <div className="ml-auto flex items-center gap-2">
-          <span className="text-[14px] text-[#B0B0B5]">{nombre.split(" ")[0]}</span>
-          <span className="grid h-9 w-9 place-items-center rounded-full bg-[#2B3E73] text-[12px] font-semibold">
-            {iniciales}
-          </span>
+      <header className="flex flex-col gap-3 px-4 pb-1 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <div className="flex items-center gap-3">
+          <Link href="/" className="text-[15px] text-[#B0B0B5]">
+            ‹ Inicio
+          </Link>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-[14px] text-[#B0B0B5]">{nombre.split(" ")[0]}</span>
+            <span className="grid h-9 w-9 place-items-center rounded-full bg-[#2B3E73] text-[12px] font-semibold">
+              {iniciales}
+            </span>
+          </div>
+        </div>
+        <div className="flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-[22px] font-semibold tracking-tight">Fichaje</h1>
+            <p className={cn("text-[13px] capitalize", TF.soft)}>{fechaHoyLabel}</p>
+          </div>
+          <div className="flex shrink-0 gap-0.5 rounded-[10px] border border-[#232326] bg-[#161617] p-[3px]">
+            <button
+              type="button"
+              onClick={() => setTab("hoy")}
+              className={cn(
+                "h-9 rounded-lg px-3.5 text-[13px] font-medium transition-colors",
+                tab === "hoy" ? "bg-[#1E1E20] text-[#EDEDED]" : "bg-transparent text-[#8A8A90]"
+              )}
+            >
+              Hoy
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("mes")}
+              className={cn(
+                "h-9 rounded-lg px-3.5 text-[13px] font-medium transition-colors",
+                tab === "mes" ? "bg-[#1E1E20] text-[#EDEDED]" : "bg-transparent text-[#8A8A90]"
+              )}
+            >
+              Mi mes
+            </button>
+          </div>
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-28">
+      <div className="flex-1 overflow-y-auto px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3">
         {tab === "hoy" ? (
           <div className="flex flex-col gap-4">
-            <div>
-              <h1 className="text-[28px] font-medium tracking-tight">Fichaje</h1>
-              <p className={cn("text-[14px]", TF.muted)}>
-                {new Date().toLocaleDateString("es-ES", {
-                  weekday: "long",
-                  day: "numeric",
-                  month: "long",
-                  timeZone: "Europe/Madrid",
-                })}
-              </p>
-            </div>
 
             {today?.incidenciaAyer ? (
               <button
@@ -588,25 +641,6 @@ export function FichajePwa({ nombre, iniciales }: { nombre: string; iniciales: s
           </div>
         )}
       </div>
-
-      <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[430px] border-t border-[#232326] bg-[#0E0E0F] pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2">
-        {(
-          [
-            ["hoy", "Hoy", "⏱"],
-            ["mes", "Mi mes", "▦"],
-          ] as const
-        ).map(([id, label, icon]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setTab(id)}
-            className={cn("flex flex-1 flex-col items-center gap-1 py-1 text-[11px]", tab === id ? "text-[#EDEDED]" : "text-[#6B6B70]")}
-          >
-            <span className="text-[22px] leading-none">{icon}</span>
-            {label}
-          </button>
-        ))}
-      </nav>
 
       <Sheet open={confirmOut} onOpenChange={setConfirmOut}>
         <div className="space-y-4 p-5 pb-8">
