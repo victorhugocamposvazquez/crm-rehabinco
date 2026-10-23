@@ -16,6 +16,7 @@ import {
   Columns3,
   Radar,
   Wrench,
+  Clock3,
 } from "lucide-react";
 import { isAdmin, type Role } from "@/lib/auth/roles";
 
@@ -27,6 +28,7 @@ export type NavItem = {
 
 export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/", label: "Hoy", icon: Home },
+  { href: "/fichaje", label: "Fichaje", icon: Clock3 },
   { href: "/calendario", label: "Calendario", icon: CalendarDays },
   { href: "/tareas", label: "Tareas", icon: ListTodo },
   { href: "/seguimiento", label: "Seguimiento", icon: Columns3 },
@@ -43,18 +45,21 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/presupuestos", label: "Presupuestos", icon: ClipboardList },
   { href: "/facturas", label: "Facturas", icon: FileText },
   { href: "/informes", label: "Informes", icon: BarChart3 },
+  { href: "/equipo/jornada", label: "Registro de jornada", icon: Clock3 },
   { href: "/settings", label: "Ajustes", icon: Settings },
 ];
 
 export const NAV_GROUPS: { label: string; adminOnly?: boolean; hrefs: readonly string[] }[] = [
-  { label: "Día a día", hrefs: ["/", "/calendario", "/tareas"] },
+  { label: "Día a día", hrefs: ["/", "/fichaje", "/calendario", "/tareas"] },
   { label: "Captación", hrefs: ["/captacion", "/catastro", "/seguimiento", "/propiedades", "/web/gestionar", "/valoraciones", "/demandas", "/clientes"] },
   { label: "Herramientas", hrefs: ["/herramientas"] },
+  { label: "Equipo", adminOnly: true, hrefs: ["/equipo/jornada"] },
   { label: "Obra y facturación", adminOnly: true, hrefs: ["/presupuestos", "/facturas", "/informes"] },
 ];
 
 export const NAV_MOBILE_LABEL: Record<string, string> = {
   "/calendario": "Agenda",
+  "/fichaje": "Fichar",
   "/settings": "Más",
 };
 
@@ -99,6 +104,12 @@ export function navItemActivo(pathname: string, href: string): boolean {
 }
 
 export function breadcrumbDeRuta(pathname: string): { seccion: string; detalle?: string } {
+  if (pathname === "/equipo/jornada" || pathname.startsWith("/equipo/jornada/")) {
+    return { seccion: "Equipo", detalle: "Registro de jornada" };
+  }
+  if (pathname === "/fichaje" || pathname.startsWith("/fichaje/")) {
+    return { seccion: "Fichaje" };
+  }
   const item = NAV_ITEMS.find((nav) => navItemActivo(pathname, nav.href) && nav.href !== "/") 
     ?? NAV_ITEMS.find((nav) => nav.href === pathname);
   if (pathname === "/") return { seccion: "Hoy" };

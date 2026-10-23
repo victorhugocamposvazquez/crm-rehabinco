@@ -39,6 +39,12 @@
     },
     "app/api/avm/valuations/[id]/pdf/route.ts": {
       "maxDuration": 60
+    },
+    "app/api/cron/fichajes/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/time/export/route.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [
@@ -49,6 +55,10 @@
     {
       "path": "/api/cron/alertas",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/fichajes",
+      "schedule": "0 21 * * *"
     }
   ]
 }

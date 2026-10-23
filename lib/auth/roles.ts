@@ -143,6 +143,7 @@ export function isAdminBlockedPath(pathname: string): boolean {
 /** Menú completo por rol. El hamburguesa muestra esta lista entera. */
 const NAV_DIRECCION = [
   "/",
+  "/fichaje",
   "/captacion",
   "/catastro",
   "/propiedades",
@@ -157,6 +158,7 @@ const NAV_DIRECCION = [
   "/clientes",
   "/presupuestos",
   "/facturas",
+  "/equipo/jornada",
   "/settings",
 ] as const;
 
@@ -165,6 +167,7 @@ export const NAV_DESKTOP_BY_ROLE: Record<Role, readonly string[]> = {
   admin: NAV_DIRECCION,
   comercial: [
     "/",
+    "/fichaje",
     "/tareas",
     "/calendario",
     "/captacion",
@@ -181,19 +184,19 @@ export const NAV_DESKTOP_BY_ROLE: Record<Role, readonly string[]> = {
 };
 
 /** Atajos de la barra: lo del día a día. El resto vive en el menú lateral. */
-const NAV_TOP_DIRECCION = ["/", "/captacion", "/catastro", "/propiedades", "/valoraciones", "/demandas"] as const;
+const NAV_TOP_DIRECCION = ["/", "/fichaje", "/captacion", "/catastro", "/propiedades", "/valoraciones", "/demandas"] as const;
 
 export const NAV_TOP_BY_ROLE: Record<Role, readonly string[]> = {
   superadmin: NAV_TOP_DIRECCION,
   admin: NAV_TOP_DIRECCION,
-  comercial: ["/", "/tareas", "/calendario", "/captacion", "/propiedades"],
+  comercial: ["/", "/fichaje", "/tareas", "/calendario", "/captacion"],
   editor: ["/presupuestos"],
 };
 
 export const NAV_MOBILE_BY_ROLE: Record<Role, readonly string[]> = {
-  superadmin: ["/", "/propiedades", "/catastro", "/calendario", "/settings"],
-  admin: ["/", "/propiedades", "/catastro", "/calendario", "/settings"],
-  comercial: ["/", "/propiedades", "/calendario", "/tareas", "/settings"],
+  superadmin: ["/", "/fichaje", "/propiedades", "/calendario", "/settings"],
+  admin: ["/", "/fichaje", "/propiedades", "/calendario", "/settings"],
+  comercial: ["/", "/fichaje", "/propiedades", "/calendario", "/settings"],
   editor: ["/presupuestos", "/settings"],
 };
 

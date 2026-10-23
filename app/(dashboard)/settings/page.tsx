@@ -117,6 +117,19 @@ export default function SettingsPage() {
         {direccion && (
           <div id="equipo" className="contents">
             <EquipoComercialesCard role={user?.role} tick={equipoTick} />
+            <Card>
+              <CardHeader>
+                <CardTitle>Registro de jornada</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-neutral-500">
+                  Equipo hoy, solicitudes de corrección, informes mensuales y exportación para Inspección.
+                </p>
+                <Button asChild>
+                  <Link href="/equipo/jornada">Abrir panel de jornada</Link>
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         )}
 

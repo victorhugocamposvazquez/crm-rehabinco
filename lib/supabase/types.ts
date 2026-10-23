@@ -1554,6 +1554,199 @@ export interface Database {
           leida?: boolean;
         };
       };
+      fichaje_centros: {
+        Row: {
+          id: string;
+          name: string;
+          address: string;
+          lat: number;
+          lng: number;
+          radius_m: number;
+          activo: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id: string;
+          name: string;
+          address: string;
+          lat: number;
+          lng: number;
+          radius_m?: number;
+          activo?: boolean;
+        };
+        Update: {
+          name?: string;
+          address?: string;
+          lat?: number;
+          lng?: number;
+          radius_m?: number;
+          activo?: boolean;
+        };
+      };
+      fichaje_festivos: {
+        Row: { fecha: string; nombre: string };
+        Insert: { fecha: string; nombre: string };
+        Update: { nombre?: string };
+      };
+      fichaje_punches: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: "in" | "out" | "pause_start" | "pause_end";
+          at: string;
+          client_at: string | null;
+          mode: "office" | "remote";
+          work_center_id: string | null;
+          lat: number | null;
+          lng: number | null;
+          accuracy: number | null;
+          source: string;
+          client_id: string | null;
+          superseded_by: string | null;
+          sequence_ok: boolean;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          type: "in" | "out" | "pause_start" | "pause_end";
+          at?: string;
+          client_at?: string | null;
+          mode: "office" | "remote";
+          work_center_id?: string | null;
+          lat?: number | null;
+          lng?: number | null;
+          accuracy?: number | null;
+          source?: string;
+          client_id?: string | null;
+          superseded_by?: string | null;
+          sequence_ok?: boolean;
+        };
+        Update: {
+          superseded_by?: string | null;
+        };
+      };
+      fichaje_corrections: {
+        Row: {
+          id: string;
+          user_id: string;
+          date: string;
+          type: "in" | "out" | "pause_start" | "pause_end";
+          original_punch_id: string | null;
+          proposed_at: string;
+          reason: string;
+          note: string | null;
+          status: "pending" | "approved" | "rejected";
+          requested_by: string;
+          requested_at: string;
+          resolved_by: string | null;
+          resolved_at: string | null;
+          resulting_punch_id: string | null;
+        };
+        Insert: {
+          user_id: string;
+          date: string;
+          type: "in" | "out" | "pause_start" | "pause_end";
+          original_punch_id?: string | null;
+          proposed_at: string;
+          reason: string;
+          note?: string | null;
+          status?: "pending" | "approved" | "rejected";
+          requested_by: string;
+          resolved_by?: string | null;
+          resolved_at?: string | null;
+          resulting_punch_id?: string | null;
+        };
+        Update: {
+          status?: "pending" | "approved" | "rejected";
+          resolved_by?: string | null;
+          resolved_at?: string | null;
+          resulting_punch_id?: string | null;
+          note?: string | null;
+        };
+      };
+      fichaje_monthly_summaries: {
+        Row: {
+          id: string;
+          user_id: string;
+          month: string;
+          days: number;
+          ordinary_min: number;
+          extra_min: number;
+          extra_compensation: "rest" | "pay" | null;
+          remote_days: number;
+          pdf_path: string | null;
+          generated_at: string;
+          signed_at: string | null;
+          signature_ip: string | null;
+          signature_ua: string | null;
+        };
+        Insert: {
+          user_id: string;
+          month: string;
+          days?: number;
+          ordinary_min?: number;
+          extra_min?: number;
+          extra_compensation?: "rest" | "pay" | null;
+          remote_days?: number;
+          pdf_path?: string | null;
+          signed_at?: string | null;
+          signature_ip?: string | null;
+          signature_ua?: string | null;
+        };
+        Update: {
+          days?: number;
+          ordinary_min?: number;
+          extra_min?: number;
+          extra_compensation?: "rest" | "pay" | null;
+          remote_days?: number;
+          pdf_path?: string | null;
+          signed_at?: string | null;
+          signature_ip?: string | null;
+          signature_ua?: string | null;
+        };
+      };
+      fichaje_audit_log: {
+        Row: {
+          id: string;
+          at: string;
+          actor_id: string | null;
+          actor_label: string;
+          action: string;
+          detail: string;
+          origin: string;
+          prev_hash: string | null;
+          hash: string | null;
+        };
+        Insert: {
+          actor_id?: string | null;
+          actor_label?: string;
+          action: string;
+          detail?: string;
+          origin?: string;
+          prev_hash?: string | null;
+          hash?: string | null;
+        };
+        Update: never;
+      };
+      fichaje_protocolo: {
+        Row: {
+          id: number;
+          pdf_path: string | null;
+          uploaded_at: string | null;
+          uploaded_by: string | null;
+        };
+        Insert: {
+          id?: number;
+          pdf_path?: string | null;
+          uploaded_at?: string | null;
+          uploaded_by?: string | null;
+        };
+        Update: {
+          pdf_path?: string | null;
+          uploaded_at?: string | null;
+          uploaded_by?: string | null;
+        };
+      };
     };
   };
 }
