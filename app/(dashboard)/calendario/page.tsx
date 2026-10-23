@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
@@ -11,11 +11,9 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { isAdmin } from "@/lib/auth/roles";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import {
   citasAgrupadasPorDia,
   citasDelDia,
-  citaAtenuadaEnCalendario,
   citaOcultaEnCalendario,
   direccionDeInmueble,
   horaCita,
@@ -40,18 +38,16 @@ import {
   type EstadoCita,
   type InmuebleCalendario,
   type TipoAltaCalendario,
-  type TipoCita,
 } from "@/lib/citas/citas";
 import { FiltroComercial, type ComercialFiltro } from "@/components/captacion/FiltroComercial";
 import { avisarEvento } from "@/lib/alertas/avisar-cliente";
 import { useFiltroComercial } from "@/lib/ui/filtro-comercial";
-import { CitaAcciones } from "@/components/citas/CitaAcciones";
 import { CalendarioSemana } from "@/components/citas/CalendarioSemana";
 import { CalendarioMes } from "@/components/citas/CalendarioMes";
 import { ToggleChip } from "@/components/ui/toggle-chip";
-import { EnlaceMaps } from "@/components/citas/InmueblePreviewCita";
-import { FichaLink } from "@/components/crm/FichaPeek";
 import { CalendarioMovil } from "@/components/citas/CalendarioMovil";
+import { ListaDiaCalendario } from "@/components/citas/ListaDiaCalendario";
+import { TareasDiaCalendario } from "@/components/citas/TareasDiaCalendario";
 import { NuevaEntradaCalendario } from "@/components/citas/NuevaEntradaCalendario";
 import { syncEstadoTareaDesdeCita, syncTareaDesdeCita } from "@/lib/tareas/sync-cita";
 
@@ -76,7 +72,6 @@ type CitaRow = {
 
 export default function CalendarioPage() {
   const { user } = useAuth();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const admin = isAdmin(user?.role);
   const hoy = new Date().toISOString().slice(0, 10);
@@ -291,10 +286,6 @@ export default function CalendarioPage() {
     const abrir = (cita: CitaRow) => {
       if (citaAbierta.current === citaQuery) return;
       citaAbierta.current = citaQuery;
-      if (cita.tarea_id) {
-        router.replace(`/tareas?tarea=${cita.tarea_id}`);
-        return;
-      }
       setDia(cita.empieza.slice(0, 10));
       if (puedeGestionarCita(cita.comercial_id, user.id, admin)) abrirEdicion(cita);
     };
@@ -325,7 +316,7 @@ export default function CalendarioPage() {
     };
     // abrirEdicion cambia de identidad en cada render; solo debe dispararse al llegar la cita.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [citaQuery, citas, user, admin, router]);
+  }, [citaQuery, citas, user, admin]);
 
   const guardar = async (tipo: TipoAltaCalendario, titulo: string) => {
     if (!user) return;
@@ -395,10 +386,38 @@ export default function CalendarioPage() {
       } catch {
         toast.error("Cita guardada, pero no se pudo sincronizar con Tareas.");
       }
+      const idGuardada = editando.id;
+      setCitas((prev) =>
+        prev.map((c) =>
+          c.id === idGuardada
+            ? {
+                ...c,
+                comercial_id: asignado,
+                tipo: tipoFinal,
+                titulo: tituloFinal,
+                empieza: patch.empieza,
+                termina: patch.termina,
+                propiedad_id: propiedadId || null,
+                cliente_id: clienteId || null,
+                clientes_extra_ids: entradaConAsistentes(tipoFinal) ? clientesExtraFinal : [],
+                notas: entradaConNotas(tipoFinal) ? notasFinal : null,
+                lugar: lugarFinal,
+                propiedades: inmueble
+                  ? {
+                      titulo: inmueble.titulo,
+                      direccion: inmueble.direccion,
+                      localidad: inmueble.localidad,
+                      referencia: inmueble.referencia,
+                    }
+                  : null,
+              }
+            : c
+        )
+      );
       setSaving(false);
       setSheetOpen(false);
       setEditando(null);
-      avisarEvento("cita", editando.id);
+      avisarEvento("cita", idGuardada);
       toast.success("Entrada actualizada.");
       cargar();
       return;
@@ -634,96 +653,19 @@ export default function CalendarioPage() {
       </div>
 
       {vista === "mes" ? (
-        <CalendarioMes
-          dia={dia}
-          hoy={hoy}
-          porDia={porDia}
-          puedeGestionar={gestiona}
-          onPickDia={setDia}
-          onEditar={abrirEdicion}
-          onCrearHueco={abrirHueco}
-        />
+        <div className="mt-4">
+          <CalendarioMes
+            dia={dia}
+            hoy={hoy}
+            porDia={porDia}
+            puedeGestionar={gestiona}
+            onPickDia={setDia}
+            onEditar={abrirEdicion}
+            onCrearHueco={abrirHueco}
+          />
+        </div>
       ) : (
         <>
-          <h2 className="mt-6 hidden text-[15px] font-semibold capitalize min-[820px]:block">
-            {new Date(`${dia}T12:00:00`).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}
-          </h2>
-          <ul className="mt-3 hidden space-y-2 min-[820px]:block">
-            {delDia.map((cita) => {
-              const mapsConsulta = cita.lugar?.trim() || direccionDeInmueble(cita.propiedades ?? {});
-              return (
-                <li
-                  key={cita.id}
-                  className={`flex flex-col gap-3 rounded-2xl border border-[#E5E5E5] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
-                    citaAtenuadaEnCalendario(cita.estado) ? "opacity-55" : ""
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <AvatarComercial
-                      id={cita.comercial_id}
-                      nombre={cita.profiles?.nombre_completo}
-                      email={cita.profiles?.email}
-                      color={cita.profiles?.color}
-                      size={28}
-                      className="mt-0.5"
-                    />
-                    <div>
-                      <p className="font-medium">{cita.titulo}</p>
-                      <p className="text-xs text-[#5C5C5C]">
-                        {horaCita(cita.empieza)}
-                        {nombreYApellido(cita.profiles?.nombre_completo, cita.profiles?.email) &&
-                        cita.comercial_id !== user?.id
-                          ? ` · ${nombreYApellido(cita.profiles?.nombre_completo, cita.profiles?.email)}`
-                          : ""}{" "}
-                        · {TIPO_CITA_LABEL[(cita.tipo as TipoCita) ?? "otro"] ?? cita.tipo}
-                      </p>
-                      {cita.propiedad_id ? (
-                        <FichaLink tipo="propiedad" id={cita.propiedad_id} className="mt-1 inline-block text-xs">
-                          {[cita.propiedades?.referencia, cita.propiedades?.titulo || cita.propiedades?.direccion]
-                            .filter(Boolean)
-                            .join(" · ") || "Ver inmueble"}
-                        </FichaLink>
-                      ) : null}
-                      {mapsConsulta ? (
-                        <p className="mt-1 text-xs">
-                          <EnlaceMaps consulta={mapsConsulta} />
-                        </p>
-                      ) : null}
-                      {entradaConAsistentes(cita.tipo) &&
-                      (cita.clientes?.nombre || (cita.clientes_extra_ids?.length ?? 0) > 0) ? (
-                        <p className="mt-1 text-xs text-[#5C5C5C]">
-                          {[
-                            cita.clientes?.nombre,
-                            ...(cita.clientes_extra_ids ?? []).map((id) => {
-                              const nombre = clientes.find((c) => c.id === id)?.nombre;
-                              return nombre ? `+ ${nombre}` : null;
-                            }),
-                          ]
-                            .filter(Boolean)
-                            .join(" ")}
-                        </p>
-                      ) : null}
-                      {cita.notas?.trim() ? (
-                        <p className="mt-1 text-xs italic text-[#5C5C5C]">{cita.notas.trim()}</p>
-                      ) : null}
-                    </div>
-                  </div>
-                  {gestiona(cita.comercial_id) ? (
-                    <CitaAcciones cita={cita} onEstado={cambiarEstado} onEditar={abrirEdicion} />
-                  ) : null}
-                </li>
-              );
-            })}
-            {delDia.length === 0 ? (
-              <li className="rounded-[14px] border border-dashed border-border px-4 py-6 text-center">
-                <p className="text-[13.5px] text-[var(--text-2)]">No hay citas este día.</p>
-                <Button type="button" size="sm" className="mt-3" onClick={() => abrirHueco(dia, minutosDesdeHora("10:00"))}>
-                  Crear en este día
-                </Button>
-              </li>
-            ) : null}
-          </ul>
-
           <div className="mt-4">
             <CalendarioMovil
               semana={semana}
@@ -733,6 +675,7 @@ export default function CalendarioPage() {
               porDia={porDia}
               userId={user?.id}
               puedeGestionar={gestiona}
+              sinListado
               onPickDia={setDia}
               onMover={(id, destino) => void moverCita(id, destino)}
               onEstado={cambiarEstado}
@@ -756,25 +699,18 @@ export default function CalendarioPage() {
         </>
       )}
 
-      {vista === "mes" ? (
-        <div className="mt-4 min-[820px]:hidden">
-          <CalendarioMovil
-            semana={semana}
-            dia={dia}
-            hoy={hoy}
-            citas={delDia}
-            porDia={porDia}
-            userId={user?.id}
-            puedeGestionar={gestiona}
-            soloLista
-            onPickDia={setDia}
-            onMover={(id, destino) => void moverCita(id, destino)}
-            onEstado={cambiarEstado}
-            onCambiarHora={(id, horaNueva) => void moverCita(id, dia, { minutos: minutosDesdeHora(horaNueva) })}
-            onEditar={abrirEdicion}
-          />
-        </div>
-      ) : null}
+      <ListaDiaCalendario
+        dia={dia}
+        citas={delDia}
+        clientes={clientes}
+        userId={user?.id}
+        puedeGestionar={gestiona}
+        onEditar={(cita) => abrirEdicion(cita.id)}
+        onEstado={cambiarEstado}
+        onCrearHueco={() => abrirHueco(dia, minutosDesdeHora("10:00"))}
+      />
+
+      <TareasDiaCalendario dia={dia} comercialId={filtroComercial} mostrarHechas={mostrarFinalizadas} />
 
       <NuevaEntradaCalendario
         open={sheetOpen}

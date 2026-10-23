@@ -62,6 +62,7 @@ export function CalendarioMovil({
   onCrearHueco,
   onEditar,
   soloLista,
+  sinListado,
 }: {
   semana: string[];
   dia: string;
@@ -71,6 +72,8 @@ export function CalendarioMovil({
   userId?: string;
   puedeGestionar?: (comercialId: string) => boolean;
   soloLista?: boolean;
+  /** Oculta el listado del día (p. ej. cuando va debajo del calendario en la página). */
+  sinListado?: boolean;
   onPickDia: (dia: string) => void;
   onMover: (id: string, dia: string) => void;
   onEstado: (id: string, estado: "prevista" | "hecha" | "cancelada") => void;
@@ -387,6 +390,7 @@ export function CalendarioMovil({
       </>
       ) : null}
 
+      {!sinListado ? (
       <div className={`overflow-hidden rounded-[14px] border border-border bg-white ${soloLista ? "" : "mt-4"}`}>
         <div className="border-b border-[var(--border-soft)] px-3.5 py-3 text-[14px] font-semibold capitalize">
           {new Date(`${dia}T12:00:00`).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}
@@ -484,6 +488,7 @@ export function CalendarioMovil({
           })
         )}
       </div>
+      ) : null}
     </div>
   );
 }
