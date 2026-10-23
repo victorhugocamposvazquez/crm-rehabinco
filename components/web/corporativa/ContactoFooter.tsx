@@ -64,7 +64,7 @@ export function ContactoFooter({ enDominio }: { enDominio: boolean }) {
             </div>
             <div className="flex min-w-0 flex-col gap-2 overflow-hidden rounded-[16px] border border-dashed border-[rgba(254,254,254,.22)] bg-[rgba(254,254,254,.06)] p-[18px]">
               <span className="text-[12px] text-[rgba(254,254,254,.7)]">Tu mensaje · puedes editarlo en WhatsApp</span>
-              <p className="corp-ink w-fit max-w-full min-w-0 self-end break-words rounded-[16px_16px_4px_16px] bg-[#fefefe] px-3.5 py-3 text-[15px] leading-relaxed">
+              <p className="corp-ink w-full min-w-0 break-words rounded-[16px] bg-[#fefefe] px-3.5 py-3 text-[15px] leading-relaxed">
                 {waMsg}
               </p>
             </div>
