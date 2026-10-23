@@ -1,5 +1,5 @@
 import { fechaMadrid } from "@/lib/time/calendar";
-import { replayDia, siguienteEstadoValido } from "@/lib/time/replay";
+import { faseDesdeUltimoPunch, siguienteEstadoValido } from "@/lib/time/replay";
 import { escribirAudit, mapPunch, sesionFichaje } from "@/lib/time/server";
 import type { PunchMode, PunchType } from "@/lib/time/types";
 
@@ -31,43 +31,49 @@ export async function POST(request: Request) {
   }
 
   const clientId = body?.clientId?.trim() || null;
-  const now = new Date();
-  const nowIso = now.toISOString();
+  const nowIso = new Date().toISOString();
   const hoy = fechaMadrid(nowIso);
-  // Ventana del día civil en Madrid (±14 h de margen DST).
   const dayStartIso = new Date(`${hoy}T00:00:00+01:00`).toISOString();
 
   const selectPunch =
     "id, user_id, type, at, client_at, mode, work_center_id, lat, lng, accuracy, source, client_id, superseded_by, sequence_ok";
 
-  const [prevRes, hoyRes] = await Promise.all([
-    clientId
-      ? sesion.supabase
-          .from("fichaje_punches")
-          .select(selectPunch)
-          .eq("user_id", sesion.userId)
-          .eq("client_id", clientId)
-          .maybeSingle()
-      : Promise.resolve({ data: null as Record<string, unknown> | null }),
-    sesion.supabase
+  if (clientId) {
+    const { data: prev } = await sesion.supabase
       .from("fichaje_punches")
       .select(selectPunch)
       .eq("user_id", sesion.userId)
-      .gte("at", dayStartIso)
-      .order("at", { ascending: true }),
-  ]);
-
-  if (prevRes.data) {
-    return Response.json({
-      ok: true,
-      punch: mapPunch(prevRes.data as Record<string, unknown>),
-      idempotent: true,
-    });
+      .eq("client_id", clientId)
+      .maybeSingle();
+    if (prev) {
+      return Response.json({
+        ok: true,
+        punch: mapPunch(prev as Record<string, unknown>),
+        idempotent: true,
+      });
+    }
   }
 
-  const punches = (hoyRes.data ?? []).map((r) => mapPunch(r as Record<string, unknown>));
-  const estado = replayDia(punches, nowIso);
-  const sequenceOk = siguienteEstadoValido(estado.phase, type);
+  // Solo los últimos punches del día bastan para validar secuencia.
+  const { data: recientes } = await sesion.supabase
+    .from("fichaje_punches")
+    .select("id, type, at, superseded_by")
+    .eq("user_id", sesion.userId)
+    .gte("at", dayStartIso)
+    .order("at", { ascending: false })
+    .limit(40);
+
+  const phase = faseDesdeUltimoPunch(
+    (recientes ?? []).map((r) =>
+      mapPunch({
+        ...r,
+        user_id: sesion.userId,
+        mode: "office",
+        source: "pwa",
+      } as Record<string, unknown>)
+    )
+  );
+  const sequenceOk = siguienteEstadoValido(phase, type);
 
   const source = (body?.source?.trim() || "pwa").slice(0, 80);
   const row = {
@@ -94,7 +100,6 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, error: error.message }, { status: 500 });
   }
 
-  // No bloquear la respuesta del fichaje.
   void escribirAudit(sesion.supabase, {
     actorId: sesion.userId,
     actorLabel: sesion.nombre,

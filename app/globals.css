@@ -202,6 +202,48 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
   animation: rise 0.2s ease;
 }
 
+@keyframes fichaje-pulse-ring {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.7;
+  }
+  70% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}
+
+.fichaje-pulse-dot {
+  position: relative;
+  display: inline-flex;
+  height: 0.5rem;
+  width: 0.5rem;
+  flex-shrink: 0;
+}
+
+.fichaje-pulse-dot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: #7ee2a0;
+  animation: fichaje-pulse-ring 1.6s ease-out infinite;
+}
+
+.fichaje-pulse-dot::after {
+  content: "";
+  position: relative;
+  display: block;
+  height: 0.5rem;
+  width: 0.5rem;
+  border-radius: 9999px;
+  background: #7ee2a0;
+}
+
 @keyframes sheetUp {
   from {
     opacity: 0;

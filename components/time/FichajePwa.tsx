@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { formatoDuracion, formatoRelojCorto, etiquetaPunch, replayDia } from "@/lib/time/replay";
+import { formatoDuracion, formatoRelojVivo, etiquetaPunch, replayDia } from "@/lib/time/replay";
 import { sugerirModalidad } from "@/lib/time/geo";
 import { encolarPunch, sincronizarPendientes } from "@/lib/time/offline-queue";
 import type { DayReplay, Punch, PunchMode, PunchType, WorkCenter } from "@/lib/time/types";
@@ -85,6 +85,8 @@ export function FichajePwa({ nombre, iniciales }: { nombre: string; iniciales: s
     return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`;
   });
   const [mode, setMode] = useState<PunchMode>("office");
+  /** Si true, el GPS no pisa la modalidad elegida a mano. */
+  const [modeManual, setModeManual] = useState(false);
   const [centerId, setCenterId] = useState<string | null>(null);
   const [geoLabel, setGeoLabel] = useState("Detectando ubicación…");
   const [confirmOut, setConfirmOut] = useState(false);
@@ -151,27 +153,44 @@ export function FichajePwa({ nombre, iniciales }: { nombre: string; iniciales: s
     if (!today?.centros?.length) return;
     if (!navigator.geolocation) {
       setGeoLabel("Sin GPS · elige modalidad");
+      setMode("office");
+      setCenterId(today.centros[0]?.id ?? null);
       return;
     }
+
+    const aplicarPos = (pos: GeolocationPosition) => {
+      const { latitude, longitude, accuracy } = pos.coords;
+      setGeo({ lat: latitude, lng: longitude, accuracy, at: Date.now() });
+      const s = sugerirModalidad(latitude, longitude, today.centros, null, accuracy);
+      setMode(s.mode);
+      setCenterId(s.workCenter?.id ?? today.centros[0]?.id ?? null);
+      if (s.mode === "office" && s.workCenter) {
+        setGeoLabel(`Oficina · ${s.workCenter.name} detectada`);
+      } else if (s.distanceM != null) {
+        setGeoLabel(`A ${Math.round(s.distanceM)} m · Teletrabajo`);
+      } else {
+        setGeoLabel("Fuera de oficina · Teletrabajo");
+      }
+    };
+
+    // Primera lectura rápida; si falla o es burda, reintento con más precisión.
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setGeo({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          accuracy: pos.coords.accuracy,
-          at: Date.now(),
-        });
-        const s = sugerirModalidad(pos.coords.latitude, pos.coords.longitude, today.centros);
-        setMode(s.mode);
-        setCenterId(s.workCenter?.id ?? today.centros[0]?.id ?? null);
-        setGeoLabel(
-          s.mode === "office" && s.workCenter
-            ? `Oficina · ${s.workCenter.address.split(",")[0]} detectada`
-            : "Fuera de oficina · Teletrabajo"
-        );
+        aplicarPos(pos);
+        if (pos.coords.accuracy > 80) {
+          navigator.geolocation.getCurrentPosition(aplicarPos, () => undefined, {
+            enableHighAccuracy: true,
+            timeout: 8000,
+            maximumAge: 0,
+          });
+        }
       },
-      () => setGeoLabel("Sin señal · elige modalidad"),
-      { enableHighAccuracy: false, timeout: 2500, maximumAge: 120_000 }
+      () => {
+        setGeoLabel("Sin señal · elige modalidad");
+        setMode("office");
+        setCenterId(today.centros[0]?.id ?? null);
+      },
+      { enableHighAccuracy: true, timeout: 6000, maximumAge: 15_000 }
     );
   }, [today?.centros]);
 

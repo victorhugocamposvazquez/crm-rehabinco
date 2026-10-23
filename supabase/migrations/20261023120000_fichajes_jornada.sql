@@ -17,8 +17,9 @@ create table if not exists public.fichaje_centros (
 
 insert into public.fichaje_centros (id, name, address, lat, lng, radius_m)
 values
-  ('merced', 'Calle Merced', 'Rúa da Merced 57, 15009 A Coruña', 43.3682, -8.4039, 150),
-  ('pocomaco', 'Pocomaco', 'Polígono Pocomaco, A Coruña', 43.3415, -8.4455, 200)
+  -- OSM/Photon: Rúa da Mercede 57 (en documentos: Merced 57), Ciudad Jardín
+  ('merced', 'Calle Merced', 'Rúa da Merced 57, 15009 A Coruña', 43.352787, -8.393280, 250),
+  ('pocomaco', 'Pocomaco', 'Polígono Pocomaco, A Coruña', 43.3305, -8.4335, 500)
 on conflict (id) do update set
   name = excluded.name,
   address = excluded.address,

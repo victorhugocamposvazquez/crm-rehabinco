@@ -107,6 +107,25 @@ export function formatoRelojCorto(ms: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+/** Reloj vivo HH:MM:SS para la jornada en curso. */
+export function formatoRelojVivo(ms: number): string {
+  const totalSec = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+/** Fase del día a partir del último punch activo (sin replay completo). */
+export function faseDesdeUltimoPunch(punches: Punch[]): DayPhase {
+  const activos = punchesActivos(punches);
+  const last = activos[activos.length - 1];
+  if (!last) return "out";
+  if (last.type === "in" || last.type === "pause_end") return "working";
+  if (last.type === "pause_start") return "paused";
+  return "out";
+}
+
 export function etiquetaPunch(type: PunchType): string {
   if (type === "in") return "Entrada";
   if (type === "out") return "Salida";
