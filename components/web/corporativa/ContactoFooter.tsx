@@ -46,7 +46,7 @@ export function ContactoFooter({ enDominio }: { enDominio: boolean }) {
               </div>
             </div>
           </div>
-          <div className="flex flex-col gap-4 rounded-[24px] border border-[rgba(254,254,254,.16)] bg-[rgba(254,254,254,.08)] p-[clamp(20px,2.4vw,32px)] backdrop-blur-md">
+          <div className="flex min-w-0 flex-col gap-4 rounded-[24px] border border-[rgba(254,254,254,.16)] bg-[rgba(254,254,254,.08)] p-[clamp(20px,2.4vw,32px)] backdrop-blur-md">
             <div className="flex flex-col gap-2.5">
               <span className="text-[12px] uppercase tracking-[0.06em] text-[rgba(254,254,254,.7)]">Quiero</span>
               <div className="flex flex-wrap gap-1.5">
@@ -62,9 +62,11 @@ export function ContactoFooter({ enDominio }: { enDominio: boolean }) {
                 ))}
               </div>
             </div>
-            <div className="flex flex-col gap-2 rounded-[16px] border border-dashed border-[rgba(254,254,254,.22)] bg-[rgba(254,254,254,.06)] p-[18px]">
+            <div className="flex min-w-0 flex-col gap-2 overflow-hidden rounded-[16px] border border-dashed border-[rgba(254,254,254,.22)] bg-[rgba(254,254,254,.06)] p-[18px]">
               <span className="text-[12px] text-[rgba(254,254,254,.7)]">Tu mensaje · puedes editarlo en WhatsApp</span>
-              <p className="corp-ink ml-auto max-w-[92%] rounded-[16px_16px_4px_16px] bg-[#fefefe] px-3.5 py-3 text-[15px] leading-relaxed">{waMsg}</p>
+              <p className="corp-ink w-fit max-w-full min-w-0 self-end break-words rounded-[16px_16px_4px_16px] bg-[#fefefe] px-3.5 py-3 text-[15px] leading-relaxed">
+                {waMsg}
+              </p>
             </div>
             <a
               href={`https://api.whatsapp.com/send?phone=${WA}&text=${encodeURIComponent(waMsg)}`}
