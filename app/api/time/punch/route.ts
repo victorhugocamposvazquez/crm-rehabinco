@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     }
   }
 
-  // Solo los últimos punches del día bastan para validar secuencia.
+  // Solo hace falta el último punch activo para validar secuencia.
   const { data: recientes } = await sesion.supabase
     .from("fichaje_punches")
     .select("id, type, at, superseded_by")

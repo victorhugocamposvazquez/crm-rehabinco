@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -87,6 +87,8 @@ export function FichajePwa({ nombre, iniciales }: { nombre: string; iniciales: s
   const [mode, setMode] = useState<PunchMode>("office");
   /** Si true, el GPS no pisa la modalidad elegida a mano. */
   const [modeManual, setModeManual] = useState(false);
+  const modeManualRef = useRef(false);
+  const modeRef = useRef<PunchMode>("office");
   const [centerId, setCenterId] = useState<string | null>(null);
   const [geoLabel, setGeoLabel] = useState("Detectando ubicación…");
   const [confirmOut, setConfirmOut] = useState(false);
@@ -144,17 +146,30 @@ export function FichajePwa({ nombre, iniciales }: { nombre: string; iniciales: s
     if (tab === "mes" && monthLoaded !== monthKey) void cargarMes(monthKey);
   }, [tab, monthKey, monthLoaded, cargarMes]);
 
+  const phase = today?.replay.phase ?? "out";
+  const liveClock = phase === "working" || phase === "paused";
+
   useEffect(() => {
-    const id = window.setInterval(() => setTick((t) => t + 1), 30_000);
+    if (!liveClock) return;
+    const id = window.setInterval(() => setTick((t) => t + 1), 1000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [liveClock]);
+
+  useEffect(() => {
+    modeManualRef.current = modeManual;
+  }, [modeManual]);
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
 
   useEffect(() => {
     if (!today?.centros?.length) return;
     if (!navigator.geolocation) {
       setGeoLabel("Sin GPS · elige modalidad");
-      setMode("office");
-      setCenterId(today.centros[0]?.id ?? null);
+      if (!modeManualRef.current) {
+        setMode("office");
+        setCenterId(today.centros[0]?.id ?? null);
+      }
       return;
     }
 
@@ -162,18 +177,22 @@ export function FichajePwa({ nombre, iniciales }: { nombre: string; iniciales: s
       const { latitude, longitude, accuracy } = pos.coords;
       setGeo({ lat: latitude, lng: longitude, accuracy, at: Date.now() });
       const s = sugerirModalidad(latitude, longitude, today.centros, null, accuracy);
-      setMode(s.mode);
-      setCenterId(s.workCenter?.id ?? today.centros[0]?.id ?? null);
+      // GPS solo sugiere; si la persona ya eligió, no se sobrescribe.
+      if (!modeManualRef.current) {
+        setMode(s.mode);
+        setCenterId(s.workCenter?.id ?? today.centros[0]?.id ?? null);
+      } else if (modeRef.current === "office" && s.workCenter) {
+        setCenterId(s.workCenter.id);
+      }
       if (s.mode === "office" && s.workCenter) {
-        setGeoLabel(`Oficina · ${s.workCenter.name} detectada`);
+        setGeoLabel(`GPS: cerca de ${s.workCenter.name}`);
       } else if (s.distanceM != null) {
-        setGeoLabel(`A ${Math.round(s.distanceM)} m · Teletrabajo`);
+        setGeoLabel(`GPS: a ${Math.round(s.distanceM)} m`);
       } else {
-        setGeoLabel("Fuera de oficina · Teletrabajo");
+        setGeoLabel("GPS sin señal clara");
       }
     };
 
-    // Primera lectura rápida; si falla o es burda, reintento con más precisión.
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         aplicarPos(pos);
@@ -187,38 +206,48 @@ export function FichajePwa({ nombre, iniciales }: { nombre: string; iniciales: s
       },
       () => {
         setGeoLabel("Sin señal · elige modalidad");
-        setMode("office");
-        setCenterId(today.centros[0]?.id ?? null);
+        if (!modeManualRef.current) {
+          setMode("office");
+          setCenterId(today.centros[0]?.id ?? null);
+        }
       },
       { enableHighAccuracy: true, timeout: 6000, maximumAge: 15_000 }
     );
   }, [today?.centros]);
 
-  const phase = today?.replay.phase ?? "out";
   const effectiveMs = useMemo(() => {
     void tick;
     if (!today) return 0;
-    if (phase === "paused") return today.replay.pauseMs;
-    if (phase === "working" && today.replay.openSince) {
-      const base = today.replay.effectiveMs;
-      // replay ya incluye hasta nowIso del payload; recontamos con reloj local.
-      return replayDia(today.punches, new Date().toISOString()).effectiveMs || base;
+    if (phase === "paused") {
+      return replayDia(today.punches, new Date().toISOString()).pauseMs;
+    }
+    if (phase === "working") {
+      return replayDia(today.punches, new Date().toISOString()).effectiveMs;
     }
     return today.replay.effectiveMs;
   }, [today, phase, tick]);
 
   const centroNombre = today?.centros.find((c) => c.id === centerId)?.name ?? "Oficina";
 
+  function elegirModalidad(next: PunchMode) {
+    setModeManual(true);
+    setMode(next);
+    if (next === "office") {
+      setCenterId((prev) => prev ?? today?.centros[0]?.id ?? null);
+    }
+  }
+
   async function fichar(type: PunchType) {
     if (busy) return;
     setBusy(true);
     setConfirmOut(false);
     const cid = clientId();
+    const at = new Date().toISOString();
     const payload = {
       type,
       mode,
       workCenterId: mode === "office" ? centerId : null,
-      clientAt: new Date().toISOString(),
+      clientAt: at,
       clientId: cid,
       lat: geo?.lat ?? null,
       lng: geo?.lng ?? null,
@@ -226,23 +255,34 @@ export function FichajePwa({ nombre, iniciales }: { nombre: string; iniciales: s
       source: navigator.onLine ? "pwa" : "pwa-offline",
     };
 
-    // Refresco GPS en segundo plano (no bloquea el POST).
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) =>
-          setGeo({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-            accuracy: pos.coords.accuracy,
-            at: Date.now(),
-          }),
-        () => undefined,
-        { enableHighAccuracy: false, timeout: 2000, maximumAge: 60_000 }
-      );
+    const optimistic: Punch = {
+      id: `local-${cid}`,
+      user_id: today?.punches[0]?.user_id ?? "local",
+      type,
+      at,
+      client_at: at,
+      mode,
+      work_center_id: mode === "office" ? centerId : null,
+      lat: geo?.lat ?? null,
+      lng: geo?.lng ?? null,
+      accuracy: geo?.accuracy ?? null,
+      source: payload.source,
+      client_id: cid,
+      sequence_ok: true,
+    };
+    aplicarPunchLocal(optimistic);
+    toast.success(
+      `${etiquetaPunch(type)} · ${horaCorta(at)} · ${mode === "office" ? centroNombre : "Teletrabajo"}`
+    );
+    setBusy(false);
+
+    if (!navigator.onLine) {
+      await encolarPunch(payload);
+      toast.message("Sin conexión: se enviará al recuperar red.");
+      return;
     }
 
     try {
-      if (!navigator.onLine) throw new Error("offline");
       const res = await fetch("/api/time/punch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -250,16 +290,23 @@ export function FichajePwa({ nombre, iniciales }: { nombre: string; iniciales: s
       });
       const json = await res.json();
       if (!json.ok) throw new Error(json.error ?? "Error");
-      aplicarPunchLocal(json.punch as Punch);
-      toast.success(
-        `${etiquetaPunch(type)} registrada a las ${horaCorta(json.punch.at)} · ${mode === "office" ? centroNombre : "Teletrabajo"}`
-      );
+      const real = json.punch as Punch;
+      setToday((prev) => {
+        if (!prev) return prev;
+        const punches = prev.punches.map((p) => (p.client_id === cid || p.id === optimistic.id ? real : p));
+        const nowIso = new Date().toISOString();
+        return { ...prev, nowIso, punches, replay: replayDia(punches, nowIso) };
+      });
       if (tab === "mes") setMonthLoaded(null);
     } catch {
+      setToday((prev) => {
+        if (!prev) return prev;
+        const punches = prev.punches.filter((p) => p.client_id !== cid);
+        const nowIso = new Date().toISOString();
+        return { ...prev, nowIso, punches, replay: replayDia(punches, nowIso) };
+      });
       await encolarPunch(payload);
-      toast.message("Sin conexión: fichaje guardado y se enviará al recuperar red.");
-    } finally {
-      setBusy(false);
+      toast.message("No se pudo confirmar; queda en cola para reenviar.");
     }
   }
 
@@ -402,15 +449,21 @@ export function FichajePwa({ nombre, iniciales }: { nombre: string; iniciales: s
             ) : null}
 
             <section className={cn(TF.cardHero, "flex flex-col gap-5 p-5")}>
-              <span className={cn("self-start rounded-full px-3 py-1 text-[12px] font-medium", pill.className)}>
+              <span
+                className={cn(
+                  "inline-flex items-center gap-2 self-start rounded-full px-3 py-1 text-[12px] font-medium",
+                  pill.className
+                )}
+              >
+                {phase === "working" ? <span className="fichaje-pulse-dot" aria-hidden /> : null}
                 {pill.label}
               </span>
-              <p className={cn("text-[56px] font-medium leading-none tracking-tight", TF.mono)}>
-                {formatoRelojCorto(effectiveMs)}
+              <p className={cn("text-[52px] font-medium leading-none tracking-tight", TF.mono)}>
+                {formatoRelojVivo(effectiveMs)}
               </p>
               <p className={cn("text-[14px]", TF.soft)}>
                 {phase === "out"
-                  ? geoLabel
+                  ? `${mode === "office" ? centroNombre : "Teletrabajo"} · ${geoLabel}`
                   : `desde las ${today?.replay.openSince ? horaCorta(today.replay.openSince) : "—"} · ${mode === "office" ? centroNombre : "Teletrabajo"}`}
               </p>
 
@@ -425,11 +478,13 @@ export function FichajePwa({ nombre, iniciales }: { nombre: string; iniciales: s
                     Fichar entrada
                   </button>
                   <p className={cn("text-center text-[13px]", TF.soft)}>
-                    📍 {geoLabel} ·{" "}
+                    {mode === "office" ? `Oficina · ${centroNombre}` : "Teletrabajo"}
+                    {modeManual ? " (tu elección)" : ""}
+                    {" · "}
                     <button
                       type="button"
                       className="underline underline-offset-2"
-                      onClick={() => setMode((m) => (m === "office" ? "remote" : "office"))}
+                      onClick={() => elegirModalidad(mode === "office" ? "remote" : "office")}
                     >
                       {mode === "office" ? "¿Teletrabajo?" : "Estoy en la oficina"}
                     </button>
