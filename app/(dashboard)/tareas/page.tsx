@@ -275,13 +275,27 @@ export default function TareasPage() {
         avisarEvento("tarea", id);
       }
     }
-    if (patch.hora !== undefined || patch.vence !== undefined || patch.titulo !== undefined) {
-      const citaId = await syncCitaDesdeTarea(createClient(), actual, {
-        hora: (patch.hora as string | null | undefined) ?? actual.hora,
-        vence: (patch.vence as string | null | undefined) ?? actual.vence,
-        titulo: (patch.titulo as string | undefined) ?? actual.titulo,
-      });
-      if (citaId) siguiente.cita_id = citaId;
+    const sincronizaCita =
+      actual.cita_id &&
+      (patch.hora !== undefined ||
+        patch.vence !== undefined ||
+        patch.titulo !== undefined ||
+        patch.propiedad_id !== undefined ||
+        patch.cliente_id !== undefined);
+    if (sincronizaCita) {
+      try {
+        const citaId = await syncCitaDesdeTarea(supabase, siguiente, {
+          ...(patch.hora !== undefined ? { hora: patch.hora as string | null } : {}),
+          ...(patch.vence !== undefined ? { vence: patch.vence as string | null } : {}),
+          ...(patch.titulo !== undefined ? { titulo: patch.titulo as string } : {}),
+          ...(patch.propiedad_id !== undefined ? { propiedad_id: patch.propiedad_id as string | null } : {}),
+          ...(patch.cliente_id !== undefined ? { cliente_id: patch.cliente_id as string | null } : {}),
+        });
+        if (citaId) siguiente.cita_id = citaId;
+        avisarEvento("cita", actual.cita_id);
+      } catch {
+        toast.error("Tarea guardada, pero no se pudo sincronizar con el calendario.");
+      }
     }
     setTareas((prev) => prev.map((item) => (item.id === id ? siguiente : item)));
     if (patch.propiedad_id || patch.cliente_id || patch.demanda_id || patch.parte_visita_id) {

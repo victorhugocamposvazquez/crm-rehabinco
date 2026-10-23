@@ -92,26 +92,48 @@ export async function syncCitaDesdeTarea(
     propiedad_id?: string | null;
     cliente_id?: string | null;
   },
-  patch: { hora?: string | null; vence?: string | null; titulo?: string }
+  patch: {
+    hora?: string | null;
+    vence?: string | null;
+    titulo?: string;
+    propiedad_id?: string | null;
+    cliente_id?: string | null;
+  }
 ): Promise<string | null> {
   const hora = (patch.hora !== undefined ? patch.hora : tarea.hora)?.slice(0, 5) ?? null;
   const vence = (patch.vence !== undefined ? patch.vence : tarea.vence) ?? new Date().toISOString().slice(0, 10);
   const tituloCita = patch.titulo ?? tarea.titulo;
-  if (!hora) return tarea.cita_id ?? null;
+  const propiedadId = patch.propiedad_id !== undefined ? patch.propiedad_id : tarea.propiedad_id ?? null;
+  const clienteId = patch.cliente_id !== undefined ? patch.cliente_id : tarea.cliente_id ?? null;
+
+  if (tarea.cita_id) {
+    const updates: Record<string, unknown> = {
+      propiedad_id: propiedadId,
+      cliente_id: clienteId,
+    };
+    if (patch.titulo !== undefined) updates.titulo = tituloCita;
+    if (hora) {
+      const [hh, mm] = hora.split(":").map(Number);
+      const empieza = new Date(`${vence}T12:00:00`);
+      empieza.setHours(hh || 12, mm || 0, 0, 0);
+      const termina = new Date(empieza);
+      termina.setHours(empieza.getHours() + 1);
+      updates.empieza = empieza.toISOString();
+      updates.termina = termina.toISOString();
+      if (patch.titulo === undefined) updates.titulo = tituloCita;
+    }
+    const { error } = await supabase.from("citas").update(updates).eq("id", tarea.cita_id);
+    if (error) throw error;
+    return tarea.cita_id;
+  }
+
+  if (!hora) return null;
 
   const [hh, mm] = hora.split(":").map(Number);
   const empieza = new Date(`${vence}T12:00:00`);
   empieza.setHours(hh || 12, mm || 0, 0, 0);
   const termina = new Date(empieza);
   termina.setHours(empieza.getHours() + 1);
-
-  if (tarea.cita_id) {
-    await supabase
-      .from("citas")
-      .update({ empieza: empieza.toISOString(), termina: termina.toISOString(), titulo: tituloCita })
-      .eq("id", tarea.cita_id);
-    return tarea.cita_id;
-  }
 
   const { data } = await supabase
     .from("citas")
