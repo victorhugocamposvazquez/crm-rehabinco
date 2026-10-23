@@ -48,7 +48,10 @@ import { ToggleChip } from "@/components/ui/toggle-chip";
 import { CalendarioMovil } from "@/components/citas/CalendarioMovil";
 import { ListaDiaCalendario } from "@/components/citas/ListaDiaCalendario";
 import { TareasDiaCalendario } from "@/components/citas/TareasDiaCalendario";
-import { NuevaEntradaCalendario } from "@/components/citas/NuevaEntradaCalendario";
+import {
+  NuevaEntradaCalendario,
+  type DatosGuardarEntradaCalendario,
+} from "@/components/citas/NuevaEntradaCalendario";
 import { syncEstadoTareaDesdeCita, syncTareaDesdeCita } from "@/lib/tareas/sync-cita";
 
 type CitaRow = {
@@ -318,10 +321,16 @@ export default function CalendarioPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [citaQuery, citas, user, admin]);
 
-  const guardar = async (tipo: TipoAltaCalendario, titulo: string) => {
+  const SELECT_CITA_GUARDADA =
+    "id, comercial_id, tipo, titulo, empieza, termina, propiedad_id, cliente_id, clientes_extra_ids, notas, estado, tarea_id, lugar, propiedades:propiedad_id(titulo, direccion, localidad, referencia), clientes:cliente_id(nombre)";
+
+  const guardar = async ({ tipo, titulo, propiedadId: propiedadFormulario }: DatosGuardarEntradaCalendario) => {
     if (!user) return;
+    const propiedadIdGuardar = (propiedadFormulario || propiedadId).trim();
     const asignado = comercialAsignado || user.id;
-    const inmueble = propiedades.find((p) => p.id === propiedadId);
+    const inmueble =
+      propiedades.find((p) => p.id === propiedadIdGuardar) ??
+      (propiedadIdGuardar ? { id: propiedadIdGuardar, titulo: null, direccion: null, localidad: null, referencia: null } as InmuebleCalendario : undefined);
     const tituloFinal =
       titulo.trim() ||
       (inmueble
@@ -352,19 +361,35 @@ export default function CalendarioPage() {
           titulo: tituloFinal,
           empieza: patch.empieza,
           termina: patch.termina,
-          propiedad_id: propiedadId || null,
+          propiedad_id: propiedadIdGuardar || null,
           cliente_id: clienteId || null,
           clientes_extra_ids: entradaConAsistentes(tipoFinal) ? clientesExtraFinal : [],
           notas: entradaConNotas(tipoFinal) ? notasFinal : null,
           lugar: lugarFinal,
         })
         .eq("id", editando.id)
-        .select("id")
+        .select(SELECT_CITA_GUARDADA)
         .maybeSingle();
       const aviso = mensajeGuardado(error, "No se ha podido guardar la entrada.", guardada);
       if (aviso) {
         setSaving(false);
         toast.error(aviso);
+        return;
+      }
+      const fila = guardada as CitaRow & {
+        propiedades?: CitaRow["propiedades"] | CitaRow["propiedades"][];
+        clientes?: CitaRow["clientes"] | CitaRow["clientes"][];
+      };
+      const citaNormalizada: CitaRow = {
+        ...fila,
+        clientes_extra_ids: fila.clientes_extra_ids ?? [],
+        propiedades: relacionUno(fila.propiedades),
+        clientes: relacionUno(fila.clientes),
+        profiles: editando.profiles,
+      };
+      if (propiedadIdGuardar && citaNormalizada.propiedad_id !== propiedadIdGuardar) {
+        setSaving(false);
+        toast.error("No se ha podido vincular el inmueble. Revisa permisos o vuelve a intentarlo.");
         return;
       }
       try {
@@ -376,7 +401,7 @@ export default function CalendarioPage() {
             tipo: tipoFinal,
             titulo: tituloFinal,
             empieza: patch.empieza,
-            propiedad_id: propiedadId || null,
+            propiedad_id: citaNormalizada.propiedad_id,
             cliente_id: clienteId || null,
             estado: editando.estado,
             tarea_id: editando.tarea_id,
@@ -387,36 +412,11 @@ export default function CalendarioPage() {
         toast.error("Cita guardada, pero no se pudo sincronizar con Tareas.");
       }
       const idGuardada = editando.id;
-      setCitas((prev) =>
-        prev.map((c) =>
-          c.id === idGuardada
-            ? {
-                ...c,
-                comercial_id: asignado,
-                tipo: tipoFinal,
-                titulo: tituloFinal,
-                empieza: patch.empieza,
-                termina: patch.termina,
-                propiedad_id: propiedadId || null,
-                cliente_id: clienteId || null,
-                clientes_extra_ids: entradaConAsistentes(tipoFinal) ? clientesExtraFinal : [],
-                notas: entradaConNotas(tipoFinal) ? notasFinal : null,
-                lugar: lugarFinal,
-                propiedades: inmueble
-                  ? {
-                      titulo: inmueble.titulo,
-                      direccion: inmueble.direccion,
-                      localidad: inmueble.localidad,
-                      referencia: inmueble.referencia,
-                    }
-                  : null,
-              }
-            : c
-        )
-      );
+      setPropiedadId(citaNormalizada.propiedad_id ?? "");
+      if (citaNormalizada.propiedad_id) mezclarInmueble(citaNormalizada.propiedad_id);
+      setEditando(citaNormalizada);
+      setCitas((prev) => prev.map((c) => (c.id === idGuardada ? { ...c, ...citaNormalizada } : c)));
       setSaving(false);
-      setSheetOpen(false);
-      setEditando(null);
       avisarEvento("cita", idGuardada);
       toast.success("Entrada actualizada.");
       cargar();
@@ -434,7 +434,7 @@ export default function CalendarioPage() {
         titulo: tituloFinal,
         empieza: empieza.toISOString(),
         termina: termina.toISOString(),
-        propiedad_id: propiedadId || null,
+        propiedad_id: propiedadIdGuardar || null,
         cliente_id: clienteId || null,
         clientes_extra_ids: entradaConAsistentes(tipoCita) ? clientesExtraFinal : [],
         notas: entradaConNotas(tipoCita) ? notasFinal : null,
@@ -749,7 +749,7 @@ export default function CalendarioPage() {
               }
             : null
         }
-        onGuardar={(tipo, titulo) => void guardar(tipo, titulo)}
+        onGuardar={(datos) => void guardar(datos)}
         onCambiarEstado={(estado) => {
           if (editando) void cambiarEstado(editando.id, estado);
         }}

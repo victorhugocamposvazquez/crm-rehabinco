@@ -35,6 +35,13 @@ export type EdicionCalendario = {
   notas?: string | null;
 };
 
+export type DatosGuardarEntradaCalendario = {
+  tipo: TipoAltaCalendario;
+  titulo: string;
+  /** Id del inmueble elegido en el buscador (fuente de verdad al guardar). */
+  propiedadId: string;
+};
+
 export function NuevaEntradaCalendario({
   open,
   onOpenChange,
@@ -85,7 +92,7 @@ export function NuevaEntradaCalendario({
   onComercial?: (id: string) => void;
   saving: boolean;
   edicion?: EdicionCalendario | null;
-  onGuardar: (tipo: TipoAltaCalendario, titulo: string) => void;
+  onGuardar: (datos: DatosGuardarEntradaCalendario) => void;
   onCambiarEstado?: (estado: "prevista" | "hecha" | "cancelada") => void;
 }) {
   const equipo = comerciales ?? [];
@@ -251,7 +258,7 @@ export function NuevaEntradaCalendario({
         saving={saving}
         footerHint={
           edicion
-            ? "Cerrar descarta los cambios no guardados. Arrastrar en la rejilla también mueve la hora."
+            ? "Guardar cambios no cierra este panel. Cierra con la X o pulsando fuera cuando hayas terminado."
             : "Cerrar no crea nada. La hora sale del hueco que has pulsado y se puede cambiar aquí."
         }
         footerLeading={
@@ -268,7 +275,13 @@ export function NuevaEntradaCalendario({
             />
           ) : null
         }
-        onSubmit={() => onGuardar(tipo, titulo)}
+        onSubmit={() =>
+          onGuardar({
+            tipo,
+            titulo,
+            propiedadId: inmuebleSel?.id ?? propiedadId,
+          })
+        }
       >
         {bloqueNotas}
 
