@@ -64,13 +64,13 @@ export function ContactoFooter({ enDominio }: { enDominio: boolean }) {
             </div>
             <div className="flex flex-col gap-2 rounded-[16px] border border-dashed border-[rgba(254,254,254,.22)] bg-[rgba(254,254,254,.06)] p-[18px]">
               <span className="text-[12px] text-[rgba(254,254,254,.7)]">Tu mensaje · puedes editarlo en WhatsApp</span>
-              <p className="ml-auto max-w-[92%] rounded-[16px_16px_4px_16px] bg-[#fefefe] px-3.5 py-3 text-[15px] leading-relaxed text-[#080808]">{waMsg}</p>
+              <p className="corp-ink ml-auto max-w-[92%] rounded-[16px_16px_4px_16px] bg-[#fefefe] px-3.5 py-3 text-[15px] leading-relaxed">{waMsg}</p>
             </div>
             <a
               href={`https://api.whatsapp.com/send?phone=${WA}&text=${encodeURIComponent(waMsg)}`}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center justify-between gap-3 rounded-[13px] bg-[#fefefe] py-1.5 pl-[18px] pr-1.5 text-[15px] font-medium text-[#080808]"
+              className="corp-ink flex items-center justify-between gap-3 rounded-[13px] bg-[#fefefe] py-1.5 pl-[18px] pr-1.5 text-[15px] font-medium"
             >
               Abrir WhatsApp
               <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-[#080808] text-[#fefefe]">↗</span>

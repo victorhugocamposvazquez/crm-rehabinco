@@ -129,7 +129,9 @@
   color: #fefefe;
 }
 
-.web-corp a.corp-link-on-light {
+.web-corp a.corp-link-on-light,
+.web-corp p.corp-ink,
+.web-corp a.corp-ink {
   color: #080808;
 }
 
