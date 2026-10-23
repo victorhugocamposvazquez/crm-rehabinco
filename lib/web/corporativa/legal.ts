@@ -63,7 +63,7 @@ export function bloquesAvisoLegal(): BloqueLegal[] {
       titulo: "7. Protección de datos",
       parrafos: [
         `El detalle de finalidades, bases jurídicas, plazos, destinatarios y derechos está en la política de privacidad. El responsable es ${e.razonSocial} (CIF ${e.cif}), ${e.direccionCompleta}, ${e.email}.`,
-        "En los formularios de la web verás, antes de enviar, para qué se usan los datos y el enlace a esa política. Sin esa información no debe enviarse el formulario. Si abres WhatsApp, el mensaje lo trata también su proveedor.",
+        "El contacto en la web es por teléfono, por correo o por WhatsApp. Si abres WhatsApp, el mensaje lo trata también su proveedor. El detalle de ese tratamiento está en la política de privacidad, enlazada junto al botón.",
       ],
     },
     {
@@ -168,7 +168,7 @@ export function bloquesPoliticaPrivacidad(): BloqueLegal[] {
       id: "finalidades",
       titulo: "4. Para qué los usamos y con qué base",
       parrafos: [
-        "Atender el formulario, el correo, el teléfono o WhatsApp, concertar visitas y preparar una propuesta inmobiliaria o de reforma. Base: medidas precontractuales o contrato, a petición tuya (artículo 6.1.b del RGPD). Si el mensaje no llega a ser una solicitud de servicio, la base es tu consentimiento (artículo 6.1.a).",
+        "Atender el correo, el teléfono o WhatsApp, concertar visitas y preparar una propuesta inmobiliaria o de reforma. Base: medidas precontractuales o contrato, a petición tuya (artículo 6.1.b del RGPD). Si el mensaje no llega a ser una solicitud de servicio, la base es tu consentimiento (artículo 6.1.a).",
         "Gestionar el encargo de intermediación (venta, alquiler o búsqueda) y la ejecución de la reforma: visitas, documentación del inmueble, presupuesto, planificación de obra y comunicación con el cliente. Base: contrato (artículo 6.1.b).",
         "Emitir facturas, llevar la contabilidad y atender requerimientos de Hacienda o de un juzgado. Base: obligación legal (artículo 6.1.c). Las facturas y libros se conservan el plazo mercantil y tributario (con carácter general, seis años los libros y cuatro el plazo de prescripción tributaria, salvo que una norma exija más).",
         "Identificar a las partes cuando Rehabinco intermedia una compraventa de inmueble, conforme a la Ley 10/2010 de prevención del blanqueo de capitales. Base: obligación legal. Esos datos se conservan diez años desde que termina la relación de negocio sujeta a esa ley.",

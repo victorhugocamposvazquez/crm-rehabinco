@@ -5,14 +5,11 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { BUSQUEDAS, INSTAGRAM, INTERESES, OFICINA, WA } from "@/lib/web/corporativa/contenido";
 import { hrefAvisoLegal, hrefInicio, hrefPoliticaCookies, hrefPoliticaPrivacidad } from "@/lib/web/dominio";
-import { ClausulaFormularioWeb } from "./ClausulaFormularioWeb";
 import { abrirConfiguracionCookies } from "./CookieBanner";
 import { SplitLine } from "./TipografiaMotion";
 
 export function ContactoFooter({ enDominio }: { enDominio: boolean }) {
   const [interes, setInteres] = useState(0);
-  const [canal, setCanal] = useState<"form" | "wa">("form");
-  const [aceptaPrivacidad, setAceptaPrivacidad] = useState(false);
   const inicio = hrefInicio(enDominio);
 
   const waMsg = useMemo(() => {
@@ -49,10 +46,7 @@ export function ContactoFooter({ enDominio }: { enDominio: boolean }) {
               </div>
             </div>
           </div>
-          <form
-            className="flex flex-col gap-4 rounded-[24px] border border-[rgba(254,254,254,.16)] bg-[rgba(254,254,254,.08)] p-[clamp(20px,2.4vw,32px)] backdrop-blur-md"
-            onSubmit={(e) => e.preventDefault()}
-          >
+          <div className="flex flex-col gap-4 rounded-[24px] border border-[rgba(254,254,254,.16)] bg-[rgba(254,254,254,.08)] p-[clamp(20px,2.4vw,32px)] backdrop-blur-md">
             <div className="flex flex-col gap-2.5">
               <span className="text-[12px] uppercase tracking-[0.06em] text-[rgba(254,254,254,.7)]">Quiero</span>
               <div className="flex flex-wrap gap-1.5">
@@ -68,71 +62,27 @@ export function ContactoFooter({ enDominio }: { enDominio: boolean }) {
                 ))}
               </div>
             </div>
-            <div className="flex flex-col gap-2.5">
-              <span className="text-[12px] uppercase tracking-[0.06em] text-[rgba(254,254,254,.7)]">Cómo prefieres hablar</span>
-              <div className="flex gap-1 rounded-[14px] bg-[rgba(254,254,254,.1)] p-1">
-                <button
-                  type="button"
-                  className={`flex flex-1 items-center justify-center gap-2 rounded-[10px] py-2.5 text-[14px] font-medium ${canal === "form" ? "bg-[#fefefe] text-[#080808]" : "text-[#fefefe]"}`}
-                  onClick={() => setCanal("form")}
-                >
-                  Os dejo mis datos
-                </button>
-                <button
-                  type="button"
-                  className={`flex flex-1 items-center justify-center gap-2 rounded-[10px] py-2.5 text-[14px] font-medium ${canal === "wa" ? "bg-[#fefefe] text-[#080808]" : "text-[#fefefe]"}`}
-                  onClick={() => setCanal("wa")}
-                >
-                  WhatsApp
-                </button>
-              </div>
+            <div className="flex flex-col gap-2 rounded-[16px] border border-dashed border-[rgba(254,254,254,.22)] bg-[rgba(254,254,254,.06)] p-[18px]">
+              <span className="text-[12px] text-[rgba(254,254,254,.7)]">Tu mensaje · puedes editarlo en WhatsApp</span>
+              <p className="ml-auto max-w-[92%] rounded-[16px_16px_4px_16px] bg-[#fefefe] px-3.5 py-3 text-[15px] leading-relaxed text-[#080808]">{waMsg}</p>
             </div>
-            {canal === "form" ? (
-              <>
-                <input placeholder="Nombre" className="rounded-[12px] border-0 bg-[#fefefe] px-4 py-3.5 text-[15px] text-[#080808] outline-none" />
-                <div className="grid gap-3.5 sm:grid-cols-2">
-                  <input placeholder="Teléfono" className="rounded-[12px] border-0 bg-[#fefefe] px-4 py-3.5 text-[15px] text-[#080808] outline-none" />
-                  <input placeholder="Email" type="email" className="rounded-[12px] border-0 bg-[#fefefe] px-4 py-3.5 text-[15px] text-[#080808] outline-none" />
-                </div>
-                <textarea
-                  rows={3}
-                  placeholder={`Cuéntanos qué buscas (${INTERESES[interes]?.toLowerCase()})…`}
-                  className="resize-y rounded-[12px] border-0 bg-[#fefefe] px-4 py-3.5 text-[15px] text-[#080808] outline-none"
-                />
-                <ClausulaFormularioWeb enDominio={enDominio} aceptada={aceptaPrivacidad} onChange={setAceptaPrivacidad} clara />
-              </>
-            ) : (
-              <div className="flex flex-col gap-2 rounded-[16px] border border-dashed border-[rgba(254,254,254,.22)] bg-[rgba(254,254,254,.06)] p-[18px]">
-                <span className="text-[12px] text-[rgba(254,254,254,.7)]">Tu mensaje · puedes editarlo en WhatsApp</span>
-                <p className="ml-auto max-w-[92%] rounded-[16px_16px_4px_16px] bg-[#fefefe] px-3.5 py-3 text-[15px] leading-relaxed text-[#080808]">{waMsg}</p>
-              </div>
-            )}
-            {canal === "form" ? (
-              <button type="submit" className="flex items-center justify-between gap-3 rounded-[13px] bg-[#fefefe] py-1.5 pl-[18px] pr-1.5 text-[15px] font-medium text-[#080808]">
-                Enviar mensaje
-                <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-[#080808] text-[#fefefe]">↗</span>
-              </button>
-            ) : (
-              <a
-                href={`https://api.whatsapp.com/send?phone=${WA}&text=${encodeURIComponent(waMsg)}`}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center justify-between gap-3 rounded-[13px] bg-[#fefefe] py-1.5 pl-[18px] pr-1.5 text-[15px] font-medium text-[#080808]"
-              >
-                Abrir WhatsApp
-                <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-[#080808] text-[#fefefe]">↗</span>
-              </a>
-            )}
-            {canal === "wa" ? (
-              <p className="text-[12.5px] leading-relaxed text-[rgba(254,254,254,.72)]">
-                Al abrir WhatsApp, el mensaje lo trata también Meta. Cómo usa Rehabinco los datos que nos haces llegar está en la{" "}
-                <Link href={hrefPoliticaPrivacidad(enDominio)} className="underline underline-offset-2">
-                  política de privacidad
-                </Link>
-                .
-              </p>
-            ) : null}
-          </form>
+            <a
+              href={`https://api.whatsapp.com/send?phone=${WA}&text=${encodeURIComponent(waMsg)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-between gap-3 rounded-[13px] bg-[#fefefe] py-1.5 pl-[18px] pr-1.5 text-[15px] font-medium text-[#080808]"
+            >
+              Abrir WhatsApp
+              <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-[#080808] text-[#fefefe]">↗</span>
+            </a>
+            <p className="text-[12.5px] leading-relaxed text-[rgba(254,254,254,.72)]">
+              Al abrir WhatsApp, el mensaje lo trata también Meta. Cómo usa Rehabinco los datos que nos haces llegar está en la{" "}
+              <Link href={hrefPoliticaPrivacidad(enDominio)} className="underline underline-offset-2">
+                política de privacidad
+              </Link>
+              . Por correo: <a href={`mailto:${OFICINA.email}`} className="underline underline-offset-2">{OFICINA.email}</a>.
+            </p>
+          </div>
         </div>
         <div className="flex flex-col gap-5">
           <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2 border-b border-[rgba(254,254,254,.16)] pb-3 text-[14px]">

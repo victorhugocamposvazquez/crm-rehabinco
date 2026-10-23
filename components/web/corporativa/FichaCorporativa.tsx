@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ENERGIA, OFICINA, WA } from "@/lib/web/corporativa/contenido";
-import { formatoPrecio, similares, specsCortas } from "@/lib/web/corporativa/catalogo";
+import { formatoPrecio, similares } from "@/lib/web/corporativa/catalogo";
 import type { InmuebleCorporativa } from "@/lib/web/corporativa/types";
 import { hrefInicio, hrefPoliticaPrivacidad } from "@/lib/web/dominio";
-import { ClausulaFormularioWeb } from "./ClausulaFormularioWeb";
 import { NavCorporativa } from "./NavCorporativa";
 import { ContactoFooter } from "./ContactoFooter";
 import { TarjetaInmuebleCorporativa } from "./TarjetaInmuebleCorporativa";
@@ -34,12 +33,10 @@ export function FichaCorporativa({
   enDominio: boolean;
 }) {
   const [desc, setDesc] = useState(false);
-  const [canal, setCanal] = useState<"form" | "wa">("form");
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [entrada, setEntrada] = useState(20);
   const [anos, setAnos] = useState(25);
   const [interes, setInteres] = useState(3.2);
-  const [aceptaPrivacidad, setAceptaPrivacidad] = useState(false);
   const [mapaCargado, setMapaCargado] = useState(false);
   const fotos = item.fotos.length ? item.fotos : item.fotoPrincipal ? [item.fotoPrincipal] : [];
   const parecidos = useMemo(() => similares(catalogo, item), [catalogo, item]);
@@ -308,43 +305,25 @@ export function FichaCorporativa({
                 <h2 className="text-[22px] font-medium tracking-[-0.02em]">Contacta por este inmueble</h2>
                 <span className="text-[13px] text-[#6b6b6b]">{item.ref || item.slug}</span>
               </div>
-              <div className="mt-4 inline-flex w-full rounded-[14px] bg-[#f4f3f1] p-1 text-[14px]">
-                <button type="button" className={`flex flex-1 items-center justify-center gap-2 rounded-[10px] py-2.5 font-medium ${canal === "form" ? "bg-[#fefefe] shadow-sm" : ""}`} onClick={() => setCanal("form")}>
-                  Formulario
-                </button>
-                <button type="button" className={`flex flex-1 items-center justify-center gap-2 rounded-[10px] py-2.5 font-medium ${canal === "wa" ? "bg-[#fefefe] shadow-sm" : ""}`} onClick={() => setCanal("wa")}>
-                  WhatsApp
-                </button>
+              <div className="mt-4 space-y-3">
+                <p className="rounded-[16px] bg-[#f4f3f1] p-4 text-[14px] leading-relaxed">
+                  Hola. Estoy interesado en hablar del «{item.titulo}».
+                </p>
+                <a href={wa} target="_blank" rel="noreferrer" className="corp-btn w-full justify-center bg-[#25D366] !text-white">
+                  Enviar WhatsApp
+                  <span className="corp-btn-icon !bg-white/20 !text-white">↗</span>
+                </a>
+                <a href={`mailto:${OFICINA.email}?subject=${encodeURIComponent(item.titulo)}`} className="block text-[14px] text-[#080808] underline underline-offset-2">
+                  {OFICINA.email}
+                </a>
+                <p className="text-[12.5px] leading-relaxed text-[#6b6b6b]">
+                  Al abrir WhatsApp, el mensaje lo trata también Meta.{" "}
+                  <Link href={hrefPoliticaPrivacidad(enDominio)} className="underline underline-offset-2">
+                    Política de privacidad
+                  </Link>
+                  .
+                </p>
               </div>
-              {canal === "form" ? (
-                <form className="mt-4 space-y-3" onSubmit={(e) => e.preventDefault()}>
-                  <input placeholder="Nombre" className="w-full rounded-[12px] border border-[rgba(8,8,8,.14)] px-4 py-3.5 text-[15px]" />
-                  <input placeholder="Teléfono" className="w-full rounded-[12px] border border-[rgba(8,8,8,.14)] px-4 py-3.5 text-[15px]" />
-                  <textarea placeholder="Mensaje" rows={4} className="w-full rounded-[12px] border border-[rgba(8,8,8,.14)] px-4 py-3.5 text-[15px]" defaultValue={`Me interesa ${item.titulo}. ${specsCortas(item)}`} />
-                  <ClausulaFormularioWeb enDominio={enDominio} aceptada={aceptaPrivacidad} onChange={setAceptaPrivacidad} clara />
-                  <button type="submit" className="corp-btn w-full justify-center">
-                    Solicitar visita
-                    <span className="corp-btn-icon">↗</span>
-                  </button>
-                </form>
-              ) : (
-                <div className="mt-4 space-y-3">
-                  <p className="rounded-[16px] bg-[#f4f3f1] p-4 text-[14px] leading-relaxed">
-                    Hola. Estoy interesado en hablar del «{item.titulo}».
-                  </p>
-                  <a href={wa} target="_blank" rel="noreferrer" className="corp-btn w-full justify-center bg-[#25D366] !text-white">
-                    Enviar WhatsApp
-                    <span className="corp-btn-icon !bg-white/20 !text-white">↗</span>
-                  </a>
-                  <p className="text-[12.5px] leading-relaxed text-[#6b6b6b]">
-                    Al abrir WhatsApp, el mensaje lo trata también Meta.{" "}
-                    <Link href={hrefPoliticaPrivacidad(enDominio)} className="underline underline-offset-2">
-                      Política de privacidad
-                    </Link>
-                    .
-                  </p>
-                </div>
-              )}
             </div>
           </aside>
         </div>
