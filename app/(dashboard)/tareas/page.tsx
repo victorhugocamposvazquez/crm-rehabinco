@@ -275,14 +275,15 @@ export default function TareasPage() {
         avisarEvento("tarea", id);
       }
     }
+    const citaIdEnlazada = actual.cita_id;
     const sincronizaCita =
-      actual.cita_id &&
+      citaIdEnlazada &&
       (patch.hora !== undefined ||
         patch.vence !== undefined ||
         patch.titulo !== undefined ||
         patch.propiedad_id !== undefined ||
         patch.cliente_id !== undefined);
-    if (sincronizaCita) {
+    if (sincronizaCita && citaIdEnlazada) {
       try {
         const citaId = await syncCitaDesdeTarea(supabase, siguiente, {
           ...(patch.hora !== undefined ? { hora: patch.hora as string | null } : {}),
@@ -292,7 +293,7 @@ export default function TareasPage() {
           ...(patch.cliente_id !== undefined ? { cliente_id: patch.cliente_id as string | null } : {}),
         });
         if (citaId) siguiente.cita_id = citaId;
-        avisarEvento("cita", actual.cita_id);
+        avisarEvento("cita", citaIdEnlazada);
       } catch {
         toast.error("Tarea guardada, pero no se pudo sincronizar con el calendario.");
       }
