@@ -121,6 +121,11 @@ export function GaleriaMediaRevision({
                 onPointerMove={reordenar.alMover}
                 onPointerUp={reordenar.alLevantar}
                 onPointerCancel={reordenar.alLevantar}
+                onClick={() => {
+                  if (reordenar.fueArrastre()) return;
+                  if (tipo !== "foto" || idx === 0) return;
+                  onChange(reordenarFilasRevision(revisionRef.current, idx, 0));
+                }}
                 className={cn(
                   "group relative cursor-grab touch-none overflow-hidden rounded-[12px] border bg-[var(--surface-soft)] active:cursor-grabbing",
                   resaltada ? "border-accent ring-2 ring-accent/30" : "border-[var(--border)]",
@@ -141,20 +146,27 @@ export function GaleriaMediaRevision({
                   </span>
                 ) : null}
                 {esPortada ? (
-                  <span className="absolute left-2 top-2 rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
+                  <span className="pointer-events-none absolute left-2 top-2 rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
                     Portada
                   </span>
-                ) : null}
-                <div className="absolute inset-x-0 bottom-0 flex justify-end gap-1 bg-gradient-to-t from-black/50 to-transparent p-2">
-                  <button
-                    type="button"
-                    onClick={() => onChange(quitarFilaRevision(revision, fila.id))}
-                    className="rounded-full bg-white/90 p-1.5 text-red-700"
-                    aria-label="Quitar"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-                  </button>
-                </div>
+                ) : (
+                  <span className="pointer-events-none absolute left-2 top-2 rounded-full bg-black/45 px-2 py-0.5 text-[10px] font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100">
+                    Portada
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (reordenar.fueArrastre()) return;
+                    onChange(quitarFilaRevision(revisionRef.current, fila.id));
+                  }}
+                  className="absolute right-2 top-2 rounded-full bg-white/90 p-1.5 text-red-700"
+                  aria-label="Quitar"
+                >
+                  <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+                </button>
               </li>
             );
           })}
@@ -182,7 +194,7 @@ export function GaleriaMediaRevision({
         </p>
         <p className="mt-1 max-w-[24rem] text-[12.5px] leading-5 text-[var(--text-2)]">
           {tipo === "foto"
-            ? "Pulsa para elegir. Arrastra una foto con el dedo o el trackpad: la primera es la portada. Guarda los cambios abajo."
+            ? "Pulsa una foto para ponerla de portada, o arrástrala para ordenar. La papelera solo quita. Guarda los cambios abajo."
             : "PDF o imagen. Varios a la vez; guarda los cambios cuando acabes."}
         </p>
       </button>

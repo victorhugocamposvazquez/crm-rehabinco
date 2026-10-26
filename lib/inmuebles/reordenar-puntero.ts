@@ -33,6 +33,8 @@ export function useReordenarPuntero(onSoltar: (desde: number, hasta: number) => 
   const soltarRef = useRef(onSoltar);
   soltarRef.current = onSoltar;
   const gesto = useRef<{ desde: number; x: number; y: number; activo: boolean } | null>(null);
+  const arrastre = useRef(false);
+  const hastaRef = useRef<number | null>(null);
   const [desde, setDesde] = useState<number | null>(null);
   const [hasta, setHasta] = useState<number | null>(null);
 
@@ -48,25 +50,36 @@ export function useReordenarPuntero(onSoltar: (desde: number, hasta: number) => 
     if (!actual) return;
     const dx = evento.clientX - actual.x;
     const dy = evento.clientY - actual.y;
-    if (!actual.activo && dx * dx + dy * dy < 36) return;
+    if (!actual.activo && dx * dx + dy * dy < 64) return;
+    if (!actual.activo) setDesde(actual.desde);
     actual.activo = true;
-    setDesde(actual.desde);
     const lista = listaRef.current;
     if (!lista) return;
     const idx = indiceBajoPuntero(lista, evento.clientX, evento.clientY);
-    if (idx != null) setHasta(idx);
+    if (idx != null && idx !== hastaRef.current) {
+      hastaRef.current = idx;
+      setHasta(idx);
+    }
   };
 
   const alLevantar = (evento: ReactPointerEvent<HTMLElement>) => {
     const actual = gesto.current;
     gesto.current = null;
+    if (actual?.activo) arrastre.current = true;
     if (actual?.activo && listaRef.current) {
       const idx = indiceBajoPuntero(listaRef.current, evento.clientX, evento.clientY);
       if (idx != null && idx !== actual.desde) soltarRef.current(actual.desde, idx);
     }
+    hastaRef.current = null;
     setDesde(null);
     setHasta(null);
   };
 
-  return { listaRef, desde, hasta, alBajar, alMover, alLevantar };
+  const fueArrastre = () => {
+    if (!arrastre.current) return false;
+    arrastre.current = false;
+    return true;
+  };
+
+  return { listaRef, desde, hasta, alBajar, alMover, alLevantar, fueArrastre };
 }
