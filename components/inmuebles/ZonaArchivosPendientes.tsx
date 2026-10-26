@@ -105,9 +105,11 @@ export function ZonaArchivosPendientes({
                 key={key}
                 data-orden-idx={idx}
                 onPointerDown={reordenar.alBajar(idx)}
-                onPointerMove={reordenar.alMover}
-                onPointerUp={reordenar.alLevantar}
-                onPointerCancel={reordenar.alLevantar}
+                onClick={() => {
+                  if (reordenar.fueArrastre()) return;
+                  if (tipo !== "foto" || idx === 0) return;
+                  onChange(reordenarIndice(filesRef.current, idx, 0));
+                }}
                 className={cn(
                   "group relative cursor-grab touch-none overflow-hidden rounded-[12px] border bg-[var(--surface-soft)] active:cursor-grabbing",
                   resaltada ? "border-accent ring-2 ring-accent/30" : "border-[var(--border)]",
@@ -122,13 +124,22 @@ export function ZonaArchivosPendientes({
                   </div>
                 )}
                 {esPortada ? (
-                  <span className="absolute left-2 top-2 rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
+                  <span className="pointer-events-none absolute left-2 top-2 rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
+                    Portada
+                  </span>
+                ) : tipo === "foto" ? (
+                  <span className="pointer-events-none absolute left-2 top-2 rounded-full bg-black/45 px-2 py-0.5 text-[10px] font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100">
                     Portada
                   </span>
                 ) : null}
                 <button
                   type="button"
-                  onClick={() => quitar(idx)}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (reordenar.fueArrastre()) return;
+                    quitar(idx);
+                  }}
                   className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-black/55 text-white"
                   aria-label={`Quitar ${etiqueta}`}
                 >
@@ -171,7 +182,7 @@ export function ZonaArchivosPendientes({
         </p>
         <p className="mt-1 max-w-[22rem] text-[12.5px] leading-5 text-[var(--text-2)]">
           {tipo === "foto"
-            ? "O pulsa para elegir. Arrastra una foto con el dedo o el trackpad: la primera es la portada."
+            ? "Pulsa una foto para ponerla de portada, o arrástrala para ordenar. La primera es la que sale en listados."
             : "PDF o imagen. Puedes soltar varios a la vez."}
         </p>
         {files.length ? (

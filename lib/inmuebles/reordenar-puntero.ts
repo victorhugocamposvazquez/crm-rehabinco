@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 
 /** Índice de la miniatura bajo el puntero. En el hueco entre fotos, la más cercana. */
 export function indiceBajoPuntero(lista: HTMLElement, x: number, y: number): number | null {
@@ -26,53 +26,82 @@ export function indiceBajoPuntero(lista: HTMLElement, x: number, y: number): num
 
 /**
  * Reordenar con dedo, trackpad o ratón. El iPad no emite el arrastre HTML
- * de las miniaturas, así que el orden sigue el puntero.
+ * de las miniaturas, así que el orden sigue el puntero (listeners en window).
  */
 export function useReordenarPuntero(onSoltar: (desde: number, hasta: number) => void) {
   const listaRef = useRef<HTMLUListElement>(null);
   const soltarRef = useRef(onSoltar);
   soltarRef.current = onSoltar;
-  const gesto = useRef<{ desde: number; x: number; y: number; activo: boolean } | null>(null);
   const arrastre = useRef(false);
   const hastaRef = useRef<number | null>(null);
+  const listenersRef = useRef<{ move: (e: PointerEvent) => void; up: (e: PointerEvent) => void } | null>(null);
   const [desde, setDesde] = useState<number | null>(null);
   const [hasta, setHasta] = useState<number | null>(null);
+
+  const limpiarListeners = () => {
+    if (!listenersRef.current) return;
+    window.removeEventListener("pointermove", listenersRef.current.move);
+    window.removeEventListener("pointerup", listenersRef.current.up);
+    window.removeEventListener("pointercancel", listenersRef.current.up);
+    listenersRef.current = null;
+  };
+
+  useEffect(() => () => limpiarListeners(), []);
 
   const alBajar = (idx: number) => (evento: ReactPointerEvent<HTMLElement>) => {
     if (evento.button !== 0) return;
     if ((evento.target as HTMLElement).closest("button")) return;
-    gesto.current = { desde: idx, x: evento.clientX, y: evento.clientY, activo: false };
-    evento.currentTarget.setPointerCapture(evento.pointerId);
-  };
 
-  const alMover = (evento: ReactPointerEvent<HTMLElement>) => {
-    const actual = gesto.current;
-    if (!actual) return;
-    const dx = evento.clientX - actual.x;
-    const dy = evento.clientY - actual.y;
-    if (!actual.activo && dx * dx + dy * dy < 64) return;
-    if (!actual.activo) setDesde(actual.desde);
-    actual.activo = true;
-    const lista = listaRef.current;
-    if (!lista) return;
-    const idx = indiceBajoPuntero(lista, evento.clientX, evento.clientY);
-    if (idx != null && idx !== hastaRef.current) {
-      hastaRef.current = idx;
-      setHasta(idx);
-    }
-  };
-
-  const alLevantar = (evento: ReactPointerEvent<HTMLElement>) => {
-    const actual = gesto.current;
-    gesto.current = null;
-    if (actual?.activo) arrastre.current = true;
-    if (actual?.activo && listaRef.current) {
-      const idx = indiceBajoPuntero(listaRef.current, evento.clientX, evento.clientY);
-      if (idx != null && idx !== actual.desde) soltarRef.current(actual.desde, idx);
-    }
+    limpiarListeners();
+    const pointerId = evento.pointerId;
+    const origen = { x: evento.clientX, y: evento.clientY };
+    let activo = false;
     hastaRef.current = null;
-    setDesde(null);
-    setHasta(null);
+
+    const finalizar = (clientX: number, clientY: number, desdeIdx: number) => {
+      if (activo) arrastre.current = true;
+      if (activo) {
+        const lista = listaRef.current;
+        let destino = hastaRef.current;
+        if (lista) {
+          const bajo = indiceBajoPuntero(lista, clientX, clientY);
+          if (bajo != null) destino = bajo;
+        }
+        if (destino != null && destino !== desdeIdx) soltarRef.current(desdeIdx, destino);
+      }
+      limpiarListeners();
+      hastaRef.current = null;
+      setDesde(null);
+      setHasta(null);
+    };
+
+    const onMove = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
+      const dx = ev.clientX - origen.x;
+      const dy = ev.clientY - origen.y;
+      if (!activo && dx * dx + dy * dy < 64) return;
+      if (!activo) {
+        activo = true;
+        setDesde(idx);
+      }
+      const lista = listaRef.current;
+      if (!lista) return;
+      const i = indiceBajoPuntero(lista, ev.clientX, ev.clientY);
+      if (i != null && i !== hastaRef.current) {
+        hastaRef.current = i;
+        setHasta(i);
+      }
+    };
+
+    const onUp = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
+      finalizar(ev.clientX, ev.clientY, idx);
+    };
+
+    listenersRef.current = { move: onMove, up: onUp };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
   };
 
   const fueArrastre = () => {
@@ -81,5 +110,5 @@ export function useReordenarPuntero(onSoltar: (desde: number, hasta: number) => 
     return true;
   };
 
-  return { listaRef, desde, hasta, alBajar, alMover, alLevantar, fueArrastre };
+  return { listaRef, desde, hasta, alBajar, fueArrastre };
 }

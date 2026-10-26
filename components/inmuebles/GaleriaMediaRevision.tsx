@@ -118,9 +118,6 @@ export function GaleriaMediaRevision({
                 key={fila.id}
                 data-orden-idx={idx}
                 onPointerDown={reordenar.alBajar(idx)}
-                onPointerMove={reordenar.alMover}
-                onPointerUp={reordenar.alLevantar}
-                onPointerCancel={reordenar.alLevantar}
                 onClick={() => {
                   if (reordenar.fueArrastre()) return;
                   if (tipo !== "foto" || idx === 0) return;
