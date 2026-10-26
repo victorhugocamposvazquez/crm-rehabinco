@@ -29,6 +29,7 @@ import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
 
 const BORRADOR_VACIO: Omit<BorradorNuevaDemanda, "comercialId"> = {
   clienteId: "",
+  nombreCliente: "",
   tipoOperacion: "compra",
   tiposInmueble: ["piso"],
   zonas: [],
@@ -89,7 +90,7 @@ export function NuevaDemandaPanel({
 }) {
   const { user } = useAuth();
   const admin = isAdmin(user?.role);
-  const clienteFijo = Boolean(clienteIdInicial) || Boolean(editarId);
+  const clienteFijo = Boolean(clienteIdInicial) && !editarId;
   const ambito = editarId ? `editar:${editarId}` : clienteIdInicial ?? "libre";
   const [clientes, setClientes] = useState<PersonaOpcion[]>([]);
   const [comerciales, setComerciales] = useState<ComercialFiltro[]>([]);
@@ -115,6 +116,7 @@ export function NuevaDemandaPanel({
     setDraft({
       ...BORRADOR_VACIO,
       clienteId: clienteIdInicial ?? "",
+      nombreCliente: clienteIdInicial ? (clienteNombre ?? "") : "",
       comercialId: user?.id ?? "",
     });
     setQCliente("");
@@ -155,6 +157,7 @@ export function NuevaDemandaPanel({
           if (!data) return;
           setDraft({
             clienteId: String(data.cliente_id),
+            nombreCliente: clienteNombre?.trim() ?? "",
             comercialId: String(data.comercial_id || user?.id || ""),
             tipoOperacion: (data.tipo_operacion as BorradorNuevaDemanda["tipoOperacion"]) || "compra",
             tiposInmueble: (data.tipos_inmueble as string[]) ?? ["piso"],
@@ -183,6 +186,7 @@ export function NuevaDemandaPanel({
         ...BORRADOR_VACIO,
         ...guardado.data.draft,
         clienteId: clienteFijo ? clienteIdInicial ?? "" : guardado.data.draft.clienteId,
+        nombreCliente: guardado.data.draft.nombreCliente ?? (clienteFijo ? clienteNombre ?? "" : ""),
         comercialId: guardado.data.draft.comercialId || user?.id || "",
       });
       setZonaExtra(guardado.data.zonaExtra);
@@ -221,11 +225,14 @@ export function NuevaDemandaPanel({
   const crear = async () => {
     if (!user) return;
     let clienteId = draft.clienteId;
+    let nombreCliente = draft.nombreCliente.trim();
     if (!clienteId) {
       const paso = resolverPersonaAlta("", qCliente, sugeridos);
       if (paso.tipo === "unico") {
         clienteId = paso.persona.id;
+        nombreCliente = nombreCliente || paso.persona.nombre;
         set("clienteId", clienteId);
+        set("nombreCliente", nombreCliente);
         setQCliente("");
         setAvisoCliente(false);
       } else if (paso.tipo === "alta") {
@@ -239,7 +246,12 @@ export function NuevaDemandaPanel({
         return;
       }
     }
-    const paraCrear = { ...draft, clienteId, comercialId: draft.comercialId || user.id };
+    const paraCrear = {
+      ...draft,
+      clienteId,
+      nombreCliente: nombreCliente || clienteSel?.nombre || clienteNombre || "",
+      comercialId: draft.comercialId || user.id,
+    };
     const fallo = validarNuevaDemanda(paraCrear);
     if (fallo) {
       toast.error(fallo);
@@ -267,7 +279,7 @@ export function NuevaDemandaPanel({
       open={open}
       onOpenChange={onOpenChange}
       title={editarId ? "Editar demanda" : "Nueva demanda"}
-      hint={editarId ? "Cambia criterios sin recrear la demanda." : "Lo que busca esta persona. El cruce mira el stock disponible que encaja."}
+      hint={editarId ? "Puedes corregir el nombre del cliente, cambiar de persona y ajustar los criterios." : "Lo que busca esta persona. El cruce mira el stock disponible que encaja."}
       primaryLabel={editarId ? "Guardar demanda" : "Crear demanda"}
       saving={saving}
       primaryHint={faltaCliente ? "Falta el cliente: pulsa un nombre de la lista, o crea uno nuevo." : undefined}
@@ -287,20 +299,26 @@ export function NuevaDemandaPanel({
         title="Cliente"
         required={!clienteFijo}
         hint={
-          clienteFijo
-            ? "Este es quien busca."
-            : "Primero quién busca. Escribe y pulsa el nombre; si no está, créalo."
+          editarId
+            ? "El nombre de la demanda es el de esta persona. Corrígelo aquí: también cambia en la agenda. Si es otra persona, elígela."
+            : clienteFijo
+              ? "Este es quien busca. Si el nombre no es el suyo, corrígelo: cambia también en la agenda."
+              : "Primero quién busca. Escribe y pulsa el nombre; si no está, créalo."
         }
       >
         <AltaPersona
           fijo={clienteFijo}
-          fijoNombre={clienteNombre}
-          seleccionado={clienteSel}
+          fijoNombre={draft.nombreCliente.trim() || clienteNombre}
+          seleccionado={clienteSel ? { ...clienteSel, nombre: draft.nombreCliente.trim() || clienteSel.nombre } : undefined}
           onSeleccionar={(persona) => {
             set("clienteId", persona.id);
+            set("nombreCliente", persona.nombre);
             setAvisoCliente(false);
           }}
-          onLimpiar={() => set("clienteId", "")}
+          onLimpiar={() => {
+            set("clienteId", "");
+            set("nombreCliente", "");
+          }}
           q={qCliente}
           setQ={setQCliente}
           sugeridos={sugeridos}
@@ -312,6 +330,18 @@ export function NuevaDemandaPanel({
           aviso={avisoCliente && faltaCliente}
           inputRef={clienteInputRef}
         />
+        {draft.clienteId ? (
+          <div className="mt-4">
+            <AltaField label="Nombre del cliente">
+              <input
+                value={draft.nombreCliente}
+                onChange={(e) => set("nombreCliente", e.target.value)}
+                placeholder="Nombre y apellidos"
+                className={altaControl}
+              />
+            </AltaField>
+          </div>
+        ) : null}
       </AltaSection>
 
       <AltaSection title="Qué busca" hint="Operación, tipo y zona. Puedes marcar varios.">
@@ -435,6 +465,7 @@ export function NuevaDemandaPanel({
           );
         });
         set("clienteId", id);
+        set("nombreCliente", extra?.nombre ?? "");
         setQCliente("");
         setAvisoCliente(false);
       }}

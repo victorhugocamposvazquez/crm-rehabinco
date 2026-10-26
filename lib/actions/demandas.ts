@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { ESTADOS_DEMANDA, TIPOS_OPERACION_DEMANDA } from "@/lib/demandas/matching";
 import {
+  nombreClienteParaGuardar,
   payloadActualizarDemanda,
   payloadNuevaDemanda,
   validarNuevaDemanda,
@@ -68,6 +69,18 @@ async function marcarCliente(admin: ReturnType<typeof createAdminClient>, client
   }
 }
 
+async function renombrarCliente(
+  admin: ReturnType<typeof createAdminClient>,
+  clienteId: string,
+  nombre: string
+): Promise<string | null> {
+  const limpio = nombreClienteParaGuardar(nombre);
+  if (!limpio) return null;
+  const { error } = await admin.from("clientes").update({ nombre: limpio }).eq("id", clienteId);
+  if (error) return detalle(error, "No se ha podido cambiar el nombre del cliente.");
+  return null;
+}
+
 export async function guardarDemanda(input: {
   id?: string | null;
   borrador: BorradorNuevaDemanda;
@@ -91,13 +104,25 @@ export async function guardarDemanda(input: {
   const { admin } = sesion;
   if (input.id) {
     if (!UUID.test(input.id)) return { ok: false, error: "No se ha podido guardar la demanda." };
+    const { data: actual, error: errorActual } = await admin
+      .from("demandas")
+      .select("cliente_id")
+      .eq("id", input.id)
+      .maybeSingle();
+    if (errorActual || !actual) return { ok: false, error: detalle(errorActual, "No se ha podido guardar la demanda.") };
+    const completo = payloadActualizarDemanda(borrador);
+    const { cliente_id: _cliente, ...sinCliente } = completo;
+    void _cliente;
+    const cambios = actual.cliente_id === borrador.clienteId ? sinCliente : completo;
     const { data, error } = await admin
       .from("demandas")
-      .update({ ...payloadActualizarDemanda(borrador), updated_at: new Date().toISOString() })
+      .update({ ...cambios, updated_at: new Date().toISOString() })
       .eq("id", input.id)
       .select("id")
       .maybeSingle();
     if (error || !data) return { ok: false, error: detalle(error, "No se ha podido guardar la demanda.") };
+    const falloNombre = await renombrarCliente(admin, borrador.clienteId, borrador.nombreCliente);
+    if (falloNombre) return { ok: false, error: falloNombre };
     await marcarCliente(admin, borrador.clienteId);
     return { ok: true, id: data.id };
   }
@@ -108,6 +133,8 @@ export async function guardarDemanda(input: {
     .select("id")
     .maybeSingle();
   if (error || !data) return { ok: false, error: detalle(error, "No se ha podido crear la demanda.") };
+  const falloNombre = await renombrarCliente(admin, borrador.clienteId, borrador.nombreCliente);
+  if (falloNombre) return { ok: false, error: falloNombre };
   await marcarCliente(admin, borrador.clienteId);
   return { ok: true, id: data.id };
 }

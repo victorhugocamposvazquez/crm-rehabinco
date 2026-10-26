@@ -12,6 +12,8 @@ export const REQUISITOS_RAPIDOS = ["Ascensor", "Exterior", "Garaje", "Terraza", 
 
 export type BorradorNuevaDemanda = {
   clienteId: string;
+  /** Nombre del contacto. Vacío = no tocar la agenda. */
+  nombreCliente: string;
   comercialId: string;
   tipoOperacion: TipoOperacionDemanda;
   tiposInmueble: string[];
@@ -47,8 +49,14 @@ export function combinarRequisitos(texto: string, chips: string[]): string | nul
   return partes.length ? partes.join(". ") : null;
 }
 
+export function nombreClienteParaGuardar(valor: string): string | null {
+  const texto = valor.trim().replace(/\s+/g, " ");
+  return texto || null;
+}
+
 export function validarNuevaDemanda(borrador: BorradorNuevaDemanda): string | null {
   if (!borrador.clienteId) return "Elige o crea un cliente.";
+  if ((borrador.nombreCliente ?? "").trim() === "") return "Escribe el nombre del cliente.";
   if (!borrador.comercialId) return "Asigna un comercial.";
   const pmin = numeroOpcional(borrador.presupuestoMin);
   const pmax = numeroOpcional(borrador.presupuestoMax);
@@ -82,10 +90,9 @@ export function payloadNuevaDemanda(borrador: BorradorNuevaDemanda) {
   };
 }
 
-/** Al editar no se toca el cliente ni el estado: el trigger de «es cliente» no debe echar atrás el guardado. */
+/** Al editar se puede cambiar el cliente. El estado no se reinicia. */
 export function payloadActualizarDemanda(borrador: BorradorNuevaDemanda) {
-  const { estado: _estado, cliente_id: _cliente, ...resto } = payloadNuevaDemanda(borrador);
+  const { estado: _estado, ...resto } = payloadNuevaDemanda(borrador);
   void _estado;
-  void _cliente;
   return resto;
 }

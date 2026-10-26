@@ -941,7 +941,7 @@ export function DemandaCruce({ id }: { id: string }) {
         onOpenChange={setEditar}
         editarId={id}
         clienteIdInicial={demanda.cliente_id}
-        clienteNombre={nombre}
+        clienteNombre={demanda.clientes?.nombre?.trim() || ""}
         onCreada={() => {
           setEditar(false);
           autoClave.current = "";

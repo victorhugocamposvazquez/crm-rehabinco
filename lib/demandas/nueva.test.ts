@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   combinarRequisitos,
+  nombreClienteParaGuardar,
   numeroOpcional,
   payloadActualizarDemanda,
   payloadNuevaDemanda,
@@ -12,6 +13,7 @@ import {
 function borrador(parcial: Partial<BorradorNuevaDemanda> = {}): BorradorNuevaDemanda {
   return {
     clienteId: "cli-1",
+    nombreCliente: "Sonia Torres",
     comercialId: "com-1",
     tipoOperacion: "compra",
     tiposInmueble: ["piso"],
@@ -30,8 +32,9 @@ function borrador(parcial: Partial<BorradorNuevaDemanda> = {}): BorradorNuevaDem
 }
 
 describe("nueva demanda", () => {
-  it("exige cliente y comercial", () => {
+  it("exige cliente, su nombre y comercial", () => {
     assert.equal(validarNuevaDemanda(borrador({ clienteId: "" })), "Elige o crea un cliente.");
+    assert.equal(validarNuevaDemanda(borrador({ nombreCliente: "   " })), "Escribe el nombre del cliente.");
     assert.equal(validarNuevaDemanda(borrador({ comercialId: "" })), "Asigna un comercial.");
     assert.equal(validarNuevaDemanda(borrador()), null);
   });
@@ -56,9 +59,9 @@ describe("nueva demanda", () => {
     assert.equal(row.estado, "activa");
   });
 
-  it("al editar no manda el cliente ni reinicia el estado", () => {
+  it("al editar guarda el cliente y no reinicia el estado", () => {
     const row = payloadActualizarDemanda(borrador());
-    assert.equal("cliente_id" in row, false);
+    assert.equal(row.cliente_id, "cli-1");
     assert.equal("estado" in row, false);
     assert.equal(row.comercial_id, "com-1");
     assert.equal(row.presupuesto_max, 280000);
@@ -69,5 +72,7 @@ describe("nueva demanda", () => {
     assert.equal(numeroOpcional("1.250,5"), 1250.5);
     assert.equal(numeroOpcional(""), null);
     assert.equal(combinarRequisitos("  ", []), null);
+    assert.equal(nombreClienteParaGuardar("  Ana   López "), "Ana López");
+    assert.equal(nombreClienteParaGuardar("   "), null);
   });
 });
