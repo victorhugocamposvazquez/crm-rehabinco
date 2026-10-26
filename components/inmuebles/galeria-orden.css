@@ -1,0 +1,61 @@
+/* Ayuda visual al reordenar fotos/planos (ratón, trackpad, táctil). */
+.galeria-orden-lista[data-arrastrando="true"] {
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface-soft));
+  border-radius: 14px;
+  padding: 6px;
+  margin: -6px -6px 10px;
+  transition: background 0.2s ease;
+}
+
+.galeria-orden-celda {
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease,
+    outline-color 0.15s ease;
+}
+
+.galeria-orden-celda--origen {
+  opacity: 0.72;
+  transform: scale(0.97);
+  box-shadow: 0 10px 28px rgb(15 15 15 / 22%);
+  z-index: 2;
+}
+
+.galeria-orden-celda--objetivo {
+  outline: 2px dashed var(--accent);
+  outline-offset: 3px;
+  transform: scale(1.02);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.galeria-orden-hint {
+  animation: galeria-orden-hint-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes galeria-orden-hint-pulse {
+  0%,
+  100% {
+    opacity: 0.88;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.galeria-orden-asas {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.galeria-orden-celda:hover .galeria-orden-asas,
+.galeria-orden-celda:focus-within .galeria-orden-asas,
+.galeria-orden-lista[data-arrastrando="true"] .galeria-orden-asas {
+  opacity: 1;
+}
+
+@media (pointer: coarse) {
+  .galeria-orden-asas {
+    opacity: 1;
+  }
+}

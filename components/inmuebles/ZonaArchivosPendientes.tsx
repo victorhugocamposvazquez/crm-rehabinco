@@ -1,8 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ImagePlus, Trash2 } from "lucide-react";
+import { ImagePlus } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AyudaOrdenGaleria,
+  ListaMiniaturasOrden,
+  MiniaturaGaleriaOrden,
+} from "@/components/inmuebles/MiniaturaGaleriaOrden";
 import { acceptMedia, type TipoMediaInmueble } from "@/lib/inmuebles/media";
 import { abrirSelectorArchivos } from "@/lib/inmuebles/selector-archivos";
 import { prepararFotosParaSubida } from "@/lib/inmuebles/preparar-foto";
@@ -34,6 +39,7 @@ export function ZonaArchivosPendientes({
   const reordenar = useReordenarPuntero((desde, hasta) => {
     onChange(reordenarIndice(filesRef.current, desde, hasta));
   });
+  const arrastrando = reordenar.desde != null;
 
   const etiqueta = tipo === "plano" ? "plano" : "foto";
   const etiquetaPlural = tipo === "plano" ? "planos" : "fotos";
@@ -68,6 +74,12 @@ export function ZonaArchivosPendientes({
     onChange(files.filter((_, i) => i !== idx));
   };
 
+  const mover = (idx: number, dir: -1 | 1) => {
+    const dest = idx + dir;
+    if (dest < 0 || dest >= filesRef.current.length) return;
+    onChange(reordenarIndice(filesRef.current, idx, dest));
+  };
+
   const soltarEnZona = (e: React.DragEvent) => {
     activarSolturaArchivos(e);
     setSueltaActiva(false);
@@ -94,61 +106,46 @@ export function ZonaArchivosPendientes({
       onDrop={soltarEnZona}
     >
       {files.length ? (
-        <ul ref={reordenar.listaRef} className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {files.map((file, idx) => {
-            const key = claveArchivo(file);
-            const preview = previews.get(key);
-            const esPortada = tipo === "foto" && idx === 0;
-            const resaltada = reordenar.hasta === idx && reordenar.desde != null && reordenar.desde !== idx;
-            return (
-              <li
-                key={key}
-                data-orden-idx={idx}
-                onPointerDown={reordenar.alBajar(idx)}
-                onClick={() => {
-                  if (reordenar.fueArrastre()) return;
-                  if (tipo !== "foto" || idx === 0) return;
-                  onChange(reordenarIndice(filesRef.current, idx, 0));
-                }}
-                className={cn(
-                  "group relative cursor-grab touch-none overflow-hidden rounded-[12px] border bg-[var(--surface-soft)] active:cursor-grabbing",
-                  resaltada ? "border-accent ring-2 ring-accent/30" : "border-[var(--border)]",
-                  reordenar.desde === idx && "opacity-70"
-                )}
-              >
-                {preview ? (
-                  <img src={preview} alt="" className="aspect-[4/3] w-full object-cover" draggable={false} />
-                ) : (
-                  <div className="flex aspect-[4/3] items-center justify-center px-2 text-center text-[12px] font-medium text-[var(--text-2)]">
-                    {esPdfArchivo(file) ? "PDF" : file.name}
-                  </div>
-                )}
-                {esPortada ? (
-                  <span className="pointer-events-none absolute left-2 top-2 rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
-                    Portada
-                  </span>
-                ) : tipo === "foto" ? (
-                  <span className="pointer-events-none absolute left-2 top-2 rounded-full bg-black/45 px-2 py-0.5 text-[10px] font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100">
-                    Portada
-                  </span>
-                ) : null}
-                <button
-                  type="button"
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => {
-                    e.stopPropagation();
+        <>
+          <AyudaOrdenGaleria tipo={tipo} total={files.length} arrastrando={arrastrando} />
+          <ListaMiniaturasOrden listaRef={reordenar.listaRef} arrastrando={arrastrando}>
+            {files.map((file, idx) => {
+              const key = claveArchivo(file);
+              const preview = previews.get(key);
+              const esPortada = tipo === "foto" && idx === 0;
+              const resaltada = reordenar.hasta === idx && reordenar.desde != null && reordenar.desde !== idx;
+              return (
+                <MiniaturaGaleriaOrden
+                  key={key}
+                  idx={idx}
+                  total={files.length}
+                  tipo={tipo}
+                  esPortada={esPortada}
+                  resaltada={resaltada}
+                  esOrigen={reordenar.desde === idx}
+                  onPointerDown={reordenar.alBajar(idx)}
+                  onPortada={() => {
+                    if (reordenar.fueArrastre()) return;
+                    onChange(reordenarIndice(filesRef.current, idx, 0));
+                  }}
+                  onMover={(dir) => mover(idx, dir)}
+                  onQuitar={() => {
                     if (reordenar.fueArrastre()) return;
                     quitar(idx);
                   }}
-                  className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-black/55 text-white"
-                  aria-label={`Quitar ${etiqueta}`}
                 >
-                  <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+                  {preview ? (
+                    <img src={preview} alt="" className="aspect-[4/3] w-full object-cover" draggable={false} />
+                  ) : (
+                    <div className="flex aspect-[4/3] items-center justify-center px-2 text-center text-[12px] font-medium text-[var(--text-2)]">
+                      {esPdfArchivo(file) ? "PDF" : file.name}
+                    </div>
+                  )}
+                </MiniaturaGaleriaOrden>
+              );
+            })}
+          </ListaMiniaturasOrden>
+        </>
       ) : null}
 
       <div
@@ -180,9 +177,9 @@ export function ZonaArchivosPendientes({
         <p className="text-[13.5px] font-medium text-foreground">
           {files.length ? `Añadir más ${etiquetaPlural}` : `Arrastra ${etiquetaPlural} aquí`}
         </p>
-        <p className="mt-1 max-w-[22rem] text-[12.5px] leading-5 text-[var(--text-2)]">
+        <p className="mt-1 max-w-[26rem] text-[12.5px] leading-5 text-[var(--text-2)]">
           {tipo === "foto"
-            ? "Pulsa una foto para ponerla de portada, o arrástrala para ordenar. La primera es la que sale en listados."
+            ? "La foto n.º 1 es la portada en web e Idealista. Después de subir, usa las flechas o arrastra para ordenar."
             : "PDF o imagen. Puedes soltar varios a la vez."}
         </p>
         {files.length ? (
@@ -191,7 +188,6 @@ export function ZonaArchivosPendientes({
           </p>
         ) : null}
       </div>
-
     </div>
   );
 }
