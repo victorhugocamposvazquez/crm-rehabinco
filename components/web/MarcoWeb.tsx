@@ -1,5 +1,11 @@
 import type { CSSProperties, ReactNode } from "react";
+import { EMPRESA_DOCUMENTOS } from "@/lib/empresa-documentos";
 import type { MarcaWeb, TemaWeb } from "@/lib/web/modelo";
+
+export function lineaContactoMarca(marca: MarcaWeb): string {
+  const cif = /rehabinco/i.test(marca.nombre) ? `CIF ${EMPRESA_DOCUMENTOS.cif}` : null;
+  return [cif, marca.telefono, marca.email].filter(Boolean).join(" · ");
+}
 
 export { CabeceraWeb } from "./CabeceraWeb";
 
@@ -17,7 +23,7 @@ export function PieWeb({ texto, marca, tema }: { texto: string; marca: MarcaWeb;
       <div className="mx-auto flex max-w-6xl flex-col gap-2 text-[13px]" style={{ color: tema.suave }}>
         <p style={{ color: tema.tinta }}>{texto || marca.nombre}</p>
         <p>
-          {[marca.telefono, marca.email].filter(Boolean).join(" · ")}
+          {lineaContactoMarca(marca)}
         </p>
       </div>
     </footer>

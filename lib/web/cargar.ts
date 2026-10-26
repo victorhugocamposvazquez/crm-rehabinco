@@ -1,4 +1,5 @@
 import { isAdmin, parseRole } from "@/lib/auth/roles";
+import { emailEmpresaVisible, telefonoEmpresaVisible } from "@/lib/empresa-documentos";
 import { createClient } from "@/lib/supabase/server";
 import {
   aptoParaWeb,
@@ -80,8 +81,8 @@ export async function cargarEditorWeb(): Promise<
       logoOscuro,
       marca: {
         nombre: marcaFila?.name?.trim() || "Rehabinco",
-        telefono: marcaFila?.phone ?? null,
-        email: marcaFila?.email ?? null,
+        telefono: telefonoEmpresaVisible(marcaFila?.phone),
+        email: emailEmpresaVisible(marcaFila?.email),
         web: marcaFila?.web?.trim() || null,
         logo: fila.diseno === "noche" ? logoOscuro || logoClaro : logoClaro || logoOscuro,
       },
