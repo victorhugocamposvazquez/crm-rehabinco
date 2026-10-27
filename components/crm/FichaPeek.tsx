@@ -22,6 +22,8 @@ import { inicialesNombre } from "@/lib/ui/tokens";
 import { formatEuro, telWhatsApp } from "@/lib/ui/estados-vista";
 import { ESTADO_PARTE_LABELS } from "@/lib/partes-visita";
 import { cn } from "@/lib/utils";
+import { EditarClientePanel, type ClienteEditPatch } from "@/components/clientes/EditarClientePanel";
+import { Pencil } from "lucide-react";
 
 export type DestinoFicha =
   | { tipo: "propiedad"; id: string }
@@ -154,13 +156,19 @@ function tituloPeek(destino: DestinoFicha) {
 }
 
 type ClientePeek = {
+  id: string;
   nombre: string;
   telefono: string | null;
   email: string | null;
   direccion: string | null;
   codigo_postal: string | null;
   localidad: string | null;
-  tipo_cliente: string | null;
+  tipo_cliente: "particular" | "empresa";
+  documento_fiscal: string | null;
+  tipo_documento: string | null;
+  notas: string | null;
+  activo: boolean;
+  etiqueta: "fallecido" | null;
   propiedades: Array<{ id: string; titulo: string | null; direccion: string | null }>;
   demandas: Array<{ id: string; tipo_operacion: string; estado: string; zonas: string[] | null }>;
 };
@@ -206,6 +214,7 @@ function FichaPeekHost({
   const [demanda, setDemanda] = useState<DemandaPeek | null>(null);
   const [parte, setParte] = useState<PartePeek | null>(null);
   const [finca, setFinca] = useState<{ referencia: string; postal: string | null } | null>(null);
+  const [editarClienteOpen, setEditarClienteOpen] = useState(false);
 
   useEffect(() => {
     setInmueble(null);
@@ -213,6 +222,7 @@ function FichaPeekHost({
     setDemanda(null);
     setParte(null);
     setFinca(null);
+    setEditarClienteOpen(false);
     if (!destino) return;
     const supabase = createClient();
     let cancelled = false;
@@ -230,7 +240,9 @@ function FichaPeekHost({
       void Promise.all([
         supabase
           .from("clientes")
-          .select("nombre, telefono, email, direccion, codigo_postal, localidad, tipo_cliente")
+          .select(
+            "id, nombre, telefono, email, direccion, codigo_postal, localidad, tipo_cliente, documento_fiscal, tipo_documento, notas, activo, etiqueta"
+          )
           .eq("id", destino.id)
           .maybeSingle(),
         supabase.from("propiedades").select("id, titulo, direccion").eq("ofertante_id", destino.id).order("titulo").limit(8),
@@ -241,8 +253,12 @@ function FichaPeekHost({
           done();
           return;
         }
+        const fila = cli.data as Omit<ClientePeek, "propiedades" | "demandas" | "tipo_cliente"> & {
+          tipo_cliente: string | null;
+        };
         setCliente({
-          ...(cli.data as Omit<ClientePeek, "propiedades" | "demandas">),
+          ...fila,
+          tipo_cliente: fila.tipo_cliente === "empresa" ? "empresa" : "particular",
           propiedades: (props.data ?? []) as ClientePeek["propiedades"],
           demandas: (dems.data ?? []) as ClientePeek["demandas"],
         });
@@ -320,63 +336,103 @@ function FichaPeekHost({
   }, [destino]);
 
   return (
-    <Sheet open={Boolean(destino)} onOpenChange={(open) => !open && onAtras()} variant="side" side="right" elevated>
-      <div className="flex h-full flex-col">
-        <div className="flex items-center gap-3 px-5 pb-2 pt-5">
-          <button type="button" onClick={onAtras} className="text-[12.5px] font-semibold text-accent">
-            ← Atrás
-          </button>
-          <span className="flex-1 text-[12px] text-[var(--text-3)]">
-            {destino ? tituloPeek(destino) : ""}
-            {niveles > 1 ? ` · ${niveles}` : ""}
-          </span>
-          <button
-            type="button"
-            onClick={onCerrar}
-            className="grid h-[34px] w-[34px] place-items-center rounded-lg text-[var(--text-2)] hover:bg-[var(--surface-soft)]"
-            aria-label="Cerrar ficha"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-              <path d="M6 6l12 12" />
-              <path d="M18 6 6 18" />
-            </svg>
-          </button>
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y">
-          {loading ? (
-            <p className="px-4 py-8 text-center text-[13px] text-[var(--text-2)]">Cargando…</p>
-          ) : destino?.tipo === "propiedad" && inmueble ? (
-            <PanelInmueble inmueble={inmueble} embedded />
-          ) : destino?.tipo === "cliente" && cliente ? (
-            <FichaCliente cliente={cliente} />
-          ) : destino?.tipo === "demanda" && demanda ? (
-            <FichaDemanda demanda={demanda} />
-          ) : destino?.tipo === "parte" && parte ? (
-            <FichaParte parte={parte} />
-          ) : destino?.tipo === "finca" && finca ? (
-            <FichaFinca finca={finca} />
-          ) : (
-            <p className="px-4 py-8 text-center text-[13px] text-[var(--text-2)]">No se ha encontrado la ficha.</p>
-          )}
-        </div>
-        {destino && rutaFichaCompleta(destino) ? (
-          <div className="flex flex-wrap gap-4 border-t border-[var(--border-soft)] px-4 py-3">
-            {destino.tipo === "propiedad" ? (
-              <Link href={`/propiedades/${destino.id}/editar`} className="text-[12.5px] font-medium text-accent hover:underline">
-                Editar inmueble
-              </Link>
-            ) : null}
-            <Link href={rutaFichaCompleta(destino)!} className="text-[12.5px] font-medium text-accent hover:underline">
-              Abrir ficha completa
-            </Link>
+    <>
+      <Sheet open={Boolean(destino)} onOpenChange={(open) => !open && onAtras()} variant="side" side="right" elevated>
+        <div className="flex h-full flex-col">
+          <div className="flex items-center gap-3 px-5 pb-2 pt-5">
+            <button type="button" onClick={onAtras} className="text-[12.5px] font-semibold text-accent">
+              ← Atrás
+            </button>
+            <span className="flex-1 text-[12px] text-[var(--text-3)]">
+              {destino ? tituloPeek(destino) : ""}
+              {niveles > 1 ? ` · ${niveles}` : ""}
+            </span>
+            <button
+              type="button"
+              onClick={onCerrar}
+              className="grid h-[34px] w-[34px] place-items-center rounded-lg text-[var(--text-2)] hover:bg-[var(--surface-soft)]"
+              aria-label="Cerrar ficha"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                <path d="M6 6l12 12" />
+                <path d="M18 6 6 18" />
+              </svg>
+            </button>
           </div>
-        ) : null}
-      </div>
-    </Sheet>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y">
+            {loading ? (
+              <p className="px-4 py-8 text-center text-[13px] text-[var(--text-2)]">Cargando…</p>
+            ) : destino?.tipo === "propiedad" && inmueble ? (
+              <PanelInmueble inmueble={inmueble} embedded />
+            ) : destino?.tipo === "cliente" && cliente ? (
+              <FichaCliente cliente={cliente} onEditar={() => setEditarClienteOpen(true)} />
+            ) : destino?.tipo === "demanda" && demanda ? (
+              <FichaDemanda demanda={demanda} />
+            ) : destino?.tipo === "parte" && parte ? (
+              <FichaParte parte={parte} />
+            ) : destino?.tipo === "finca" && finca ? (
+              <FichaFinca finca={finca} />
+            ) : (
+              <p className="px-4 py-8 text-center text-[13px] text-[var(--text-2)]">No se ha encontrado la ficha.</p>
+            )}
+          </div>
+          {destino && rutaFichaCompleta(destino) ? (
+            <div className="flex flex-wrap gap-4 border-t border-[var(--border-soft)] px-4 py-3">
+              {destino.tipo === "propiedad" ? (
+                <Link href={`/propiedades/${destino.id}/editar`} className="text-[12.5px] font-medium text-accent hover:underline">
+                  Editar inmueble
+                </Link>
+              ) : null}
+              {destino.tipo === "cliente" ? (
+                <button
+                  type="button"
+                  onClick={() => setEditarClienteOpen(true)}
+                  className="text-[12.5px] font-medium text-accent hover:underline"
+                >
+                  Editar datos
+                </button>
+              ) : null}
+              <Link href={rutaFichaCompleta(destino)!} className="text-[12.5px] font-medium text-accent hover:underline">
+                Abrir ficha completa
+              </Link>
+            </div>
+          ) : null}
+        </div>
+      </Sheet>
+      {destino?.tipo === "cliente" && cliente ? (
+        <EditarClientePanel
+          open={editarClienteOpen}
+          onOpenChange={setEditarClienteOpen}
+          elevated
+          cliente={cliente}
+          onGuardado={(patch: ClienteEditPatch) => {
+            setCliente((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    nombre: patch.nombre,
+                    email: patch.email,
+                    telefono: patch.telefono,
+                    tipo_cliente: patch.tipo_cliente,
+                    documento_fiscal: patch.documento_fiscal,
+                    tipo_documento: patch.tipo_documento,
+                    direccion: patch.direccion,
+                    codigo_postal: patch.codigo_postal,
+                    localidad: patch.localidad,
+                    notas: patch.notas,
+                    activo: patch.activo,
+                    etiqueta: patch.etiqueta,
+                  }
+                : prev
+            );
+          }}
+        />
+      ) : null}
+    </>
   );
 }
 
-function FichaCliente({ cliente }: { cliente: ClientePeek }) {
+function FichaCliente({ cliente, onEditar }: { cliente: ClientePeek; onEditar: () => void }) {
   const wa = telWhatsApp(cliente.telefono);
   return (
     <div>
@@ -384,12 +440,29 @@ function FichaCliente({ cliente }: { cliente: ClientePeek }) {
         <span className="grid h-[46px] w-[46px] shrink-0 place-items-center rounded-full bg-accent-soft text-[15px] font-semibold text-accent-dark">
           {inicialesNombre(cliente.nombre)}
         </span>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h2 className="text-[22px] font-medium leading-tight tracking-[-0.03em]">{cliente.nombre}</h2>
           <p className="mt-0.5 text-[12.5px] text-[var(--text-2)]">{cliente.tipo_cliente || "Cliente"}</p>
         </div>
+        <button
+          type="button"
+          onClick={onEditar}
+          className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[9px] border border-border text-[var(--text-2)] hover:bg-[var(--surface-soft)] hover:text-foreground"
+          aria-label="Editar contacto"
+          title="Editar"
+        >
+          <Pencil className="h-4 w-4" strokeWidth={2} />
+        </button>
       </div>
       <div className="mt-5 flex flex-wrap gap-2 px-5">
+        <button
+          type="button"
+          onClick={onEditar}
+          className="flex h-[38px] flex-[1_1_100px] items-center justify-center gap-1.5 rounded-[9px] border border-[var(--input)] text-[13px] font-semibold"
+        >
+          <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
+          Editar
+        </button>
         {cliente.telefono ? (
           <a href={`tel:${cliente.telefono}`} className="flex h-[38px] flex-[1_1_90px] items-center justify-center rounded-[9px] border border-[var(--input)] text-[13px] font-semibold">
             Llamar

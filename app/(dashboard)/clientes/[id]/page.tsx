@@ -13,6 +13,7 @@ import { AlertDialog } from "@/components/ui/alert-dialog";
 import { FichaLink } from "@/components/crm/FichaPeek";
 import { NuevaDemandaPanel } from "@/components/demandas/NuevaDemandaPanel";
 import { NuevoClientePanel } from "@/components/clientes/NuevoClientePanel";
+import { EditarClientePanel, type ClienteEditPatch } from "@/components/clientes/EditarClientePanel";
 import { NuevoInmueblePanel } from "@/components/inmuebles/NuevoInmueblePanel";
 import { Pencil, Trash2, FileText, Building2, Plus, Home } from "lucide-react";
 import { rutaNuevaCita } from "@/lib/citas/citas";
@@ -62,10 +63,33 @@ export default function DetalleClientePage() {
   const [nuevaOpen, setNuevaOpen] = useState(false);
   const [nuevaEmpresaOpen, setNuevaEmpresaOpen] = useState(false);
   const [nuevoInmuebleOpen, setNuevoInmuebleOpen] = useState(false);
+  const [editarOpen, setEditarOpen] = useState(false);
   const [demandasTick, setDemandasTick] = useState(0);
   const [empresasTick, setEmpresasTick] = useState(0);
   const [propiedadesTick, setPropiedadesTick] = useState(0);
   const [pasando, setPasando] = useState(false);
+
+  const aplicarEdicion = (patch: ClienteEditPatch) => {
+    setCliente((prev) =>
+      prev
+        ? {
+            ...prev,
+            nombre: patch.nombre,
+            email: patch.email,
+            telefono: patch.telefono,
+            tipo_cliente: patch.tipo_cliente,
+            documento_fiscal: patch.documento_fiscal,
+            tipo_documento: patch.tipo_documento,
+            direccion: patch.direccion,
+            codigo_postal: patch.codigo_postal,
+            localidad: patch.localidad,
+            notas: patch.notas,
+            activo: patch.activo,
+            etiqueta: patch.etiqueta,
+          }
+        : prev
+    );
+  };
 
   useEffect(() => {
     const supabase = createClient();
@@ -216,11 +240,16 @@ export default function DetalleClientePage() {
               </Link>
             </Button>
             ) : null}
-            <Button variant="secondary" size="icon" className="md:h-9 md:w-auto md:gap-2 md:px-3" asChild>
-              <Link href={`/clientes/${id}/editar`} aria-label="Editar">
-                <Pencil className="h-4 w-4" strokeWidth={1.5} />
-                <span className="hidden md:inline">Editar</span>
-              </Link>
+            <Button
+              variant="secondary"
+              size="icon"
+              className="md:h-9 md:w-auto md:gap-2 md:px-3"
+              type="button"
+              onClick={() => setEditarOpen(true)}
+              aria-label="Editar"
+            >
+              <Pencil className="h-4 w-4" strokeWidth={1.5} />
+              <span className="hidden md:inline">Editar</span>
             </Button>
             <Button
               variant="secondary"
@@ -432,6 +461,12 @@ export default function DetalleClientePage() {
         ofertanteIdInicial={id}
         ofertanteNombre={cliente.nombre}
         onCreado={() => setPropiedadesTick((n) => n + 1)}
+      />
+      <EditarClientePanel
+        open={editarOpen}
+        onOpenChange={setEditarOpen}
+        cliente={cliente}
+        onGuardado={aplicarEdicion}
       />
     </div>
   );

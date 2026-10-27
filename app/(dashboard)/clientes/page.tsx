@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
-import { UserPlus, Search, Trash2, X } from "lucide-react";
+import { Pencil, UserPlus, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { eliminarContacto, textoConfirmarEliminarContacto } from "@/lib/clientes/eliminar-contacto";
@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { FichaLink } from "@/components/crm/FichaPeek";
 import { extraAlta } from "@/lib/ui/alta-panel";
 import { NuevoClientePanel } from "@/components/clientes/NuevoClientePanel";
+import { EditarClientePanel, type ClienteEditPatch } from "@/components/clientes/EditarClientePanel";
 import { NuevaDemandaPanel } from "@/components/demandas/NuevaDemandaPanel";
 import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
 import { AvisoContinuarBorrador } from "@/components/ui/aviso-borrador";
@@ -120,6 +121,8 @@ export default function ClientesPage() {
   const [narrow, setNarrow] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nuevaOpen, setNuevaOpen] = useState(false);
+  const [editarOpen, setEditarOpen] = useState(false);
+  const [editarId, setEditarId] = useState<string | null>(null);
   const [clienteAltaKey, setClienteAltaKey] = useState(0);
   const [demandaOpen, setDemandaOpen] = useState(false);
   const [padreInicial, setPadreInicial] = useState<string | undefined>();
@@ -340,6 +343,36 @@ export default function ClientesPage() {
 
   const selected = filtered.find((c) => c.id === selectedId) ?? null;
   const wa = selected ? telWhatsApp(selected.telefono) : null;
+  const clienteEditar = editarId ? clientes.find((c) => c.id === editarId) ?? null : null;
+
+  const abrirEdicion = (id: string) => {
+    setEditarId(id);
+    setEditarOpen(true);
+  };
+
+  const aplicarEdicion = (patch: ClienteEditPatch) => {
+    setClientes((prev) =>
+      prev.map((fila) =>
+        fila.id === patch.id
+          ? {
+              ...fila,
+              nombre: patch.nombre,
+              email: patch.email,
+              telefono: patch.telefono,
+              tipo_cliente: patch.tipo_cliente,
+              documento_fiscal: patch.documento_fiscal,
+              tipo_documento: patch.tipo_documento,
+              direccion: patch.direccion,
+              codigo_postal: patch.codigo_postal,
+              localidad: patch.localidad,
+              notas: patch.notas,
+              activo: patch.activo,
+              etiqueta: patch.etiqueta,
+            }
+          : fila
+      )
+    );
+  };
 
   const contactoEliminar = eliminarId ? clientes.find((c) => c.id === eliminarId) ?? null : null;
   const dialogoEliminar = contactoEliminar
@@ -511,6 +544,26 @@ export default function ClientesPage() {
                       <span className="h-[7px] w-[7px] rounded-full" style={{ background: est.color }} />
                       {est.label}
                     </span>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        abrirEdicion(c.id);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          abrirEdicion(c.id);
+                        }
+                      }}
+                      className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[9px] border border-border text-[var(--text-2)] hover:bg-[var(--surface-soft)] hover:text-foreground"
+                      aria-label={`Editar ${c.nombre}`}
+                      title="Editar"
+                    >
+                      <Pencil className="h-4 w-4" strokeWidth={2} />
+                    </span>
                   </button>
                 );
               })
@@ -560,6 +613,15 @@ export default function ClientesPage() {
                 <div className="flex shrink-0 items-center gap-1.5">
                   <button
                     type="button"
+                    onClick={() => abrirEdicion(selected.id)}
+                    className="grid h-[34px] w-[34px] place-items-center rounded-[9px] border border-border text-[var(--text-2)] hover:bg-[var(--surface-soft)] hover:text-foreground"
+                    aria-label="Editar contacto"
+                    title="Editar"
+                  >
+                    <Pencil className="h-4 w-4" strokeWidth={2} />
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setEliminarId(selected.id)}
                     className="grid h-[34px] w-[34px] place-items-center rounded-[9px] border border-border text-red-600 hover:bg-red-50"
                     aria-label="Eliminar contacto"
@@ -574,6 +636,14 @@ export default function ClientesPage() {
                 </div>
               </div>
               <div className="mt-5 flex flex-wrap gap-2 px-5">
+                <button
+                  type="button"
+                  onClick={() => abrirEdicion(selected.id)}
+                  className="flex h-[38px] flex-[1_1_100px] items-center justify-center gap-1.5 rounded-[9px] border border-[var(--input)] text-[13px] font-semibold"
+                >
+                  <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
+                  Editar
+                </button>
                 {selected.telefono ? (
                   <a href={`tel:${selected.telefono}`} className="flex h-[38px] flex-[1_1_90px] items-center justify-center rounded-[9px] border border-[var(--input)] text-[13px] font-semibold">
                     Llamar
@@ -713,9 +783,18 @@ export default function ClientesPage() {
                 </div>
               ))}
               <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-                <Link href={`/clientes/${selected.id}`} className="text-[12.5px] font-medium text-accent hover:underline">
-                  Abrir ficha completa
-                </Link>
+                <div className="flex flex-wrap items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => abrirEdicion(selected.id)}
+                    className="text-[12.5px] font-medium text-accent hover:underline"
+                  >
+                    Editar datos
+                  </button>
+                  <Link href={`/clientes/${selected.id}`} className="text-[12.5px] font-medium text-[var(--text-2)] hover:underline">
+                    Ficha completa
+                  </Link>
+                </div>
                 <button
                   type="button"
                   onClick={() => setEliminarId(selected.id)}
@@ -770,6 +849,15 @@ export default function ClientesPage() {
           setPendingSelectedId(id);
           setCargaKey((n) => n + 1);
         }}
+      />
+      <EditarClientePanel
+        open={editarOpen && Boolean(clienteEditar)}
+        onOpenChange={(open) => {
+          setEditarOpen(open);
+          if (!open) setEditarId(null);
+        }}
+        cliente={clienteEditar}
+        onGuardado={aplicarEdicion}
       />
     </div>
   );
