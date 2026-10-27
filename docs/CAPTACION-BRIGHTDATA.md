@@ -8,11 +8,12 @@ Idealista entra por el Web Unlocker, pedido desde el CRM. El teléfono lo guarda
 |-----|--------|
 | App | https://crm.rehabinco.es/ |
 | Unlocker | `UNLOCKER_ZONE` + `BRIGHTDATA_API_TOKEN` |
-| Apertura | `POST /api/captacion/brightdata/trigger` a las 04:30 UTC, o un admin |
+| Apertura completa | `POST /api/captacion/brightdata/trigger` a las 04:30 UTC, o un admin |
+| Novedades | `POST /api/captacion/brightdata/trigger-novedades` cada 15 minutos (solo filtro provincia 48 h) |
 | Páginas | `POST /api/captacion/brightdata/procesar` cada 5 minutos |
 | Extensión | `POST /api/captacion/telefono` y `GET /api/captacion/existen` con el token del perfil |
 
-`pg_cron` abre la recogida a las 04:30 UTC y procesa la cola cada 5 minutos.
+`pg_cron` abre la pasada completa a las 04:30 UTC, el sondeo de novedades cada 15 minutos y procesa la cola cada 5 minutos. El sondeo no marca retirados.
 
 ## Qué guarda el listado
 

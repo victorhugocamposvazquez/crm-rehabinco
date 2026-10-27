@@ -1,4 +1,5 @@
 import { mapearBrightDataIdealista } from "@/lib/captacion/brightdata/idealista";
+import { esRecogidaSoloNovedades } from "@/lib/captacion/brightdata/novedades";
 import { entraEnRetirados, ZONA_PROVINCIA_48H, zonaIdDeListado } from "@/lib/captacion/brightdata/zonas";
 import { desaparecidosTrasSync, type AnuncioGuardado } from "@/lib/captacion/pipeline/upsert";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -108,11 +109,12 @@ export async function zonasBloqueadas(zonas: string[]): Promise<string[]> {
   return [...bloqueadas];
 }
 
-/** Alguna recogida sin cerrar iniciada hace menos de 6 h (bloquea nuevo trigger). */
+/** Alguna pasada completa sin cerrar iniciada hace menos de 6 h (ignora sondeos de novedades). */
 export async function hayRecogidaAbiertaReciente(): Promise<boolean> {
-  const { data } = await admin().from("captacion_recogidas").select("iniciada").is("completada", null);
+  const { data } = await admin().from("captacion_recogidas").select("iniciada, zonas").is("completada", null);
   const limite = Date.now() - SEIS_HORAS;
-  for (const fila of (data ?? []) as Array<{ iniciada?: string }>) {
+  for (const fila of (data ?? []) as Array<{ iniciada?: string; zonas?: string[] }>) {
+    if (esRecogidaSoloNovedades(fila.zonas)) continue;
     const t = fila.iniciada ? new Date(fila.iniciada).getTime() : 0;
     if (t >= limite) return true;
   }
@@ -197,10 +199,26 @@ export async function cerrarRecogidaLocal(collectionId: string): Promise<boolean
     return true;
   }
 
+  const soloNovedades = esRecogidaSoloNovedades(recogida.zonas);
   const vistos = recogida.vistos ?? {};
   const conteos = Object.fromEntries(Object.entries(vistos).map(([zona, lista]) => [zona, lista.length]));
-  const externos = [...new Set(Object.values(vistos).flat())];
+  const externos = [...new Set([...(recogida.externos ?? []), ...Object.values(vistos).flat()])];
   const ahora = new Date().toISOString();
+
+  if (soloNovedades) {
+    await supabase
+      .from("captacion_recogidas")
+      .update({
+        completada: ahora,
+        incompleta: Boolean(recogida.incompleta),
+        registros: externos.length,
+        externos,
+        conteos: { [ZONA_PROVINCIA_48H]: externos.length },
+      })
+      .eq("collection_id", collectionId);
+    return true;
+  }
+
   const { data: previas } = await supabase
     .from("captacion_recogidas")
     .select("zonas, conteos, completada, incompleta")
@@ -210,8 +228,13 @@ export async function cerrarRecogidaLocal(collectionId: string): Promise<boolean
     .limit(12);
   const conteosAnteriores: Record<string, number> = {};
   for (const zona of recogida.zonas ?? []) {
+    if (esRecogidaSoloNovedades([zona])) continue;
     const previa = ((previas ?? []) as Recogida[]).find(
-      (fila) => fila.completada !== ahora && (fila.zonas ?? []).includes(zona) && typeof fila.conteos?.[zona] === "number"
+      (fila) =>
+        !esRecogidaSoloNovedades(fila.zonas) &&
+        fila.completada !== ahora &&
+        (fila.zonas ?? []).includes(zona) &&
+        typeof fila.conteos?.[zona] === "number"
     );
     if (previa?.conteos) conteosAnteriores[zona] = previa.conteos[zona];
   }
@@ -230,7 +253,7 @@ export async function cerrarRecogidaLocal(collectionId: string): Promise<boolean
     .from("captacion_recogidas")
     .update({ completada: ahora, incompleta, registros: externos.length, externos, conteos, sospechosas })
     .eq("collection_id", collectionId);
-  const zonasLimpias = (recogida.zonas ?? []).filter((zona) => !sospechosas[zona]);
+  const zonasLimpias = (recogida.zonas ?? []).filter((zona) => zona !== ZONA_PROVINCIA_48H && !sospechosas[zona]);
   if (!incompleta) await retirarZonas(zonasLimpias, externos, ahora);
   if (Object.keys(sospechosas).length > 0) await avisarSospechosas(supabase, sospechosas);
   return true;
@@ -275,6 +298,7 @@ async function retirarZonas(zonas: string[], externosActuales: string[], ahora: 
     (fila) =>
       fila.completada !== ahora &&
       !fila.incompleta &&
+      !esRecogidaSoloNovedades(fila.zonas) &&
       (fila.zonas ?? []).some((zona) => zonas.includes(zona))
   );
   if (!anterior) return;

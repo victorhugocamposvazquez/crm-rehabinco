@@ -144,9 +144,12 @@ async function procesarListadoPagina(
       items_en_pagina: n,
     }));
     await ingestarIdealistaBrightData(registros);
-    if (pagina.recogida_id && pagina.zona_id !== ZONA_PROVINCIA_48H) {
+    if (pagina.recogida_id) {
+      // Provincia 48 h sí anota externos (novedades / fecha), pero no entra en vistos ni retirados.
       await anotarLote(pagina.recogida_id, registros);
-      await sumarVistos(pagina.recogida_id, pagina.zona_id, listado.items.map((item) => item.externo_id), sinListado);
+      if (pagina.zona_id !== ZONA_PROVINCIA_48H) {
+        await sumarVistos(pagina.recogida_id, pagina.zona_id, listado.items.map((item) => item.externo_id), sinListado);
+      }
     }
     if (pagina.recogida_id && listado.next_url && pagina.page < TOPE) {
       await encolarPaginas(pagina.recogida_id, [{ url: listado.next_url, zona_id: pagina.zona_id, page: pagina.page + 1 }]);

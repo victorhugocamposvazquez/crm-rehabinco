@@ -1,6 +1,6 @@
 # Zonas de captación
 
-La pasada diaria de Idealista solo lee las zonas con la casilla marcada en Ajustes → Captación. El número de al lado es un estimado: no elige la zona. Si pasa de 1.500, Idealista corta el listado y hay que partirla.
+La pasada completa diaria de Idealista solo lee las zonas con la casilla marcada en Ajustes → Captación. Además, cada 15 minutos un sondeo mira solo el filtro provincia de las últimas 48 h (novedades; no retira). El número de al lado es un estimado: no elige la zona. Si pasa de 1.500, Idealista corta el listado y hay que partirla.
 
 ## Qué hay en el catálogo
 

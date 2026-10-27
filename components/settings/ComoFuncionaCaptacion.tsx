@@ -3,9 +3,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 const PASOS = [
   {
     kicker: "Cada día",
-    titulo: "Una pasada a las 04:30 UTC",
-    texto: "A las 04:30 UTC se abre la recogida. Cada 5 minutos el CRM pide las páginas al Web Unlocker.",
-    nota: "Scraper Studio no interviene. La provincia a 48 h solo sirve para la fecha.",
+    titulo: "Pasada completa a las 04:30 UTC",
+    texto: "A las 04:30 UTC se leen todos los municipios marcados. Cada 5 minutos el CRM pide las páginas al Web Unlocker.",
+    nota: "Esa pasada es la que actualiza el stock y decide retirados.",
+  },
+  {
+    kicker: "Novedades",
+    titulo: "Sondeo cada 15 minutos",
+    texto: "Entre medias solo se mira el filtro provincia de las últimas 48 h: anuncios nuevos sin re-paginar municipios.",
+    nota: "Latencia típica de un anuncio nuevo: de 0 a 15 minutos. No marca retirados.",
   },
   {
     kicker: "Listado",
@@ -27,8 +33,8 @@ const PASOS = [
   },
   {
     kicker: "Retirados",
-    titulo: "Hacen falta dos pasadas",
-    texto: "Un anuncio se marca retirado cuando no salió en dos pasadas completas de su zona.",
+    titulo: "Solo la pasada completa",
+    texto: "Un anuncio se marca retirado cuando no salió en dos pasadas completas de su zona. El sondeo de novedades no cuenta.",
     nota: "Si la última página venía llena y aún había siguiente, esa pasada queda incompleta y no retira nada.",
   },
 ];

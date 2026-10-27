@@ -6,6 +6,11 @@ import {
   usdProyectadoFinMesDesdeGastoAcumulado,
   usdValorMercadoPeticiones,
 } from "@/lib/captacion/brightdata/presupuesto-unlocker-math";
+import {
+  SONDEO_NOVEDADES_CADA_MIN,
+  SONDEO_NOVEDADES_PAGINAS,
+  sondeosNovedadesPorDia,
+} from "@/lib/captacion/brightdata/novedades";
 import { paginasListadoEstimadasConEstimados, paginasListadoDiaZona } from "@/lib/captacion/brightdata/zonas";
 
 export type PresupuestoUnlockerCliente = {
@@ -20,9 +25,17 @@ export type SimulacionListadoZonas = {
   zonasActivas: number;
   paginasMunicipiosDia: number;
   paginasProvinciaDia: number;
+  /** Pasada completa diaria (municipios + 1× provincia 48 h). */
+  paginasCompletaDia: number;
+  sondeosNovedadesDia: number;
+  sondeoCadaMin: number;
+  paginasSondeoDia: number;
+  /** Completa + sondeos de novedades. */
   paginasDia: number;
   diasMes: number;
   paginasMes: number;
+  paginasCompletaMes: number;
+  paginasSondeoMes: number;
   topeMes: number;
   creditosGratis: number;
   usdMes: number;
@@ -31,6 +44,8 @@ export type SimulacionListadoZonas = {
   margenPeticiones: number;
   usdEstimadoListado: number;
   usdTarifaListadoMes: number;
+  usdTarifaCompletaMes: number;
+  usdTarifaSondeoMes: number;
   usdBolsilloListadoMes: number;
   /** Listado simulado descontando créditos aún no consumidos este mes. */
   usdBolsilloListadoTrasUsoReal: number;
@@ -62,7 +77,10 @@ export function presupuestoUnlockerPorDefecto(): Omit<PresupuestoUnlockerCliente
   };
 }
 
-/** Peticiones Unlocker/mes solo por listado diario (municipios marcados + provincia 48 h). */
+/**
+ * Peticiones Unlocker/mes: pasada completa diaria (municipios + provincia 48 h)
+ * + sondeos de novedades cada 15 min (solo filtro 48 h).
+ */
 export function simularListadoZonas(
   activas: string[],
   estimados: Record<string, number | null | undefined>,
@@ -75,12 +93,20 @@ export function simularListadoZonas(
   const usdMes = presupuesto?.usdMes ?? base.usdMes;
   const paginasMunicipiosDia = paginasListadoEstimadasConEstimados(activas, estimados);
   const paginasProvinciaDia = activas.length > 0 ? 1 : 0;
-  const paginasDia = paginasMunicipiosDia + paginasProvinciaDia;
+  const paginasCompletaDia = paginasMunicipiosDia + paginasProvinciaDia;
+  const sondeoCadaMin = SONDEO_NOVEDADES_CADA_MIN;
+  const sondeosNovedadesDia = activas.length > 0 ? sondeosNovedadesPorDia(sondeoCadaMin) : 0;
+  const paginasSondeoDia = sondeosNovedadesDia * SONDEO_NOVEDADES_PAGINAS;
+  const paginasDia = paginasCompletaDia + paginasSondeoDia;
   const diasMes = diasMesNatural(ahora);
+  const paginasCompletaMes = paginasCompletaDia * diasMes;
+  const paginasSondeoMes = paginasSondeoDia * diasMes;
   const paginasMes = paginasDia * diasMes;
   const pctDelTope = topeMes > 0 ? paginasMes / topeMes : 0;
   const usadasMes = presupuesto?.usadasMes ?? 0;
   const creditosRestantesMes = Math.max(0, creditosGratis - usadasMes);
+  const usdTarifaCompletaMes = usdValorMercadoPeticiones(paginasCompletaMes);
+  const usdTarifaSondeoMes = usdValorMercadoPeticiones(paginasSondeoMes);
   const usdTarifaListadoMes = usdValorMercadoPeticiones(paginasMes);
   const usdBolsilloListadoMes = usdEstimadoTrasCreditos(paginasMes, creditosGratis);
   const usdBolsilloListadoTrasUsoReal = usdEstimadoTrasCreditos(paginasMes, creditosRestantesMes);
@@ -90,9 +116,15 @@ export function simularListadoZonas(
     zonasActivas: activas.length,
     paginasMunicipiosDia,
     paginasProvinciaDia,
+    paginasCompletaDia,
+    sondeosNovedadesDia,
+    sondeoCadaMin,
+    paginasSondeoDia,
     paginasDia,
     diasMes,
     paginasMes,
+    paginasCompletaMes,
+    paginasSondeoMes,
     topeMes,
     creditosGratis,
     usdMes,
@@ -101,6 +133,8 @@ export function simularListadoZonas(
     margenPeticiones: topeMes - paginasMes,
     usdEstimadoListado: usdBolsilloListadoMes,
     usdTarifaListadoMes,
+    usdTarifaCompletaMes,
+    usdTarifaSondeoMes,
     usdBolsilloListadoMes,
     usdBolsilloListadoTrasUsoReal,
     creditosRestantesMes,

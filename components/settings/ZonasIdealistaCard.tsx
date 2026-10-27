@@ -272,7 +272,8 @@ export function ZonasIdealistaCard() {
         <CardDescription>
           Solo se leen las marcadas. El número es el estimado: por encima de 1.500 hay que partir la zona.
           Las marcadas suman {anunciosDeZonas(activas).toLocaleString("es-ES")} anuncios (~
-          {paginasListadoEstimadas(activas)} pág. listado/día si la recogida termina entera) + provincia 48 h.
+          {paginasListadoEstimadas(activas)} pág. en la pasada completa diaria) + sondeo de novedades cada{" "}
+          {sim.sondeoCadaMin} min (filtro provincia 48 h).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -291,24 +292,35 @@ export function ZonasIdealistaCard() {
           ) : (
             <>
               <p className="mt-1 text-[var(--text-2)]">
-                {sim.paginasDia.toLocaleString("es-ES")} pet./día ({sim.zonasActivas} zonas ·{" "}
-                {sim.paginasMunicipiosDia.toLocaleString("es-ES")} pág. listado + {sim.paginasProvinciaDia} provincia 48 h) → ~
+                {sim.paginasDia.toLocaleString("es-ES")} pet./día: pasada completa{" "}
+                {sim.paginasCompletaDia.toLocaleString("es-ES")} ({sim.zonasActivas} zonas ·{" "}
+                {sim.paginasMunicipiosDia.toLocaleString("es-ES")} pág. + {sim.paginasProvinciaDia} provincia) +{" "}
+                {sim.sondeosNovedadesDia} sondeos × ~{Math.round(sim.paginasSondeoDia / Math.max(1, sim.sondeosNovedadesDia))} pág. → ~
                 {sim.paginasMes.toLocaleString("es-ES")} pet./mes.
               </p>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
                 <div className="rounded border border-[var(--border)] bg-[var(--surface-1)] px-2.5 py-2">
-                  <p className="text-[11px] uppercase tracking-wide text-[var(--text-3)]">Tarifa listado (1,50 / 1.000)</p>
-                  <p className="text-lg font-semibold tabular-nums text-[var(--text-1)]">~{usd(sim.usdTarifaListadoMes)}</p>
-                  <p className="text-[11.5px] text-[var(--text-3)]">/ mes · sube y baja al marcar zonas</p>
+                  <p className="text-[11px] uppercase tracking-wide text-[var(--text-3)]">Pasada completa</p>
+                  <p className="text-lg font-semibold tabular-nums text-[var(--text-1)]">~{usd(sim.usdTarifaCompletaMes)}</p>
+                  <p className="text-[11.5px] text-[var(--text-3)]">
+                    / mes · {sim.paginasCompletaMes.toLocaleString("es-ES")} pet. · 1×/día
+                  </p>
                 </div>
                 <div className="rounded border border-[var(--border)] bg-[var(--surface-1)] px-2.5 py-2">
-                  <p className="text-[11px] uppercase tracking-wide text-[var(--text-3)]">De bolsillo (listado sim.)</p>
-                  <p className="text-lg font-semibold tabular-nums text-[var(--text-1)]">
-                    ~{usd(sim.usdBolsilloListadoTrasUsoReal)}
+                  <p className="text-[11px] uppercase tracking-wide text-[var(--text-3)]">
+                    Novedades cada {sim.sondeoCadaMin} min
                   </p>
+                  <p className="text-lg font-semibold tabular-nums text-[var(--text-1)]">~{usd(sim.usdTarifaSondeoMes)}</p>
                   <p className="text-[11.5px] text-[var(--text-3)]">
-                    Tras {sim.creditosRestantesMes.toLocaleString("es-ES")} créditos restantes (≈{" "}
-                    {presupuestoUnlocker?.usadasMes.toLocaleString("es-ES") ?? "0"} pet. ya hechas).
+                    / mes · {sim.paginasSondeoMes.toLocaleString("es-ES")} pet. · no retira anuncios
+                  </p>
+                </div>
+                <div className="rounded border border-[var(--border)] bg-[var(--surface-1)] px-2.5 py-2">
+                  <p className="text-[11px] uppercase tracking-wide text-[var(--text-3)]">Total listado (tarifa)</p>
+                  <p className="text-lg font-semibold tabular-nums text-[var(--text-1)]">~{usd(sim.usdTarifaListadoMes)}</p>
+                  <p className="text-[11.5px] text-[var(--text-3)]">
+                    De bolsillo ~{usd(sim.usdBolsilloListadoTrasUsoReal)} tras{" "}
+                    {sim.creditosRestantesMes.toLocaleString("es-ES")} créditos
                   </p>
                 </div>
               </div>
