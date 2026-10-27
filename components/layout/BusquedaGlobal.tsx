@@ -8,6 +8,7 @@ import { Sheet } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth/auth-context";
 import { isAdmin, isEditor } from "@/lib/auth/roles";
+import { coincideTelefonoBusqueda, digitosBusqueda } from "@/lib/ui/busqueda";
 
 type Hit = { href: string; titulo: string; meta: string };
 
@@ -38,11 +39,23 @@ export function BusquedaGlobal() {
     }
     const supabase = createClient();
     const like = `%${texto}%`;
+    const digitos = digitosBusqueda(texto);
     const editor = isEditor(user?.role);
+    const clientesPorNombre = editor
+      ? Promise.resolve({ data: [] as Array<{ id: string; nombre: string; email: string | null; telefono: string | null }> })
+      : supabase.from("clientes").select("id, nombre, email, telefono").ilike("nombre", like).limit(8);
+    const clientesPorTel =
+      !editor && digitos.length >= 6
+        ? supabase
+            .from("clientes")
+            .select("id, nombre, email, telefono")
+            .not("telefono", "is", null)
+            .order("created_at", { ascending: false })
+            .limit(500)
+        : Promise.resolve({ data: [] as Array<{ id: string; nombre: string; email: string | null; telefono: string | null }> });
     void Promise.all([
-      editor
-        ? Promise.resolve({ data: [] })
-        : supabase.from("clientes").select("id, nombre, email").ilike("nombre", like).limit(5),
+      clientesPorNombre,
+      clientesPorTel,
       editor
         ? Promise.resolve({ data: [] })
         : supabase.from("propiedades").select("id, titulo, referencia, direccion").or(`titulo.ilike.${like},referencia.ilike.${like},direccion.ilike.${like}`).limit(5),
@@ -56,11 +69,22 @@ export function BusquedaGlobal() {
       isAdmin(user?.role)
         ? supabase.from("facturas").select("id, numero").ilike("numero", like).limit(5)
         : Promise.resolve({ data: [] }),
-    ]).then(([clientes, inmuebles, demandas, facturas]) => {
+    ]).then(([clientesNombre, clientesTel, inmuebles, demandas, facturas]) => {
       const next: Hit[] = [];
       const qn = texto.toLowerCase();
-      for (const row of clientes.data ?? []) {
-        next.push({ href: `/clientes/${row.id}`, titulo: row.nombre, meta: row.email ?? "Contacto" });
+      const vistos = new Set<string>();
+      const pushCliente = (row: { id: string; nombre: string; email: string | null; telefono?: string | null }) => {
+        if (vistos.has(row.id)) return;
+        vistos.add(row.id);
+        next.push({
+          href: `/clientes/${row.id}`,
+          titulo: row.nombre,
+          meta: row.telefono || row.email || "Contacto",
+        });
+      };
+      for (const row of clientesNombre.data ?? []) pushCliente(row);
+      for (const row of clientesTel.data ?? []) {
+        if (coincideTelefonoBusqueda(row.telefono, texto)) pushCliente(row);
       }
       for (const row of inmuebles.data ?? []) {
         next.push({

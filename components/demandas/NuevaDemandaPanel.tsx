@@ -25,6 +25,7 @@ import { SelectorZonas } from "@/components/demandas/SelectorZonas";
 import type { ComercialFiltro } from "@/components/captacion/FiltroComercial";
 import { altaCamposVacios, leerAltaBorrador } from "@/lib/ui/alta-borrador";
 import { mensajePersonaAlta, resolverPersonaAlta } from "@/lib/ui/alta-persona";
+import { coincideTelefonoBusqueda } from "@/lib/ui/busqueda";
 import { useAltaBorrador } from "@/lib/ui/use-alta-borrador";
 
 const BORRADOR_VACIO: Omit<BorradorNuevaDemanda, "comercialId"> = {
@@ -201,7 +202,9 @@ export function NuevaDemandaPanel({
   const sugeridos = useMemo(() => {
     const q = qCliente.trim().toLowerCase();
     if (!q) return [];
-    return clientes.filter((c) => `${c.nombre} ${c.telefono ?? ""}`.toLowerCase().includes(q)).slice(0, 6);
+    return clientes
+      .filter((c) => c.nombre.toLowerCase().includes(q) || coincideTelefonoBusqueda(c.telefono, qCliente))
+      .slice(0, 6);
   }, [clientes, qCliente]);
 
   const set = <K extends keyof BorradorNuevaDemanda>(key: K, value: BorradorNuevaDemanda[K]) => {

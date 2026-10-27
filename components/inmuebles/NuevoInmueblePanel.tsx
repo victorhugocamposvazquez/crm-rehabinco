@@ -24,6 +24,7 @@ import { subirArchivosMedia } from "@/lib/inmuebles/subir-media";
 import { ZonaArchivosPendientes } from "@/components/inmuebles/ZonaArchivosPendientes";
 import { Selector } from "@/components/ui/selector";
 import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
+import { coincideTelefonoBusqueda } from "@/lib/ui/busqueda";
 import { proponerInmuebleADemandas } from "@/lib/demandas/proponer-stock";
 import { siNoDe, triSiNo } from "@/lib/inmuebles/catalogo";
 import { avisoPublicacion } from "@/lib/inmuebles/publicacion";
@@ -124,7 +125,9 @@ export function NuevoInmueblePanel({
   const sugeridos = useMemo(() => {
     const q = qCliente.trim().toLowerCase();
     if (!q) return [];
-    return clientes.filter((c) => `${c.nombre} ${c.telefono ?? ""}`.toLowerCase().includes(q)).slice(0, 6);
+    return clientes
+      .filter((c) => c.nombre.toLowerCase().includes(q) || coincideTelefonoBusqueda(c.telefono, qCliente))
+      .slice(0, 6);
   }, [clientes, qCliente]);
 
   const crear = async () => {

@@ -27,6 +27,7 @@ import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
 import { AvisoContinuarBorrador } from "@/components/ui/aviso-borrador";
 import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { rutaNuevaCita } from "@/lib/citas/citas";
+import { coincideTelefonoBusqueda } from "@/lib/ui/busqueda";
 
 type ClienteLista = {
   id: string;
@@ -309,7 +310,7 @@ export default function ClientesPage() {
         !q ||
         c.nombre.toLowerCase().includes(q) ||
         (c.email?.toLowerCase().includes(q) ?? false) ||
-        (c.telefono?.includes(q) ?? false) ||
+        coincideTelefonoBusqueda(c.telefono, search) ||
         (c.notas?.toLowerCase().includes(q) ?? false);
       const matchFiltro =
         filtro === "todos" ||

@@ -24,6 +24,7 @@ import {
   type InmuebleCalendario,
   type TipoAltaCalendario,
 } from "@/lib/citas/citas";
+import { coincideTelefonoBusqueda } from "@/lib/ui/busqueda";
 
 type ComercialOpcion = { id: string; nombre: string; color: string | null };
 
@@ -179,14 +180,20 @@ export function NuevaEntradaCalendario({
   const sugeridos = useMemo(() => {
     const q = qCliente.trim().toLowerCase();
     if (!q) return [];
-    return agenda.filter((c) => `${c.nombre} ${c.telefono ?? ""}`.toLowerCase().includes(q)).slice(0, 6);
+    return agenda
+      .filter((c) => c.nombre.toLowerCase().includes(q) || coincideTelefonoBusqueda(c.telefono, qCliente))
+      .slice(0, 6);
   }, [agenda, qCliente]);
   const sugeridosExtra = useMemo(() => {
     const q = qClienteExtra.trim().toLowerCase();
     if (!q) return [];
     const excluir = new Set([clienteId, ...clientesExtraIds]);
     return agenda
-      .filter((c) => !excluir.has(c.id) && `${c.nombre} ${c.telefono ?? ""}`.toLowerCase().includes(q))
+      .filter(
+        (c) =>
+          !excluir.has(c.id) &&
+          (c.nombre.toLowerCase().includes(q) || coincideTelefonoBusqueda(c.telefono, qClienteExtra))
+      )
       .slice(0, 6);
   }, [agenda, qClienteExtra, clienteId, clientesExtraIds]);
   const bloqueNotas =
