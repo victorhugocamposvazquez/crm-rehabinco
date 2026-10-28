@@ -66,6 +66,7 @@ type CitaRow = {
   clientes_extra_ids?: string[] | null;
   notas?: string | null;
   estado: string;
+  motivo_anulacion?: string | null;
   lugar?: string | null;
   tarea_id?: string | null;
   clientes?: { nombre?: string | null } | null;
@@ -116,7 +117,7 @@ export default function CalendarioPage() {
     const q = supabase
       .from("citas")
       .select(
-        "id, comercial_id, tipo, titulo, empieza, termina, propiedad_id, cliente_id, clientes_extra_ids, notas, estado, tarea_id, lugar, profiles:comercial_id(nombre_completo, color, email), propiedades:propiedad_id(titulo, direccion, localidad, referencia), clientes:cliente_id(nombre)"
+        "id, comercial_id, tipo, titulo, empieza, termina, propiedad_id, cliente_id, clientes_extra_ids, notas, estado, motivo_anulacion, tarea_id, lugar, profiles:comercial_id(nombre_completo, color, email), propiedades:propiedad_id(titulo, direccion, localidad, referencia), clientes:cliente_id(nombre)"
       )
       .gte("empieza", inicio)
       .lte("empieza", fin)
@@ -561,14 +562,26 @@ export default function CalendarioPage() {
     });
   };
 
-  const cambiarEstado = async (id: string, estado: Extract<EstadoCita, "prevista" | "hecha" | "cancelada">) => {
+  const cambiarEstado = async (
+    id: string,
+    estado: Extract<EstadoCita, "prevista" | "hecha" | "cancelada">,
+    motivoAnulacion?: string | null
+  ) => {
     const cita = citas.find((item) => item.id === id);
     if (cita && !gestiona(cita.comercial_id)) {
       toast.message("Inicia sesión para cambiar esta entrada.");
       return;
     }
+    if (estado === "cancelada" && !motivoAnulacion?.trim()) {
+      toast.error("Indica el motivo de la anulación.");
+      return;
+    }
     const supabase = createClient();
-    const { data, error } = await supabase.from("citas").update({ estado }).eq("id", id).select("id").maybeSingle();
+    const patch =
+      estado === "cancelada"
+        ? { estado, motivo_anulacion: motivoAnulacion!.trim() }
+        : { estado, motivo_anulacion: null };
+    const { data, error } = await supabase.from("citas").update(patch).eq("id", id).select("id").maybeSingle();
     const aviso = mensajeGuardado(error, "No se ha podido actualizar la cita.", data);
     if (aviso) {
       toast.error(aviso);
@@ -584,8 +597,9 @@ export default function CalendarioPage() {
     if (estado === "hecha") toast.success("Entrada marcada como finalizada.");
     else if (estado === "cancelada") toast.success("Entrada anulada.");
     else toast.success("Entrada de nuevo como prevista.");
-    setEditando((prev) => (prev?.id === id ? { ...prev, estado } : prev));
-    setCitas((prev) => prev.map((item) => (item.id === id ? { ...item, estado } : item)));
+    const motivo = estado === "cancelada" ? motivoAnulacion!.trim() : null;
+    setEditando((prev) => (prev?.id === id ? { ...prev, estado, motivo_anulacion: motivo } : prev));
+    setCitas((prev) => prev.map((item) => (item.id === id ? { ...item, estado, motivo_anulacion: motivo } : item)));
     if (estado === "cancelada" || estado === "hecha") {
       setSheetOpen(false);
       setEditando(null);
@@ -746,12 +760,13 @@ export default function CalendarioPage() {
                 titulo: editando.titulo,
                 estado: editando.estado ?? "prevista",
                 notas: editando.notas,
+                motivo_anulacion: editando.motivo_anulacion,
               }
             : null
         }
         onGuardar={(datos) => void guardar(datos)}
-        onCambiarEstado={(estado) => {
-          if (editando) void cambiarEstado(editando.id, estado);
+        onCambiarEstado={(estado, motivo) => {
+          if (editando) void cambiarEstado(editando.id, estado, motivo);
         }}
       />
     </div>

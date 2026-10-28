@@ -107,14 +107,26 @@ export function AgendaVisitas({ compact = false }: { compact?: boolean }) {
 
   const gestiona = (comercialId: string) => puedeGestionarCita(comercialId, user?.id, admin);
 
-  const cambiarEstado = async (id: string, estado: "prevista" | "hecha" | "cancelada") => {
+  const cambiarEstado = async (
+    id: string,
+    estado: "prevista" | "hecha" | "cancelada",
+    motivoAnulacion?: string | null
+  ) => {
     const cita = citas.find((item) => item.id === id);
     if (cita && !gestiona(cita.comercial_id)) {
       toast.message("Inicia sesión para cambiar esta visita.");
       return;
     }
+    if (estado === "cancelada" && !motivoAnulacion?.trim()) {
+      toast.error("Indica el motivo de la anulación.");
+      return;
+    }
     const supabase = createClient();
-    const { data, error } = await supabase.from("citas").update({ estado }).eq("id", id).select("id").maybeSingle();
+    const patch =
+      estado === "cancelada"
+        ? { estado, motivo_anulacion: motivoAnulacion!.trim() }
+        : { estado, motivo_anulacion: null };
+    const { data, error } = await supabase.from("citas").update(patch).eq("id", id).select("id").maybeSingle();
     const aviso = mensajeGuardado(error, "No se ha podido actualizar la cita.", data);
     if (aviso) {
       toast.error(aviso);
@@ -166,7 +178,7 @@ function ListaGrupo({
   citas: CitaAgenda[];
   userId?: string;
   gestiona: (comercialId: string) => boolean;
-  onEstado: (id: string, estado: "prevista" | "hecha" | "cancelada") => void;
+  onEstado: (id: string, estado: "prevista" | "hecha" | "cancelada", motivoAnulacion?: string | null) => void;
   vacio?: string;
   compact?: boolean;
 }) {

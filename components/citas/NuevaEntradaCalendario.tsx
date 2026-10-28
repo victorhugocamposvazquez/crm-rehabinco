@@ -34,6 +34,7 @@ export type EdicionCalendario = {
   titulo: string;
   estado: string;
   notas?: string | null;
+  motivo_anulacion?: string | null;
 };
 
 export type DatosGuardarEntradaCalendario = {
@@ -94,7 +95,7 @@ export function NuevaEntradaCalendario({
   saving: boolean;
   edicion?: EdicionCalendario | null;
   onGuardar: (datos: DatosGuardarEntradaCalendario) => void;
-  onCambiarEstado?: (estado: "prevista" | "hecha" | "cancelada") => void;
+  onCambiarEstado?: (estado: "prevista" | "hecha" | "cancelada", motivoAnulacion?: string | null) => void;
 }) {
   const equipo = comerciales ?? [];
   const comercialSel = equipo.find((c) => c.id === comercialId) ?? null;
@@ -277,8 +278,9 @@ export function NuevaEntradaCalendario({
                 tipo: edicion.tipo,
                 estado: edicion.estado,
                 propiedad_id: propiedadId || null,
+                motivo_anulacion: edicion.motivo_anulacion,
               }}
-              onEstado={(_, estado) => onCambiarEstado(estado)}
+              onEstado={(_, estado, motivo) => onCambiarEstado(estado, motivo)}
             />
           ) : null
         }

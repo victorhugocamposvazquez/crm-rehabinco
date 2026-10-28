@@ -76,7 +76,7 @@ export function CalendarioMovil({
   sinListado?: boolean;
   onPickDia: (dia: string) => void;
   onMover: (id: string, dia: string) => void;
-  onEstado: (id: string, estado: "prevista" | "hecha" | "cancelada") => void;
+  onEstado: (id: string, estado: "prevista" | "hecha" | "cancelada", motivoAnulacion?: string | null) => void;
   onCambiarHora: (id: string, hora: string) => void;
   onCrearHueco?: (minutos: number) => void;
   onEditar: (id: string) => void;

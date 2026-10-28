@@ -49,7 +49,11 @@ export function ListaDiaCalendario({
   userId?: string;
   puedeGestionar: (comercialId: string) => boolean;
   onEditar: (cita: CitaListaDia) => void;
-  onEstado: (id: string, estado: Extract<EstadoCita, "prevista" | "hecha" | "cancelada">) => void;
+  onEstado: (
+    id: string,
+    estado: Extract<EstadoCita, "prevista" | "hecha" | "cancelada">,
+    motivoAnulacion?: string | null
+  ) => void;
   onCrearHueco: () => void;
 }) {
   const etiquetaDia = new Date(`${dia}T12:00:00`).toLocaleDateString("es-ES", {

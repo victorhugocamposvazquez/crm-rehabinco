@@ -14,6 +14,7 @@ import { FichaLink } from "@/components/crm/FichaPeek";
 import { NuevaDemandaPanel } from "@/components/demandas/NuevaDemandaPanel";
 import { NuevoClientePanel } from "@/components/clientes/NuevoClientePanel";
 import { EditarClientePanel, type ClienteEditPatch } from "@/components/clientes/EditarClientePanel";
+import { ClienteHistorial } from "@/components/clientes/ClienteHistorial";
 import { NuevoInmueblePanel } from "@/components/inmuebles/NuevoInmueblePanel";
 import { Pencil, Trash2, FileText, Building2, Plus, Home } from "lucide-react";
 import { rutaNuevaCita } from "@/lib/citas/citas";
@@ -292,6 +293,7 @@ export default function DetalleClientePage() {
       />
 
       <div className="grid gap-6 md:grid-cols-2">
+        <ClienteHistorial clienteId={id} />
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle>Notas</CardTitle>
