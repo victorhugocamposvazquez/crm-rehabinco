@@ -2,6 +2,7 @@ export const TIPOS_PAPELERA = [
   "parte_visita",
   "contrato_arras",
   "hoja_encargo_honorarios",
+  "hoja_encargo_exclusiva",
   "contrato_pago_aplazado",
   "contrato_arrendamiento",
   "usuario",
@@ -15,6 +16,7 @@ export const TIPO_PAPELERA_LABEL: Record<TipoPapelera, string> = {
   parte_visita: "Parte de visita",
   contrato_arras: "Contrato de arras",
   hoja_encargo_honorarios: "Hoja de encargo",
+  hoja_encargo_exclusiva: "Encargo en exclusiva",
   contrato_pago_aplazado: "Compraventa aplazada",
   contrato_arrendamiento: "Arrendamiento",
   usuario: "Usuario",
@@ -57,6 +59,7 @@ export type TipoDocumentoPapelera = Extract<
   | "parte_visita"
   | "contrato_arras"
   | "hoja_encargo_honorarios"
+  | "hoja_encargo_exclusiva"
   | "contrato_pago_aplazado"
   | "contrato_arrendamiento"
 >;
@@ -65,6 +68,7 @@ export const TIPOS_DOCUMENTO_PAPELERA: TipoDocumentoPapelera[] = [
   "parte_visita",
   "contrato_arras",
   "hoja_encargo_honorarios",
+  "hoja_encargo_exclusiva",
   "contrato_pago_aplazado",
   "contrato_arrendamiento",
 ];
@@ -76,6 +80,7 @@ export function tablaDocumentoPapelera(
   | "partes_visita"
   | "contratos_arras"
   | "hojas_encargo_honorarios"
+  | "hojas_encargo_exclusiva"
   | "contratos_pago_aplazado"
   | "contratos_arrendamiento" {
   switch (tipo) {
@@ -85,6 +90,8 @@ export function tablaDocumentoPapelera(
       return "contratos_arras";
     case "hoja_encargo_honorarios":
       return "hojas_encargo_honorarios";
+    case "hoja_encargo_exclusiva":
+      return "hojas_encargo_exclusiva";
     case "contrato_pago_aplazado":
       return "contratos_pago_aplazado";
     case "contrato_arrendamiento":

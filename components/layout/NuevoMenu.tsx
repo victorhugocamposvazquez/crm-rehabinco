@@ -9,6 +9,7 @@ import {
   ClipboardPen,
   FileSignature,
   FileText,
+  BadgeCheck,
   Home,
   ListTodo,
   Plus,
@@ -48,6 +49,7 @@ export function NuevoMenu() {
         { href: "/partes-visita/nuevo", label: "Parte de visita", icon: ClipboardPen },
         { href: "/contratos-arras/nuevo", label: "Contrato de arras", icon: FileSignature },
         { href: "/hojas-encargo-honorarios/nuevo", label: "Hoja de encargo", icon: ScrollText },
+        { href: "/hojas-encargo-exclusiva/nuevo", label: "Encargo en exclusiva", icon: BadgeCheck },
         { href: "/contratos-pago-aplazado/nuevo", label: "Compraventa aplazada", icon: FileText },
         { href: "/contratos-arrendamiento/nuevo", label: "Arrendamiento", icon: Home },
         ...(admin

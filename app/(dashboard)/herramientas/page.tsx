@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ClipboardPenLine, FileSignature, FileText, Home, Plus, ScrollText } from "lucide-react";
+import { BadgeCheck, ClipboardPenLine, FileSignature, FileText, Home, Plus, ScrollText } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
 import { isAdmin } from "@/lib/auth/roles";
@@ -59,12 +59,14 @@ export default function HerramientasPage() {
   const [partes, setPartes] = useState<ParteRow[]>([]);
   const [arras, setArras] = useState<DocRow[]>([]);
   const [honorarios, setHonorarios] = useState<DocRow[]>([]);
+  const [exclusiva, setExclusiva] = useState<DocRow[]>([]);
   const [aplazado, setAplazado] = useState<DocRow[]>([]);
   const [arrendamiento, setArrendamiento] = useState<DocRow[]>([]);
   const [loading, setLoading] = useState(true);
   const hayParte = useHayAltaBorrador("parte");
   const hayArras = useHayAltaBorrador("arras");
   const hayHonorarios = useHayAltaBorrador("honorarios");
+  const hayExclusiva = useHayAltaBorrador("exclusiva");
   const hayAplazado = useHayAltaBorrador("pago-aplazado");
   const hayArrendamiento = useHayAltaBorrador("arrendamiento");
 
@@ -96,6 +98,14 @@ export default function HerramientasPage() {
         .order("created_at", { ascending: false })
         .limit(6),
       supabase
+        .from("hojas_encargo_exclusiva")
+        .select(
+          "id, user_id, comercial_id, fecha, estado, cliente_nombre, inmueble_descripcion, creador:comercial_id(nombre_completo, color, email)"
+        )
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(6),
+      supabase
         .from("contratos_pago_aplazado")
         .select(
           "id, user_id, comercial_id, fecha, estado, finca_descripcion, compradores, vendedores, creador:comercial_id(nombre_completo, color, email)"
@@ -111,7 +121,7 @@ export default function HerramientasPage() {
         .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(6),
-    ]).then(([p, a, h, ap, ar]) => {
+    ]).then(([p, a, h, ex, ap, ar]) => {
       setPartes(((p.data ?? []) as Array<ParteRow & { creador?: Creador | Creador[] }>).map(mapCreador));
       setArras(
         ((a.data ?? []) as Array<{
@@ -163,6 +173,32 @@ export default function HerramientasPage() {
             creador: row.creador,
             tipoPapelera: "hoja_encargo_honorarios" as const,
             href: `/hojas-encargo-honorarios/${row.id}`,
+          };
+        })
+      );
+      setExclusiva(
+        ((ex.data ?? []) as Array<{
+          id: string;
+          user_id: string;
+          comercial_id: string | null;
+          fecha: string | null;
+          estado: "borrador" | "cerrado";
+          cliente_nombre: string | null;
+          inmueble_descripcion: string | null;
+          creador?: Creador | Creador[];
+        }>).map((c) => {
+          const row = mapCreador(c);
+          return {
+            id: row.id,
+            user_id: row.user_id,
+            comercial_id: row.comercial_id,
+            fecha: row.fecha,
+            estado: row.estado,
+            titulo: row.cliente_nombre || "Cliente",
+            subtitulo: [row.inmueble_descripcion, row.fecha].filter(Boolean).join(" · ") || "Sin inmueble",
+            creador: row.creador,
+            tipoPapelera: "hoja_encargo_exclusiva" as const,
+            href: `/hojas-encargo-exclusiva/${row.id}`,
           };
         })
       );
@@ -312,6 +348,21 @@ export default function HerramientasPage() {
           userId={user?.id}
           admin={admin}
           onEliminado={(id) => setHonorarios((prev) => prev.filter((item) => item.id !== id))}
+        />
+
+        <ZonaDocs
+          icon={BadgeCheck}
+          title="Encargo de venta en exclusiva"
+          hint="Mandato exclusivo con plazo, precio de venta y honorarios."
+          nuevoHref="/hojas-encargo-exclusiva/nuevo"
+          nuevoLabel={hayExclusiva ? "Continuar borrador" : "Nuevo encargo"}
+          historicoHref="/hojas-encargo-exclusiva"
+          loading={loading}
+          vacio="Aún no hay encargos en exclusiva."
+          rows={exclusiva}
+          userId={user?.id}
+          admin={admin}
+          onEliminado={(id) => setExclusiva((prev) => prev.filter((item) => item.id !== id))}
         />
 
         <ZonaDocs

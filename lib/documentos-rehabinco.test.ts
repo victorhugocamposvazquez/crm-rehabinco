@@ -26,6 +26,8 @@ import { clausulasPersonalizadasDesdeEdicion, normalizarTextoClausula } from "./
 import { htmlContratoArras, htmlContratoArrasExport, textosContratoArras } from "./contrato-arras-pdf";
 import { hojaEncargoHonorariosVacia } from "./hoja-encargo-honorarios";
 import { htmlHojaEncargoHonorarios, textosHojaEncargoHonorarios } from "./hoja-encargo-honorarios-pdf";
+import { hojaEncargoExclusivaVacia } from "./hoja-encargo-exclusiva";
+import { htmlHojaEncargoExclusiva, textosHojaEncargoExclusiva } from "./hoja-encargo-exclusiva-pdf";
 import { contratoPagoAplazadoVacio } from "./contrato-pago-aplazado";
 import { htmlContratoPagoAplazado, textosContratoPagoAplazado } from "./contrato-pago-aplazado-pdf";
 import { contratoArrendamientoVacio } from "./contrato-arrendamiento";
@@ -45,10 +47,11 @@ describe("documentos Rehabinco 2026", () => {
     });
     const arras = htmlContratoArras(contratoArrasVacio());
     const honorarios = htmlHojaEncargoHonorarios(hojaEncargoHonorariosVacia());
+    const exclusiva = htmlHojaEncargoExclusiva(hojaEncargoExclusivaVacia());
     const aplazado = htmlContratoPagoAplazado(contratoPagoAplazadoVacio());
     const arrendamiento = htmlContratoArrendamiento(contratoArrendamientoVacio());
     const lopd = clausulaProteccionDatosContrato({ prefijo: "NOVENA.-" });
-    for (const html of [visita, arras, honorarios, aplazado, arrendamiento, lopd]) {
+    for (const html of [visita, arras, honorarios, exclusiva, aplazado, arrendamiento, lopd]) {
       assert.equal(textoTieneDatosConchado(html), false);
       assert.equal(/conchadopuente|B70101449|lopd@/i.test(html), false);
       assert.match(html, /REHABINCO/);
@@ -306,6 +309,32 @@ describe("documentos Rehabinco 2026", () => {
     assert.match(html, /@media print/);
     assert.match(html, /class="pdf-flow"/);
     assert.match(htmlHojaEncargoHonorarios(datos), /data-clausula="honorarios"[^>]*>[^<]*cliente presentado por REHABINCO, S\.L\./);
+  });
+
+  it("el encargo en exclusiva cobra por venta durante la vigencia y no solo por cliente presentado", () => {
+    const datos = hojaEncargoExclusivaVacia();
+    datos.plazo_meses = 6;
+    datos.precio_venta = 250000;
+    datos.honorarios_porcentaje = 3;
+    datos.honorarios_minimo = 3000;
+    const textos = textosHojaEncargoExclusiva(datos);
+    assert.match(textos.intro, /ENCARGO DE VENTA EN EXCLUSIVA/);
+    assert.match(textos.exclusiva, /plazo de 6 meses/);
+    assert.match(textos.exclusiva, /única agencia autorizada/);
+    assert.match(
+      textos.honorarios,
+      /durante la vigencia de la exclusiva, con independencia de que la operación se realice a través de REHABINCO, S\.L\., por el propio propietario o por un tercero\.$/
+    );
+    assert.match(textos.precio, /250\.000/);
+    const html = htmlHojaEncargoExclusiva(datos, { editable: false });
+    assert.match(html, /Encargo de venta en exclusiva/);
+    assert.equal(html.includes("cliente presentado por"), false);
+    assert.match(html, /única agencia autorizada/);
+    assert.match(html, /src="\/images\/logo-web\.png"/);
+    const editable = htmlHojaEncargoExclusiva(datos);
+    assert.match(editable, /data-clausula="exclusiva"/);
+    assert.match(editable, /data-clausula="honorarios"[^>]*font-size:17px/);
+    assert.match(editable, /data-clausula="precio"/);
   });
 
   it("ignora cláusulas pegadas con datos de Conchado Puente al imprimir", () => {

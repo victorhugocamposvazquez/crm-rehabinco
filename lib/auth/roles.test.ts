@@ -116,6 +116,7 @@ describe("roles", () => {
     assert.equal(isEditorBlockedPath("/herramientas"), true);
     assert.equal(isEditorBlockedPath("/contratos-arras"), true);
     assert.equal(isEditorBlockedPath("/hojas-encargo-honorarios"), true);
+    assert.equal(isEditorBlockedPath("/hojas-encargo-exclusiva"), true);
     assert.equal(isEditorBlockedPath("/contratos-pago-aplazado"), true);
     assert.equal(isEditorBlockedPath("/contratos-arrendamiento"), true);
     assert.equal(isEditorBlockedPath("/settings/portales"), true);

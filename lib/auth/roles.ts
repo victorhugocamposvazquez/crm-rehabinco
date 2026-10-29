@@ -83,6 +83,7 @@ const EDITOR_BLOCKED_PREFIXES = [
   "/herramientas",
   "/contratos-arras",
   "/hojas-encargo-honorarios",
+  "/hojas-encargo-exclusiva",
   "/contratos-pago-aplazado",
   "/contratos-arrendamiento",
   "/demandas",

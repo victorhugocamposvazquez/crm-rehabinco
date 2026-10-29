@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BadgeCheck,
   ClipboardPenLine,
   FileSignature,
   FileText,
@@ -43,6 +44,12 @@ const BASE = [
     label: "Honorarios",
     icon: ScrollText,
     activa: (pathname: string) => pathname.startsWith("/hojas-encargo-honorarios"),
+  },
+  {
+    href: "/hojas-encargo-exclusiva",
+    label: "Exclusiva",
+    icon: BadgeCheck,
+    activa: (pathname: string) => pathname.startsWith("/hojas-encargo-exclusiva"),
   },
   {
     href: "/contratos-pago-aplazado",

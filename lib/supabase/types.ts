@@ -751,6 +751,77 @@ export interface Database {
           updated_at?: string;
         };
       };
+      hojas_encargo_exclusiva: {
+        Row: {
+          id: string;
+          user_id: string;
+          comercial_id: string | null;
+          propiedad_id: string | null;
+          cliente_id: string | null;
+          estado: "borrador" | "cerrado";
+          lugar: string;
+          fecha: string | null;
+          cliente_nombre: string | null;
+          cliente_dni: string | null;
+          cliente_calidad: string | null;
+          inmueble_descripcion: string | null;
+          plazo_meses: number;
+          precio_venta: number | null;
+          honorarios_porcentaje: number;
+          honorarios_minimo: number;
+          reparto_propiedad_pct: number;
+          reparto_agencia_pct: number;
+          clausulas_personalizadas: Json;
+          deleted_at: string | null;
+          deleted_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          comercial_id?: string | null;
+          propiedad_id?: string | null;
+          cliente_id?: string | null;
+          estado?: "borrador" | "cerrado";
+          lugar?: string;
+          fecha?: string | null;
+          cliente_nombre?: string | null;
+          cliente_dni?: string | null;
+          cliente_calidad?: string | null;
+          inmueble_descripcion?: string | null;
+          plazo_meses?: number;
+          precio_venta?: number | null;
+          honorarios_porcentaje?: number;
+          honorarios_minimo?: number;
+          reparto_propiedad_pct?: number;
+          reparto_agencia_pct?: number;
+          clausulas_personalizadas?: Json;
+          deleted_at?: string | null;
+          deleted_by?: string | null;
+        };
+        Update: {
+          comercial_id?: string | null;
+          propiedad_id?: string | null;
+          cliente_id?: string | null;
+          estado?: "borrador" | "cerrado";
+          lugar?: string;
+          fecha?: string | null;
+          cliente_nombre?: string | null;
+          cliente_dni?: string | null;
+          cliente_calidad?: string | null;
+          inmueble_descripcion?: string | null;
+          plazo_meses?: number;
+          precio_venta?: number | null;
+          honorarios_porcentaje?: number;
+          honorarios_minimo?: number;
+          reparto_propiedad_pct?: number;
+          reparto_agencia_pct?: number;
+          clausulas_personalizadas?: Json;
+          deleted_at?: string | null;
+          deleted_by?: string | null;
+          updated_at?: string;
+        };
+      };
       contratos_pago_aplazado: {
         Row: {
           id: string;

@@ -54,6 +54,9 @@ function etiquetaDocumento(tipo: TipoDocumentoPapelera, fila: Record<string, unk
   if (tipo === "hoja_encargo_honorarios") {
     return (fila.cliente_nombre as string | null) || (fila.inmueble_descripcion as string | null) || "Hoja de encargo";
   }
+  if (tipo === "hoja_encargo_exclusiva") {
+    return (fila.cliente_nombre as string | null) || (fila.inmueble_descripcion as string | null) || "Encargo en exclusiva";
+  }
   if (tipo === "contrato_arrendamiento") {
     return (fila.vivienda_direccion as string | null) || "Contrato de arrendamiento";
   }

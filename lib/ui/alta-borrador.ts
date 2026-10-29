@@ -5,6 +5,7 @@ export const TIPOS_ALTA = [
   "parte",
   "arras",
   "honorarios",
+  "exclusiva",
   "pago-aplazado",
   "arrendamiento",
 ] as const;
