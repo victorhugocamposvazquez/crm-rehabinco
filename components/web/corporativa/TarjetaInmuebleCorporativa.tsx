@@ -2,6 +2,7 @@ import Link from "next/link";
 import { formatoPrecio, specsCortas } from "@/lib/web/corporativa/catalogo";
 import type { InmuebleCorporativa } from "@/lib/web/corporativa/types";
 import { hrefInmueble } from "@/lib/web/dominio";
+import { CarruselFotosTarjeta } from "./CarruselFotosTarjeta";
 
 export function TarjetaInmuebleCorporativa({
   item,
@@ -14,20 +15,19 @@ export function TarjetaInmuebleCorporativa({
 }) {
   const href = hrefInmueble(enDominio, item.slug);
   const badge = item.origen === "crm" ? "En stock" : null;
+  const fotos = item.fotos.length ? item.fotos : item.fotoPrincipal ? [item.fotoPrincipal] : [];
+
   return (
     <Link
       href={href}
       className={`group flex h-full w-full min-w-0 flex-col overflow-hidden rounded-[18px] bg-[#fefefe] ${lista ? "md:grid md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:gap-6" : ""}`}
     >
-      <div className={`relative overflow-hidden rounded-[18px] bg-[#e9e6e1] ${lista ? "aspect-square md:aspect-[4/3]" : "aspect-[4/3]"}`}>
-        {item.fotoPrincipal ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.fotoPrincipal} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
-        ) : (
-          <div className="grid h-full place-items-center text-sm text-[#6b6b6b]">Sin foto</div>
-        )}
+      <div className={`relative overflow-hidden rounded-[18px] ${lista ? "aspect-square md:aspect-[4/3]" : "aspect-[4/3]"}`}>
+        <CarruselFotosTarjeta fotos={fotos} className="absolute inset-0 h-full w-full" />
         {badge ? (
-          <span className="absolute left-3 top-3 rounded-full bg-[#080808] px-2.5 py-1 text-[11px] font-medium text-[#fefefe]">{badge}</span>
+          <span className="pointer-events-none absolute left-3 top-3 z-[2] rounded-full bg-[#080808] px-2.5 py-1 text-[11px] font-medium text-[#fefefe]">
+            {badge}
+          </span>
         ) : null}
       </div>
       <div className="flex flex-col gap-1 py-2 md:py-3">

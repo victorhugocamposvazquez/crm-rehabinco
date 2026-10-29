@@ -8,6 +8,7 @@ import type { InmuebleCorporativa } from "@/lib/web/corporativa/types";
 import { hrefInicio, hrefPoliticaPrivacidad } from "@/lib/web/dominio";
 import { NavCorporativa } from "./NavCorporativa";
 import { ContactoFooter } from "./ContactoFooter";
+import { GaleriaLightbox } from "./GaleriaLightbox";
 import { TarjetaInmuebleCorporativa } from "./TarjetaInmuebleCorporativa";
 
 function cuotaHipoteca(precio: number, entradaPct: number, anos: number, interesPct: number) {
@@ -110,18 +111,53 @@ export function FichaCorporativa({
 
         <div className="corp-pad grid w-full min-w-0 gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)] lg:items-start">
           <div className="min-w-0">
-            <div className="grid gap-2 md:grid-cols-4 md:grid-rows-2">
-              {fotos.slice(0, 5).map((foto, i) => (
+            <div className="flex flex-col gap-3">
+              {/* Móvil: hero + CTA */}
+              {fotos[0] ? (
                 <button
-                  key={foto + i}
                   type="button"
-                  className={`overflow-hidden rounded-[18px] bg-[#e9e6e1] text-left ${i === 0 ? "md:col-span-2 md:row-span-2 md:min-h-[360px]" : "min-h-[96px]"}`}
-                  onClick={() => setLightbox(i)}
+                  className="relative min-h-[220px] overflow-hidden rounded-[18px] bg-[#e9e6e1] text-left md:hidden"
+                  onClick={() => setLightbox(0)}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={foto} alt="" className="h-full w-full object-cover" fetchPriority={i === 0 ? "high" : "auto"} />
+                  <img src={fotos[0]} alt="" className="h-full w-full object-cover" fetchPriority="high" />
+                  {fotos.length > 1 ? (
+                    <span className="absolute bottom-3 right-3 rounded-full bg-[#080808]/85 px-3 py-1.5 text-[13px] font-medium text-[#fefefe]">
+                      Ver las {fotos.length} fotos
+                    </span>
+                  ) : null}
                 </button>
-              ))}
+              ) : null}
+
+              {/* Desktop: mosaico hasta 5 */}
+              <div className="hidden gap-2 md:grid md:grid-cols-4 md:grid-rows-2">
+                {fotos.slice(0, 5).map((foto, i) => (
+                  <button
+                    key={foto + i}
+                    type="button"
+                    className={`relative overflow-hidden rounded-[18px] bg-[#e9e6e1] text-left ${i === 0 ? "md:col-span-2 md:row-span-2 md:min-h-[360px]" : "min-h-[96px]"}`}
+                    onClick={() => setLightbox(i)}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={foto} alt="" className="h-full w-full object-cover" fetchPriority={i === 0 ? "high" : "auto"} />
+                    {i === 4 && fotos.length > 5 ? (
+                      <span className="absolute inset-0 grid place-items-center bg-[#080808]/45 text-[15px] font-medium text-[#fefefe]">
+                        +{fotos.length - 5} fotos
+                      </span>
+                    ) : null}
+                  </button>
+                ))}
+              </div>
+
+              {fotos.length > 1 ? (
+                <button
+                  type="button"
+                  className="hidden self-start border-b border-[#080808] pb-0.5 text-[14px] font-medium md:inline"
+                  onClick={() => setLightbox(0)}
+                >
+                  Ver las {fotos.length} fotos
+                </button>
+              ) : null}
             </div>
 
             <section className="mt-10 flex flex-col gap-[18px]">
@@ -340,14 +376,14 @@ export function FichaCorporativa({
         ) : null}
       </div>
 
-      {lightbox !== null && fotos[lightbox] ? (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[rgba(8,8,8,.9)] p-4" role="presentation" onClick={() => setLightbox(null)}>
-          <button type="button" aria-label="Cerrar" className="absolute right-4 top-4 text-3xl text-[#fefefe]" onClick={() => setLightbox(null)}>
-            ×
-          </button>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={fotos[lightbox]} alt="" className="max-h-[90vh] max-w-full rounded-[18px] object-contain" onClick={(e) => e.stopPropagation()} />
-        </div>
+      {lightbox !== null && fotos.length ? (
+        <GaleriaLightbox
+          fotos={fotos}
+          indice={lightbox}
+          onIndice={setLightbox}
+          onCerrar={() => setLightbox(null)}
+          titulo={item.titulo}
+        />
       ) : null}
 
       <ContactoFooter enDominio={enDominio} />
