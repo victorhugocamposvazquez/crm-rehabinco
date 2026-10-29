@@ -43,7 +43,7 @@ function normalizar(row: TareaDetalle & Record<string, unknown>): TareaDetalle {
 }
 
 const SELECT_TAREA =
-  "id, comercial_id, creado_por, mencionados, titulo, vence, hora, estado, finca_reference, propiedad_id, cliente_id, demanda_id, cita_id, parte_visita_id, created_at, propiedades:propiedad_id(titulo, direccion, referencia), clientes:cliente_id(nombre), demandas:demanda_id(tipo_operacion), partes_visita:parte_visita_id(inmueble_direccion, fecha_visita), cita:citas!tareas_cita_id_fkey(lugar, notas), profiles:comercial_id(nombre_completo, color, email), creador:creado_por(nombre_completo, color, email)";
+  "id, comercial_id, creado_por, mencionados, titulo, vence, hora, estado, finca_reference, propiedad_id, cliente_id, demanda_id, cita_id, parte_visita_id, created_at, propiedades:propiedad_id(titulo, direccion, referencia), clientes:cliente_id(nombre, telefono), demandas:demanda_id(tipo_operacion), partes_visita:parte_visita_id(inmueble_direccion, fecha_visita), cita:citas!tareas_cita_id_fkey(lugar, notas), profiles:comercial_id(nombre_completo, color, email), creador:creado_por(nombre_completo, color, email)";
 
 function personaDe(
   id: string,
@@ -163,7 +163,9 @@ export default function TareasPage() {
                 t.propiedades?.titulo ||
                 t.propiedades?.direccion ||
                 captacion,
-              cliente: t.clientes?.nombre,
+              cliente: t.clientes?.nombre
+                ? [t.clientes.nombre, t.clientes.telefono?.trim()].filter(Boolean).join(" · ")
+                : null,
               finca: t.finca_reference,
               demanda: t.demandas?.tipo_operacion,
               parte: t.partes_visita?.inmueble_direccion,

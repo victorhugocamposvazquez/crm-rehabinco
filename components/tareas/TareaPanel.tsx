@@ -44,7 +44,7 @@ export type TareaDetalle = {
   parte_visita_id?: string | null;
   created_at?: string | null;
   propiedades?: { titulo?: string | null; direccion?: string | null; referencia?: string | null } | null;
-  clientes?: { nombre?: string | null } | null;
+  clientes?: { nombre?: string | null; telefono?: string | null } | null;
   demandas?: { tipo_operacion?: string | null } | null;
   partes_visita?: { inmueble_direccion?: string | null; fecha_visita?: string | null } | null;
   cita?: { lugar?: string | null; notas?: string | null } | null;
@@ -89,7 +89,7 @@ export function TareaPanel({
   const [notasCita, setNotasCita] = useState("");
   const [actividad, setActividad] = useState<Actividad[]>([]);
   const [propsOpts, setPropsOpts] = useState<Array<{ id: string; label: string }>>([]);
-  const [cliOpts, setCliOpts] = useState<Array<{ id: string; label: string }>>([]);
+  const [cliOpts, setCliOpts] = useState<Array<{ id: string; label: string; telefono?: string | null }>>([]);
   const [demOpts, setDemOpts] = useState<Array<{ id: string; label: string }>>([]);
   const [parteOpts, setParteOpts] = useState<Array<{ id: string; label: string; propiedadId: string | null }>>([]);
   const [confirmEliminar, setConfirmEliminar] = useState(false);
@@ -162,11 +162,19 @@ export function TareaPanel({
       );
     void supabase
       .from("clientes")
-      .select("id, nombre")
+      .select("id, nombre, telefono")
       .eq("activo", true)
       .order("nombre")
       .limit(200)
-      .then(({ data }) => setCliOpts((data ?? []).map((c) => ({ id: c.id, label: c.nombre }))));
+      .then(({ data }) =>
+        setCliOpts(
+          (data ?? []).map((c) => ({
+            id: c.id,
+            label: c.nombre,
+            telefono: c.telefono?.trim() || null,
+          }))
+        )
+      );
     void supabase
       .from("demandas")
       .select("id, tipo_operacion, clientes:cliente_id(nombre)")
@@ -221,7 +229,9 @@ export function TareaPanel({
     propiedad: [tarea.propiedades?.referencia, tarea.propiedades?.titulo || tarea.propiedades?.direccion]
       .filter(Boolean)
       .join(" · ") || inmuebleCaptacion,
-    cliente: tarea.clientes?.nombre,
+    cliente: tarea.clientes?.nombre
+      ? [tarea.clientes.nombre, tarea.clientes.telefono?.trim()].filter(Boolean).join(" · ")
+      : null,
     finca: tarea.finca_reference,
     demanda: tarea.demandas?.tipo_operacion ? `Demanda ${tarea.demandas.tipo_operacion}` : null,
     parte: tarea.partes_visita?.inmueble_direccion,
@@ -476,7 +486,18 @@ export function TareaPanel({
             </CampoVinculo>
             <CampoVinculo
               label="Cliente"
-              valor={tarea.cliente_id ? (cliOpts.find((c) => c.id === tarea.cliente_id)?.label || tarea.clientes?.nombre) : null}
+              valor={
+                tarea.cliente_id
+                  ? cliOpts.find((c) => c.id === tarea.cliente_id)?.label || tarea.clientes?.nombre
+                  : null
+              }
+              telefono={
+                tarea.cliente_id
+                  ? cliOpts.find((c) => c.id === tarea.cliente_id)?.telefono ||
+                    tarea.clientes?.telefono?.trim() ||
+                    null
+                  : null
+              }
               onVer={tarea.cliente_id ? () => abrirFicha({ tipo: "cliente", id: tarea.cliente_id! }) : undefined}
             >
               <Selector
@@ -489,7 +510,7 @@ export function TareaPanel({
                 <option value="">Sin cliente</option>
                 {cliOpts.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.label}
+                    {c.telefono ? `${c.label} · ${c.telefono}` : c.label}
                   </option>
                 ))}
               </Selector>
@@ -661,11 +682,13 @@ export function TareaPanel({
 function CampoVinculo({
   label,
   valor,
+  telefono,
   onVer,
   children,
 }: {
   label: string;
   valor?: string | null;
+  telefono?: string | null;
   onVer?: () => void;
   children: ReactNode;
 }) {
@@ -673,18 +696,39 @@ function CampoVinculo({
     <div>
       <div className="text-[12px] text-[var(--text-3)]">{label}</div>
       {valor && onVer ? (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onVer();
-          }}
-          className="mt-1 flex min-h-11 w-full items-center justify-between gap-2 rounded-[9px] bg-accent-soft px-3 text-left text-[13.5px] font-medium text-accent"
-        >
-          <span className="min-w-0 truncate">{valor}</span>
-          <span className="shrink-0 text-[12px]">Ver ficha</span>
-        </button>
+        <div className="mt-1 flex min-h-11 items-center gap-2 rounded-[9px] bg-accent-soft px-3 text-[13.5px] font-medium text-accent">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onVer();
+            }}
+            className="min-w-0 flex-1 truncate text-left"
+          >
+            {valor}
+          </button>
+          {telefono ? (
+            <a
+              href={`tel:${telefono}`}
+              onClick={(e) => e.stopPropagation()}
+              className="shrink-0 tabular-nums underline-offset-2 hover:underline"
+            >
+              {telefono}
+            </a>
+          ) : null}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onVer();
+            }}
+            className="shrink-0 text-[12px]"
+          >
+            Ver ficha
+          </button>
+        </div>
       ) : null}
       {children}
     </div>
