@@ -16,6 +16,13 @@ describe("parsearListadoIdealista", () => {
     assert.ok(conGeo.length >= 20);
   });
 
+  it("marca sin_resultados desde el HTML sin recorrer body con Cheerio", () => {
+    const html = `<html><body><p>No hay resultados para tu búsqueda</p></body></html>`;
+    const listado = parsearListadoIdealista(html, "https://www.idealista.com/venta-viviendas/oleiros-a-coruna/");
+    assert.equal(listado.items.length, 0);
+    assert.equal(listado.sin_resultados, true);
+  });
+
   it("en el listado de un barrio, el que no trae zona en el título hereda la del listado", () => {
     const html = `
       <nav class="breadcrumb-list">

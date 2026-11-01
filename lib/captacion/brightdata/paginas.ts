@@ -17,11 +17,11 @@ import {
 import { registrarPedidoTelefono, registrarResultadoTelefono, telefonosColaPausada } from "@/lib/captacion/brightdata/telefonos-metricas";
 import { ingestarIdealistaBrightData } from "@/lib/captacion/brightdata/ingestar";
 import { parsearListadoIdealista } from "@/lib/captacion/brightdata/parse-listado";
+import { acumularMetricas, metricasRafagaVacias, type MetricasRafaga } from "@/lib/captacion/brightdata/metricas-rafaga";
 import {
-  anotarLote,
+  anotarYSumarVistos,
   intentarCerrarRecogidasAbiertas,
   marcarSospechosaTransporte,
-  sumarVistos,
 } from "@/lib/captacion/brightdata/recogidas";
 import {
   esErrorTransporteUnlocker,
@@ -51,6 +51,8 @@ type Pagina = {
 };
 
 type ConfigUnlocker = { zone: string; token: string };
+
+type ResultadoPagina = { errores: number; metricas: Partial<MetricasRafaga> };
 
 export type OpcionesProcesarPaginas = {
   limitePaginas?: number;
@@ -90,9 +92,11 @@ async function procesarFichaPagina(
   supabase: ReturnType<typeof createAdminClient>,
   config: ConfigUnlocker,
   pagina: Pagina
-): Promise<number> {
+): Promise<ResultadoPagina> {
   const externoId = externoIdFicha(pagina.url);
+  const metricas: Partial<MetricasRafaga> = {};
   try {
+    const tDescarga = Date.now();
     const configUrl = externoId ? urlConfigDetalleIdealista(externoId) : null;
     const [html, cfg] = await Promise.all([
       pedirHtmlUnlocker(config, pagina.url),
@@ -102,7 +106,10 @@ async function procesarFichaPagina(
             .catch(() => null)
         : Promise.resolve(null),
     ]);
+    metricas.ms_descarga = Date.now() - tDescarga;
+    const tParse = Date.now();
     const resultado = await aplicarFicha(html, pagina.url, { configJson: cfg });
+    metricas.ms_parseo = Date.now() - tParse;
     await supabase
       .from("captacion_paginas_pendientes")
       .update({ estado: resultado === "ok" ? "hecha" : "pendiente" })
@@ -111,10 +118,10 @@ async function procesarFichaPagina(
       if (externoId) await encolarTelefono(externoId).catch(() => undefined);
     }
     if (resultado !== "ok") await marcarFichaPendiente(externoId);
-    return 0;
+    return { errores: 0, metricas };
   } catch {
     await marcarFichaPendiente(externoId);
-    return 1;
+    return { errores: 1, metricas };
   }
 }
 
@@ -122,15 +129,23 @@ async function procesarListadoPagina(
   supabase: ReturnType<typeof createAdminClient>,
   config: ConfigUnlocker,
   pagina: Pagina
-): Promise<number> {
+): Promise<ResultadoPagina> {
+  const metricas: Partial<MetricasRafaga> = {};
   try {
+    const tDescarga = Date.now();
     const resp = await pedirUnlocker(config, pagina.url);
+    metricas.ms_descarga = Date.now() - tDescarga;
     if (esErrorTransporteUnlocker(resp)) {
       await manejarTransporteListado(supabase, pagina, config, resp);
-      return (pagina.intentos ?? 0) + 1 >= MAX_INTENTOS_TRANSPORTE_LISTADO ? 1 : 0;
+      return {
+        errores: (pagina.intentos ?? 0) + 1 >= MAX_INTENTOS_TRANSPORTE_LISTADO ? 1 : 0,
+        metricas,
+      };
     }
     const html = resp.cuerpo;
+    const tParse = Date.now();
     const listado = parsearListadoIdealista(html, pagina.url);
+    metricas.ms_parseo = Date.now() - tParse;
     const n = listado.items.length;
     const sinListado = n === 0 && !listado.sin_resultados;
     if (sinListado) await guardarDiagnosticoUnlocker(supabase, pagina.id, config, pagina.url, resp);
@@ -143,13 +158,23 @@ async function procesarListadoPagina(
       sin_listado: sinListado,
       items_en_pagina: n,
     }));
-    await ingestarIdealistaBrightData(registros);
+    const tIngesta = Date.now();
+    const ingesta = await ingestarIdealistaBrightData(registros);
+    metricas.ms_ingesta = Date.now() - tIngesta;
+    metricas.anuncios = n;
+    metricas.nuevos = ingesta.nuevos;
+    metricas.actualizados = ingesta.actualizados;
+    metricas.sin_cambios = ingesta.sinCambios;
     if (pagina.recogida_id) {
-      // Provincia 48 h sí anota externos (novedades / fecha), pero no entra en vistos ni retirados.
-      await anotarLote(pagina.recogida_id, registros);
-      if (pagina.zona_id !== ZONA_PROVINCIA_48H) {
-        await sumarVistos(pagina.recogida_id, pagina.zona_id, listado.items.map((item) => item.externo_id), sinListado);
-      }
+      const tRec = Date.now();
+      await anotarYSumarVistos(
+        pagina.recogida_id,
+        registros,
+        pagina.zona_id,
+        listado.items.map((item) => item.externo_id),
+        sinListado
+      );
+      metricas.ms_recogida = Date.now() - tRec;
     }
     if (pagina.recogida_id && listado.next_url && pagina.page < TOPE) {
       await encolarPaginas(pagina.recogida_id, [{ url: listado.next_url, zona_id: pagina.zona_id, page: pagina.page + 1 }]);
@@ -157,7 +182,7 @@ async function procesarListadoPagina(
       await supabase.from("captacion_recogidas").update({ incompleta: true }).eq("collection_id", pagina.recogida_id);
     }
     await supabase.from("captacion_paginas_pendientes").update({ estado: "hecha" }).eq("id", pagina.id);
-    return 0;
+    return { errores: 0, metricas };
   } catch (error) {
     const cuerpo = error instanceof Error ? error.message : "Página de listado fallida";
     await manejarTransporteListado(supabase, pagina, config, {
@@ -168,7 +193,7 @@ async function procesarListadoPagina(
       bytes: new TextEncoder().encode(cuerpo).length,
     });
     console.error(cuerpo);
-    return 1;
+    return { errores: 1, metricas };
   }
 }
 
@@ -277,6 +302,7 @@ export async function procesarPaginasPendientes(opts?: OpcionesProcesarPaginas):
   cerradas: string[];
   errores: number;
   paradaPorTiempo: boolean;
+  metricas: MetricasRafaga;
 }> {
   const config = configUnlocker();
   if ("error" in config) throw new Error(config.error);
@@ -287,6 +313,7 @@ export async function procesarPaginasPendientes(opts?: OpcionesProcesarPaginas):
   const paralelo = opts?.paralelo ?? RAFAGA_PARALELO_UNLOCKER;
   const topeMs = opts?.topeMs ?? RAFAGA_TOPE_MS;
   const limites = { limitePaginas, topeMs };
+  const metricas = metricasRafagaVacias();
 
   let procesadas = 0;
   let errores = 0;
@@ -303,7 +330,10 @@ export async function procesarPaginasPendientes(opts?: OpcionesProcesarPaginas):
         return procesarListadoPagina(supabase, config, pagina);
       })
     );
-    errores += resultados.reduce((a, b) => a + b, 0);
+    for (const r of resultados) {
+      errores += r.errores;
+      acumularMetricas(metricas, r.metricas);
+    }
     procesadas += lote.length;
 
     if (rafagaDebeParar(t0, ahora(), procesadas, limites)) {
@@ -332,7 +362,9 @@ export async function procesarPaginasPendientes(opts?: OpcionesProcesarPaginas):
         paradaPorTiempo = ahora() - t0 >= topeMs;
         break;
       }
+      const tTel = Date.now();
       errores += await procesarTelefonoPagina(supabase, config, pagina);
+      metricas.ms_descarga += Date.now() - tTel;
       telefonos += 1;
       procesadas += 1;
     }
@@ -343,5 +375,7 @@ export async function procesarPaginasPendientes(opts?: OpcionesProcesarPaginas):
   }
 
   const cerradas = await intentarCerrarRecogidasAbiertas();
-  return { paginas: procesadas, cerradas, errores, paradaPorTiempo };
+  metricas.paginas = procesadas;
+  metricas.errores = errores;
+  return { paginas: procesadas, cerradas, errores, paradaPorTiempo, metricas };
 }

@@ -4,6 +4,8 @@ export const RAFAGA_PARALELO_UNLOCKER = 4;
 export const RAFAGA_TOPE_MS = 240_000;
 export const RAFAGA_TELEFONO_MAX = 30;
 export const RAFAGA_ESPERA_TELEFONO_MS = 2_000;
+/** Paralelismo de escritura/pipeline por página de listado (1–5). */
+export const INGESTA_PARALELO_DEFAULT = 3;
 
 export type RafagaLimites = {
   limitePaginas: number;

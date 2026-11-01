@@ -15,6 +15,8 @@ Idealista entra por el Web Unlocker, pedido desde el CRM. El teléfono lo guarda
 
 `pg_cron` abre la pasada completa a las 04:30 UTC, el sondeo de novedades cada 15 minutos y procesa la cola cada 5 minutos. El sondeo no marca retirados.
 
+Optimización Fluid CPU (Vercel, sin worker externo): early-exit si la cola está vacía, ingesta incremental, batch Supabase e `INGESTA_PARALELO_DEFAULT = 3`. Detalle en `docs/OPTIMIZACION-CAPTACION-BRIGHTDATA-VERCEL.md`. Cada ráfaga deja un log JSON `captacion_rafaga` (sin PII).
+
 ## Qué guarda el listado
 
 Un registro por anuncio, sin teléfono. Si Idealista no manda fecha, la ficha del CRM dice **Detectado el {visto_primera_vez}** (tooltip: fecha en que el CRM lo vio por primera vez). Un anuncio sin teléfono sigue visible: **teléfono: falta**, o **capturado por X el día Y** si la extensión lo guardó. El botón de la ficha es **Abrir en Idealista**.

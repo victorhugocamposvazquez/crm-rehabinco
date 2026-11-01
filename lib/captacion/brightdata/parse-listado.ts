@@ -126,7 +126,9 @@ export function parsearListadoIdealista(html: string, urlEntrada?: string | null
   }
 
   const next_url = abs($(".pagination li.next a").first().attr("href"));
-  const cuerpo = sano($("body").text());
-  const sin_resultados = items.length === 0 && /no hay resultados|sin resultados|no hemos encontrado|no se han encontrado/i.test(cuerpo);
+  // Evita $("body").text() (recorre todo el DOM): basta el HTML crudo si no hay items.
+  const sin_resultados =
+    items.length === 0 &&
+    /no hay resultados|sin resultados|no hemos encontrado|no se han encontrado/i.test(html);
   return { items, next_url, final_url, sin_resultados };
 }

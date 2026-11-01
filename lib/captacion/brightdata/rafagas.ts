@@ -1,7 +1,11 @@
+import { hayRecogidasAbiertas, hayTrabajoPendienteCola } from "@/lib/captacion/brightdata/cola-pendiente";
+import { decidirEarlyExit } from "@/lib/captacion/brightdata/early-exit-decision";
+import { logMetricasRafaga, metricasRafagaVacias, type MetricasRafaga } from "@/lib/captacion/brightdata/metricas-rafaga";
 import { cupoPaginasRafagaPresupuesto } from "@/lib/captacion/brightdata/presupuesto-unlocker";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { procesarPaginasPendientes } from "@/lib/captacion/brightdata/paginas";
 import { adquirirLockProcesar, liberarLockProcesar } from "@/lib/captacion/brightdata/procesar-lock";
+import { intentarCerrarRecogidasAbiertas } from "@/lib/captacion/brightdata/recogidas";
 
 export type RafagaCaptacion = {
   id: string;
@@ -61,15 +65,66 @@ export type ResultadoRafagaProcesar = {
   cerradas: string[];
   omitida?: boolean;
   motivo?: string | null;
+  metricas?: MetricasRafaga;
 };
 
 /** Una ráfaga completa (lock + procesar + historial). */
 export async function ejecutarRafagaProcesar(): Promise<ResultadoRafagaProcesar> {
   const t0 = Date.now();
+
+  // Early exit: sin cola ni recogidas abiertas → no lock, Unlocker, Cheerio ni presupuesto.
+  // Con recogidas abiertas y cola vacía → cierra (retirados) sin Unlocker.
+  const hayCola = await hayTrabajoPendienteCola();
+  const decision = decidirEarlyExit(hayCola, hayCola ? false : await hayRecogidasAbiertas());
+  if (decision.accion === "omitir_sin_lock") {
+    const metricas = metricasRafagaVacias();
+    metricas.ms_total = Date.now() - t0;
+    metricas.omitida = true;
+    metricas.motivo = decision.motivo;
+    await registrarRafagaOmitida(decision.motivo);
+    logMetricasRafaga(metricas);
+    return { paginas: 0, errores: 0, cerradas: [], omitida: true, motivo: decision.motivo, metricas };
+  }
+  if (decision.accion === "cerrar_recogidas") {
+    if (!(await adquirirLockProcesar())) {
+      await registrarRafagaOmitida("lock_ocupado");
+      return { paginas: 0, errores: 0, cerradas: [], omitida: true, motivo: "lock_ocupado" };
+    }
+    try {
+      const cerradas = await intentarCerrarRecogidasAbiertas();
+      const metricas = metricasRafagaVacias();
+      metricas.ms_total = Date.now() - t0;
+      metricas.omitida = true;
+      metricas.motivo = decision.motivo;
+      await registrarRafagaOmitida(decision.motivo);
+      logMetricasRafaga(metricas);
+      return { paginas: 0, errores: 0, cerradas, omitida: true, motivo: decision.motivo, metricas };
+    } finally {
+      await liberarLockProcesar();
+    }
+  }
+
   if (!(await adquirirLockProcesar())) {
     await registrarRafagaOmitida("lock_ocupado");
     return { paginas: 0, errores: 0, cerradas: [], omitida: true, motivo: "lock_ocupado" };
   }
+
+  // Re-check tras el lock: otra ráfaga pudo vaciar la cola.
+  if (!(await hayTrabajoPendienteCola())) {
+    try {
+      const cerradas = await intentarCerrarRecogidasAbiertas();
+      const metricas = metricasRafagaVacias();
+      metricas.ms_total = Date.now() - t0;
+      metricas.omitida = true;
+      metricas.motivo = "cola_vacia";
+      await registrarRafagaOmitida("cola_vacia");
+      logMetricasRafaga(metricas);
+      return { paginas: 0, errores: 0, cerradas, omitida: true, motivo: "cola_vacia", metricas };
+    } finally {
+      await liberarLockProcesar();
+    }
+  }
+
   const presupuesto = await cupoPaginasRafagaPresupuesto();
   if (presupuesto.omitir) {
     await registrarRafagaOmitida(presupuesto.omitir);
@@ -79,14 +134,27 @@ export async function ejecutarRafagaProcesar(): Promise<ResultadoRafagaProcesar>
   const id = await iniciarRafaga();
   try {
     const resultado = await procesarPaginasPendientes({ limitePaginas: presupuesto.cupo });
+    const duracionMs = Date.now() - t0;
     await cerrarRafaga(id, {
       paginas: resultado.paginas,
       errores: resultado.errores,
       ok: true,
       motivo: resultado.paradaPorTiempo ? "tope_tiempo" : null,
-      duracionMs: Date.now() - t0,
+      duracionMs,
     });
-    return { paginas: resultado.paginas, errores: resultado.errores, cerradas: resultado.cerradas };
+    const metricas: MetricasRafaga = {
+      ...resultado.metricas,
+      paginas: resultado.paginas,
+      errores: resultado.errores,
+      ms_total: duracionMs,
+    };
+    logMetricasRafaga(metricas);
+    return {
+      paginas: resultado.paginas,
+      errores: resultado.errores,
+      cerradas: resultado.cerradas,
+      metricas,
+    };
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Ráfaga fallida";
     await cerrarRafaga(id, {

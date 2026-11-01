@@ -162,6 +162,54 @@ export async function sumarVistos(collectionId: string, zonaId: string, ids: str
   await supabase.from("captacion_recogidas").update({ vistos, conteos, sospechosas }).eq("collection_id", collectionId);
 }
 
+/**
+ * Anota externos y vistos en una sola lectura/escritura de la recogida.
+ * Provincia 48 h solo anota externos (como anotarLote + sumarVistos por separado).
+ */
+export async function anotarYSumarVistos(
+  collectionId: string,
+  registros: Record<string, unknown>[],
+  zonaId: string,
+  idsVistos: string[],
+  invalida: boolean
+): Promise<void> {
+  const idsExternos = registros
+    .map((row) => mapearBrightDataIdealista(row)?.externo_id)
+    .filter((id): id is string => Boolean(id));
+  const soloNovedades = zonaId === ZONA_PROVINCIA_48H;
+  if (idsExternos.length === 0 && (soloNovedades || idsVistos.length === 0) && !invalida) return;
+
+  const supabase = admin();
+  const { data } = await supabase
+    .from("captacion_recogidas")
+    .select("externos, registros, vistos, sospechosas")
+    .eq("collection_id", collectionId)
+    .maybeSingle();
+  if (!data) return;
+
+  const patch: Record<string, unknown> = {};
+  if (idsExternos.length > 0) {
+    const previos = Array.isArray(data.externos) ? (data.externos as string[]) : [];
+    const unidos = [...new Set([...previos, ...idsExternos])];
+    patch.externos = unidos;
+    patch.registros = unidos.length;
+  }
+
+  if (!soloNovedades) {
+    const vistos = { ...((data.vistos ?? {}) as Record<string, string[]>) };
+    const unidosVistos = new Set([...(vistos[zonaId] ?? []), ...idsVistos]);
+    vistos[zonaId] = [...unidosVistos];
+    patch.vistos = vistos;
+    patch.conteos = Object.fromEntries(Object.entries(vistos).map(([zona, lista]) => [zona, lista.length]));
+    const sospechosas = { ...((data.sospechosas ?? {}) as Record<string, MotivoSospecha>) };
+    if (invalida) sospechosas[zonaId] = "pagina_invalida";
+    patch.sospechosas = sospechosas;
+  }
+
+  if (Object.keys(patch).length === 0) return;
+  await supabase.from("captacion_recogidas").update(patch).eq("collection_id", collectionId);
+}
+
 export function hayListadosPendientesRecogida(
   filas: Array<{ recogida_id: string | null; tipo: string; estado: string }>,
   recogidaId: string
