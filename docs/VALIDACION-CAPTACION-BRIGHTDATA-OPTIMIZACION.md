@@ -77,3 +77,20 @@ Tras el deploy, monitorizar 48–72 h:
 1. Fluid Active CPU de `/api/captacion/brightdata/procesar`
 2. Ratio `sin_cambios / anuncios` en logs `captacion_rafaga`
 3. Errores / motivos en `captacion_rafagas`
+
+---
+
+## Despliegue 1 nov 2026
+
+| Campo | Valor |
+|-------|--------|
+| Rollback SHA | `a6829ade7f7f85cbe936bda4a56b5f0e872a4974` |
+| SHA en `main` | `497d9537e25101c8e6a085b1a2f31d780f75ed07` |
+| Push | OK (`main`) |
+| Tests / build pre-push | 119/119 + build OK |
+| Crons tocados | ninguno |
+| Estado Vercel | **Account is blocked** / `DEPLOYMENT_DISABLED` (HTTP 402) |
+| Site `crm.rehabinco.es` | 402 — no sirve tráfico |
+| Comprobaciones post-deploy | **bloqueadas** hasta desbloquear la cuenta |
+
+Acción requerida: desbloquear la cuenta/proyecto en Vercel (cuota Fluid / billing). Luego verificar deployment Ready del SHA `497d953…` y continuar el plan de monitorización 48–72 h. No hace falta rollback de código por la optimización; el fallo es de cuenta, no del commit.
