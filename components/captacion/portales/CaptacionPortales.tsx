@@ -13,7 +13,7 @@ import { FiltroComercial, type ComercialFiltro } from "@/components/captacion/Fi
 import { nombreYApellido, inicialesNombre } from "@/lib/ui/tokens";
 import { normalizarTexto } from "@/lib/captacion/pipeline/normalize";
 import { coincideBusqueda } from "@/lib/captacion/portales/busqueda";
-import { anuncioEnLocalidad, CIUDADES_FILTRO, LOCALIDADES_FILTRO } from "@/lib/captacion/portales/zonas";
+import { anuncioEnLocalidad, CIUDADES_FILTRO, opcionesLocalidadFiltro } from "@/lib/captacion/portales/zonas";
 import {
   indiciosEncubierta,
   recuentoPorClave,
@@ -408,6 +408,16 @@ export function CaptacionPortales() {
     [hayRecogidaCompleta, telefonosEnCola]
   );
 
+  const localidadesOpciones = useMemo(
+    () => opcionesLocalidadFiltro(fCiudad, anuncios),
+    [fCiudad, anuncios]
+  );
+
+  useEffect(() => {
+    if (fLocalidad === "todas") return;
+    if (!localidadesOpciones.includes(fLocalidad)) setFLocalidad("todas");
+  }, [fLocalidad, localidadesOpciones]);
+
   const filtraListado = useCallback(
     (a: AnuncioCaptacion, chipActivo: ChipCaptacion = chip) => {
       if (chipActivo === "retirados") {
@@ -418,6 +428,8 @@ export function CaptacionPortales() {
       if (fAlerta !== "todas" && a.alerta_id !== fAlerta) return false;
       if (fLocalidad !== "todas") {
         if (!anuncioEnLocalidad(fLocalidad, a)) return false;
+        // Con ciudad gallega, la localidad (barrio) debe pertenecer a ese municipio.
+        if (fCiudad !== "todas" && fCiudad !== "Madrid" && !(a.municipio ?? "").startsWith(fCiudad)) return false;
       } else if (fCiudad !== "todas" && !(a.municipio ?? "").startsWith(fCiudad)) return false;
       if (filtros.portal !== "todos" && a.fuente !== filtros.portal) return false;
       if (filtros.tipo !== "todos" && a.tipo !== filtros.tipo) return false;
@@ -804,7 +816,17 @@ export function CaptacionPortales() {
                   <option key={a.id} value={a.id}>{a.nombre}</option>
                 ))}
               </Selector>
-              <Selector value={fCiudad} onChange={(e) => { setFCiudad(e.target.value); setPag(1); }} className="h-9 rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-2.5 text-[13px]">
+              <Selector
+                value={fCiudad}
+                onChange={(e) => {
+                  const ciudad = e.target.value;
+                  setFCiudad(ciudad);
+                  const opts = opcionesLocalidadFiltro(ciudad, anuncios);
+                  setFLocalidad((prev) => (prev !== "todas" && opts.includes(prev) ? prev : "todas"));
+                  setPag(1);
+                }}
+                className="h-9 rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-2.5 text-[13px]"
+              >
                 <option value="todas">Ciudad: todas</option>
                 {CIUDADES_FILTRO.map((c) => (
                   <option key={c}>{c}</option>
@@ -812,7 +834,7 @@ export function CaptacionPortales() {
               </Selector>
               <Selector value={fLocalidad} onChange={(e) => { setFLocalidad(e.target.value); setPag(1); }} className="h-9 rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-2.5 text-[13px]">
                 <option value="todas">Localidad: todas</option>
-                {LOCALIDADES_FILTRO.map((c) => (
+                {localidadesOpciones.map((c) => (
                   <option key={c}>{c}</option>
                 ))}
               </Selector>

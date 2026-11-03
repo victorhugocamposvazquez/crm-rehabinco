@@ -62,6 +62,45 @@ function sinAcento(valor: string): string {
     .trim();
 }
 
+/**
+ * Localidades del desplegable según la ciudad elegida.
+ * El catálogo fijo (Aravaca, etc.) solo aplica a Madrid / «todas».
+ * Otras ciudades no reutilizan ese listado.
+ */
+export function localidadesParaCiudad(ciudad: string): readonly string[] {
+  const clave = sinAcento(ciudad);
+  if (!clave || clave === "todas" || clave === "madrid") return LOCALIDADES_FILTRO;
+  return [];
+}
+
+/** Barrios distintos del municipio en los anuncios (p. ej. Cambre). */
+export function localidadesDesdeAnuncios(
+  ciudad: string,
+  anuncios: Array<{ zona?: string | null; municipio?: string | null }>
+): string[] {
+  const claveCiudad = sinAcento(ciudad);
+  if (!claveCiudad || claveCiudad === "todas") return [];
+  const vistas = new Set<string>();
+  for (const a of anuncios) {
+    const mun = sinAcento(a.municipio ?? "");
+    if (!mun.startsWith(claveCiudad)) continue;
+    const zona = (a.zona ?? "").trim();
+    if (!zona) continue;
+    if (sinAcento(zona) === claveCiudad || sinAcento(zona).startsWith(claveCiudad)) continue;
+    vistas.add(zona);
+  }
+  return [...vistas].sort((a, b) => a.localeCompare(b, "es"));
+}
+
+export function opcionesLocalidadFiltro(
+  ciudad: string,
+  anuncios: Array<{ zona?: string | null; municipio?: string | null }> = []
+): string[] {
+  const catalogo = localidadesParaCiudad(ciudad);
+  if (catalogo.length > 0) return [...catalogo];
+  return localidadesDesdeAnuncios(ciudad, anuncios);
+}
+
 /** La localidad casa con el barrio o, si es un municipio, con el municipio del anuncio. */
 export function anuncioEnLocalidad(
   localidad: string,

@@ -85,12 +85,13 @@ Tras el deploy, monitorizar 48–72 h:
 | Campo | Valor |
 |-------|--------|
 | Rollback SHA | `a6829ade7f7f85cbe936bda4a56b5f0e872a4974` |
-| SHA en `main` | `497d9537e25101c8e6a085b1a2f31d780f75ed07` |
-| Push | OK (`main`) |
-| Tests / build pre-push | 119/119 + build OK |
-| Crons tocados | ninguno |
-| Estado Vercel | **Account is blocked** / `DEPLOYMENT_DISABLED` (HTTP 402) |
-| Site `crm.rehabinco.es` | 402 — no sirve tráfico |
-| Comprobaciones post-deploy | **bloqueadas** hasta desbloquear la cuenta |
+| SHA optimización | `497d9537e25101c8e6a085b1a2f31d780f75ed07` |
+| SHA en producción (`/api/version`) | `f4942ddb7079d88fc291407490167d2d301393c2` (retrigger tras desbloqueo; incluye la optimización) |
+| Vercel | **Ready** — *Deployment has completed* |
+| Site | HTTP 200 |
+| `POST /procesar` sin auth | 401 `No autorizado` (no arranca ráfaga) |
+| Crons | Intactos; `procesar` cada 5 min escribe en `captacion_rafagas` |
+| Motivo ráfagas post-deploy | `tope_dia` (presupuesto Unlocker diario agotado; cola ~399 pendientes) |
+| Fluid CPU 48–72 h | Pendiente de medición en dashboard Vercel |
 
-Acción requerida: desbloquear la cuenta/proyecto en Vercel (cuota Fluid / billing). Luego verificar deployment Ready del SHA `497d953…` y continuar el plan de monitorización 48–72 h. No hace falta rollback de código por la optimización; el fallo es de cuenta, no del commit.
+Tras desbloqueo de cuenta se re-disparó deploy vacío `f4942dd`. Producción sirve ya el código con early-exit / incremental. Hasta que resetee el tope diario no habrá páginas procesadas ni logs `captacion_rafaga` con `sin_cambios`; el cron sí responde con omit `tope_dia`.
