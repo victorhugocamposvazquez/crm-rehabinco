@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { emailEmpresaVisible, telefonoEmpresaVisible } from "@/lib/empresa-documentos";
 import type { MarcaPdf, PdfThemeName } from "./model";
 
 export type BrandingRow = {
@@ -45,8 +46,8 @@ export async function marcaDeAgencia(
   ]);
   return {
     name,
-    phone: row?.phone ?? null,
-    email: row?.email ?? null,
+    phone: telefonoEmpresaVisible(row?.phone),
+    email: emailEmpresaVisible(row?.email),
     web: row?.web ?? null,
     color: row?.color || "#121214",
     pdfTheme: row?.pdf_theme === "dark" ? "dark" : "light",

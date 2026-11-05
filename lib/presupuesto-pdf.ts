@@ -1,3 +1,4 @@
+import { EMPRESA_DOCUMENTOS } from "@/lib/empresa-documentos";
 import { isDefaultRehabincoLogo, resolveInvoiceLogoUrl } from "@/lib/empresa-facturacion";
 import type { EmisorPresupuesto } from "@/lib/emisores-presupuesto";
 import {
@@ -342,8 +343,8 @@ const GARAL_SEDES = {
 } as const;
 
 const REHABINCO_SEDES = {
-  direccion: ["C/ de la Merced, 57 bjo.", "La Coruña", "Tel. 664 859 306"],
-  contacto: ["www.rehabinco.com", "oficina@rehabinco.com"],
+  direccion: ["C/ de la Merced, 57 bjo.", "La Coruña", `CIF ${EMPRESA_DOCUMENTOS.cif}`, `Tel. ${EMPRESA_DOCUMENTOS.telefono}`],
+  contacto: [EMPRESA_DOCUMENTOS.web, EMPRESA_DOCUMENTOS.email],
 } as const;
 
 function garalCoverLabel(text: string) {

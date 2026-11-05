@@ -13,15 +13,15 @@ const CREADA = "2026-10-12T21:21:14.124Z";
 
 const marca: MarcaPdf = {
   name: "REHABINCO, S.L.",
-  phone: "664 859 306",
-  email: "oficina@rehabinco.com",
+  phone: "664 85 93 06",
+  email: "info@rehabinco.es",
   web: "www.rehabinco.com",
   color: "#ffffff",
   pdfTheme: "dark",
   logoLight: readFileSync(path.join(process.cwd(), "public/images/logo-web.png")),
   logoDark: readFileSync(path.join(process.cwd(), "public/images/facturas/rehabinco-blanco.png")),
   agentName: "Comercial de la agencia",
-  agentPhone: "664 859 306",
+  agentPhone: "664 85 93 06",
 };
 
 function item(partial: Partial<EnvironmentItem> & Pick<EnvironmentItem, "label" | "sense" | "source">): EnvironmentItem {
