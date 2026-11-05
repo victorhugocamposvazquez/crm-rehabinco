@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { PropiedadFeed } from "../idealista-feed/build";
+import { urlFotoConMarca } from "../marca-agua";
 
 const ESTADOS_PUBLICABLES = ["disponible", "reservada"];
 
@@ -27,7 +28,9 @@ export function filaAPropiedadFeed(row: Fila, siteUrl: string): PropiedadFeed {
       if (pa !== pb) return pa - pb;
       return (a.orden ?? 0) - (b.orden ?? 0);
     });
-  const fotos = media.map((m) => urlAbsolutaFoto(m.url, siteUrl)).filter(Boolean);
+  const fotos = media
+    .map((m) => urlFotoConMarca(urlAbsolutaFoto(m.url, siteUrl), siteUrl))
+    .filter(Boolean);
   const { inmueble_media: _media, publicar_idealista: _pub, estado: _estado, idealista_anuncios: _ids, ...rest } = row;
   return { ...rest, fotos };
 }
@@ -78,10 +81,12 @@ export function idsGuardados(valor: unknown): Record<string, string> {
 
 export function urlSitioPublico(explicita?: string): string {
   const vercel = process.env.VERCEL_URL?.trim();
+  const produccion = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
   return (
     explicita?.trim() ||
     process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
+    (produccion ? (produccion.startsWith("http") ? produccion : `https://${produccion}`) : "") ||
     (vercel ? (vercel.startsWith("http") ? vercel : `https://${vercel}`) : "") ||
-    "https://www.rehabinco.com"
+    "https://crm.rehabinco.es"
   );
 }

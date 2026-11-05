@@ -1,4 +1,5 @@
 import { isAdmin, parseRole } from "@/lib/auth/roles";
+import { urlsFotosConMarca } from "@/lib/inmuebles/marca-agua";
 import { createClient } from "@/lib/supabase/server";
 import {
   aptoParaWeb,
@@ -119,7 +120,7 @@ function inmueblesEditor(filas: unknown): InmuebleWeb[] {
 
 function fotosDe(media: unknown): string[] {
   if (!Array.isArray(media)) return [];
-  return media
+  const urls = media
     .flatMap((item) => {
       if (!item || typeof item !== "object") return [];
       const foto = item as { url?: unknown; tipo?: unknown; portada?: unknown; orden?: unknown };
@@ -132,4 +133,5 @@ function fotosDe(media: unknown): string[] {
     })
     .sort((a, b) => a.orden - b.orden || 0)
     .map((foto) => foto.url);
+  return urlsFotosConMarca(urls);
 }

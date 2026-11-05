@@ -43,6 +43,9 @@
     "app/api/cron/fichajes/route.ts": {
       "maxDuration": 60
     },
+    "app/api/media/marca/route.ts": {
+      "maxDuration": 30
+    },
     "app/api/time/export/route.ts": {
       "maxDuration": 60
     }

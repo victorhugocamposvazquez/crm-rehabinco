@@ -1,3 +1,4 @@
+import { urlsFotosConMarca } from "@/lib/inmuebles/marca-agua";
 import { INMUEBLES_MOCK } from "./mock-inmuebles";
 import type { InmuebleCorporativa, ModoCorporativa } from "./types";
 
@@ -42,9 +43,11 @@ export function inmuebleCrmDe(raw: Record<string, unknown>): InmuebleCorporativa
   const modo = modoDe(typeof raw.tipo_operacion === "string" ? raw.tipo_operacion : null, precioVenta, precioAlquiler);
   const precio = modo === "alquiler" ? precioAlquiler || precioVenta : precioVenta || precioAlquiler;
   if (!precio) return null;
-  const fotos = Array.isArray(raw.fotos)
-    ? raw.fotos.filter((f): f is string => typeof f === "string" && f.trim().length > 0)
-    : [];
+  const fotos = urlsFotosConMarca(
+    Array.isArray(raw.fotos)
+      ? raw.fotos.filter((f): f is string => typeof f === "string" && f.trim().length > 0)
+      : []
+  );
   const fotoPrincipal = fotos[0] ?? "";
   const descripcion =
     (typeof raw.descripcion === "string" && raw.descripcion.trim()) ||
