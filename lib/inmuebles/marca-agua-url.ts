@@ -1,4 +1,6 @@
 const RUTA_API = "/api/media/marca";
+/** Sube este valor si cambia el diseño de la marca (posición, opacidad…). */
+const VERSION_MARCA = "2";
 
 /** Solo fotos del bucket del CRM. Evita usar el endpoint como proxy abierto. */
 export function urlOrigenPermitida(url: string): boolean {
@@ -33,7 +35,8 @@ export function urlFotoConMarca(url: string, siteUrl?: string): string {
   if (!limpia || yaTieneMarca(limpia) || !urlOrigenPermitida(limpia)) return limpia;
   const base = (siteUrl ?? "").replace(/\/$/, "");
   const q = encodeURIComponent(limpia);
-  return base ? `${base}${RUTA_API}?u=${q}` : `${RUTA_API}?u=${q}`;
+  const ruta = `${RUTA_API}?u=${q}&v=${VERSION_MARCA}`;
+  return base ? `${base}${ruta}` : ruta;
 }
 
 export function urlsFotosConMarca(urls: string[], siteUrl?: string): string[] {

@@ -34,15 +34,14 @@ export async function aplicarMarcaAgua(foto: Buffer): Promise<Buffer> {
   const width = meta.width ?? 1200;
   const height = meta.height ?? 800;
   const logoWidth = Math.max(140, Math.round(width * 0.22));
-  const margen = Math.max(16, Math.round(Math.min(width, height) * 0.035));
 
   const logoSvg = await readFile(path.join(process.cwd(), LOGO_REL));
   const logoPng = await sharp(logoSvg).resize({ width: logoWidth }).png().toBuffer();
   const logoMeta = await sharp(logoPng).metadata();
   const lw = logoMeta.width ?? logoWidth;
   const lh = logoMeta.height ?? Math.round(logoWidth * 0.2);
-  const left = Math.max(0, width - lw - margen);
-  const top = Math.max(0, height - lh - margen);
+  const left = Math.max(0, Math.round((width - lw) / 2));
+  const top = Math.max(0, Math.round((height - lh) / 2));
 
   const sombra = await logoConOpacidad(
     await sharp(logoPng).tint({ r: 0, g: 0, b: 0 }).png().toBuffer(),
@@ -52,7 +51,11 @@ export async function aplicarMarcaAgua(foto: Buffer): Promise<Buffer> {
 
   return base
     .composite([
-      { input: sombra, left: Math.min(width - lw, left + 2), top: Math.min(height - lh, top + 2) },
+      {
+        input: sombra,
+        left: Math.min(width - lw, left + 2),
+        top: Math.min(height - lh, top + 2),
+      },
       { input: logo, left, top },
     ])
     .jpeg({ quality: 86, mozjpeg: true })
