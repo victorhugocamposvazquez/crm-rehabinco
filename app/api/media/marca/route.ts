@@ -1,4 +1,5 @@
-import { aplicarMarcaAgua, urlOrigenPermitida } from "@/lib/inmuebles/marca-agua";
+import { aplicarMarcaAgua } from "@/lib/inmuebles/marca-agua";
+import { urlOrigenPermitida } from "@/lib/inmuebles/marca-agua-url";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;

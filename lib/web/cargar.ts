@@ -1,5 +1,5 @@
 import { isAdmin, parseRole } from "@/lib/auth/roles";
-import { urlsFotosConMarca } from "@/lib/inmuebles/marca-agua";
+import { urlsFotosConMarca } from "@/lib/inmuebles/marca-agua-url";
 import { createClient } from "@/lib/supabase/server";
 import {
   aptoParaWeb,

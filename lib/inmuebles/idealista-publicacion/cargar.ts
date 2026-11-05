@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { PropiedadFeed } from "../idealista-feed/build";
-import { urlFotoConMarca } from "../marca-agua";
+import { urlFotoConMarca } from "../marca-agua-url";
 
 const ESTADOS_PUBLICABLES = ["disponible", "reservada"];
 

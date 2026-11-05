@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import sharp from "sharp";
+import { aplicarMarcaAgua } from "./marca-agua";
 import {
-  aplicarMarcaAgua,
   urlFotoConMarca,
   urlOrigenPermitida,
   urlsFotosConMarca,
   yaTieneMarca,
-} from "./marca-agua";
+} from "./marca-agua-url";
 
 const SUPABASE =
   "https://ohwcnfigexzgqpmwmbib.supabase.co/storage/v1/object/public/inmuebles/abc/foto.jpg";

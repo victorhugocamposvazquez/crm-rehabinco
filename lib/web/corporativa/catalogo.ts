@@ -1,4 +1,4 @@
-import { urlsFotosConMarca } from "@/lib/inmuebles/marca-agua";
+import { urlsFotosConMarca } from "@/lib/inmuebles/marca-agua-url";
 import { INMUEBLES_MOCK } from "./mock-inmuebles";
 import type { InmuebleCorporativa, ModoCorporativa } from "./types";
 
