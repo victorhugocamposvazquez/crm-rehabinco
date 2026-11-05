@@ -63,6 +63,7 @@ export function NuevoPartePanel({
   const desdeProperty = Boolean(propiedadIdInicial);
   const ambito = citaIdInicial ? `cita:${citaIdInicial}` : propiedadIdInicial ? `prop:${propiedadIdInicial}` : "libre";
   const saltarPrefill = useRef(false);
+  const agenteManual = useRef(false);
   const [propiedades, setPropiedades] = useState<
     Array<{ id: string; referencia: string | null; titulo: string | null; direccion: string | null }>
   >([]);
@@ -188,7 +189,11 @@ export function NuevoPartePanel({
   }, [open, citaIdInicial]);
 
   useEffect(() => {
-    if (!open || !user?.id) return;
+    if (!open) {
+      agenteManual.current = false;
+      return;
+    }
+    if (!user?.id || agenteManual.current) return;
     const supabase = createClient();
     void supabase
       .from("profiles")
@@ -196,6 +201,7 @@ export function NuevoPartePanel({
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
+        if (agenteManual.current) return;
         const nombre = data?.nombre_completo || data?.email?.split("@")[0] || user.email.split("@")[0];
         setAgenteNombre(nombre ?? "");
       });
@@ -245,10 +251,6 @@ export function NuevoPartePanel({
       toast.error("La dirección del inmueble es obligatoria.");
       return;
     }
-    if (!agenteNombre.trim()) {
-      toast.error("El agente comercial es obligatorio.");
-      return;
-    }
     const supabase = createClient();
     const {
       data: { user: authUser },
@@ -273,7 +275,7 @@ export function NuevoPartePanel({
         comercial_id: authUser.id,
         fecha_visita: fechaVisita || null,
         hora_visita: horaVisita || null,
-        agente_nombre: agenteNombre.trim(),
+        agente_nombre: agenteNombre.trim() || null,
         observaciones: observaciones.trim() || null,
         cita_id: citaIdInicial || null,
         cliente_id: clienteId,
@@ -302,7 +304,7 @@ export function NuevoPartePanel({
       hint="El acta que firma quien visita. Empieza por la persona que tienes delante."
       primaryLabel="Crear parte"
       saving={saving}
-      disablePrimary={!inmuebleDireccion.trim() || !agenteNombre.trim()}
+      disablePrimary={!inmuebleDireccion.trim()}
       onSubmit={crear}
       borrador={{
         activo: altaBorrador.hayBorrador,
@@ -344,8 +346,19 @@ export function NuevoPartePanel({
               <TimeInput value={horaVisita} onChange={setHoraVisita} className={altaControl} />
             </AltaField>
           </div>
-          <AltaField label="Agente">
-            <input value={agenteNombre} onChange={(e) => setAgenteNombre(e.target.value)} className={altaControl} />
+          <AltaField label="Agente" optional>
+            <input
+              value={agenteNombre}
+              placeholder="……………………"
+              onChange={(e) => {
+                agenteManual.current = true;
+                setAgenteNombre(e.target.value);
+              }}
+              className={altaControl}
+            />
+            <p className="mt-1.5 text-[12px] leading-snug text-[var(--text-2)]">
+              Si lo quitas, el parte queda genérico y el nombre sale en puntos suspensivos.
+            </p>
           </AltaField>
           <div>
             <div className="mb-2.5 text-[12.5px] font-semibold text-[var(--text-2)]">Estado</div>

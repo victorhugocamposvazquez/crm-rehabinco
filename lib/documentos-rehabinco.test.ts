@@ -93,6 +93,20 @@ describe("documentos Rehabinco 2026", () => {
       agente_nombre: "Marta",
     });
     assert.match(texto, /alquilar/);
+    assert.match(texto, /agente comercial Marta/);
+    assert.match(
+      textoCuerpoParteVisita({
+        visitante_nombre: null,
+        visitante_documento: null,
+        inmueble_direccion: null,
+        fecha_visita: null,
+        hora_visita: null,
+        hora_fin: null,
+        calidad: "comprador",
+        agente_nombre: "   ",
+      }),
+      /agente comercial ……………………/
+    );
     assert.match(texto, /mediación de REHABINCO/);
     assert.equal(/CONCHADO/i.test(texto), false);
     assert.equal(htmlParteVisita({

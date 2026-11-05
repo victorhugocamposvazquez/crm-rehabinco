@@ -13,7 +13,7 @@ export const parteVisitaFormSchema = z.object({
   inmueble_referencia: z.string().optional(),
   fecha_visita: z.string().min(1, "La fecha es obligatoria"),
   hora_visita: z.string().optional(),
-  agente_nombre: z.string().min(1, "El agente comercial es obligatorio"),
+  agente_nombre: z.string().optional().or(z.literal("")),
   observaciones: z.string().optional(),
   estado: z.enum(["borrador", "pendiente_firma", "firmado"]).default("pendiente_firma"),
 });

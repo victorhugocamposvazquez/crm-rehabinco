@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -95,6 +95,7 @@ export function ParteVisitaEditor({
   const [horaFin, setHoraFin] = useState("19:00");
   const [calidad, setCalidad] = useState<CalidadVisita>("comprador");
   const [agenteNombre, setAgenteNombre] = useState("");
+  const agenteManual = useRef(false);
   const [observaciones, setObservaciones] = useState("");
   const [estado, setEstado] = useState<"borrador" | "pendiente_firma">("pendiente_firma");
   const [firmaVisitante, setFirmaVisitante] = useState<string | null>(null);
@@ -167,7 +168,7 @@ export function ParteVisitaEditor({
   }, []);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || parteId || agenteManual.current) return;
     const supabase = createClient();
     void supabase
       .from("profiles")
@@ -175,11 +176,11 @@ export function ParteVisitaEditor({
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
-        if (agenteNombre) return;
+        if (agenteManual.current) return;
         const nombre = data?.nombre_completo || data?.email?.split("@")[0] || user.email.split("@")[0];
         setAgenteNombre(nombre ?? "");
       });
-  }, [user?.id, user?.email, agenteNombre]);
+  }, [user?.id, user?.email, parteId]);
 
   useEffect(() => {
     if (!parteId) return;
@@ -302,10 +303,6 @@ export function ParteVisitaEditor({
       toast.error("La dirección del inmueble es obligatoria.");
       return false;
     }
-    if (!agenteNombre.trim()) {
-      toast.error("El agente comercial es obligatorio.");
-      return false;
-    }
     const supabase = createClient();
     const {
       data: { user: authUser },
@@ -328,7 +325,7 @@ export function ParteVisitaEditor({
       hora_visita: horaVisita || null,
       hora_fin: horaFin || null,
       calidad,
-      agente_nombre: agenteNombre.trim(),
+      agente_nombre: agenteNombre.trim() || null,
       observaciones: observaciones.trim() || null,
       updated_at: new Date().toISOString(),
     };
@@ -470,8 +467,34 @@ export function ParteVisitaEditor({
                   <Input id="fecha" type="date" className="mt-1.5" value={fechaVisita} onChange={(e) => setFechaVisita(e.target.value)} />
                 </div>
                 <div>
-                  <Label htmlFor="agente">Agente</Label>
-                  <Input id="agente" className="mt-1.5" value={agenteNombre} onChange={(e) => setAgenteNombre(e.target.value)} />
+                  <div className="flex items-center justify-between gap-2">
+                    <Label htmlFor="agente">Agente</Label>
+                    {agenteNombre ? (
+                      <button
+                        type="button"
+                        className="text-[12px] font-medium text-[var(--text-2)] hover:text-foreground"
+                        onClick={() => {
+                          agenteManual.current = true;
+                          setAgenteNombre("");
+                        }}
+                      >
+                        Quitar
+                      </button>
+                    ) : null}
+                  </div>
+                  <Input
+                    id="agente"
+                    className="mt-1.5"
+                    value={agenteNombre}
+                    placeholder="……………………"
+                    onChange={(e) => {
+                      agenteManual.current = true;
+                      setAgenteNombre(e.target.value);
+                    }}
+                  />
+                  <p className="mt-1.5 text-[12px] leading-snug text-[var(--text-2)]">
+                    Si lo quitas, el parte queda genérico y el nombre sale en puntos suspensivos.
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="hora">Desde</Label>
