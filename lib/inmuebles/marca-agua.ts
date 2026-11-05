@@ -36,7 +36,22 @@ export async function aplicarMarcaAgua(foto: Buffer): Promise<Buffer> {
   const logoWidth = Math.max(140, Math.round(width * 0.22));
 
   const logoSvg = await readFile(path.join(process.cwd(), LOGO_REL));
-  const logoPng = await sharp(logoSvg).resize({ width: logoWidth }).png().toBuffer();
+  // Rasteriza sobredimensionado, recorta transparencia y deja margen para que
+  // la O final (y el trazo) no salgan cortados al componer.
+  const logoBruto = await sharp(logoSvg, { density: 300 })
+    .resize({ width: Math.round(logoWidth * 1.15) })
+    .trim({ threshold: 1 })
+    .extend({
+      top: 4,
+      bottom: 4,
+      left: 8,
+      right: 12,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .resize({ width: logoWidth })
+    .png()
+    .toBuffer();
+  const logoPng = logoBruto;
   const logoMeta = await sharp(logoPng).metadata();
   const lw = logoMeta.width ?? logoWidth;
   const lh = logoMeta.height ?? Math.round(logoWidth * 0.2);
