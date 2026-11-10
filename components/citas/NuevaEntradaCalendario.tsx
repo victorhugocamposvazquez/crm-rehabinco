@@ -10,6 +10,7 @@ import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { NuevoClientePanel } from "@/components/clientes/NuevoClientePanel";
 import { BuscadorInmuebleCalendario } from "@/components/citas/BuscadorInmuebleCalendario";
 import { CitaAcciones } from "@/components/citas/CitaAcciones";
+import { NotasTareaFecha } from "@/components/tareas/NotasTareaFecha";
 import { EnlaceMaps } from "@/components/citas/InmueblePreviewCita";
 import { createClient } from "@/lib/supabase/client";
 import { nombreYApellido } from "@/lib/ui/tokens";
@@ -35,6 +36,7 @@ export type EdicionCalendario = {
   estado: string;
   notas?: string | null;
   motivo_anulacion?: string | null;
+  tarea_id?: string | null;
 };
 
 export type DatosGuardarEntradaCalendario = {
@@ -197,34 +199,46 @@ export function NuevaEntradaCalendario({
       )
       .slice(0, 6);
   }, [agenda, qClienteExtra, clienteId, clientesExtraIds]);
-  const bloqueNotas =
-    conNotas ? (
-      <AltaSection
-        wide
-        title="Notas"
-        hint={
-          tipo === "visita"
+  const notasConFecha = tipo === "tarea" && Boolean(edicion?.tarea_id);
+  const bloqueNotas = !conNotas ? null : notasConFecha ? (
+    <AltaSection
+      wide
+      title="Notas"
+      hint="Cada nota se guarda aparte, con el día y la hora en que la escribes."
+    >
+      <NotasTareaFecha tareaId={edicion!.tarea_id!} notaLegacy={edicion?.notas} />
+    </AltaSection>
+  ) : (
+    <AltaSection
+      wide
+      title="Notas"
+      hint={
+        tipo === "tarea"
+          ? "Esta primera nota se guarda con la fecha de creación. Las siguientes, al editar la tarea."
+          : tipo === "visita"
             ? "Qué ver, llaves, contacto en puerta… No sale en el título del calendario."
             : tipo === "llamada"
               ? "Motivo de la llamada, lo hablado o lo pendiente. No sale en el título del calendario."
               : "Observaciones internas. No salen en el título del calendario."
-        }
-      >
-        <textarea
-          value={notas}
-          onChange={(e) => onNotas(e.target.value)}
-          placeholder={
-            tipo === "visita"
+      }
+    >
+      <textarea
+        value={notas}
+        onChange={(e) => onNotas(e.target.value)}
+        placeholder={
+          tipo === "tarea"
+            ? "Primera nota de esta tarea…"
+            : tipo === "visita"
               ? "Motivo de la visita, instrucciones, acuerdos…"
               : tipo === "llamada"
                 ? "Motivo, lo hablado, próximo paso…"
                 : "Detalles, acuerdos, recordatorios…"
-          }
-          rows={3}
-          className="min-h-[5rem] w-full resize-y rounded-[9px] border border-[var(--input)] bg-white px-3 py-2.5 text-[13.5px] outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15 max-[819px]:text-base"
-        />
-      </AltaSection>
-    ) : null;
+        }
+        rows={3}
+        className="min-h-[5rem] w-full resize-y rounded-[9px] border border-[var(--input)] bg-white px-3 py-2.5 text-[13.5px] outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15 max-[819px]:text-base"
+      />
+    </AltaSection>
+  );
 
   const elegirInmueble = (inmueble: InmuebleCalendario) => {
     const prev = inmuebleSel ? direccionDeInmueble(inmuebleSel) : "";

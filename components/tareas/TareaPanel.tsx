@@ -69,8 +69,6 @@ export function TareaPanel({
   onToggle,
   onMover,
   onEliminar,
-  onNotasCita,
-  puedeEscribirNotas = false,
 }: {
   tarea: TareaDetalle | null;
   hoy: string;
@@ -86,7 +84,6 @@ export function TareaPanel({
 }) {
   const [titulo, setTitulo] = useState("");
   const [finca, setFinca] = useState("");
-  const [notasCita, setNotasCita] = useState("");
   const [actividad, setActividad] = useState<Actividad[]>([]);
   const [propsOpts, setPropsOpts] = useState<Array<{ id: string; label: string }>>([]);
   const [cliOpts, setCliOpts] = useState<Array<{ id: string; label: string; telefono?: string | null }>>([]);
@@ -102,10 +99,6 @@ export function TareaPanel({
     setConfirmEliminar(false);
     setEliminando(false);
   }, [tarea?.id, tarea?.titulo]);
-
-  useEffect(() => {
-    setNotasCita(tarea?.cita?.notas ?? "");
-  }, [tarea?.id, tarea?.cita?.notas]);
 
   useEffect(() => {
     if (!tarea) {
@@ -257,20 +250,21 @@ export function TareaPanel({
     void onPatch(tarea.id, { titulo: limpio });
   };
 
-  const guardarNotasCita = () => {
-    if (!tarea?.cita_id || !onNotasCita || !puedeEscribirNotas) return;
-    const valor = notasCita.trim() || null;
-    const previa = tarea.cita?.notas?.trim() || null;
-    if (valor === previa) return;
-    void onNotasCita(valor);
-  };
-
   const guardarNota = async (texto: string, mencionados: string[]) => {
     if (mencionados.length > 0) {
       const unidos = [...new Set([...(tarea.mencionados ?? []), ...mencionados])];
       await onPatch(tarea.id, { mencionados: unidos });
     }
     const supabase = createClient();
+    const legacy = tarea.cita?.notas?.trim() || "";
+    if (legacy && !actividad.some((a) => a.texto.trim() === legacy)) {
+      await supabase.from("tareas_actividad").insert({
+        tarea_id: tarea.id,
+        actor_id: null,
+        tipo: "nota",
+        texto: legacy,
+      });
+    }
     const { data, error } = await supabase
       .from("tareas_actividad")
       .insert({ tarea_id: tarea.id, actor_id: userId, tipo: "nota", texto, mencionados })
@@ -578,31 +572,19 @@ export function TareaPanel({
             </CampoVinculo>
           </div>
 
-          {tarea.cita_id ? (
-            <label className="mt-8 block text-[12px] text-[var(--text-3)]">
-              Notas
-              {puedeEscribirNotas ? (
-                <textarea
-                  value={notasCita}
-                  onChange={(e) => setNotasCita(e.target.value)}
-                  onBlur={guardarNotasCita}
-                  placeholder="Observaciones de esta tarea. No salen en el título."
-                  rows={3}
-                  className="mt-2 min-h-[5rem] w-full resize-y rounded-[9px] border border-[var(--input)] bg-[var(--surface)] px-3 py-2.5 text-[13.5px] text-foreground outline-none focus:border-accent max-[819px]:text-base"
-                />
-              ) : (
-                <p className="mt-2 whitespace-pre-wrap text-[13.5px] leading-snug text-foreground">
-                  {tarea.cita?.notas?.trim() || "Sin notas"}
-                </p>
-              )}
-            </label>
-          ) : null}
-
           <div className="mt-8">
-            <div className="mb-2 text-[12px] text-[var(--text-3)]">Comentarios</div>
-            {actividad.length === 0 ? (
-              <p className="mb-3 text-[12.5px] text-[var(--text-3)]">Todavía no hay comentarios. Escribe el primero.</p>
-            ) : (
+            <div className="mb-2 text-[12px] text-[var(--text-3)]">Notas</div>
+            {tarea.cita?.notas?.trim() && !actividad.some((a) => a.texto.trim() === tarea.cita?.notas?.trim()) ? (
+              <p className="mb-3 whitespace-pre-wrap rounded-[10px] bg-[var(--surface-soft)] px-2.5 py-1.5 text-[13px] leading-snug">
+                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-3)]">
+                  Sin fecha · nota anterior
+                </span>
+                {tarea.cita.notas.trim()}
+              </p>
+            ) : null}
+            {actividad.length === 0 && !tarea.cita?.notas?.trim() ? (
+              <p className="mb-3 text-[12.5px] text-[var(--text-3)]">Todavía no hay notas. Cada una guarda su día y hora.</p>
+            ) : actividad.length > 0 ? (
               <div className="mb-3 space-y-2.5">
                 {actividad.map((a) => (
                   <div key={a.id} className="flex gap-2">
@@ -621,7 +603,7 @@ export function TareaPanel({
                   </div>
                 ))}
               </div>
-            )}
+            ) : null}
             <CampoComentario equipo={comerciales} onEnviar={(texto, mencionados) => void guardarNota(texto, mencionados)} />
           </div>
         </div>

@@ -84,6 +84,11 @@ export function CitaAcciones({
             <option value="cancelada">Anulada</option>
           </Selector>
         </label>
+        {cita.estado === "hecha" ? (
+          <Button type="button" size="sm" variant="secondary" onClick={() => onEstado(cita.id, "prevista", null)}>
+            Reabrir
+          </Button>
+        ) : null}
         {onEditar && cita.estado === "prevista" ? (
           <Button type="button" size="sm" variant="ghost" onClick={() => onEditar(cita.id)}>
             Editar

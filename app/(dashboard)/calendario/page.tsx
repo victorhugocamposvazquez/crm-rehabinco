@@ -365,7 +365,7 @@ export default function CalendarioPage() {
           propiedad_id: propiedadIdGuardar || null,
           cliente_id: clienteId || null,
           clientes_extra_ids: entradaConAsistentes(tipoFinal) ? clientesExtraFinal : [],
-          notas: entradaConNotas(tipoFinal) ? notasFinal : null,
+          notas: tipoFinal === "tarea" ? (editando.notas ?? null) : entradaConNotas(tipoFinal) ? notasFinal : null,
           lugar: lugarFinal,
         })
         .eq("id", editando.id)
@@ -450,7 +450,15 @@ export default function CalendarioPage() {
       return;
     }
     try {
-      await syncTareaDesdeCita(supabase, cita, { creadoPor: user.id });
+      const tareaId = await syncTareaDesdeCita(supabase, cita, { creadoPor: user.id });
+      if (tipoCita === "tarea" && notasFinal && tareaId) {
+        await supabase.from("tareas_actividad").insert({
+          tarea_id: tareaId,
+          actor_id: user.id,
+          tipo: "nota",
+          texto: notasFinal,
+        });
+      }
     } catch {
       toast.error("Entrada creada en calendario, pero no pasó al tablero de Tareas.");
     }
@@ -614,6 +622,10 @@ export default function CalendarioPage() {
   );
   const porDia = useMemo(() => citasAgrupadasPorDia(citasRejilla, diasVista), [citasRejilla, diasVista]);
   const delDia = citasDelDia(citasRejilla, dia);
+  const delDiaLista = citasDelDia(
+    visibles.filter((item) => item.estado !== "cancelada"),
+    dia
+  );
 
   const irAnterior = () => setDia(vista === "mes" ? moverMes(dia, -1) : moverSemana(dia, -1));
   const irSiguiente = () => setDia(vista === "mes" ? moverMes(dia, 1) : moverSemana(dia, 1));
@@ -715,7 +727,7 @@ export default function CalendarioPage() {
 
       <ListaDiaCalendario
         dia={dia}
-        citas={delDia}
+        citas={delDiaLista}
         clientes={clientes}
         userId={user?.id}
         puedeGestionar={gestiona}
@@ -761,6 +773,7 @@ export default function CalendarioPage() {
                 estado: editando.estado ?? "prevista",
                 notas: editando.notas,
                 motivo_anulacion: editando.motivo_anulacion,
+                tarea_id: editando.tarea_id,
               }
             : null
         }

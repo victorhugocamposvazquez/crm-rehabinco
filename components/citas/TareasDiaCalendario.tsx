@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { ListTodo } from "lucide-react";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
+import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { relacionUno } from "@/lib/citas/citas";
 import { textoVinculoTarea } from "@/lib/tareas/tareas";
@@ -23,11 +25,11 @@ type TareaDia = {
 export function TareasDiaCalendario({
   dia,
   comercialId,
-  mostrarHechas,
 }: {
   dia: string;
   comercialId: string;
-  mostrarHechas: boolean;
+  /** Las hechas del día se muestran siempre, atenuadas, con Reabrir. */
+  mostrarHechas?: boolean;
 }) {
   const [tareas, setTareas] = useState<TareaDia[]>([]);
 
@@ -43,7 +45,6 @@ export function TareasDiaCalendario({
       .order("hora", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: true });
     if (comercialId) q = q.eq("comercial_id", comercialId);
-    if (!mostrarHechas) q = q.neq("estado", "hecha");
     void q.then(({ data }) => {
       setTareas(
         ((data ?? []) as Array<TareaDia & { propiedades?: TareaDia["propiedades"] | TareaDia["propiedades"][] }>).map(
@@ -55,7 +56,17 @@ export function TareasDiaCalendario({
         )
       );
     });
-  }, [dia, comercialId, mostrarHechas]);
+  }, [dia, comercialId]);
+
+  const reabrir = async (id: string) => {
+    const { error } = await createClient().from("tareas").update({ estado: "pendiente" }).eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setTareas((prev) => prev.map((t) => (t.id === id ? { ...t, estado: "pendiente" } : t)));
+    toast.success("Tarea reabierta.");
+  };
 
   if (tareas.length === 0) return null;
 
@@ -80,12 +91,15 @@ export function TareasDiaCalendario({
               null,
           });
           return (
-            <li key={tarea.id}>
+            <li
+              key={tarea.id}
+              className={`flex items-start gap-3 rounded-2xl border border-[#E5E5E5] bg-white px-4 py-3 ${
+                tarea.estado === "hecha" ? "opacity-70" : ""
+              }`}
+            >
               <Link
                 href={`/tareas?tarea=${tarea.id}`}
-                className={`flex items-start gap-3 rounded-2xl border border-[#E5E5E5] bg-white px-4 py-3 transition-colors hover:bg-[var(--surface-soft)] ${
-                  tarea.estado === "hecha" ? "opacity-55" : ""
-                }`}
+                className="flex min-w-0 flex-1 items-start gap-3 transition-colors hover:bg-[var(--surface-soft)]"
               >
                 <AvatarComercial
                   id={tarea.comercial_id}
@@ -114,6 +128,11 @@ export function TareasDiaCalendario({
                   ) : null}
                 </div>
               </Link>
+              {tarea.estado === "hecha" ? (
+                <Button type="button" size="sm" variant="secondary" onClick={() => void reabrir(tarea.id)}>
+                  Reabrir
+                </Button>
+              ) : null}
             </li>
           );
         })}
