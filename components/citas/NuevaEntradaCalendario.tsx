@@ -21,6 +21,7 @@ import {
   entradaConAsistentes,
   entradaConNotas,
   mapInmuebleCalendario,
+  horaCita,
   SELECT_INMUEBLE_CALENDARIO,
   TIPOS_ALTA_CALENDARIO,
   TIPO_CITA_LABEL,
@@ -39,6 +40,7 @@ export type EdicionCalendario = {
   notas?: string | null;
   motivo_anulacion?: string | null;
   tarea_id?: string | null;
+  empieza?: string | null;
 };
 
 export type NotaPreviaCalendario = {
@@ -189,6 +191,16 @@ export function NuevaEntradaCalendario({
     day: "numeric",
     month: "long",
   });
+  const diaGuardado = edicion?.empieza?.slice(0, 10) ?? "";
+  const horaGuardada = edicion?.empieza ? horaCita(edicion.empieza) : "";
+  const fechaCambiada = Boolean(edicion?.empieza && (dia !== diaGuardado || hora.slice(0, 5) !== horaGuardada));
+  const etiquetaGuardada = edicion?.empieza
+    ? `${new Date(`${diaGuardado}T12:00:00`).toLocaleDateString("es-ES", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+      })} a las ${horaGuardada}`
+    : "";
   const clienteSel = agenda.find((c) => c.id === clienteId);
   const esEvento = entradaConAsistentes(tipo);
   const conNotas = entradaConNotas(tipo);
@@ -319,8 +331,10 @@ export function NuevaEntradaCalendario({
         title={edicion ? "Editar entrada" : "Nueva entrada"}
         hint={
           edicion
-            ? `Cambia hora, inmueble o dirección. Se guarda sobre el ${etiquetaDia} a las ${hora}.`
-            : `Hueco del ${etiquetaDia} a las ${hora}. Elige tipo, ajusta la hora y crea.`
+            ? fechaCambiada
+              ? `Nueva fecha: ${etiquetaDia} a las ${hora}. La anterior queda en Ya guardado.`
+              : `Fecha de ahora: ${etiquetaDia} a las ${hora}. Si la cambias, esa será la nueva.`
+            : `Esta será la fecha: ${etiquetaDia} a las ${hora}. Cámbiala si el hueco no encaja.`
         }
         primaryLabel={edicion ? "Guardar cambios" : `Crear ${TIPO_CITA_LABEL[tipo].toLowerCase()}`}
         saving={saving}
@@ -470,8 +484,14 @@ export function NuevaEntradaCalendario({
         </AltaSection>
 
         <AltaSection
-          title="Cuándo"
-          hint="Sale del hueco pulsado. Cámbialo si no encaja."
+          title="Nueva fecha"
+          hint={
+            !edicion
+              ? "Esta será la fecha de la entrada."
+              : fechaCambiada
+                ? `Antes: ${etiquetaGuardada}. Al guardar, queda la de aquí.`
+                : "Es la de ahora. Si cambias el día o la hora, al guardar esta pasa a ser la nueva y la anterior queda en Ya guardado."
+          }
         >
           <div className="grid grid-cols-2 gap-3">
             <AltaField label="Día">

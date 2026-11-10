@@ -870,6 +870,7 @@ export default function CalendarioPage() {
                 notas: editando.notas,
                 motivo_anulacion: editando.motivo_anulacion,
                 tarea_id: editando.tarea_id,
+                empieza: editando.empieza,
               }
             : null
         }
