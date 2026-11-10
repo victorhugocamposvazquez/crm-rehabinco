@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth/auth-context";
-import { editorHomePath, isEditor, navHrefsForRole, roleLabel } from "@/lib/auth/roles";
+import { catastroUserHomePath, editorHomePath, isCatastroUser, isEditor, navHrefsForRole, roleLabel } from "@/lib/auth/roles";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { useMenuPerfil } from "./MenuPerfil";
 import { gruposNavParaRol, navItemActivo } from "./nav-items";
@@ -41,7 +41,11 @@ export function Sidebar({ badges }: { badges?: Record<string, number> }) {
 
   const permitidos = navHrefsForRole(user?.role, "desktop");
   const grupos = gruposNavParaRol(user?.role, permitidos);
-  const home = isEditor(user?.role) ? editorHomePath() : "/";
+  const home = isEditor(user?.role)
+    ? editorHomePath()
+    : isCatastroUser(user?.role)
+      ? catastroUserHomePath()
+      : "/";
 
   return (
     <aside

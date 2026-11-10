@@ -6,7 +6,7 @@ import { breadcrumbDeRuta } from "./nav-items";
 import { BusquedaGlobal } from "./BusquedaGlobal";
 import { NuevoMenu } from "./NuevoMenu";
 import { useAuth } from "@/lib/auth/auth-context";
-import { editorHomePath, isEditor } from "@/lib/auth/roles";
+import { catastroUserHomePath, editorHomePath, isCatastroUser, isEditor } from "@/lib/auth/roles";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { InterruptorTema } from "@/components/ui/InterruptorTema";
 import { AvisosBarra } from "./AvisosBarra";
@@ -17,7 +17,11 @@ export function AppTopBar() {
   const { user } = useAuth();
   const { abrir: abrirPerfil } = useMenuPerfil();
   const { seccion, detalle } = breadcrumbDeRuta(pathname);
-  const inicio = isEditor(user?.role) ? editorHomePath() : "/";
+  const inicio = isEditor(user?.role)
+    ? editorHomePath()
+    : isCatastroUser(user?.role)
+      ? catastroUserHomePath()
+      : "/";
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center gap-2 border-b border-border bg-[var(--surface)] px-3 min-[820px]:h-14 min-[820px]:gap-3 min-[820px]:px-6">

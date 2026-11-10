@@ -4,9 +4,11 @@ import {
   comercialHomePath,
   isAdmin,
   isAdminBlockedPath,
+  isCatastroUserBlockedPath,
   isComercial,
   isComercialBlockedPath,
   isEditorBlockedPath,
+  catastroUserHomePath,
   isSuperAdmin,
   navHrefsForRole,
   parseRole,
@@ -22,6 +24,7 @@ describe("roles", () => {
     assert.equal(parseRole("superadmin"), "superadmin");
     assert.equal(parseRole("admin"), "admin");
     assert.equal(parseRole("editor"), "editor");
+    assert.equal(parseRole("catastro_user"), "catastro_user");
     assert.equal(parseRole("comercial"), "comercial");
     assert.equal(parseRole("agente"), "comercial");
     assert.equal(parseRole("otro"), "comercial");
@@ -49,6 +52,8 @@ describe("roles", () => {
     assert.equal(puedeRastrearCatastro("admin"), true);
     assert.equal(puedeRastrearCatastro("superadmin"), true);
     assert.equal(puedeRastrearCatastro("comercial"), false);
+    assert.equal(puedeRastrearCatastro("catastro_user"), true);
+    assert.equal(puedeAsignarFincas("catastro_user"), true);
     assert.equal(puedeAsignarFincas("admin"), true);
     assert.equal(puedeAsignarFincas("superadmin"), true);
     assert.equal(puedeAsignarFincas("comercial"), false);
@@ -106,6 +111,24 @@ describe("roles", () => {
       "/calendario",
       "/settings",
     ]);
+  });
+
+  it("CatastroUser solo entra a catastro, contactos, tareas y calendario", () => {
+    assert.equal(isCatastroUserBlockedPath("/"), true);
+    assert.equal(isCatastroUserBlockedPath("/propiedades"), true);
+    assert.equal(isCatastroUserBlockedPath("/captacion"), true);
+    assert.equal(isCatastroUserBlockedPath("/catastro"), false);
+    assert.equal(isCatastroUserBlockedPath("/catastro/searches"), false);
+    assert.equal(isCatastroUserBlockedPath("/catastro/equipo"), false);
+    assert.equal(isCatastroUserBlockedPath("/clientes"), false);
+    assert.equal(isCatastroUserBlockedPath("/tareas"), false);
+    assert.equal(isCatastroUserBlockedPath("/calendario"), false);
+    assert.equal(isCatastroUserBlockedPath("/settings"), false);
+    assert.equal(catastroUserHomePath(), "/catastro");
+    const nav = navHrefsForRole("catastro_user", "desktop");
+    assert.equal(nav.includes("/catastro"), true);
+    assert.equal(nav.includes("/clientes"), true);
+    assert.equal(nav.includes("/propiedades"), false);
   });
 
   it("el editor no entra a captación, agenda ni tareas", () => {

@@ -1,18 +1,19 @@
-export type Role = "superadmin" | "admin" | "comercial" | "editor";
+export type Role = "superadmin" | "admin" | "comercial" | "editor" | "catastro_user";
 
 export const ROLE_LABELS: Record<Role, string> = {
   superadmin: "Superadministrador",
   admin: "Administrador",
   comercial: "Comercial",
   editor: "Editor Garal",
+  catastro_user: "CatastroUser",
 };
 
-export const ROLES_CREABLES: readonly Role[] = ["comercial", "editor", "admin"];
+export const ROLES_CREABLES: readonly Role[] = ["comercial", "editor", "admin", "catastro_user"];
 
 export const ROLES_EQUIPO = ["superadmin", "admin", "comercial", "agente"] as const;
 
 export function parseRole(value: unknown): Role {
-  if (value === "superadmin" || value === "admin" || value === "editor") return value;
+  if (value === "superadmin" || value === "admin" || value === "editor" || value === "catastro_user") return value;
   if (value === "comercial" || value === "agente") return "comercial";
   return "comercial";
 }
@@ -39,17 +40,21 @@ export function isComercial(role: Role | null | undefined): boolean {
   return role === "comercial";
 }
 
+export function isCatastroUser(role: Role | null | undefined): boolean {
+  return role === "catastro_user";
+}
+
 export function puedeCrearPropiedad(role: Role | null | undefined): boolean {
   return isAdmin(role) || role === "comercial";
 }
 
-/** Solo dirección rastrea Catastro y reparte fincas. */
+/** Dirección y CatastroUser rastrean y ven el archivo del equipo. */
 export function puedeRastrearCatastro(role: Role | null | undefined): boolean {
-  return isAdmin(role);
+  return isAdmin(role) || isCatastroUser(role);
 }
 
 export function puedeAsignarFincas(role: Role | null | undefined): boolean {
-  return isAdmin(role);
+  return isAdmin(role) || isCatastroUser(role);
 }
 
 export function puedeVerApisPortales(role: Role | null | undefined): boolean {
@@ -136,6 +141,19 @@ export function isComercialBlockedPath(pathname: string): boolean {
   );
 }
 
+const CATASTRO_USER_ALLOWED_PREFIXES = ["/catastro", "/clientes", "/tareas", "/calendario", "/settings"] as const;
+
+export function catastroUserHomePath(): string {
+  return "/catastro";
+}
+
+/** Solo catastro, contactos, tareas, calendario y ajustes de cuenta. */
+export function isCatastroUserBlockedPath(pathname: string): boolean {
+  return !CATASTRO_USER_ALLOWED_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}
+
 /** El admin operativo no ve claves de portales. El superadmin sí. */
 export function isAdminBlockedPath(pathname: string): boolean {
   return pathname === "/settings/portales" || pathname.startsWith("/settings/portales/");
@@ -182,6 +200,7 @@ export const NAV_DESKTOP_BY_ROLE: Record<Role, readonly string[]> = {
     "/settings",
   ],
   editor: ["/presupuestos", "/settings"],
+  catastro_user: ["/catastro", "/clientes", "/tareas", "/calendario", "/settings"],
 };
 
 /** Atajos de la barra: lo del día a día. El resto vive en el menú lateral. */
@@ -192,6 +211,7 @@ export const NAV_TOP_BY_ROLE: Record<Role, readonly string[]> = {
   admin: NAV_TOP_DIRECCION,
   comercial: ["/", "/fichaje", "/tareas", "/calendario", "/captacion"],
   editor: ["/presupuestos"],
+  catastro_user: ["/catastro", "/clientes", "/tareas", "/calendario"],
 };
 
 export const NAV_MOBILE_BY_ROLE: Record<Role, readonly string[]> = {
@@ -199,6 +219,7 @@ export const NAV_MOBILE_BY_ROLE: Record<Role, readonly string[]> = {
   admin: ["/", "/fichaje", "/propiedades", "/calendario", "/settings"],
   comercial: ["/", "/fichaje", "/propiedades", "/calendario", "/settings"],
   editor: ["/presupuestos", "/settings"],
+  catastro_user: ["/catastro", "/clientes", "/calendario", "/tareas", "/settings"],
 };
 
 export function navHrefsForRole(

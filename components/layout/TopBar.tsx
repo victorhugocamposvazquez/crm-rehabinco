@@ -17,7 +17,16 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth/auth-context";
-import { editorHomePath, isAdmin, isEditor, puedeVerApisPortales, navHrefsForRole, roleLabel } from "@/lib/auth/roles";
+import {
+  catastroUserHomePath,
+  editorHomePath,
+  isAdmin,
+  isCatastroUser,
+  isEditor,
+  puedeVerApisPortales,
+  navHrefsForRole,
+  roleLabel,
+} from "@/lib/auth/roles";
 import { Sheet } from "@/components/ui/sheet";
 import { MenuLateral } from "./MenuLateral";
 import { itemsDesdeHrefs, navItemActivo } from "./nav-items";
@@ -87,7 +96,13 @@ export function TopBar() {
               <Menu className="h-5 w-5" strokeWidth={1.75} aria-hidden />
             </button>
             <Link
-              href={isEditor(user?.role) ? editorHomePath() : "/"}
+              href={
+                isEditor(user?.role)
+                  ? editorHomePath()
+                  : isCatastroUser(user?.role)
+                    ? catastroUserHomePath()
+                    : "/"
+              }
               className="flex shrink-0 items-center gap-2"
               aria-label="REHABINCO - Inicio"
             >

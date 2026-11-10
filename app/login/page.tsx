@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginFormValues } from "@/lib/validations/auth";
 import { createClient } from "@/lib/supabase/client";
+import { catastroUserHomePath, editorHomePath, isCatastroUser, isEditor, parseRole } from "@/lib/auth/roles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InterruptorTema } from "@/components/ui/InterruptorTema";
@@ -40,16 +41,20 @@ export default function LoginPage() {
     const {
       data: { user },
     } = await supabase.auth.getUser();
+    let destino = "/";
     if (user) {
-      const { data: perfil } = await supabase.from("profiles").select("activo").eq("id", user.id).maybeSingle();
+      const { data: perfil } = await supabase.from("profiles").select("activo, role").eq("id", user.id).maybeSingle();
       if (perfil && perfil.activo === false) {
         await supabase.auth.signOut();
         setError("Este acceso está desactivado. Habla con dirección.");
         return;
       }
+      const role = parseRole(perfil?.role);
+      if (isEditor(role)) destino = editorHomePath();
+      else if (isCatastroUser(role)) destino = catastroUserHomePath();
     }
 
-    router.push("/");
+    router.push(destino);
     router.refresh();
   }
 

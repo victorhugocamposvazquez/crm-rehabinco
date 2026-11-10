@@ -2,9 +2,12 @@
 
 import { useAuth } from "@/lib/auth/auth-context";
 import {
+  catastroUserHomePath,
   comercialHomePath,
   editorHomePath,
   isAdminBlockedPath,
+  isCatastroUser,
+  isCatastroUserBlockedPath,
   isComercial,
   isComercialBlockedPath,
   isEditor,
@@ -22,6 +25,8 @@ export function Protected({ children }: { children: React.ReactNode }) {
   const comercialBlocked =
     !!user && isComercial(user.role) && isComercialBlockedPath(pathname ?? "/");
   const adminBlocked = !!user && user.role === "admin" && isAdminBlockedPath(pathname ?? "/");
+  const catastroUserBlocked =
+    !!user && isCatastroUser(user.role) && isCatastroUserBlockedPath(pathname ?? "/");
 
   useEffect(() => {
     if (isLoading) return;
@@ -40,6 +45,11 @@ export function Protected({ children }: { children: React.ReactNode }) {
       router.replace(comercialHomePath());
       return;
     }
+    if (isCatastroUser(user.role) && isCatastroUserBlockedPath(pathname ?? "/")) {
+      setRedirecting(true);
+      router.replace(catastroUserHomePath());
+      return;
+    }
     if (user.role === "admin" && isAdminBlockedPath(pathname ?? "/")) {
       setRedirecting(true);
       router.replace("/settings");
@@ -47,7 +57,7 @@ export function Protected({ children }: { children: React.ReactNode }) {
   }, [user, isLoading, router, pathname]);
 
   const showLoader =
-    isLoading || (redirecting && !user) || editorBlocked || comercialBlocked || adminBlocked;
+    isLoading || (redirecting && !user) || editorBlocked || comercialBlocked || catastroUserBlocked || adminBlocked;
 
   if (showLoader || !user) {
     return (
