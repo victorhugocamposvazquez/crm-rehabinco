@@ -1,3 +1,5 @@
+import { urlsFotosConMarca } from "@/lib/inmuebles/marca-agua-url";
+
 export const DISENOS_WEB = ["claro", "noche", "editorial"] as const;
 export type DisenoWeb = (typeof DISENOS_WEB)[number];
 
@@ -248,7 +250,9 @@ function inmuebleDe(raw: unknown): InmuebleWeb | null {
   const titulo = texto(dato.titulo).trim();
   const localidad = texto(dato.localidad).trim();
   const descripcion = texto(dato.descripcion).trim();
-  const fotos = Array.isArray(dato.fotos) ? dato.fotos.filter((f): f is string => typeof f === "string" && f.trim().length > 0) : [];
+  const fotosRaw = Array.isArray(dato.fotos)
+    ? dato.fotos.filter((f): f is string => typeof f === "string" && f.trim().length > 0)
+    : [];
   const item: InmuebleWeb = {
     referencia,
     titulo,
@@ -261,7 +265,7 @@ function inmuebleDe(raw: unknown): InmuebleWeb | null {
     habitaciones: numero(dato.habitaciones),
     banos: numero(dato.banos),
     descripcion,
-    fotos,
+    fotos: urlsFotosConMarca(fotosRaw),
   };
   return aptoParaWeb(item) ? item : null;
 }

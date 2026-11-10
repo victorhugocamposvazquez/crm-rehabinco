@@ -27,8 +27,8 @@ export function yaTieneMarca(url: string): boolean {
 }
 
 /**
- * URL pública con logo Rehabinco. Idealista y la web la usan;
- * el CRM sigue mostrando el original.
+ * URL pública con logo Rehabinco (web, Idealista y CRM vía /api/media/marca).
+ * Los originales en Storage no se modifican.
  */
 export function urlFotoConMarca(url: string, siteUrl?: string): string {
   const limpia = url.trim();

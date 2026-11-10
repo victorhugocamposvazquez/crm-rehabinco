@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import type { InmuebleMedia } from "./catalogo";
+import { urlFotoConMarca } from "@/lib/inmuebles/marca-agua-url";
 
 type FotoOrdenable = {
   id?: string;
@@ -15,8 +16,16 @@ export function fotosOrdenadas<T extends FotoOrdenable>(media: T[]): T[] {
     .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
 }
 
+/** URL de portada para mostrar en CRM (con marca de agua si es del bucket). */
 export function urlPortadaDeMedia(media: FotoOrdenable[] | null | undefined): string | null {
-  return fotosOrdenadas(media ?? [])[0]?.url ?? null;
+  const raw = fotosOrdenadas(media ?? [])[0]?.url ?? null;
+  return raw ? urlFotoConMarca(raw) : null;
+}
+
+/** URL de foto de inmueble para vistas (listado, ficha, galería). */
+export function urlFotoInmuebleVisible(url: string | null | undefined): string | null {
+  if (!url?.trim()) return null;
+  return urlFotoConMarca(url.trim());
 }
 
 export function idPortadaDeMedia(media: FotoOrdenable[]): string | null {

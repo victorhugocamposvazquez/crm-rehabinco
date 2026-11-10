@@ -33,6 +33,7 @@ import {
   type FiltroOrigenCatastral,
 } from "@/lib/catastro/explorer";
 import { formatPrecioInmueble, labelEstadoInmueble } from "@/lib/inmuebles/catalogo";
+import { urlFotoInmuebleVisible } from "@/lib/inmuebles/portada";
 import {
   SELECT_INMUEBLE_LISTA,
   cargarDhPorFincas,
@@ -224,7 +225,8 @@ export default function PropiedadesPage() {
       const porInmueble = new Map<string, string>();
       for (const [propiedadId, mediaId] of elegidas) {
         const url = urls.get(mediaId);
-        if (url) porInmueble.set(propiedadId, url);
+        const visible = urlFotoInmuebleVisible(url);
+        if (visible) porInmueble.set(propiedadId, visible);
       }
       portadasRef.current = porInmueble;
       setPropiedades((prev) =>

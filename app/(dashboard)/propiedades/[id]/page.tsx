@@ -25,7 +25,7 @@ import {
   type Inmueble,
   type InmuebleMedia,
 } from "@/lib/inmuebles/catalogo";
-import { fotosOrdenadas } from "@/lib/inmuebles/portada";
+import { fotosOrdenadas, urlFotoInmuebleVisible } from "@/lib/inmuebles/portada";
 import { useAuth } from "@/lib/auth/auth-context";
 import { FichaLink, useFichaPeek } from "@/components/crm/FichaPeek";
 import { ClipboardPenLine, Pencil, Printer, Trash2 } from "lucide-react";
@@ -326,7 +326,11 @@ export default function DetallePropiedadPage() {
 
       {portada && (
         <div className="mb-6 overflow-hidden rounded-2xl bg-neutral-100">
-          <img src={portada.url} alt="" className="max-h-[420px] w-full object-cover" />
+          <img
+            src={urlFotoInmuebleVisible(portada.url) ?? portada.url}
+            alt=""
+            className="max-h-[420px] w-full object-cover"
+          />
         </div>
       )}
 

@@ -9,7 +9,7 @@ import type { InmuebleMedia } from "@/lib/inmuebles/catalogo";
 import { acceptMedia, esPathExterno, moverMedia, type TipoMediaInmueble } from "@/lib/inmuebles/media";
 import { activarSolturaArchivos, arrastrandoArchivos } from "@/lib/inmuebles/archivos-pendientes";
 import { cn } from "@/lib/utils";
-import { sincronizarPortadaEnDb, sincronizarPortadaMemoria } from "@/lib/inmuebles/portada";
+import { sincronizarPortadaEnDb, sincronizarPortadaMemoria, urlFotoInmuebleVisible } from "@/lib/inmuebles/portada";
 import { abrirSelectorArchivos } from "@/lib/inmuebles/selector-archivos";
 import { subirArchivosMedia } from "@/lib/inmuebles/subir-media";
 
@@ -17,6 +17,11 @@ function esImagen(item: InmuebleMedia) {
   if (item.tipo === "video") return false;
   const src = `${item.path} ${item.url}`.toLowerCase();
   return !src.includes(".pdf");
+}
+
+function srcVisible(item: InmuebleMedia) {
+  if (!esImagen(item) || item.tipo === "video") return item.url;
+  return urlFotoInmuebleVisible(item.url) ?? item.url;
 }
 
 export function InmuebleGaleria({
@@ -168,7 +173,7 @@ export function InmuebleGaleria({
             <li key={f.id} className="group relative overflow-hidden rounded-xl bg-neutral-100">
               {esImagen(f) ? (
                 <button type="button" className="block w-full" onClick={() => setVisor(imagenes.findIndex((x) => x.id === f.id))}>
-                  <img src={f.url} alt="" className="aspect-[4/3] w-full object-cover" />
+                  <img src={srcVisible(f)} alt="" className="aspect-[4/3] w-full object-cover" />
                 </button>
               ) : f.tipo === "video" ? (
                 <video src={f.url} className="aspect-[4/3] w-full object-cover" muted playsInline />
@@ -214,7 +219,7 @@ export function InmuebleGaleria({
           aria-modal="true"
           aria-label="Foto ampliada"
         >
-          <img src={visorItem.url} alt="" className="max-h-full max-w-full object-contain" onClick={(e) => e.stopPropagation()} />
+          <img src={srcVisible(visorItem)} alt="" className="max-h-full max-w-full object-contain" onClick={(e) => e.stopPropagation()} />
           {visor != null && visor > 0 ? (
             <button
               type="button"
