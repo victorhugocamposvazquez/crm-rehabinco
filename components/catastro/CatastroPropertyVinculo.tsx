@@ -44,7 +44,15 @@ export function CatastroPropertyVinculo({
       .eq("activo", true)
       .order("nombre")
       .then(({ data }) => setClientes(data ?? []));
-  }, [eligiendo]);
+    void supabase
+      .from("catastro_explorer_pipeline")
+      .select("cliente_id")
+      .eq("finca_reference", fincaReference)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.cliente_id) setOfertanteId((actual) => actual || data.cliente_id || "");
+      });
+  }, [eligiendo, fincaReference]);
 
   const crear = async (conOfertante: boolean) => {
     if (creando || links.length > 0) return;
@@ -55,6 +63,18 @@ export function CatastroPropertyVinculo({
     setCreando(true);
     try {
       const resultado = await crearPropiedadDesdeFincaUi(fincaReference, conOfertante ? ofertanteId : null);
+      if (conOfertante && ofertanteId) {
+        await createClient()
+          .from("catastro_explorer_pipeline")
+          .upsert(
+            {
+              finca_reference: fincaReference,
+              cliente_id: ofertanteId,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "finca_reference" }
+          );
+      }
       onLinksChange?.([resultado.link]);
       setEligiendo(false);
       toast.success(resultado.created ? "Propiedad creada." : "Esta finca ya estaba vinculada.");

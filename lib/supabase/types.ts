@@ -1067,6 +1067,7 @@ export interface Database {
           estado: string;
           proxima_accion: string | null;
           proxima_accion_en: string | null;
+          cliente_id: string | null;
           updated_by: string | null;
           updated_at: string;
         };
@@ -1075,6 +1076,7 @@ export interface Database {
           estado?: string;
           proxima_accion?: string | null;
           proxima_accion_en?: string | null;
+          cliente_id?: string | null;
           updated_by?: string | null;
           updated_at?: string;
         };
@@ -1082,6 +1084,7 @@ export interface Database {
           estado?: string;
           proxima_accion?: string | null;
           proxima_accion_en?: string | null;
+          cliente_id?: string | null;
           updated_by?: string | null;
           updated_at?: string;
         };

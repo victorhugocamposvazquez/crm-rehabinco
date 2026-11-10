@@ -5,7 +5,8 @@ export type TipoActividadCaptacion =
   | "tarea"
   | "asignacion"
   | "cita"
-  | "propiedad";
+  | "propiedad"
+  | "cliente";
 
 export type ActividadCaptacion = {
   id: string;
@@ -25,6 +26,7 @@ export const TIPOS_ACTIVIDAD: TipoActividadCaptacion[] = [
   "asignacion",
   "cita",
   "propiedad",
+  "cliente",
 ];
 
 export function esTipoActividad(valor: unknown): valor is TipoActividadCaptacion {
