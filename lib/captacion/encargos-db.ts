@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { esEstadoCaptacion, type EstadoCaptacion } from "@/lib/captacion/estados";
 import { esTipoActividad } from "@/lib/captacion/actividad";
 import {
@@ -9,15 +10,14 @@ import {
 import { avisarEncargosNuevos } from "@/lib/captacion/avisar-encargo";
 import { identidadFinca } from "@/lib/catastro/explorer";
 
-type Fila = Record<string, any>;
+type Fila = Record<string, unknown>;
 
 function comoFilas(data: unknown): Fila[] {
-  return Array.isArray(data) ? data : [];
+  if (!Array.isArray(data)) return [];
+  return data.filter((item): item is Fila => !!item && typeof item === "object");
 }
 
-type Db = {
-  from: (table: string) => any;
-};
+type Db = SupabaseClient;
 
 export type ActividadEncargo = {
   id: string;
