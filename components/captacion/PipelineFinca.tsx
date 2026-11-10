@@ -220,13 +220,23 @@ export function PipelineFinca({
         .eq("id", propertyId);
       if (errorPropiedad) toast.message("El cliente queda en la finca. La propiedad no se ha actualizado.");
     }
-    await supabase.from("catastro_explorer_actividad").insert({
+    const detalle = siguiente ? siguiente.nombre : "Cliente quitado";
+    const actividad = await supabase.from("catastro_explorer_actividad").insert({
       finca_reference: fincaReference,
       actor_id: user?.id ?? null,
       tipo: "cliente",
-      detalle: siguiente ? siguiente.nombre : "Cliente quitado",
+      detalle,
       payload: { cliente_id: siguiente?.id ?? null },
     });
+    if (actividad.error) {
+      await supabase.from("catastro_explorer_actividad").insert({
+        finca_reference: fincaReference,
+        actor_id: user?.id ?? null,
+        tipo: "nota",
+        detalle: siguiente ? `Cliente: ${detalle}` : detalle,
+        payload: { cliente_id: siguiente?.id ?? null },
+      });
+    }
     setCliente(siguiente);
     setBuscandoCliente(false);
     setQCliente("");
@@ -360,7 +370,7 @@ export function PipelineFinca({
       )}
 
       <div className="mt-4">
-        <Label htmlFor="cliente-finca">Cliente</Label>
+        <Label htmlFor={cliente && !buscandoCliente ? undefined : "cliente-finca"}>Cliente</Label>
         {cliente && !buscandoCliente ? (
           <div className="mt-1 flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
             <div className="min-w-0">
@@ -408,10 +418,10 @@ export function PipelineFinca({
             {qCliente.trim().length >= 2 ? (
               <ul className="mt-2 overflow-hidden rounded-lg border border-border">
                 {sugeridos.map((persona) => (
-                  <li key={persona.id}>
+                  <li key={persona.id} className="border-b border-border last:border-0">
                     <button
                       type="button"
-                      className="flex w-full items-center justify-between gap-3 border-b border-border px-3 py-2 text-left last:border-0 hover:bg-[var(--surface-soft)]"
+                      className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left hover:bg-[var(--surface-soft)]"
                       onClick={() => void guardarCliente(persona)}
                     >
                       <span className="min-w-0">
