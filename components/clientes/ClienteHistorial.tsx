@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/lib/auth/auth-context";
+import { isCatastroUser } from "@/lib/auth/roles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { nombreYApellido } from "@/lib/ui/tokens";
 import {
@@ -32,13 +34,23 @@ function uno<T>(valor: T | T[] | null | undefined): T | null {
 }
 
 export function ClienteHistorial({ clienteId, tick = 0 }: { clienteId: string; tick?: number }) {
+  const { user } = useAuth();
   const [items, setItems] = useState<ItemHistorialCliente[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) return;
     let vivo = true;
     setLoading(true);
     const supabase = createClient();
+    const soloSusTareas = isCatastroUser(user.role);
+    let tareasQ = supabase
+      .from("tareas")
+      .select("id, titulo, vence, hora, estado, created_at")
+      .eq("cliente_id", clienteId)
+      .order("vence", { ascending: false })
+      .limit(60);
+    if (soloSusTareas) tareasQ = tareasQ.eq("comercial_id", user.id);
     void (async () => {
       const [
         citasPri,
@@ -54,22 +66,17 @@ export function ClienteHistorial({ clienteId, tick = 0 }: { clienteId: string; t
       ] = await Promise.all([
         supabase
           .from("citas")
-          .select("id, tipo, titulo, empieza, estado, motivo_anulacion, lugar")
+          .select("id, tipo, titulo, empieza, estado, motivo_anulacion, lugar, comercial_id")
           .eq("cliente_id", clienteId)
           .order("empieza", { ascending: false })
           .limit(80),
         supabase
           .from("citas")
-          .select("id, tipo, titulo, empieza, estado, motivo_anulacion, lugar")
+          .select("id, tipo, titulo, empieza, estado, motivo_anulacion, lugar, comercial_id")
           .contains("clientes_extra_ids", [clienteId])
           .order("empieza", { ascending: false })
           .limit(40),
-        supabase
-          .from("tareas")
-          .select("id, titulo, vence, hora, estado, created_at")
-          .eq("cliente_id", clienteId)
-          .order("vence", { ascending: false })
-          .limit(60),
+        tareasQ,
         supabase
           .from("propiedades")
           .select("id, titulo, direccion, localidad, tipo_operacion, estado, created_at, updated_at")
@@ -124,9 +131,11 @@ export function ClienteHistorial({ clienteId, tick = 0 }: { clienteId: string; t
         estado: string;
         motivo_anulacion: string | null;
         lugar: string | null;
+        comercial_id?: string | null;
       };
       const citasMap = new Map<string, CitaFila>();
       for (const row of [...((citasPri.data ?? []) as CitaFila[]), ...((citasExtra.data ?? []) as CitaFila[])]) {
+        if (soloSusTareas && row.tipo === "tarea" && row.comercial_id !== user.id) continue;
         citasMap.set(row.id, row);
       }
       const citas = [...citasMap.values()];
@@ -215,7 +224,7 @@ export function ClienteHistorial({ clienteId, tick = 0 }: { clienteId: string; t
     return () => {
       vivo = false;
     };
-  }, [clienteId, tick]);
+  }, [clienteId, tick, user]);
 
   return (
     <Card className="md:col-span-2">

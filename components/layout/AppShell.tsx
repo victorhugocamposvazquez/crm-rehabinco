@@ -16,6 +16,7 @@ import { AlertasPwaHost } from "@/components/pwa/AvisosPwa";
 import { PullToRefresh } from "@/components/pwa/PullToRefresh";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
+import { isCatastroUser } from "@/lib/auth/roles";
 import { esNuevoHoyCaptacion } from "@/lib/captacion/brightdata/fecha-portal";
 import { bandejaDeTarea } from "@/lib/tareas/tareas";
 
@@ -64,8 +65,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (!user) return;
     const supabase = createClient();
     const hoy = new Date().toISOString().slice(0, 10);
+    let tareasQ = supabase.from("tareas").select("vence, estado");
+    if (isCatastroUser(user.role)) tareasQ = tareasQ.eq("comercial_id", user.id);
     void Promise.all([
-      supabase.from("tareas").select("vence, estado"),
+      tareasQ,
       supabase.from("partes_visita").select("id", { count: "exact", head: true }).eq("estado", "pendiente_firma"),
       supabase.from("captacion_anuncios").select("publicado_en_portal, publicado_precision, visto_primera_vez, fase, desaparecido_en").eq("fase", "novedad"),
       fetch("/api/captacion/contexto").then((r) => r.json()),

@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Check, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isAdmin } from "@/lib/auth/roles";
+import { isAdmin, isCatastroUser } from "@/lib/auth/roles";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FiltroComercial, type ComercialFiltro } from "@/components/captacion/FiltroComercial";
 import { useFiltroComercial } from "@/lib/ui/filtro-comercial";
@@ -73,6 +73,7 @@ export default function TareasPage() {
   const tareaQuery = searchParams.get("tarea");
   const tareaAbierta = useRef<string | null>(null);
   const admin = isAdmin(user?.role);
+  const soloSusTareas = isCatastroUser(user?.role);
   const hoy = new Date().toISOString().slice(0, 10);
   const { comercialId, setComercialId } = useFiltroComercial();
   const [tareas, setTareas] = useState<TareaDetalle[]>([]);
@@ -86,7 +87,9 @@ export default function TareasPage() {
   const cargar = () => {
     if (!user) return;
     const supabase = createClient();
-    void supabase.from("tareas").select(SELECT_TAREA).order("vence").then(({ data, error }) => {
+    let consulta = supabase.from("tareas").select(SELECT_TAREA).order("vence");
+    if (isCatastroUser(user.role)) consulta = consulta.eq("comercial_id", user.id);
+    void consulta.then(({ data, error }) => {
       if (error) {
         toast.error("No se han podido cargar las tareas.");
         setLoading(false);
@@ -136,7 +139,11 @@ export default function TareasPage() {
     setSel(tareaQuery);
   }, [tareaQuery, loading, tareas]);
 
-  const visibles = comercialId ? tareas.filter((item) => item.comercial_id === comercialId) : tareas;
+  const visibles = tareas.filter((item) => {
+    if (soloSusTareas && item.comercial_id !== user?.id) return false;
+    if (comercialId && item.comercial_id !== comercialId) return false;
+    return true;
+  });
 
   const tarjetas: TareaTarjeta[] = useMemo(() => {
     const corteHechas = new Date();

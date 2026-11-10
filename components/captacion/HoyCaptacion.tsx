@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isAdmin } from "@/lib/auth/roles";
+import { isAdmin, isCatastroUser } from "@/lib/auth/roles";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { FincaCaptacionApi } from "@/lib/catastro-host/captacion-filas";
@@ -53,11 +53,12 @@ export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFactu
       })
       .catch(() => undefined);
 
-    const tareasQ = supabase
+    let tareasQ = supabase
       .from("tareas")
       .select("id, titulo, vence, finca_reference, estado, comercial_id")
       .neq("estado", "hecha")
       .order("vence");
+    if (isCatastroUser(user.role)) tareasQ = tareasQ.eq("comercial_id", user.id);
 
     const citasQ = supabase
       .from("citas")
@@ -80,10 +81,12 @@ export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFactu
     ]).then(([t, c, p, d]) => {
       setTareas((t.data ?? []) as TareaHoy[]);
       setCitas(
-        ((c.data ?? []) as Array<CitaHoy & { profiles?: CitaHoy["profiles"] | CitaHoy["profiles"][] }>).map((row) => ({
-          ...row,
-          profiles: relacionUno(row.profiles),
-        }))
+        ((c.data ?? []) as Array<CitaHoy & { profiles?: CitaHoy["profiles"] | CitaHoy["profiles"][] }>)
+          .filter((row) => !isCatastroUser(user.role) || row.tipo !== "tarea" || row.comercial_id === user.id)
+          .map((row) => ({
+            ...row,
+            profiles: relacionUno(row.profiles),
+          }))
       );
       setPartes((p.data ?? []) as ParteHoy[]);
       setDemandasNuevas(d.count ?? 0);
