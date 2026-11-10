@@ -48,7 +48,7 @@ export const PERMISOS: readonly PermisoDef[] = [
   { id: "herramientas", grupo: "Zonas", label: "Herramientas", hint: "Partes, arras y contratos.", href: "/herramientas" },
   { id: "presupuestos", grupo: "Zonas", label: "Presupuestos", hint: "Presupuestos y ampliaciones.", href: "/presupuestos" },
   { id: "facturas", grupo: "Zonas", label: "Facturas", hint: "Facturación.", href: "/facturas" },
-  { id: "informes", grupo: "Zonas", label: "Informes", hint: "Cifras del equipo.", href: "/informes" },
+  { id: "informes", grupo: "Zonas", label: "Estadísticas y Ranking", hint: "Cifras, podio y actividad del equipo.", href: "/informes" },
   { id: "jornada", grupo: "Zonas", label: "Registro de jornada", hint: "Fichajes del equipo.", href: "/equipo/jornada" },
   { id: "tareas_equipo", grupo: "Permisos", label: "Tareas de todo el equipo", hint: "Si está apagado, solo ve las suyas." },
   { id: "catastro_equipo", grupo: "Permisos", label: "Archivo de catastro del equipo", hint: "Búsquedas, cobertura y asignar fincas." },

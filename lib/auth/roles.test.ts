@@ -68,7 +68,7 @@ describe("roles", () => {
     assert.equal(isComercialBlockedPath("/catastro"), false);
     assert.equal(isComercialBlockedPath("/catastro/finca/12345678901234"), false);
     assert.equal(isComercialBlockedPath("/facturas"), true);
-    assert.equal(isComercialBlockedPath("/informes"), true);
+    assert.equal(isComercialBlockedPath("/informes"), false);
     assert.equal(isComercialBlockedPath("/presupuestos"), true);
     assert.equal(isComercialBlockedPath("/settings/portales"), true);
     assert.equal(comercialHomePath(), "/");
@@ -83,7 +83,7 @@ describe("roles", () => {
     assert.equal(comercial.includes("/herramientas"), true);
     assert.equal(comercial.includes("/partes-visita"), false);
     assert.equal(comercial.includes("/facturas"), false);
-    assert.equal(comercial.includes("/informes"), false);
+    assert.equal(comercial.includes("/informes"), true);
     assert.equal(comercial.includes("/presupuestos"), false);
     assert.equal(admin.includes("/facturas"), true);
     assert.deepEqual([...navHrefsForRole("admin", "top")], [

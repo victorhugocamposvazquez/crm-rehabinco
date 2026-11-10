@@ -11,6 +11,8 @@ describe("permisos por defecto", () => {
     assert.equal(permisoPorDefecto("catastro_user", "facturas"), false);
     assert.equal(permisoPorDefecto("catastro_user", "tareas_equipo"), false);
     assert.equal(permisoPorDefecto("comercial", "tareas_equipo"), true);
+    assert.equal(permisoPorDefecto("comercial", "informes"), true);
+    assert.equal(rutaPermitida("/informes", "comercial", null), true);
     assert.equal(rutaPermitida("/facturas", "catastro_user", null), false);
     assert.equal(rutaPermitida("/catastro/equipo", "catastro_user", null), true);
     assert.equal(rutaPermitida("/catastro/equipo", "comercial", null), false);

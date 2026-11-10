@@ -44,17 +44,17 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/contratos-arras", label: "Arras", icon: FileText },
   { href: "/presupuestos", label: "Presupuestos", icon: ClipboardList },
   { href: "/facturas", label: "Facturas", icon: FileText },
-  { href: "/informes", label: "Informes", icon: BarChart3 },
+  { href: "/informes", label: "Estadísticas", icon: BarChart3 },
   { href: "/equipo/jornada", label: "Registro de jornada", icon: Clock3 },
   { href: "/settings", label: "Ajustes", icon: Settings },
 ];
 
 export const NAV_GROUPS: { label: string; adminOnly?: boolean; hrefs: readonly string[] }[] = [
-  { label: "Día a día", hrefs: ["/", "/fichaje", "/calendario", "/tareas"] },
+  { label: "Día a día", hrefs: ["/", "/fichaje", "/calendario", "/tareas", "/informes"] },
   { label: "Captación", hrefs: ["/captacion", "/catastro", "/seguimiento", "/propiedades", "/web/gestionar", "/valoraciones", "/demandas", "/clientes"] },
   { label: "Herramientas", hrefs: ["/herramientas"] },
   { label: "Equipo", adminOnly: true, hrefs: ["/equipo/jornada"] },
-  { label: "Obra y facturación", adminOnly: true, hrefs: ["/presupuestos", "/facturas", "/informes"] },
+  { label: "Obra y facturación", adminOnly: true, hrefs: ["/presupuestos", "/facturas"] },
 ];
 
 export const NAV_MOBILE_LABEL: Record<string, string> = {
