@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { BandejaCaptacion } from "@/components/captacion/BandejaCaptacion";
+import type { EncargoApi } from "@/lib/captacion/encargos-db";
 import type { FincaCaptacionApi } from "@/lib/catastro-host/captacion-filas";
 import type { KpiCaptacion, KpiPorComercial } from "@/lib/captacion/kpis";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,6 +13,7 @@ export default function EquipoCaptacionPage() {
   const [items, setItems] = useState<FincaCaptacionApi[]>([]);
   const [kpis, setKpis] = useState<KpiCaptacion | null>(null);
   const [porComercial, setPorComercial] = useState<KpiPorComercial[]>([]);
+  const [sinFinca, setSinFinca] = useState<EncargoApi[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -32,6 +35,12 @@ export default function EquipoCaptacionPage() {
         setPorComercial(json.porComercial ?? []);
       })
       .catch(() => setError("No se ha podido cargar el equipo."));
+    void fetch("/api/captacion/encargos?sinFinca=1")
+      .then(async (respuesta) => {
+        const json = (await respuesta.json()) as { ok?: boolean; encargos?: EncargoApi[] };
+        if (respuesta.ok && json.ok) setSinFinca(json.encargos ?? []);
+      })
+      .catch(() => undefined);
   }, []);
 
   return (
@@ -64,6 +73,25 @@ export default function EquipoCaptacionPage() {
         </ul>
       ) : null}
       <div className="mt-8">
+        <h2 className="mb-3 text-lg font-semibold">Encargos de calle, aún sin finca</h2>
+        {sinFinca.length === 0 ? (
+          <p className="text-sm text-neutral-500">No hay encargos pendientes de vincular.</p>
+        ) : (
+          <ul className="mb-8 space-y-2">
+            {sinFinca.map((encargo) => (
+              <li key={encargo.id} className="rounded-xl border border-[#E5E5E5] bg-white px-4 py-3 text-sm">
+                <Link className="font-semibold underline" href={`/catastro/encargos/${encargo.id}`}>
+                  {[encargo.calle, encargo.numero].filter(Boolean).join(" ")}
+                </Link>
+                <span className="text-[#5C5C5C]">
+                  {" "}
+                  · {encargo.asignadoNombre} · {encargo.estado}
+                  {encargo.requiereConfirmacion ? " · por confirmar" : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
         <BandejaCaptacion items={items} mostrarComercial />
       </div>
     </div>

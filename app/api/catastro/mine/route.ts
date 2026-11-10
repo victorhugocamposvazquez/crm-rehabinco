@@ -1,4 +1,4 @@
-import { isAdmin, puedeCrearPropiedad } from "@/lib/auth/roles";
+import { isAdmin, isCatastroUser, puedeCrearPropiedad } from "@/lib/auth/roles";
 import { filaCaptacionDesdeAssignment } from "@/lib/catastro-host/captacion-filas";
 import { explorerStoreDesdeSesion, respuestaSesion } from "@/lib/catastro-host/from-request";
 
@@ -9,7 +9,7 @@ export async function GET() {
   const { user, role, store, supabase } = await explorerStoreDesdeSesion();
   const sinSesion = respuestaSesion(user);
   if (sinSesion) return sinSesion;
-  if (!user || !puedeCrearPropiedad(role)) {
+  if (!user || (!puedeCrearPropiedad(role) && !isCatastroUser(role))) {
     return Response.json({ ok: false, error: "No tienes permiso." }, { status: 403 });
   }
 

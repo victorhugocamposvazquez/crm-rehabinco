@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Clock3, List, Map, Search, Users } from "lucide-react";
+import { Clock3, ClipboardList, List, Map, Search, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
-import { isAdmin, isComercial } from "@/lib/auth/roles";
+import { isAdmin, isCatastroUser, isComercial } from "@/lib/auth/roles";
 import { useAuth } from "@/lib/auth/auth-context";
 import {
   RUTA_EXPLORER,
@@ -25,6 +25,7 @@ export function CatastroSubnav() {
   const { user } = useAuth();
   const admin = isAdmin(user?.role);
   const comercial = isComercial(user?.role);
+  const catastro = isCatastroUser(user?.role);
   const [ultima, setUltima] = useState<string | null>(null);
 
   useEffect(() => {
@@ -50,13 +51,19 @@ export function CatastroSubnav() {
 
   const resultados = destinoResultadosCatastro(pathname, ultima);
   if (!user) return null;
-  const items = comercial
+  const items = (comercial
     ? [
         {
           href: RUTA_EXPLORER,
           label: "Tus fincas",
           icon: List,
           activa: pathname === RUTA_EXPLORER || pathname.startsWith(`${RUTA_EXPLORER}/finca/`),
+        },
+        {
+          href: "/catastro/encargos",
+          label: "Encargos",
+          icon: ClipboardList,
+          activa: pathname.startsWith("/catastro/encargos"),
         },
       ]
     : [
@@ -65,6 +72,12 @@ export function CatastroSubnav() {
           label: "Buscar",
           icon: Search,
           activa: pathname === RUTA_EXPLORER || pathname.startsWith(`${RUTA_EXPLORER}/finca/`),
+        },
+        {
+          href: "/catastro/encargos",
+          label: catastro ? "Mis encargos" : "Encargos",
+          icon: ClipboardList,
+          activa: pathname.startsWith("/catastro/encargos"),
         },
         {
           href: resultados.href,
@@ -90,7 +103,8 @@ export function CatastroSubnav() {
           icon: Map,
           activa: pathname.startsWith(RUTA_COBERTURA_CATASTRO),
         },
-      ];
+      ]
+  ).filter((item) => !catastro || (item.href !== RUTA_EQUIPO_CATASTRO && item.href !== RUTA_COBERTURA_CATASTRO));
 
   return (
     <nav

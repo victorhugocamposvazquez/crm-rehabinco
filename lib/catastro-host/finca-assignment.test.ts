@@ -27,6 +27,7 @@ describe("finca-assignment", () => {
     assert.equal(esRolAsignable("editor"), false);
     assert.equal(esRolAsignable("admin"), true);
     assert.equal(esRolAsignable("superadmin"), true);
+    assert.equal(esRolAsignable("catastro_user"), true);
     assert.equal(filtroAsignacionPorDefecto("comercial"), FILTRO_ASIGNACION_MIAS);
     assert.equal(filtroAsignacionPorDefecto("admin"), FILTRO_ASIGNACION_TODAS);
     assert.equal(filtroAsignacionPorDefecto("superadmin"), FILTRO_ASIGNACION_TODAS);

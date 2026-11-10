@@ -25,7 +25,13 @@ export function nombreComercial(input: {
 }
 
 export function esRolAsignable(role: string | null | undefined): boolean {
-  return role === "comercial" || role === "agente" || role === "admin" || role === "superadmin";
+  return (
+    role === "comercial" ||
+    role === "agente" ||
+    role === "admin" ||
+    role === "superadmin" ||
+    role === "catastro_user"
+  );
 }
 
 export function uuidComercial(valor: unknown): string | null {

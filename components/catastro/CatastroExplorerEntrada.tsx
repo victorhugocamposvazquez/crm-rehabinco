@@ -1,9 +1,10 @@
 "use client";
 
 import { useAuth } from "@/lib/auth/auth-context";
-import { isComercial } from "@/lib/auth/roles";
+import { isCatastroUser, isComercial } from "@/lib/auth/roles";
 import { BuscarInmuebles } from "./BuscarInmuebles";
 import { FincasAsignadasComercial } from "./FincasAsignadasComercial";
+import { EncargosPagina } from "@/components/captacion/EncargosPagina";
 
 export function CatastroExplorerEntrada() {
   const { user, isLoading } = useAuth();
@@ -18,6 +19,15 @@ export function CatastroExplorerEntrada() {
 
   if (isComercial(user.role)) {
     return <FincasAsignadasComercial />;
+  }
+
+  if (isCatastroUser(user.role)) {
+    return (
+      <div className="space-y-10">
+        <EncargosPagina embebida />
+        <BuscarInmuebles />
+      </div>
+    );
   }
 
   return <BuscarInmuebles />;

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Lightbulb } from "lucide-react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
 
@@ -33,14 +34,52 @@ export function AvisosBarra() {
   useEffect(() => {
     if (!user) return;
     const supabase = createClient();
-    void supabase
-      .from("crm_avisos")
-      .select("id, titulo, cuerpo, url")
-      .eq("user_id", user.id)
-      .eq("leida", false)
-      .order("created_at", { ascending: false })
-      .limit(8)
-      .then(({ data }) => setAvisos(data ?? []));
+    let conocidos = new Set<string>();
+    let primera = true;
+
+    const cargar = () => {
+      void supabase
+        .from("crm_avisos")
+        .select("id, titulo, cuerpo, url")
+        .eq("user_id", user.id)
+        .eq("leida", false)
+        .order("created_at", { ascending: false })
+        .limit(8)
+        .then(({ data }) => {
+          const lista = data ?? [];
+          const ids = new Set(lista.map((aviso) => aviso.id));
+          if (!primera) {
+            const nuevo = lista.find((aviso) => !conocidos.has(aviso.id));
+            if (nuevo) {
+              setVisto(false);
+              toast(nuevo.titulo, { description: nuevo.cuerpo ?? undefined });
+            }
+          }
+          primera = false;
+          conocidos = ids;
+          setAvisos(lista);
+        });
+    };
+
+    cargar();
+    const canal = supabase
+      .channel(`avisos-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "crm_avisos", filter: `user_id=eq.${user.id}` },
+        () => cargar()
+      )
+      .subscribe();
+    const alVolver = () => {
+      if (document.visibilityState === "visible") cargar();
+    };
+    document.addEventListener("visibilitychange", alVolver);
+    const pulso = window.setInterval(cargar, 25000);
+    return () => {
+      document.removeEventListener("visibilitychange", alVolver);
+      window.clearInterval(pulso);
+      void supabase.removeChannel(canal);
+    };
   }, [user]);
 
   useEffect(() => {

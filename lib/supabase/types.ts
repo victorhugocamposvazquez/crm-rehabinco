@@ -1103,6 +1103,106 @@ export interface Database {
           payload?: Json;
         };
       };
+      captacion_encargos: {
+        Row: {
+          id: string;
+          asignado_a: string;
+          asignado_por: string | null;
+          origen: string;
+          finca_reference: string | null;
+          calle: string;
+          numero: string;
+          municipio: string;
+          tipo_uso: string | null;
+          operacion: string;
+          contacto_nombre: string | null;
+          telefono: string | null;
+          email: string | null;
+          estado: string;
+          proxima_accion: string | null;
+          proxima_accion_en: string | null;
+          resultado: string | null;
+          notas_revision: string | null;
+          requiere_confirmacion: boolean;
+          prioridad: string | null;
+          posible_duplicado: boolean;
+          fila_origen: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          asignado_a: string;
+          asignado_por?: string | null;
+          origen: string;
+          finca_reference?: string | null;
+          calle?: string;
+          numero?: string;
+          municipio?: string;
+          tipo_uso?: string | null;
+          operacion?: string;
+          contacto_nombre?: string | null;
+          telefono?: string | null;
+          email?: string | null;
+          estado?: string;
+          proxima_accion?: string | null;
+          proxima_accion_en?: string | null;
+          resultado?: string | null;
+          notas_revision?: string | null;
+          requiere_confirmacion?: boolean;
+          prioridad?: string | null;
+          posible_duplicado?: boolean;
+          fila_origen?: Json;
+        };
+        Update: {
+          asignado_a?: string;
+          asignado_por?: string | null;
+          origen?: string;
+          finca_reference?: string | null;
+          calle?: string;
+          numero?: string;
+          municipio?: string;
+          tipo_uso?: string | null;
+          operacion?: string;
+          contacto_nombre?: string | null;
+          telefono?: string | null;
+          email?: string | null;
+          estado?: string;
+          proxima_accion?: string | null;
+          proxima_accion_en?: string | null;
+          resultado?: string | null;
+          notas_revision?: string | null;
+          requiere_confirmacion?: boolean;
+          prioridad?: string | null;
+          posible_duplicado?: boolean;
+          fila_origen?: Json;
+          updated_at?: string;
+        };
+      };
+      captacion_encargo_actividad: {
+        Row: {
+          id: string;
+          encargo_id: string;
+          actor_id: string | null;
+          tipo: string;
+          detalle: string | null;
+          payload: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          encargo_id: string;
+          actor_id?: string | null;
+          tipo: string;
+          detalle?: string | null;
+          payload?: Json;
+        };
+        Update: {
+          tipo?: string;
+          detalle?: string | null;
+          payload?: Json;
+        };
+      };
       demandas: {
         Row: {
           id: string;
@@ -1565,6 +1665,7 @@ export interface Database {
           tareas_vencidas: boolean;
           menciones: boolean;
           partes: boolean;
+          encargos: boolean;
           hora_diaria: number;
           updated_at: string;
         };
@@ -1577,6 +1678,7 @@ export interface Database {
           tareas_vencidas?: boolean;
           menciones?: boolean;
           partes?: boolean;
+          encargos?: boolean;
           hora_diaria?: number;
           updated_at?: string;
         };
@@ -1588,6 +1690,7 @@ export interface Database {
           tareas_vencidas?: boolean;
           menciones?: boolean;
           partes?: boolean;
+          encargos?: boolean;
           hora_diaria?: number;
           updated_at?: string;
         };

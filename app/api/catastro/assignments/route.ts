@@ -11,6 +11,7 @@ import {
   type ComercialAsignable,
 } from "@/lib/catastro-host/finca-assignment";
 import { createClient } from "@/lib/supabase/server";
+import { asegurarEncargosDeFincas } from "@/lib/captacion/encargos-db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,7 +22,7 @@ async function comercialesAsignables(
   const { data, error } = await supabase
     .from("profiles")
     .select("id, nombre_completo, email, role, activo")
-    .in("role", ["comercial", "agente", "admin", "superadmin"])
+    .in("role", ["comercial", "agente", "admin", "superadmin", "catastro_user"])
     .order("nombre_completo");
   if (error) return [];
   return (data ?? [])
@@ -37,7 +38,7 @@ export async function GET(request: Request) {
   if (!user) {
     return Response.json({ ok: false, error: "Sesión expirada" }, { status: 401 });
   }
-  if (!puedeCrearPropiedad(role)) {
+  if (!puedeCrearPropiedad(role) && !puedeAsignarFincas(role)) {
     return Response.json({ ok: false, error: "No tienes permiso." }, { status: 403 });
   }
 
@@ -73,7 +74,7 @@ export async function PUT(request: Request) {
   if (!user) {
     return Response.json({ ok: false, error: "Sesión expirada" }, { status: 401 });
   }
-  if (!puedeCrearPropiedad(role)) {
+  if (!puedeCrearPropiedad(role) && !puedeAsignarFincas(role)) {
     return Response.json({ ok: false, error: "No tienes permiso." }, { status: 403 });
   }
   if (!puedeAsignarFincas(role)) {
@@ -153,6 +154,16 @@ export async function PUT(request: Request) {
 
   for (const ref of refs) {
     await sincronizarComercialPropiedad(supabase, properties, ref, comercialId);
+  }
+  try {
+    await asegurarEncargosDeFincas(supabase, {
+      refs,
+      comercialId,
+      asignadoPor: user.id,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "No se ha podido crear el encargo.";
+    return Response.json({ ok: false, error: message }, { status: 500 });
   }
   const assignments = refs.map((ref) =>
     asignacionDesdeFila(ref, { comercial_id: comercialId }, comerciales)
