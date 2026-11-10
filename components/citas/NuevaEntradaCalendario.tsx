@@ -341,78 +341,6 @@ export function NuevaEntradaCalendario({
             </button>
           </div>
         ) : null}
-        {edicion ? bloqueNotas : null}
-        <AltaSection
-          title="Qué"
-          hint="Visita, llamada, firma, tasación, evento, captación, recordatorio o tarea. El título es lo que verás en la rejilla."
-        >
-          <div className="flex flex-wrap gap-2">
-            {tipos.map((item) => (
-              <ToggleChip key={item} on={tipo === item} onClick={() => setTipo(item)}>
-                {TIPO_CITA_LABEL[item]}
-              </ToggleChip>
-            ))}
-          </div>
-        </AltaSection>
-
-        <AltaSection
-          title="Cuándo"
-          hint="Sale del hueco pulsado. Cámbialo si no encaja."
-        >
-          <div className="grid grid-cols-2 gap-3">
-            <AltaField label="Día">
-              <input type="date" value={dia} onChange={(e) => onDia(e.target.value)} className={altaControl} />
-            </AltaField>
-            <AltaField label="Hora">
-              <TimeInput value={hora} onChange={onHora} className={altaControl} />
-            </AltaField>
-          </div>
-        </AltaSection>
-
-        <div className="min-w-0">
-          <AltaField label="Título" optional>
-            <input
-              autoFocus={!edicion}
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
-              placeholder={`${TIPO_CITA_LABEL[tipo]} a las ${hora}`}
-              className={altaControl}
-            />
-          </AltaField>
-        </div>
-
-        {equipo.length > 0 && onComercial && comercialId ? (
-          <AltaSection
-            title="Comercial"
-            hint="Quién aparece asignado a esta entrada. Puedes crearla a nombre de otra persona del equipo."
-          >
-            <div className="flex items-center gap-2">
-              <AvatarComercial
-                nombre={comercialSel?.nombre}
-                color={comercialSel?.color}
-                size={28}
-              />
-              <Selector
-                value={comercialId}
-                onChange={(e) => onComercial(e.target.value)}
-                className="min-w-0 flex-1"
-                aria-label="Comercial asignado"
-              >
-                {equipo.some((c) => c.id === comercialId) ? null : (
-                  <option value={comercialId}>{comercialSel?.nombre ?? "Comercial"}</option>
-                )}
-                {equipo.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {nombreYApellido(c.nombre) || c.nombre}
-                  </option>
-                ))}
-              </Selector>
-            </div>
-          </AltaSection>
-        ) : null}
-
-        {!edicion ? bloqueNotas : null}
-
         <AltaSection
           wide
           title="Cliente"
@@ -500,6 +428,78 @@ export function NuevaEntradaCalendario({
             </div>
           </AltaSection>
         ) : null}
+
+        {edicion ? bloqueNotas : null}
+        <AltaSection
+          title="Qué"
+          hint="Visita, llamada, firma, tasación, evento, captación, recordatorio o tarea. El título es lo que verás en la rejilla."
+        >
+          <div className="flex flex-wrap gap-2">
+            {tipos.map((item) => (
+              <ToggleChip key={item} on={tipo === item} onClick={() => setTipo(item)}>
+                {TIPO_CITA_LABEL[item]}
+              </ToggleChip>
+            ))}
+          </div>
+        </AltaSection>
+
+        <AltaSection
+          title="Cuándo"
+          hint="Sale del hueco pulsado. Cámbialo si no encaja."
+        >
+          <div className="grid grid-cols-2 gap-3">
+            <AltaField label="Día">
+              <input type="date" value={dia} onChange={(e) => onDia(e.target.value)} className={altaControl} />
+            </AltaField>
+            <AltaField label="Hora">
+              <TimeInput value={hora} onChange={onHora} className={altaControl} />
+            </AltaField>
+          </div>
+        </AltaSection>
+
+        <div className="min-w-0">
+          <AltaField label="Título" optional>
+            <input
+              autoFocus={!edicion}
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+              placeholder={`${TIPO_CITA_LABEL[tipo]} a las ${hora}`}
+              className={altaControl}
+            />
+          </AltaField>
+        </div>
+
+        {equipo.length > 0 && onComercial && comercialId ? (
+          <AltaSection
+            title="Comercial"
+            hint="Quién aparece asignado a esta entrada. Puedes crearla a nombre de otra persona del equipo."
+          >
+            <div className="flex items-center gap-2">
+              <AvatarComercial
+                nombre={comercialSel?.nombre}
+                color={comercialSel?.color}
+                size={28}
+              />
+              <Selector
+                value={comercialId}
+                onChange={(e) => onComercial(e.target.value)}
+                className="min-w-0 flex-1"
+                aria-label="Comercial asignado"
+              >
+                {equipo.some((c) => c.id === comercialId) ? null : (
+                  <option value={comercialId}>{comercialSel?.nombre ?? "Comercial"}</option>
+                )}
+                {equipo.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {nombreYApellido(c.nombre) || c.nombre}
+                  </option>
+                ))}
+              </Selector>
+            </div>
+          </AltaSection>
+        ) : null}
+
+        {!edicion ? bloqueNotas : null}
 
         <AltaSection
           wide
