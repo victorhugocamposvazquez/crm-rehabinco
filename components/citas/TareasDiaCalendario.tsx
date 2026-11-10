@@ -7,6 +7,7 @@ import { ListTodo } from "lucide-react";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/lib/auth/auth-context";
 import { relacionUno } from "@/lib/citas/citas";
 import { textoVinculoTarea } from "@/lib/tareas/tareas";
 import { FichaLink } from "@/components/crm/FichaPeek";
@@ -31,6 +32,7 @@ export function TareasDiaCalendario({
   /** Las hechas del día se muestran siempre, atenuadas, con Reabrir. */
   mostrarHechas?: boolean;
 }) {
+  const { user } = useAuth();
   const [tareas, setTareas] = useState<TareaDia[]>([]);
 
   useEffect(() => {
@@ -59,13 +61,22 @@ export function TareasDiaCalendario({
   }, [dia, comercialId]);
 
   const reabrir = async (id: string) => {
-    const { error } = await createClient().from("tareas").update({ estado: "pendiente" }).eq("id", id);
+    const supabase = createClient();
+    const { error } = await supabase.from("tareas").update({ estado: "pendiente" }).eq("id", id);
     if (error) {
       toast.error(error.message);
       return;
     }
+    if (user?.id) {
+      await supabase.from("tareas_actividad").insert({
+        tarea_id: id,
+        actor_id: user.id,
+        tipo: "nota",
+        texto: "Reabierta",
+      });
+    }
     setTareas((prev) => prev.map((t) => (t.id === id ? { ...t, estado: "pendiente" } : t)));
-    toast.success("Tarea reabierta.");
+    toast.success("Tarea reabierta. Lo escrito sigue en el historial.");
   };
 
   if (tareas.length === 0) return null;

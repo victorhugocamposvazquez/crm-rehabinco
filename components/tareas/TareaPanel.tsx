@@ -601,7 +601,9 @@ export function TareaPanel({
           </div>
 
           <div className="mt-8">
-            <div className="mb-2 text-[12px] text-[var(--text-3)]">Notas</div>
+            <p className="mb-2 text-[13px] font-semibold text-foreground">Para ahora</p>
+            <CampoComentario equipo={comerciales} onEnviar={(texto, mencionados) => void guardarNota(texto, mencionados)} />
+            <div className="mb-2 mt-5 text-[12.5px] font-medium text-[var(--text-3)]">Ya guardado</div>
             {tarea.cita?.notas?.trim() && !actividad.some((a) => a.texto.trim() === tarea.cita?.notas?.trim()) ? (
               <p className="mb-3 whitespace-pre-wrap rounded-[10px] bg-[var(--surface-soft)] px-2.5 py-1.5 text-[13px] leading-snug">
                 <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-3)]">
@@ -677,7 +679,6 @@ export function TareaPanel({
                 ))}
               </div>
             ) : null}
-            <CampoComentario equipo={comerciales} onEnviar={(texto, mencionados) => void guardarNota(texto, mencionados)} />
           </div>
         </div>
 

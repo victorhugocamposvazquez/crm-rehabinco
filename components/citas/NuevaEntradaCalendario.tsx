@@ -230,7 +230,7 @@ export function NuevaEntradaCalendario({
     <AltaSection
       wide
       title="Notas"
-      hint="Cada nota se guarda aparte con su fecha y hora."
+      hint="Para ahora se guarda al momento. Ya guardado es el historial: no se borra al reabrir ni al cambiar la hora."
     >
       <NotasTareaFecha
         tareaId={edicion.tarea_id}
@@ -244,54 +244,44 @@ export function NuevaEntradaCalendario({
     <AltaSection
       wide
       title="Notas"
-      hint={
-        tipo === "tarea"
-          ? "Esta primera nota se guarda con la fecha de creación. Las siguientes, al editar la tarea."
-          : tipo === "visita"
-            ? "Qué ver, llaves, contacto en puerta… No sale en el título del calendario."
-            : tipo === "llamada"
-              ? "Motivo de la llamada, lo hablado o lo pendiente. No sale en el título del calendario."
-              : "Observaciones internas. Puedes pegar enlaces. No salen en el título del calendario."
-      }
+      hint="Para ahora se guarda al crear la entrada. Ya guardado son las notas del contacto, con su fecha."
     >
+      <div className="mb-3">
+        <p className="mb-2 text-[13px] font-semibold text-foreground">Para ahora</p>
+        <textarea
+          value={notas}
+          onChange={(e) => onNotas(e.target.value)}
+          placeholder="Qué hay que hacer ahora…"
+          rows={3}
+          className="min-h-[5rem] w-full resize-y rounded-[9px] border border-[var(--input)] bg-white px-3 py-2.5 text-[13.5px] outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15 max-[819px]:text-base"
+        />
+      </div>
       {notasPrevias.length > 0 ? (
-        <ul className="mb-3 space-y-2">
-          {notasPrevias.map((n) => (
-            <li key={n.id} className="rounded-[10px] border border-[var(--border-soft)] bg-[var(--surface-soft)] px-3.5 py-2.5">
-              <p className="text-[11px] font-medium text-[var(--text-3)]">
-                {n.created_at
-                  ? new Date(n.created_at).toLocaleString("es-ES", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : "Sin fecha"}
-                {" · nota del contacto"}
-              </p>
-              <p className="mt-1 whitespace-pre-wrap break-words text-[13.5px] leading-relaxed text-foreground">
-                <TextoConEnlaces texto={n.texto} />
-              </p>
-            </li>
-          ))}
-        </ul>
+        <div>
+          <p className="mb-2 text-[12.5px] font-medium text-[var(--text-3)]">Ya guardado</p>
+          <ul className="space-y-2">
+            {notasPrevias.map((n) => (
+              <li key={n.id} className="rounded-[10px] border border-[var(--border-soft)] bg-[var(--surface-soft)] px-3.5 py-2.5">
+                <p className="text-[11px] font-medium text-[var(--text-3)]">
+                  {n.created_at
+                    ? new Date(n.created_at).toLocaleString("es-ES", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "Sin fecha"}
+                  {" · nota del contacto"}
+                </p>
+                <p className="mt-1 whitespace-pre-wrap break-words text-[13px] leading-relaxed text-[var(--text-2)]">
+                  <TextoConEnlaces texto={n.texto} />
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : null}
-      <textarea
-        value={notas}
-        onChange={(e) => onNotas(e.target.value)}
-        placeholder={
-          tipo === "tarea"
-            ? "Primera nota de esta tarea…"
-            : tipo === "visita"
-              ? "Motivo de la visita, instrucciones, acuerdos…"
-              : tipo === "llamada"
-                ? "Motivo, lo hablado, próximo paso…"
-                : "Detalles, acuerdos, recordatorios…"
-        }
-        rows={3}
-        className="min-h-[5rem] w-full resize-y rounded-[9px] border border-[var(--input)] bg-white px-3 py-2.5 text-[13.5px] outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15 max-[819px]:text-base"
-      />
     </AltaSection>
   );
 
@@ -364,8 +354,8 @@ export function NuevaEntradaCalendario({
         {edicion?.estado === "hecha" && onCambiarEstado ? (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 min-[820px]:col-span-2">
             <div>
-              <p className="text-[13.5px] font-medium text-foreground">Esta entrada está finalizada</p>
-              <p className="text-[12.5px] text-[var(--text-2)]">Puedes volver a dejarla prevista.</p>
+              <p className="text-[13.5px] font-medium text-foreground">Finalizada</p>
+              <p className="text-[12.5px] text-[var(--text-2)]">Reabrir la deja prevista. Lo escrito sigue en Ya guardado.</p>
             </div>
             <button
               type="button"

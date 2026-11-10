@@ -238,87 +238,93 @@ export function NotasTareaFecha({
         : [];
 
   return (
-    <div className="space-y-3">
-      {visibles.length === 0 ? null : (
-        <ul className="space-y-2">
-          {visibles.map((n) => (
-            <li
-              key={n.id}
-              className="rounded-[10px] border border-[var(--border-soft)] bg-[var(--surface-soft)] px-3.5 py-2.5"
+    <div className="space-y-4">
+      <div>
+        <p className="mb-2 text-[13px] font-semibold text-foreground">Para ahora</p>
+        <div className="rounded-[10px] border border-[var(--input)] bg-[var(--field)] p-3 focus-within:border-foreground">
+          <textarea
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            onKeyDown={(e) => {
+              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
+                void guardar();
+              }
+            }}
+            rows={2}
+            placeholder="Qué hay que hacer ahora. Se guarda al momento, con la fecha de ahora."
+            className="min-h-[3.5rem] w-full resize-y bg-transparent text-[14px] leading-relaxed text-foreground outline-none placeholder:text-[var(--text-3)] max-[819px]:text-base"
+          />
+          <div className="mt-2 flex items-center justify-between gap-2 border-t border-[var(--border-soft)] pt-2">
+            <span className="text-[11.5px] text-[var(--text-3)]">⌘ + Intro</span>
+            <Button
+              type="button"
+              size="sm"
+              disabled={!texto.trim() || saving || !tareaResuelta}
+              onClick={() => void guardar()}
             >
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-[11px] font-medium text-[var(--text-3)]">
-                  {n.legacy ? "Nota anterior" : fechaNota(n.created_at)}
-                  {n.autor ? ` · ${n.autor}` : ""}
-                </p>
-                {editandoId === n.id ? null : (
-                  <button
-                    type="button"
-                    onClick={() => iniciarEdicion(n)}
-                    className="shrink-0 text-[12px] font-semibold text-accent hover:underline"
-                  >
-                    Editar
-                  </button>
-                )}
-              </div>
-              {editandoId === n.id ? (
-                <div className="mt-2 space-y-2">
-                  <textarea
-                    value={editDraft}
-                    onChange={(e) => setEditDraft(e.target.value)}
-                    rows={3}
-                    className="min-h-[4rem] w-full resize-y rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-3 py-2 text-[13.5px] text-foreground outline-none focus:border-accent"
-                  />
-                  <div className="flex justify-end gap-2">
-                    <Button type="button" size="sm" variant="secondary" disabled={saving} onClick={cancelarEdicion}>
-                      Cancelar
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      disabled={!editDraft.trim() || saving}
-                      onClick={() => void guardarEdicion(n)}
-                    >
-                      {saving ? "Guardando…" : "Guardar"}
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <p className="mt-1 whitespace-pre-wrap break-words text-[13.5px] leading-relaxed text-foreground">
-                  <TextoConEnlaces texto={n.texto} />
-                </p>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-      <div className="rounded-[10px] border border-[var(--input)] bg-[var(--field)] p-3 focus-within:border-foreground">
-        <textarea
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-          onKeyDown={(e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-              e.preventDefault();
-              e.stopPropagation();
-              void guardar();
-            }
-          }}
-          rows={2}
-          placeholder="Añadir una nota… Se guarda con la fecha y hora de ahora."
-          className="min-h-[3.5rem] w-full resize-y bg-transparent text-[14px] leading-relaxed text-foreground outline-none placeholder:text-[var(--text-3)] max-[819px]:text-base"
-        />
-        <div className="mt-2 flex items-center justify-between gap-2 border-t border-[var(--border-soft)] pt-2">
-          <span className="text-[11.5px] text-[var(--text-3)]">⌘ + Intro para añadir</span>
-          <Button
-            type="button"
-            size="sm"
-            disabled={!texto.trim() || saving || !tareaResuelta}
-            onClick={() => void guardar()}
-          >
-            {saving ? "Guardando…" : "Añadir nota"}
-          </Button>
+              {saving ? "Guardando…" : "Añadir nota"}
+            </Button>
+          </div>
         </div>
       </div>
+      {visibles.length === 0 ? null : (
+        <div>
+          <p className="mb-2 text-[12.5px] font-medium text-[var(--text-3)]">Ya guardado</p>
+          <ul className="space-y-2">
+            {visibles.map((n) => (
+              <li
+                key={n.id}
+                className="rounded-[10px] border border-[var(--border-soft)] bg-[var(--surface-soft)] px-3.5 py-2.5"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-[11px] font-medium text-[var(--text-3)]">
+                    {n.legacy ? "Nota anterior" : fechaNota(n.created_at)}
+                    {n.autor ? ` · ${n.autor}` : ""}
+                  </p>
+                  {editandoId === n.id ? null : (
+                    <button
+                      type="button"
+                      onClick={() => iniciarEdicion(n)}
+                      className="shrink-0 text-[12px] font-semibold text-[var(--text-3)] hover:text-foreground hover:underline"
+                    >
+                      Editar
+                    </button>
+                  )}
+                </div>
+                {editandoId === n.id ? (
+                  <div className="mt-2 space-y-2">
+                    <textarea
+                      value={editDraft}
+                      onChange={(e) => setEditDraft(e.target.value)}
+                      rows={3}
+                      className="min-h-[4rem] w-full resize-y rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-3 py-2 text-[13.5px] text-foreground outline-none focus:border-accent"
+                    />
+                    <div className="flex justify-end gap-2">
+                      <Button type="button" size="sm" variant="secondary" disabled={saving} onClick={cancelarEdicion}>
+                        Cancelar
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={!editDraft.trim() || saving}
+                        onClick={() => void guardarEdicion(n)}
+                      >
+                        {saving ? "Guardando…" : "Guardar"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-1 whitespace-pre-wrap break-words text-[13px] leading-relaxed text-[var(--text-2)]">
+                    <TextoConEnlaces texto={n.texto} />
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

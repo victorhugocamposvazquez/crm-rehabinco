@@ -52,7 +52,7 @@ import {
   NuevaEntradaCalendario,
   type DatosGuardarEntradaCalendario,
 } from "@/components/citas/NuevaEntradaCalendario";
-import { syncEstadoTareaDesdeCita, syncTareaDesdeCita } from "@/lib/tareas/sync-cita";
+import { syncTareaDesdeCita } from "@/lib/tareas/sync-cita";
 
 function textoReagenda(antes: string, ahora: string) {
   const fmt = (iso: string) => {
@@ -680,16 +680,25 @@ export default function CalendarioPage() {
       toast.error(aviso);
       return;
     }
-    if (cita) {
+    if (cita && user) {
       try {
-        await syncEstadoTareaDesdeCita(supabase, cita, estado);
+        const tareaId = await syncTareaDesdeCita(supabase, { ...cita, estado }, { creadoPor: user.id });
+        if (tareaId && estado === "prevista" && cita.estado === "hecha") {
+          await supabase.from("tareas_actividad").insert({
+            tarea_id: tareaId,
+            actor_id: user.id,
+            tipo: "nota",
+            texto: "Reabierta",
+          });
+          setNotasTick((n) => n + 1);
+        }
       } catch {
         /* la cita ya cambió; el tablero se refrescará en la próxima visita */
       }
     }
     if (estado === "hecha") toast.success("Entrada marcada como finalizada.");
     else if (estado === "cancelada") toast.success("Entrada anulada.");
-    else toast.success("Entrada de nuevo como prevista.");
+    else toast.success("Reabierta. Lo escrito sigue en Ya guardado.");
     const motivo = estado === "cancelada" ? motivoAnulacion!.trim() : null;
     setEditando((prev) => (prev?.id === id ? { ...prev, estado, motivo_anulacion: motivo } : prev));
     setCitas((prev) => prev.map((item) => (item.id === id ? { ...item, estado, motivo_anulacion: motivo } : item)));
