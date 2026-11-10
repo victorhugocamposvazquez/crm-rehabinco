@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { nombreYApellido } from "@/lib/ui/tokens";
+import { TextoConEnlaces } from "@/components/ui/TextoConEnlaces";
 
 export type TipoNotaCliente = "nota" | "llamada" | "interes" | "otro";
 
@@ -214,7 +215,9 @@ export function ClienteNotas({
                     </div>
                   </div>
                 ) : (
-                  <p className="mt-1.5 whitespace-pre-wrap text-[14px] leading-snug text-foreground">{n.texto}</p>
+                  <p className="mt-1.5 whitespace-pre-wrap text-[14px] leading-snug text-foreground">
+                    <TextoConEnlaces texto={n.texto} />
+                  </p>
                 )}
               </li>
             ))}

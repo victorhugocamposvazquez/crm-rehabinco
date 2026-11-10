@@ -1305,6 +1305,7 @@ export interface Database {
           tipo?: string;
           texto: string;
           mencionados?: string[];
+          created_at?: string;
         };
         Update: {
           texto?: string;

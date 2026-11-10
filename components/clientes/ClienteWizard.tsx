@@ -443,7 +443,7 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
                   <textarea
                     id="notas"
                     className="flex min-h-[100px] w-full rounded-lg border border-border bg-[var(--surface)] px-4 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    placeholder="Notas internas"
+                    placeholder="Pega enlaces o notas internas"
                     {...formStep2.register("notas")}
                   />
                 </div>

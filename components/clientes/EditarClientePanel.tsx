@@ -8,6 +8,8 @@ import { AltaField, AltaSection, AltaShell, altaControl } from "@/components/ui/
 import { BuscadorLocalidad } from "@/components/geo/BuscadorLocalidad";
 import { Selector } from "@/components/ui/selector";
 import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
+import { TextoConEnlaces } from "@/components/ui/TextoConEnlaces";
+import { useAuth } from "@/lib/auth/auth-context";
 
 export type ClienteEditData = {
   id: string;
@@ -72,9 +74,11 @@ export function EditarClientePanel({
   const [localidad, setLocalidad] = useState("");
   const [activo, setActivo] = useState(true);
   const [fallecido, setFallecido] = useState(false);
+  const [notaNueva, setNotaNueva] = useState("");
   const [saving, setSaving] = useState(false);
   const nombreRef = useRef<HTMLInputElement>(null);
   const guardandoRef = useRef(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     if (!open || !cliente) return;
@@ -89,6 +93,7 @@ export function EditarClientePanel({
     setLocalidad(cliente.localidad ?? "");
     setActivo(cliente.activo !== false);
     setFallecido(cliente.etiqueta === "fallecido");
+    setNotaNueva("");
     requestAnimationFrame(() => nombreRef.current?.focus());
   }, [open, cliente]);
 
@@ -99,6 +104,8 @@ export function EditarClientePanel({
       return;
     }
     const tipoDoc = normalizarTipoDoc(tipoCliente, tipoDocumento);
+    const extra = notaNueva.trim();
+    const notasUnidas = [cliente.notas?.trim(), extra].filter(Boolean).join("\n\n") || null;
     const patch: ClienteEditPatch = {
       id: cliente.id,
       nombre: nombre.trim(),
@@ -110,7 +117,7 @@ export function EditarClientePanel({
       direccion: direccion.trim() || null,
       codigo_postal: codigoPostal.trim() || null,
       localidad: localidad.trim() || null,
-      notas: cliente.notas,
+      notas: notasUnidas,
       activo,
       etiqueta: fallecido ? "fallecido" : null,
     };
@@ -131,6 +138,7 @@ export function EditarClientePanel({
           direccion: patch.direccion,
           codigo_postal: patch.codigo_postal,
           localidad: patch.localidad,
+          notas: patch.notas,
           activo: patch.activo,
           etiqueta: patch.etiqueta,
         })
@@ -141,6 +149,15 @@ export function EditarClientePanel({
       if (aviso || !data) {
         toast.error(aviso ?? "No se ha podido guardar el contacto.");
         return;
+      }
+      if (extra) {
+        const { error: errorNota } = await supabase.from("clientes_notas").insert({
+          cliente_id: cliente.id,
+          actor_id: user?.id ?? null,
+          texto: extra,
+          tipo: "nota",
+        });
+        if (errorNota) toast.error(errorNota.message);
       }
       toast.success("Contacto actualizado.");
       onGuardado(patch);
@@ -274,6 +291,21 @@ export function EditarClientePanel({
             </div>
           </div>
         </div>
+      </AltaSection>
+
+      <AltaSection wide title="Notas y enlaces" hint="Pega aquí un enlace de Idealista u otra nota. Se guarda con la fecha de ahora y no borra las anteriores.">
+        {cliente?.notas?.trim() ? (
+          <p className="mb-3 whitespace-pre-wrap text-[13.5px] leading-relaxed text-foreground">
+            <TextoConEnlaces texto={cliente.notas.trim()} />
+          </p>
+        ) : null}
+        <textarea
+          value={notaNueva}
+          onChange={(e) => setNotaNueva(e.target.value)}
+          rows={3}
+          placeholder="Pega un enlace o escribe una nota…"
+          className={`${altaControl} h-auto min-h-[5.5rem] resize-y py-2.5`}
+        />
       </AltaSection>
 
     </AltaShell>

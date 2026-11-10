@@ -360,9 +360,15 @@ export function NuevoClientePanel({
         </div>
       </AltaSection>
 
-      <AltaSection title="Notas internas" hint="Quedan en el CRM. No salen al portal ni al parte." wide>
+      <AltaSection title="Notas internas" hint="Puedes pegar enlaces. Quedan en el CRM y pasan a la tarea si la creas desde este contacto." wide>
         <AltaField label="Notas" optional>
-          <textarea value={notas} onChange={(e) => setNotas(e.target.value)} rows={3} className={`${altaControl} h-auto min-h-[5.5rem] resize-none py-2.5`} />
+          <textarea
+            value={notas}
+            onChange={(e) => setNotas(e.target.value)}
+            rows={3}
+            placeholder="Pega un enlace o escribe lo hablado…"
+            className={`${altaControl} h-auto min-h-[5.5rem] resize-y py-2.5`}
+          />
         </AltaField>
       </AltaSection>
     </AltaShell>

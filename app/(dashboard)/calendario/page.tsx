@@ -54,6 +54,23 @@ import {
 } from "@/components/citas/NuevaEntradaCalendario";
 import { syncEstadoTareaDesdeCita, syncTareaDesdeCita } from "@/lib/tareas/sync-cita";
 
+function textoReagenda(antes: string, ahora: string) {
+  const fmt = (iso: string) => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleString("es-ES", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+  return `Reagendada\nAntes: ${fmt(antes)}\nAhora: ${fmt(ahora)}`;
+}
+
+type NotaContacto = { id: string; texto: string; created_at: string | null };
+
 type CitaRow = {
   id: string;
   comercial_id: string;
@@ -94,6 +111,8 @@ export default function CalendarioPage() {
   const [lugar, setLugar] = useState("");
   const [comercialAsignado, setComercialAsignado] = useState("");
   const [editando, setEditando] = useState<CitaRow | null>(null);
+  const [notasContacto, setNotasContacto] = useState<NotaContacto[]>([]);
+  const [notasTick, setNotasTick] = useState(0);
   const [mostrarFinalizadas, setMostrarFinalizadas] = useState(false);
   const [propiedades, setPropiedades] = useState<InmuebleCalendario[]>([]);
   const [clientes, setClientes] = useState<Array<{ id: string; nombre: string; telefono: string | null }>>([]);
@@ -261,6 +280,36 @@ export default function CalendarioPage() {
 
   const gestiona = (comercialId: string) => puedeGestionarCita(comercialId, user?.id, admin);
 
+  useEffect(() => {
+    if (editando || !clienteId) {
+      setNotasContacto([]);
+      return;
+    }
+    let vivo = true;
+    const supabase = createClient();
+    void (async () => {
+      const { data } = await supabase
+        .from("clientes_notas")
+        .select("id, texto, created_at")
+        .eq("cliente_id", clienteId)
+        .order("created_at", { ascending: false });
+      let filas: NotaContacto[] = ((data ?? []) as NotaContacto[]).filter((n) => n.texto?.trim());
+      if (filas.length === 0) {
+        const { data: cli } = await supabase
+          .from("clientes")
+          .select("notas, created_at")
+          .eq("id", clienteId)
+          .maybeSingle();
+        const texto = cli?.notas?.trim();
+        if (texto) filas = [{ id: "legacy-contacto", texto, created_at: cli.created_at ?? null }];
+      }
+      if (vivo) setNotasContacto(filas);
+    })();
+    return () => {
+      vivo = false;
+    };
+  }, [clienteId, editando]);
+
   const abrirEdicion = (idOCita: string | CitaRow) => {
     const cita = typeof idOCita === "string" ? citas.find((item) => item.id === idOCita) : idOCita;
     if (!cita || cita.estado === "cancelada") return;
@@ -416,6 +465,15 @@ export default function CalendarioPage() {
       }
       const idGuardada = editando.id;
       const citaConTarea = { ...citaNormalizada, tarea_id: tareaId };
+      if (tareaId && patch.empieza !== editando.empieza) {
+        await supabase.from("tareas_actividad").insert({
+          tarea_id: tareaId,
+          actor_id: user.id,
+          tipo: "nota",
+          texto: textoReagenda(editando.empieza, patch.empieza),
+        });
+        setNotasTick((n) => n + 1);
+      }
       setPropiedadId(citaConTarea.propiedad_id ?? "");
       if (citaConTarea.propiedad_id) mezclarInmueble(citaConTarea.propiedad_id);
       setEditando(citaConTarea);
@@ -454,13 +512,28 @@ export default function CalendarioPage() {
     }
     try {
       const tareaId = await syncTareaDesdeCita(supabase, cita, { creadoPor: user.id });
-      if (tipoCita === "tarea" && notasFinal && tareaId) {
-        await supabase.from("tareas_actividad").insert({
-          tarea_id: tareaId,
-          actor_id: user.id,
-          tipo: "nota",
-          texto: notasFinal,
-        });
+      if (tareaId) {
+        const ya = new Set<string>();
+        for (const nota of notasContacto) {
+          const texto = nota.texto.trim();
+          if (!texto || ya.has(texto)) continue;
+          ya.add(texto);
+          await supabase.from("tareas_actividad").insert({
+            tarea_id: tareaId,
+            actor_id: null,
+            tipo: "nota",
+            texto,
+            ...(nota.created_at ? { created_at: nota.created_at } : {}),
+          });
+        }
+        if (notasFinal && !ya.has(notasFinal)) {
+          await supabase.from("tareas_actividad").insert({
+            tarea_id: tareaId,
+            actor_id: user.id,
+            tipo: "nota",
+            texto: notasFinal,
+          });
+        }
       }
     } catch {
       toast.error("Entrada creada en calendario, pero no pasó al tablero de Tareas.");
@@ -553,10 +626,19 @@ export default function CalendarioPage() {
       return;
     }
     try {
-      await syncTareaDesdeCita(supabase, {
+      const tareaId = await syncTareaDesdeCita(supabase, {
         ...cita,
         empieza: patch.empieza,
       });
+      if (tareaId) {
+        await supabase.from("tareas_actividad").insert({
+          tarea_id: tareaId,
+          actor_id: user?.id ?? cita.comercial_id,
+          tipo: "nota",
+          texto: textoReagenda(cita.empieza, patch.empieza),
+        });
+        setNotasTick((n) => n + 1);
+      }
     } catch {
       toast.error("Cita movida, pero no se actualizó en Tareas.");
     }
@@ -757,6 +839,8 @@ export default function CalendarioPage() {
         clienteId={clienteId}
         clientesExtraIds={clientesExtraIds}
         notas={notas}
+        notasPrevias={notasContacto}
+        tickNotas={notasTick}
         lugar={lugar}
         onPropiedad={setPropiedadId}
         onCliente={setClienteId}

@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { Button } from "@/components/ui/button";
 import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { nombreYApellido } from "@/lib/ui/tokens";
+import { TextoConEnlaces } from "@/components/ui/TextoConEnlaces";
 import { syncTareaDesdeCita, type CitaParaTarea } from "@/lib/tareas/sync-cita";
 
 type Nota = {
@@ -35,6 +36,7 @@ export function NotasTareaFecha({
   notaLegacy,
   cita,
   onTareaId,
+  tick = 0,
 }: {
   tareaId?: string | null;
   /** Texto antiguo de citas.notas, sin fecha propia. */
@@ -42,6 +44,8 @@ export function NotasTareaFecha({
   /** Si la entrada aún no tiene tarea, se crea al abrir las notas. */
   cita?: CitaParaTarea | null;
   onTareaId?: (tareaId: string) => void;
+  /** Sube cuando el calendario añade una línea al historial (reagendar). */
+  tick?: number;
 }) {
   const { user } = useAuth();
   const [tareaResuelta, setTareaResuelta] = useState<string | null>(tareaId ?? null);
@@ -120,7 +124,7 @@ export function NotasTareaFecha({
 
   useEffect(() => {
     void cargar();
-  }, [cargar]);
+  }, [cargar, tick]);
 
   const guardar = async () => {
     const body = texto.trim();
@@ -235,33 +239,6 @@ export function NotasTareaFecha({
 
   return (
     <div className="space-y-3">
-      <div className="rounded-[10px] border border-[var(--input)] bg-[var(--field)] p-3 focus-within:border-foreground">
-        <textarea
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-          onKeyDown={(e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-              e.preventDefault();
-              e.stopPropagation();
-              void guardar();
-            }
-          }}
-          rows={2}
-          placeholder="Añadir una nota… Se guarda con la fecha y hora de ahora."
-          className="min-h-[3.5rem] w-full resize-y bg-transparent text-[14px] leading-relaxed text-foreground outline-none placeholder:text-[var(--text-3)] max-[819px]:text-base"
-        />
-        <div className="mt-2 flex items-center justify-between gap-2 border-t border-[var(--border-soft)] pt-2">
-          <span className="text-[11.5px] text-[var(--text-3)]">⌘ + Intro para añadir</span>
-          <Button
-            type="button"
-            size="sm"
-            disabled={!texto.trim() || saving || !tareaResuelta}
-            onClick={() => void guardar()}
-          >
-            {saving ? "Guardando…" : "Añadir nota"}
-          </Button>
-        </div>
-      </div>
       {visibles.length === 0 ? null : (
         <ul className="space-y-2">
           {visibles.map((n) => (
@@ -308,13 +285,40 @@ export function NotasTareaFecha({
                 </div>
               ) : (
                 <p className="mt-1 whitespace-pre-wrap break-words text-[13.5px] leading-relaxed text-foreground">
-                  {n.texto}
+                  <TextoConEnlaces texto={n.texto} />
                 </p>
               )}
             </li>
           ))}
         </ul>
       )}
+      <div className="rounded-[10px] border border-[var(--input)] bg-[var(--field)] p-3 focus-within:border-foreground">
+        <textarea
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          onKeyDown={(e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+              e.preventDefault();
+              e.stopPropagation();
+              void guardar();
+            }
+          }}
+          rows={2}
+          placeholder="Añadir una nota… Se guarda con la fecha y hora de ahora."
+          className="min-h-[3.5rem] w-full resize-y bg-transparent text-[14px] leading-relaxed text-foreground outline-none placeholder:text-[var(--text-3)] max-[819px]:text-base"
+        />
+        <div className="mt-2 flex items-center justify-between gap-2 border-t border-[var(--border-soft)] pt-2">
+          <span className="text-[11.5px] text-[var(--text-3)]">⌘ + Intro para añadir</span>
+          <Button
+            type="button"
+            size="sm"
+            disabled={!texto.trim() || saving || !tareaResuelta}
+            onClick={() => void guardar()}
+          >
+            {saving ? "Guardando…" : "Añadir nota"}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

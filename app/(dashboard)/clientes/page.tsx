@@ -27,6 +27,7 @@ import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
 import { AvisoContinuarBorrador } from "@/components/ui/aviso-borrador";
 import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { rutaNuevaCita } from "@/lib/citas/citas";
+import { TextoConEnlaces } from "@/components/ui/TextoConEnlaces";
 import { coincideTelefonoBusqueda } from "@/lib/ui/busqueda";
 
 type ClienteLista = {
@@ -687,7 +688,9 @@ export default function ClientesPage() {
               )}
               <div className="mt-5 px-5">
                 <div className="text-[12px] text-[var(--text-3)]">Notas</div>
-                <p className="mt-1.5 whitespace-pre-wrap text-[14px]">{selected.notas?.trim() || "Sin notas"}</p>
+                <p className="mt-1.5 whitespace-pre-wrap text-[14px]">
+                  {selected.notas?.trim() ? <TextoConEnlaces texto={selected.notas.trim()} /> : "Sin notas"}
+                </p>
               </div>
               <div className="mt-8 grid grid-cols-2 gap-x-8 gap-y-5 px-5">
                 <div>

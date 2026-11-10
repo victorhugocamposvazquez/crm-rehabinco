@@ -12,6 +12,7 @@ import { BuscadorInmuebleCalendario } from "@/components/citas/BuscadorInmuebleC
 import { CitaAcciones } from "@/components/citas/CitaAcciones";
 import { NotasTareaFecha } from "@/components/tareas/NotasTareaFecha";
 import { EnlaceMaps } from "@/components/citas/InmueblePreviewCita";
+import { TextoConEnlaces } from "@/components/ui/TextoConEnlaces";
 import { createClient } from "@/lib/supabase/client";
 import { nombreYApellido } from "@/lib/ui/tokens";
 import {
@@ -37,6 +38,12 @@ export type EdicionCalendario = {
   notas?: string | null;
   motivo_anulacion?: string | null;
   tarea_id?: string | null;
+};
+
+export type NotaPreviaCalendario = {
+  id: string;
+  texto: string;
+  created_at: string | null;
 };
 
 export type DatosGuardarEntradaCalendario = {
@@ -73,6 +80,8 @@ export function NuevaEntradaCalendario({
   onGuardar,
   onCambiarEstado,
   onTareaId,
+  notasPrevias = [],
+  tickNotas = 0,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -100,6 +109,8 @@ export function NuevaEntradaCalendario({
   onGuardar: (datos: DatosGuardarEntradaCalendario) => void;
   onCambiarEstado?: (estado: "prevista" | "hecha" | "cancelada", motivoAnulacion?: string | null) => void;
   onTareaId?: (tareaId: string) => void;
+  notasPrevias?: NotaPreviaCalendario[];
+  tickNotas?: number;
 }) {
   const equipo = comerciales ?? [];
   const comercialSel = equipo.find((c) => c.id === comercialId) ?? null;
@@ -226,6 +237,7 @@ export function NuevaEntradaCalendario({
         notaLegacy={edicion.notas}
         cita={citaParaNotas}
         onTareaId={onTareaId}
+        tick={tickNotas}
       />
     </AltaSection>
   ) : (
@@ -239,9 +251,32 @@ export function NuevaEntradaCalendario({
             ? "Qué ver, llaves, contacto en puerta… No sale en el título del calendario."
             : tipo === "llamada"
               ? "Motivo de la llamada, lo hablado o lo pendiente. No sale en el título del calendario."
-              : "Observaciones internas. No salen en el título del calendario."
+              : "Observaciones internas. Puedes pegar enlaces. No salen en el título del calendario."
       }
     >
+      {notasPrevias.length > 0 ? (
+        <ul className="mb-3 space-y-2">
+          {notasPrevias.map((n) => (
+            <li key={n.id} className="rounded-[10px] border border-[var(--border-soft)] bg-[var(--surface-soft)] px-3.5 py-2.5">
+              <p className="text-[11px] font-medium text-[var(--text-3)]">
+                {n.created_at
+                  ? new Date(n.created_at).toLocaleString("es-ES", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "Sin fecha"}
+                {" · nota del contacto"}
+              </p>
+              <p className="mt-1 whitespace-pre-wrap break-words text-[13.5px] leading-relaxed text-foreground">
+                <TextoConEnlaces texto={n.texto} />
+              </p>
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <textarea
         value={notas}
         onChange={(e) => onNotas(e.target.value)}
