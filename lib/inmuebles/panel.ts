@@ -46,6 +46,8 @@ export type InmueblePanel = {
   comercialNombre: string | null;
   comercialColor: string | null;
   user_id: string | null;
+  /** Personas que captaron el inmueble. Vacío hasta que llega el listado de captadores. */
+  captadorIds: string[];
   /** El listado aún no ha traído descripción, notas ni el recuento de fotos. */
   resumen?: boolean;
   fincaReference: string | null;
@@ -141,6 +143,7 @@ export function mapInmueblePanel(r: InmueblePanelRow, dhPorFinca?: Map<string, s
     comercialNombre: com?.nombre_completo ?? null,
     comercialColor: com?.color ?? null,
     user_id: r.user_id ?? null,
+    captadorIds: [],
     fincaReference,
     habitaciones: r.habitaciones ?? null,
     banos: r.banos ?? null,

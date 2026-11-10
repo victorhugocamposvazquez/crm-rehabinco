@@ -7,7 +7,8 @@ import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Fab } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
-import { AvataresTarea, type PersonaTarjeta } from "@/components/tareas/TareasBoard";
+import { type PersonaTarjeta } from "@/components/tareas/TareasBoard";
+import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { cargarPerfilesEquipo, mapaPerfiles, type PerfilEquipo } from "@/lib/equipo/perfiles";
 import { nombreYApellido } from "@/lib/ui/tokens";
 import { Chip } from "@/components/ui/chip";
@@ -64,20 +65,58 @@ function EquipoInmueble({
   inmueble: PropiedadLista;
   perfiles: Map<string, PerfilEquipo>;
 }) {
-  const creador = personaDe(inmueble.user_id, perfiles);
-  const asignado = inmueble.comercialId ? personaDe(inmueble.comercialId, perfiles) : creador;
-  if (!creador.id && !asignado.id) return <span className="text-[12.5px] text-[var(--text-3)]">—</span>;
-  const quienCrea = creador.id ? creador : asignado;
-  const quienLleva = asignado.id ? asignado : creador;
-  const nombre = nombreYApellido(quienCrea.nombre, quienCrea.email) || quienCrea.nombre;
+  const ids =
+    inmueble.captadorIds.length > 0
+      ? inmueble.captadorIds
+      : [inmueble.captadoPor ?? inmueble.user_id].filter((id): id is string => Boolean(id));
+  const personas = ids.map((id) => personaDe(id, perfiles)).filter((persona) => persona.id);
+  if (personas.length === 0) return <span className="text-[12.5px] text-[var(--text-3)]">—</span>;
+  const nombres = personas
+    .map((persona) => nombreYApellido(persona.nombre, persona.email) || persona.nombre)
+    .filter(Boolean);
+  const titulo = nombres.length > 0 ? `Captado por ${nombres.join(", ")}` : "Captado por";
   return (
-    <AvataresTarea
-      creador={quienCrea}
-      asignado={quienLleva}
-      size={20}
-      tituloCreador={nombre ? `Creado por ${nombre}` : "Creado por"}
-    />
+    <span className="inline-flex min-w-0 max-w-full items-center gap-1.5" title={titulo}>
+      <span className="inline-flex shrink-0 items-center">
+        {personas.map((persona, indice) => (
+          <AvatarComercial
+            key={persona.id}
+            nombre={persona.nombre}
+            email={persona.email}
+            color={persona.color}
+            size={20}
+            title={titulo}
+            className={indice > 0 ? "-ml-1.5 ring-2 ring-[var(--surface)]" : undefined}
+          />
+        ))}
+      </span>
+      {nombres.length > 0 ? (
+        <span className="min-w-0 truncate text-[11.5px] text-[var(--text-2)]">{nombres.join(", ")}</span>
+      ) : null}
+    </span>
   );
+}
+
+async function cargarCaptadores(ids: string[]): Promise<Map<string, string[]>> {
+  const mapa = new Map<string, string[]>();
+  if (ids.length === 0) return mapa;
+  const supabase = createClient();
+  const tam = 80;
+  for (let i = 0; i < ids.length; i += tam) {
+    const lote = ids.slice(i, i + tam);
+    const { data, error } = await supabase
+      .from("propiedad_captadores")
+      .select("propiedad_id, profile_id")
+      .in("propiedad_id", lote);
+    if (error) return mapa;
+    for (const fila of data ?? []) {
+      if (!fila.propiedad_id || !fila.profile_id) continue;
+      const lista = mapa.get(fila.propiedad_id) ?? [];
+      lista.push(fila.profile_id);
+      mapa.set(fila.propiedad_id, lista);
+    }
+  }
+  return mapa;
 }
 
 function personaDe(id: string | null, perfiles: Map<string, PerfilEquipo>): PersonaTarjeta {
@@ -178,9 +217,11 @@ export default function PropiedadesPage() {
           return;
         }
         const rows = (data ?? []) as InmueblePanelRow[];
+        const captadores = await cargarCaptadores(rows.map((fila) => fila.id));
+        if (!vivo) return;
         setPropiedades(
           rows.map((r) => {
-            const item = { ...mapInmueblePanel(r), resumen: true };
+            const item = { ...mapInmueblePanel(r), resumen: true, captadorIds: captadores.get(r.id) ?? [] };
             const url = portadasRef.current.get(item.id);
             return url ? { ...item, portadaUrl: url } : item;
           })
@@ -248,7 +289,11 @@ export default function PropiedadesPage() {
     void cargarInmueblePanel(selectedId).then((completo) => {
       if (!vivo || !completo) return;
       setPropiedades((prev) =>
-        prev.map((p) => (p.id === completo.id ? { ...completo, portadaUrl: completo.portadaUrl || p.portadaUrl } : p))
+        prev.map((p) =>
+            p.id === completo.id
+              ? { ...completo, captadorIds: p.captadorIds, portadaUrl: completo.portadaUrl || p.portadaUrl }
+              : p
+          )
       );
     });
     return () => {
@@ -430,7 +475,7 @@ export default function PropiedadesPage() {
                   <div className="text-right">m²</div>
                   <div className="text-right">Precio</div>
                   <div>Estado</div>
-                  <div>Creado</div>
+                  <div>Captado</div>
                   <div />
                 </div>
                 {filteredPropiedades.map((p) => {

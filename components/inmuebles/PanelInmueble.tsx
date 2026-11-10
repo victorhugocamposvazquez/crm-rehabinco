@@ -49,6 +49,27 @@ export function PanelInmueble({
   const { user } = useAuth();
   const [matches, setMatches] = useState<MatchVista[]>([]);
   const [media, setMedia] = useState<InmuebleMedia[]>([]);
+  const [subidoNombre, setSubidoNombre] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!inmueble?.user_id) {
+      setSubidoNombre(null);
+      return;
+    }
+    let vivo = true;
+    void createClient()
+      .from("profiles")
+      .select("nombre_completo, email")
+      .eq("id", inmueble.user_id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!vivo) return;
+        setSubidoNombre(data?.nombre_completo?.trim() || data?.email || null);
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [inmueble?.user_id]);
 
   useEffect(() => {
     if (!inmueble) {
@@ -322,6 +343,14 @@ export function PanelInmueble({
             )}
           </div>
           <div className="col-span-2">
+            <div className="text-[12px] text-[var(--text-3)]">Subido por</div>
+            <div className="mt-1 text-[14px]">
+              {subidoNombre ||
+                (inmueble.user_id && inmueble.user_id === inmueble.comercialId ? inmueble.comercialNombre : null) ||
+                "—"}
+            </div>
+          </div>
+          <div className="col-span-2">
             <div className="text-[12px] text-[var(--text-3)]">Captado por</div>
             <div className="mt-1 text-[14px]">
               <CaptadoPorInmueble
@@ -336,6 +365,7 @@ export function PanelInmueble({
                     captadoPor: siguiente.captadoPor,
                     captadoConjunto: siguiente.conjunto,
                     captadoNombre: siguiente.nombre,
+                    captadorIds: siguiente.ids,
                   })
                 }
               />

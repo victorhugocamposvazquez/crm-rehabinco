@@ -30,7 +30,7 @@ export function CaptadoPorInmueble({
   /** Quien creó el inmueble. Si nadie ha cambiado la captación, es quien la hizo. */
   subidoPor?: string | null;
   subidoNombre?: string | null;
-  onGuardado?: (siguiente: { captadoPor: string | null; conjunto: boolean; nombre: string | null }) => void;
+  onGuardado?: (siguiente: { captadoPor: string | null; conjunto: boolean; nombre: string | null; ids: string[] }) => void;
 }) {
   const { user } = useAuth();
   const admin = isAdmin(user?.role);
@@ -144,6 +144,7 @@ export function CaptadoPorInmueble({
       captadoPor: conjunto ? null : siguiente[0]?.id ?? null,
       conjunto,
       nombre: nombresDe(siguiente),
+      ids: siguiente.map((persona) => persona.id),
     });
   };
 

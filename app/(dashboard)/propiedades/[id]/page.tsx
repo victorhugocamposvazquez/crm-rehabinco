@@ -85,6 +85,7 @@ export default function DetallePropiedadPage() {
   const [ofertanteNombre, setOfertanteNombre] = useState<string | null>(null);
   const [ofertanteTelefono, setOfertanteTelefono] = useState<string | null>(null);
   const [comercialNombre, setComercialNombre] = useState<string | null>(null);
+  const [subidoNombre, setSubidoNombre] = useState<string | null>(null);
   const [captadoNombre, setCaptadoNombre] = useState<string | null>(null);
   const [media, setMedia] = useState<InmuebleMedia[]>([]);
   const [visitas, setVisitas] = useState<VisitanteInmueble[]>([]);
@@ -163,6 +164,16 @@ export default function DetallePropiedadPage() {
         )
       );
       setDocumentos((docs.data ?? []) as DocInmueble[]);
+      if (raw.user_id) {
+        const { data: perfil } = await supabase
+          .from("profiles")
+          .select("nombre_completo, email")
+          .eq("id", raw.user_id)
+          .maybeSingle();
+        setSubidoNombre(perfil?.nombre_completo?.trim() || perfil?.email || null);
+      } else {
+        setSubidoNombre(null);
+      }
       if (raw.comercial_id) {
         const { data: perfil } = await supabase
           .from("profiles")
@@ -387,6 +398,9 @@ export default function DetallePropiedadPage() {
               ) : (
                 <span>{propiedad.ofertante_id ? "Sin teléfono" : "—"}</span>
               )}
+            </p>
+            <p>
+              <span className="text-neutral-500">Subido por:</span> {subidoNombre ?? "—"}
             </p>
             <p className="flex flex-wrap items-center gap-2">
               <span className="text-neutral-500">Captado por:</span>
