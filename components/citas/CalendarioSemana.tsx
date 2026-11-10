@@ -233,12 +233,12 @@ export function CalendarioSemana({
                         return;
                       }
                       onPickDia(d);
-                      if (editable) onEditar(cita.id);
+                      if (puedeGestionar?.(cita.comercial_id) ?? true) onEditar(cita.id);
                     }}
                     className={cn(
                       "cal-evento absolute overflow-hidden rounded-[7px] px-1.5 py-0.5 text-left",
                       editable && "cursor-grab active:cursor-grabbing",
-                      !editable && prevista && "cursor-default",
+                      !editable && "cursor-pointer",
                       citaAtenuadaEnCalendario(cita.estado) && "opacity-55",
                       arrastrando && "cal-evento--dragging"
                     )}

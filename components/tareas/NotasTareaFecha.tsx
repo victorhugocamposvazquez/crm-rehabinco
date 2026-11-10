@@ -124,8 +124,21 @@ export function NotasTareaFecha({
 
   return (
     <div className="space-y-3">
+      <div className="rounded-[11px] border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+        <p className="mb-2 text-[12.5px] font-semibold text-foreground">Nueva nota</p>
+        <textarea
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          rows={3}
+          placeholder="Qué ha pasado. Se guarda con el día y la hora de ahora."
+          className="min-h-[5rem] w-full resize-y rounded-[9px] border border-[var(--input)] bg-white px-3 py-2.5 text-[13.5px] outline-none focus:border-accent max-[819px]:text-base"
+        />
+        <Button type="button" className="mt-2 w-full" disabled={!texto.trim() || saving} onClick={() => void guardar()}>
+          {saving ? "Guardando…" : "Añadir nota"}
+        </Button>
+      </div>
       {notas.length === 0 ? (
-        <p className="text-[13px] text-[var(--text-3)]">Aún no hay notas. Cada una guarda su día y hora.</p>
+        <p className="text-[13px] text-[var(--text-3)]">Aún no hay notas anteriores.</p>
       ) : (
         <ul className="divide-y divide-[var(--border-row)]">
           {notas.map((n) => (
@@ -140,18 +153,6 @@ export function NotasTareaFecha({
           ))}
         </ul>
       )}
-      <textarea
-        value={texto}
-        onChange={(e) => setTexto(e.target.value)}
-        rows={3}
-        placeholder="Nueva nota. Se guarda con la fecha de ahora."
-        className="min-h-[5rem] w-full resize-y rounded-[9px] border border-[var(--input)] bg-white px-3 py-2.5 text-[13.5px] outline-none focus:border-accent max-[819px]:text-base"
-      />
-      <div className="flex justify-end">
-        <Button type="button" size="sm" disabled={!texto.trim() || saving} onClick={() => void guardar()}>
-          {saving ? "Guardando…" : "Añadir nota"}
-        </Button>
-      </div>
     </div>
   );
 }

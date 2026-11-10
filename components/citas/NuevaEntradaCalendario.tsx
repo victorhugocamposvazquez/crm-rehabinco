@@ -306,6 +306,18 @@ export function NuevaEntradaCalendario({
           })
         }
       >
+        {edicion?.estado === "hecha" && onCambiarEstado ? (
+          <AltaSection wide title="Finalizada" hint="Esta entrada ya no está en curso. Puedes volver a abrirla.">
+            <button
+              type="button"
+              onClick={() => onCambiarEstado("prevista", null)}
+              className="inline-flex h-11 items-center justify-center rounded-[10px] bg-[var(--green)] px-4 text-[14px] font-medium text-[var(--on-green)]"
+            >
+              Reabrir
+            </button>
+          </AltaSection>
+        ) : null}
+        {bloqueNotas}
         <AltaSection
           title="Qué"
           hint="Visita, llamada, firma, tasación, evento, captación, recordatorio o tarea. El título es lo que verás en la rejilla."
@@ -377,8 +389,6 @@ export function NuevaEntradaCalendario({
             </div>
           </AltaSection>
         ) : null}
-
-        {bloqueNotas}
 
         <AltaSection
           wide
