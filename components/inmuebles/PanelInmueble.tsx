@@ -15,6 +15,7 @@ import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { criteriosDeDemanda } from "@/lib/demandas/proponer-stock";
 import { relacionUno } from "@/lib/citas/citas";
 import { FichaLink } from "@/components/crm/FichaPeek";
+import { CaptadoPorInmueble } from "@/components/inmuebles/CaptadoPorInmueble";
 import { InmuebleMultimedia } from "@/components/inmuebles/InmuebleMultimedia";
 import { useAuth } from "@/lib/auth/auth-context";
 import type { InmuebleMedia } from "@/lib/inmuebles/catalogo";
@@ -309,6 +310,34 @@ export function PanelInmueble({
             ) : (
               <div className="mt-1 truncate text-[14px]">{inmueble.ofertanteNombre}</div>
             )}
+          </div>
+          <div>
+            <div className="text-[12px] text-[var(--text-3)]">Teléfono</div>
+            {inmueble.ofertanteTelefono ? (
+              <a href={`tel:${inmueble.ofertanteTelefono.replace(/\s/g, "")}`} className="mt-1 block text-[14px] text-accent">
+                {inmueble.ofertanteTelefono}
+              </a>
+            ) : (
+              <div className="mt-1 text-[14px]">{inmueble.ofertante_id ? "Sin teléfono" : "—"}</div>
+            )}
+          </div>
+          <div className="col-span-2">
+            <div className="text-[12px] text-[var(--text-3)]">Captado por</div>
+            <div className="mt-1 text-[14px]">
+              <CaptadoPorInmueble
+                propiedadId={inmueble.id}
+                captadoPor={inmueble.captadoPor}
+                conjunto={inmueble.captadoConjunto}
+                nombre={inmueble.captadoNombre}
+                onGuardado={(siguiente) =>
+                  onCambio?.({
+                    captadoPor: siguiente.captadoPor,
+                    captadoConjunto: siguiente.conjunto,
+                    captadoNombre: siguiente.nombre,
+                  })
+                }
+              />
+            </div>
           </div>
         </div>
         {inmueble.descripcion ? (

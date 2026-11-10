@@ -115,6 +115,8 @@ export type Inmueble = {
   video_url: string | null;
   tour_url: string | null;
   comercial_id: string | null;
+  captado_por?: string | null;
+  captado_conjunto?: boolean | null;
   publicado: boolean;
   publicar_web?: boolean;
   publicar_idealista?: boolean;

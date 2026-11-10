@@ -42,6 +42,7 @@ import {
   type VisitanteInmueble,
 } from "@/lib/inmuebles/visitantes";
 import { enviarInmuebleAPapelera } from "@/lib/actions/propiedades-papelera";
+import { CaptadoPorInmueble } from "@/components/inmuebles/CaptadoPorInmueble";
 
 function FilaVisitante({ v }: { v: VisitanteInmueble }) {
   return (
@@ -82,7 +83,9 @@ export default function DetallePropiedadPage() {
   const id = params.id as string;
   const [propiedad, setPropiedad] = useState<Inmueble | null>(null);
   const [ofertanteNombre, setOfertanteNombre] = useState<string | null>(null);
+  const [ofertanteTelefono, setOfertanteTelefono] = useState<string | null>(null);
   const [comercialNombre, setComercialNombre] = useState<string | null>(null);
+  const [captadoNombre, setCaptadoNombre] = useState<string | null>(null);
   const [media, setMedia] = useState<InmuebleMedia[]>([]);
   const [visitas, setVisitas] = useState<VisitanteInmueble[]>([]);
   const [documentos, setDocumentos] = useState<DocInmueble[]>([]);
@@ -104,7 +107,7 @@ export default function DetallePropiedadPage() {
     Promise.all([
       supabase
         .from("propiedades")
-        .select("*, clientes:ofertante_id(nombre), catastro_property_links(finca_reference, source)")
+        .select("*, clientes:ofertante_id(nombre, telefono), captador:captado_por(nombre_completo), catastro_property_links(finca_reference, source)")
         .eq("id", id)
         .is("deleted_at", null)
         .single(),
@@ -128,18 +131,22 @@ export default function DetallePropiedadPage() {
         return;
       }
       const raw = prop.data as Inmueble & {
-        clientes?: { nombre: string } | { nombre: string }[] | null;
+        clientes?: { nombre: string; telefono?: string | null } | { nombre: string; telefono?: string | null }[] | null;
+        captador?: { nombre_completo: string | null } | { nombre_completo: string | null }[] | null;
         catastro_property_links?:
           | { finca_reference: string; source: string }
           | { finca_reference: string; source: string }[]
           | null;
       };
       const cliente = Array.isArray(raw.clientes) ? raw.clientes[0] : raw.clientes;
+      const captador = Array.isArray(raw.captador) ? raw.captador[0] : raw.captador;
       const link = Array.isArray(raw.catastro_property_links)
         ? raw.catastro_property_links[0]
         : raw.catastro_property_links;
       setPropiedad(raw);
       setOfertanteNombre(cliente?.nombre ?? null);
+      setOfertanteTelefono(cliente?.telefono?.trim() || null);
+      setCaptadoNombre(captador?.nombre_completo?.trim() || null);
       setFincaReference(
         fincaReferenceDesdeVinculo({
           propertyId: raw.id,
@@ -370,6 +377,33 @@ export default function DetallePropiedadPage() {
               ) : (
                 <span>{ofertanteNombre ?? "Sin asignar"}</span>
               )}
+            </p>
+            <p>
+              <span className="text-neutral-500">Teléfono:</span>{" "}
+              {ofertanteTelefono ? (
+                <a href={`tel:${ofertanteTelefono.replace(/\s/g, "")}`} className="text-accent">
+                  {ofertanteTelefono}
+                </a>
+              ) : (
+                <span>{propiedad.ofertante_id ? "Sin teléfono" : "—"}</span>
+              )}
+            </p>
+            <p className="flex flex-wrap items-center gap-2">
+              <span className="text-neutral-500">Captado por:</span>
+              <CaptadoPorInmueble
+                propiedadId={propiedad.id}
+                captadoPor={propiedad.captado_por ?? null}
+                conjunto={propiedad.captado_conjunto === true}
+                nombre={captadoNombre}
+                onGuardado={(siguiente) => {
+                  setCaptadoNombre(siguiente.nombre);
+                  setPropiedad((prev) =>
+                    prev
+                      ? { ...prev, captado_por: siguiente.captadoPor, captado_conjunto: siguiente.conjunto }
+                      : prev
+                  );
+                }}
+              />
             </p>
             <p>
               <span className="text-neutral-500">Comercial:</span> {comercialNombre ?? "—"}

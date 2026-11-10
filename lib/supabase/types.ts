@@ -300,6 +300,8 @@ export interface Database {
           updated_at: string;
           deleted_at: string | null;
           deleted_by: string | null;
+          captado_por: string | null;
+          captado_conjunto: boolean;
         };
         Insert: {
           user_id: string;
@@ -348,6 +350,8 @@ export interface Database {
           origen?: string;
           deleted_at?: string | null;
           deleted_by?: string | null;
+          captado_por?: string | null;
+          captado_conjunto?: boolean;
         };
         Update: {
           ofertante_id?: string | null;
@@ -396,6 +400,8 @@ export interface Database {
           updated_at?: string;
           deleted_at?: string | null;
           deleted_by?: string | null;
+          captado_por?: string | null;
+          captado_conjunto?: boolean;
         };
       };
       presupuesto_lineas: {
