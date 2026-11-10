@@ -301,7 +301,7 @@ export default function CalendarioPage() {
           .eq("id", clienteId)
           .maybeSingle();
         const texto = cli?.notas?.trim();
-        if (texto) filas = [{ id: "legacy-contacto", texto, created_at: cli.created_at ?? null }];
+        if (cli && texto) filas = [{ id: "legacy-contacto", texto, created_at: cli.created_at ?? null }];
       }
       if (vivo) setNotasContacto(filas);
     })();
