@@ -29,7 +29,8 @@ export function ClienteQuickSheet({
       ambito="quick"
       nombreInicial={nombreInicial}
       onCreado={(id, extra) => {
-        onSuccess({ id, nombre: extra?.nombre ?? nombreInicial?.trim() || "Cliente", telefono: extra?.telefono ?? null });
+        const nombre = (extra?.nombre ?? nombreInicial?.trim()) || "Cliente";
+        onSuccess({ id, nombre, telefono: extra?.telefono ?? null });
       }}
     />
   );
