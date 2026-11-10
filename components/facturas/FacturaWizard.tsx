@@ -21,6 +21,7 @@ import {
 } from "@/lib/facturacion-numeracion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FechaInput } from "@/components/ui/fecha-hora";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -622,18 +623,18 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
                 <div className="grid min-w-0 grid-cols-2 gap-4">
                   <div className="min-w-0 space-y-2">
                     <Label>Fecha emisión</Label>
-                    <Input
-                      type="date"
-                      className="w-full min-w-0 text-left"
-                      {...formStep1.register("fechaEmision")}
+                    <FechaInput
+                      className="w-full min-w-0"
+                      value={formStep1.watch("fechaEmision") ?? ""}
+                      onChange={(fechaEmision) => formStep1.setValue("fechaEmision", fechaEmision, { shouldValidate: true })}
                     />
                   </div>
                   <div className="min-w-0 space-y-2">
                     <Label>Fecha vencimiento</Label>
-                    <Input
-                      type="date"
-                      className="w-full min-w-0 text-left"
-                      {...formStep1.register("fechaVencimiento")}
+                    <FechaInput
+                      className="w-full min-w-0"
+                      value={formStep1.watch("fechaVencimiento") ?? ""}
+                      onChange={(fechaVencimiento) => formStep1.setValue("fechaVencimiento", fechaVencimiento, { shouldValidate: true })}
                     />
                   </div>
                 </div>

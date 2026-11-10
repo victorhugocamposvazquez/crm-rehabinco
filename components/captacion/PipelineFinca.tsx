@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FechaInput } from "@/components/ui/fecha-hora";
 import { Label } from "@/components/ui/label";
 import {
   ESTADO_CAPTACION_LABEL,
@@ -73,7 +74,7 @@ export function PipelineFinca({
     cargar();
   }, [cargar]);
 
-  const guardarEstado = async (siguiente: EstadoCaptacion) => {
+  const guardarEstado = async (siguiente: EstadoCaptacion, fecha = proximaAccionEn) => {
     setGuardando(true);
     const supabase = createClient();
     const {
@@ -84,7 +85,7 @@ export function PipelineFinca({
         finca_reference: fincaReference,
         estado: siguiente,
         proxima_accion: proximaAccion || null,
-        proxima_accion_en: proximaAccionEn || null,
+        proxima_accion_en: fecha || null,
         updated_by: user?.id ?? null,
         updated_at: new Date().toISOString(),
       },
@@ -184,12 +185,13 @@ export function PipelineFinca({
         </div>
         <div className="space-y-1">
           <Label htmlFor="proxima-en">Próxima acción</Label>
-          <Input
+          <FechaInput
             id="proxima-en"
-            type="date"
             value={proximaAccionEn}
-            onChange={(e) => setProximaAccionEn(e.target.value)}
-            onBlur={() => void guardarEstado(estado)}
+            onChange={(fecha) => {
+              setProximaAccionEn(fecha);
+              void guardarEstado(estado, fecha);
+            }}
           />
         </div>
       </div>
@@ -230,7 +232,7 @@ export function PipelineFinca({
         <div>
           <Label>Tarea de seguimiento</Label>
           <Input className="mt-1" value={tarea} onChange={(e) => setTarea(e.target.value)} placeholder="Llamar el jueves" />
-          <Input className="mt-2" type="date" value={tareaVence} onChange={(e) => setTareaVence(e.target.value)} />
+          <FechaInput className="mt-2" value={tareaVence} onChange={setTareaVence} />
           <Button type="button" size="sm" variant="secondary" className="mt-2" onClick={() => void crearTarea()}>
             Crear tarea
           </Button>

@@ -10,6 +10,7 @@ import { syncTareaDesdeCita } from "@/lib/tareas/sync-cita";
 import { euros } from "@/lib/captacion/portales/modelo";
 import type { AnuncioCaptacion } from "@/lib/captacion/portales/modelo";
 import { TimeInput } from "@/components/ui/time-input";
+import { FechaInput } from "@/components/ui/fecha-hora";
 import { cn } from "@/lib/utils";
 import {
   PLANTILLAS_WHATSAPP,
@@ -209,11 +210,10 @@ export function AccionesContactoAnuncio({
             Se crea un recordatorio de captación en el calendario y una tarea, con el anuncio escrito en el inmueble. {anuncio.propiedad_id ? "El inmueble del CRM queda enlazado." : ""}
           </p>
           <div className="mt-2 flex gap-2">
-            <input
-              type="date"
+            <FechaInput
               value={dia}
-              onChange={(event) => setDia(event.target.value)}
-              className="h-9 flex-1 rounded-lg border border-[var(--input)] bg-[var(--field)] px-2 text-[13px] text-foreground"
+              onChange={setDia}
+              className="h-9 flex-1 rounded-lg px-2 text-[13px]"
             />
             <TimeInput
               value={hora}

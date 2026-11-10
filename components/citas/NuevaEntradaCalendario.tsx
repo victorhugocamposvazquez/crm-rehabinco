@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { AltaField, AltaPersona, AltaSection, AltaShell, altaControl, type PersonaOpcion } from "@/components/ui/alta-form";
 import { TimeInput } from "@/components/ui/time-input";
+import { FechaInput } from "@/components/ui/fecha-hora";
 import { Selector } from "@/components/ui/selector";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { NuevoClientePanel } from "@/components/clientes/NuevoClientePanel";
@@ -474,7 +475,7 @@ export function NuevaEntradaCalendario({
         >
           <div className="grid grid-cols-2 gap-3">
             <AltaField label="Día">
-              <input type="date" value={dia} onChange={(e) => onDia(e.target.value)} className={altaControl} />
+              <FechaInput value={dia} onChange={onDia} className={altaControl} />
             </AltaField>
             <AltaField label="Hora">
               <TimeInput value={hora} onChange={onHora} className={altaControl} />

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FechaInput } from "@/components/ui/fecha-hora";
 import { Label } from "@/components/ui/label";
 import { Plus, Banknote } from "lucide-react";
 import { toast } from "sonner";
@@ -194,13 +195,7 @@ export function PagosCard({
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="pago-fecha">Fecha *</Label>
-                    <Input
-                      id="pago-fecha"
-                      type="date"
-                      value={fecha}
-                      onChange={(e) => setFecha(e.target.value)}
-                      required
-                    />
+                    <FechaInput id="pago-fecha" value={fecha} onChange={setFecha} />
                   </div>
                 </div>
                 <div className="space-y-2">

@@ -15,6 +15,7 @@ import { PersonaArrasCard } from "@/components/documentos/PersonaArrasCard";
 import { Button } from "@/components/ui/button";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
+import { FechaInput } from "@/components/ui/fecha-hora";
 import { Label } from "@/components/ui/label";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { DocumentoSplit } from "@/components/documentos/DocumentoSplit";
@@ -239,11 +240,10 @@ export function ContratoPagoAplazadoEditor({ contratoId }: { contratoId?: string
           </div>
           <div>
             <Label>Fecha</Label>
-            <Input
-              type="date"
+            <FechaInput
               className="mt-1.5"
               value={datos.fecha ?? ""}
-              onChange={(e) => setDatos((d) => ({ ...d, fecha: e.target.value || null }))}
+              onChange={(fecha) => setDatos((d) => ({ ...d, fecha: fecha || null }))}
             />
           </div>
         </div>

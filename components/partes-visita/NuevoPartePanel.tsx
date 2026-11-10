@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { AltaField, AltaSection, AltaShell, altaControl } from "@/components/ui/alta-form";
 import { TimeInput } from "@/components/ui/time-input";
+import { FechaInput } from "@/components/ui/fecha-hora";
 import { VisitContextoCatastro } from "@/components/partes-visita/VisitContextoCatastro";
 import {
   contextoCatastralDesdeProperty,
@@ -340,7 +341,7 @@ export function NuevoPartePanel({
         <div className="flex flex-col gap-5">
           <div className="grid grid-cols-2 gap-3">
             <AltaField label="Fecha">
-              <input type="date" value={fechaVisita} onChange={(e) => setFechaVisita(e.target.value)} className={altaControl} />
+              <FechaInput value={fechaVisita} onChange={setFechaVisita} className={altaControl} />
             </AltaField>
             <AltaField label="Hora" optional>
               <TimeInput value={horaVisita} onChange={setHoraVisita} className={altaControl} />

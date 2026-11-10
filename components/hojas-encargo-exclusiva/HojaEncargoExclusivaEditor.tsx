@@ -14,6 +14,7 @@ import { CreadorDocumento } from "@/components/documentos/CreadorDocumento";
 import { Button } from "@/components/ui/button";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
+import { FechaInput } from "@/components/ui/fecha-hora";
 import { Label } from "@/components/ui/label";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { DocumentoSplit } from "@/components/documentos/DocumentoSplit";
@@ -221,12 +222,11 @@ export function HojaEncargoExclusivaEditor({ documentoId }: { documentoId?: stri
           </div>
           <div>
             <Label htmlFor="fecha">Fecha</Label>
-            <Input
+            <FechaInput
               id="fecha"
-              type="date"
               className="mt-1.5"
               value={datos.fecha ?? ""}
-              onChange={(e) => setDatos((d) => ({ ...d, fecha: e.target.value || null }))}
+              onChange={(fecha) => setDatos((d) => ({ ...d, fecha: fecha || null }))}
             />
           </div>
         </div>

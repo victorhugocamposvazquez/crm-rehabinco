@@ -10,6 +10,7 @@ import { sugerirModalidad } from "@/lib/time/geo";
 import { encolarPunch, sincronizarPendientes } from "@/lib/time/offline-queue";
 import type { DayReplay, Punch, PunchMode, PunchType, WorkCenter } from "@/lib/time/types";
 import { TF } from "./tokens";
+import { TimeInput } from "@/components/ui/time-input";
 
 type GeoCache = { lat: number; lng: number; accuracy: number | null; at: number };
 
@@ -764,7 +765,7 @@ export function FichajePwa({ nombre, iniciales }: { nombre: string; iniciales: s
               </button>
             ))}
           </div>
-          <input type="time" value={corrTime} onChange={(e) => setCorrTime(e.target.value)} className={cn(TF.input, "h-14 w-full px-4 text-[22px]", TF.mono)} />
+          <TimeInput value={corrTime} onChange={setCorrTime} className={cn(TF.input, "h-14 w-full px-4 text-[22px]", TF.mono)} />
           <div className="flex flex-col gap-2">
             {["Olvidé fichar", "Fiché tarde", "Fiché por error", "Otro"].map((r) => (
               <button

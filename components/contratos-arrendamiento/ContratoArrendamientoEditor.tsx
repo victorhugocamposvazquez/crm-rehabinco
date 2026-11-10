@@ -15,6 +15,7 @@ import { PersonaArrasCard } from "@/components/documentos/PersonaArrasCard";
 import { Button } from "@/components/ui/button";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
+import { FechaInput } from "@/components/ui/fecha-hora";
 import { Label } from "@/components/ui/label";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { DocumentoSplit } from "@/components/documentos/DocumentoSplit";
@@ -239,11 +240,10 @@ export function ContratoArrendamientoEditor({ contratoId }: { contratoId?: strin
           </div>
           <div>
             <Label>Fecha del contrato</Label>
-            <Input
-              type="date"
+            <FechaInput
               className="mt-1.5"
               value={datos.fecha ?? ""}
-              onChange={(e) => setDatos((d) => ({ ...d, fecha: e.target.value || null }))}
+              onChange={(fecha) => setDatos((d) => ({ ...d, fecha: fecha || null }))}
             />
           </div>
         </div>
@@ -309,20 +309,18 @@ export function ContratoArrendamientoEditor({ contratoId }: { contratoId?: strin
           </div>
           <div>
             <Label>Inicio</Label>
-            <Input
-              type="date"
+            <FechaInput
               className="mt-1.5"
               value={datos.fecha_inicio ?? ""}
-              onChange={(e) => setDatos((d) => ({ ...d, fecha_inicio: e.target.value || null }))}
+              onChange={(fecha_inicio) => setDatos((d) => ({ ...d, fecha_inicio: fecha_inicio || null }))}
             />
           </div>
           <div>
             <Label>Fin (1er año)</Label>
-            <Input
-              type="date"
+            <FechaInput
               className="mt-1.5"
               value={datos.fecha_fin ?? ""}
-              onChange={(e) => setDatos((d) => ({ ...d, fecha_fin: e.target.value || null }))}
+              onChange={(fecha_fin) => setDatos((d) => ({ ...d, fecha_fin: fecha_fin || null }))}
             />
           </div>
         </div>

@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { TimeInput } from "@/components/ui/time-input";
+import { FechaInput } from "@/components/ui/fecha-hora";
 import { Sheet } from "@/components/ui/sheet";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { CampoComentario, TextoConMenciones } from "@/components/tareas/CampoComentario";
@@ -365,16 +366,15 @@ export function TareaPanel({
             </div>
             <div>
               <div className="text-[12px] text-[var(--text-3)]">Vence</div>
-              <input
-                type="date"
+              <FechaInput
                 value={tarea.vence ?? ""}
-                onChange={(e) =>
+                onChange={(vence) =>
                   void onPatch(tarea.id, {
-                    vence: e.target.value || null,
+                    vence: vence || null,
                     estado: hecha ? "hecha" : tarea.estado === "esperando" ? "esperando" : "pendiente",
                   })
                 }
-                className="mt-1 w-full bg-transparent text-[13.5px] capitalize outline-none"
+                className="mt-1 h-9 px-2.5 text-[13.5px]"
               />
             </div>
             <div>

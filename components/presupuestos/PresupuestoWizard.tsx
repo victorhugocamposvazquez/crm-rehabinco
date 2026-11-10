@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FechaInput } from "@/components/ui/fecha-hora";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -532,7 +533,7 @@ export function PresupuestoWizard({ presupuestoId }: PresupuestoWizardProps) {
             </div>
             <div className="space-y-2">
               <Label>Fecha</Label>
-              <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+              <FechaInput value={fecha} onChange={setFecha} />
             </div>
             {presupuestoId && (
               <div className="space-y-2">

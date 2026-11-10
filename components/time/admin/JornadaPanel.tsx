@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { formatoDuracion, etiquetaPunch } from "@/lib/time/replay";
 import type { Punch } from "@/lib/time/types";
 import { TF } from "../tokens";
+import { TimeInput } from "@/components/ui/time-input";
 
 type Tab = "hoy" | "calendario" | "solicitudes" | "informes" | "auditoria";
 
@@ -606,7 +607,7 @@ export function JornadaPanel() {
             <option value="pause_start">Pausa</option>
             <option value="pause_end">Reanudar</option>
           </select>
-          <input type="time" value={corrTime} onChange={(e) => setCorrTime(e.target.value)} className={cn(TF.input, "h-11 w-full px-3", TF.mono)} />
+          <TimeInput value={corrTime} onChange={setCorrTime} className={cn(TF.input, "h-11 w-full px-3", TF.mono)} />
           <input value={corrReason} onChange={(e) => setCorrReason(e.target.value)} className={cn(TF.input, "h-11 w-full px-3")} placeholder="Motivo" />
           <button type="button" disabled={busy || !corrReason.trim()} className={cn(TF.primaryBtn, "h-12 w-full")} onClick={() => void corregirAdmin()}>
             Aplicar corrección

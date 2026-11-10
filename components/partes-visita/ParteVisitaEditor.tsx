@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FechaInput } from "@/components/ui/fecha-hora";
 import { TimeInput } from "@/components/ui/time-input";
 import { Label } from "@/components/ui/label";
 import { ToggleChip } from "@/components/ui/toggle-chip";
@@ -464,7 +465,7 @@ export function ParteVisitaEditor({
               <div className="mt-4 grid gap-4 min-[820px]:grid-cols-2">
                 <div>
                   <Label htmlFor="fecha">Fecha</Label>
-                  <Input id="fecha" type="date" className="mt-1.5" value={fechaVisita} onChange={(e) => setFechaVisita(e.target.value)} />
+                  <FechaInput id="fecha" className="mt-1.5" value={fechaVisita} onChange={setFechaVisita} />
                 </div>
                 <div>
                   <div className="flex items-center justify-between gap-2">
