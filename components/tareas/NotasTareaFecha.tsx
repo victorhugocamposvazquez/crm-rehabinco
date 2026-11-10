@@ -171,31 +171,47 @@ export function NotasTareaFecha({
 
   return (
     <div className="space-y-3">
-      <div className="rounded-[11px] border border-[var(--border)] bg-[var(--surface-soft)] p-3">
-        <p className="mb-2 text-[12.5px] font-semibold text-foreground">Nueva nota</p>
+      <div className="rounded-[10px] border border-[var(--input)] bg-[var(--field)] p-3 focus-within:border-foreground">
         <textarea
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
-          rows={3}
-          placeholder="Qué ha pasado. Se guarda con el día y la hora de ahora."
-          className="min-h-[5rem] w-full resize-y rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-3 py-2.5 text-[13.5px] text-foreground outline-none focus:border-accent max-[819px]:text-base"
+          onKeyDown={(e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+              e.preventDefault();
+              e.stopPropagation();
+              void guardar();
+            }
+          }}
+          rows={2}
+          placeholder="Añadir una nota… Se guarda con la fecha y hora de ahora."
+          className="min-h-[3.5rem] w-full resize-y bg-transparent text-[14px] leading-relaxed text-foreground outline-none placeholder:text-[var(--text-3)] max-[819px]:text-base"
         />
-        <Button type="button" className="mt-2 w-full" disabled={!texto.trim() || saving || !tareaResuelta} onClick={() => void guardar()}>
-          {saving ? "Guardando…" : "Añadir nota"}
-        </Button>
+        <div className="mt-2 flex items-center justify-between gap-2 border-t border-[var(--border-soft)] pt-2">
+          <span className="text-[11.5px] text-[var(--text-3)]">⌘ + Intro para añadir</span>
+          <Button
+            type="button"
+            size="sm"
+            disabled={!texto.trim() || saving || !tareaResuelta}
+            onClick={() => void guardar()}
+          >
+            {saving ? "Guardando…" : "Añadir nota"}
+          </Button>
+        </div>
       </div>
-      {visibles.length === 0 ? (
-        <p className="text-[13px] text-[var(--text-3)]">Aún no hay notas anteriores.</p>
-      ) : (
-        <ul className="divide-y divide-[var(--border-row)]">
+      {visibles.length === 0 ? null : (
+        <ul className="space-y-2">
           {visibles.map((n) => (
-            <li key={n.id} className="py-2.5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-3)]">
-                {fechaNota(n.created_at)}
+            <li
+              key={n.id}
+              className="rounded-[10px] border border-[var(--border-soft)] bg-[var(--surface-soft)] px-3.5 py-2.5"
+            >
+              <p className="text-[11px] font-medium text-[var(--text-3)]">
+                {n.legacy ? "Nota anterior" : fechaNota(n.created_at)}
                 {n.autor ? ` · ${n.autor}` : ""}
-                {n.legacy ? " · nota anterior" : ""}
               </p>
-              <p className="mt-1 whitespace-pre-wrap text-[13.5px] leading-snug text-foreground">{n.texto}</p>
+              <p className="mt-1 whitespace-pre-wrap break-words text-[13.5px] leading-relaxed text-foreground">
+                {n.texto}
+              </p>
             </li>
           ))}
         </ul>

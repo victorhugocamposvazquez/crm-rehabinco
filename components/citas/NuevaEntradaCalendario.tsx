@@ -219,7 +219,7 @@ export function NuevaEntradaCalendario({
     <AltaSection
       wide
       title="Notas"
-      hint="Escribe abajo una nota nueva y pulsa Añadir nota. Cada una guarda su día y su hora. El texto de antes queda en el historial."
+      hint="Cada nota se guarda aparte con su fecha y hora."
     >
       <NotasTareaFecha
         tareaId={edicion.tarea_id}
@@ -327,21 +327,24 @@ export function NuevaEntradaCalendario({
         }
       >
         {edicion?.estado === "hecha" && onCambiarEstado ? (
-          <AltaSection wide title="Finalizada" hint="Esta entrada ya no está en curso. Puedes volver a abrirla.">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 min-[820px]:col-span-2">
+            <div>
+              <p className="text-[13.5px] font-medium text-foreground">Esta entrada está finalizada</p>
+              <p className="text-[12.5px] text-[var(--text-2)]">Puedes volver a dejarla prevista.</p>
+            </div>
             <button
               type="button"
               onClick={() => onCambiarEstado("prevista", null)}
-              className="inline-flex h-11 items-center justify-center rounded-[10px] bg-[var(--green)] px-4 text-[14px] font-medium text-[var(--on-green)]"
+              className="inline-flex h-9 items-center justify-center rounded-[8px] bg-[var(--green)] px-3.5 text-[13px] font-medium text-[var(--on-green)]"
             >
               Reabrir
             </button>
-          </AltaSection>
+          </div>
         ) : null}
-        {bloqueNotas}
+        {edicion ? bloqueNotas : null}
         <AltaSection
           title="Qué"
           hint="Visita, llamada, firma, tasación, evento, captación, recordatorio o tarea. El título es lo que verás en la rejilla."
-          className="min-[820px]:col-start-1 min-[820px]:row-start-1"
         >
           <div className="flex flex-wrap gap-2">
             {tipos.map((item) => (
@@ -355,7 +358,6 @@ export function NuevaEntradaCalendario({
         <AltaSection
           title="Cuándo"
           hint="Sale del hueco pulsado. Cámbialo si no encaja."
-          className="min-[820px]:col-start-2 min-[820px]:row-start-1"
         >
           <div className="grid grid-cols-2 gap-3">
             <AltaField label="Día">
@@ -367,10 +369,10 @@ export function NuevaEntradaCalendario({
           </div>
         </AltaSection>
 
-        <div className="min-w-0 min-[820px]:col-start-1 min-[820px]:row-start-2">
+        <div className="min-w-0">
           <AltaField label="Título" optional>
             <input
-              autoFocus
+              autoFocus={!edicion}
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
               placeholder={`${TIPO_CITA_LABEL[tipo]} a las ${hora}`}
@@ -383,7 +385,6 @@ export function NuevaEntradaCalendario({
           <AltaSection
             title="Comercial"
             hint="Quién aparece asignado a esta entrada. Puedes crearla a nombre de otra persona del equipo."
-            className="min-[820px]:col-start-2 min-[820px]:row-start-2"
           >
             <div className="flex items-center gap-2">
               <AvatarComercial
@@ -409,6 +410,8 @@ export function NuevaEntradaCalendario({
             </div>
           </AltaSection>
         ) : null}
+
+        {!edicion ? bloqueNotas : null}
 
         <AltaSection
           wide
