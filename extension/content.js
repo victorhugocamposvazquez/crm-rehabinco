@@ -28,11 +28,51 @@ function actualizadoVisible() {
   return match ? match[1].trim() : "";
 }
 
+function anuncioInexistente() {
+  const t = (document.body?.innerText || "").slice(0, 12000);
+  return /ya no est[aá] (publicado|disponible)|anuncio no est[aá] disponible|no encontramos este anuncio|este inmueble ya no|has llegado a una p[aá]gina que no existe|este anuncio ha sido eliminado|anuncio eliminado|no est[aá] disponible/i.test(
+    t
+  );
+}
+
+function marcarRetiradoSiInexistente() {
+  const externoId = idDeFicha();
+  if (!externoId || !anuncioInexistente()) return;
+  const clave = `retirado|${externoId}`;
+  if (enviados.has(clave)) return;
+  enviados.add(clave);
+  chrome.runtime.sendMessage(
+    {
+      tipo: "crm",
+      method: "POST",
+      ruta: "/api/captacion/retirado",
+      body: {
+        externo_id: externoId,
+        portal_id: "idealista",
+        motivo: "Página Idealista inexistente o no disponible",
+      },
+    },
+    (respuesta) => {
+      if (respuesta?.ok && respuesta.json?.ok) {
+        if (respuesta.json.found === false) return;
+        aviso(respuesta.json.already ? "ya estaba retirado en CRM" : "retirado en CRM");
+      } else {
+        enviados.delete(clave);
+      }
+    }
+  );
+}
+
 function guardarTelefono() {
   const externoId = idDeFicha();
+  if (!externoId) return;
+  if (anuncioInexistente()) {
+    marcarRetiradoSiInexistente();
+    return;
+  }
   const telefono = telefonoVisible();
   const actualizado = actualizadoVisible();
-  if (!externoId || (!telefono && !actualizado)) return;
+  if (!telefono && !actualizado) return;
   const clave = `${externoId}|${telefono}|${actualizado}`;
   if (enviados.has(clave)) return;
   enviados.add(clave);
@@ -88,8 +128,12 @@ function marcarListado() {
 }
 
 if (idDeFicha()) {
+  marcarRetiradoSiInexistente();
   guardarTelefono();
-  new MutationObserver(() => guardarTelefono()).observe(document.documentElement, { childList: true, subtree: true });
+  new MutationObserver(() => {
+    marcarRetiradoSiInexistente();
+    guardarTelefono();
+  }).observe(document.documentElement, { childList: true, subtree: true });
 } else if (location.pathname.includes("venta-viviendas")) {
   let timer;
   const programar = () => {

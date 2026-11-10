@@ -113,6 +113,27 @@ export interface Database {
           updated_at?: string;
         };
       };
+      clientes_notas: {
+        Row: {
+          id: string;
+          cliente_id: string;
+          actor_id: string | null;
+          texto: string;
+          tipo: "nota" | "llamada" | "interes" | "otro";
+          created_at: string;
+        };
+        Insert: {
+          cliente_id: string;
+          actor_id?: string | null;
+          texto: string;
+          tipo?: "nota" | "llamada" | "interes" | "otro";
+          created_at?: string;
+        };
+        Update: {
+          texto?: string;
+          tipo?: "nota" | "llamada" | "interes" | "otro";
+        };
+      };
       facturas: {
         Row: {
           id: string;
@@ -277,6 +298,8 @@ export interface Database {
           origen: string;
           created_at: string;
           updated_at: string;
+          deleted_at: string | null;
+          deleted_by: string | null;
         };
         Insert: {
           user_id: string;
@@ -323,6 +346,8 @@ export interface Database {
           idealista_synced_at?: string | null;
           idealista_anuncios?: Record<string, string> | null;
           origen?: string;
+          deleted_at?: string | null;
+          deleted_by?: string | null;
         };
         Update: {
           ofertante_id?: string | null;
@@ -369,6 +394,8 @@ export interface Database {
           idealista_anuncios?: Record<string, string> | null;
           origen?: string;
           updated_at?: string;
+          deleted_at?: string | null;
+          deleted_by?: string | null;
         };
       };
       presupuesto_lineas: {

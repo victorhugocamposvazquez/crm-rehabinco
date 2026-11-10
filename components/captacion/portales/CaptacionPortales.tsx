@@ -54,6 +54,7 @@ import { esActivoCaptacion, esAgencia, esRetirado } from "@/lib/captacion/captac
 import { coordsMapaAnuncio, latLngDeFila } from "@/lib/captacion/portales/geo-mapa";
 import { esNuevoHoyCaptacion, textoFechaPortal } from "@/lib/captacion/brightdata/fecha-portal";
 import { anuncioIdealistaVacio } from "@/lib/captacion/brightdata/idealista";
+import { sospechaRetirado, textoUltimaVezPortal } from "@/lib/captacion/sospecha-retirado";
 import { cn } from "@/lib/utils";
 import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
 import { cuentaSinTelefonoChip, cuentaSoloMensajeChip } from "@/lib/captacion/telefono-estado";
@@ -557,6 +558,23 @@ export function CaptacionPortales() {
     toast.success("Fuera de seguimiento. Vuelve a Novedades.");
   };
 
+  const marcarRetirado = async (id: string) => {
+    const res = await fetch(`/api/captacion/anuncios/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ retirado: true }),
+    });
+    const json = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; desaparecido_en?: string };
+    if (!res.ok || !json.ok) {
+      toast.error(json.error ?? "No se ha podido marcar retirado.");
+      return;
+    }
+    const cuando = json.desaparecido_en ?? new Date().toISOString();
+    setAnuncios((prev) => prev.map((a) => (a.id === id ? { ...a, desaparecido_en: cuando } : a)));
+    setActividadTick((n) => n + 1);
+    toast.success("Marcado como retirado del portal.");
+  };
+
   const captar = async (anuncio: AnuncioCaptacion) => {
     if (!user) return;
     const res = await fetch(`/api/captacion/anuncios/${anuncio.id}`, {
@@ -975,6 +993,7 @@ export function CaptacionPortales() {
                       <p className="mt-1 truncate text-[12px] text-[var(--text-2)]">
                         {labelFuentePortal(a.fuente)}
                         {a.fuente === "idealista" && anuncioIdealistaVacio(a) ? " · sin datos" : ""}
+                        {!a.desaparecido_en && sospechaRetirado(a) ? " · puede estar retirado" : ""}
                         {a.habitaciones ? ` · ${a.habitaciones} hab` : ""}
                         {a.superficie ? ` · ${a.superficie} m²` : ""}
                         {a.municipio ? ` · ${a.municipio}` : ""}
@@ -1004,6 +1023,15 @@ export function CaptacionPortales() {
                         <span className="truncate text-[14px] font-semibold">{a.titulo}</span>
                         {tagsConEstilo(a.tags).map((t) => <span key={t.label} className="whitespace-nowrap rounded px-1.5 py-px text-[10.5px] font-semibold" style={{ background: t.bg, color: t.fg }}>{t.label}</span>)}
                         {a.fuente === "idealista" && anuncioIdealistaVacio(a) ? <span className="whitespace-nowrap rounded bg-[var(--surface-soft)] px-1.5 py-px text-[10.5px] font-semibold text-[var(--text-2)]">sin datos</span> : null}
+                        {!a.desaparecido_en && sospechaRetirado(a) ? (
+                          <span className="whitespace-nowrap rounded bg-[#F5E6C8] px-1.5 py-px text-[10.5px] font-semibold text-[#8A5A00]" title={textoUltimaVezPortal(a.visto_en)}>
+                            Puede estar retirado
+                          </span>
+                        ) : !a.desaparecido_en && a.visto_en ? (
+                          <span className="whitespace-nowrap rounded bg-[var(--surface-soft)] px-1.5 py-px text-[10.5px] text-[var(--text-3)]" title={textoUltimaVezPortal(a.visto_en)}>
+                            {textoUltimaVezPortal(a.visto_en).replace(/^Última vez en portal:\s*/i, "Portal: ")}
+                          </span>
+                        ) : null}
                         {!wide && nRep > 1 ? <span className="shrink-0 rounded border border-[#D4D4D4] px-1 text-[10.5px] font-semibold text-accent" title="Este contacto tiene más anuncios">×{nRep}</span> : null}
                       </div>
                       <div className="mt-0.5 flex gap-2 overflow-hidden text-[12px] text-[var(--text-2)]">
@@ -1212,6 +1240,7 @@ export function CaptacionPortales() {
             onSeguir={() => seguir([seleccionado.id])}
             onQuitar={() => quitarSeguimiento([seleccionado.id])}
             onCaptar={() => void captar(seleccionado)}
+            onMarcarRetirado={() => void marcarRetirado(seleccionado.id)}
             onRegistrado={() => setActividadTick((n) => n + 1)}
             onNota={(nota) => void anotar(seleccionado.id, nota)}
             onAbrir={(id) => setSel(id)}
@@ -1410,6 +1439,7 @@ function PeekAnuncio({
   onSeguir,
   onQuitar,
   onCaptar,
+  onMarcarRetirado,
   onRegistrado,
   onNota,
   onAbrir,
@@ -1432,6 +1462,7 @@ function PeekAnuncio({
   onSeguir: () => void;
   onQuitar: () => void;
   onCaptar: () => void;
+  onMarcarRetirado?: () => void;
   onRegistrado: () => void;
   onNota: (nota: string) => void;
   onAbrir: (id: string) => void;
@@ -1467,6 +1498,19 @@ function PeekAnuncio({
         <div className="mt-5 flex flex-wrap gap-1.5">
           {tagsConEstilo(a.tags).map((t) => <span key={t.label} className="rounded-md px-2 py-0.5 text-[11px] font-semibold" style={{ background: t.bg, color: t.fg }}>{t.label}</span>)}
           <span className="rounded-md bg-[var(--surface-soft)] px-2 py-0.5 text-[12px] text-[var(--text-2)]">Alerta: {alertaNombre ?? "—"}</span>
+          {!a.desaparecido_en ? (
+            <span
+              className={cn(
+                "rounded-md px-2 py-0.5 text-[11px] font-semibold",
+                sospechaRetirado(a) ? "bg-[#F5E6C8] text-[#8A5A00]" : "bg-[var(--surface-soft)] text-[var(--text-2)]"
+              )}
+              title={textoUltimaVezPortal(a.visto_en)}
+            >
+              {sospechaRetirado(a) ? "Puede estar retirado" : textoUltimaVezPortal(a.visto_en)}
+            </span>
+          ) : (
+            <span className="rounded-md bg-[var(--surface-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--text-2)]">Retirado del portal</span>
+          )}
         </div>
         <div className="mt-5 flex flex-wrap items-center gap-2">
           {a.fase === "novedad" ? (
@@ -1481,6 +1525,11 @@ function PeekAnuncio({
           {a.fuente === "idealista" && a.url ? <a href={a.url} target="_blank" rel="noopener noreferrer" className={secundaria}>Abrir en Idealista</a> : null}
           {a.fuente === "idealista" ? (
             <button type="button" onClick={() => { void fetch("/api/captacion/brightdata/ficha", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: a.id }) }); }} className={secundaria}>Actualizar ficha</button>
+          ) : null}
+          {!a.desaparecido_en && onMarcarRetirado ? (
+            <button type="button" onClick={onMarcarRetirado} className={secundaria} title="El anuncio ya no está en Idealista">
+              Marcar retirado
+            </button>
           ) : null}
           {a.fase !== "novedad" && a.fase !== "captado" && a.fase !== "descartado" ? (
             <button type="button" onClick={onQuitar} className={secundaria}>Quitar de seguimiento</button>

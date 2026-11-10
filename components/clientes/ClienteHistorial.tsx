@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { nombreYApellido } from "@/lib/ui/tokens";
 import {
   etiquetaTipoHistorial,
   itemCita,
   itemDemanda,
   itemFactura,
   itemInmueble,
+  itemMatchingInmueble,
+  itemNotaCliente,
   itemParte,
   itemPresupuesto,
   itemTarea,
@@ -23,7 +26,12 @@ function fechaCorta(iso: string) {
   return fecha.toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" });
 }
 
-export function ClienteHistorial({ clienteId }: { clienteId: string }) {
+function uno<T>(valor: T | T[] | null | undefined): T | null {
+  if (valor == null) return null;
+  return Array.isArray(valor) ? (valor[0] ?? null) : valor;
+}
+
+export function ClienteHistorial({ clienteId, tick = 0 }: { clienteId: string; tick?: number }) {
   const [items, setItems] = useState<ItemHistorialCliente[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,7 +40,18 @@ export function ClienteHistorial({ clienteId }: { clienteId: string }) {
     setLoading(true);
     const supabase = createClient();
     void (async () => {
-      const [citasPri, citasExtra, tareas, inmuebles, demandas, facturas, presupuestos] = await Promise.all([
+      const [
+        citasPri,
+        citasExtra,
+        tareas,
+        inmuebles,
+        demandas,
+        facturas,
+        presupuestos,
+        partesCli,
+        notas,
+        matching,
+      ] = await Promise.all([
         supabase
           .from("citas")
           .select("id, tipo, titulo, empieza, estado, motivo_anulacion, lugar")
@@ -75,6 +94,26 @@ export function ClienteHistorial({ clienteId }: { clienteId: string }) {
           .eq("cliente_id", clienteId)
           .order("created_at", { ascending: false })
           .limit(40),
+        supabase
+          .from("partes_visita")
+          .select("id, inmueble_direccion, fecha_visita, estado, created_at, cita_id")
+          .eq("cliente_id", clienteId)
+          .order("fecha_visita", { ascending: false })
+          .limit(40),
+        supabase
+          .from("clientes_notas")
+          .select("id, texto, tipo, created_at, profiles:actor_id(nombre_completo)")
+          .eq("cliente_id", clienteId)
+          .order("created_at", { ascending: false })
+          .limit(80),
+        supabase
+          .from("demanda_inmuebles")
+          .select(
+            "id, estado, created_at, demanda_id, propiedad_id, demandas!inner(cliente_id), propiedades:propiedad_id(titulo, direccion, localidad)"
+          )
+          .eq("demandas.cliente_id", clienteId)
+          .order("created_at", { ascending: false })
+          .limit(40),
       ]);
 
       type CitaFila = {
@@ -93,7 +132,7 @@ export function ClienteHistorial({ clienteId }: { clienteId: string }) {
       const citas = [...citasMap.values()];
       const citaIds = citas.map((c) => c.id);
 
-      const partesRes =
+      const partesPorCita =
         citaIds.length > 0
           ? await supabase
               .from("partes_visita")
@@ -101,17 +140,63 @@ export function ClienteHistorial({ clienteId }: { clienteId: string }) {
               .in("cita_id", citaIds)
               .order("fecha_visita", { ascending: false })
               .limit(40)
-          : {
-              data: [] as Array<{
-                id: string;
-                inmueble_direccion: string | null;
-                fecha_visita: string | null;
-                estado: string;
-                created_at: string | null;
-              }>,
-            };
+          : { data: [] as Array<{ id: string; inmueble_direccion: string | null; fecha_visita: string | null; estado: string; created_at: string | null; cita_id: string | null }> };
 
       if (!vivo) return;
+
+      type ParteFila = {
+        id: string;
+        inmueble_direccion: string | null;
+        fecha_visita: string | null;
+        estado: string;
+        created_at: string | null;
+        cita_id?: string | null;
+      };
+      const partesMap = new Map<string, ParteFila>();
+      for (const row of [...((partesCli.data ?? []) as ParteFila[]), ...((partesPorCita.data ?? []) as ParteFila[])]) {
+        partesMap.set(row.id, row);
+      }
+
+      type NotaFila = {
+        id: string;
+        texto: string;
+        tipo: string;
+        created_at: string;
+        profiles?: { nombre_completo: string | null } | { nombre_completo: string | null }[] | null;
+      };
+      const notasItems = ((notas.data ?? []) as NotaFila[]).map((row) => {
+        const perfil = uno(row.profiles);
+        return itemNotaCliente({
+          id: row.id,
+          texto: row.texto,
+          tipo: row.tipo,
+          created_at: row.created_at,
+          actorNombre: nombreYApellido(perfil?.nombre_completo) || null,
+        });
+      });
+
+      type MatchFila = {
+        id: string;
+        estado: string;
+        created_at: string;
+        demanda_id: string;
+        propiedad_id: string;
+        propiedades?:
+          | { titulo: string | null; direccion: string | null; localidad: string | null }
+          | { titulo: string | null; direccion: string | null; localidad: string | null }[]
+          | null;
+      };
+      const matchingItems = ((matching.data ?? []) as MatchFila[]).map((row) => {
+        const prop = uno(row.propiedades);
+        return itemMatchingInmueble({
+          id: row.id,
+          estado: row.estado,
+          created_at: row.created_at,
+          demanda_id: row.demanda_id,
+          propiedad_id: row.propiedad_id,
+          inmuebleTitulo: prop?.titulo || prop?.direccion || prop?.localidad || null,
+        });
+      });
 
       const unidos = ordenarHistorial([
         ...citas.map(itemCita),
@@ -120,7 +205,9 @@ export function ClienteHistorial({ clienteId }: { clienteId: string }) {
         ...(demandas.data ?? []).map(itemDemanda),
         ...(facturas.data ?? []).map(itemFactura),
         ...(presupuestos.data ?? []).map(itemPresupuesto),
-        ...(partesRes.data ?? []).map(itemParte),
+        [...partesMap.values()].map(itemParte),
+        ...notasItems,
+        ...matchingItems,
       ]);
       setItems(unidos);
       setLoading(false);
@@ -128,7 +215,7 @@ export function ClienteHistorial({ clienteId }: { clienteId: string }) {
     return () => {
       vivo = false;
     };
-  }, [clienteId]);
+  }, [clienteId, tick]);
 
   return (
     <Card className="md:col-span-2">
@@ -140,25 +227,38 @@ export function ClienteHistorial({ clienteId }: { clienteId: string }) {
           <p className="text-sm text-neutral-500">Cargando historial…</p>
         ) : items.length === 0 ? (
           <p className="text-sm text-neutral-500">
-            Aún no hay visitas, tareas, inmuebles ni documentos ligados a este contacto.
+            Aún no hay visitas, llamadas, notas ni documentos ligados a este contacto.
           </p>
         ) : (
           <ul className="divide-y divide-[var(--border-row)]">
             {items.map((item) => (
               <li key={item.id}>
-                <Link
-                  href={item.href}
-                  className="flex items-start gap-3 py-3 hover:bg-[var(--surface-soft)]"
-                >
-                  <span className="mt-0.5 w-[7.25rem] shrink-0 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--accent-dark)]">
-                    {etiquetaTipoHistorial(item.tipo)}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[14px] font-medium leading-snug text-foreground">{item.titulo}</span>
-                    <span className="mt-0.5 block text-[12.5px] text-[var(--text-2)]">{item.meta}</span>
-                  </span>
-                  <span className="shrink-0 tabular-nums text-[12px] text-[var(--text-3)]">{fechaCorta(item.fecha)}</span>
-                </Link>
+                {item.tipo === "nota" ? (
+                  <div className="flex items-start gap-3 py-3">
+                    <span className="mt-0.5 w-[7.25rem] shrink-0 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--accent-dark)]">
+                      {etiquetaTipoHistorial(item.tipo)}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[14px] font-medium leading-snug text-foreground">{item.titulo}</span>
+                      <span className="mt-0.5 block text-[12.5px] text-[var(--text-2)]">{item.meta}</span>
+                    </span>
+                    <span className="shrink-0 tabular-nums text-[12px] text-[var(--text-3)]">{fechaCorta(item.fecha)}</span>
+                  </div>
+                ) : (
+                  <Link
+                    href={item.href}
+                    className="flex items-start gap-3 py-3 hover:bg-[var(--surface-soft)]"
+                  >
+                    <span className="mt-0.5 w-[7.25rem] shrink-0 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--accent-dark)]">
+                      {etiquetaTipoHistorial(item.tipo)}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[14px] font-medium leading-snug text-foreground">{item.titulo}</span>
+                      <span className="mt-0.5 block text-[12.5px] text-[var(--text-2)]">{item.meta}</span>
+                    </span>
+                    <span className="shrink-0 tabular-nums text-[12px] text-[var(--text-3)]">{fechaCorta(item.fecha)}</span>
+                  </Link>
+                )}
               </li>
             ))}
           </ul>

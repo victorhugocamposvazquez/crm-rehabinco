@@ -70,7 +70,6 @@ export function EditarClientePanel({
   const [direccion, setDireccion] = useState("");
   const [codigoPostal, setCodigoPostal] = useState("");
   const [localidad, setLocalidad] = useState("");
-  const [notas, setNotas] = useState("");
   const [activo, setActivo] = useState(true);
   const [fallecido, setFallecido] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -88,7 +87,6 @@ export function EditarClientePanel({
     setDireccion(cliente.direccion ?? "");
     setCodigoPostal(cliente.codigo_postal ?? "");
     setLocalidad(cliente.localidad ?? "");
-    setNotas(cliente.notas ?? "");
     setActivo(cliente.activo !== false);
     setFallecido(cliente.etiqueta === "fallecido");
     requestAnimationFrame(() => nombreRef.current?.focus());
@@ -112,7 +110,7 @@ export function EditarClientePanel({
       direccion: direccion.trim() || null,
       codigo_postal: codigoPostal.trim() || null,
       localidad: localidad.trim() || null,
-      notas: notas.trim() || null,
+      notas: cliente.notas,
       activo,
       etiqueta: fallecido ? "fallecido" : null,
     };
@@ -133,7 +131,6 @@ export function EditarClientePanel({
           direccion: patch.direccion,
           codigo_postal: patch.codigo_postal,
           localidad: patch.localidad,
-          notas: patch.notas,
           activo: patch.activo,
           etiqueta: patch.etiqueta,
         })
@@ -160,7 +157,7 @@ export function EditarClientePanel({
       onOpenChange={onOpenChange}
       elevated={elevated}
       title="Editar contacto"
-      hint="Cambia nombre, teléfono, documento o notas. Se guarda sobre este contacto."
+      hint="Cambia nombre, teléfono o documento. Las conversaciones se anotan en la ficha del contacto."
       primaryLabel="Guardar cambios"
       saving={saving}
       disablePrimary={!nombre.trim()}
@@ -279,16 +276,6 @@ export function EditarClientePanel({
         </div>
       </AltaSection>
 
-      <AltaSection title="Notas internas" hint="Quedan en el CRM. No salen al portal ni al parte." wide>
-        <AltaField label="Notas" optional>
-          <textarea
-            value={notas}
-            onChange={(e) => setNotas(e.target.value)}
-            rows={3}
-            className={`${altaControl} h-auto min-h-[5.5rem] resize-none py-2.5`}
-          />
-        </AltaField>
-      </AltaSection>
     </AltaShell>
   );
 }

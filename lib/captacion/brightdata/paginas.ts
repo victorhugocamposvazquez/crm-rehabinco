@@ -36,6 +36,7 @@ import {
 } from "@/lib/captacion/brightdata/unlocker-telefono";
 import { configUnlocker, pedirHtmlUnlocker, pedirUnlocker } from "@/lib/captacion/brightdata/unlocker";
 import { ZONA_PROVINCIA_48H } from "@/lib/captacion/brightdata/zonas";
+import { marcarZonasReintentoPrioridad } from "@/lib/captacion/brightdata/zonas-guardadas";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const TOPE = 60;
@@ -180,6 +181,9 @@ async function procesarListadoPagina(
       await encolarPaginas(pagina.recogida_id, [{ url: listado.next_url, zona_id: pagina.zona_id, page: pagina.page + 1 }]);
     } else if (pagina.recogida_id && listado.next_url && pagina.page >= TOPE) {
       await supabase.from("captacion_recogidas").update({ incompleta: true }).eq("collection_id", pagina.recogida_id);
+      if (pagina.zona_id && pagina.zona_id !== ZONA_PROVINCIA_48H) {
+        await marcarZonasReintentoPrioridad([pagina.zona_id], true);
+      }
     }
     await supabase.from("captacion_paginas_pendientes").update({ estado: "hecha" }).eq("id", pagina.id);
     return { errores: 0, metricas };

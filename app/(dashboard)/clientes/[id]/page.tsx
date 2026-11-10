@@ -15,6 +15,7 @@ import { NuevaDemandaPanel } from "@/components/demandas/NuevaDemandaPanel";
 import { NuevoClientePanel } from "@/components/clientes/NuevoClientePanel";
 import { EditarClientePanel, type ClienteEditPatch } from "@/components/clientes/EditarClientePanel";
 import { ClienteHistorial } from "@/components/clientes/ClienteHistorial";
+import { ClienteNotas } from "@/components/clientes/ClienteNotas";
 import { NuevoInmueblePanel } from "@/components/inmuebles/NuevoInmueblePanel";
 import { Pencil, Trash2, FileText, Building2, Plus, Home } from "lucide-react";
 import { rutaNuevaCita } from "@/lib/citas/citas";
@@ -68,6 +69,7 @@ export default function DetalleClientePage() {
   const [demandasTick, setDemandasTick] = useState(0);
   const [empresasTick, setEmpresasTick] = useState(0);
   const [propiedadesTick, setPropiedadesTick] = useState(0);
+  const [historialTick, setHistorialTick] = useState(0);
   const [pasando, setPasando] = useState(false);
 
   const aplicarEdicion = (patch: ClienteEditPatch) => {
@@ -293,15 +295,8 @@ export default function DetalleClientePage() {
       />
 
       <div className="grid gap-6 md:grid-cols-2">
-        <ClienteHistorial clienteId={id} />
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Notas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="whitespace-pre-wrap text-sm">{cliente.notas?.trim() || "Sin notas"}</p>
-          </CardContent>
-        </Card>
+        <ClienteHistorial clienteId={id} tick={historialTick} />
+        <ClienteNotas clienteId={id} onCambio={() => setHistorialTick((n) => n + 1)} />
         <Card>
           <CardHeader>
             <CardTitle>Datos de contacto</CardTitle>

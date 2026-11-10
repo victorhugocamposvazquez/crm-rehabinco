@@ -33,18 +33,44 @@ import { BotonValorar } from "@/components/avm/BotonValorar";
 import { CatastroPropertyFicha } from "@/components/catastro/CatastroPropertyFicha";
 import { esOrigenCatastroExplorer, fincaReferenceDesdeVinculo } from "@/lib/catastro/explorer";
 import { etiquetaEstadoIdealista } from "@/lib/inmuebles/idealista-publicacion/plan";
+import { rutaNuevaVisitaDesdeProperty } from "@/lib/partes-visita";
 import {
-  ESTADO_PARTE_LABELS,
-  partirVisitasPorFecha,
-  rutaNuevaVisitaDesdeProperty,
-} from "@/lib/partes-visita";
+  partirVisitantesPorFecha,
+  unificarVisitantesInmueble,
+  type CitaVisitaMini,
+  type ParteVisitaMini,
+  type VisitanteInmueble,
+} from "@/lib/inmuebles/visitantes";
+import { enviarInmuebleAPapelera } from "@/lib/actions/propiedades-papelera";
 
-type ParteMini = {
-  id: string;
-  fecha_visita: string | null;
-  visitante_nombre: string | null;
-  estado: "borrador" | "pendiente_firma" | "firmado";
-};
+function FilaVisitante({ v }: { v: VisitanteInmueble }) {
+  return (
+    <div className="min-w-0 flex-1">
+      <div className="truncate text-foreground">
+        {v.clienteId ? (
+          <FichaLink tipo="cliente" id={v.clienteId} className="text-foreground">
+            {v.nombre}
+          </FichaLink>
+        ) : (
+          <span className="font-medium">{v.nombre}</span>
+        )}
+        <span className="text-neutral-500"> · {v.fecha || "sin fecha"}</span>
+      </div>
+      <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] text-neutral-500">
+        {v.parteId ? (
+          <FichaLink tipo="parte" id={v.parteId} className="text-[12px] font-normal text-neutral-500">
+            Ver parte
+          </FichaLink>
+        ) : null}
+        {v.citaId ? (
+          <Link href={`/calendario?cita=${v.citaId}`} className="hover:underline">
+            Ver cita
+          </Link>
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
 export default function DetallePropiedadPage() {
   const params = useParams();
@@ -58,7 +84,7 @@ export default function DetallePropiedadPage() {
   const [ofertanteNombre, setOfertanteNombre] = useState<string | null>(null);
   const [comercialNombre, setComercialNombre] = useState<string | null>(null);
   const [media, setMedia] = useState<InmuebleMedia[]>([]);
-  const [visitas, setVisitas] = useState<ParteMini[]>([]);
+  const [visitas, setVisitas] = useState<VisitanteInmueble[]>([]);
   const [documentos, setDocumentos] = useState<DocInmueble[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,15 +102,26 @@ export default function DetallePropiedadPage() {
   useEffect(() => {
     const supabase = createClient();
     Promise.all([
-      supabase.from("propiedades").select("*, clientes:ofertante_id(nombre), catastro_property_links(finca_reference, source)").eq("id", id).single(),
+      supabase
+        .from("propiedades")
+        .select("*, clientes:ofertante_id(nombre), catastro_property_links(finca_reference, source)")
+        .eq("id", id)
+        .is("deleted_at", null)
+        .single(),
       supabase.from("inmueble_media").select("id, propiedad_id, tipo, path, url, orden, portada").eq("propiedad_id", id),
       supabase
         .from("partes_visita")
-        .select("id, fecha_visita, visitante_nombre, estado")
+        .select("id, fecha_visita, visitante_nombre, estado, cliente_id, cita_id, clientes:cliente_id(id, nombre)")
         .eq("propiedad_id", id)
         .order("fecha_visita", { ascending: false }),
+      supabase
+        .from("citas")
+        .select("id, empieza, estado, titulo, cliente_id, clientes:cliente_id(id, nombre)")
+        .eq("propiedad_id", id)
+        .eq("tipo", "visita")
+        .order("empieza", { ascending: false }),
       supabase.from("inmueble_documentos").select("id, tipo, nombre, path, created_at").eq("propiedad_id", id),
-    ]).then(async ([prop, med, vis, docs]) => {
+    ]).then(async ([prop, med, vis, citasVis, docs]) => {
       if (prop.error || !prop.data) {
         setError(prop.error?.message ?? "Inmueble no encontrado");
         setLoading(false);
@@ -112,7 +149,12 @@ export default function DetallePropiedadPage() {
         })
       );
       setMedia((med.data ?? []) as InmuebleMedia[]);
-      setVisitas((vis.data ?? []) as ParteMini[]);
+      setVisitas(
+        unificarVisitantesInmueble(
+          (vis.data ?? []) as ParteVisitaMini[],
+          (citasVis.data ?? []) as CitaVisitaMini[]
+        )
+      );
       setDocumentos((docs.data ?? []) as DocInmueble[]);
       if (raw.comercial_id) {
         const { data: perfil } = await supabase
@@ -147,12 +189,11 @@ export default function DetallePropiedadPage() {
 
   const handleDelete = async () => {
     setDeleting(true);
-    const supabase = createClient();
-    const { error: err } = await supabase.from("propiedades").delete().eq("id", id);
+    const result = await enviarInmuebleAPapelera(id);
     setDeleting(false);
     setShowDeleteConfirm(false);
-    if (err) {
-      setError(err.message);
+    if (!result.ok) {
+      setError(result.error);
       return;
     }
     router.push("/propiedades");
@@ -162,7 +203,7 @@ export default function DetallePropiedadPage() {
   const titulo = propiedad.titulo || propiedad.direccion || propiedad.referencia || "Sin título";
   const portada = fotosOrdenadas(media)[0];
   const hoy = new Date().toISOString().slice(0, 10);
-  const { proximas, historial } = partirVisitasPorFecha(visitas, hoy);
+  const { proximas, historial } = partirVisitantesPorFecha(visitas, hoy);
   const ficha = completitudFicha({
     inmueble: propiedad,
     fotos: media.filter((item) => item.tipo === "foto").length,
@@ -275,9 +316,9 @@ export default function DetallePropiedadPage() {
       <AlertDialog
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
-        title="¿Eliminar este inmueble?"
-        description="Se quitarán también las fotos, planos y documentos. Los partes de visita quedan sin inmueble."
-        confirmLabel={deleting ? "Eliminando…" : "Eliminar"}
+        title="¿Enviar a la papelera?"
+        description="Saldrá del stock. Podrás recuperarlo en la papelera de Inmuebles. Solo el superadministrador puede borrarlo del todo."
+        confirmLabel={deleting ? "Enviando…" : "A la papelera"}
         onConfirm={handleDelete}
         loading={deleting}
         variant="destructive"
@@ -431,7 +472,7 @@ export default function DetallePropiedadPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             {visitas.length === 0 ? (
-              <p className="text-sm text-neutral-500">Aún no hay partes ligados a este inmueble.</p>
+              <p className="text-sm text-neutral-500">Aún no hay visitas ligadas a este inmueble.</p>
             ) : (
               <>
                 <div>
@@ -441,11 +482,9 @@ export default function DetallePropiedadPage() {
                   ) : (
                     <ul className="mt-1 divide-y divide-neutral-100 text-sm">
                       {proximas.map((v) => (
-                        <li key={v.id} className="flex items-center justify-between py-2">
-                          <FichaLink tipo="parte" id={v.id} className="text-foreground">
-                            {v.visitante_nombre || "Visitante"} · {v.fecha_visita || "sin fecha"}
-                          </FichaLink>
-                          <span className="text-neutral-400">{ESTADO_PARTE_LABELS[v.estado] ?? v.estado}</span>
+                        <li key={v.key} className="flex items-center justify-between gap-3 py-2">
+                          <FilaVisitante v={v} />
+                          <span className="shrink-0 text-neutral-400">{v.estadoLabel}</span>
                         </li>
                       ))}
                     </ul>
@@ -458,11 +497,9 @@ export default function DetallePropiedadPage() {
                   ) : (
                     <ul className="mt-1 divide-y divide-neutral-100 text-sm">
                       {historial.map((v) => (
-                        <li key={v.id} className="flex items-center justify-between py-2">
-                          <FichaLink tipo="parte" id={v.id} className="text-foreground">
-                            {v.visitante_nombre || "Visitante"} · {v.fecha_visita || "sin fecha"}
-                          </FichaLink>
-                          <span className="text-neutral-400">{ESTADO_PARTE_LABELS[v.estado] ?? v.estado}</span>
+                        <li key={v.key} className="flex items-center justify-between gap-3 py-2">
+                          <FilaVisitante v={v} />
+                          <span className="shrink-0 text-neutral-400">{v.estadoLabel}</span>
                         </li>
                       ))}
                     </ul>

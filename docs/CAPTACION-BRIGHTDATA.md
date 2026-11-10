@@ -29,7 +29,7 @@ Catálogo de la provincia en `lib/captacion/brightdata/zonas.ts`: una URL por mu
 
 ## Retirados
 
-`captacion_recogidas` y `captacion_paginas_pendientes`. Se cierra cuando no quedan páginas pendientes. Si una zona llega a la página 60 y aún hay siguiente, `incompleta = true` y no se retira. La URL de provincia a 48 h no entra en retirados. La primera recogida completa tampoco retira.
+`captacion_recogidas` y `captacion_paginas_pendientes`. Se cierra cuando no quedan páginas pendientes. Si una zona llega a la página 60 y aún hay siguiente, `incompleta = true` y no se retira; esa zona queda con `reintento_prioridad` para el siguiente trigger. Pasada completa: `desaparecidosTrasSync` + barrido de particulares en novedad no vistos en esa pasada con `visto_en` anterior al inicio. Log `captacion_cierre_recogida` con `retirados_marcados` / `rezagados_marcados`. La URL de provincia a 48 h no entra en retirados. La primera recogida completa tampoco retira. En UI/extensión se puede marcar `desaparecido_en` a mano o al abrir un Idealista inexistente.
 
 ## Pendiente de ejecutar
 

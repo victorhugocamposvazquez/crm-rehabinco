@@ -1,6 +1,8 @@
+import { idsRezagadosParaRetirar } from "@/lib/captacion/brightdata/barrido-retirados";
 import { mapearBrightDataIdealista } from "@/lib/captacion/brightdata/idealista";
 import { esRecogidaSoloNovedades } from "@/lib/captacion/brightdata/novedades";
 import { entraEnRetirados, ZONA_PROVINCIA_48H, zonaIdDeListado } from "@/lib/captacion/brightdata/zonas";
+import { marcarZonasReintentoPrioridad } from "@/lib/captacion/brightdata/zonas-guardadas";
 import { desaparecidosTrasSync, type AnuncioGuardado } from "@/lib/captacion/pipeline/upsert";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -302,7 +304,31 @@ export async function cerrarRecogidaLocal(collectionId: string): Promise<boolean
     .update({ completada: ahora, incompleta, registros: externos.length, externos, conteos, sospechosas })
     .eq("collection_id", collectionId);
   const zonasLimpias = (recogida.zonas ?? []).filter((zona) => zona !== ZONA_PROVINCIA_48H && !sospechosas[zona]);
-  if (!incompleta) await retirarZonas(zonasLimpias, externos, ahora);
+  let retiradosMarcados = 0;
+  let rezagadosMarcados = 0;
+  if (!incompleta) {
+    const r = await retirarZonas(zonasLimpias, externos, ahora, recogida.iniciada);
+    retiradosMarcados = r.retirados;
+    rezagadosMarcados = r.rezagados;
+    await marcarZonasReintentoPrioridad(zonasLimpias, false);
+  } else {
+    const zonasIncompletas = (recogida.zonas ?? []).filter((z) => z !== ZONA_PROVINCIA_48H);
+    if (zonasIncompletas.length > 0) await marcarZonasReintentoPrioridad(zonasIncompletas, true);
+  }
+  console.info(
+    JSON.stringify({
+      captacion_cierre_recogida: {
+        collection_id: collectionId,
+        incompleta,
+        zonas: (recogida.zonas ?? []).length,
+        zonas_limpias: zonasLimpias.length,
+        zonas_sospechosas: Object.keys(sospechosas).length,
+        registros: externos.length,
+        retirados_marcados: retiradosMarcados,
+        rezagados_marcados: rezagadosMarcados,
+      },
+    })
+  );
   if (Object.keys(sospechosas).length > 0) await avisarSospechosas(supabase, sospechosas);
   return true;
 }
@@ -333,12 +359,17 @@ async function avisarSospechosas(
   await supabase.from("captacion_notificaciones").insert(filas);
 }
 
-async function retirarZonas(zonas: string[], externosActuales: string[], ahora: string) {
-  if (zonas.length === 0 || externosActuales.length === 0) return;
+async function retirarZonas(
+  zonas: string[],
+  externosActuales: string[],
+  ahora: string,
+  iniciada: string
+): Promise<{ retirados: number; rezagados: number }> {
+  if (zonas.length === 0 || externosActuales.length === 0) return { retirados: 0, rezagados: 0 };
   const supabase = admin();
   const { data: previas } = await supabase
     .from("captacion_recogidas")
-    .select("externos, zonas, completada")
+    .select("externos, zonas, completada, incompleta")
     .not("completada", "is", null)
     .order("completada", { ascending: false })
     .limit(8);
@@ -349,21 +380,34 @@ async function retirarZonas(zonas: string[], externosActuales: string[], ahora: 
       !esRecogidaSoloNovedades(fila.zonas) &&
       (fila.zonas ?? []).some((zona) => zonas.includes(zona))
   );
-  if (!anterior) return;
+  if (!anterior) return { retirados: 0, rezagados: 0 };
   const vistos = new Set([...externosActuales, ...(anterior.externos ?? [])]);
+  const vistosEstaPasada = new Set(externosActuales);
   const { data } = await supabase
     .from("captacion_anuncios")
-    .select("id, portal_id, externo_id, precio, tags, fase, alerta_id, desaparecido_en, zona_id")
+    .select(
+      "id, portal_id, externo_id, precio, tags, fase, alerta_id, desaparecido_en, zona_id, visto_en, anunciante"
+    )
     .eq("portal_id", "idealista")
     .is("desaparecido_en", null)
     .in("fase", ["novedad", "contacto", "visita", "negociando"]);
-  const deLaZona = ((data ?? []) as Array<AnuncioGuardado & { zona_id?: string | null }>).filter((row) =>
-    entraEnRetirados(row.zona_id, zonas)
+  type FilaZona = AnuncioGuardado & {
+    zona_id?: string | null;
+    visto_en?: string | null;
+    anunciante?: string | null;
+  };
+  const deLaZona = ((data ?? []) as FilaZona[]).filter((row) => entraEnRetirados(row.zona_id, zonas));
+  const fuera = desaparecidosTrasSync(
+    deLaZona,
+    [...vistos].map((externo_id) => ({ portal_id: "idealista", externo_id })),
+    ahora
   );
-  const fuera = desaparecidosTrasSync(deLaZona, [...vistos].map((externo_id) => ({ portal_id: "idealista", externo_id })), ahora);
-  if (fuera.length === 0) return;
-  await supabase.from("captacion_anuncios").update({ desaparecido_en: ahora }).in(
-    "id",
-    fuera.map((item) => item.id)
-  );
+  const ya = new Set(fuera.map((item) => item.id));
+  const rezagados = idsRezagadosParaRetirar(deLaZona, vistosEstaPasada, iniciada, {
+    soloParticularesNovedad: true,
+  }).filter((id) => !ya.has(id));
+  const ids = [...fuera.map((item) => item.id), ...rezagados];
+  if (ids.length === 0) return { retirados: 0, rezagados: 0 };
+  await supabase.from("captacion_anuncios").update({ desaparecido_en: ahora }).in("id", ids);
+  return { retirados: fuera.length, rezagados: rezagados.length };
 }

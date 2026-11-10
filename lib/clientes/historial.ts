@@ -8,7 +8,9 @@ export type TipoHistorialCliente =
   | "demanda"
   | "factura"
   | "presupuesto"
-  | "parte";
+  | "parte"
+  | "nota"
+  | "matching";
 
 export type ItemHistorialCliente = {
   id: string;
@@ -27,6 +29,15 @@ const TIPO_LABEL: Record<TipoHistorialCliente, string> = {
   factura: "Factura",
   presupuesto: "Presupuesto",
   parte: "Parte de visita",
+  nota: "Conversación",
+  matching: "Interés",
+};
+
+const NOTA_TIPO_LABEL: Record<string, string> = {
+  nota: "Nota",
+  llamada: "Llamada",
+  interes: "Interés",
+  otro: "Otro",
 };
 
 export function etiquetaTipoHistorial(tipo: TipoHistorialCliente): string {
@@ -168,5 +179,44 @@ export function itemParte(row: {
     titulo: row.inmueble_direccion || "Parte de visita",
     meta: estado,
     href: `/partes-visita/${row.id}`,
+  };
+}
+
+export function itemNotaCliente(row: {
+  id: string;
+  texto: string;
+  tipo: string;
+  created_at: string;
+  actorNombre?: string | null;
+}): ItemHistorialCliente {
+  const preview = row.texto.trim().replace(/\s+/g, " ");
+  const titulo = preview.length > 120 ? `${preview.slice(0, 117)}…` : preview || "Nota";
+  const tipoLabel = NOTA_TIPO_LABEL[row.tipo] ?? row.tipo;
+  return {
+    id: `nota-${row.id}`,
+    tipo: "nota",
+    fecha: row.created_at,
+    titulo,
+    meta: [tipoLabel, row.actorNombre?.trim() || null].filter(Boolean).join(" · "),
+    href: `#nota-${row.id}`,
+  };
+}
+
+export function itemMatchingInmueble(row: {
+  id: string;
+  estado: string;
+  created_at: string;
+  demanda_id: string;
+  propiedad_id: string;
+  inmuebleTitulo?: string | null;
+}): ItemHistorialCliente {
+  const titulo = row.inmuebleTitulo?.trim() || "Inmueble propuesto";
+  return {
+    id: `match-${row.id}`,
+    tipo: "matching",
+    fecha: row.created_at,
+    titulo,
+    meta: row.estado,
+    href: `/propiedades/${row.propiedad_id}`,
   };
 }

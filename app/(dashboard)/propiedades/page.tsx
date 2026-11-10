@@ -18,7 +18,12 @@ import {
   Search,
   LayoutList,
   LayoutGrid,
+  Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
+import { AlertDialog } from "@/components/ui/alert-dialog";
+import { PapeleraInmuebles } from "@/components/inmuebles/PapeleraInmuebles";
+import { enviarInmuebleAPapelera } from "@/lib/actions/propiedades-papelera";
 import {
   FILTROS_DH_PROPERTY,
   FILTROS_ORIGEN_CATASTRAL,
@@ -48,6 +53,8 @@ import { Sheet } from "@/components/ui/sheet";
 import { Selector } from "@/components/ui/selector";
 
 type PropiedadLista = InmueblePanel;
+
+const VISTA_KEY = "rehabinco.propiedades.vista";
 
 function EquipoInmueble({
   inmueble,
@@ -91,7 +98,7 @@ export default function PropiedadesPage() {
   const [filterTipo, setFilterTipo] = useState("todos");
   const [filterOrigen, setFilterOrigen] = useState<FiltroOrigenCatastral>("ALL");
   const [filterDh, setFilterDh] = useState<FiltroDhProperty>("ALL");
-  const [vista, setVista] = useState<"lista" | "grid">("lista");
+  const [vista, setVista] = useState<"lista" | "grid">("grid");
   const [narrow, setNarrow] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [propiedades, setPropiedades] = useState<PropiedadLista[]>([]);
@@ -103,7 +110,10 @@ export default function PropiedadesPage() {
   const [nuevaOpen, setNuevaOpen] = useState(false);
   const [ofertanteInicial, setOfertanteInicial] = useState<string | undefined>();
   const [cargaKey, setCargaKey] = useState(0);
+  const [papeleraTick, setPapeleraTick] = useState(0);
   const [pendingSelectedId, setPendingSelectedId] = useState<string | null>(null);
+  const [borrarId, setBorrarId] = useState<string | null>(null);
+  const [borrando, setBorrando] = useState(false);
   const hayBorrador = useHayAltaBorrador("inmueble");
 
   useEffect(() => {
@@ -113,6 +123,24 @@ export default function PropiedadesPage() {
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
   }, []);
+
+  useEffect(() => {
+    try {
+      const guardada = localStorage.getItem(VISTA_KEY);
+      if (guardada === "lista" || guardada === "grid") setVista(guardada);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const cambiarVista = (modoVista: "lista" | "grid") => {
+    setVista(modoVista);
+    try {
+      localStorage.setItem(VISTA_KEY, modoVista);
+    } catch {
+      /* ignore */
+    }
+  };
 
   useEffect(() => {
     const extra = extraAlta(searchParams);
@@ -138,6 +166,7 @@ export default function PropiedadesPage() {
     void supabase
       .from("propiedades")
       .select(SELECT_INMUEBLE_LISTA)
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .then(async ({ data, error: err }) => {
         if (!vivo) return;
@@ -256,9 +285,26 @@ export default function PropiedadesPage() {
   const selected = propiedades.find((p) => p.id === selectedId) ?? null;
   const modo = narrow ? "grid" : vista;
   const nDisponibles = propiedades.filter((p) => p.estado === "disponible").length;
+  const aBorrar = borrarId ? propiedades.find((p) => p.id === borrarId) : null;
+
+  const confirmarPapelera = async () => {
+    if (!borrarId) return;
+    setBorrando(true);
+    const result = await enviarInmuebleAPapelera(borrarId);
+    setBorrando(false);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success("Inmueble enviado a la papelera.");
+    if (selectedId === borrarId) setSelectedId(null);
+    setPropiedades((prev) => prev.filter((p) => p.id !== borrarId));
+    setBorrarId(null);
+    setPapeleraTick((n) => n + 1);
+  };
 
   return (
-    <div>
+    <div className="pb-10">
       <PageHeader
         breadcrumb={[{ label: "Inmuebles", href: "/propiedades" }]}
         title="Inmuebles"
@@ -343,7 +389,7 @@ export default function PropiedadesPage() {
                 <div className="flex overflow-hidden rounded-[9px] border border-[var(--input)]">
                   <button
                     type="button"
-                    onClick={() => setVista("lista")}
+                    onClick={() => cambiarVista("lista")}
                     className={cn("grid h-[34px] w-[34px] place-items-center", vista === "lista" ? "bg-accent-soft text-accent" : "text-[var(--text-2)]")}
                     aria-label="Vista lista"
                   >
@@ -351,7 +397,7 @@ export default function PropiedadesPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setVista("grid")}
+                    onClick={() => cambiarVista("grid")}
                     className={cn("grid h-[34px] w-[34px] place-items-center", vista === "grid" ? "bg-accent-soft text-accent" : "text-[var(--text-2)]")}
                     aria-label="Vista cuadrícula"
                   >
@@ -377,26 +423,25 @@ export default function PropiedadesPage() {
               <p className="px-4 py-9 text-center text-[13.5px] text-[var(--text-2)]">Ningún inmueble con ese filtro.</p>
             ) : modo === "lista" ? (
               <>
-                <div className="grid grid-cols-[minmax(0,1fr)_70px_110px_120px_130px] gap-3 border-b border-[var(--border-soft)] bg-[var(--surface-soft)] px-3.5 py-2 text-[12px] text-[var(--text-3)]">
+                <div className="grid grid-cols-[minmax(0,1fr)_70px_110px_120px_130px_40px] gap-3 border-b border-[var(--border-soft)] bg-[var(--surface-soft)] px-3.5 py-2 text-[12px] text-[var(--text-3)]">
                   <div>Inmueble</div>
                   <div className="text-right">m²</div>
                   <div className="text-right">Precio</div>
                   <div>Estado</div>
                   <div>Creado</div>
+                  <div />
                 </div>
                 {filteredPropiedades.map((p) => {
                   const active = p.id === selectedId;
                   return (
-                    <button
+                    <div
                       key={p.id}
-                      type="button"
-                      onClick={() => setSelectedId(p.id)}
                       className={cn(
-                        "grid w-full grid-cols-[minmax(0,1fr)_70px_110px_120px_130px] items-center gap-3 border-b border-[var(--border-row)] px-3.5 py-2.5 text-left hover:bg-[var(--surface-soft)]",
+                        "grid w-full grid-cols-[minmax(0,1fr)_70px_110px_120px_130px_40px] items-center gap-3 border-b border-[var(--border-row)] px-3.5 py-2.5 hover:bg-[var(--surface-soft)]",
                         active && "bg-[var(--row-active)] shadow-[inset_3px_0_0_var(--accent)]"
                       )}
                     >
-                      <span className="flex min-w-0 items-center gap-3">
+                      <button type="button" onClick={() => setSelectedId(p.id)} className="flex min-w-0 items-center gap-3 text-left">
                         <span
                           className="h-[42px] w-14 shrink-0 rounded-[7px] bg-[var(--surface-soft)] bg-cover bg-center"
                           style={p.portadaUrl ? { backgroundImage: `url(${p.portadaUrl})` } : undefined}
@@ -408,17 +453,33 @@ export default function PropiedadesPage() {
                             <span className="truncate text-[12px] text-[var(--text-2)]">{p.direccion}</span>
                           </span>
                         </span>
-                      </span>
-                      <span className="text-right text-[13.5px] tabular-nums text-[var(--text-2)]">{p.superficie_m2 ?? "—"}</span>
-                      <span className="text-right text-[13.5px] font-semibold tabular-nums text-foreground">{formatPrecioInmueble(precioDeInmueble(p))}</span>
-                      <span className="inline-flex items-center gap-1.5 text-[12.5px]" style={{ color: colorEstado(p.estado) }}>
+                      </button>
+                      <button type="button" onClick={() => setSelectedId(p.id)} className="text-right text-[13.5px] tabular-nums text-[var(--text-2)]">
+                        {p.superficie_m2 ?? "—"}
+                      </button>
+                      <button type="button" onClick={() => setSelectedId(p.id)} className="text-right text-[13.5px] font-semibold tabular-nums text-foreground">
+                        {formatPrecioInmueble(precioDeInmueble(p))}
+                      </button>
+                      <button type="button" onClick={() => setSelectedId(p.id)} className="inline-flex items-center gap-1.5 text-[12.5px]" style={{ color: colorEstado(p.estado) }}>
                         <span className="h-[7px] w-[7px] rounded-full" style={{ background: colorEstado(p.estado) }} />
                         {labelEstadoInmueble(p.estado)}
-                      </span>
-                      <span className="min-w-0">
+                      </button>
+                      <button type="button" onClick={() => setSelectedId(p.id)} className="min-w-0 text-left">
                         <EquipoInmueble inmueble={p} perfiles={perfiles} />
-                      </span>
-                    </button>
+                      </button>
+                      <button
+                        type="button"
+                        title="Enviar a la papelera"
+                        aria-label="Enviar a la papelera"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setBorrarId(p.id);
+                        }}
+                        className="grid h-8 w-8 place-items-center rounded-lg text-[var(--text-3)] hover:bg-red-50 hover:text-red-700"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+                      </button>
+                    </div>
                   );
                 })}
               </>
@@ -427,47 +488,62 @@ export default function PropiedadesPage() {
                 {filteredPropiedades.map((p) => {
                   const active = p.id === selectedId;
                   return (
-                    <button
+                    <div
                       key={p.id}
-                      type="button"
-                      onClick={() => setSelectedId(p.id)}
                       className={cn(
-                        "overflow-hidden rounded-xl border bg-white text-left",
+                        "relative overflow-hidden rounded-xl border bg-white text-left",
                         active ? "border-accent" : "border-border hover:border-accent"
                       )}
                     >
-                      <span
-                        className="relative block aspect-[4/3] bg-[var(--surface-soft)] bg-cover bg-center"
-                        style={p.portadaUrl ? { backgroundImage: `url(${p.portadaUrl})` } : undefined}
-                      >
+                      <button type="button" onClick={() => setSelectedId(p.id)} className="block w-full text-left">
                         <span
-                          className="absolute left-2 top-2 rounded-md bg-white/94 px-2 py-0.5 text-[11px] font-semibold text-black"
+                          className="relative block aspect-[4/3] bg-[var(--surface-soft)] bg-cover bg-center"
+                          style={p.portadaUrl ? { backgroundImage: `url(${p.portadaUrl})` } : undefined}
                         >
-                          {labelEstadoInmueble(p.estado)}
+                          <span className="absolute left-2 top-2 rounded-md bg-white/94 px-2 py-0.5 text-[11px] font-semibold text-black">
+                            {labelEstadoInmueble(p.estado)}
+                          </span>
                         </span>
-                      </span>
-                      <span className="block px-3 pb-3 pt-2.5">
-                        <span className="flex items-baseline justify-between gap-2">
-                          <span className="font-mono text-[11.5px] text-accent">{p.referencia ?? "—"}</span>
-                          <span className="text-[14px] font-semibold tabular-nums text-foreground">{formatPrecioInmueble(precioDeInmueble(p))}</span>
+                        <span className="block px-3 pb-3 pt-2.5">
+                          <span className="flex items-baseline justify-between gap-2">
+                            <span className="font-mono text-[11.5px] text-accent">{p.referencia ?? "—"}</span>
+                            <span className="text-[14px] font-semibold tabular-nums text-foreground">{formatPrecioInmueble(precioDeInmueble(p))}</span>
+                          </span>
+                          <span className="mt-1 block truncate text-[14px] font-semibold">{p.titulo || p.direccion || "Inmueble"}</span>
+                          <span className="mt-0.5 block truncate text-[12px] text-[var(--text-2)]">
+                            {p.direccion}
+                            {p.superficie_m2 ? ` · ${p.superficie_m2} m²` : ""}
+                          </span>
+                          <span className="mt-1.5 block">
+                            <EquipoInmueble inmueble={p} perfiles={perfiles} />
+                          </span>
                         </span>
-                        <span className="mt-1 block truncate text-[14px] font-semibold">{p.titulo || p.direccion || "Inmueble"}</span>
-                        <span className="mt-0.5 block truncate text-[12px] text-[var(--text-2)]">
-                          {p.direccion}
-                          {p.superficie_m2 ? ` · ${p.superficie_m2} m²` : ""}
-                        </span>
-                        <span className="mt-1.5 block">
-                          <EquipoInmueble inmueble={p} perfiles={perfiles} />
-                        </span>
-                      </span>
-                    </button>
+                      </button>
+                      <button
+                        type="button"
+                        title="Enviar a la papelera"
+                        aria-label="Enviar a la papelera"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setBorrarId(p.id);
+                        }}
+                        className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-lg bg-black/45 text-white backdrop-blur-sm hover:bg-red-600"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+                      </button>
+                    </div>
                   );
                 })}
               </div>
             )}
           </section>
+          <PapeleraInmuebles tick={papeleraTick} onRestaurado={() => setCargaKey((n) => n + 1)} />
         </div>
       )}
+
+      {!loading && propiedades.length === 0 ? (
+        <PapeleraInmuebles tick={papeleraTick} onRestaurado={() => setCargaKey((n) => n + 1)} />
+      ) : null}
 
       <Sheet
         open={Boolean(selected)}
@@ -501,6 +577,21 @@ export default function PropiedadesPage() {
           setPendingSelectedId(id);
           setCargaKey((n) => n + 1);
         }}
+      />
+
+      <AlertDialog
+        open={Boolean(borrarId)}
+        onOpenChange={(open) => !open && setBorrarId(null)}
+        title="¿Enviar a la papelera?"
+        description={
+          aBorrar
+            ? `«${aBorrar.titulo || aBorrar.direccion || aBorrar.referencia || "Inmueble"}» saldrá del stock. Podrás recuperarlo abajo en la papelera.`
+            : "El inmueble saldrá del stock. Podrás recuperarlo en la papelera."
+        }
+        confirmLabel={borrando ? "Enviando…" : "A la papelera"}
+        loading={borrando}
+        variant="destructive"
+        onConfirm={() => void confirmarPapelera()}
       />
     </div>
   );

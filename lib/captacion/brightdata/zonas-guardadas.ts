@@ -4,13 +4,41 @@ import { ZONAS_IDEALISTA, esZonaIdealista, urlsDeZonas, zonasPorDefecto, type Op
 export async function idsZonasActivas(): Promise<string[]> {
   try {
     const admin = createAdminClient();
-    const { data, error } = await admin.from("captacion_brightdata_zonas").select("id, activa");
-    if (error) return zonasPorDefecto();
-    const filas = (data ?? []) as Array<{ id?: string; activa?: boolean }>;
+    let filas: Array<{ id?: string; activa?: boolean; reintento_prioridad?: boolean }> = [];
+    const conPrioridad = await admin
+      .from("captacion_brightdata_zonas")
+      .select("id, activa, reintento_prioridad");
+    if (conPrioridad.error) {
+      const sinPrioridad = await admin.from("captacion_brightdata_zonas").select("id, activa");
+      if (sinPrioridad.error) return zonasPorDefecto();
+      filas = (sinPrioridad.data ?? []) as typeof filas;
+    } else {
+      filas = (conPrioridad.data ?? []) as typeof filas;
+    }
     if (filas.length === 0) return zonasPorDefecto();
-    return filas.filter((fila) => fila.activa && typeof fila.id === "string" && esZonaIdealista(fila.id)).map((fila) => fila.id as string);
+    const activas = filas.filter(
+      (fila) => fila.activa && typeof fila.id === "string" && esZonaIdealista(fila.id)
+    ) as Array<{ id: string; reintento_prioridad?: boolean }>;
+    // Zonas incompletas primero: así el tope de páginas no las deja siempre al final.
+    return [
+      ...activas.filter((z) => z.reintento_prioridad).map((z) => z.id),
+      ...activas.filter((z) => !z.reintento_prioridad).map((z) => z.id),
+    ];
   } catch {
     return zonasPorDefecto();
+  }
+}
+
+export async function marcarZonasReintentoPrioridad(zonas: string[], prioridad: boolean): Promise<void> {
+  const ids = [...new Set(zonas)].filter((id) => esZonaIdealista(id));
+  if (ids.length === 0) return;
+  try {
+    await createAdminClient()
+      .from("captacion_brightdata_zonas")
+      .update({ reintento_prioridad: prioridad, updated_at: new Date().toISOString() })
+      .in("id", ids);
+  } catch {
+    /* columna puede no existir aún */
   }
 }
 

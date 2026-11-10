@@ -88,14 +88,11 @@ export function PropiedadCard({
 
   const handleDeleteConfirm = async () => {
     setDeleting(true);
-    const { createClient } = await import("@/lib/supabase/client");
-    const supabase = createClient();
-    const { error } = await supabase.from("propiedades").delete().eq("id", id);
+    const { enviarInmuebleAPapelera } = await import("@/lib/actions/propiedades-papelera");
+    const result = await enviarInmuebleAPapelera(id);
     setDeleting(false);
     setShowDeleteConfirm(false);
-    if (!error) {
-      router.refresh();
-    }
+    if (result.ok) router.refresh();
   };
 
   const formatPrecio = (p: number | null) =>

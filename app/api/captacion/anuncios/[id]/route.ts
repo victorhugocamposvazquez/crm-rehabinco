@@ -69,6 +69,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     estado?: unknown;
     nota?: unknown;
     proxima_accion?: unknown;
+    retirado?: unknown;
   } = {};
   try {
     cuerpo = (await request.json()) as typeof cuerpo;
@@ -83,6 +84,23 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     .maybeSingle();
   if (errFila || !fila) return Response.json({ ok: false, error: "Anuncio no encontrado." }, { status: 404 });
   const anuncio = filaAnuncio(fila as Record<string, unknown>);
+
+  if (cuerpo.retirado === true) {
+    if (anuncio.desaparecido_en) return Response.json({ ok: true, already: true });
+    const ahora = new Date().toISOString();
+    const { error } = await sesion.supabase
+      .from("captacion_anuncios")
+      .update({ desaparecido_en: ahora, updated_at: ahora })
+      .eq("id", id);
+    if (error) return Response.json({ ok: false, error: error.message }, { status: 500 });
+    await sesion.supabase.from("captacion_anuncios_actividad").insert({
+      anuncio_id: id,
+      actor_id: sesion.user.id,
+      tipo: "retirado",
+      detalle: "Marcado retirado desde el CRM",
+    });
+    return Response.json({ ok: true, desaparecido_en: ahora });
+  }
 
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if ("comercial_id" in cuerpo) {

@@ -176,6 +176,15 @@ export function NuevoClientePanel({
         toast.error(aviso ?? "No se ha podido crear el contacto.");
         return;
       }
+      const primeraNota = notas.trim();
+      if (primeraNota) {
+        await supabase.from("clientes_notas").insert({
+          cliente_id: data.id,
+          actor_id: user.id,
+          texto: primeraNota,
+          tipo: "nota",
+        });
+      }
       toast.success(empresaAsociada ? "Empresa asociada creada." : "Contacto creado.");
       altaBorrador.consumir();
       vaciar();

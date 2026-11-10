@@ -201,6 +201,15 @@ export function ClienteWizard({ clienteId, initialClientePadreId }: ClienteWizar
       setSaveError(error.message);
       return;
     }
+    const primeraNota = data.notas?.trim();
+    if (primeraNota && inserted?.id) {
+      await supabase.from("clientes_notas").insert({
+        cliente_id: inserted.id,
+        actor_id: user.id,
+        texto: primeraNota,
+        tipo: "nota",
+      });
+    }
     toast.success("Cliente creado");
     router.push(`/clientes/${inserted.id}`);
     router.refresh();
