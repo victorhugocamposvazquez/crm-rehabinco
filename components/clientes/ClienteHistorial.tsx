@@ -205,7 +205,7 @@ export function ClienteHistorial({ clienteId, tick = 0 }: { clienteId: string; t
         ...(demandas.data ?? []).map(itemDemanda),
         ...(facturas.data ?? []).map(itemFactura),
         ...(presupuestos.data ?? []).map(itemPresupuesto),
-        [...partesMap.values()].map(itemParte),
+        ...[...partesMap.values()].map(itemParte),
         ...notasItems,
         ...matchingItems,
       ]);
