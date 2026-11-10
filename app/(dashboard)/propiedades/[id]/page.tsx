@@ -395,6 +395,8 @@ export default function DetallePropiedadPage() {
                 captadoPor={propiedad.captado_por ?? null}
                 conjunto={propiedad.captado_conjunto === true}
                 nombre={captadoNombre}
+                subidoPor={propiedad.user_id}
+                subidoNombre={propiedad.user_id && propiedad.user_id === propiedad.comercial_id ? comercialNombre : null}
                 onGuardado={(siguiente) => {
                   setCaptadoNombre(siguiente.nombre);
                   setPropiedad((prev) =>

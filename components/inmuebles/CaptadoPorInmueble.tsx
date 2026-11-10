@@ -12,8 +12,7 @@ type Persona = { id: string; nombre: string };
 
 export function textoCaptado(conjunto: boolean, nombre: string | null): string {
   if (conjunto) return "En conjunto";
-  const limpio = nombre?.trim();
-  return limpio || "Sin indicar";
+  return nombre?.trim() || "—";
 }
 
 export function CaptadoPorInmueble({
@@ -21,12 +20,17 @@ export function CaptadoPorInmueble({
   captadoPor,
   conjunto,
   nombre,
+  subidoPor = null,
+  subidoNombre = null,
   onGuardado,
 }: {
   propiedadId: string;
   captadoPor: string | null;
   conjunto: boolean;
   nombre: string | null;
+  /** Quien creó el inmueble. Si nadie ha cambiado la captación, es quien la hizo. */
+  subidoPor?: string | null;
+  subidoNombre?: string | null;
   onGuardado?: (siguiente: { captadoPor: string | null; conjunto: boolean; nombre: string | null }) => void;
 }) {
   const { user } = useAuth();
@@ -57,11 +61,17 @@ export function CaptadoPorInmueble({
     };
   }, [admin]);
 
+  const captadorId = conjunto ? null : (captadoPor ?? subidoPor);
+  const captadorNombre = conjunto
+    ? null
+    : (nombre?.trim() || (captadoPor ? null : subidoNombre?.trim() || null));
+
   const guardar = async (valor: string) => {
     const siguienteConjunto = valor === "conjunto";
-    const siguienteId = siguienteConjunto || valor === "" ? null : valor;
+    const siguienteId = siguienteConjunto ? null : valor || subidoPor;
     const siguienteNombre = siguienteId
-      ? personas.find((persona) => persona.id === siguienteId)?.nombre ?? (siguienteId === captadoPor ? nombre : null)
+      ? personas.find((persona) => persona.id === siguienteId)?.nombre ??
+        (siguienteId === captadoPor ? nombre : siguienteId === subidoPor ? subidoNombre : null)
       : null;
     setGuardando(true);
     const { error } = await createClient()
@@ -81,23 +91,22 @@ export function CaptadoPorInmueble({
   };
 
   if (!admin) {
-    return <span>{textoCaptado(conjunto, nombre)}</span>;
+    return <span>{textoCaptado(conjunto, captadorNombre)}</span>;
   }
 
   const opciones = [...personas];
-  if (captadoPor && !opciones.some((persona) => persona.id === captadoPor)) {
-    opciones.unshift({ id: captadoPor, nombre: nombre?.trim() || "Captador" });
+  if (captadorId && !opciones.some((persona) => persona.id === captadorId)) {
+    opciones.unshift({ id: captadorId, nombre: captadorNombre?.trim() || "Captador" });
   }
 
   return (
     <Selector
       aria-label="Quién ha captado el inmueble"
-      value={conjunto ? "conjunto" : captadoPor ?? ""}
+      value={conjunto ? "conjunto" : captadorId ?? ""}
       disabled={guardando}
       onChange={(evento) => void guardar(evento.target.value)}
       className="h-8 min-w-[12rem]"
     >
-      <option value="">Sin indicar</option>
       <option value="conjunto">En conjunto</option>
       {opciones.map((persona) => (
         <option key={persona.id} value={persona.id}>

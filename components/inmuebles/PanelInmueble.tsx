@@ -329,6 +329,8 @@ export function PanelInmueble({
                 captadoPor={inmueble.captadoPor}
                 conjunto={inmueble.captadoConjunto}
                 nombre={inmueble.captadoNombre}
+                subidoPor={inmueble.user_id}
+                subidoNombre={inmueble.user_id && inmueble.user_id === inmueble.comercialId ? inmueble.comercialNombre : null}
                 onGuardado={(siguiente) =>
                   onCambio?.({
                     captadoPor: siguiente.captadoPor,
