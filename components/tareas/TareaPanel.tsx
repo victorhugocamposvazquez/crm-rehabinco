@@ -91,6 +91,9 @@ export function TareaPanel({
   const [parteOpts, setParteOpts] = useState<Array<{ id: string; label: string; propiedadId: string | null }>>([]);
   const [confirmEliminar, setConfirmEliminar] = useState(false);
   const [eliminando, setEliminando] = useState(false);
+  const [editNotaId, setEditNotaId] = useState<string | null>(null);
+  const [editNotaTexto, setEditNotaTexto] = useState("");
+  const [guardandoNota, setGuardandoNota] = useState(false);
   const { abrir: abrirFicha } = useFichaPeek();
 
   useEffect(() => {
@@ -98,6 +101,8 @@ export function TareaPanel({
     setFinca(tarea?.finca_reference ?? "");
     setConfirmEliminar(false);
     setEliminando(false);
+    setEditNotaId(null);
+    setEditNotaTexto("");
   }, [tarea?.id, tarea?.titulo]);
 
   useEffect(() => {
@@ -281,6 +286,29 @@ export function TareaPanel({
       ...prev,
       { id: data.id, cuando: cuandoComentario(data.created_at, hoy), texto, actor: yo ? { nombre: yo.nombre, color: yo.color } : null },
     ]);
+  };
+
+  const guardarEdicionNota = async (id: string) => {
+    const body = editNotaTexto.trim();
+    if (!body || guardandoNota) return;
+    setGuardandoNota(true);
+    try {
+      const { error } = await createClient()
+        .from("tareas_actividad")
+        .update({ texto: body })
+        .eq("id", id)
+        .eq("tipo", "nota");
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      setActividad((prev) => prev.map((a) => (a.id === id ? { ...a, texto: body } : a)));
+      setEditNotaId(null);
+      setEditNotaTexto("");
+      toast.success("Nota actualizada.");
+    } finally {
+      setGuardandoNota(false);
+    }
   };
 
   return (
@@ -590,15 +618,60 @@ export function TareaPanel({
                   <div key={a.id} className="flex gap-2">
                     <AvatarComercial nombre={a.actor?.nombre} color={a.actor?.color} size={22} title={a.actor?.nombre ?? undefined} />
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline gap-2">
+                      <div className="flex flex-wrap items-baseline gap-2">
                         <span className="truncate text-[12.5px] font-semibold">
                           {nombreYApellido(a.actor?.nombre) || "Comercial"}
                         </span>
                         <span className="shrink-0 text-[11px] text-[var(--text-3)]">{a.cuando}</span>
+                        {editNotaId === a.id ? null : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditNotaId(a.id);
+                              setEditNotaTexto(a.texto);
+                            }}
+                            className="text-[11.5px] font-semibold text-accent hover:underline"
+                          >
+                            Editar
+                          </button>
+                        )}
                       </div>
-                      <p className="mt-0.5 rounded-[10px] bg-[var(--surface-soft)] px-2.5 py-1.5 text-[13px] leading-snug">
-                        <TextoConMenciones texto={a.texto} equipo={comerciales} />
-                      </p>
+                      {editNotaId === a.id ? (
+                        <div className="mt-1 space-y-2">
+                          <textarea
+                            value={editNotaTexto}
+                            onChange={(e) => setEditNotaTexto(e.target.value)}
+                            rows={3}
+                            className="w-full resize-y rounded-[9px] border border-[var(--input)] bg-[var(--surface)] px-2.5 py-2 text-[13px] outline-none focus:border-accent"
+                          />
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="secondary"
+                              disabled={guardandoNota}
+                              onClick={() => {
+                                setEditNotaId(null);
+                                setEditNotaTexto("");
+                              }}
+                            >
+                              Cancelar
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              disabled={!editNotaTexto.trim() || guardandoNota}
+                              onClick={() => void guardarEdicionNota(a.id)}
+                            >
+                              {guardandoNota ? "Guardando…" : "Guardar"}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="mt-0.5 rounded-[10px] bg-[var(--surface-soft)] px-2.5 py-1.5 text-[13px] leading-snug">
+                          <TextoConMenciones texto={a.texto} equipo={comerciales} />
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}

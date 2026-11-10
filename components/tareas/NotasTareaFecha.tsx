@@ -48,6 +48,8 @@ export function NotasTareaFecha({
   const [notas, setNotas] = useState<Nota[]>([]);
   const [texto, setTexto] = useState("");
   const [saving, setSaving] = useState(false);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState("");
   const legacy = notaLegacy?.trim() || "";
   const citaRef = useRef(cita);
   citaRef.current = cita;
@@ -162,6 +164,68 @@ export function NotasTareaFecha({
     }
   };
 
+  const iniciarEdicion = (n: Nota) => {
+    setEditandoId(n.id);
+    setEditDraft(n.texto);
+  };
+
+  const cancelarEdicion = () => {
+    setEditandoId(null);
+    setEditDraft("");
+  };
+
+  const guardarEdicion = async (n: Nota) => {
+    const body = editDraft.trim();
+    if (!body || saving || !tareaResuelta) return;
+    if (!user?.id) {
+      toast.error("Sesión no válida.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const supabase = createClient();
+      if (n.legacy) {
+        const copiada = notas.find((row) => !row.legacy && row.texto.trim() === legacy);
+        if (copiada) {
+          const { error } = await supabase.from("tareas_actividad").update({ texto: body }).eq("id", copiada.id);
+          if (error) {
+            toast.error(error.message);
+            return;
+          }
+        } else {
+          const { error } = await supabase.from("tareas_actividad").insert({
+            tarea_id: tareaResuelta,
+            actor_id: user.id,
+            tipo: "nota",
+            texto: body,
+          });
+          if (error) {
+            toast.error(error.message);
+            return;
+          }
+        }
+        if (cita?.id) {
+          await supabase.from("citas").update({ notas: body }).eq("id", cita.id);
+        }
+      } else {
+        const { error } = await supabase
+          .from("tareas_actividad")
+          .update({ texto: body })
+          .eq("id", n.id)
+          .eq("tipo", "nota");
+        if (error) {
+          toast.error(error.message);
+          return;
+        }
+      }
+      cancelarEdicion();
+      toast.success("Nota actualizada.");
+      await cargar();
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const visibles =
     notas.length > 0
       ? notas
@@ -205,13 +269,48 @@ export function NotasTareaFecha({
               key={n.id}
               className="rounded-[10px] border border-[var(--border-soft)] bg-[var(--surface-soft)] px-3.5 py-2.5"
             >
-              <p className="text-[11px] font-medium text-[var(--text-3)]">
-                {n.legacy ? "Nota anterior" : fechaNota(n.created_at)}
-                {n.autor ? ` · ${n.autor}` : ""}
-              </p>
-              <p className="mt-1 whitespace-pre-wrap break-words text-[13.5px] leading-relaxed text-foreground">
-                {n.texto}
-              </p>
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-[11px] font-medium text-[var(--text-3)]">
+                  {n.legacy ? "Nota anterior" : fechaNota(n.created_at)}
+                  {n.autor ? ` · ${n.autor}` : ""}
+                </p>
+                {editandoId === n.id ? null : (
+                  <button
+                    type="button"
+                    onClick={() => iniciarEdicion(n)}
+                    className="shrink-0 text-[12px] font-semibold text-accent hover:underline"
+                  >
+                    Editar
+                  </button>
+                )}
+              </div>
+              {editandoId === n.id ? (
+                <div className="mt-2 space-y-2">
+                  <textarea
+                    value={editDraft}
+                    onChange={(e) => setEditDraft(e.target.value)}
+                    rows={3}
+                    className="min-h-[4rem] w-full resize-y rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-3 py-2 text-[13.5px] text-foreground outline-none focus:border-accent"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" size="sm" variant="secondary" disabled={saving} onClick={cancelarEdicion}>
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={!editDraft.trim() || saving}
+                      onClick={() => void guardarEdicion(n)}
+                    >
+                      {saving ? "Guardando…" : "Guardar"}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-1 whitespace-pre-wrap break-words text-[13.5px] leading-relaxed text-foreground">
+                  {n.texto}
+                </p>
+              )}
             </li>
           ))}
         </ul>

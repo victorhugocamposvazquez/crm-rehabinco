@@ -58,6 +58,9 @@ export function ClienteNotas({
   const [texto, setTexto] = useState("");
   const [tipo, setTipo] = useState<TipoNotaCliente>("nota");
   const [saving, setSaving] = useState(false);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [editTexto, setEditTexto] = useState("");
+  const [editTipo, setEditTipo] = useState<TipoNotaCliente>("nota");
 
   const cargar = useCallback(async () => {
     setLoading(true);
@@ -116,6 +119,41 @@ export function ClienteNotas({
     }
   };
 
+  const iniciarEdicion = (n: NotaFila) => {
+    setEditandoId(n.id);
+    setEditTexto(n.texto);
+    setEditTipo(n.tipo);
+  };
+
+  const cancelarEdicion = () => {
+    setEditandoId(null);
+    setEditTexto("");
+    setEditTipo("nota");
+  };
+
+  const guardarEdicion = async (id: string) => {
+    const body = editTexto.trim();
+    if (!body || saving) return;
+    setSaving(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("clientes_notas")
+        .update({ texto: body, tipo: editTipo })
+        .eq("id", id);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      cancelarEdicion();
+      toast.success("Nota actualizada.");
+      await cargar();
+      onCambio?.();
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <Card className="md:col-span-2">
       <CardHeader>
@@ -136,8 +174,48 @@ export function ClienteNotas({
                   </span>
                   <span className="text-[12.5px] font-medium text-foreground">{actorNombre(n.actor)}</span>
                   <span className="text-[12px] text-[var(--text-3)]">{fechaHora(n.created_at)}</span>
+                  {editandoId === n.id ? null : (
+                    <button
+                      type="button"
+                      onClick={() => iniciarEdicion(n)}
+                      className="text-[12px] font-semibold text-accent hover:underline"
+                    >
+                      Editar
+                    </button>
+                  )}
                 </div>
-                <p className="mt-1.5 whitespace-pre-wrap text-[14px] leading-snug text-foreground">{n.texto}</p>
+                {editandoId === n.id ? (
+                  <div className="mt-2 space-y-2">
+                    <div className="flex flex-wrap gap-1.5">
+                      {(["nota", "llamada", "interes", "otro"] as TipoNotaCliente[]).map((t) => (
+                        <ToggleChip key={t} on={editTipo === t} onClick={() => setEditTipo(t)}>
+                          {TIPO_LABEL[t]}
+                        </ToggleChip>
+                      ))}
+                    </div>
+                    <textarea
+                      value={editTexto}
+                      onChange={(e) => setEditTexto(e.target.value)}
+                      rows={3}
+                      className="w-full resize-y rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-3 py-2.5 text-[14px] outline-none focus:border-accent"
+                    />
+                    <div className="flex justify-end gap-2">
+                      <Button type="button" size="sm" variant="secondary" disabled={saving} onClick={cancelarEdicion}>
+                        Cancelar
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={!editTexto.trim() || saving}
+                        onClick={() => void guardarEdicion(n.id)}
+                      >
+                        {saving ? "Guardando…" : "Guardar"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-1.5 whitespace-pre-wrap text-[14px] leading-snug text-foreground">{n.texto}</p>
+                )}
               </li>
             ))}
           </ul>
