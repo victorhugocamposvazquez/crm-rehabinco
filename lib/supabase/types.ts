@@ -1209,6 +1209,20 @@ export interface Database {
           payload?: Json;
         };
       };
+      propiedad_captadores: {
+        Row: {
+          propiedad_id: string;
+          profile_id: string;
+        };
+        Insert: {
+          propiedad_id: string;
+          profile_id: string;
+        };
+        Update: {
+          propiedad_id?: string;
+          profile_id?: string;
+        };
+      };
       demandas: {
         Row: {
           id: string;
