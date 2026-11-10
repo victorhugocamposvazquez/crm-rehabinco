@@ -72,6 +72,7 @@ export function NuevaEntradaCalendario({
   edicion,
   onGuardar,
   onCambiarEstado,
+  onTareaId,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -98,6 +99,7 @@ export function NuevaEntradaCalendario({
   edicion?: EdicionCalendario | null;
   onGuardar: (datos: DatosGuardarEntradaCalendario) => void;
   onCambiarEstado?: (estado: "prevista" | "hecha" | "cancelada", motivoAnulacion?: string | null) => void;
+  onTareaId?: (tareaId: string) => void;
 }) {
   const equipo = comerciales ?? [];
   const comercialSel = equipo.find((c) => c.id === comercialId) ?? null;
@@ -199,14 +201,32 @@ export function NuevaEntradaCalendario({
       )
       .slice(0, 6);
   }, [agenda, qClienteExtra, clienteId, clientesExtraIds]);
-  const notasConFecha = tipo === "tarea" && Boolean(edicion?.tarea_id);
-  const bloqueNotas = !conNotas ? null : notasConFecha ? (
+  const citaParaNotas = useMemo(() => {
+    if (!edicion || !comercialId) return null;
+    return {
+      id: edicion.id,
+      comercial_id: comercialId,
+      tipo: edicion.tipo,
+      titulo: edicion.titulo,
+      empieza: `${dia}T${hora}:00`,
+      propiedad_id: propiedadId || null,
+      cliente_id: clienteId || null,
+      estado: edicion.estado,
+      tarea_id: edicion.tarea_id ?? null,
+    };
+  }, [edicion, comercialId, dia, hora, propiedadId, clienteId]);
+  const bloqueNotas = !conNotas ? null : edicion ? (
     <AltaSection
       wide
       title="Notas"
-      hint="Cada nota se guarda aparte, con el día y la hora en que la escribes."
+      hint="Escribe abajo una nota nueva y pulsa Añadir nota. Cada una guarda su día y su hora. El texto de antes queda en el historial."
     >
-      <NotasTareaFecha tareaId={edicion!.tarea_id!} notaLegacy={edicion?.notas} />
+      <NotasTareaFecha
+        tareaId={edicion.tarea_id}
+        notaLegacy={edicion.notas}
+        cita={citaParaNotas}
+        onTareaId={onTareaId}
+      />
     </AltaSection>
   ) : (
     <AltaSection

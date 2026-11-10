@@ -64,6 +64,21 @@ export async function syncTareaDesdeCita(
     return cita.tarea_id;
   }
 
+  const { data: yaVinculada } = await supabase
+    .from("tareas")
+    .select("id")
+    .eq("cita_id", cita.id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (yaVinculada?.id) {
+    const { error } = await supabase.from("tareas").update(patch).eq("id", yaVinculada.id);
+    if (error) throw error;
+    const { error: errLink } = await supabase.from("citas").update({ tarea_id: yaVinculada.id }).eq("id", cita.id);
+    if (errLink) throw errLink;
+    return yaVinculada.id;
+  }
+
   const { data: tarea, error: errInsert } = await supabase
     .from("tareas")
     .insert({

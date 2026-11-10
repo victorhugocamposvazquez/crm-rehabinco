@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
 import { Button } from "@/components/ui/button";
 import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { nombreYApellido } from "@/lib/ui/tokens";
+import { syncTareaDesdeCita, type CitaParaTarea } from "@/lib/tareas/sync-cita";
 
 type Nota = {
   id: string;
@@ -32,22 +33,61 @@ function fechaNota(iso: string | null) {
 export function NotasTareaFecha({
   tareaId,
   notaLegacy,
+  cita,
+  onTareaId,
 }: {
-  tareaId: string;
+  tareaId?: string | null;
   /** Texto antiguo de citas.notas, sin fecha propia. */
   notaLegacy?: string | null;
+  /** Si la entrada aún no tiene tarea, se crea al abrir las notas. */
+  cita?: CitaParaTarea | null;
+  onTareaId?: (tareaId: string) => void;
 }) {
   const { user } = useAuth();
+  const [tareaResuelta, setTareaResuelta] = useState<string | null>(tareaId ?? null);
   const [notas, setNotas] = useState<Nota[]>([]);
   const [texto, setTexto] = useState("");
   const [saving, setSaving] = useState(false);
   const legacy = notaLegacy?.trim() || "";
+  const citaRef = useRef(cita);
+  citaRef.current = cita;
+  const onTareaIdRef = useRef(onTareaId);
+  onTareaIdRef.current = onTareaId;
+
+  useEffect(() => {
+    setTareaResuelta(tareaId ?? null);
+  }, [tareaId]);
+
+  useEffect(() => {
+    if (tareaId || !cita?.id) return;
+    let vivo = true;
+    void (async () => {
+      const actual = citaRef.current;
+      if (!actual) return;
+      try {
+        const id = await syncTareaDesdeCita(
+          createClient(),
+          { ...actual, tarea_id: null },
+          { creadoPor: user?.id ?? actual.comercial_id }
+        );
+        if (!vivo || !id) return;
+        setTareaResuelta(id);
+        onTareaIdRef.current?.(id);
+      } catch (err) {
+        if (vivo) toast.error(err instanceof Error ? err.message : "No se han podido preparar las notas.");
+      }
+    })();
+    return () => {
+      vivo = false;
+    };
+  }, [cita?.id, tareaId, user?.id]);
 
   const cargar = useCallback(async () => {
+    if (!tareaResuelta) return;
     const { data, error } = await createClient()
       .from("tareas_actividad")
       .select("id, texto, created_at, profiles:actor_id(nombre_completo)")
-      .eq("tarea_id", tareaId)
+      .eq("tarea_id", tareaResuelta)
       .eq("tipo", "nota")
       .order("created_at", { ascending: false });
     if (error) {
@@ -74,7 +114,7 @@ export function NotasTareaFecha({
       mapped.push({ id: "legacy", texto: legacy, created_at: null, autor: null, legacy: true });
     }
     setNotas(mapped);
-  }, [tareaId, legacy]);
+  }, [tareaResuelta, legacy]);
 
   useEffect(() => {
     void cargar();
@@ -82,7 +122,7 @@ export function NotasTareaFecha({
 
   const guardar = async () => {
     const body = texto.trim();
-    if (!body || saving) return;
+    if (!body || saving || !tareaResuelta) return;
     if (!user?.id) {
       toast.error("Sesión no válida.");
       return;
@@ -93,7 +133,7 @@ export function NotasTareaFecha({
       const yaCopiada = notas.some((n) => !n.legacy && n.texto.trim() === legacy);
       if (legacy && !yaCopiada) {
         await supabase.from("tareas_actividad").insert({
-          tarea_id: tareaId,
+          tarea_id: tareaResuelta,
           actor_id: null,
           tipo: "nota",
           texto: legacy,
@@ -102,7 +142,7 @@ export function NotasTareaFecha({
       const { data, error } = await supabase
         .from("tareas_actividad")
         .insert({
-          tarea_id: tareaId,
+          tarea_id: tareaResuelta,
           actor_id: user.id,
           tipo: "nota",
           texto: body,
@@ -122,6 +162,13 @@ export function NotasTareaFecha({
     }
   };
 
+  const visibles =
+    notas.length > 0
+      ? notas
+      : legacy
+        ? [{ id: "legacy", texto: legacy, created_at: null, autor: null, legacy: true as const }]
+        : [];
+
   return (
     <div className="space-y-3">
       <div className="rounded-[11px] border border-[var(--border)] bg-[var(--surface-soft)] p-3">
@@ -131,17 +178,17 @@ export function NotasTareaFecha({
           onChange={(e) => setTexto(e.target.value)}
           rows={3}
           placeholder="Qué ha pasado. Se guarda con el día y la hora de ahora."
-          className="min-h-[5rem] w-full resize-y rounded-[9px] border border-[var(--input)] bg-white px-3 py-2.5 text-[13.5px] outline-none focus:border-accent max-[819px]:text-base"
+          className="min-h-[5rem] w-full resize-y rounded-[9px] border border-[var(--input)] bg-[var(--field)] px-3 py-2.5 text-[13.5px] text-foreground outline-none focus:border-accent max-[819px]:text-base"
         />
-        <Button type="button" className="mt-2 w-full" disabled={!texto.trim() || saving} onClick={() => void guardar()}>
+        <Button type="button" className="mt-2 w-full" disabled={!texto.trim() || saving || !tareaResuelta} onClick={() => void guardar()}>
           {saving ? "Guardando…" : "Añadir nota"}
         </Button>
       </div>
-      {notas.length === 0 ? (
+      {visibles.length === 0 ? (
         <p className="text-[13px] text-[var(--text-3)]">Aún no hay notas anteriores.</p>
       ) : (
         <ul className="divide-y divide-[var(--border-row)]">
-          {notas.map((n) => (
+          {visibles.map((n) => (
             <li key={n.id} className="py-2.5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-3)]">
                 {fechaNota(n.created_at)}

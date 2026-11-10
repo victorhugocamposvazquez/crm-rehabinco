@@ -365,7 +365,7 @@ export default function CalendarioPage() {
           propiedad_id: propiedadIdGuardar || null,
           cliente_id: clienteId || null,
           clientes_extra_ids: entradaConAsistentes(tipoFinal) ? clientesExtraFinal : [],
-          notas: tipoFinal === "tarea" ? (editando.notas ?? null) : entradaConNotas(tipoFinal) ? notasFinal : null,
+          notas: editando.notas ?? null,
           lugar: lugarFinal,
         })
         .eq("id", editando.id)
@@ -393,30 +393,33 @@ export default function CalendarioPage() {
         toast.error("No se ha podido vincular el inmueble. Revisa permisos o vuelve a intentarlo.");
         return;
       }
+      let tareaId = editando.tarea_id ?? null;
       try {
-        await syncTareaDesdeCita(
-          supabase,
-          {
-            id: editando.id,
-            comercial_id: asignado,
-            tipo: tipoFinal,
-            titulo: tituloFinal,
-            empieza: patch.empieza,
-            propiedad_id: citaNormalizada.propiedad_id,
-            cliente_id: clienteId || null,
-            estado: editando.estado,
-            tarea_id: editando.tarea_id,
-          },
-          { creadoPor: user.id }
-        );
+        tareaId =
+          (await syncTareaDesdeCita(
+            supabase,
+            {
+              id: editando.id,
+              comercial_id: asignado,
+              tipo: tipoFinal,
+              titulo: tituloFinal,
+              empieza: patch.empieza,
+              propiedad_id: citaNormalizada.propiedad_id,
+              cliente_id: clienteId || null,
+              estado: editando.estado,
+              tarea_id: editando.tarea_id,
+            },
+            { creadoPor: user.id }
+          )) ?? tareaId;
       } catch {
         toast.error("Cita guardada, pero no se pudo sincronizar con Tareas.");
       }
       const idGuardada = editando.id;
-      setPropiedadId(citaNormalizada.propiedad_id ?? "");
-      if (citaNormalizada.propiedad_id) mezclarInmueble(citaNormalizada.propiedad_id);
-      setEditando(citaNormalizada);
-      setCitas((prev) => prev.map((c) => (c.id === idGuardada ? { ...c, ...citaNormalizada } : c)));
+      const citaConTarea = { ...citaNormalizada, tarea_id: tareaId };
+      setPropiedadId(citaConTarea.propiedad_id ?? "");
+      if (citaConTarea.propiedad_id) mezclarInmueble(citaConTarea.propiedad_id);
+      setEditando(citaConTarea);
+      setCitas((prev) => prev.map((c) => (c.id === idGuardada ? { ...c, ...citaConTarea } : c)));
       setSaving(false);
       avisarEvento("cita", idGuardada);
       toast.success("Entrada actualizada.");
@@ -778,6 +781,12 @@ export default function CalendarioPage() {
             : null
         }
         onGuardar={(datos) => void guardar(datos)}
+        onTareaId={(tareaId) => {
+          const citaId = editando?.id;
+          setEditando((prev) => (prev ? { ...prev, tarea_id: tareaId } : prev));
+          if (!citaId) return;
+          setCitas((prev) => prev.map((c) => (c.id === citaId ? { ...c, tarea_id: tareaId } : c)));
+        }}
         onCambiarEstado={(estado, motivo) => {
           if (editando) void cambiarEstado(editando.id, estado, motivo);
         }}
