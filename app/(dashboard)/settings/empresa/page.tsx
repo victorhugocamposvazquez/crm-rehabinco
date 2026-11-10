@@ -6,7 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { resolveInvoiceLogoUrl } from "@/lib/empresa-facturacion";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isAdmin } from "@/lib/auth/roles";
+import { usePermisos } from "@/lib/auth/permisos-context";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -30,15 +30,16 @@ const empty = {
 };
 
 export default function EmpresaFacturacionPage() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { isLoading: authLoading } = useAuth();
+  const { tiene, cargado } = usePermisos();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(empty);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!isAdmin(user?.role)) {
+    if (authLoading || !cargado) return;
+    if (!tiene("empresa")) {
       router.replace("/settings");
       return;
     }
@@ -70,7 +71,7 @@ export default function EmpresaFacturacionPage() {
         }
         setLoading(false);
       });
-  }, [user?.role, authLoading, router]);
+  }, [authLoading, cargado, tiene, router]);
 
   if (authLoading) {
     return (
@@ -87,7 +88,7 @@ export default function EmpresaFacturacionPage() {
     );
   }
 
-  if (!isAdmin(user?.role)) {
+  if (!tiene("empresa")) {
     return null;
   }
 

@@ -6,7 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { setUserActivo } from "@/lib/actions/usuarios";
 import { solicitarEliminarUsuario } from "@/lib/actions/papelera";
-import { isSuperAdmin, puedeSolicitarUsuarios, roleLabel, type Role } from "@/lib/auth/roles";
+import { isSuperAdmin, roleLabel, type Role } from "@/lib/auth/roles";
+import { usePermisos } from "@/lib/auth/permisos-context";
 
 type UsuarioRow = {
   id: string;
@@ -27,7 +28,8 @@ export function EquipoComercialesCard({
 }) {
   const [filas, setFilas] = useState<UsuarioRow[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const gestiona = puedeSolicitarUsuarios(role);
+  const { tiene } = usePermisos();
+  const gestiona = tiene("usuarios");
   const superadmin = isSuperAdmin(role);
 
   const cargar = () => {

@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { isAdmin, parseRole } from "@/lib/auth/roles";
+import { permisoDeSesion } from "@/lib/auth/permiso-servidor";
 import {
   sincronizarMarcadosIdealista,
   sincronizarPropiedadIdealista,
@@ -24,8 +24,7 @@ export async function POST(request: Request) {
   }
 
   if (cuerpo.todos === true) {
-    const { data: perfil } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-    if (!isAdmin(parseRole(perfil?.role))) {
+    if (!(await permisoDeSesion("empresa"))) {
       return Response.json({ ok: false, error: "No autorizado." }, { status: 401 });
     }
     const resultado = await sincronizarMarcadosIdealista();

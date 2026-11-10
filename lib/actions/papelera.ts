@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createUser, deleteUserAccess } from "@/lib/actions/usuarios";
 import { isAdmin, isSuperAdmin, parseRole, type Role } from "@/lib/auth/roles";
+import { permisoDeSesion } from "@/lib/auth/permiso-servidor";
 import type { AccionPapelera, PapeleraItem, TipoDocumentoPapelera, TipoPapelera } from "@/lib/papelera/papelera";
 import { TIPOS_DOCUMENTO_PAPELERA, tablaDocumentoPapelera } from "@/lib/papelera/papelera";
 
@@ -170,6 +171,7 @@ export async function solicitarCrearUsuario(
 ): Promise<Result> {
   const sesion = await sesionAdmin();
   if (!sesion.ok) return { ok: false, error: sesion.error };
+  if (!(await permisoDeSesion("usuarios"))) return { ok: false, error: "No autorizado." };
 
   if (sesion.superadmin) {
     const r = await createUser(email, password, role);
@@ -193,6 +195,7 @@ export async function solicitarCrearUsuario(
 export async function solicitarEliminarUsuario(userId: string): Promise<Result> {
   const sesion = await sesionAdmin();
   if (!sesion.ok) return { ok: false, error: sesion.error };
+  if (!(await permisoDeSesion("usuarios"))) return { ok: false, error: "No autorizado." };
   if (userId === sesion.id) return { ok: false, error: "No puedes eliminar tu propio acceso." };
 
   if (sesion.superadmin) {

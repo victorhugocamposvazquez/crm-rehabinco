@@ -7,7 +7,8 @@ import { usePathname } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isAdmin, navHrefsForRole, roleLabel } from "@/lib/auth/roles";
+import { isAdmin, roleLabel } from "@/lib/auth/roles";
+import { useHrefsNav } from "@/lib/auth/permisos-context";
 import { Sheet } from "@/components/ui/sheet";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { useMenuPerfil } from "./MenuPerfil";
@@ -19,8 +20,10 @@ export function MobileNav() {
   const { abrir: abrirPerfil } = useMenuPerfil();
   const [mas, setMas] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const items = itemsDesdeHrefs(navHrefsForRole(user?.role, "mobile"));
-  const resto = itemsDesdeHrefs(navHrefsForRole(user?.role, "desktop")).filter(
+  const mobile = useHrefsNav("mobile");
+  const desktop = useHrefsNav("desktop");
+  const items = itemsDesdeHrefs(mobile);
+  const resto = itemsDesdeHrefs(desktop).filter(
     (item) => !items.some((visible) => visible.href === item.href) || item.href === "/settings"
   );
 
@@ -36,7 +39,7 @@ export function MobileNav() {
             const esMas = href === "/settings" && isAdmin(user?.role);
             const isActive = esMas
               ? mas ||
-                (!navHrefsForRole(user?.role, "mobile").some(
+                (!mobile.some(
                   (item) => item !== "/settings" && navItemActivo(pathname, item)
                 ) &&
                   navItemActivo(pathname, href))

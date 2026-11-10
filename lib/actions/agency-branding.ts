@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { isAdmin, parseRole } from "@/lib/auth/roles";
+import { permisoDeSesion } from "@/lib/auth/permiso-servidor";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -24,8 +24,7 @@ export async function guardarMarcaAgencia(formData: FormData): Promise<Result> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Debes iniciar sesión." };
-  const { data: perfil } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  if (!isAdmin(parseRole(perfil?.role))) return { ok: false, error: "Solo quien administra la agencia puede cambiar la marca." };
+  if (!(await permisoDeSesion("empresa"))) return { ok: false, error: "Solo quien administra la agencia puede cambiar la marca." };
 
   const { data: tenantId, error: tenantError } = await supabase.rpc("avm_current_tenant");
   if (tenantError || typeof tenantId !== "string") return { ok: false, error: "Sin agencia." };

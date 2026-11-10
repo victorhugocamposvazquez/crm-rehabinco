@@ -3,24 +3,25 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isAdmin } from "@/lib/auth/roles";
+import { usePermisos } from "@/lib/auth/permisos-context";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SettingsAdminNav } from "@/components/settings/SettingsAdminNav";
 import { IdealistaPublicacionCard } from "@/components/settings/IdealistaPublicacionCard";
 
 export default function SettingsPublicacionPage() {
   const { user, isLoading: authLoading } = useAuth();
+  const { tiene, cargado } = usePermisos();
   const router = useRouter();
   const [listo, setListo] = useState(false);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!isAdmin(user?.role)) {
+    if (authLoading || !cargado) return;
+    if (!tiene("empresa")) {
       router.replace("/settings");
       return;
     }
     setListo(true);
-  }, [user?.role, authLoading, router]);
+  }, [authLoading, cargado, tiene, router]);
 
   if (authLoading || !listo) {
     return (

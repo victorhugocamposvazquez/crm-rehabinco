@@ -9,14 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
+import { usePermisos } from "@/lib/auth/permisos-context";
 import { solicitarCrearUsuario } from "@/lib/actions/papelera";
 import {
   ROLE_LABELS,
   ROLES_CREABLES,
-  isAdmin,
   isSuperAdmin,
-  puedeSolicitarUsuarios,
-  puedeVerApisPortales,
   puedeVerPapelera,
   roleLabel,
   type Role,
@@ -30,6 +28,7 @@ import { Selector } from "@/components/ui/selector";
 
 export default function SettingsPage() {
   const { user, signOut } = useAuth();
+  const { tiene } = usePermisos();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -44,9 +43,9 @@ export default function SettingsPage() {
   const [createUserError, setCreateUserError] = useState<string | null>(null);
   const [createUserSaving, setCreateUserSaving] = useState(false);
   const [equipoTick, setEquipoTick] = useState(0);
-  const direccion = isAdmin(user?.role);
+  const direccion = tiene("empresa");
   const superadmin = isSuperAdmin(user?.role);
-  const puedeUsuarios = puedeSolicitarUsuarios(user?.role);
+  const puedeUsuarios = tiene("usuarios");
 
   const onUpdatePassword = async () => {
     setError(null);
@@ -242,7 +241,7 @@ export default function SettingsPage() {
           </Card>
         )}
 
-        {puedeVerApisPortales(user?.role) && (
+        {tiene("portales") && (
           <Card className="md:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -252,7 +251,7 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-neutral-600">
-                Zonas de Idealista y el gasto de Bright Data. Solo lo ve el superadministrador.
+                Zonas de Idealista y el gasto de Bright Data.
               </p>
               <Button className="mt-4" variant="secondary" asChild>
                 <Link href="/settings/portales">Elegir zonas de Captación</Link>

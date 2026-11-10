@@ -18,7 +18,7 @@ import {
   Wrench,
   Clock3,
 } from "lucide-react";
-import { isAdmin, type Role } from "@/lib/auth/roles";
+import { type Role } from "@/lib/auth/roles";
 
 export type NavItem = {
   href: string;
@@ -130,15 +130,13 @@ export function gruposNavParaRol(role: Role | null | undefined, permitidos: read
   items: NavItem[];
 }[] {
   const set = new Set(permitidos);
-  const grupos = NAV_GROUPS.filter((grupo) => {
-    if (grupo.adminOnly && !isAdmin(role)) return false;
-    return grupo.hrefs.some((href) => set.has(href));
-  }).map((grupo) => ({
+  const grupos = NAV_GROUPS.filter((grupo) => grupo.hrefs.some((href) => set.has(href))).map((grupo) => ({
     label: grupo.label,
     items: itemsDesdeHrefs(grupo.hrefs.filter((href) => set.has(href))),
   }));
   if (role === "editor") {
-    return [{ label: "Obra", items: itemsDesdeHrefs(["/presupuestos"].filter((href) => set.has(href))) }];
+    const sueltos = permitidos.filter((href) => href !== "/settings" && !grupos.some((grupo) => grupo.items.some((item) => item.href === href)));
+    if (sueltos.length) grupos.push({ label: "Menú", items: itemsDesdeHrefs(sueltos) });
   }
   return grupos.filter((grupo) => grupo.items.length > 0);
 }

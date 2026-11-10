@@ -4,20 +4,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { navHrefsForRole, type Role } from "@/lib/auth/roles";
+import { type Role } from "@/lib/auth/roles";
+import { useHrefsNav } from "@/lib/auth/permisos-context";
 import { itemsDesdeHrefs, navItemActivo } from "./nav-items";
 
 export function MenuLateral({
   abierta,
   onCerrar,
-  role,
 }: {
   abierta: boolean;
   onCerrar: () => void;
   role: Role | null | undefined;
 }) {
   const pathname = usePathname();
-  const items = itemsDesdeHrefs(navHrefsForRole(role, "desktop"));
+  const items = itemsDesdeHrefs(useHrefsNav("desktop"));
 
   return (
     <Sheet open={abierta} onOpenChange={(open) => !open && onCerrar()} variant="side" side="left" showCloseButton>

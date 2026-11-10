@@ -3,6 +3,7 @@ import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth/auth-context";
+import { PermisosProvider } from "@/lib/auth/permisos-context";
 import { AvisoNuevaVersion } from "@/components/pwa/AvisoNuevaVersion";
 import { ToasterConTema } from "@/components/ui/InterruptorTema";
 
@@ -36,8 +37,10 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-background font-sans antialiased">
         <AuthProvider>
-          {children}
-          <AvisoNuevaVersion />
+          <PermisosProvider>
+            {children}
+            <AvisoNuevaVersion />
+          </PermisosProvider>
         </AuthProvider>
         <ToasterConTema />
       </body>

@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isAdmin, isCatastroUser } from "@/lib/auth/roles";
+import { isAdmin } from "@/lib/auth/roles";
+import { usePermisos } from "@/lib/auth/permisos-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { FincaCaptacionApi } from "@/lib/catastro-host/captacion-filas";
@@ -33,6 +34,7 @@ type MesFacturado = { mes: string; total: number };
 
 export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFacturado[] }) {
   const { user } = useAuth();
+  const { tiene } = usePermisos();
   const admin = isAdmin(user?.role);
   const hoy = new Date().toISOString().slice(0, 10);
   const { comercialId, setComercialId } = useFiltroComercial();
@@ -58,7 +60,7 @@ export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFactu
       .select("id, titulo, vence, finca_reference, estado, comercial_id")
       .neq("estado", "hecha")
       .order("vence");
-    if (isCatastroUser(user.role)) tareasQ = tareasQ.eq("comercial_id", user.id);
+    if (!tiene("tareas_equipo")) tareasQ = tareasQ.eq("comercial_id", user.id);
 
     const citasQ = supabase
       .from("citas")
@@ -82,7 +84,7 @@ export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFactu
       setTareas((t.data ?? []) as TareaHoy[]);
       setCitas(
         ((c.data ?? []) as Array<CitaHoy & { profiles?: CitaHoy["profiles"] | CitaHoy["profiles"][] }>)
-          .filter((row) => !isCatastroUser(user.role) || row.tipo !== "tarea" || row.comercial_id === user.id)
+          .filter((row) => tiene("tareas_equipo") || row.tipo !== "tarea" || row.comercial_id === user.id)
           .map((row) => ({
             ...row,
             profiles: relacionUno(row.profiles),
@@ -107,7 +109,7 @@ export function HoyCaptacion({ facturacionMeses }: { facturacionMeses?: MesFactu
           )
         );
     }
-  }, [user, admin, hoy]);
+  }, [user, admin, hoy, tiene]);
 
   const pendientesFinca = fincas.filter(
     (item) =>

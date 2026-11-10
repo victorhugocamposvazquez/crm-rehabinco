@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { isAdmin, parseRole } from "@/lib/auth/roles";
+import { permisoDeSesion } from "@/lib/auth/permiso-servidor";
 import { tokenPublicacionIdealista } from "@/lib/inmuebles/idealista-publicacion/api";
 import { leerConfigIdealistaPublicacion } from "@/lib/inmuebles/idealista-publicacion/config";
 
@@ -12,8 +12,7 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return Response.json({ ok: false, error: "No autorizado." }, { status: 401 });
-  const { data: perfil } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  if (!isAdmin(parseRole(perfil?.role))) {
+  if (!(await permisoDeSesion("empresa"))) {
     return Response.json({ ok: false, error: "No autorizado." }, { status: 401 });
   }
 

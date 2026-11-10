@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isCatastroUser } from "@/lib/auth/roles";
+import { usePermisos } from "@/lib/auth/permisos-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { nombreYApellido } from "@/lib/ui/tokens";
 import {
@@ -35,6 +35,7 @@ function uno<T>(valor: T | T[] | null | undefined): T | null {
 
 export function ClienteHistorial({ clienteId, tick = 0 }: { clienteId: string; tick?: number }) {
   const { user } = useAuth();
+  const { tiene } = usePermisos();
   const [items, setItems] = useState<ItemHistorialCliente[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,7 +44,7 @@ export function ClienteHistorial({ clienteId, tick = 0 }: { clienteId: string; t
     let vivo = true;
     setLoading(true);
     const supabase = createClient();
-    const soloSusTareas = isCatastroUser(user.role);
+    const soloSusTareas = !tiene("tareas_equipo");
     let tareasQ = supabase
       .from("tareas")
       .select("id, titulo, vence, hora, estado, created_at")
@@ -224,7 +225,7 @@ export function ClienteHistorial({ clienteId, tick = 0 }: { clienteId: string; t
     return () => {
       vivo = false;
     };
-  }, [clienteId, tick, user]);
+  }, [clienteId, tick, user, tiene]);
 
   return (
     <Card className="md:col-span-2">

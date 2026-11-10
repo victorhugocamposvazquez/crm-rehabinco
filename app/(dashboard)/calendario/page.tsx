@@ -8,7 +8,8 @@ import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { nombreYApellido } from "@/lib/ui/tokens";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isAdmin, isCatastroUser } from "@/lib/auth/roles";
+import { isAdmin } from "@/lib/auth/roles";
+import { usePermisos } from "@/lib/auth/permisos-context";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import {
@@ -94,8 +95,9 @@ type CitaRow = {
 export default function CalendarioPage() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
+  const { tiene } = usePermisos();
   const admin = isAdmin(user?.role);
-  const soloSusTareas = isCatastroUser(user?.role);
+  const soloSusTareas = !tiene("tareas_equipo");
   const hoy = new Date().toISOString().slice(0, 10);
   const [dia, setDia] = useState(() => hoy);
   const [vista, setVista] = useState<VistaCalendario>("semana");

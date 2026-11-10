@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { isAdmin, parseRole } from "@/lib/auth/roles";
+import { permisoDeSesion } from "@/lib/auth/permiso-servidor";
 import { ejecutarVolcadoIdealista } from "@/lib/inmuebles/idealista-publicacion/ejecutar";
 
 export const runtime = "nodejs";
@@ -12,8 +12,7 @@ async function adminAutorizado() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
-  const { data: perfil } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  if (!isAdmin(parseRole(perfil?.role))) return null;
+  if (!(await permisoDeSesion("empresa"))) return null;
   return user;
 }
 

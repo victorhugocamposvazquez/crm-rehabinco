@@ -16,7 +16,7 @@ import { AlertasPwaHost } from "@/components/pwa/AvisosPwa";
 import { PullToRefresh } from "@/components/pwa/PullToRefresh";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isCatastroUser } from "@/lib/auth/roles";
+import { usePermisos } from "@/lib/auth/permisos-context";
 import { esNuevoHoyCaptacion } from "@/lib/captacion/brightdata/fecha-portal";
 import { bandejaDeTarea } from "@/lib/tareas/tareas";
 
@@ -28,6 +28,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const chromeMinimal = wizard || fichaje;
   const herramientas = esRutaHerramientas(pathname ?? "");
   const { user } = useAuth();
+  const { tiene } = usePermisos();
   const [badges, setBadges] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -66,7 +67,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const supabase = createClient();
     const hoy = new Date().toISOString().slice(0, 10);
     let tareasQ = supabase.from("tareas").select("vence, estado");
-    if (isCatastroUser(user.role)) tareasQ = tareasQ.eq("comercial_id", user.id);
+    if (!tiene("tareas_equipo")) tareasQ = tareasQ.eq("comercial_id", user.id);
     void Promise.all([
       tareasQ,
       supabase.from("partes_visita").select("id", { count: "exact", head: true }).eq("estado", "pendiente_firma"),
@@ -87,7 +88,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         "/captacion": nuevosHoy,
       });
     });
-  }, [user]);
+  }, [user, tiene]);
 
   return (
     <FiltroComercialProvider>

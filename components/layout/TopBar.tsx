@@ -20,13 +20,11 @@ import { useAuth } from "@/lib/auth/auth-context";
 import {
   catastroUserHomePath,
   editorHomePath,
-  isAdmin,
   isCatastroUser,
   isEditor,
-  puedeVerApisPortales,
-  navHrefsForRole,
   roleLabel,
 } from "@/lib/auth/roles";
+import { useHrefsNav, usePermisos } from "@/lib/auth/permisos-context";
 import { Sheet } from "@/components/ui/sheet";
 import { MenuLateral } from "./MenuLateral";
 import { itemsDesdeHrefs, navItemActivo } from "./nav-items";
@@ -34,6 +32,7 @@ import { itemsDesdeHrefs, navItemActivo } from "./nav-items";
 export function TopBar() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
+  const { tiene } = usePermisos();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [password, setPassword] = useState("");
@@ -66,7 +65,7 @@ export function TopBar() {
     setConfirmPassword("");
   };
 
-  const visibleNavItems = itemsDesdeHrefs(navHrefsForRole(user?.role, "top"));
+  const visibleNavItems = itemsDesdeHrefs(useHrefsNav("top"));
 
   const initials = useMemo(() => {
     const source = user?.email?.split("@")[0] ?? "U";
@@ -257,7 +256,7 @@ export function TopBar() {
             </Link>
           ) : null}
 
-          {isAdmin(user?.role) && (
+          {tiene("empresa") && (
             <Link
               href="/settings/empresa"
               onClick={() => setSheetOpen(false)}
@@ -268,7 +267,7 @@ export function TopBar() {
             </Link>
           )}
 
-          {isAdmin(user?.role) && (
+          {tiene("empresa") && (
             <Link
               href="/settings/emisores-presupuesto"
               onClick={() => setSheetOpen(false)}
@@ -279,7 +278,7 @@ export function TopBar() {
             </Link>
           )}
 
-          {puedeVerApisPortales(user?.role) && (
+          {tiene("portales") && (
             <Link
               href="/settings/portales"
               onClick={() => setSheetOpen(false)}

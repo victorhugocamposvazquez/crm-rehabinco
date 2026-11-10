@@ -13,7 +13,8 @@ import Link from "next/link";
 import { Bell, Building2, KeyRound, LogOut, Settings } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isAdmin, puedeVerApisPortales, roleLabel } from "@/lib/auth/roles";
+import { roleLabel } from "@/lib/auth/roles";
+import { usePermisos } from "@/lib/auth/permisos-context";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,7 @@ export function MenuPerfilProvider({ children }: { children: ReactNode }) {
 
 function MenuPerfilModal({ abierto, onCerrar }: { abierto: boolean; onCerrar: () => void }) {
   const { user, signOut } = useAuth();
+  const { tiene } = usePermisos();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
@@ -94,8 +96,6 @@ function MenuPerfilModal({ abierto, onCerrar }: { abierto: boolean; onCerrar: ()
   };
 
   if (!abierto || !mounted || !user) return null;
-
-  const admin = isAdmin(user.role);
 
   return createPortal(
     <div className="fixed inset-0 z-[90] flex items-end justify-center p-3 min-[520px]:items-center min-[520px]:p-4">
@@ -184,7 +184,7 @@ function MenuPerfilModal({ abierto, onCerrar }: { abierto: boolean; onCerrar: ()
                 Avisos
               </Link>
             ) : null}
-            {admin ? (
+            {tiene("empresa") ? (
               <Link
                 href="/settings/empresa"
                 onClick={onCerrar}
@@ -194,7 +194,7 @@ function MenuPerfilModal({ abierto, onCerrar }: { abierto: boolean; onCerrar: ()
                 Datos de empresa
               </Link>
             ) : null}
-            {admin ? (
+            {tiene("empresa") ? (
               <Link
                 href="/settings/emisores-presupuesto"
                 onClick={onCerrar}
@@ -204,7 +204,7 @@ function MenuPerfilModal({ abierto, onCerrar }: { abierto: boolean; onCerrar: ()
                 Emisores de presupuesto
               </Link>
             ) : null}
-            {puedeVerApisPortales(user.role) ? (
+            {tiene("portales") ? (
               <Link
                 href="/settings/portales"
                 onClick={onCerrar}

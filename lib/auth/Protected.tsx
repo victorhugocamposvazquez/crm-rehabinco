@@ -2,31 +2,20 @@
 
 import { useAuth } from "@/lib/auth/auth-context";
 import {
-  catastroUserHomePath,
-  comercialHomePath,
-  editorHomePath,
-  isAdminBlockedPath,
-  isCatastroUser,
-  isCatastroUserBlockedPath,
-  isComercial,
-  isComercialBlockedPath,
-  isEditor,
-  isEditorBlockedPath,
-} from "@/lib/auth/roles";
+  inicioPermitido,
+  rutaPermitida,
+} from "@/lib/auth/permisos";
+import { usePermisos } from "@/lib/auth/permisos-context";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export function Protected({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
+  const { filas, cargado } = usePermisos();
   const router = useRouter();
   const pathname = usePathname();
   const [redirecting, setRedirecting] = useState(false);
-  const editorBlocked = !!user && isEditor(user.role) && isEditorBlockedPath(pathname ?? "/");
-  const comercialBlocked =
-    !!user && isComercial(user.role) && isComercialBlockedPath(pathname ?? "/");
-  const adminBlocked = !!user && user.role === "admin" && isAdminBlockedPath(pathname ?? "/");
-  const catastroUserBlocked =
-    !!user && isCatastroUser(user.role) && isCatastroUserBlockedPath(pathname ?? "/");
+  const bloqueada = !!user && cargado && !rutaPermitida(pathname ?? "/", user.role, filas);
 
   useEffect(() => {
     if (isLoading) return;
@@ -35,29 +24,16 @@ export function Protected({ children }: { children: React.ReactNode }) {
       router.replace("/login?redirect=" + encodeURIComponent(pathname ?? "/"));
       return;
     }
-    if (isEditor(user.role) && isEditorBlockedPath(pathname ?? "/")) {
+    if (!cargado) return;
+    if (!rutaPermitida(pathname ?? "/", user.role, filas)) {
       setRedirecting(true);
-      router.replace(editorHomePath());
+      router.replace(inicioPermitido(user.role, filas));
       return;
     }
-    if (isComercial(user.role) && isComercialBlockedPath(pathname ?? "/")) {
-      setRedirecting(true);
-      router.replace(comercialHomePath());
-      return;
-    }
-    if (isCatastroUser(user.role) && isCatastroUserBlockedPath(pathname ?? "/")) {
-      setRedirecting(true);
-      router.replace(catastroUserHomePath());
-      return;
-    }
-    if (user.role === "admin" && isAdminBlockedPath(pathname ?? "/")) {
-      setRedirecting(true);
-      router.replace("/settings");
-    }
-  }, [user, isLoading, router, pathname]);
+    setRedirecting(false);
+  }, [user, isLoading, cargado, filas, router, pathname]);
 
-  const showLoader =
-    isLoading || (redirecting && !user) || editorBlocked || comercialBlocked || catastroUserBlocked || adminBlocked;
+  const showLoader = isLoading || !cargado || (redirecting && !user) || bloqueada;
 
   if (showLoader || !user) {
     return (

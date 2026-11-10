@@ -5,13 +5,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
-import { isAdmin, puedeVerApisPortales, puedeVerPapelera, type Role } from "@/lib/auth/roles";
+import { isSuperAdmin, type Role } from "@/lib/auth/roles";
+import { usePermisos } from "@/lib/auth/permisos-context";
 
 const ITEMS = [
   { href: "/settings", label: "Perfil y seguridad", portales: false, papelera: false, direccion: false },
   { href: "/settings/avisos", label: "Avisos", portales: false, papelera: false, direccion: false },
   { href: "/settings#equipo", label: "Equipo", portales: false, papelera: false, direccion: true },
-  { href: "/settings/papelera", label: "Papelera de usuarios", portales: false, papelera: true, direccion: false },
+  { href: "/settings/papelera", label: "Papelera de usuarios", portales: false, papelera: false, direccion: false, soloSuperadmin: true },
+  { href: "/settings/roles", label: "Roles y permisos", portales: false, papelera: false, direccion: false, soloSuperadmin: true },
   { href: "/settings/empresa", label: "Datos de empresa", portales: false, papelera: false, direccion: true },
   { href: "/settings/emisores-presupuesto", label: "Emisores de presupuesto", portales: false, papelera: false, direccion: true },
   { href: "/settings/portales", label: "Captación", portales: true, papelera: false, direccion: false },
@@ -27,10 +29,12 @@ export function SettingsAdminNav({ role }: { role?: Role | null }) {
     window.addEventListener("hashchange", leer);
     return () => window.removeEventListener("hashchange", leer);
   }, [pathname]);
+  const { tiene } = usePermisos();
   const items = ITEMS.filter((item) => {
-    if (item.portales && !puedeVerApisPortales(role)) return false;
-    if (item.papelera && !puedeVerPapelera(role)) return false;
-    if (item.direccion && !isAdmin(role)) return false;
+    if ("soloSuperadmin" in item && item.soloSuperadmin && !isSuperAdmin(role)) return false;
+    if (item.portales && !tiene("portales")) return false;
+    if (item.papelera && !tiene("usuarios")) return false;
+    if (item.direccion && !tiene("empresa")) return false;
     if (item.href === "/settings/avisos" && role === "editor") return false;
     return true;
   });

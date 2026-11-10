@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isSuperAdmin } from "@/lib/auth/roles";
+import { usePermisos } from "@/lib/auth/permisos-context";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SettingsAdminNav } from "@/components/settings/SettingsAdminNav";
 import { ComoFuncionaCaptacion } from "@/components/settings/ComoFuncionaCaptacion";
@@ -14,17 +14,18 @@ import { ZonasIdealistaCard } from "@/components/settings/ZonasIdealistaCard";
 
 export default function SettingsPortalesPage() {
   const { user, isLoading: authLoading } = useAuth();
+  const { tiene, cargado } = usePermisos();
   const router = useRouter();
   const [listo, setListo] = useState(false);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!isSuperAdmin(user?.role)) {
+    if (authLoading || !cargado) return;
+    if (!tiene("portales")) {
       router.replace("/settings");
       return;
     }
     setListo(true);
-  }, [user?.role, authLoading, router]);
+  }, [authLoading, cargado, tiene, router]);
 
   if (authLoading || !listo) {
     return (
