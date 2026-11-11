@@ -16,6 +16,8 @@ export const SUPPORT_PROTECTED_PATH_PATTERNS: readonly RegExp[] = [
   /^app\/\(dashboard\)\/settings\/papelera\//i,
   /^app\/\(dashboard\)\/settings\/soporte\//i,
   /^\.github\//i,
+  /^\.cursor\//i,
+  /^AGENTS\.md$/i,
   /^vercel\.(json|ts)$/i,
   /^package(-lock)?\.json$/i,
   /^next\.config\./i,

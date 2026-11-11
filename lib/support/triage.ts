@@ -4,6 +4,7 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { generateObject } from "ai";
 import { z } from "zod";
 import { sanitizarTextoNoConfiable } from "./guardrails";
+import { formatearContextoAtlasParaTriaje } from "./codebase-atlas";
 import { getSupportProjectManifest } from "./project-manifest";
 import type { SupportCategoria, SupportRiesgo, SupportTicket } from "./types";
 import { type Role } from "@/lib/auth/roles";
@@ -80,6 +81,11 @@ export async function ejecutarTriajeTicket(input: {
     .map((m) => `${m.autor}: ${sanitizarTextoNoConfiable(m.cuerpo, 800)}`)
     .join("\n---\n");
 
+  const contextoAtlas = formatearContextoAtlasParaTriaje(
+    input.ticket.contexto?.pathname,
+    input.ticket.modulo
+  );
+
   const instruccionesBase = `Eres el motor de triaje técnico y funcional de ${manifest.crmName} (CRM inmobiliario en Next.js + Supabase).
 Analiza la incidencia o consulta con total prudencia y eficiencia.
 
@@ -91,7 +97,9 @@ REGLAS DE SEGURIDAD CRÍTICAS:
 5. Solo usa decision="proponer_codigo" cuando sea claramente un bug reproducible de interfaz/lógica o una micro-mejora acotada de código. Marca autoMergeRecomendado=true ÚNICAMENTE si estimas que el cambio es pequeño, local y NO toca migraciones SQL, autenticación, permisos ni facturación.
 
 Módulos activos para este rol en esta instancia:
-${listaModulos || "- general"}`;
+${listaModulos || "- general"}
+
+${contextoAtlas}`;
 
   const datosTicket = `Metadatos verificados del sistema:
 - Código: ${input.ticket.codigo}

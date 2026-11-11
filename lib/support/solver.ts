@@ -1,6 +1,7 @@
 import { Agent, CursorAgentError, type AgentDefinition } from "@cursor/sdk";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { firmarPayloadHmac, sanitizarTextoNoConfiable } from "./guardrails";
+import { formatearContextoAtlasParaAgente } from "./codebase-atlas";
 import { getSupportProjectManifest } from "./project-manifest";
 import type { SupportSettingsRow, SupportSolverProviderId, SupportTicket } from "./types";
 
@@ -39,6 +40,11 @@ function construirPromptAgenteSeguridad(
     .map((e) => `- [${e.tipo}] ${e.resumen}`)
     .join("\n");
 
+  const mapaQuirurgico = formatearContextoAtlasParaAgente(
+    ticket.contexto?.pathname,
+    ticket.modulo
+  );
+
   const bloqueDebate = debateMode
     ? `
 PROTOCOLO OBLIGATORIO DE DEBATE ENTRE DOS AGENTES (AUTOR + VERIFICADOR):
@@ -61,6 +67,8 @@ REGLAS ESTRICTAS E INQUEBRANTABLES:
 5. En la descripción del Pull Request incluye OBLIGATORIAMENTE esta línea exacta para enlazar la trazabilidad:
 Ticket-ID: ${ticket.id}
 ${bloqueDebate}
+
+${mapaQuirurgico}
 
 Diagnóstico técnico previo:
 ${informeTecnico}
@@ -231,6 +239,11 @@ async function despacharGithubIssue(
     };
   }
 
+  const mapaQuirurgico = formatearContextoAtlasParaAgente(
+    ticket.contexto?.pathname,
+    ticket.modulo
+  );
+
   const cuerpo = `### ${ticket.codigo} · ${ticket.titulo}
 
 Ticket-ID: ${ticket.id}
@@ -240,6 +253,11 @@ Rol: \`${ticket.user_role || "comercial"}\`
 
 #### Diagnóstico de triaje
 ${informeTecnico}
+
+#### Mapa quirúrgico del módulo
+\`\`\`text
+${mapaQuirurgico}
+\`\`\`
 
 #### Descripción original del usuario
 \`\`\`text
@@ -305,6 +323,10 @@ async function despacharWebhookExterno(
     contexto: ticket.contexto,
     debateMode: ticket.debate_mode,
     informeTecnico,
+    codebaseGuidance: formatearContextoAtlasParaAgente(
+      ticket.contexto?.pathname,
+      ticket.modulo
+    ),
   });
 
   const secret = process.env.SUPPORT_WEBHOOK_SECRET?.trim() || "";

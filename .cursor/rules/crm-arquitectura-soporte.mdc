@@ -1,0 +1,20 @@
+---
+description: Mapa de arquitectura, invariantes y diagnóstico rápido del CRM para resolver tareas o tickets sin exploraciones ciegas
+alwaysApply: true
+---
+
+# Arquitectura y Diagnóstico Rápido del CRM
+
+Antes de buscar a ciegas por el repositorio al resolver un bug o ticket, consulta **`AGENTS.md`** (visión global e invariantes) y **`docs/SUPPORT-ATLAS.md`** (archivos exactos, tablas y tests por módulo).
+
+## Reglas clave que evitan errores frecuentes
+
+1. **Acceso a rutas:** lo decide `lib/auth/permisos.ts` (`rutaPermitida` + tabla `role_permisos`), no las listas `*_BLOCKED_PREFIXES` de `lib/auth/roles.ts`.
+2. **Funciones RLS en Postgres:** `is_agente()` es solo comercial/agente (no incluye admin); `is_equipo()` incluye superadmin, admin y comercial (ni editor ni `catastro_user`).
+3. **Altas y selectores de contacto:** las altas viven en sheets laterales (`AltaShell` con `?nueva=1` y borrador en `localStorage`). En `AltaPersona`, escribir sin pulsar la fila no elige el contacto (`lib/ui/alta-persona.ts`).
+4. **Papeleras distintas:** `propiedades` y `avm_valuations` usan `deleted_at`; documentos legales y usuarios pasan por `papelera_items`; borrar en `clientes` es `DELETE` real.
+5. **Invariantes intocables:**
+   - `lib/catastro/**` es puro (sin Supabase) y la División Horizontal solo lee `finca.ltp`.
+   - En Bright Data (`lib/captacion/brightdata/**`), ni `provincia-48h`, ni el sondeo 15m, ni zonas en página 60 retiran anuncios.
+   - En `app/web/**` manda `components/web/corporativa/**`, separada de los bloques de `/web/gestionar`.
+6. **Tests rápidos:** ejecuta primero el test directo del módulo (`CATASTRO_SKIP_LIVE=1 npx tsx --test lib/<modulo>/...test.ts`, o `npx vitest run lib/avm` en AVM) antes de suites completas.

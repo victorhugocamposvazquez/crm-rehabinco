@@ -1,5 +1,12 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import { describe, it } from "node:test";
+import {
+  formatearContextoAtlasParaAgente,
+  formatearContextoAtlasParaTriaje,
+  obtenerFichaModuloAtlas,
+} from "./codebase-atlas";
 import {
   esRutaProtegidaSoporte,
   evaluarCandadosDiff,
@@ -26,6 +33,8 @@ describe("soporte · candados de seguridad y portabilidad", () => {
     assert.equal(esRutaProtegidaSoporte("app/api/facturas/route.ts"), true);
     assert.equal(esRutaProtegidaSoporte("package.json"), true);
     assert.equal(esRutaProtegidaSoporte("vercel.json"), true);
+    assert.equal(esRutaProtegidaSoporte("AGENTS.md"), true);
+    assert.equal(esRutaProtegidaSoporte(".cursor/rules/crm-arquitectura-soporte.mdc"), true);
     assert.equal(esRutaProtegidaSoporte("../secret.txt"), true);
 
     assert.equal(esRutaProtegidaSoporte("components/captacion/PipelineFinca.tsx"), false);
@@ -132,5 +141,47 @@ describe("soporte · candados de seguridad y portabilidad", () => {
     const parsed = parsearJsonTriaje(raw);
     assert.equal(parsed?.decision, "responder_duda");
     assert.equal(parsed?.riesgo, "cero");
+  });
+
+  it("enruta cada pantalla al atlas quirúrgico y verifica que todos sus archivos clave existen en disco", () => {
+    const rutasPrueba = [
+      { pathname: "/", esperado: "hoy" },
+      { pathname: "/propiedades/abc", esperado: "inmuebles" },
+      { pathname: "/settings/publicacion", esperado: "inmuebles" },
+      { pathname: "/clientes", esperado: "contactos" },
+      { pathname: "/demandas/123", esperado: "demandas" },
+      { pathname: "/calendario", esperado: "calendario" },
+      { pathname: "/tareas", esperado: "tareas" },
+      { pathname: "/seguimiento", esperado: "seguimiento" },
+      { pathname: "/catastro/finca/4522709TG3442B", esperado: "catastro" },
+      { pathname: "/settings/portales", esperado: "captacion" },
+      { pathname: "/valoraciones/nueva", esperado: "valoraciones" },
+      { pathname: "/partes-visita", esperado: "herramientas" },
+      { pathname: "/presupuestos", esperado: "presupuestos" },
+      { pathname: "/facturas", esperado: "facturas" },
+      { pathname: "/equipo/jornada", esperado: "fichaje" },
+      { pathname: "/web/gestionar", esperado: "web" },
+      { pathname: "/informes", esperado: "informes" },
+      { pathname: "/settings/roles", esperado: "ajustes" },
+    ];
+
+    const root = process.cwd();
+    assert.equal(fs.existsSync(path.join(root, "AGENTS.md")), true);
+    assert.equal(fs.existsSync(path.join(root, "docs/SUPPORT-ATLAS.md")), true);
+
+    for (const r of rutasPrueba) {
+      const ficha = obtenerFichaModuloAtlas(r.pathname);
+      assert.equal(ficha?.id, r.esperado, `Fallo resolviendo ${r.pathname}`);
+      for (const relPath of ficha!.archivosClave) {
+        assert.equal(
+          fs.existsSync(path.join(root, relPath)),
+          true,
+          `El archivo clave ${relPath} del módulo ${ficha!.id} no existe en el repositorio`
+        );
+      }
+    }
+
+    assert.match(formatearContextoAtlasParaTriaje("/propiedades"), /deleted_at/);
+    assert.match(formatearContextoAtlasParaAgente("/catastro/finca/4522709TG3442B"), /PipelineFinca\.tsx/);
   });
 });
