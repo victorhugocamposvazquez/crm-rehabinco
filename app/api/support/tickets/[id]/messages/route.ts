@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
 import { waitUntil } from "@vercel/functions";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { notificarEventoTicketPorCorreo } from "@/lib/support/brevo";
 import {
   avisarSuperadminsPush,
   avisarUsuarioTicketPush,
   firmarAdjuntosMensaje,
-  obtenerOCrearAjustesProyecto,
   obtenerUsuarioSesionSoporte,
 } from "@/lib/support/service";
-import type { SupportEstado, SupportTicket } from "@/lib/support/types";
+import type { SupportEstado } from "@/lib/support/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -108,37 +106,20 @@ export async function POST(
 
   if (!interno && actualizado) {
     waitUntil(
-      (async () => {
-        const settings = await obtenerOCrearAjustesProyecto(actualizado.project_key);
-        if (autorTipo === "superadmin") {
-          await avisarUsuarioTicketPush({
+      autorTipo === "superadmin"
+        ? avisarUsuarioTicketPush({
             userId: actualizado.user_id,
             clave: `soporte:msg:${msg.id}`,
             titulo: `Nueva respuesta en ${actualizado.codigo}`,
             cuerpo: cuerpo.slice(0, 120),
             ticketId: actualizado.id,
-          });
-          await notificarEventoTicketPorCorreo({
-            evento: "respuesta_soporte",
-            ticket: actualizado as unknown as SupportTicket,
-            mensajeAdicional: cuerpo,
-            settings,
-          });
-        } else {
-          await avisarSuperadminsPush({
+          })
+        : avisarSuperadminsPush({
             clave: `soporte:usrmsg:${msg.id}`,
             titulo: `Mensaje en ${actualizado.codigo}`,
             cuerpo: cuerpo.slice(0, 120),
             ticketId: actualizado.id,
-          });
-          await notificarEventoTicketPorCorreo({
-            evento: "mensaje_usuario",
-            ticket: actualizado as unknown as SupportTicket,
-            mensajeAdicional: cuerpo,
-            settings,
-          });
-        }
-      })()
+          })
     );
   }
 

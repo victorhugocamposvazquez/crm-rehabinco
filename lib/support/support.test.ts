@@ -14,6 +14,7 @@ import {
   requiereConfirmacionUsuario,
 } from "./types";
 import { inferirModuloPorRuta } from "./project-manifest";
+import { parsearJsonTriaje } from "./triage";
 
 describe("soporte · candados de seguridad y portabilidad", () => {
   it("bloquea siempre rutas críticas en Candado 1", () => {
@@ -114,5 +115,22 @@ describe("soporte · candados de seguridad y portabilidad", () => {
     assert.equal(inferirModuloPorRuta("/catastro/finca/123"), "catastro");
     assert.equal(inferirModuloPorRuta("/propiedades/abc"), "inmuebles");
     assert.equal(inferirModuloPorRuta("/presupuestos"), "presupuestos");
+  });
+
+  it("parsea la salida JSON del triaje de Cursor aunque venga con bloque markdown", () => {
+    const raw = `\`\`\`json
+{
+  "categoria": "duda",
+  "riesgo": "cero",
+  "moduloDetectado": "inmuebles",
+  "decision": "responder_duda",
+  "respuestaParaUsuario": "Pulsa en Nuevo inmueble arriba a la derecha.",
+  "informeTecnicoInterno": "Consulta funcional simple.",
+  "autoMergeRecomendado": false
+}
+\`\`\``;
+    const parsed = parsearJsonTriaje(raw);
+    assert.equal(parsed?.decision, "responder_duda");
+    assert.equal(parsed?.riesgo, "cero");
   });
 });

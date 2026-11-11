@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Activity,
@@ -8,11 +9,12 @@ import {
   CheckCircle2,
   ExternalLink,
   GitPullRequest,
-  Mail,
   Play,
   RefreshCw,
+  Save,
   Send,
   ShieldCheck,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -27,12 +29,10 @@ import { isSuperAdmin } from "@/lib/auth/roles";
 import {
   accionSuperadminTicket,
   enviarMensajeTicket,
-  enviarPruebaBrevo,
   fetchSupportAdminHealth,
   guardarSupportSettings,
   listarTicketsSoporte,
   obtenerTicketDetalle,
-  reintentarOutboxFallidos,
   type SupportAdminHealthResponse,
 } from "@/lib/support/client";
 import {
@@ -67,16 +67,19 @@ function ConsolaSoporteSuperadmin() {
   const [seleccionado, setSeleccionado] = useState<SupportTicket | null>(null);
   const [mensajes, setMensajes] = useState<SupportTicketMessage[]>([]);
 
+  // Controles a demanda por ticket individual
+  const [modoTicket, setModoTicket] = useState<SupportSolverProviderId>("solo_triaje_ia");
+  const [modeloTicket, setModeloTicket] = useState<"auto" | "composer-2.5">("auto");
+  const [debateTicket, setDebateTicket] = useState(false);
+
   const [mensajeTexto, setMensajeTexto] = useState("");
   const [esNotaInterna, setEsNotaInterna] = useState(false);
   const [resumenSolucionManual, setResumenSolucionManual] = useState("");
   const [instruccionesAgente, setInstruccionesAgente] = useState("");
-  const [motorPuntual, setMotorPuntual] = useState<SupportSolverProviderId>("cursor_cloud");
   const [operando, setOperando] = useState(false);
 
   const [health, setHealth] = useState<SupportAdminHealthResponse | null>(null);
   const [cargandoSalud, setCargandoSalud] = useState(false);
-  const [emailPrueba, setEmailPrueba] = useState("");
   const [nuevaEmpresaKey, setNuevaEmpresaKey] = useState("");
   const [nuevaEmpresaNombre, setNuevaEmpresaNombre] = useState("");
 
@@ -109,25 +112,32 @@ function ConsolaSoporteSuperadmin() {
     try {
       const res = await fetchSupportAdminHealth();
       setHealth(res);
-      if (!emailPrueba && (res.settings.support_inbox_email || user?.email)) {
-        setEmailPrueba(res.settings.support_inbox_email || user?.email || "");
-      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "No se pudo leer la salud del sistema.");
     } finally {
       setCargandoSalud(false);
     }
-  }, [emailPrueba, user?.email]);
-
-  const abrirTicket = useCallback(async (id: string) => {
-    try {
-      const res = await obtenerTicketDetalle(id);
-      setSeleccionado(res.ticket);
-      setMensajes(res.messages);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "No se pudo cargar el hilo.");
-    }
   }, []);
+
+  const abrirTicket = useCallback(
+    async (id: string) => {
+      try {
+        const res = await obtenerTicketDetalle(id);
+        setSeleccionado(res.ticket);
+        setMensajes(res.messages);
+        setModoTicket(
+          res.ticket.solver_provider ?? health?.settings.solver_provider ?? "solo_triaje_ia"
+        );
+        setModeloTicket(
+          res.ticket.cursor_model_override ?? health?.settings.cursor_model ?? "auto"
+        );
+        setDebateTicket(Boolean(res.ticket.debate_mode));
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "No se pudo cargar el hilo.");
+      }
+    },
+    [health?.settings.solver_provider, health?.settings.cursor_model]
+  );
 
   useEffect(() => {
     if (!isSuperAdmin(user?.role)) return;
@@ -155,7 +165,7 @@ function ConsolaSoporteSuperadmin() {
       setSeleccionado(res.ticket);
       setMensajes((prev) => [...prev, res.message]);
       void cargarTickets();
-      toast.success(esNotaInterna ? "Nota interna guardada." : "Respuesta enviada al usuario (app + Brevo).");
+      toast.success(esNotaInterna ? "Nota interna guardada." : "Respuesta enviada al usuario.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Fallo al enviar mensaje.");
     } finally {
@@ -185,21 +195,24 @@ function ConsolaSoporteSuperadmin() {
     }
   };
 
-  const lanzarMotorEnTicket = async () => {
+  const guardarOEjecutarModoTicket = async (ejecutarAhora: boolean) => {
     if (!seleccionado) return;
     setOperando(true);
     try {
       const res = await accionSuperadminTicket(seleccionado.id, {
-        accion: "lanzar_motor",
-        provider: motorPuntual,
+        accion: "configurar_modo_ticket",
+        provider: modoTicket,
+        cursorModel: modeloTicket,
+        debateMode: debateTicket,
+        ejecutarAhora,
       });
       setSeleccionado(res.ticket);
       await abrirTicket(seleccionado.id);
       await cargarTickets();
-      void cargarSaludYConfig();
-      toast.success(res.detalle || "Motor lanzado correctamente.");
+      if (ejecutarAhora) void cargarSaludYConfig();
+      toast.success(res.detalle || (ejecutarAhora ? "Motor ejecutado en este ticket." : "Modo del ticket guardado."));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "No se pudo lanzar el motor.");
+      toast.error(err instanceof Error ? err.message : "No se pudo aplicar el modo en este ticket.");
     } finally {
       setOperando(false);
     }
@@ -273,33 +286,6 @@ function ConsolaSoporteSuperadmin() {
     setNuevaEmpresaNombre("");
   };
 
-  const probarCorreo = async () => {
-    setOperando(true);
-    try {
-      const res = await enviarPruebaBrevo(emailPrueba);
-      await cargarSaludYConfig();
-      toast.success(res.detalle);
-    } catch (err) {
-      await cargarSaludYConfig();
-      toast.error(err instanceof Error ? err.message : "Error enviando prueba con Brevo.");
-    } finally {
-      setOperando(false);
-    }
-  };
-
-  const reintentarColaCorreo = async () => {
-    setOperando(true);
-    try {
-      const res = await reintentarOutboxFallidos();
-      await cargarSaludYConfig();
-      toast.success(`Procesados ${res.procesados} correos · Enviados con éxito: ${res.enviados}.`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "No se pudo reintentar la cola.");
-    } finally {
-      setOperando(false);
-    }
-  };
-
   return (
     <div>
       <PageHeader
@@ -308,12 +294,19 @@ function ConsolaSoporteSuperadmin() {
           { label: "Soporte y salud" },
         ]}
         title="Consola de Soporte, Empresas y Salud"
-        description="Gestión manual o asistida de incidencias, control de empresas adheridas con plan activo y monitorización de Brevo y motores."
+        description="Gestión manual o a demanda por ticket, control de empresas adheridas con plan activo y estado de motores (Cursor Auto / Composer 2.5)."
+        actions={
+          <Button asChild variant="secondary" size="sm" className="gap-1.5">
+            <Link href="/soporte">
+              Abrir panel de cliente (/soporte)
+              <ExternalLink className="h-3.5 w-3.5" />
+            </Link>
+          </Button>
+        }
       />
       <SettingsAdminNav role={user?.role} />
 
       <div className="mt-6 min-[820px]:overflow-hidden">
-        {/* Barra de pestañas + semáforo rápido de salud */}
         <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
           <button
             type="button"
@@ -351,14 +344,14 @@ function ConsolaSoporteSuperadmin() {
             )}
           >
             <Activity className="h-4 w-4" />
-            Salud del sistema y Brevo
+            Salud del sistema
             {health ? (
               <span className={cn("h-2.5 w-2.5 rounded-full", DOT_SALUD[health.nivelGeneral])} />
             ) : null}
           </button>
         </div>
 
-        {/* PESTAÑA 1: BANDEJA OPERATIVA Y RESOLUCIÓN MANUAL / HÍBRIDA */}
+        {/* PESTAÑA 1: BANDEJA OPERATIVA Y MODO A DEMANDA POR TICKET */}
         {pestana === "bandeja" ? (
           <div className="mt-5 space-y-4">
             <div className="flex flex-wrap items-center gap-2">
@@ -418,7 +411,9 @@ function ConsolaSoporteSuperadmin() {
                       </div>
                       <p className="mt-1 line-clamp-2 text-[13.5px] font-semibold">{t.titulo}</p>
                       <p className="mt-1 truncate text-[11.5px] text-[var(--text-3)]">
-                        {t.user_email || "Sin email"} ({t.user_role || "rol"}) · {t.modulo || "general"}
+                        {t.user_email || "Sin email"} ({t.user_role || "rol"}) · Modo:{" "}
+                        {t.solver_provider || "por defecto"}
+                        {t.debate_mode ? " · Debate 2x" : ""}
                       </p>
                     </button>
                   ))
@@ -435,7 +430,6 @@ function ConsolaSoporteSuperadmin() {
                 ) : (
                   <Card>
                     <CardContent className="space-y-5 p-5">
-                      {/* Cabecera y datos técnicos capturados */}
                       <div className="border-b border-border pb-4">
                         <div className="flex flex-wrap items-center gap-2 text-xs">
                           <span className="font-mono font-semibold">{seleccionado.codigo}</span>
@@ -475,98 +469,94 @@ function ConsolaSoporteSuperadmin() {
                         ) : null}
                       </div>
 
-                      {/* Bloque de control MANUAL de estados y solución */}
-                      <div className="rounded-[12px] border border-border bg-[var(--surface-soft)] p-3.5">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-2)]">
-                          Actuación manual sobre este ticket
-                        </p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="secondary"
-                            disabled={operando}
-                            onClick={() => void cambiarEstadoManual("en_curso_manual")}
-                          >
-                            Tomar en curso manual
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="secondary"
-                            disabled={operando}
-                            onClick={() => void cambiarEstadoManual("esperando_usuario")}
-                          >
-                            Esperando datos del usuario
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="secondary"
-                            disabled={operando}
-                            onClick={() => void cambiarEstadoManual("cerrado")}
-                          >
-                            Forzar cierre administrativo
-                          </Button>
-                        </div>
-
-                        <div className="mt-3 border-t border-border pt-3">
-                          <Label className="text-xs">
-                            Marcar como solucionado a mano (envía aviso + email al usuario para que confirme si le funciona)
-                          </Label>
-                          <div className="mt-1.5 flex flex-wrap gap-2">
-                            <Input
-                              value={resumenSolucionManual}
-                              onChange={(e) => setResumenSolucionManual(e.target.value)}
-                              placeholder="Ej: Ya hemos corregido tu permiso / arreglado el dato en la finca..."
-                              className="min-w-[240px] flex-1 bg-[var(--surface)]"
-                            />
-                            <Button
-                              type="button"
-                              size="sm"
-                              disabled={operando}
-                              onClick={() => void cambiarEstadoManual("pendiente_confirmacion", true)}
-                              className="gap-1.5"
-                            >
-                              <CheckCircle2 className="h-4 w-4" />
-                              Proponer solución y pedir OK
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Bloque de motores de resolución / PRs (agnóstico, opcional) */}
+                      {/* MODO DEL MOTOR DE RESOLUCIÓN A DEMANDA PARA ESTE TICKET */}
                       <div className="rounded-[12px] border border-border p-3.5">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-2)]">
-                            Motor técnico opcional (sin atarte a uno solo)
-                          </p>
-                          <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-2)]">
+                          Modo del motor de resolución para ESTE ticket (a demanda)
+                        </p>
+                        <div className="mt-2.5 grid gap-3 min-[720px]:grid-cols-2">
+                          <div>
+                            <Label className="text-xs">Modo en este ticket</Label>
                             <Selector
-                              value={motorPuntual}
-                              onChange={(e) => setMotorPuntual(e.target.value as SupportSolverProviderId)}
-                              className="h-8 rounded-[8px] border border-border bg-[var(--surface)] px-2.5 text-xs"
+                              value={modoTicket}
+                              onChange={(e) => setModoTicket(e.target.value as SupportSolverProviderId)}
+                              className="mt-1 h-9 w-full rounded-[8px] border border-border bg-[var(--surface)] px-2.5 text-xs"
                             >
-                              <option value="cursor_cloud">Cursor Cloud Agent</option>
-                              <option value="github_issue">Crear GitHub Issue</option>
-                              <option value="webhook_externo">Enviar a Webhook externo</option>
+                              {(Object.keys(SUPPORT_SOLVER_LABELS) as SupportSolverProviderId[]).map((k) => (
+                                <option key={k} value={k}>
+                                  {SUPPORT_SOLVER_LABELS[k].label}
+                                </option>
+                              ))}
                             </Selector>
+                          </div>
+
+                          {(modoTicket === "cursor_cloud" || modoTicket === "solo_triaje_ia") ? (
+                            <div>
+                              <Label className="text-xs">Modelo Cursor (eficiencia y coste)</Label>
+                              <Selector
+                                value={modeloTicket}
+                                onChange={(e) => setModeloTicket(e.target.value as "auto" | "composer-2.5")}
+                                className="mt-1 h-9 w-full rounded-[8px] border border-border bg-[var(--surface)] px-2.5 text-xs"
+                              >
+                                <option value="auto">auto (1ª opción · Máximo ahorro de costes)</option>
+                                <option value="composer-2.5">composer-2.5 (Directo)</option>
+                              </Selector>
+                            </div>
+                          ) : null}
+                        </div>
+
+                        {modoTicket === "cursor_cloud" ? (
+                          <div className="mt-3 rounded-[9px] border border-border bg-[var(--surface-soft)] px-3 py-2.5 text-xs">
+                            <label className="flex cursor-pointer items-start gap-2">
+                              <input
+                                type="checkbox"
+                                checked={debateTicket}
+                                onChange={(e) => setDebateTicket(e.target.checked)}
+                                className="mt-0.5"
+                              />
+                              <span>
+                                <strong className="inline-flex items-center gap-1 text-foreground">
+                                  <Users className="h-3.5 w-3.5" />
+                                  Activar debate entre 2 modelos (Autor + Verificador independiente)
+                                </strong>
+                                <span className="mt-0.5 block text-[var(--text-2)]">
+                                  El agente principal ({modeloTicket}) propone la solución y un segundo subagente independiente ({modeloTicket === "auto" ? "composer-2.5" : "auto"}) audita el diff buscando fallos o regresiones antes de abrir el PR. Úsalo solo en tickets delicados para ahorrar cuota.
+                                </span>
+                              </span>
+                            </label>
+                          </div>
+                        ) : null}
+
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            disabled={operando}
+                            onClick={() => void guardarOEjecutarModoTicket(false)}
+                            className="gap-1.5"
+                          >
+                            <Save className="h-3.5 w-3.5" />
+                            Guardar modo en este ticket
+                          </Button>
+                          {modoTicket !== "manual" ? (
                             <Button
                               type="button"
                               size="sm"
-                              variant="secondary"
                               disabled={operando}
-                              onClick={() => void lanzarMotorEnTicket()}
+                              onClick={() => void guardarOEjecutarModoTicket(true)}
                               className="gap-1.5"
                             >
                               <Play className="h-3.5 w-3.5" />
-                              Lanzar en este ticket
+                              {modoTicket === "solo_triaje_ia"
+                                ? "Ejecutar Triaje IA ahora"
+                                : "Cambiar modo y lanzar ahora"}
                             </Button>
-                          </div>
+                          ) : null}
                         </div>
 
                         {(seleccionado.github_pr_url || seleccionado.external_issue_url || seleccionado.vercel_preview_url) ? (
-                          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
+                          <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-border pt-3 text-xs">
                             {seleccionado.github_pr_url ? (
                               <a
                                 href={seleccionado.github_pr_url}
@@ -637,7 +627,67 @@ function ConsolaSoporteSuperadmin() {
                         ) : null}
                       </div>
 
-                      {/* Conversación completa (incluye notas internas amarillas) */}
+                      {/* Bloque de control MANUAL de estados y solución */}
+                      <div className="rounded-[12px] border border-border bg-[var(--surface-soft)] p-3.5">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-2)]">
+                          Actuación manual sobre este ticket
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            disabled={operando}
+                            onClick={() => void cambiarEstadoManual("en_curso_manual")}
+                          >
+                            Tomar en curso manual
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            disabled={operando}
+                            onClick={() => void cambiarEstadoManual("esperando_usuario")}
+                          >
+                            Esperando datos del usuario
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            disabled={operando}
+                            onClick={() => void cambiarEstadoManual("cerrado")}
+                          >
+                            Forzar cierre administrativo
+                          </Button>
+                        </div>
+
+                        <div className="mt-3 border-t border-border pt-3">
+                          <Label className="text-xs">
+                            Marcar como solucionado a mano (pide confirmación al usuario en /soporte)
+                          </Label>
+                          <div className="mt-1.5 flex flex-wrap gap-2">
+                            <Input
+                              value={resumenSolucionManual}
+                              onChange={(e) => setResumenSolucionManual(e.target.value)}
+                              placeholder="Ej: Ya hemos corregido tu permiso / arreglado el dato en la finca..."
+                              className="min-w-[240px] flex-1 bg-[var(--surface)]"
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              disabled={operando}
+                              onClick={() => void cambiarEstadoManual("pendiente_confirmacion", true)}
+                              className="gap-1.5"
+                            >
+                              <CheckCircle2 className="h-4 w-4" />
+                              Proponer solución y pedir OK
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Conversación completa */}
                       <div className="space-y-2.5">
                         {mensajes.map((m) => (
                           <div
@@ -694,7 +744,7 @@ function ConsolaSoporteSuperadmin() {
                           placeholder={
                             esNotaInterna
                               ? "Apunte interno para soporte…"
-                              : "Escribe una respuesta para la persona que abrió el ticket (le llegará aviso y correo)…"
+                              : "Escribe una respuesta para la persona que abrió el ticket…"
                           }
                           className="w-full rounded-[10px] border border-border bg-[var(--surface)] px-3 py-2 text-sm"
                         />
@@ -718,7 +768,7 @@ function ConsolaSoporteSuperadmin() {
           </div>
         ) : null}
 
-        {/* PESTAÑA 2: EMPRESAS ADHERIDAS Y ACTIVACIÓN MANUAL DE PLANES DE PAGO */}
+        {/* PESTAÑA 2: EMPRESAS ADHERIDAS Y PLAN ACTIVO */}
         {pestana === "empresas" ? (
           <div className="mt-5 space-y-5">
             <Card>
@@ -728,7 +778,7 @@ function ConsolaSoporteSuperadmin() {
               <CardContent className="space-y-4">
                 <p className="text-sm text-[var(--text-2)]">
                   Solo las empresas con <strong>Adhesión aceptada manualmente</strong> y{" "}
-                  <strong>Plan de pago activo</strong> tienen acceso a abrir tickets de soporte. Preparado para conectar Stripe en el futuro manteniendo siempre tu decisión manual de admisión.
+                  <strong>Plan de pago activo</strong> tienen acceso a abrir tickets de soporte.
                 </p>
 
                 <div className="space-y-3">
@@ -858,15 +908,15 @@ function ConsolaSoporteSuperadmin() {
           </div>
         ) : null}
 
-        {/* PESTAÑA 3: SALA DE MÁQUINAS · SALUD DEL SISTEMA, BREVO Y MOTOR DE RESOLUCIÓN */}
+        {/* PESTAÑA 3: SALUD DEL SISTEMA Y MOTORES POR DEFECTO */}
         {pestana === "salud" && health ? (
           <div className="mt-5 space-y-5">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle>Estado en tiempo real del sistema de tickets</CardTitle>
+                  <CardTitle>Salud en tiempo real del sistema de tickets</CardTitle>
                   <p className="mt-1 text-xs text-[var(--text-2)]">
-                    El guardado de tickets va directo a base de datos: aunque Brevo o cualquier motor externo caiga, ningún ticket falla ni se pierde.
+                    El guardado de tickets es directo a base de datos: aunque no haya claves externas activas, ningún ticket se pierde nunca.
                   </p>
                 </div>
                 <Button
@@ -897,159 +947,14 @@ function ConsolaSoporteSuperadmin() {
               </CardContent>
             </Card>
 
-            {/* Configuración de Brevo y prueba en vivo */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Mail className="h-4 w-4" />
-                  Alertas de correo con Brevo y cola auditable
-                </CardTitle>
+                <CardTitle>Comportamiento por defecto para nuevos tickets (ahorro de costes)</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-3 min-[720px]:grid-cols-3">
                   <div>
-                    <Label className="text-xs">Email de soporte (donde recibes tú las alertas)</Label>
-                    <Input
-                      defaultValue={health.settings.support_inbox_email ?? ""}
-                      placeholder="soporte@tudominio.es"
-                      onBlur={(e) =>
-                        void actualizarAjustes({
-                          project_key: health.settings.project_key,
-                          support_inbox_email: e.target.value,
-                        })
-                      }
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Email remitente verificado en Brevo</Label>
-                    <Input
-                      defaultValue={health.settings.brevo_sender_email ?? ""}
-                      placeholder="notificaciones@rehabinco.es"
-                      onBlur={(e) =>
-                        void actualizarAjustes({
-                          project_key: health.settings.project_key,
-                          brevo_sender_email: e.target.value,
-                        })
-                      }
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Nombre visible del remitente</Label>
-                    <Input
-                      defaultValue={health.settings.brevo_sender_name}
-                      onBlur={(e) =>
-                        void actualizarAjustes({
-                          project_key: health.settings.project_key,
-                          brevo_sender_name: e.target.value,
-                        })
-                      }
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-4 text-sm">
-                  <label className="inline-flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={health.settings.notify_admin_on_new}
-                      onChange={(e) =>
-                        void actualizarAjustes({
-                          project_key: health.settings.project_key,
-                          notify_admin_on_new: e.target.checked,
-                        })
-                      }
-                    />
-                    Avisar por correo a soporte en nuevos tickets / reaperturas
-                  </label>
-                  <label className="inline-flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={health.settings.notify_user_on_updates}
-                      onChange={(e) =>
-                        void actualizarAjustes({
-                          project_key: health.settings.project_key,
-                          notify_user_on_updates: e.target.checked,
-                        })
-                      }
-                    />
-                    Avisar por correo a quien abrió el ticket (recepción, respuestas y propuesta de solución)
-                  </label>
-                </div>
-
-                <div className="flex flex-wrap items-end gap-2 border-t border-border pt-3">
-                  <div className="min-w-[240px] flex-1">
-                    <Label className="text-xs">Probar envío real con Brevo ahora mismo</Label>
-                    <Input
-                      value={emailPrueba}
-                      onChange={(e) => setEmailPrueba(e.target.value)}
-                      placeholder="tu-correo@ejemplo.com"
-                      className="mt-1"
-                    />
-                  </div>
-                  <Button type="button" disabled={operando} onClick={() => void probarCorreo()}>
-                    Enviar email de prueba
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={operando}
-                    onClick={() => void reintentarColaCorreo()}
-                  >
-                    Reintentar correos con error
-                  </Button>
-                </div>
-
-                {health.outboxReciente.length > 0 ? (
-                  <div className="mt-3 overflow-x-auto rounded-[10px] border border-border">
-                    <table className="w-full text-left text-xs">
-                      <thead className="border-b border-border bg-[var(--surface-soft)] text-[var(--text-2)]">
-                        <tr>
-                          <th className="px-3 py-2">Fecha</th>
-                          <th className="px-3 py-2">Destino</th>
-                          <th className="px-3 py-2">Evento</th>
-                          <th className="px-3 py-2">Estado</th>
-                          <th className="px-3 py-2">Detalle / Error</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border">
-                        {health.outboxReciente.map((row) => (
-                          <tr key={row.id}>
-                            <td className="whitespace-nowrap px-3 py-2">
-                              {new Date(row.created_at).toLocaleString("es-ES", {
-                                dateStyle: "short",
-                                timeStyle: "short",
-                              })}
-                            </td>
-                            <td className="px-3 py-2">
-                              {row.destinatario_email}{" "}
-                              <span className="text-[var(--text-3)]">({row.destinatario_tipo})</span>
-                            </td>
-                            <td className="px-3 py-2 font-mono">{row.evento}</td>
-                            <td className="px-3 py-2 font-semibold">{row.estado}</td>
-                            <td className="max-w-[260px] truncate px-3 py-2 text-[var(--text-2)]">
-                              {row.ultimo_error || row.brevo_message_id || "—"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : null}
-              </CardContent>
-            </Card>
-
-            {/* Configuración desacoplada del Motor de Resolución (sin depender solo de Cursor) */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Motor de resolución (intercambiable en cualquier momento)</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-3 min-[720px]:grid-cols-2">
-                  <div>
-                    <Label className="text-xs">Modo / Proveedor activo por defecto</Label>
+                    <Label className="text-xs">Modo por defecto al entrar un ticket nuevo</Label>
                     <Selector
                       value={health.settings.solver_provider}
                       onChange={(e) =>
@@ -1067,13 +972,33 @@ function ConsolaSoporteSuperadmin() {
                       ))}
                     </Selector>
                     <p className="mt-1 text-xs text-[var(--text-2)]">
-                      {SUPPORT_SOLVER_LABELS[health.settings.solver_provider].hint}
+                      Luego puedes cambiar el modo individualmente dentro de cada ticket.
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Modelo prioritario en Cursor (Triaje + Agente)</Label>
+                    <Selector
+                      value={health.settings.cursor_model}
+                      onChange={(e) =>
+                        void actualizarAjustes({
+                          project_key: health.settings.project_key,
+                          cursor_model: e.target.value as "auto" | "composer-2.5",
+                        })
+                      }
+                      className="mt-1 h-10 w-full rounded-[9px] border border-border bg-[var(--surface)] px-3 text-sm"
+                    >
+                      <option value="auto">auto (Recomendado · Máximo ahorro)</option>
+                      <option value="composer-2.5">composer-2.5</option>
+                    </Selector>
+                    <p className="mt-1 text-xs text-[var(--text-3)]">
+                      Usa tu CURSOR_API_KEY sin necesitar API de Anthropic aparte.
                     </p>
                   </div>
 
                   <div>
                     <Label className="text-xs">
-                      Tope máximo de agentes automáticos por semana (usados últimos 7d: {health.runsEstaSemana})
+                      Tope automático semanal (usados 7d: {health.runsEstaSemana})
                     </Label>
                     <Input
                       type="number"
@@ -1086,53 +1011,32 @@ function ConsolaSoporteSuperadmin() {
                           max_agent_runs_per_week: Number(e.target.value || 0),
                         })
                       }
-                      className="mt-1"
+                      className="mt-1 h-10"
                     />
-                    <p className="mt-1 text-xs text-[var(--text-3)]">
-                      Protege tu cuota semanal de Cursor o de cualquier API externa. Si se supera, el ticket pasa a tu bandeja manual.
-                    </p>
                   </div>
                 </div>
 
                 {health.settings.solver_provider === "cursor_cloud" ? (
-                  <div className="grid gap-3 border-t border-border pt-3 min-[720px]:grid-cols-2">
-                    <div>
-                      <Label className="text-xs">Modelo de Cursor Cloud Agent</Label>
-                      <Selector
-                        value={health.settings.cursor_model}
+                  <div className="border-t border-border pt-3">
+                    <label className="inline-flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={health.settings.auto_merge_enabled}
                         onChange={(e) =>
                           void actualizarAjustes({
                             project_key: health.settings.project_key,
-                            cursor_model: e.target.value as "composer-2.5" | "auto",
+                            auto_merge_enabled: e.target.checked,
                           })
                         }
-                        className="mt-1 h-9 w-full rounded-[8px] border border-border bg-[var(--surface)] px-3 text-sm"
-                      >
-                        <option value="composer-2.5">composer-2.5</option>
-                        <option value="auto">auto (Cursor Router)</option>
-                      </Selector>
-                    </div>
-                    <div className="flex items-center pt-5">
-                      <label className="inline-flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={health.settings.auto_merge_enabled}
-                          onChange={(e) =>
-                            void actualizarAjustes({
-                              project_key: health.settings.project_key,
-                              auto_merge_enabled: e.target.checked,
-                            })
-                          }
-                        />
-                        Permitir auto-merge con los 4 candados (el ticket quedará igualmente pendiente del OK del usuario)
-                      </label>
-                    </div>
+                      />
+                      Permitir auto-merge con los 4 candados (el ticket seguirá pidiendo confirmación al usuario)
+                    </label>
                   </div>
                 ) : null}
 
                 {health.settings.solver_provider === "webhook_externo" ? (
                   <div className="border-t border-border pt-3">
-                    <Label className="text-xs">URL del Webhook externo (n8n, Devin, OpenHands, Hub propio…)</Label>
+                    <Label className="text-xs">URL del Webhook externo</Label>
                     <Input
                       defaultValue={health.settings.solver_webhook_url ?? ""}
                       placeholder="https://..."

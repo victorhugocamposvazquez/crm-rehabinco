@@ -33,8 +33,8 @@ export function getSupportProjectManifest(opts?: {
     .trim()
     .replace(/\/+$/, "");
   const githubRepo = (process.env.SUPPORT_GITHUB_REPO || "victorhugocamposvazquez/crm-rehabinco").trim();
-  const rawModel = (process.env.SUPPORT_CURSOR_MODEL || "composer-2.5").trim();
-  const defaultCursorModel: "composer-2.5" | "auto" = rawModel === "auto" ? "auto" : "composer-2.5";
+  const rawModel = (process.env.SUPPORT_CURSOR_MODEL || "auto").trim();
+  const defaultCursorModel: "composer-2.5" | "auto" = rawModel === "composer-2.5" ? "composer-2.5" : "auto";
 
   const zonas = PERMISOS.filter((p) => p.grupo === "Zonas");
   const filtradas = opts?.role

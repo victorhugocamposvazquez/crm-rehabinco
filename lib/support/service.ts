@@ -2,7 +2,6 @@ import { publicarAviso } from "@/lib/alertas/publicar";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isSuperAdmin, parseRole, type Role } from "@/lib/auth/roles";
-import { notificarEventoTicketPorCorreo } from "./brevo";
 import { getSupportProjectManifest } from "./project-manifest";
 import { despacharMotorResolucion } from "./solver";
 import { ejecutarTriajeTicket } from "./triage";
@@ -10,6 +9,7 @@ import type {
   SupportAttachmentRef,
   SupportEstado,
   SupportSettingsRow,
+  SupportSolverProviderId,
   SupportTicket,
 } from "./types";
 
@@ -66,7 +66,7 @@ export async function obtenerOCrearAjustesProyecto(projectKey?: string): Promise
     plan_activo: esPrincipal,
     plan_nombre: esPrincipal ? "Soporte Activo (Manual)" : "Sin plan activo",
     solver_provider: "solo_triaje_ia",
-    cursor_model: manifest.defaultCursorModel,
+    cursor_model: "auto",
     auto_merge_enabled: true,
     max_agent_runs_per_week: 10,
     brevo_sender_name: "Soporte CRM",
@@ -158,10 +158,13 @@ export async function avisarUsuarioTicketPush(input: {
 }
 
 /**
- * Orquestación asíncrona tras crear un ticket o recibir repregunta.
- * Envuelta en try/catch global para que ningún fallo externo deje un ticket corrupto.
+ * Orquestación asíncrona tras crear un ticket o al lanzarlo a demanda.
+ * Respeta el modo específico del ticket (ticket.solver_provider) si existe, o el global de settings.
  */
-export async function procesarTicketEnSegundoPlano(ticketId: string): Promise<void> {
+export async function procesarTicketEnSegundoPlano(
+  ticketId: string,
+  opts?: { forzadoPorSuperadmin?: boolean }
+): Promise<void> {
   try {
     const admin = createAdminClient();
     const { data: ticketRow } = await admin
@@ -173,9 +176,11 @@ export async function procesarTicketEnSegundoPlano(ticketId: string): Promise<vo
     if (!ticketRow) return;
     const ticket = ticketRow as unknown as SupportTicket;
     const settings = await obtenerOCrearAjustesProyecto(ticket.project_key);
+    const modoEfectivo: SupportSolverProviderId =
+      ticket.solver_provider ?? settings.solver_provider;
 
-    // 1. Si el modo es 100% manual, ni siquiera llamamos a IA: avisamos y dejamos listo para humano.
-    if (settings.solver_provider === "manual") {
+    // 1. Modo 100% manual -> directo a bandeja sin gastar ni un token
+    if (modoEfectivo === "manual") {
       await admin
         .from("support_tickets")
         .update({
@@ -186,20 +191,15 @@ export async function procesarTicketEnSegundoPlano(ticketId: string): Promise<vo
         .eq("id", ticket.id);
 
       await avisarSuperadminsPush({
-        clave: `soporte:nuevo:${ticket.id}`,
-        titulo: `Nuevo ticket ${ticket.codigo}`,
+        clave: `soporte:nuevo:${ticket.id}:${Date.now()}`,
+        titulo: `Ticket ${ticket.codigo}`,
         cuerpo: ticket.titulo,
         ticketId: ticket.id,
-      });
-      await notificarEventoTicketPorCorreo({
-        evento: "ticket_creado",
-        ticket,
-        settings,
       });
       return;
     }
 
-    // 2. Ejecutar triaje IA
+    // 2. Ejecutar triaje IA (Prioridad #1: Cursor auto / composer-2.5)
     await admin
       .from("support_tickets")
       .update({ estado: "triaje", updated_at: new Date().toISOString() })
@@ -214,18 +214,18 @@ export async function procesarTicketEnSegundoPlano(ticketId: string): Promise<vo
 
     const triaje = await ejecutarTriajeTicket({
       ticket,
+      cursorModelPreferido: ticket.cursor_model_override ?? settings.cursor_model,
       historialReciente: (msgs ?? []).map((m) => ({ autor: m.autor_tipo, cuerpo: m.cuerpo })),
     });
 
-    // Guardar siempre el diagnóstico técnico como nota interna para superadmin
     await admin.from("support_ticket_messages").insert({
       ticket_id: ticket.id,
       autor_tipo: "ia",
       interno: true,
-      cuerpo: `Diagnóstico automático (${triaje.decision} · riesgo ${triaje.riesgo}):\n${triaje.informeTecnicoInterno}`,
+      cuerpo: `Diagnóstico (${triaje.motorUsado ?? "ia"} · ${triaje.decision} · riesgo ${triaje.riesgo}):\n${triaje.informeTecnicoInterno}`,
     });
 
-    // Caso A: Duda funcional -> Respondemos al usuario y pedimos que confirme si le ha resuelto la duda
+    // Caso A: Duda funcional -> Respondemos al usuario y esperamos su confirmación
     if (triaje.decision === "responder_duda") {
       const ahora = new Date().toISOString();
       await admin.from("support_ticket_messages").insert({
@@ -241,7 +241,8 @@ export async function procesarTicketEnSegundoPlano(ticketId: string): Promise<vo
           riesgo: "cero",
           modulo: ticket.modulo || triaje.moduloDetectado,
           estado: "respondido_ia",
-          solucion_resumen: "Respuesta automática sobre funcionamiento del CRM.",
+          solver_provider: modoEfectivo,
+          solucion_resumen: "Respuesta orientativa automática. Pendiente de confirmación del usuario.",
           solucion_propuesta_en: ahora,
           updated_at: ahora,
         })
@@ -254,27 +255,11 @@ export async function procesarTicketEnSegundoPlano(ticketId: string): Promise<vo
         cuerpo: "Te hemos dejado los pasos para resolver tu consulta. Confirma si te ha servido.",
         ticketId: ticket.id,
       });
-      await notificarEventoTicketPorCorreo({
-        evento: "solucion_propuesta",
-        ticket,
-        mensajeAdicional: triaje.respuestaParaUsuario,
-        settings,
-      });
-      // También notificamos creación a soporte si quiere copia de todo
-      await notificarEventoTicketPorCorreo({
-        evento: "ticket_creado",
-        ticket,
-        mensajeAdicional: `[Respondido por IA - pendiente de confirmación del usuario]\n\n${ticket.descripcion}`,
-        settings,
-      });
       return;
     }
 
-    // Caso B: Propuesta de código y hay un motor externo activo (cursor_cloud, github_issue, webhook_externo)
-    if (
-      triaje.decision === "proponer_codigo" &&
-      settings.solver_provider !== "solo_triaje_ia"
-    ) {
+    // Caso B: Propuesta de código y modoEfectivo permite motor técnico
+    if (triaje.decision === "proponer_codigo" && modoEfectivo !== "solo_triaje_ia") {
       await admin.from("support_ticket_messages").insert({
         ticket_id: ticket.id,
         autor_tipo: "ia",
@@ -286,6 +271,8 @@ export async function procesarTicketEnSegundoPlano(ticketId: string): Promise<vo
         ticket,
         informeTecnico: triaje.informeTecnicoInterno,
         settings,
+        providerOverride: modoEfectivo,
+        forzadoManualPorAdmin: opts?.forzadoPorSuperadmin,
       });
 
       await admin.from("support_ticket_messages").insert({
@@ -322,18 +309,12 @@ export async function procesarTicketEnSegundoPlano(ticketId: string): Promise<vo
         .eq("id", ticket.id);
 
       await avisarSuperadminsPush({
-        clave: `soporte:motor:${ticket.id}`,
+        clave: `soporte:motor:${ticket.id}:${Date.now()}`,
         titulo: despacho.dispatched
           ? `${ticket.codigo} en motor (${despacho.provider})`
           : `${ticket.codigo} requiere revisión`,
         cuerpo: ticket.titulo,
         ticketId: ticket.id,
-      });
-      await notificarEventoTicketPorCorreo({
-        evento: despacho.dispatched ? "ticket_creado" : "escalado_soporte",
-        ticket,
-        mensajeAdicional: `${ticket.descripcion}\n\n---\n${despacho.summary}`,
-        settings,
       });
       return;
     }
@@ -353,26 +334,19 @@ export async function procesarTicketEnSegundoPlano(ticketId: string): Promise<vo
         riesgo: triaje.riesgo,
         modulo: ticket.modulo || triaje.moduloDetectado,
         estado: "escalado_humano",
-        solver_provider: settings.solver_provider,
+        solver_provider: modoEfectivo,
         auto_merge_permitido: false,
         updated_at: new Date().toISOString(),
       })
       .eq("id", ticket.id);
 
     await avisarSuperadminsPush({
-      clave: `soporte:escalado:${ticket.id}`,
+      clave: `soporte:escalado:${ticket.id}:${Date.now()}`,
       titulo: `Ticket ${ticket.codigo} para revisar`,
       cuerpo: ticket.titulo,
       ticketId: ticket.id,
     });
-    await notificarEventoTicketPorCorreo({
-      evento: "escalado_soporte",
-      ticket,
-      mensajeAdicional: `${ticket.descripcion}\n\n---\nDiagnóstico IA:\n${triaje.informeTecnicoInterno}`,
-      settings,
-    });
   } catch (err) {
-    // Red de seguridad final: jamás dejar un ticket colgado en "triaje"
     try {
       const admin = createAdminClient();
       await admin

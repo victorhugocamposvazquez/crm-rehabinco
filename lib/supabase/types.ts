@@ -2073,6 +2073,8 @@ export interface Database {
             | "cerrado";
           contexto: Json;
           solver_provider: string | null;
+          cursor_model_override: "auto" | "composer-2.5" | null;
+          debate_mode: boolean;
           external_issue_url: string | null;
           cursor_agent_id: string | null;
           cursor_run_id: string | null;
@@ -2116,6 +2118,8 @@ export interface Database {
             | "cerrado";
           contexto?: Json;
           solver_provider?: string | null;
+          cursor_model_override?: "auto" | "composer-2.5" | null;
+          debate_mode?: boolean;
           external_issue_url?: string | null;
           cursor_agent_id?: string | null;
           cursor_run_id?: string | null;
@@ -2157,6 +2161,8 @@ export interface Database {
             | "cerrado";
           contexto?: Json;
           solver_provider?: string | null;
+          cursor_model_override?: "auto" | "composer-2.5" | null;
+          debate_mode?: boolean;
           external_issue_url?: string | null;
           cursor_agent_id?: string | null;
           cursor_run_id?: string | null;

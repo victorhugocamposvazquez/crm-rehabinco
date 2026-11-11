@@ -326,7 +326,7 @@ export function SupportDrawer({
                   {enviando ? "Enviando…" : "Enviar a soporte"}
                 </Button>
                 <p className="mt-2 text-center text-[11.5px] text-[var(--text-3)]">
-                  Recibirás aviso aquí y por correo electrónico cuando haya respuesta.
+                  Recibirás aviso en el CRM y podrás seguirlo desde tu panel en /soporte.
                 </p>
               </div>
             </div>

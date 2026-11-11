@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { notificarEventoTicketPorCorreo } from "@/lib/support/brevo";
 import { evaluarCandadosDiff, verificarFirmaHmac } from "@/lib/support/guardrails";
 import {
   avisarSuperadminsPush,
@@ -143,12 +142,6 @@ export async function POST(request: Request) {
         cuerpo: "Comprueba si ya funciona y confírmalo en tu panel.",
         ticketId: actualizado.id,
       });
-      await notificarEventoTicketPorCorreo({
-        evento: "solucion_propuesta",
-        ticket: actualizado as unknown as SupportTicket,
-        mensajeAdicional: msgUsuario,
-        settings,
-      });
     }
 
     return NextResponse.json({ ok: true });
@@ -184,12 +177,6 @@ export async function POST(request: Request) {
         titulo: `PR #${payload.prNumber} listo en ${actualizado.codigo}`,
         cuerpo: motivo.slice(0, 120),
         ticketId: actualizado.id,
-      });
-      await notificarEventoTicketPorCorreo({
-        evento: "escalado_soporte",
-        ticket: actualizado as unknown as SupportTicket,
-        mensajeAdicional: `Hay un Pull Request preparado (${payload.prUrl}).\nMotivo de revisión manual: ${motivo}`,
-        settings,
       });
     }
 

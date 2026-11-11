@@ -5,6 +5,7 @@ import type {
   SupportEstado,
   SupportHealthCheck,
   SupportSettingsRow,
+  SupportSolverProviderId,
   SupportTicket,
   SupportTicketMessage,
 } from "./types";
@@ -103,7 +104,19 @@ export async function accionSuperadminTicket(
   ticketId: string,
   input:
     | { accion: "cambiar_estado"; estado: SupportEstado; resumenSolucion?: string; notificarUsuario?: boolean }
-    | { accion: "lanzar_motor"; provider?: SupportSettingsRow["solver_provider"] }
+    | {
+        accion: "configurar_modo_ticket";
+        provider: SupportSolverProviderId;
+        cursorModel?: "auto" | "composer-2.5" | null;
+        debateMode?: boolean;
+        ejecutarAhora?: boolean;
+      }
+    | {
+        accion: "lanzar_motor";
+        provider?: SupportSolverProviderId;
+        cursorModel?: "auto" | "composer-2.5" | null;
+        debateMode?: boolean;
+      }
     | { accion: "reanudar_agente"; instrucciones: string }
     | { accion: "aprobar_fusionar_pr" }
 ): Promise<{ ok: true; ticket: SupportTicket; detalle?: string }> {
@@ -133,20 +146,6 @@ export type SupportAdminHealthResponse = {
   settings: SupportSettingsRow;
   empresas: SupportSettingsRow[];
   runsEstaSemana: number;
-  outboxReciente: Array<{
-    id: string;
-    destinatario_email: string;
-    destinatario_tipo: string;
-    evento: string;
-    asunto: string;
-    estado: string;
-    intentos: number;
-    ultimo_error: string | null;
-    brevo_message_id: string | null;
-    created_at: string;
-    enviado_en: string | null;
-    entregado_en: string | null;
-  }>;
 };
 
 export async function fetchSupportAdminHealth(): Promise<SupportAdminHealthResponse> {
@@ -161,24 +160,6 @@ export async function guardarSupportSettings(
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(patch),
-  });
-  return parseJson(res);
-}
-
-export async function enviarPruebaBrevo(destinatarioEmail?: string): Promise<{ ok: true; detalle: string }> {
-  const res = await fetch(`${apiBase()}/admin/health`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ accion: "probar_brevo", destinatarioEmail }),
-  });
-  return parseJson(res);
-}
-
-export async function reintentarOutboxFallidos(): Promise<{ ok: true; procesados: number; enviados: number }> {
-  const res = await fetch(`${apiBase()}/admin/health`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ accion: "reintentar_outbox" }),
   });
   return parseJson(res);
 }
