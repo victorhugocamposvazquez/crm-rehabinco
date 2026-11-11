@@ -2258,6 +2258,25 @@ export interface Database {
           updated_at?: string;
         };
       };
+      support_user_prefs: {
+        Row: {
+          user_id: string;
+          alert_email: string | null;
+          notify_email: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          alert_email?: string | null;
+          notify_email?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          alert_email?: string | null;
+          notify_email?: boolean;
+          updated_at?: string;
+        };
+      };
     };
   };
 }

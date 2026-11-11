@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { waitUntil } from "@vercel/functions";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { notificarEventoTicketPorCorreo } from "@/lib/support/mailer";
 import {
   avisarUsuarioTicketPush,
   obtenerOCrearAjustesProyecto,
@@ -116,18 +117,28 @@ export async function POST(
 
     if (body.notificarUsuario !== false && (estado === "pendiente_confirmacion" || resumen)) {
       waitUntil(
-        avisarUsuarioTicketPush({
-          userId: actualizado.user_id,
-          clave: `soporte:estado:${actualizado.id}:${Date.now()}`,
-          titulo:
-            estado === "pendiente_confirmacion"
-              ? `Solución lista en ${actualizado.codigo}`
-              : `Actualización en ${actualizado.codigo}`,
-          cuerpo:
-            resumen ||
-            "Hemos aplicado una solución. Entra a tu panel para confirmar si ya te funciona.",
-          ticketId: actualizado.id,
-        })
+        (async () => {
+          await avisarUsuarioTicketPush({
+            userId: actualizado.user_id,
+            clave: `soporte:estado:${actualizado.id}:${Date.now()}`,
+            titulo:
+              estado === "pendiente_confirmacion"
+                ? `Solución lista en ${actualizado.codigo}`
+                : `Actualización en ${actualizado.codigo}`,
+            cuerpo:
+              resumen ||
+              "Hemos aplicado una solución. Entra a tu panel para confirmar si ya te funciona.",
+            ticketId: actualizado.id,
+          });
+          await notificarEventoTicketPorCorreo({
+            evento: estado === "pendiente_confirmacion" ? "solucion_propuesta" : "respuesta_soporte",
+            ticket: actualizado as unknown as SupportTicket,
+            mensajeAdicional:
+              resumen ||
+              "Hemos aplicado una solución a tu consulta. Por favor, comprueba si ya funciona y confírmalo en tu panel.",
+            settings,
+          });
+        })()
       );
     }
 
@@ -392,13 +403,21 @@ export async function POST(
 
     if (actualizado) {
       waitUntil(
-        avisarUsuarioTicketPush({
-          userId: actualizado.user_id,
-          clave: `soporte:prmerge:${actualizado.id}`,
-          titulo: `Solución desplegada en ${actualizado.codigo}`,
-          cuerpo: "Comprueba si ya funciona y confírmalo en tu panel.",
-          ticketId: actualizado.id,
-        })
+        (async () => {
+          await avisarUsuarioTicketPush({
+            userId: actualizado.user_id,
+            clave: `soporte:prmerge:${actualizado.id}`,
+            titulo: `Solución desplegada en ${actualizado.codigo}`,
+            cuerpo: "Comprueba si ya funciona y confírmalo en tu panel.",
+            ticketId: actualizado.id,
+          });
+          await notificarEventoTicketPorCorreo({
+            evento: "solucion_propuesta",
+            ticket: actualizado as unknown as SupportTicket,
+            mensajeAdicional: notaPublica,
+            settings,
+          });
+        })()
       );
     }
 

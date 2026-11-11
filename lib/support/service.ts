@@ -2,6 +2,7 @@ import { publicarAviso } from "@/lib/alertas/publicar";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isSuperAdmin, parseRole, type Role } from "@/lib/auth/roles";
+import { notificarEventoTicketPorCorreo } from "./mailer";
 import { getSupportProjectManifest } from "./project-manifest";
 import { despacharMotorResolucion } from "./solver";
 import { ejecutarTriajeTicket } from "./triage";
@@ -196,6 +197,11 @@ export async function procesarTicketEnSegundoPlano(
         cuerpo: ticket.titulo,
         ticketId: ticket.id,
       });
+      await notificarEventoTicketPorCorreo({
+        evento: "ticket_creado",
+        ticket,
+        settings,
+      });
       return;
     }
 
@@ -254,6 +260,18 @@ export async function procesarTicketEnSegundoPlano(
         titulo: `Respuesta en ${ticket.codigo}`,
         cuerpo: "Te hemos dejado los pasos para resolver tu consulta. Confirma si te ha servido.",
         ticketId: ticket.id,
+      });
+      await notificarEventoTicketPorCorreo({
+        evento: "solucion_propuesta",
+        ticket,
+        mensajeAdicional: triaje.respuestaParaUsuario,
+        settings,
+      });
+      await notificarEventoTicketPorCorreo({
+        evento: "ticket_creado",
+        ticket,
+        mensajeAdicional: `[Respondido automáticamente - pendiente de confirmación del usuario]\n\n${ticket.descripcion}`,
+        settings,
       });
       return;
     }
@@ -316,6 +334,12 @@ export async function procesarTicketEnSegundoPlano(
         cuerpo: ticket.titulo,
         ticketId: ticket.id,
       });
+      await notificarEventoTicketPorCorreo({
+        evento: despacho.dispatched ? "ticket_creado" : "escalado_soporte",
+        ticket,
+        mensajeAdicional: `${ticket.descripcion}\n\n---\n${despacho.summary}`,
+        settings,
+      });
       return;
     }
 
@@ -345,6 +369,12 @@ export async function procesarTicketEnSegundoPlano(
       titulo: `Ticket ${ticket.codigo} para revisar`,
       cuerpo: ticket.titulo,
       ticketId: ticket.id,
+    });
+    await notificarEventoTicketPorCorreo({
+      evento: "escalado_soporte",
+      ticket,
+      mensajeAdicional: `${ticket.descripcion}\n\n---\nDiagnóstico:\n${triaje.informeTecnicoInterno}`,
+      settings,
     });
   } catch (err) {
     try {

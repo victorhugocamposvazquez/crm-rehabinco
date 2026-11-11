@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { waitUntil } from "@vercel/functions";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { notificarEventoTicketPorCorreo } from "@/lib/support/mailer";
 import {
   avisarSuperadminsPush,
   firmarAdjuntosMensaje,
+  obtenerOCrearAjustesProyecto,
   obtenerUsuarioSesionSoporte,
 } from "@/lib/support/service";
+import type { SupportTicket } from "@/lib/support/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -149,12 +152,21 @@ export async function PATCH(
     }
 
     waitUntil(
-      avisarSuperadminsPush({
-        clave: `soporte:reabierto:${actualizado.id}:${Date.now()}`,
-        titulo: `Ticket ${actualizado.codigo} REABIERTO`,
-        cuerpo: texto.slice(0, 120),
-        ticketId: actualizado.id,
-      })
+      (async () => {
+        const settings = await obtenerOCrearAjustesProyecto(actualizado.project_key);
+        await avisarSuperadminsPush({
+          clave: `soporte:reabierto:${actualizado.id}:${Date.now()}`,
+          titulo: `Ticket ${actualizado.codigo} REABIERTO`,
+          cuerpo: texto.slice(0, 120),
+          ticketId: actualizado.id,
+        });
+        await notificarEventoTicketPorCorreo({
+          evento: "reabierto_por_usuario",
+          ticket: actualizado as unknown as SupportTicket,
+          mensajeAdicional: texto,
+          settings,
+        });
+      })()
     );
 
     return NextResponse.json({ ok: true, ticket: actualizado });

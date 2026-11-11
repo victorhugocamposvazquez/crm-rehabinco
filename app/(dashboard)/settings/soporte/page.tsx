@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   ExternalLink,
   GitPullRequest,
+  Mail,
   Play,
   RefreshCw,
   Save,
@@ -28,11 +29,13 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { isSuperAdmin } from "@/lib/auth/roles";
 import {
   accionSuperadminTicket,
+  enviarCorreoPruebaSoporte,
   enviarMensajeTicket,
   fetchSupportAdminHealth,
   guardarSupportSettings,
   listarTicketsSoporte,
   obtenerTicketDetalle,
+  reintentarOutboxFallidos,
   type SupportAdminHealthResponse,
 } from "@/lib/support/client";
 import {
@@ -80,6 +83,7 @@ function ConsolaSoporteSuperadmin() {
 
   const [health, setHealth] = useState<SupportAdminHealthResponse | null>(null);
   const [cargandoSalud, setCargandoSalud] = useState(false);
+  const [emailPrueba, setEmailPrueba] = useState("");
   const [nuevaEmpresaKey, setNuevaEmpresaKey] = useState("");
   const [nuevaEmpresaNombre, setNuevaEmpresaNombre] = useState("");
 
@@ -112,12 +116,13 @@ function ConsolaSoporteSuperadmin() {
     try {
       const res = await fetchSupportAdminHealth();
       setHealth(res);
+      setEmailPrueba((prev) => prev || res.settings.support_inbox_email || user?.email || "");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "No se pudo leer la salud del sistema.");
     } finally {
       setCargandoSalud(false);
     }
-  }, []);
+  }, [user?.email]);
 
   const abrirTicket = useCallback(
     async (id: string) => {
@@ -284,6 +289,33 @@ function ConsolaSoporteSuperadmin() {
     });
     setNuevaEmpresaKey("");
     setNuevaEmpresaNombre("");
+  };
+
+  const probarCorreo = async () => {
+    setOperando(true);
+    try {
+      const res = await enviarCorreoPruebaSoporte(emailPrueba);
+      await cargarSaludYConfig();
+      toast.success(res.detalle);
+    } catch (err) {
+      await cargarSaludYConfig();
+      toast.error(err instanceof Error ? err.message : "Error enviando correo de prueba.");
+    } finally {
+      setOperando(false);
+    }
+  };
+
+  const reintentarColaCorreo = async () => {
+    setOperando(true);
+    try {
+      const res = await reintentarOutboxFallidos();
+      await cargarSaludYConfig();
+      toast.success(`Procesados ${res.procesados} correos · Enviados: ${res.enviados}.`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "No se pudo reintentar la cola.");
+    } finally {
+      setOperando(false);
+    }
   };
 
   return (
@@ -944,6 +976,238 @@ function ConsolaSoporteSuperadmin() {
                     </div>
                   </div>
                 ))}
+              </CardContent>
+            </Card>
+
+            {/* Tarjeta interna de Brevo: correos de alerta de admin, límite, consumo en tiempo real y cola */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  Brevo · Correos de alerta, límite y consumo en tiempo real
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* KPIs de Límite y Consumo de Brevo */}
+                <div className="grid gap-3 min-[720px]:grid-cols-4">
+                  <div className="rounded-[10px] border border-border bg-[var(--surface-soft)] p-3">
+                    <p className="text-[11.5px] text-[var(--text-2)]">Estado y plan en Brevo</p>
+                    <p className="mt-1 text-[15px] font-semibold text-foreground">
+                      {health.brevo.ok
+                        ? `Activo (${health.brevo.planType ?? "plan"})`
+                        : health.brevo.configured
+                          ? "Error de conexión"
+                          : "Sin BREVO_API_KEY"}
+                    </p>
+                    <p className="mt-0.5 truncate text-[11px] text-[var(--text-3)]">
+                      {health.brevo.accountEmail || health.brevo.error || "Configura en Vercel"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-[10px] border border-border bg-[var(--surface-soft)] p-3">
+                    <p className="text-[11.5px] text-[var(--text-2)]">Créditos / Límite restante</p>
+                    <p className="mt-1 font-mono text-[18px] font-semibold text-foreground">
+                      {health.brevo.creditsRemaining != null
+                        ? health.brevo.creditsRemaining.toLocaleString("es-ES")
+                        : "—"}
+                      {health.brevo.estimatedLimit != null ? (
+                        <span className="text-xs font-normal text-[var(--text-2)]">
+                          {" "}
+                          / {health.brevo.estimatedLimit.toLocaleString("es-ES")}
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-[var(--text-3)]">
+                      {health.brevo.planType === "free" ? "Cupo diario Brevo" : "Cupo disponible del plan"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-[10px] border border-border bg-[var(--surface-soft)] p-3">
+                    <p className="text-[11.5px] text-[var(--text-2)]">Lo que llevamos usado HOY</p>
+                    <p className="mt-1 font-mono text-[18px] font-semibold text-foreground">
+                      {health.brevo.usage ? health.brevo.usage.sentToday : health.brevo.crmSentToday}
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-[var(--text-3)]">
+                      Del CRM hoy: {health.brevo.crmSentToday} · Entregados Brevo: {health.brevo.usage?.deliveredToday ?? 0}
+                    </p>
+                  </div>
+
+                  <div className="rounded-[10px] border border-border bg-[var(--surface-soft)] p-3">
+                    <p className="text-[11.5px] text-[var(--text-2)]">Usados últimos 30 días</p>
+                    <p className="mt-1 font-mono text-[18px] font-semibold text-foreground">
+                      {health.brevo.usage ? health.brevo.usage.sentLast30d : health.brevo.crmSentLast30d}
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-[var(--text-3)]">
+                      Rebotes 30d: {health.brevo.usage?.bouncesLast30d ?? 0} · Bloqueados: {health.brevo.usage?.blockedLast30d ?? 0}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Barra visual de consumo frente al límite */}
+                {health.brevo.ok &&
+                health.brevo.creditsRemaining != null &&
+                health.brevo.estimatedLimit != null &&
+                health.brevo.estimatedLimit > 0 ? (
+                  <div>
+                    {(() => {
+                      const usados = Math.max(0, health.brevo.estimatedLimit - health.brevo.creditsRemaining);
+                      const pct = Math.min(100, Math.round((usados / health.brevo.estimatedLimit) * 100));
+                      return (
+                        <div>
+                          <div className="mb-1 flex justify-between text-xs text-[var(--text-2)]">
+                            <span>
+                              Consumo actual: <strong>{usados}</strong> usados de <strong>{health.brevo.estimatedLimit}</strong> ({pct}%)
+                            </span>
+                            <span>{health.brevo.creditsRemaining} disponibles</span>
+                          </div>
+                          <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--surface-soft)]">
+                            <div
+                              className={cn(
+                                "h-full rounded-full transition-all",
+                                pct >= 85 ? "bg-red-500" : pct >= 65 ? "bg-amber-500" : "bg-emerald-500"
+                              )}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                ) : null}
+
+                {/* Campos donde poner el correo de Admin/Soporte y el Remitente */}
+                <div className="grid gap-3 border-t border-border pt-3 min-[720px]:grid-cols-3">
+                  <div>
+                    <Label className="text-xs">Correo de Admin / Soporte (donde recibes tú las alertas)</Label>
+                    <Input
+                      defaultValue={health.settings.support_inbox_email ?? ""}
+                      placeholder="soporte@tudominio.es"
+                      onBlur={(e) =>
+                        void actualizarAjustes({
+                          project_key: health.settings.project_key,
+                          support_inbox_email: e.target.value,
+                        })
+                      }
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Correo remitente verificado en Brevo</Label>
+                    <Input
+                      defaultValue={health.settings.brevo_sender_email ?? ""}
+                      placeholder="notificaciones@rehabinco.es"
+                      onBlur={(e) =>
+                        void actualizarAjustes({
+                          project_key: health.settings.project_key,
+                          brevo_sender_email: e.target.value,
+                        })
+                      }
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Nombre visible del remitente</Label>
+                    <Input
+                      defaultValue={health.settings.brevo_sender_name}
+                      onBlur={(e) =>
+                        void actualizarAjustes({
+                          project_key: health.settings.project_key,
+                          brevo_sender_name: e.target.value,
+                        })
+                      }
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-4 text-sm">
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={health.settings.notify_admin_on_new}
+                      onChange={(e) =>
+                        void actualizarAjustes({
+                          project_key: health.settings.project_key,
+                          notify_admin_on_new: e.target.checked,
+                        })
+                      }
+                    />
+                    Enviar correo a Admin en nuevos tickets, mensajes y reaperturas
+                  </label>
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={health.settings.notify_user_on_updates}
+                      onChange={(e) =>
+                        void actualizarAjustes({
+                          project_key: health.settings.project_key,
+                          notify_user_on_updates: e.target.checked,
+                        })
+                      }
+                    />
+                    Enviar correo al Cliente al abrir ticket, responderle o proponer solución
+                  </label>
+                </div>
+
+                <div className="flex flex-wrap items-end gap-2 border-t border-border pt-3">
+                  <div className="min-w-[240px] flex-1">
+                    <Label className="text-xs">Enviar correo de prueba con Brevo ahora mismo</Label>
+                    <Input
+                      value={emailPrueba}
+                      onChange={(e) => setEmailPrueba(e.target.value)}
+                      placeholder="tu-correo@ejemplo.com"
+                      className="mt-1"
+                    />
+                  </div>
+                  <Button type="button" disabled={operando} onClick={() => void probarCorreo()}>
+                    Enviar email de prueba
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={operando}
+                    onClick={() => void reintentarColaCorreo()}
+                  >
+                    Reintentar correos con error
+                  </Button>
+                </div>
+
+                {health.outboxReciente.length > 0 ? (
+                  <div className="mt-3 overflow-x-auto rounded-[10px] border border-border">
+                    <table className="w-full text-left text-xs">
+                      <thead className="border-b border-border bg-[var(--surface-soft)] text-[var(--text-2)]">
+                        <tr>
+                          <th className="px-3 py-2">Fecha</th>
+                          <th className="px-3 py-2">Destino</th>
+                          <th className="px-3 py-2">Evento</th>
+                          <th className="px-3 py-2">Estado</th>
+                          <th className="px-3 py-2">Message-ID / Error</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {health.outboxReciente.map((row) => (
+                          <tr key={row.id}>
+                            <td className="whitespace-nowrap px-3 py-2">
+                              {new Date(row.created_at).toLocaleString("es-ES", {
+                                dateStyle: "short",
+                                timeStyle: "short",
+                              })}
+                            </td>
+                            <td className="px-3 py-2">
+                              {row.destinatario_email}{" "}
+                              <span className="text-[var(--text-3)]">({row.destinatario_tipo})</span>
+                            </td>
+                            <td className="px-3 py-2 font-mono">{row.evento}</td>
+                            <td className="px-3 py-2 font-semibold">{row.estado}</td>
+                            <td className="max-w-[260px] truncate px-3 py-2 text-[var(--text-2)]">
+                              {row.ultimo_error || row.brevo_message_id || "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : null}
               </CardContent>
             </Card>
 

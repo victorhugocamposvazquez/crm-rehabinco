@@ -2,16 +2,19 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle2, ImagePlus, Plus, RotateCcw, Send } from "lucide-react";
+import { CheckCircle2, ImagePlus, Mail, Plus, RotateCcw, Send } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth/auth-context";
 import { isSuperAdmin } from "@/lib/auth/roles";
 import {
   accionUsuarioTicket,
   enviarMensajeTicket,
+  fetchUserSupportPrefs,
+  guardarUserSupportPrefs,
   listarTicketsSoporte,
   obtenerTicketDetalle,
   subirAdjuntoSoporte,
@@ -55,6 +58,37 @@ function SoporteContenido() {
   const [mostrarMotivoReabrir, setMostrarMotivoReabrir] = useState(false);
   const [motivoReabrir, setMotivoReabrir] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [alertEmail, setAlertEmail] = useState("");
+  const [notifyEmail, setNotifyEmail] = useState(true);
+  const [guardandoEmail, setGuardandoEmail] = useState(false);
+
+  useEffect(() => {
+    void fetchUserSupportPrefs()
+      .then((p) => {
+        setAlertEmail(p.alertEmail || user?.email || "");
+        setNotifyEmail(p.notifyEmail);
+      })
+      .catch(() => {
+        if (user?.email) setAlertEmail(user.email);
+      });
+  }, [user?.email]);
+
+  const guardarMiCorreoAlertas = async () => {
+    setGuardandoEmail(true);
+    try {
+      const res = await guardarUserSupportPrefs({
+        alertEmail: alertEmail.trim(),
+        notifyEmail,
+      });
+      setAlertEmail(res.alertEmail);
+      setNotifyEmail(res.notifyEmail);
+      toast.success("Correo de alertas guardado.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "No se pudo guardar el correo.");
+    } finally {
+      setGuardandoEmail(false);
+    }
+  };
 
   const cargarLista = useCallback(async () => {
     setCargando(true);
@@ -212,7 +246,47 @@ function SoporteContenido() {
         }
       />
 
-      <div className="mt-6 grid gap-4 min-[920px]:grid-cols-[320px_1fr]">
+      <Card className="mt-5">
+        <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+          <div className="min-w-[220px]">
+            <p className="flex items-center gap-1.5 text-[13.5px] font-semibold text-foreground">
+              <Mail className="h-4 w-4 text-[var(--text-2)]" />
+              Mi correo para recibir alertas de soporte
+            </p>
+            <p className="mt-0.5 text-xs text-[var(--text-2)]">
+              Te avisaremos aquí cuando respondamos tu consulta o haya una solución lista para confirmar.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <label className="inline-flex items-center gap-1.5 text-xs text-[var(--text-2)]">
+              <input
+                type="checkbox"
+                checked={notifyEmail}
+                onChange={(e) => setNotifyEmail(e.target.checked)}
+              />
+              Recibir correos
+            </label>
+            <Input
+              type="email"
+              value={alertEmail}
+              onChange={(e) => setAlertEmail(e.target.value)}
+              placeholder="tucorreo@empresa.es"
+              className="h-9 w-[240px]"
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={guardandoEmail}
+              onClick={() => void guardarMiCorreoAlertas()}
+            >
+              {guardandoEmail ? "Guardando…" : "Guardar correo"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="mt-5 grid gap-4 min-[920px]:grid-cols-[320px_1fr]">
         {/* Columna izquierda: listado de mis tickets */}
         <div className="space-y-2">
           {cargando ? (

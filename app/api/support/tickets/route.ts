@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { waitUntil } from "@vercel/functions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { inferirModuloPorRuta, getSupportProjectManifest } from "@/lib/support/project-manifest";
+import { resolverEmailPreferidoUsuario } from "@/lib/support/mailer";
 import {
   obtenerOCrearAjustesProyecto,
   obtenerUsuarioSesionSoporte,
@@ -78,6 +79,7 @@ export async function POST(request: Request) {
     descripcion?: string;
     categoria?: string;
     modulo?: string;
+    contactEmail?: string;
     contexto?: { pathname?: string; viewport?: string; userAgent?: string; permisosActivos?: string[]; eventos?: unknown[] };
     adjuntos?: Array<{ path: string; nombre: string; mime?: string }>;
   } | null;
@@ -99,14 +101,28 @@ export async function POST(request: Request) {
   const pathname = body?.contexto?.pathname || "/";
   const modulo = (body?.modulo || "").trim() || inferirModuloPorRuta(pathname);
 
-  // Guardado atómico e indestructible del ticket y su mensaje inicial
   const admin = createAdminClient();
+  const emailExplicito = (body?.contactEmail || "").trim();
+  if (emailExplicito && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailExplicito)) {
+    await admin.from("support_user_prefs").upsert(
+      {
+        user_id: user.id,
+        alert_email: emailExplicito,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" }
+    );
+  }
+  const prefEmail = await resolverEmailPreferidoUsuario(user.id, user.email);
+  const emailFinalTicket = emailExplicito || prefEmail.email || user.email;
+
+  // Guardado atómico e indestructible del ticket y su mensaje inicial
   const { data: ticket, error: insertError } = await admin
     .from("support_tickets")
     .insert({
       project_key: manifest.projectKey,
       user_id: user.id,
-      user_email: user.email,
+      user_email: emailFinalTicket,
       user_role: user.role,
       titulo: titulo.slice(0, 180),
       descripcion: descripcion.slice(0, 6000),

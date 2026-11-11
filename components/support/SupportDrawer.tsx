@@ -15,6 +15,7 @@ import { usePermisos } from "@/lib/auth/permisos-context";
 import { PERMISOS } from "@/lib/auth/permisos";
 import {
   crearTicketSoporte,
+  fetchUserSupportPrefs,
   listarTicketsSoporte,
   subirAdjuntoSoporte,
 } from "@/lib/support/client";
@@ -49,6 +50,7 @@ export function SupportDrawer({
   const [tab, setTab] = useState<"nuevo" | "mios">("nuevo");
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
   const [categoria, setCategoria] = useState<SupportCategoria>("bug");
   const [adjuntos, setAdjuntos] = useState<SupportAttachmentRef[]>([]);
   const [capturando, setCapturando] = useState(false);
@@ -69,10 +71,18 @@ export function SupportDrawer({
   }, []);
 
   useEffect(() => {
-    if (open && tab === "mios") {
+    if (!open) return;
+    if (tab === "mios") {
       void cargarMios();
     }
-  }, [open, tab, cargarMios]);
+    void fetchUserSupportPrefs()
+      .then((p) => {
+        setContactEmail((actual) => actual || p.alertEmail || user?.email || "");
+      })
+      .catch(() => {
+        setContactEmail((actual) => actual || user?.email || "");
+      });
+  }, [open, tab, cargarMios, user?.email]);
 
   const capturarPantallaActual = async () => {
     setCapturando(true);
@@ -131,6 +141,7 @@ export function SupportDrawer({
         titulo: titulo.trim(),
         descripcion: descripcion.trim(),
         categoria,
+        contactEmail: contactEmail.trim() || undefined,
         contexto,
         adjuntos,
       });
@@ -251,6 +262,17 @@ export function SupportDrawer({
                   onChange={(e) => setDescripcion(e.target.value)}
                   placeholder="Cuéntalo con tus palabras. Nosotros adjuntamos automáticamente en qué pantalla estás y si hubo algún fallo técnico."
                   className="w-full rounded-[10px] border border-border bg-[var(--surface)] px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="soporte-email-aviso">Tu correo para recibir avisos de este ticket</Label>
+                <Input
+                  id="soporte-email-aviso"
+                  type="email"
+                  placeholder="tucorreo@empresa.es"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
                 />
               </div>
 

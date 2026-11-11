@@ -37,6 +37,27 @@ export async function fetchSupportStatus(): Promise<SupportStatusResponse> {
   return parseJson<SupportStatusResponse>(res);
 }
 
+export async function fetchUserSupportPrefs(): Promise<{
+  ok: true;
+  alertEmail: string;
+  notifyEmail: boolean;
+}> {
+  const res = await fetch(`${apiBase()}/prefs`, { cache: "no-store" });
+  return parseJson(res);
+}
+
+export async function guardarUserSupportPrefs(input: {
+  alertEmail: string;
+  notifyEmail: boolean;
+}): Promise<{ ok: true; alertEmail: string; notifyEmail: boolean }> {
+  const res = await fetch(`${apiBase()}/prefs`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return parseJson(res);
+}
+
 export async function listarTicketsSoporte(modo?: "mios" | "todos", estado?: string): Promise<{
   ok: true;
   activo: boolean;
@@ -56,6 +77,7 @@ export async function crearTicketSoporte(input: {
   descripcion: string;
   categoria?: SupportCategoria;
   modulo?: string;
+  contactEmail?: string;
   contexto: SupportContextSnapshot;
   adjuntos?: SupportAttachmentRef[];
 }): Promise<{ ok: true; ticket: SupportTicket }> {
@@ -146,6 +168,40 @@ export type SupportAdminHealthResponse = {
   settings: SupportSettingsRow;
   empresas: SupportSettingsRow[];
   runsEstaSemana: number;
+  brevo: {
+    configured: boolean;
+    ok: boolean;
+    accountEmail?: string;
+    companyName?: string;
+    planType?: string;
+    creditsRemaining?: number | null;
+    estimatedLimit?: number | null;
+    error?: string;
+    crmSentToday: number;
+    crmSentLast30d: number;
+    usage?: {
+      sentToday: number;
+      deliveredToday: number;
+      sentLast30d: number;
+      deliveredLast30d: number;
+      bouncesLast30d: number;
+      blockedLast30d: number;
+    };
+  };
+  outboxReciente: Array<{
+    id: string;
+    destinatario_email: string;
+    destinatario_tipo: string;
+    evento: string;
+    asunto: string;
+    estado: string;
+    intentos: number;
+    ultimo_error: string | null;
+    brevo_message_id: string | null;
+    created_at: string;
+    enviado_en: string | null;
+    entregado_en: string | null;
+  }>;
 };
 
 export async function fetchSupportAdminHealth(): Promise<SupportAdminHealthResponse> {
@@ -160,6 +216,24 @@ export async function guardarSupportSettings(
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(patch),
+  });
+  return parseJson(res);
+}
+
+export async function enviarCorreoPruebaSoporte(destinatarioEmail?: string): Promise<{ ok: true; detalle: string }> {
+  const res = await fetch(`${apiBase()}/admin/health`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ accion: "probar_correo", destinatarioEmail }),
+  });
+  return parseJson(res);
+}
+
+export async function reintentarOutboxFallidos(): Promise<{ ok: true; procesados: number; enviados: number }> {
+  const res = await fetch(`${apiBase()}/admin/health`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ accion: "reintentar_outbox" }),
   });
   return parseJson(res);
 }
