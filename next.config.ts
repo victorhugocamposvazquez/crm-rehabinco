@@ -4,7 +4,7 @@ const buildId = process.env.VERCEL_GIT_COMMIT_SHA ?? "dev";
 
 const nextConfig: NextConfig = {
   transpilePackages: ["maplibre-gl"],
-  serverExternalPackages: ["@react-pdf/renderer"],
+  serverExternalPackages: ["@react-pdf/renderer", "@cursor/sdk"],
   outputFileTracingIncludes: {
     "/api/avm/valuations/[id]/pdf": [
       "./node_modules/pdfkit/js/standard-fonts/**/*",

@@ -28,6 +28,7 @@ const patterns = [
   "lib/build-id.test.ts",
   "lib/auth/**/*.test.ts",
   "lib/estadisticas/**/*.test.ts",
+  "lib/support/**/*.test.ts",
   "lib/ui/**/*.test.ts",
   "lib/time/**/*.test.ts",
   "scripts/stamp-sw-build.test.mjs",

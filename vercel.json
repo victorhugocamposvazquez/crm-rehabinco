@@ -48,6 +48,12 @@
     },
     "app/api/time/export/route.ts": {
       "maxDuration": 60
+    },
+    "app/api/support/tickets/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/support/tickets/[id]/admin/route.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [

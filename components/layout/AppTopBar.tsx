@@ -11,6 +11,7 @@ import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { InterruptorTema } from "@/components/ui/InterruptorTema";
 import { AvisosBarra } from "./AvisosBarra";
 import { useMenuPerfil } from "./MenuPerfil";
+import { SupportTrigger } from "@/components/support/SupportTrigger";
 
 export function AppTopBar() {
   const pathname = usePathname();
@@ -41,12 +42,15 @@ export function AppTopBar() {
         <BusquedaGlobal />
       </span>
       <span className="shrink-0 min-[820px]:order-2">
-        <AvisosBarra />
+        <SupportTrigger />
       </span>
       <span className="shrink-0 min-[820px]:order-3">
-        <InterruptorTema compacto />
+        <AvisosBarra />
       </span>
       <span className="shrink-0 min-[820px]:order-4">
+        <InterruptorTema compacto />
+      </span>
+      <span className="shrink-0 min-[820px]:order-5">
         <NuevoMenu />
       </span>
       {user ? (

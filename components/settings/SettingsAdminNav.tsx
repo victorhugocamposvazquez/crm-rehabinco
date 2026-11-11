@@ -14,6 +14,7 @@ const ITEMS = [
   { href: "/settings#equipo", label: "Equipo", portales: false, papelera: false, direccion: true },
   { href: "/settings/papelera", label: "Papelera de usuarios", portales: false, papelera: false, direccion: false, soloSuperadmin: true },
   { href: "/settings/roles", label: "Roles y permisos", portales: false, papelera: false, direccion: false, soloSuperadmin: true },
+  { href: "/settings/soporte", label: "Tickets y salud de soporte", portales: false, papelera: false, direccion: false, soloSuperadmin: true },
   { href: "/settings/empresa", label: "Datos de empresa", portales: false, papelera: false, direccion: true },
   { href: "/settings/emisores-presupuesto", label: "Emisores de presupuesto", portales: false, papelera: false, direccion: true },
   { href: "/settings/portales", label: "Captación", portales: true, papelera: false, direccion: false },

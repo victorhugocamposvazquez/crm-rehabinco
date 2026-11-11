@@ -112,6 +112,12 @@ export function breadcrumbDeRuta(pathname: string): { seccion: string; detalle?:
   if (pathname === "/fichaje" || pathname.startsWith("/fichaje/")) {
     return { seccion: "Fichaje" };
   }
+  if (pathname === "/soporte" || pathname.startsWith("/soporte/")) {
+    return { seccion: "Soporte", detalle: "Mis consultas" };
+  }
+  if (pathname === "/settings/soporte" || pathname.startsWith("/settings/soporte/")) {
+    return { seccion: "Ajustes", detalle: "Consola de soporte" };
+  }
   const item = NAV_ITEMS.find((nav) => navItemActivo(pathname, nav.href) && nav.href !== "/") 
     ?? NAV_ITEMS.find((nav) => nav.href === pathname);
   if (pathname === "/") return { seccion: "Hoy" };

@@ -24,6 +24,7 @@ describe("prefs de avisos", () => {
     assert.equal(canalDeTipo("tarea-vencida"), "tareas_vencidas");
     assert.equal(canalDeTipo("mencion"), "menciones");
     assert.equal(canalDeTipo("parte"), "partes");
+    assert.equal(canalDeTipo("soporte"), "soporte");
   });
 
   it("respeta el interruptor del canal", () => {

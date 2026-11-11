@@ -164,10 +164,13 @@ export function rutaPermitida(pathname: string, role: Role | null | undefined, f
     pathname === "/settings/roles" ||
     pathname.startsWith("/settings/roles/") ||
     pathname === "/settings/papelera" ||
-    pathname.startsWith("/settings/papelera/")
+    pathname.startsWith("/settings/papelera/") ||
+    pathname === "/settings/soporte" ||
+    pathname.startsWith("/settings/soporte/")
   ) {
     return false;
   }
+  if (pathname === "/soporte" || pathname.startsWith("/soporte/")) return true;
   const regla = RUTAS.find((item) => (item.exacto ? pathname === item.prefijo : pathname === item.prefijo || pathname.startsWith(`${item.prefijo}/`)));
   if (!regla) return true;
   if (regla.prefijo === "/settings") return true;

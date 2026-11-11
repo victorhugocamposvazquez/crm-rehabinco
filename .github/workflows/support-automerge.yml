@@ -1,0 +1,161 @@
+name: Soporte · 4 Candados de Auto-Merge
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: support-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  support-guardrails:
+    if: contains(github.event.pull_request.body || '', 'Ticket-ID:') && github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Extraer Ticket-ID e inspeccionar diff (Candados 1 y 2)
+        id: inspect
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          node - <<'EOF'
+          const { execSync } = require("node:child_process");
+          const fs = require("node:fs");
+
+          const body = process.env.PR_BODY || "";
+          const m = body.match(/Ticket-ID:\s*([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
+          if (!m) {
+            console.log("No se encontró UUID válido tras Ticket-ID.");
+            process.exit(0);
+          }
+          const ticketId = m[1].toLowerCase();
+          const raw = execSync(`gh pr view ${process.env.PR_NUMBER} --json files,additions,deletions,url,headRefName`, { encoding: "utf8" });
+          const pr = JSON.parse(raw);
+          const files = (pr.files || []).map((f) => f.path);
+
+          const out = [
+            `ticket_id=${ticketId}`,
+            `pr_url=${pr.url}`,
+            `branch=${pr.headRefName}`,
+            `additions=${pr.additions || 0}`,
+            `deletions=${pr.deletions || 0}`,
+            `files_json=${JSON.stringify(files)}`,
+          ].join("\n");
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, out + "\n");
+          EOF
+
+      - name: Instalar dependencias
+        if: steps.inspect.outputs.ticket_id != ''
+        run: npm ci
+
+      - name: Candado 3 · Tests CRM + Typecheck + Build
+        if: steps.inspect.outputs.ticket_id != ''
+        id: verify_build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: build-placeholder-anon-key
+        run: |
+          npm test
+          npx tsc --noEmit
+          npm run build
+
+      - name: Candado 4 · Validar con CRM y fusionar o retener para 1 clic
+        if: steps.inspect.outputs.ticket_id != '' && always()
+        env:
+          GH_TOKEN: ${{ secrets.SUPPORT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+          SUPPORT_WEBHOOK_URL: ${{ secrets.SUPPORT_WEBHOOK_URL }}
+          SUPPORT_WEBHOOK_SECRET: ${{ secrets.SUPPORT_WEBHOOK_SECRET }}
+          TICKET_ID: ${{ steps.inspect.outputs.ticket_id }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_URL: ${{ steps.inspect.outputs.pr_url }}
+          BRANCH: ${{ steps.inspect.outputs.branch }}
+          ADDITIONS: ${{ steps.inspect.outputs.additions }}
+          DELETIONS: ${{ steps.inspect.outputs.deletions }}
+          FILES_JSON: ${{ steps.inspect.outputs.files_json }}
+          BUILD_OUTCOME: ${{ steps.verify_build.outcome }}
+        run: |
+          node - <<'EOF'
+          const crypto = require("node:crypto");
+          const { execSync } = require("node:child_process");
+
+          const webhookUrl = (process.env.SUPPORT_WEBHOOK_URL || "").trim();
+          const secret = (process.env.SUPPORT_WEBHOOK_SECRET || "").trim();
+          if (!webhookUrl || !secret) {
+            console.log("SUPPORT_WEBHOOK_URL o SUPPORT_WEBHOOK_SECRET no configurados en GitHub Secrets; omitiendo auto-merge.");
+            process.exit(0);
+          }
+
+          async function postSigned(payloadObj) {
+            const body = JSON.stringify(payloadObj);
+            const sig = crypto.createHmac("sha256", secret).update(body, "utf8").digest("hex");
+            const res = await fetch(webhookUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Support-Signature": `sha256=${sig}`,
+              },
+              body,
+            });
+            return { ok: res.ok, data: await res.json().catch(() => ({})) };
+          }
+
+          (async () => {
+            const base = {
+              ticketId: process.env.TICKET_ID,
+              prNumber: Number(process.env.PR_NUMBER),
+              prUrl: process.env.PR_URL,
+              branch: process.env.BRANCH,
+              files: JSON.parse(process.env.FILES_JSON || "[]"),
+              additions: Number(process.env.ADDITIONS || 0),
+              deletions: Number(process.env.DELETIONS || 0),
+            };
+
+            if (process.env.BUILD_OUTCOME !== "success") {
+              await postSigned({
+                ...base,
+                action: "report_retained",
+                reason: "Tests o build fallaron en GitHub Actions.",
+              });
+              process.exit(1);
+            }
+
+            const gate = await postSigned({ ...base, action: "verify_gate" });
+            if (!gate.ok || !gate.data.allowAutoMerge) {
+              const reason = (gate.data.reasons || ["Retenido por política de seguridad"]).join(" | ");
+              console.log("PR retenido para revisión en 1 clic:", reason);
+              await postSigned({
+                ...base,
+                action: "report_retained",
+                reason,
+              });
+              return;
+            }
+
+            execSync(`gh pr merge ${base.prNumber} --squash --delete-branch`, { stdio: "inherit" });
+            await postSigned({ ...base, action: "report_automerge" });
+            console.log("PR fusionado y ticket marcado como pendiente de confirmación del usuario.");
+          })().catch((err) => {
+            console.error(err);
+            process.exit(1);
+          });
+          EOF

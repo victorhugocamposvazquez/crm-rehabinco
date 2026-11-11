@@ -167,6 +167,14 @@ function MenuPerfilModal({ abierto, onCerrar }: { abierto: boolean; onCerrar: ()
 
           <div className="mt-3 space-y-0.5">
             <Link
+              href="/soporte"
+              onClick={onCerrar}
+              className="flex min-h-11 items-center gap-3 rounded-[10px] px-3 text-[14px] font-medium hover:bg-[var(--surface-soft)]"
+            >
+              <Bell className="h-4 w-4 text-[var(--text-2)]" strokeWidth={1.7} aria-hidden />
+              Mis consultas de soporte
+            </Link>
+            <Link
               href="/settings"
               onClick={onCerrar}
               className="flex min-h-11 items-center gap-3 rounded-[10px] px-3 text-[14px] font-medium hover:bg-[var(--surface-soft)]"

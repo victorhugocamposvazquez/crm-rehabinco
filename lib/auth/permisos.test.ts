@@ -20,6 +20,11 @@ describe("permisos por defecto", () => {
     assert.equal(permisoPorDefecto("comercial", "usuarios"), false);
     assert.equal(permisoPorDefecto("comercial", "portales"), false);
     assert.equal(rutaPermitida("/settings/roles", "admin", null), false);
+    assert.equal(rutaPermitida("/settings/soporte", "admin", null), false);
+    assert.equal(rutaPermitida("/settings/soporte", "superadmin", null), true);
+    assert.equal(rutaPermitida("/soporte", "comercial", null), true);
+    assert.equal(rutaPermitida("/soporte", "editor", null), true);
+    assert.equal(rutaPermitida("/soporte", "catastro_user", null), true);
     assert.equal(rutaPermitida("/settings/empresa", "comercial", null), false);
     assert.equal(rutaPermitida("/settings", "comercial", null), true);
     assert.equal(hrefsConPermisos("editor", "desktop", null).includes("/presupuestos"), true);

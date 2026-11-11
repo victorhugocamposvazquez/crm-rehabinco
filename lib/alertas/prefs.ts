@@ -39,6 +39,11 @@ export const CANALES_AVISO = [
     label: "Encargos de captación",
     hint: "Cuando te encargan un portal nuevo, en la app y en el push.",
   },
+  {
+    id: "soporte",
+    label: "Soporte técnico",
+    hint: "Respuestas y soluciones sobre tus consultas o incidencias.",
+  },
 ] as const;
 
 export type CanalAviso = (typeof CANALES_AVISO)[number]["id"];
@@ -54,13 +59,14 @@ export const PREFS_AVISO_DEFAULT: PrefsAviso = {
   menciones: true,
   partes: true,
   encargos: true,
+  soporte: true,
 };
 
 /** Hora de España del recordatorio diario si la persona no elige otra. */
 export const HORA_DIARIA_DEFECTO = 10;
 
 export const SELECT_PREFS_AVISO =
-  "visitas, recordatorios, agenda, tareas_hoy, tareas_vencidas, menciones, partes, encargos, hora_diaria";
+  "visitas, recordatorios, agenda, tareas_hoy, tareas_vencidas, menciones, partes, encargos, soporte, hora_diaria";
 
 export function horaDiariaDe(row: { hora_diaria?: number | null } | null | undefined): number {
   const hora = row?.hora_diaria;
@@ -78,6 +84,7 @@ export function prefsCompletas(row: Partial<PrefsAviso> | null | undefined): Pre
     menciones: row?.menciones ?? PREFS_AVISO_DEFAULT.menciones,
     partes: row?.partes ?? PREFS_AVISO_DEFAULT.partes,
     encargos: row?.encargos ?? PREFS_AVISO_DEFAULT.encargos,
+    soporte: row?.soporte ?? PREFS_AVISO_DEFAULT.soporte,
   };
 }
 
@@ -88,6 +95,7 @@ export function canalDeTipo(tipo: string): CanalAviso {
   if (tipo === "tarea-vencida") return "tareas_vencidas";
   if (tipo === "mencion") return "menciones";
   if (tipo === "parte") return "partes";
+  if (tipo === "soporte") return "soporte";
   return "agenda";
 }
 

@@ -140,7 +140,7 @@ export function isComercialBlockedPath(pathname: string): boolean {
   );
 }
 
-const CATASTRO_USER_ALLOWED_PREFIXES = ["/catastro", "/clientes", "/tareas", "/calendario", "/settings"] as const;
+const CATASTRO_USER_ALLOWED_PREFIXES = ["/catastro", "/clientes", "/tareas", "/calendario", "/settings", "/soporte"] as const;
 
 export function catastroUserHomePath(): string {
   return "/catastro";

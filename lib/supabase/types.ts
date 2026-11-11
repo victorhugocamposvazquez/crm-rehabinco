@@ -1972,6 +1972,286 @@ export interface Database {
           uploaded_by?: string | null;
         };
       };
+      support_settings: {
+        Row: {
+          project_key: string;
+          empresa_nombre: string;
+          estado_adhesion: "pendiente" | "aceptada" | "rechazada" | "suspendida";
+          aceptada_en: string | null;
+          aceptada_por: string | null;
+          plan_activo: boolean;
+          plan_nombre: string;
+          plan_vence_en: string | null;
+          stripe_customer_id: string | null;
+          stripe_subscription_id: string | null;
+          solver_provider: "manual" | "solo_triaje_ia" | "cursor_cloud" | "github_issue" | "webhook_externo";
+          solver_webhook_url: string | null;
+          cursor_model: "composer-2.5" | "auto";
+          auto_merge_enabled: boolean;
+          max_agent_runs_per_week: number;
+          support_inbox_email: string | null;
+          brevo_sender_email: string | null;
+          brevo_sender_name: string;
+          notify_admin_on_new: boolean;
+          notify_user_on_updates: boolean;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          project_key: string;
+          empresa_nombre?: string;
+          estado_adhesion?: "pendiente" | "aceptada" | "rechazada" | "suspendida";
+          aceptada_en?: string | null;
+          aceptada_por?: string | null;
+          plan_activo?: boolean;
+          plan_nombre?: string;
+          plan_vence_en?: string | null;
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          solver_provider?: "manual" | "solo_triaje_ia" | "cursor_cloud" | "github_issue" | "webhook_externo";
+          solver_webhook_url?: string | null;
+          cursor_model?: "composer-2.5" | "auto";
+          auto_merge_enabled?: boolean;
+          max_agent_runs_per_week?: number;
+          support_inbox_email?: string | null;
+          brevo_sender_email?: string | null;
+          brevo_sender_name?: string;
+          notify_admin_on_new?: boolean;
+          notify_user_on_updates?: boolean;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          empresa_nombre?: string;
+          estado_adhesion?: "pendiente" | "aceptada" | "rechazada" | "suspendida";
+          aceptada_en?: string | null;
+          aceptada_por?: string | null;
+          plan_activo?: boolean;
+          plan_nombre?: string;
+          plan_vence_en?: string | null;
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          solver_provider?: "manual" | "solo_triaje_ia" | "cursor_cloud" | "github_issue" | "webhook_externo";
+          solver_webhook_url?: string | null;
+          cursor_model?: "composer-2.5" | "auto";
+          auto_merge_enabled?: boolean;
+          max_agent_runs_per_week?: number;
+          support_inbox_email?: string | null;
+          brevo_sender_email?: string | null;
+          brevo_sender_name?: string;
+          notify_admin_on_new?: boolean;
+          notify_user_on_updates?: boolean;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+      };
+      support_tickets: {
+        Row: {
+          id: string;
+          codigo: string;
+          project_key: string;
+          user_id: string;
+          user_email: string | null;
+          user_role: string | null;
+          titulo: string;
+          descripcion: string;
+          modulo: string | null;
+          categoria: "duda" | "bug" | "datos" | "mejora";
+          riesgo: "cero" | "bajo" | "alto";
+          estado:
+            | "nuevo"
+            | "triaje"
+            | "en_curso_manual"
+            | "esperando_usuario"
+            | "respondido_ia"
+            | "agente_trabajando"
+            | "pr_revision"
+            | "pendiente_confirmacion"
+            | "reabierto"
+            | "resuelto"
+            | "escalado_humano"
+            | "cerrado";
+          contexto: Json;
+          solver_provider: string | null;
+          external_issue_url: string | null;
+          cursor_agent_id: string | null;
+          cursor_run_id: string | null;
+          github_branch: string | null;
+          github_pr_number: number | null;
+          github_pr_url: string | null;
+          vercel_preview_url: string | null;
+          auto_merge_permitido: boolean;
+          solucion_resumen: string | null;
+          solucion_propuesta_en: string | null;
+          resuelto_en: string | null;
+          resuelto_por: "usuario" | "superadmin" | "auto_inactividad" | null;
+          reabierto_veces: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          codigo?: string;
+          project_key?: string;
+          user_id: string;
+          user_email?: string | null;
+          user_role?: string | null;
+          titulo: string;
+          descripcion: string;
+          modulo?: string | null;
+          categoria?: "duda" | "bug" | "datos" | "mejora";
+          riesgo?: "cero" | "bajo" | "alto";
+          estado?:
+            | "nuevo"
+            | "triaje"
+            | "en_curso_manual"
+            | "esperando_usuario"
+            | "respondido_ia"
+            | "agente_trabajando"
+            | "pr_revision"
+            | "pendiente_confirmacion"
+            | "reabierto"
+            | "resuelto"
+            | "escalado_humano"
+            | "cerrado";
+          contexto?: Json;
+          solver_provider?: string | null;
+          external_issue_url?: string | null;
+          cursor_agent_id?: string | null;
+          cursor_run_id?: string | null;
+          github_branch?: string | null;
+          github_pr_number?: number | null;
+          github_pr_url?: string | null;
+          vercel_preview_url?: string | null;
+          auto_merge_permitido?: boolean;
+          solucion_resumen?: string | null;
+          solucion_propuesta_en?: string | null;
+          resuelto_en?: string | null;
+          resuelto_por?: "usuario" | "superadmin" | "auto_inactividad" | null;
+          reabierto_veces?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          codigo?: string;
+          project_key?: string;
+          user_email?: string | null;
+          user_role?: string | null;
+          titulo?: string;
+          descripcion?: string;
+          modulo?: string | null;
+          categoria?: "duda" | "bug" | "datos" | "mejora";
+          riesgo?: "cero" | "bajo" | "alto";
+          estado?:
+            | "nuevo"
+            | "triaje"
+            | "en_curso_manual"
+            | "esperando_usuario"
+            | "respondido_ia"
+            | "agente_trabajando"
+            | "pr_revision"
+            | "pendiente_confirmacion"
+            | "reabierto"
+            | "resuelto"
+            | "escalado_humano"
+            | "cerrado";
+          contexto?: Json;
+          solver_provider?: string | null;
+          external_issue_url?: string | null;
+          cursor_agent_id?: string | null;
+          cursor_run_id?: string | null;
+          github_branch?: string | null;
+          github_pr_number?: number | null;
+          github_pr_url?: string | null;
+          vercel_preview_url?: string | null;
+          auto_merge_permitido?: boolean;
+          solucion_resumen?: string | null;
+          solucion_propuesta_en?: string | null;
+          resuelto_en?: string | null;
+          resuelto_por?: "usuario" | "superadmin" | "auto_inactividad" | null;
+          reabierto_veces?: number;
+          updated_at?: string;
+        };
+      };
+      support_ticket_messages: {
+        Row: {
+          id: string;
+          ticket_id: string;
+          user_id: string | null;
+          autor_tipo: "usuario" | "ia" | "agente_codigo" | "agente_cursor" | "superadmin" | "sistema";
+          cuerpo: string;
+          adjuntos: Json;
+          interno: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          ticket_id: string;
+          user_id?: string | null;
+          autor_tipo: "usuario" | "ia" | "agente_codigo" | "agente_cursor" | "superadmin" | "sistema";
+          cuerpo: string;
+          adjuntos?: Json;
+          interno?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          cuerpo?: string;
+          adjuntos?: Json;
+          interno?: boolean;
+        };
+      };
+      support_email_outbox: {
+        Row: {
+          id: string;
+          project_key: string;
+          ticket_id: string | null;
+          destinatario_email: string;
+          destinatario_tipo: "usuario" | "soporte" | "prueba";
+          evento: string;
+          asunto: string;
+          cuerpo_html: string;
+          cuerpo_texto: string;
+          estado: "pendiente" | "enviado" | "entregado" | "rebote" | "bloqueado" | "error";
+          intentos: number;
+          brevo_message_id: string | null;
+          ultimo_error: string | null;
+          ultimo_evento_brevo: string | null;
+          enviado_en: string | null;
+          entregado_en: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_key?: string;
+          ticket_id?: string | null;
+          destinatario_email: string;
+          destinatario_tipo?: "usuario" | "soporte" | "prueba";
+          evento: string;
+          asunto: string;
+          cuerpo_html: string;
+          cuerpo_texto: string;
+          estado?: "pendiente" | "enviado" | "entregado" | "rebote" | "bloqueado" | "error";
+          intentos?: number;
+          brevo_message_id?: string | null;
+          ultimo_error?: string | null;
+          ultimo_evento_brevo?: string | null;
+          enviado_en?: string | null;
+          entregado_en?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          estado?: "pendiente" | "enviado" | "entregado" | "rebote" | "bloqueado" | "error";
+          intentos?: number;
+          brevo_message_id?: string | null;
+          ultimo_error?: string | null;
+          ultimo_evento_brevo?: string | null;
+          enviado_en?: string | null;
+          entregado_en?: string | null;
+          updated_at?: string;
+        };
+      };
     };
   };
 }
