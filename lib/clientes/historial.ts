@@ -56,6 +56,7 @@ export function itemCita(row: {
   estado: string;
   motivo_anulacion?: string | null;
   lugar?: string | null;
+  actorNombre?: string | null;
 }): ItemHistorialCliente {
   const tipoLabel = TIPO_CITA_LABEL[row.tipo as TipoCita] ?? row.tipo;
   const estadoLabel = ESTADO_CITA_LABEL[row.estado as EstadoCita] ?? row.estado;
@@ -65,7 +66,7 @@ export function itemCita(row: {
     tipo: "cita",
     fecha: row.empieza,
     titulo: row.titulo || tipoLabel,
-    meta: [tipoLabel, estadoLabel, row.lugar?.trim() || null].filter(Boolean).join(" · ") + motivo,
+    meta: [tipoLabel, estadoLabel, row.actorNombre?.trim() || null, row.lugar?.trim() || null].filter(Boolean).join(" · ") + motivo,
     href: `/calendario?cita=${row.id}`,
   };
 }
@@ -77,16 +78,18 @@ export function itemTarea(row: {
   hora?: string | null;
   estado: string;
   created_at?: string | null;
+  actorNombre?: string | null;
 }): ItemHistorialCliente {
   const fecha = row.vence
     ? `${row.vence}T${(row.hora || "12:00").slice(0, 5)}:00`
     : row.created_at || new Date(0).toISOString();
+  const est = row.estado === "hecha" ? "Hecha" : row.estado === "esperando" ? "Esperando" : "Pendiente";
   return {
     id: `tarea-${row.id}`,
     tipo: "tarea",
     fecha,
     titulo: row.titulo,
-    meta: row.estado === "hecha" ? "Hecha" : row.estado === "esperando" ? "Esperando" : "Pendiente",
+    meta: [est, row.actorNombre?.trim() || null].filter(Boolean).join(" · "),
     href: `/tareas?tarea=${row.id}`,
   };
 }

@@ -47,7 +47,7 @@ export function ClienteHistorial({ clienteId, tick = 0 }: { clienteId: string; t
     const soloSusTareas = !tiene("tareas_equipo");
     let tareasQ = supabase
       .from("tareas")
-      .select("id, titulo, vence, hora, estado, created_at")
+      .select("id, titulo, vence, hora, estado, created_at, profiles:comercial_id(nombre_completo, email)")
       .eq("cliente_id", clienteId)
       .order("vence", { ascending: false })
       .limit(60);
@@ -67,13 +67,13 @@ export function ClienteHistorial({ clienteId, tick = 0 }: { clienteId: string; t
       ] = await Promise.all([
         supabase
           .from("citas")
-          .select("id, tipo, titulo, empieza, estado, motivo_anulacion, lugar, comercial_id")
+          .select("id, tipo, titulo, empieza, estado, motivo_anulacion, lugar, comercial_id, profiles:comercial_id(nombre_completo, email)")
           .eq("cliente_id", clienteId)
           .order("empieza", { ascending: false })
           .limit(80),
         supabase
           .from("citas")
-          .select("id, tipo, titulo, empieza, estado, motivo_anulacion, lugar, comercial_id")
+          .select("id, tipo, titulo, empieza, estado, motivo_anulacion, lugar, comercial_id, profiles:comercial_id(nombre_completo, email)")
           .contains("clientes_extra_ids", [clienteId])
           .order("empieza", { ascending: false })
           .limit(40),
@@ -133,6 +133,7 @@ export function ClienteHistorial({ clienteId, tick = 0 }: { clienteId: string; t
         motivo_anulacion: string | null;
         lugar: string | null;
         comercial_id?: string | null;
+        profiles?: { nombre_completo: string | null; email?: string | null } | { nombre_completo: string | null; email?: string | null }[] | null;
       };
       const citasMap = new Map<string, CitaFila>();
       for (const row of [...((citasPri.data ?? []) as CitaFila[]), ...((citasExtra.data ?? []) as CitaFila[])]) {
@@ -209,8 +210,28 @@ export function ClienteHistorial({ clienteId, tick = 0 }: { clienteId: string; t
       });
 
       const unidos = ordenarHistorial([
-        ...citas.map(itemCita),
-        ...(tareas.data ?? []).map(itemTarea),
+        ...citas.map((c) => {
+          const perfil = uno(c.profiles);
+          return itemCita({
+            ...c,
+            actorNombre: nombreYApellido(perfil?.nombre_completo, perfil?.email) || null,
+          });
+        }),
+        ...((tareas.data ?? []) as Array<{
+          id: string;
+          titulo: string;
+          vence: string | null;
+          hora?: string | null;
+          estado: string;
+          created_at?: string | null;
+          profiles?: { nombre_completo: string | null; email?: string | null } | { nombre_completo: string | null; email?: string | null }[] | null;
+        }>).map((t) => {
+          const perfil = uno(t.profiles);
+          return itemTarea({
+            ...t,
+            actorNombre: nombreYApellido(perfil?.nombre_completo, perfil?.email) || null,
+          });
+        }),
         ...(inmuebles.data ?? []).map(itemInmueble),
         ...(demandas.data ?? []).map(itemDemanda),
         ...(facturas.data ?? []).map(itemFactura),

@@ -29,6 +29,7 @@ import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { rutaNuevaCita } from "@/lib/citas/citas";
 import { TextoConEnlaces } from "@/components/ui/TextoConEnlaces";
 import { coincideTelefonoBusqueda } from "@/lib/ui/busqueda";
+import { ClienteNotas } from "@/components/clientes/ClienteNotas";
 
 type ClienteLista = {
   id: string;
@@ -170,15 +171,24 @@ export default function ClientesPage() {
     let vivo = true;
     const supabase = createClient();
     void (async () => {
-      const [{ data, error: err }, perfiles] = await Promise.all([
-        supabase
-          .from("clientes")
-          .select(
-            "id, nombre, email, telefono, activo, etiqueta, tipo_cliente, documento_fiscal, tipo_documento, direccion, localidad, codigo_postal, notas, es_cliente, created_at, user_id"
-          )
-          .order("created_at", { ascending: false }),
-        cargarPerfilesEquipo(),
-      ]);
+    const [
+      { data, error: err },
+      perfiles,
+      { data: notasRecientes },
+    ] = await Promise.all([
+      supabase
+        .from("clientes")
+        .select(
+          "id, nombre, email, telefono, activo, etiqueta, tipo_cliente, documento_fiscal, tipo_documento, direccion, localidad, codigo_postal, notas, es_cliente, created_at, user_id"
+        )
+        .order("created_at", { ascending: false }),
+      cargarPerfilesEquipo(),
+      supabase
+        .from("clientes_notas")
+        .select("cliente_id, texto")
+        .order("created_at", { ascending: false })
+        .limit(1000),
+    ]);
       if (!vivo) return;
       if (err) {
         setError(err.message);
@@ -187,12 +197,24 @@ export default function ClientesPage() {
         return;
       }
       const equipo = mapaPerfiles(perfiles);
+      const ultimaNotaPorCliente = new Map<string, string>();
+      const textosNotasPorCliente = new Map<string, string>();
+      for (const n of (notasRecientes ?? []) as Array<{ cliente_id: string; texto: string }>) {
+        const t = n.texto?.trim();
+        if (!t) continue;
+        if (!ultimaNotaPorCliente.has(n.cliente_id)) {
+          ultimaNotaPorCliente.set(n.cliente_id, t);
+        }
+        const prev = textosNotasPorCliente.get(n.cliente_id);
+        textosNotasPorCliente.set(n.cliente_id, prev ? `${prev}\n${t}` : t);
+      }
       const base = (data ?? []) as Array<
         Omit<ClienteLista, "creador" | "tieneOferta" | "tieneBusqueda" | "tieneObra" | "detalleCargado" | "ofrece" | "busca" | "visitas" | "docs">
       >;
       setClientes(
         base.map((c) => ({
           ...c,
+          notas: ultimaNotaPorCliente.get(c.id) ?? c.notas,
           creador: c.user_id ? equipo.get(c.user_id) ?? null : null,
           tieneOferta: false,
           tieneBusqueda: false,
@@ -687,10 +709,13 @@ export default function ClientesPage() {
                 </div>
               )}
               <div className="mt-5 px-5">
-                <div className="text-[12px] text-[var(--text-3)]">Notas</div>
-                <p className="mt-1.5 whitespace-pre-wrap text-[14px]">
-                  {selected.notas?.trim() ? <TextoConEnlaces texto={selected.notas.trim()} /> : "Sin notas"}
-                </p>
+                <ClienteNotas
+                  key={selected.id}
+                  clienteId={selected.id}
+                  notaLegacy={selected.notas}
+                  compact
+                  onCambio={() => setCargaKey((n) => n + 1)}
+                />
               </div>
               <div className="mt-8 grid grid-cols-2 gap-x-8 gap-y-5 px-5">
                 <div>

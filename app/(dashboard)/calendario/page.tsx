@@ -70,7 +70,13 @@ function textoReagenda(antes: string, ahora: string) {
   return `Reagendada\nAntes: ${fmt(antes)}\nAhora: ${fmt(ahora)}`;
 }
 
-type NotaContacto = { id: string; texto: string; created_at: string | null };
+type NotaContacto = {
+  id: string;
+  texto: string;
+  created_at: string | null;
+  actor_id?: string | null;
+  autor?: string | null;
+};
 
 type CitaRow = {
   id: string;
@@ -293,18 +299,50 @@ export default function CalendarioPage() {
     void (async () => {
       const { data } = await supabase
         .from("clientes_notas")
-        .select("id, texto, created_at")
+        .select("id, texto, created_at, actor_id, profiles:actor_id(nombre_completo, email)")
         .eq("cliente_id", clienteId)
         .order("created_at", { ascending: false });
-      let filas: NotaContacto[] = ((data ?? []) as NotaContacto[]).filter((n) => n.texto?.trim());
+      let filas: NotaContacto[] = (
+        (data ?? []) as Array<{
+          id: string;
+          texto: string;
+          created_at: string | null;
+          actor_id?: string | null;
+          profiles?: { nombre_completo: string | null; email?: string | null } | { nombre_completo: string | null; email?: string | null }[] | null;
+        }>
+      )
+        .filter((n) => n.texto?.trim())
+        .map((n) => {
+          const perfil = Array.isArray(n.profiles) ? n.profiles[0] : n.profiles;
+          return {
+            id: n.id,
+            texto: n.texto,
+            created_at: n.created_at,
+            actor_id: n.actor_id ?? null,
+            autor: nombreYApellido(perfil?.nombre_completo, perfil?.email) || null,
+          };
+        });
       if (filas.length === 0) {
         const { data: cli } = await supabase
           .from("clientes")
-          .select("notas, created_at")
+          .select("notas, created_at, user_id, profiles:user_id(nombre_completo, email)")
           .eq("id", clienteId)
           .maybeSingle();
         const texto = cli?.notas?.trim();
-        if (cli && texto) filas = [{ id: "legacy-contacto", texto, created_at: cli.created_at ?? null }];
+        if (cli && texto) {
+          const perfil = Array.isArray((cli as { profiles?: unknown }).profiles)
+            ? ((cli as { profiles?: Array<{ nombre_completo?: string | null; email?: string | null }> }).profiles?.[0] ?? null)
+            : ((cli as { profiles?: { nombre_completo?: string | null; email?: string | null } | null }).profiles ?? null);
+          filas = [
+            {
+              id: "legacy-contacto",
+              texto,
+              created_at: cli.created_at ?? null,
+              actor_id: cli.user_id ?? null,
+              autor: nombreYApellido(perfil?.nombre_completo, perfil?.email) || null,
+            },
+          ];
+        }
       }
       if (vivo) setNotasContacto(filas);
     })();
@@ -523,7 +561,7 @@ export default function CalendarioPage() {
           ya.add(texto);
           await supabase.from("tareas_actividad").insert({
             tarea_id: tareaId,
-            actor_id: null,
+            actor_id: nota.actor_id ?? null,
             tipo: "nota",
             texto,
             ...(nota.created_at ? { created_at: nota.created_at } : {}),

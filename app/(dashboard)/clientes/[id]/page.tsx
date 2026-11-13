@@ -296,7 +296,11 @@ export default function DetalleClientePage() {
 
       <div className="grid gap-6 md:grid-cols-2">
         <ClienteHistorial clienteId={id} tick={historialTick} />
-        <ClienteNotas clienteId={id} onCambio={() => setHistorialTick((n) => n + 1)} />
+        <ClienteNotas
+          clienteId={id}
+          notaLegacy={cliente.notas}
+          onCambio={() => setHistorialTick((n) => n + 1)}
+        />
         <Card>
           <CardHeader>
             <CardTitle>Datos de contacto</CardTitle>

@@ -23,6 +23,7 @@ import { formatEuro, telWhatsApp } from "@/lib/ui/estados-vista";
 import { ESTADO_PARTE_LABELS } from "@/lib/partes-visita";
 import { cn } from "@/lib/utils";
 import { EditarClientePanel, type ClienteEditPatch } from "@/components/clientes/EditarClientePanel";
+import { ClienteNotas } from "@/components/clientes/ClienteNotas";
 import { Pencil } from "lucide-react";
 
 export type DestinoFicha =
@@ -480,6 +481,9 @@ function FichaCliente({ cliente, onEditar }: { cliente: ClientePeek; onEditar: (
         <div className="col-span-2">
           <Dato label="Dirección" valor={[cliente.direccion, cliente.codigo_postal, cliente.localidad].filter(Boolean).join(", ") || "—"} />
         </div>
+      </div>
+      <div className="mt-6 px-5">
+        <ClienteNotas key={cliente.id} clienteId={cliente.id} notaLegacy={cliente.notas} compact />
       </div>
       <ListaPeek
         titulo="Inmuebles"

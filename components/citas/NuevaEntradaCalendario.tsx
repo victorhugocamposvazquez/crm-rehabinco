@@ -47,6 +47,7 @@ export type NotaPreviaCalendario = {
   id: string;
   texto: string;
   created_at: string | null;
+  autor?: string | null;
 };
 
 export type DatosGuardarEntradaCalendario = {
@@ -285,7 +286,7 @@ export function NuevaEntradaCalendario({
                         minute: "2-digit",
                       })
                     : "Sin fecha"}
-                  {" · nota del contacto"}
+                  {n.autor ? ` · ${n.autor}` : " · nota del contacto"}
                 </p>
                 <p className="mt-1 whitespace-pre-wrap break-words text-[13px] leading-relaxed text-[var(--text-2)]">
                   <TextoConEnlaces texto={n.texto} />
