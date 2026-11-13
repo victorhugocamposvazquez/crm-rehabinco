@@ -10,7 +10,7 @@ import { ToggleChip } from "@/components/ui/toggle-chip";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
 import { mensajeGuardado } from "@/lib/ui/mensaje-guardado";
 import { nombreYApellido } from "@/lib/ui/tokens";
-import { TextoConEnlaces } from "@/lib/ui/TextoConEnlaces";
+import { TextoConEnlaces } from "@/components/ui/TextoConEnlaces";
 import { cn } from "@/lib/utils";
 
 export type TipoNotaCliente = "nota" | "llamada" | "interes" | "otro";
