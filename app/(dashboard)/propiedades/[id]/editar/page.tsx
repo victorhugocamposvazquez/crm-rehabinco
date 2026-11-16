@@ -54,7 +54,7 @@ export default function EditarPropiedadPage() {
     const supabase = createClient();
     Promise.all([
       supabase.from("propiedades").select("*").eq("id", id).single(),
-      supabase.from("inmueble_media").select("id, propiedad_id, tipo, path, url, orden, portada").eq("propiedad_id", id),
+      supabase.from("inmueble_media").select("id, propiedad_id, tipo, path, url, orden, portada, origen_id, retoque").eq("propiedad_id", id),
       supabase.from("inmueble_documentos").select("id, tipo, nombre, path, created_at").eq("propiedad_id", id),
     ]).then(([prop, med, docs]) => {
       if (prop.error || !prop.data) {
@@ -158,7 +158,7 @@ export default function EditarPropiedadPage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Fotos, planos y visita virtual</CardTitle>
+              <CardTitle>Archivo del piso</CardTitle>
             </CardHeader>
             <CardContent>
               {user?.id ? (

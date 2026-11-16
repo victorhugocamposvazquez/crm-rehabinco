@@ -131,7 +131,7 @@ export async function aplicarRevisionMedia(input: {
 
     const supabase = createClient();
     if (tipo === "foto") {
-      await supabase.from("inmueble_media").update({ portada: false }).eq("propiedad_id", input.propiedadId);
+      await supabase.from("inmueble_media").update({ portada: false }).eq("propiedad_id", input.propiedadId).eq("tipo", "foto");
     }
     await Promise.all(
       idsOrdenados.map((id, orden) => {

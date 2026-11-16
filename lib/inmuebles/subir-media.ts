@@ -2,9 +2,10 @@ import { createClient } from "@/lib/supabase/client";
 import type { InmuebleMedia } from "./catalogo";
 import { validarArchivoMedia, type TipoMediaInmueble } from "./media";
 import { prepararFotoParaSubida } from "./preparar-foto";
+import { SELECT_INMUEBLE_MEDIA } from "./archivo";
 import { sincronizarPortadaEnDb, sincronizarPortadaMemoria } from "./portada";
 
-const SELECT_MEDIA = "id, propiedad_id, tipo, path, url, orden, portada";
+const SELECT_MEDIA = SELECT_INMUEBLE_MEDIA;
 
 export async function subirArchivosMedia(input: {
   propiedadId: string;

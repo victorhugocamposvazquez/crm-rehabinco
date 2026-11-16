@@ -131,11 +131,13 @@ export type Inmueble = {
 export type InmuebleMedia = {
   id: string;
   propiedad_id: string;
-  tipo: "foto" | "video" | "plano";
+  tipo: "foto" | "video" | "plano" | "retocada" | "publicacion";
   path: string;
   url: string;
   orden: number;
   portada: boolean;
+  origen_id?: string | null;
+  retoque?: string | null;
 };
 
 export type InmuebleFormValues = {

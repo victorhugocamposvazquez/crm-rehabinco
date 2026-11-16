@@ -1014,28 +1014,34 @@ export interface Database {
           id: string;
           propiedad_id: string;
           user_id: string;
-          tipo: "foto" | "video" | "plano";
+          tipo: "foto" | "video" | "plano" | "retocada" | "publicacion";
           path: string;
           url: string;
           orden: number;
           portada: boolean;
+          origen_id: string | null;
+          retoque: string | null;
           created_at: string;
         };
         Insert: {
           propiedad_id: string;
           user_id: string;
-          tipo?: "foto" | "video" | "plano";
+          tipo?: "foto" | "video" | "plano" | "retocada" | "publicacion";
           path: string;
           url: string;
           orden?: number;
           portada?: boolean;
+          origen_id?: string | null;
+          retoque?: string | null;
         };
         Update: {
-          tipo?: "foto" | "video" | "plano";
+          tipo?: "foto" | "video" | "plano" | "retocada" | "publicacion";
           path?: string;
           url?: string;
           orden?: number;
           portada?: boolean;
+          origen_id?: string | null;
+          retoque?: string | null;
         };
       };
       inmueble_documentos: {

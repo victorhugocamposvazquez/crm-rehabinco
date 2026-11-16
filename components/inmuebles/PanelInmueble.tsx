@@ -80,7 +80,7 @@ export function PanelInmueble({
     const supabase = createClient();
     void supabase
       .from("inmueble_media")
-      .select("id, propiedad_id, tipo, path, url, orden, portada")
+      .select("id, propiedad_id, tipo, path, url, orden, portada, origen_id, retoque")
       .eq("propiedad_id", inmueble.id)
       .then(({ data }) => setMedia((data ?? []) as InmuebleMedia[]));
     let cancelled = false;
@@ -383,7 +383,7 @@ export function PanelInmueble({
         )}
         {user?.id ? (
           <div className="mt-8 px-5">
-            <h3 className="mb-4 text-[13px] font-medium text-[var(--text-3)]">Fotos, planos y visita virtual</h3>
+            <h3 className="mb-4 text-[13px] font-medium text-[var(--text-3)]">Archivo del piso</h3>
             <InmuebleMultimedia
               propiedadId={inmueble.id}
               userId={user.id}

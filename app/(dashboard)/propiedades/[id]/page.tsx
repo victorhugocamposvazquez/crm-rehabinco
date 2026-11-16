@@ -112,7 +112,7 @@ export default function DetallePropiedadPage() {
         .eq("id", id)
         .is("deleted_at", null)
         .single(),
-      supabase.from("inmueble_media").select("id, propiedad_id, tipo, path, url, orden, portada").eq("propiedad_id", id),
+      supabase.from("inmueble_media").select("id, propiedad_id, tipo, path, url, orden, portada, origen_id, retoque").eq("propiedad_id", id),
       supabase
         .from("partes_visita")
         .select("id, fecha_visita, visitante_nombre, estado, cliente_id, cita_id, clientes:cliente_id(id, nombre)")
@@ -486,7 +486,7 @@ export default function DetallePropiedadPage() {
         ) : null}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Fotos, planos y visita virtual</CardTitle>
+            <CardTitle>Archivo del piso</CardTitle>
           </CardHeader>
           <CardContent>
             {user?.id ? (

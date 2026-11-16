@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { altaControl } from "@/components/ui/alta-form";
 import { InmuebleGaleria } from "@/components/inmuebles/InmuebleGaleria";
+import { CajonPublicaciones } from "@/components/inmuebles/CajonPublicaciones";
+import { CajonRetocadas } from "@/components/inmuebles/CajonRetocadas";
 import { GaleriaMediaRevision } from "@/components/inmuebles/GaleriaMediaRevision";
 import type { InmuebleMedia } from "@/lib/inmuebles/catalogo";
 import { presentacionDeUrl } from "@/lib/inmuebles/media";
@@ -16,7 +18,7 @@ import {
 } from "@/lib/inmuebles/revision-media";
 import { cn } from "@/lib/utils";
 
-type Pestaña = "fotos" | "planos" | "video" | "tour";
+type Pestaña = "fotos" | "planos" | "video" | "tour" | "retocadas" | "publicaciones";
 
 function EmbedMedia({ url, titulo }: { url: string; titulo: string }) {
   const vista = presentacionDeUrl(url);
@@ -102,6 +104,8 @@ export function InmuebleMultimedia({
   const fotos = guardadoFotos === "manual" ? revision.foto.filas.length : media.filter((m) => m.tipo === "foto").length;
   const planos = guardadoFotos === "manual" ? revision.plano.filas.length : media.filter((m) => m.tipo === "plano").length;
   const videos = media.filter((m) => m.tipo === "video").length;
+  const retocadas = media.filter((m) => m.tipo === "retocada").length;
+  const publicaciones = media.filter((m) => m.tipo === "publicacion").length;
 
   const guardarUrl = async (campo: "video_url" | "tour_url", valor: string) => {
     setGuardando(true);
@@ -157,6 +161,8 @@ export function InmuebleMultimedia({
     { id: "planos", label: "Planos", cuenta: planos },
     { id: "video", label: "Vídeo", cuenta: videos || (videoUrl ? 1 : 0) },
     { id: "tour", label: "Tour 3D", cuenta: tourUrl ? 1 : 0 },
+    { id: "retocadas", label: "Retocadas", cuenta: retocadas },
+    { id: "publicaciones", label: "Publicaciones", cuenta: publicaciones },
   ];
 
   return (
@@ -242,6 +248,14 @@ export function InmuebleMultimedia({
           {videoUrl ? <EmbedMedia url={videoUrl} titulo="Vídeo" /> : null}
           <InmuebleGaleria propiedadId={propiedadId} userId={userId} media={media} onChange={onChange} tipo="video" />
         </div>
+      ) : null}
+
+      {pestaña === "retocadas" ? (
+        <CajonRetocadas propiedadId={propiedadId} userId={userId} media={media} onChange={onChange} />
+      ) : null}
+
+      {pestaña === "publicaciones" ? (
+        <CajonPublicaciones propiedadId={propiedadId} media={media} onChange={onChange} />
       ) : null}
 
       {pestaña === "tour" ? (

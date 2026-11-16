@@ -12,7 +12,7 @@ export const LIMITE_PLANO_BYTES = 12_000_000;
 export const LIMITE_VIDEO_BYTES = 50_000_000;
 export const PREFIJO_MEDIA_EXTERNA = "externo/";
 
-export type TipoMediaInmueble = "foto" | "video" | "plano";
+export type TipoMediaInmueble = "foto" | "video" | "plano" | "retocada" | "publicacion";
 
 export type PresentacionMedia =
   | { kind: "iframe"; src: string; titulo: string }
@@ -36,7 +36,7 @@ export function validarArchivoMedia(tipo: TipoMediaInmueble, file: File): string
   }
   const mime = file.type.toLowerCase();
   const nombre = file.name.toLowerCase();
-  if (tipo === "foto") {
+  if (tipo === "foto" || tipo === "retocada" || tipo === "publicacion") {
     if (!esArchivoFoto(file)) return `${file.name} no es una imagen.`;
     return null;
   }
@@ -49,7 +49,7 @@ export function validarArchivoMedia(tipo: TipoMediaInmueble, file: File): string
 }
 
 export function acceptMedia(tipo: TipoMediaInmueble): string {
-  if (tipo === "foto") return "image/*";
+  if (tipo === "foto" || tipo === "retocada" || tipo === "publicacion") return "image/*";
   if (tipo === "video") return "video/mp4,video/webm,video/quicktime";
   return "application/pdf,image/*";
 }
