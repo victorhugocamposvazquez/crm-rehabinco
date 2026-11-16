@@ -351,14 +351,20 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
 
             {/* Barra de edición pegada a la pieza */}
             <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 16px 0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', maxWidth: 720, minHeight: 48, padding: '6px 8px 6px 14px', borderRadius: 13, border: `1px solid ${selKey || selFoto ? k.blue : k.line}`, background: k.panel, boxShadow: '0 1px 2px rgba(0,0,0,.04)' }}>
-                {!selKey && !selFoto && <span style={{ fontSize: 13, color: k.mut }}>Haz clic en un texto o en una foto de la pieza para cambiarlos.</span>}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%', maxWidth: 760, minHeight: 48, padding: '6px 8px 6px 14px', borderRadius: 13, border: `1px solid ${selKey || selFoto ? k.blue : k.line}`, background: k.panel, boxShadow: '0 1px 2px rgba(0,0,0,.04)' }}>
+                {!selKey && !selFoto && <span style={{ fontSize: 13, color: k.mut }}>Haz clic en un texto para cambiarlo, moverlo o ajustar el tamaño. En una foto, para cambiarla.</span>}
                 {selKey && (<>
                   <label htmlFor="estudio-sel" style={{ fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap', color: k.blueInk }}>{FIELD_LABELS[selKey]}</label>
                   {READONLY_FIELDS.includes(selKey)
-                    ? <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: k.mut }}>{selKey === 'precio' ? `${base.precio} (se cambia en la ficha)` : 'Automático, claro u oscuro'}</span>
-                    : <input id="estudio-sel" value={data.f[selKey]} onChange={(e) => setField(selKey, e.target.value)} style={{ flex: 1, minWidth: 60, height: 34, padding: '0 10px', border: `1px solid ${k.line2}`, borderRadius: 8, background: k.bg, color: k.fg, fontSize: 14, outline: 0 }} />}
+                    ? <span style={{ flex: '1 1 140px', minWidth: 0, fontSize: 13, color: k.mut }}>{selKey === 'precio' ? `${base.precio} (se cambia en la ficha)` : 'Automático, claro u oscuro'}</span>
+                    : <input id="estudio-sel" value={data.f[selKey]} onChange={(e) => setField(selKey, e.target.value)} style={{ flex: '1 1 140px', minWidth: 60, height: 34, padding: '0 10px', border: `1px solid ${k.line2}`, borderRadius: 8, background: k.bg, color: k.fg, fontSize: 14, outline: 0 }} />}
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: k.mut, whiteSpace: 'nowrap' }}>
+                    Tamaño
+                    <input aria-label={`Tamaño de ${FIELD_LABELS[selKey].toLowerCase()}`} type="range" min={75} max={170} step={5} value={Math.round((st.escala?.[selKey] ?? 1) * 100)} onChange={(e) => edit((s) => ({ escala: { ...(s.escala ?? {}), [selKey]: Number(e.target.value) / 100 } }), 'size:' + selKey)} style={{ width: 92, accentColor: k.blue }} />
+                    <span style={{ width: 36, color: k.fg, fontWeight: 600 }}>{Math.round((st.escala?.[selKey] ?? 1) * 100)}%</span>
+                  </label>
                   {st.overrides[selKey] != null && <button onClick={() => resetField(selKey)} title="Volver al dato de la ficha" style={{ ...btn, height: 34, padding: '0 10px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, color: k.mut }}>Restaurar</button>}
+                  {((st.escala?.[selKey] ?? 1) !== 1 || st.pos?.[selKey]) && <button onClick={() => edit((s) => { const escala = { ...(s.escala ?? {}) }; const pos = { ...(s.pos ?? {}) }; delete escala[selKey]; delete pos[selKey]; return { escala, pos }; })} title="Volver al tamaño y al sitio de la plantilla" style={{ ...btn, height: 34, padding: '0 10px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, color: k.mut }}>Auto</button>}
                   <button onClick={() => toggleField(selKey)} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 10px', borderRadius: 8, border: `1px solid ${k.line2}`, fontSize: 12.5, fontWeight: 600 }}><EyeOff size={15} />Ocultar</button>
                 </>)}
                 {selFoto && (<><span style={{ fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap', color: k.blueInk }}>{slotName(slotSel)}</span><span style={{ flex: 1, fontSize: 13, color: k.mut }}>Elige la foto para este hueco en el panel de la izquierda.</span></>)}
@@ -368,7 +374,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
 
             <div ref={lienzoRef} className="estudio-canvas">
               <div role="img" aria-label="Creatividad en edición" style={{ lineHeight: 0, boxShadow: '0 18px 50px rgba(20,16,12,.16)' }}>
-                <Creative template={st.template} data={data} width={cw} height={ch} editable selected={sel} onSelect={onSelect} />
+                <Creative template={st.template} data={data} width={cw} height={ch} editable selected={sel} onSelect={onSelect} onMove={(key, p) => edit((s) => ({ pos: { ...(s.pos ?? {}), [key]: p } }), 'move:' + key)} />
               </div>
             </div>
 

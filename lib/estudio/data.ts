@@ -51,11 +51,16 @@ export type CreativeState = {
   slots: number[] | null;
   /** true = se enseña la zona y no la calle con número. */
   soloZona: boolean;
+  /** Tamaño de letra por dato. 1 es el de la plantilla. */
+  escala: Partial<Record<FieldKey, number>>;
+  /** Desplazamiento en % del cartel, si se ha arrastrado el dato. */
+  pos: Partial<Record<FieldKey, { x: number; y: number }>>;
 };
 
 export const initialCreativeState: CreativeState = {
   goal: 'nuevo', template: 'galeria', format: 'post', theme: 'blanco', typo: 'editorial',
   hidden: { ref: true, tel: true, agente: true }, overrides: {}, slots: null, soloZona: true,
+  escala: {}, pos: {},
 };
 
 const eur = (n: number) => n.toLocaleString('es-ES') + ' €';
@@ -113,6 +118,7 @@ export function buildCreativeData(inm: InmuebleEstudio, st: CreativeState): Crea
     c: THEMES[st.theme], ty: TYPOS[st.typo], f, sh, specs,
     ph: order.map((p) => (p ? `url("${p.url}")` : 'none')), pf: order.map(() => 'none'), phName: order.map((p) => p?.nombre ?? ''),
     barrio: inm.barrio, m2: inm.m2,
+    escala: st.escala ?? {}, pos: st.pos ?? {},
     bigNum: millones ? (inm.precio / 1e6).toLocaleString('es-ES', { maximumFractionDigits: 2 }) : String(Math.round(inm.precio / 1000)),
     bigUnit: millones ? 'millones de euros' : 'mil euros',
   };
