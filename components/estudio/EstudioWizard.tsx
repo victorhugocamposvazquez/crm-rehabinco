@@ -56,6 +56,9 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
   const exportRefs = useRef<Partial<Record<FormatId, HTMLDivElement | null>>>({});
   const lienzoRef = useRef<HTMLDivElement>(null);
   const [lienzo, setLienzo] = useState({ w: 760, h: 680 });
+  const [previa, setPrevia] = useState(false);
+  const previaRef = useRef<HTMLDivElement>(null);
+  const [previaCaja, setPreviaCaja] = useState({ w: 960, h: 760 });
 
   useEffect(() => {
     const el = lienzoRef.current;
@@ -71,6 +74,28 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
     obs.observe(el);
     return () => obs.disconnect();
   }, [step]);
+
+  useEffect(() => {
+    if (!previa) return;
+    const cerrar = (e: KeyboardEvent) => { if (e.key === 'Escape') setPrevia(false); };
+    window.addEventListener('keydown', cerrar);
+    return () => window.removeEventListener('keydown', cerrar);
+  }, [previa]);
+
+  useEffect(() => {
+    const el = previaRef.current;
+    if (!el || !previa) return;
+    const medir = () => {
+      const w = Math.floor(el.clientWidth - 32);
+      const h = Math.floor(el.clientHeight - 24);
+      if (w < 160 || h < 160) return;
+      setPreviaCaja((prev) => (prev.w === w && prev.h === h ? prev : { w, h }));
+    };
+    medir();
+    const obs = new ResizeObserver(medir);
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [previa, st.format]);
 
   const inm = inmuebles.find((i) => i.id === pid);
   const data = useMemo(() => (inm ? buildCreativeData(inm, st) : null), [inm, st]);
@@ -403,6 +428,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '12px 28px', borderTop: `1px solid ${k.line}`, background: k.glass }}>
         <div style={{ flex: '1 1 200px', minWidth: 0, fontSize: 13, color: k.mut }}>{step === 'editar' ? 'Los cambios se guardan solos.' : step === 'diseno' ? 'Al elegir un diseño pasas a editarlo. Podrás cambiarlo sin perder nada.' : ''}</div>
         {BACK[step] && <FootBtn onClick={() => go(BACK[step]!.to)}>{BACK[step]!.label}</FootBtn>}
+        {(step === 'editar' || step === 'descargar') && <FootBtn onClick={() => setPrevia(true)}><Eye size={16} />Vista previa</FootBtn>}
         {step === 'descargar' && <FootBtn onClick={() => exportAll(false)} disabled={!expSel.length || busy === 'export'}>Guardar en la ficha</FootBtn>}
         <FootBtn primary disabled={busy === 'export' || (step === 'descargar' && !expSel.length)} onClick={() => (NEXT[step].to ? go(NEXT[step].to!) : exportAll(true))}>{step === 'descargar' && <Download size={16} />}{NEXT[step].label}</FootBtn>
       </div>
@@ -413,6 +439,27 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
           {expSel.map((f) => { const w = FORMATS[f].w / 2, hh = FORMATS[f].h / 2; return <div key={f} ref={(el) => { exportRefs.current[f] = el; }}><Creative template={st.template} data={data} width={w} height={hh} /></div>; })}
         </div>
       )}
+
+      {previa && (() => {
+        const [pw, ph] = fitBox(st.format, previaCaja.w, previaCaja.h);
+        const fmt = FORMATS[st.format];
+        return (
+          <div role="dialog" aria-modal="true" aria-label="Vista previa de la creatividad" onClick={() => setPrevia(false)} style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(0,0,0,.78)', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 20px', color: '#fff' }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 650 }}>{tpl.nombre}</div>
+                <div style={{ fontSize: 12.5, opacity: 0.75, marginTop: 2 }}>{fmt.label} · {fmt.w}×{fmt.h}</div>
+              </div>
+              <button type="button" aria-label="Cerrar vista previa" onClick={() => setPrevia(false)} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 8, height: 38, padding: '0 14px', borderRadius: 10, color: '#fff', border: '1px solid rgba(255,255,255,.28)', background: 'rgba(255,255,255,.08)', fontSize: 13.5, fontWeight: 600 }}><X size={16} />Cerrar</button>
+            </div>
+            <div ref={previaRef} style={{ flex: 1, minHeight: 0, display: 'grid', placeItems: 'center', padding: '0 16px 20px' }}>
+              <div onClick={(e) => e.stopPropagation()} style={{ boxShadow: '0 24px 70px rgba(0,0,0,.45)', lineHeight: 0 }}>
+                <Creative template={st.template} data={data} width={pw} height={ph} />
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
