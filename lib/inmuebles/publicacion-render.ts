@@ -1,22 +1,23 @@
 import sharp from "sharp";
 import {
-  datosPublicacion,
+  datosVisibles,
   plantillaPublicacion,
+  plantillaRedesPorDefecto,
   svgPublicacion,
   type FichaParaPublicacion,
-  type PlantillaPublicacionId,
+  type PlantillaRedes,
 } from "./publicacion-plantilla";
 
 export async function renderPublicacion(input: {
   foto: Buffer;
-  plantillaId: PlantillaPublicacionId;
+  plantilla: PlantillaRedes;
   ficha: FichaParaPublicacion;
   marca?: string;
   logo?: Buffer | null;
 }): Promise<Buffer> {
-  const plantilla = plantillaPublicacion(input.plantillaId);
-  if (!plantilla) throw new Error("Plantilla desconocida.");
-  const datos = datosPublicacion(input.ficha, input.marca);
+  const formato = plantillaPublicacion(input.plantilla.formato) ?? plantillaPublicacion(plantillaRedesPorDefecto().formato);
+  if (!formato) throw new Error("Plantilla desconocida.");
+  const datos = datosVisibles(input.ficha, { ...input.plantilla, formato: formato.id }, input.marca);
   let logoDataUri: string | null = null;
   if (input.logo && input.logo.length) {
     try {
@@ -28,9 +29,9 @@ export async function renderPublicacion(input: {
   }
   const base = await sharp(input.foto)
     .rotate()
-    .resize(plantilla.ancho, plantilla.alto, { fit: "cover", position: "centre" })
+    .resize(formato.ancho, formato.alto, { fit: "cover", position: "centre" })
     .png()
     .toBuffer();
-  const overlay = Buffer.from(svgPublicacion(input.plantillaId, datos, logoDataUri));
+  const overlay = Buffer.from(svgPublicacion(formato.id, datos, logoDataUri, input.plantilla.estilo));
   return sharp(base).composite([{ input: overlay, top: 0, left: 0 }]).png().toBuffer();
 }

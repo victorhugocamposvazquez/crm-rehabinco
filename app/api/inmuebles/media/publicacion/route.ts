@@ -3,7 +3,7 @@ import path from "node:path";
 import { SELECT_INMUEBLE_MEDIA } from "@/lib/inmuebles/archivo";
 import { exigirEquipoArchivo } from "@/lib/inmuebles/archivo-servidor";
 import { renderPublicacion } from "@/lib/inmuebles/publicacion-render";
-import { plantillaPublicacion, type FichaParaPublicacion, type PlantillaPublicacionId } from "@/lib/inmuebles/publicacion-plantilla";
+import { normalizarPlantillaRedes, type FichaParaPublicacion } from "@/lib/inmuebles/publicacion-plantilla";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,8 +41,8 @@ export async function POST(request: Request) {
   } | null;
   const propiedadId = typeof body?.propiedadId === "string" ? body.propiedadId : "";
   const mediaId = typeof body?.mediaId === "string" ? body.mediaId : "";
-  const plantilla = plantillaPublicacion(typeof body?.plantilla === "string" ? body.plantilla : "");
-  if (!propiedadId || !mediaId || !plantilla) {
+  const plantilla = normalizarPlantillaRedes(body?.plantilla);
+  if (!propiedadId || !mediaId || !body?.plantilla) {
     return Response.json({ ok: false, error: "Elige una foto y una plantilla." }, { status: 400 });
   }
 
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
   try {
     png = await renderPublicacion({
       foto: Buffer.from(await descarga.data.arrayBuffer()),
-      plantillaId: plantilla.id as PlantillaPublicacionId,
+      plantilla,
       ficha,
       marca,
       logo,
@@ -121,7 +121,7 @@ export async function POST(request: Request) {
       orden: (ultima?.orden ?? -1) + 1,
       portada: false,
       origen_id: origen.data.id,
-      retoque: plantilla.id,
+      retoque: plantilla.formato,
     })
     .select(SELECT_INMUEBLE_MEDIA)
     .single();
@@ -131,10 +131,11 @@ export async function POST(request: Request) {
   }
 
   const referencia = ficha.referencia?.trim() || "piso";
+  const archivo = plantilla.formato === "ig-historia" ? "instagram-historia" : plantilla.formato === "fb-post" ? "facebook" : "instagram-cuadrado";
   return Response.json({
     ok: true,
     media: fila,
-    nombre: `${referencia}-${plantilla.archivo}.png`,
+    nombre: `${referencia}-${archivo}.png`,
     pngBase64: png.toString("base64"),
   });
 }

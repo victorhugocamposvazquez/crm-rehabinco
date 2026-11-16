@@ -4,7 +4,7 @@ import sharp from "sharp";
 import { puedeGestionarArchivo } from "./archivo";
 import { fotosOrdenadas } from "./portada";
 import { renderPublicacion } from "./publicacion-render";
-import { datosPublicacion, escaparSvg, svgPublicacion } from "./publicacion-plantilla";
+import { datosPublicacion, datosVisibles, escaparSvg, svgPublicacion } from "./publicacion-plantilla";
 import { revisionDesdeMedia } from "./revision-media";
 import { imagenDeRespuestaGemini } from "./retoque-respuesta";
 import { anguloParaEnderezar, masLuz } from "./retoque-local";
@@ -69,6 +69,16 @@ describe("archivo del piso", () => {
     assert.equal(escaparSvg(`a & b`), "a &amp; b");
   });
 
+  it("la plantilla solo pinta los datos que se dejan activos", () => {
+    const ficha = { tipo_operacion: "venta" as const, precio_venta: 250000, superficie_m2: 98, habitaciones: 3, localidad: "A Coruña" };
+    const visible = datosVisibles(ficha, { formato: "ig-cuadrado", estilo: "barra", campos: ["metros", "habitaciones"] });
+    assert.equal(visible.precio, "");
+    assert.equal(visible.detalle, "98 m² · 3 hab.");
+    const svg = svgPublicacion("ig-cuadrado", visible);
+    assert.equal(svg.includes("250.000"), false);
+    assert.match(svg, /98 m²/);
+  });
+
   it("el alquiler lleva el precio al mes", () => {
     const datos = datosPublicacion({ tipo_operacion: "alquiler", precio_alquiler: 900, precio_venta: 10 });
     assert.equal(datos.precio, "900 € / mes");
@@ -99,7 +109,7 @@ describe("archivo del piso", () => {
     const foto = await sharp({ create: { width: 40, height: 30, channels: 3, background: "#336699" } }).jpeg().toBuffer();
     const png = await renderPublicacion({
       foto,
-      plantillaId: "fb-post",
+      plantilla: { formato: "fb-post", estilo: "barra", campos: ["precio", "localidad", "metros", "habitaciones"] },
       ficha: { localidad: "A Coruña", tipo_operacion: "venta", precio_venta: 180000, superficie_m2: 70, habitaciones: 2, referencia: "RH-1" },
     });
     const meta = await sharp(png).metadata();

@@ -10,6 +10,7 @@ import { CajonRetocadas } from "@/components/inmuebles/CajonRetocadas";
 import { GaleriaMediaRevision } from "@/components/inmuebles/GaleriaMediaRevision";
 import type { InmuebleMedia } from "@/lib/inmuebles/catalogo";
 import { presentacionDeUrl } from "@/lib/inmuebles/media";
+import type { FichaParaPublicacion } from "@/lib/inmuebles/publicacion-plantilla";
 import {
   aplicarRevisionMedia,
   revisionDesdeMedia,
@@ -54,6 +55,7 @@ export function InmuebleMultimedia({
   videoUrl,
   tourUrl,
   onUrlsChange,
+  ficha,
   guardadoFotos = "manual",
 }: {
   propiedadId: string;
@@ -63,6 +65,7 @@ export function InmuebleMultimedia({
   videoUrl: string;
   tourUrl: string;
   onUrlsChange: (patch: { video_url?: string; tour_url?: string }) => void;
+  ficha?: FichaParaPublicacion;
   /** manual: arrastra, reordena y pulsa Guardar cambios. inmediato: sube al soltar (solo vídeo/archivo suelto). */
   guardadoFotos?: "manual" | "inmediato";
 }) {
@@ -162,7 +165,7 @@ export function InmuebleMultimedia({
     { id: "video", label: "Vídeo", cuenta: videos || (videoUrl ? 1 : 0) },
     { id: "tour", label: "Tour 3D", cuenta: tourUrl ? 1 : 0 },
     { id: "retocadas", label: "Retocadas", cuenta: retocadas },
-    { id: "publicaciones", label: "Publicaciones", cuenta: publicaciones },
+    { id: "publicaciones", label: "Redes", cuenta: publicaciones },
   ];
 
   return (
@@ -255,7 +258,7 @@ export function InmuebleMultimedia({
       ) : null}
 
       {pestaña === "publicaciones" ? (
-        <CajonPublicaciones propiedadId={propiedadId} media={media} onChange={onChange} />
+        <CajonPublicaciones propiedadId={propiedadId} media={media} ficha={ficha} onChange={onChange} />
       ) : null}
 
       {pestaña === "tour" ? (
