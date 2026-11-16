@@ -65,6 +65,8 @@ const WD: Record<string, string> = { lun: 'Lunes', mar: 'Martes', mié: 'Miérco
 /** «Sáb 21 nov» → { dia: '21', mes: 'NOV', wd: 'Sábado' } para la hoja de calendario. */
 const parseEv = (s: string) => { const parts = (s || '').trim().split(/\s+/); const dia = (s.match(/\d+/) || ['21'])[0]; const mes = (parts[parts.length - 1] || 'nov').slice(0, 3).toUpperCase(); return { dia, mes, wd: WD[(parts[0] || '').toLowerCase().slice(0, 3)] || '' }; };
 const EN_COLOR: Record<string, string> = { A: '#118C4F', B: '#4BA845', C: '#B7CF2D', D: '#E9D21B', E: '#EF9B1C', F: '#E5531E', G: '#D11E26' };
+/** «Foto 4» es el nombre de relleno. En la pieza no se enseña; sí un nombre de estancia. */
+const pieFoto = (name: string) => (/^foto\s*\d+$/i.test((name || '').trim()) ? '' : name);
 type Box = [string, string, string, string, number];
 
 const R: Record<TemplateId, (x: Ctx) => ReactNode[]> = {
@@ -245,7 +247,7 @@ const R: Record<TemplateId, (x: Ctx) => ReactNode[]> = {
       : [['5%', '5%', '55%', '44%', -5], ['50%', '8%', '44%', '34%', 6], ['27%', '33%', '44%', '32%', -2]];
     const pol = (i: number) => { const [l, t, w, hh, r] = L[i]; return d(ab({ left: l, top: t, width: w, height: hh, background: '#FBFAF6', padding: '.42em .42em 1.5em', transform: `rotate(${r}deg)`, boxShadow: '0 .6em 1.6em rgba(0,0,0,.4)' }),
       x.pic(i, { width: '100%', height: '100%' }),
-      d(ab({ left: 0, right: 0, bottom: '.5em', textAlign: 'center', fontFamily: SERIF, fontStyle: 'italic', fontSize: '.5em', color: '#3A3128' }), x.phName[i].toLowerCase()),
+      pieFoto(x.phName[i]) ? d(ab({ left: 0, right: 0, bottom: '.5em', textAlign: 'center', fontFamily: SERIF, fontStyle: 'italic', fontSize: '.5em', color: '#3A3128' }), pieFoto(x.phName[i]).toLowerCase()) : null,
       i < 2 ? d(ab({ left: '40%', top: '-.55em', width: '22%', height: '1.2em', background: 'rgba(255,244,214,.75)', transform: `rotate(${i ? -4 : 3}deg)`, boxShadow: '0 1px 2px rgba(0,0,0,.15)' })) : null); };
     return [ pol(0), pol(1), pol(2),
       x.fld('precio', ab(x.wide ? { right: '5%', top: '58%' } : { right: '6%', top: x.tall ? '68%' : '62%' }, { width: '5.3em', height: '5.3em', borderRadius: '50%', background: c.acc, color: c.accFg, transform: 'rotate(9deg)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', boxShadow: '0 .5em 1.2em rgba(0,0,0,.3)' }),
@@ -268,7 +270,7 @@ const R: Record<TemplateId, (x: Ctx) => ReactNode[]> = {
         x.fld('ref', { fontFamily: MONO, fontSize: '.38em', color: c.mut }, 'Ficha ' + f.ref),
         x.fld('logo', { flex: '0 1 40%', minWidth: 0, maxWidth: '40%' }, logo(c.fg, .42, 'right'))),
       d(ab(PH), x.pic(0, { position: 'absolute', inset: 0 }), corner(0, 0, 0), corner(1, 0, 90), corner(1, 1, 180), corner(0, 1, 270),
-        d(ab({ left: '.7em', bottom: '.7em', fontFamily: MONO, fontSize: '.34em', background: 'rgba(0,0,0,.62)', color: '#fff', padding: '.45em .8em' }), x.phName[0])),
+        pieFoto(x.phName[0]) ? d(ab({ left: '.7em', bottom: '.7em', fontFamily: MONO, fontSize: '.34em', background: 'rgba(0,0,0,.62)', color: '#fff', padding: '.45em .8em' }), pieFoto(x.phName[0])) : null),
       d(ab(x.wide ? { left: '55%', right: '5%', top: '42%' } : { left: '5%', right: '5%', top: x.tall ? '53%' : '60.5%' }),
         d({ display: 'grid', gridTemplateColumns: `repeat(${Math.max(1, nC)}, minmax(0,1fr))`, borderTop: '1px solid ' + c.line, borderBottom: '1px solid ' + c.line },
           ...cells.map((s, i) => x.fld(s.k, { padding: '.6em .2em .6em ' + (i ? '.7em' : '0'), borderLeft: i ? '1px solid ' + c.line : '0' },
