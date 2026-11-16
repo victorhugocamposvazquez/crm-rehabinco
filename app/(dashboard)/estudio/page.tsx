@@ -1,3 +1,4 @@
+import "@/components/estudio/estudio.css";
 import { EstudioCliente } from "@/components/estudio/EstudioCliente";
 import { cargarEstudio } from "@/lib/estudio/cargar";
 
@@ -12,7 +13,7 @@ export default async function EstudioPage({
   const { inmuebles, agencia } = await cargarEstudio();
   const elegido = params.inmueble && inmuebles.some((item) => item.id === params.inmueble) ? params.inmueble : undefined;
   return (
-    <div className="-mx-3.5 -mt-5 min-[820px]:-mx-6 min-[820px]:-mt-6">
+    <div className="estudio-page">
       <EstudioCliente inmuebles={inmuebles} initialInmuebleId={elegido} agencia={agencia} />
     </div>
   );

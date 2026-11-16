@@ -6,7 +6,7 @@
  * del diseño para que sea fácil de comparar; al integrarlo, cambia `k` por los tokens del CRM y los
  * botones / inputs por los de `components/ui`. La lógica (estado, huecos de foto, deshacer, exportar) ya es la definitiva.
  */
-import { useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Check, Copy, Database, Download, Eye, EyeOff, Image as ImageIcon, Palette, Redo2, Search, Sparkles, Undo2, X } from 'lucide-react';
 import { FIELD_LABELS, FORMATS, GOALS, READONLY_FIELDS, TEMPLATES, THEMES, TYPOS, fitBox, templatesForGoal, type FieldKey, type FormatId, type ThemeId, type TypoId } from "@/lib/estudio/config";
 import { AGENCIA, assignPhoto, baseFields, buildCreativeData, initialCreativeState, resolveSlots, type CreativeState, type InmuebleEstudio } from "@/lib/estudio/data";
@@ -16,17 +16,16 @@ import { creativeFilename, downloadBlob, exportCreativePng } from "@/lib/estudio
 import { captionFallback, type Canal, type CaptionRequest, type Tono } from "@/lib/estudio/caption";
 import "@/components/estudio/estudio.css";
 
-/** Tokens del CRM oscuro. TODO(Cursor): sustituir por las variables de `app/globals.css`. */
 const k = {
-  bg: '#0A0A0A', glass: 'rgba(10,10,10,.86)', panel: '#111111', hover: '#1B1B1B', line: '#222222', line2: '#2F2F2F',
-  fg: '#F4F4F5', mut: '#A1A1AA', prim: '#FFFFFF', primFg: '#0A0A0A', stage: '#060606', chip: '#1F1F1F', blue: '#4C8DFF', blueInk: '#6FA4FF', warn: '#E0A82E',
+  bg: "#F5F5F5", glass: "rgba(255,255,255,.94)", panel: "#FFFFFF", hover: "#F5F5F5", line: "#ECECEC", line2: "#E0E0E0",
+  fg: "#111111", mut: "#5C5C5C", prim: "#111111", primFg: "#FFFFFF", stage: "#E6E4DE", chip: "#F0F0F0", blue: "#2B4A8A", blueInk: "#2B4A8A", warn: "#7A5A10",
 };
 const eur = (n: number) => n.toLocaleString('es-ES') + ' €';
 const STEPS = [['inmueble', 'Inmueble'], ['diseno', 'Diseño'], ['editar', 'Editar'], ['descargar', 'Descargar']] as const;
 type Step = (typeof STEPS)[number][0];
 type Tab = 'datos' | 'fotos' | 'estilo';
 const btn: CSSProperties = { font: 'inherit', color: 'inherit', border: 0, background: 'none', cursor: 'pointer', padding: 0, textAlign: 'left' };
-const stage: CSSProperties = { background: k.stage, backgroundImage: 'radial-gradient(rgba(255,255,255,.07) 1px, transparent 1px)', backgroundSize: '18px 18px' };
+const stage: CSSProperties = { background: k.stage };
 
 export type EstudioSavePayload = { inmuebleId: string; state: CreativeState; files: Partial<Record<FormatId, Blob>>; caption: string };
 export type EstudioWizardProps = {
@@ -55,6 +54,23 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
   const [caption, setCaption] = useState('');
   const [busy, setBusy] = useState<'' | 'caption' | 'export'>('');
   const exportRefs = useRef<Partial<Record<FormatId, HTMLDivElement | null>>>({});
+  const lienzoRef = useRef<HTMLDivElement>(null);
+  const [lienzo, setLienzo] = useState({ w: 760, h: 680 });
+
+  useEffect(() => {
+    const el = lienzoRef.current;
+    if (!el) return;
+    const medir = () => {
+      const w = Math.floor(el.clientWidth - 56);
+      const h = Math.floor(el.clientHeight - 32);
+      if (w < 120 || h < 120) return;
+      setLienzo((prev) => (prev.w === w && prev.h === h ? prev : { w, h }));
+    };
+    medir();
+    const obs = new ResizeObserver(medir);
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [step]);
 
   const inm = inmuebles.find((i) => i.id === pid);
   const data = useMemo(() => (inm ? buildCreativeData(inm, st) : null), [inm, st]);
@@ -129,11 +145,11 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
     </div>
   );
   const [gw, gh] = fitBox(st.format, 236, 268);
-  const [cw, ch] = fitBox(st.format, 600, 470);
+  const [cw, ch] = fitBox(st.format, lienzo.w, lienzo.h);
   const [mw, mh] = fitBox(st.format, 72, 60);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', background: k.bg, color: k.fg }}>
+    <div className="estudio-shell" style={{ background: k.bg, color: k.fg }}>
       {/* Pasos: cada uno enseña lo ya elegido */}
       <ol aria-label="Pasos" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexWrap: 'wrap', listStyle: 'none', margin: 0, padding: '12px 24px', borderBottom: `1px solid ${k.line}` }}>
         {STEPS.map(([id, label], i) => {
@@ -155,7 +171,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
 
       {/* 1 · Inmueble: elegir avanza solo */}
       {step === 'inmueble' && (
-        <main style={{ padding: '32px 28px 120px' }}>
+        <main className="estudio-scroll" style={{ padding: '32px 28px 40px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap', marginBottom: 22 }}>
             <div><h1 style={{ fontSize: 26, margin: 0, fontWeight: 600, letterSpacing: '-.02em' }}>¿De qué inmueble es la creatividad?</h1><p style={{ margin: '6px 0 0', color: k.mut, fontSize: 14 }}>Al elegirlo pasas al siguiente paso.</p></div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, width: 320, maxWidth: '100%', height: 42, padding: '0 12px', border: `1px solid ${k.line2}`, borderRadius: 11, color: k.mut }}><Search size={16} /><input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Referencia, dirección o zona" aria-label="Buscar inmueble" style={{ border: 0, outline: 0, background: 'none', flex: 1, minWidth: 0, fontSize: 14, color: k.fg }} /></label>
@@ -182,7 +198,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
 
       {/* 2 · Diseño: primero el objetivo, después la plantilla */}
       {step === 'diseno' && (
-        <main style={{ padding: '28px 28px 120px' }}>
+        <main className="estudio-scroll" style={{ padding: '28px 28px 40px' }}>
           <h1 style={{ fontSize: 26, margin: '0 0 14px', fontWeight: 600, letterSpacing: '-.02em' }}>¿Qué quieres anunciar?</h1>
           <div role="radiogroup" aria-label="Objetivo de la creatividad" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 26 }}>
             {GOALS.filter((g) => g.id !== 'bajada' || (inm.precioAnterior ?? 0) > inm.precio).map((g) => {
@@ -221,14 +237,14 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
 
       {/* 3 · Editar */}
       {step === 'editar' && (
-        <div style={{ flex: 1, display: 'flex', flexWrap: 'wrap', minHeight: 0 }}>
-          <div style={{ flex: '1 1 340px', maxWidth: 340, borderRight: `1px solid ${k.line}`, display: 'flex', flexDirection: 'column' }}>
+        <div className="estudio-edit">
+          <div className="estudio-side" style={{ borderRight: `1px solid ${k.line}` }}>
             <div role="tablist" aria-label="Panel de edición" style={{ display: 'flex', gap: 2, padding: '8px 16px 0', borderBottom: `1px solid ${k.line}` }}>
               {([['datos', 'Datos', Database], ['fotos', 'Fotos', ImageIcon], ['estilo', 'Estilo', Palette]] as const).map(([id, l, Icon]) => (
                 <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 7, height: 42, padding: '0 12px', fontSize: 13.5, fontWeight: 600, color: tab === id ? k.fg : k.mut, borderBottom: `2px solid ${tab === id ? k.fg : 'transparent'}`, marginBottom: -1 }}><Icon size={15} />{l}</button>
               ))}
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 20px' }}>
+            <div className="estudio-side-body">
               {tab === 'datos' && (<>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 10, minHeight: 28 }}>
                   <span style={{ fontSize: 12.5, color: k.mut }}>Datos de la ficha {inm.ref}</span>
@@ -269,7 +285,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
                   {inm.fotos.map((p, i) => {
                     const inSlot = slots.slice(0, tpl.fotos).indexOf(i), on = inSlot === slotSel;
                     return (
-                      <button key={p.id} onClick={() => edit((s) => ({ slots: assignPhoto(s.slots, nF, slotSel, i, tpl.fotos) }))} aria-pressed={on} aria-label={`Poner ${p.nombre} como ${slotName(slotSel).toLowerCase()}`} style={{ ...btn, position: 'relative', display: 'block', aspectRatio: '4/3', borderRadius: 10, overflow: 'hidden', border: `2px solid ${on ? k.blue : 'transparent'}`, backgroundImage: `url("${p.url}")`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                      <button key={p.id} onClick={() => edit((s) => ({ slots: assignPhoto(s.slots, nF, slotSel, i, tpl.fotos) }))} aria-pressed={on} aria-label={`Poner ${p.nombre} como ${slotName(slotSel).toLowerCase()}`} style={{ ...btn, position: 'relative', display: 'block', aspectRatio: '4/3', borderRadius: 10, overflow: 'hidden', border: `2px solid ${on ? k.blue : 'rgba(0,0,0,.08)'}`, backgroundImage: `url("${p.url}")`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
                         <span style={{ position: 'absolute', left: 6, bottom: 6, fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 6, background: 'rgba(0,0,0,.65)', color: '#fff' }}>{p.nombre}</span>
                         {inSlot >= 0 && <span style={{ position: 'absolute', left: 6, top: 6, width: 20, height: 20, borderRadius: '50%', background: k.blue, color: '#fff', fontSize: 11, fontWeight: 700, display: 'grid', placeItems: 'center' }}>{inSlot + 1}</span>}
                       </button>
@@ -299,7 +315,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
             </div>
           </div>
 
-          <div style={{ ...stage, flex: '999 1 480px', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+          <div className="estudio-stage">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', padding: '10px 16px 0' }}>
               {formatPills()}
               <div style={{ display: 'flex', gap: 2 }}>
@@ -310,7 +326,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
 
             {/* Barra de edición pegada a la pieza */}
             <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 16px 0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: Math.max(cw, 520), maxWidth: '100%', minHeight: 48, padding: '6px 8px 6px 14px', borderRadius: 13, border: `1px solid ${selKey || selFoto ? k.blue : k.line2}`, background: k.panel }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', maxWidth: 720, minHeight: 48, padding: '6px 8px 6px 14px', borderRadius: 13, border: `1px solid ${selKey || selFoto ? k.blue : k.line}`, background: k.panel, boxShadow: '0 1px 2px rgba(0,0,0,.04)' }}>
                 {!selKey && !selFoto && <span style={{ fontSize: 13, color: k.mut }}>Haz clic en un texto o en una foto de la pieza para cambiarlos.</span>}
                 {selKey && (<>
                   <label htmlFor="estudio-sel" style={{ fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap', color: k.blueInk }}>{FIELD_LABELS[selKey]}</label>
@@ -325,14 +341,14 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
               </div>
             </div>
 
-            <div style={{ flex: 1, display: 'grid', placeItems: 'center', padding: '16px 24px', minHeight: ch + 32, overflow: 'auto' }}>
-              <div role="img" aria-label="Creatividad en edición" style={{ lineHeight: 0, boxShadow: '0 30px 80px rgba(0,0,0,.5)' }}>
+            <div ref={lienzoRef} className="estudio-canvas">
+              <div role="img" aria-label="Creatividad en edición" style={{ lineHeight: 0, boxShadow: '0 18px 50px rgba(20,16,12,.16)' }}>
                 <Creative template={st.template} data={data} width={cw} height={ch} editable selected={sel} onSelect={onSelect} />
               </div>
             </div>
 
             {/* Tira para probar otro diseño sin perder los cambios */}
-            <div style={{ borderTop: `1px solid ${k.line}`, background: k.bg, padding: '10px 16px 12px' }}>
+            <div style={{ borderTop: `1px solid ${k.line}`, background: k.panel, padding: '10px 16px 12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 12.5 }}><span style={{ fontWeight: 600 }}>Probar otro diseño <span style={{ fontWeight: 400, color: k.mut }}>(se conservan tus cambios)</span></span><button onClick={() => go('diseno')} style={{ ...btn, fontWeight: 600, color: k.blueInk }}>Ver galería</button></div>
               <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
                 {forGoal.map((t) => (
@@ -349,7 +365,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
 
       {/* 4 · Descargar */}
       {step === 'descargar' && (
-        <main style={{ padding: '32px 28px 120px' }}>
+        <main className="estudio-scroll" style={{ padding: '32px 28px 40px' }}>
           <h1 style={{ fontSize: 26, margin: 0, fontWeight: 600, letterSpacing: '-.02em' }}>Revisa y descarga</h1>
           <p style={{ margin: '6px 0 22px', color: k.mut, fontSize: 14 }}>La misma pieza adaptada a cada formato. Marca los que quieras descargar.</p>
           <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', alignItems: 'flex-start' }}>
@@ -384,7 +400,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
       )}
 
       {/* Barra inferior */}
-      <div style={{ position: 'sticky', bottom: 0, zIndex: 30, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '12px 28px', borderTop: `1px solid ${k.line}`, background: k.glass, backdropFilter: 'blur(12px)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '12px 28px', borderTop: `1px solid ${k.line}`, background: k.glass }}>
         <div style={{ flex: '1 1 200px', minWidth: 0, fontSize: 13, color: k.mut }}>{step === 'editar' ? 'Los cambios se guardan solos.' : step === 'diseno' ? 'Al elegir un diseño pasas a editarlo. Podrás cambiarlo sin perder nada.' : ''}</div>
         {BACK[step] && <FootBtn onClick={() => go(BACK[step]!.to)}>{BACK[step]!.label}</FootBtn>}
         {step === 'descargar' && <FootBtn onClick={() => exportAll(false)} disabled={!expSel.length || busy === 'export'}>Guardar en la ficha</FootBtn>}
