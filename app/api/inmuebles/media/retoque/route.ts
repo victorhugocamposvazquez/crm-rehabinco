@@ -2,6 +2,7 @@ import { SELECT_INMUEBLE_MEDIA } from "@/lib/inmuebles/archivo";
 import { exigirEquipoArchivo } from "@/lib/inmuebles/archivo-servidor";
 import { presetRetoque } from "@/lib/inmuebles/retoque-presets";
 import { retocarFotoGemini } from "@/lib/inmuebles/retoque-gemini";
+import { aplicarRetoqueLocal } from "@/lib/inmuebles/retoque-local";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,7 +42,11 @@ export async function POST(request: Request) {
 
   let jpeg: Buffer;
   try {
-    jpeg = await retocarFotoGemini({ imagen: Buffer.from(await descarga.data.arrayBuffer()), prompt: preset.prompt });
+    const bytes = Buffer.from(await descarga.data.arrayBuffer());
+    jpeg =
+      preset.motor === "crm"
+        ? await aplicarRetoqueLocal(bytes, preset.id)
+        : await retocarFotoGemini({ imagen: bytes, prompt: preset.prompt });
   } catch (error) {
     const mensaje = error instanceof Error ? error.message : "No se ha podido retocar la foto.";
     return Response.json({ ok: false, error: mensaje }, { status: 502 });
@@ -64,7 +69,7 @@ export async function POST(request: Request) {
     .limit(1)
     .maybeSingle();
 
-  const publica = acceso.supabase.storage.from("inmuebles").getPublicUrl(path);
+  const { data: publica } = acceso.supabase.storage.from("inmuebles").getPublicUrl(path);
   const { data: fila, error: alta } = await acceso.supabase
     .from("inmueble_media")
     .insert({

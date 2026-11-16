@@ -71,7 +71,7 @@ export function CajonRetocadas({
   return (
     <div className="space-y-5">
       <p className="text-[13px] leading-5 text-[var(--text-2)]">
-        Elige una foto del anuncio y un retoque. Se guarda una copia. La original no se sustituye y no sale en la web ni en Idealista hasta que pulses Usar en el anuncio.
+        Elige una foto del anuncio y un retoque. Más luz y Enderezar los hace el CRM, sin coste. Quitar trastos, el cielo y amueblar usan la IA. Se guarda una copia. La original no se sustituye y no sale en la web ni en Idealista hasta que pulses Usar en el anuncio.
       </p>
       {fotos.length === 0 ? (
         <p className="rounded-[12px] border border-dashed border-[var(--input)] px-4 py-8 text-center text-[13px] text-[var(--text-2)]">
@@ -103,6 +103,7 @@ export function CajonRetocadas({
                 type="button"
                 disabled={preset != null}
                 onClick={() => void retocar(item.id)}
+                title={item.motor === "crm" ? "Lo hace el CRM, sin coste" : "Usa la IA de imagen"}
                 className="h-9 rounded-[10px] bg-accent px-3 text-[13px] font-semibold text-accent-foreground disabled:opacity-45"
               >
                 {preset === item.id ? "Retocando…" : item.etiqueta}

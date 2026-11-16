@@ -19,7 +19,7 @@ export async function usarRetoqueEnAnuncio(input: {
   if (copia.error) return { media: input.media, error: copia.error.message };
 
   const fotos = input.media.filter((m) => m.tipo === "foto");
-  const publica = supabase.storage.from("inmuebles").getPublicUrl(path);
+  const { data: publica } = supabase.storage.from("inmuebles").getPublicUrl(path);
   const { data, error } = await supabase
     .from("inmueble_media")
     .insert({

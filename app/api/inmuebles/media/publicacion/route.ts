@@ -109,7 +109,7 @@ export async function POST(request: Request) {
     .limit(1)
     .maybeSingle();
 
-  const publica = acceso.supabase.storage.from("inmuebles").getPublicUrl(ruta);
+  const { data: publica } = acceso.supabase.storage.from("inmuebles").getPublicUrl(ruta);
   const { data: fila, error: alta } = await acceso.supabase
     .from("inmueble_media")
     .insert({

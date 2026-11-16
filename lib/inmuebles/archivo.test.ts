@@ -7,6 +7,7 @@ import { renderPublicacion } from "./publicacion-render";
 import { datosPublicacion, escaparSvg, svgPublicacion } from "./publicacion-plantilla";
 import { revisionDesdeMedia } from "./revision-media";
 import { imagenDeRespuestaGemini } from "./retoque-respuesta";
+import { anguloParaEnderezar, masLuz } from "./retoque-local";
 import { PRESETS_RETOQUE, presetRetoque } from "./retoque-presets";
 import type { InmuebleMedia } from "./catalogo";
 
@@ -33,7 +34,9 @@ describe("archivo del piso", () => {
   it("los presets de retoque están cerrados", () => {
     assert.deepEqual(PRESETS_RETOQUE.map((p) => p.id), ["luz", "enderezar", "trastos", "cielo", "amueblar"]);
     assert.equal(presetRetoque("otro"), null);
-    assert.match(presetRetoque("luz")?.prompt ?? "", /photorealistic/i);
+    assert.equal(presetRetoque("luz")?.motor, "crm");
+    assert.equal(presetRetoque("enderezar")?.motor, "crm");
+    assert.equal(presetRetoque("trastos")?.motor, "ia");
   });
 
   it("lee la imagen que devuelve Gemini", () => {
@@ -69,6 +72,27 @@ describe("archivo del piso", () => {
   it("el alquiler lleva el precio al mes", () => {
     const datos = datosPublicacion({ tipo_operacion: "alquiler", precio_alquiler: 900, precio_venta: 10 });
     assert.equal(datos.precio, "900 € / mes");
+  });
+
+  it("más luz aclara la foto sin llamar a una IA", async () => {
+    const oscura = await sharp({ create: { width: 80, height: 60, channels: 3, background: "#333333" } }).jpeg().toBuffer();
+    const clara = await masLuz(oscura);
+    const media = async (buf: Buffer) => {
+      const { data } = await sharp(buf).greyscale().raw().toBuffer({ resolveWithObject: true });
+      return data.reduce((suma, valor) => suma + valor, 0) / data.length;
+    };
+    assert.ok((await media(clara)) > (await media(oscura)) + 8);
+  });
+
+  it("enderezar detecta una línea inclinada", async () => {
+    const linea = await sharp({ create: { width: 360, height: 8, channels: 3, background: "#ffffff" } }).png().toBuffer();
+    const recta = await sharp({ create: { width: 360, height: 240, channels: 3, background: "#222222" } })
+      .composite([{ input: linea, top: 116, left: 0 }])
+      .jpeg()
+      .toBuffer();
+    const inclinada = await sharp(recta).rotate(3, { background: "#222222" }).jpeg().toBuffer();
+    const angulo = await anguloParaEnderezar(inclinada);
+    assert.ok(Math.abs(angulo - -3) <= 1, `angulo ${angulo}`);
   });
 
   it("compone un png del tamaño de la plantilla", async () => {
