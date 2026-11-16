@@ -48,9 +48,16 @@ const sp = (s: CSSProperties, ...k: ReactNode[]) => h('span', { style: s }, ...k
 const ab = (...o: CSSProperties[]): CSSProperties => Object.assign({ position: 'absolute' } as CSSProperties, ...o);
 const bg = (u: string, f?: string, o?: CSSProperties): CSSProperties => Object.assign({ backgroundImage: u, backgroundSize: 'cover', backgroundPosition: 'center', filter: f || 'none' }, o || {});
 const HD = (x: Ctx, size: number, o?: CSSProperties): CSSProperties => Object.assign({ fontFamily: x.ty.ff, fontWeight: x.ty.fw, textTransform: x.ty.tt, letterSpacing: x.ty.ls, fontSize: (size * x.ty.k).toFixed(3) + 'em', lineHeight: x.ty.lh } as CSSProperties, o || {});
-const logo = (color: string, size: number, align?: 'left' | 'right' | 'center') => d({ color, textAlign: align || 'left', lineHeight: 1 },
-  d({ fontSize: size + 'em', letterSpacing: '.34em', fontWeight: 400, marginRight: '-.34em' }, 'REHABINCO'),
-  d({ fontSize: (size * .32) + 'em', letterSpacing: '.22em', opacity: .72, marginTop: '.75em' }, 'GESTIÓN INMOBILIARIA Y REFORMAS'));
+const logo = (color: string, size: number, align?: 'left' | 'right' | 'center') => {
+  const s = +(size * 2.15).toFixed(3);
+  const justify = align === 'right' ? 'flex-end' : align === 'center' ? 'center' : 'flex-start';
+  const regla = sp({ width: '1.15em', height: '1px', background: 'currentColor', display: 'inline-block', opacity: 0.65 });
+  return d({ color, textAlign: align || 'left', lineHeight: 1, display: 'inline-block', maxWidth: '100%' },
+    d({ fontSize: s + 'em', letterSpacing: '.045em', fontWeight: 700, marginRight: '-.045em' }, 'REHABINCO'),
+    size >= 0.4
+      ? d({ display: 'flex', alignItems: 'center', justifyContent: justify, gap: '.4em', marginTop: '.38em', fontSize: (s * .3) + 'em', letterSpacing: '.12em', fontWeight: 600, opacity: .82, whiteSpace: 'nowrap' }, regla, 'GESTIÓN INMOBILIARIA Y REFORMAS', regla)
+      : null);
+};
 const WD: Record<string, string> = { lun: 'Lunes', mar: 'Martes', mié: 'Miércoles', jue: 'Jueves', vie: 'Viernes', sáb: 'Sábado', dom: 'Domingo' };
 /** «Sáb 21 nov» → { dia: '21', mes: 'NOV', wd: 'Sábado' } para la hoja de calendario. */
 const parseEv = (s: string) => { const parts = (s || '').trim().split(/\s+/); const dia = (s.match(/\d+/) || ['21'])[0]; const mes = (parts[parts.length - 1] || 'nov').slice(0, 3).toUpperCase(); return { dia, mes, wd: WD[(parts[0] || '').toLowerCase().slice(0, 3)] || '' }; };
@@ -166,7 +173,7 @@ const R: Record<TemplateId, (x: Ctx) => ReactNode[]> = {
     x.pic(0, { position: 'absolute', inset: 0 }),
     d(ab({ inset: 0, background: 'linear-gradient(180deg,rgba(0,0,0,.62) 0%,rgba(0,0,0,0) 30%,rgba(0,0,0,0) 46%,rgba(0,0,0,.9) 100%)' })),
     x.fld('logo', ab({ left: '5%', right: '5%', top: '4.6%', color: '#fff', textAlign: 'center' }),
-      d({ fontSize: '2.15em', letterSpacing: '.4em', fontWeight: 300, marginRight: '-.4em', lineHeight: 1 }, 'REHABINCO'),
+      d({ fontSize: '2.7em', letterSpacing: '.12em', fontWeight: 700, marginRight: '-.12em', lineHeight: .92 }, 'REHABINCO'),
       d({ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,.5)', marginTop: '.5em', paddingTop: '.5em', fontSize: '.34em', letterSpacing: '.16em' }, sp({}, 'A CORUÑA'), sp({}, 'GESTIÓN INMOBILIARIA Y REFORMAS'), sp({}, 'NOV 2026'))),
     x.fld('badge', ab({ right: '6%', top: x.tall ? '19%' : '25%', width: '4.9em', height: '4.9em', borderRadius: '50%', background: c.acc, color: c.accFg, transform: 'rotate(-12deg)', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', boxShadow: '0 .5em 1.4em rgba(0,0,0,.35)' }),
       d(ab({ inset: '.32em', borderRadius: '50%', border: '1px dashed currentColor', opacity: .55 })),
