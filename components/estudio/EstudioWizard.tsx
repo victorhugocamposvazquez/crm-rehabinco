@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Check, Copy, Database, Download, Eye, EyeOff, Image as ImageIcon, Palette, Redo2, Search, Sparkles, Undo2, X } from 'lucide-react';
 import { FIELD_LABELS, FORMATS, GOALS, READONLY_FIELDS, TEMPLATES, THEMES, TYPOS, fitBox, templatesForGoal, type FieldKey, type FormatId, type ThemeId, type TypoId } from "@/lib/estudio/config";
-import { AGENCIA, assignPhoto, baseFields, buildCreativeData, initialCreativeState, resolveSlots, type CreativeState, type InmuebleEstudio } from "@/lib/estudio/data";
+import { AGENCIA, anidarEscala, anidarPos, assignPhoto, baseFields, buildCreativeData, initialCreativeState, resolveSlots, type CreativeState, type InmuebleEstudio } from "@/lib/estudio/data";
 import { Creative } from "@/components/estudio/templates";
 import { useCreative } from "@/lib/estudio/useCreative";
 import { creativeFilename, downloadBlob, exportCreativePng } from "@/lib/estudio/exportCreative";
@@ -360,11 +360,11 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
                     : <input id="estudio-sel" value={data.f[selKey]} onChange={(e) => setField(selKey, e.target.value)} style={{ flex: '1 1 140px', minWidth: 60, height: 34, padding: '0 10px', border: `1px solid ${k.line2}`, borderRadius: 8, background: k.bg, color: k.fg, fontSize: 14, outline: 0 }} />}
                   <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: k.mut, whiteSpace: 'nowrap' }}>
                     Tamaño
-                    <input aria-label={`Tamaño de ${FIELD_LABELS[selKey].toLowerCase()}`} type="range" min={75} max={170} step={5} value={Math.round((st.escala?.[selKey] ?? 1) * 100)} onChange={(e) => edit((s) => ({ escala: { ...(s.escala ?? {}), [selKey]: Number(e.target.value) / 100 } }), 'size:' + selKey)} style={{ width: 92, accentColor: k.blue }} />
-                    <span style={{ width: 36, color: k.fg, fontWeight: 600 }}>{Math.round((st.escala?.[selKey] ?? 1) * 100)}%</span>
+                    <input aria-label={`Tamaño de ${FIELD_LABELS[selKey].toLowerCase()} en ${FORMATS[st.format].label}`} type="range" min={75} max={170} step={5} value={Math.round((anidarEscala(st.escala)[st.format]?.[selKey] ?? 1) * 100)} onChange={(e) => edit((s) => { const escala = anidarEscala(s.escala); return { escala: { ...escala, [s.format]: { ...escala[s.format], [selKey]: Number(e.target.value) / 100 } } }; }, 'size:' + st.format + ':' + selKey)} style={{ width: 92, accentColor: k.blue }} />
+                    <span style={{ width: 36, color: k.fg, fontWeight: 600 }}>{Math.round((anidarEscala(st.escala)[st.format]?.[selKey] ?? 1) * 100)}%</span>
                   </label>
                   {st.overrides[selKey] != null && <button onClick={() => resetField(selKey)} title="Volver al dato de la ficha" style={{ ...btn, height: 34, padding: '0 10px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, color: k.mut }}>Restaurar</button>}
-                  {((st.escala?.[selKey] ?? 1) !== 1 || st.pos?.[selKey]) && <button onClick={() => edit((s) => { const escala = { ...(s.escala ?? {}) }; const pos = { ...(s.pos ?? {}) }; delete escala[selKey]; delete pos[selKey]; return { escala, pos }; })} title="Volver al tamaño y al sitio de la plantilla" style={{ ...btn, height: 34, padding: '0 10px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, color: k.mut }}>Auto</button>}
+                  {((anidarEscala(st.escala)[st.format]?.[selKey] ?? 1) !== 1 || anidarPos(st.pos)[st.format]?.[selKey]) && <button onClick={() => edit((s) => { const escala = anidarEscala(s.escala); const pos = anidarPos(s.pos); const e = { ...escala[s.format] }; const p = { ...pos[s.format] }; delete e[selKey]; delete p[selKey]; return { escala: { ...escala, [s.format]: e }, pos: { ...pos, [s.format]: p } }; })} title={`Volver al tamaño y al sitio de ${FORMATS[st.format].label}`} style={{ ...btn, height: 34, padding: '0 10px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, color: k.mut }}>Auto</button>}
                   <button onClick={() => toggleField(selKey)} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 10px', borderRadius: 8, border: `1px solid ${k.line2}`, fontSize: 12.5, fontWeight: 600 }}><EyeOff size={15} />Ocultar</button>
                 </>)}
                 {selFoto && (<><span style={{ fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap', color: k.blueInk }}>{slotName(slotSel)}</span><span style={{ flex: 1, fontSize: 13, color: k.mut }}>Elige la foto para este hueco en el panel de la izquierda.</span></>)}
@@ -374,7 +374,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
 
             <div ref={lienzoRef} className="estudio-canvas">
               <div role="img" aria-label="Creatividad en edición" style={{ lineHeight: 0, boxShadow: '0 18px 50px rgba(20,16,12,.16)' }}>
-                <Creative template={st.template} data={data} width={cw} height={ch} editable selected={sel} onSelect={onSelect} onMove={(key, p) => edit((s) => ({ pos: { ...(s.pos ?? {}), [key]: p } }), 'move:' + key)} />
+                <Creative template={st.template} data={data} width={cw} height={ch} editable selected={sel} onSelect={onSelect} onMove={(key, p) => edit((s) => { const pos = anidarPos(s.pos); return { pos: { ...pos, [s.format]: { ...pos[s.format], [key]: p } } }; }, 'move:' + st.format + ':' + key)} />
               </div>
             </div>
 
@@ -405,7 +405,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
                 const [vw, vh] = fitBox(f, 190, 248), on = !!exp[f];
                 return (
                   <label key={f} style={{ display: 'block', borderRadius: 16, overflow: 'hidden', background: k.panel, border: `1.5px solid ${on ? k.blue : k.line}`, cursor: 'pointer' }}>
-                    <span style={{ ...stage, display: 'grid', placeItems: 'center', height: 280, padding: 16 }}><span style={{ display: 'block', lineHeight: 0, boxShadow: '0 14px 34px rgba(0,0,0,.4)' }}><Creative template={st.template} data={data} width={vw} height={vh} /></span></span>
+                    <span style={{ ...stage, display: 'grid', placeItems: 'center', height: 280, padding: 16 }}><span style={{ display: 'block', lineHeight: 0, boxShadow: '0 14px 34px rgba(0,0,0,.4)' }}><Creative template={st.template} data={buildCreativeData(inm, { ...st, format: f })} width={vw} height={vh} /></span></span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px' }}>
                       <input type="checkbox" checked={on} onChange={() => setExp((e) => ({ ...e, [f]: !e[f] }))} style={{ width: 17, height: 17, margin: 0, accentColor: k.blue }} />
                       <span style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>{FORMATS[f].label} <span style={{ fontWeight: 400, color: k.mut }}>{FORMATS[f].ratio}</span></span>
@@ -432,7 +432,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
 
       {/* Barra inferior */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '12px 28px', borderTop: `1px solid ${k.line}`, background: k.glass }}>
-        <div style={{ flex: '1 1 200px', minWidth: 0, fontSize: 13, color: k.mut }}>{step === 'editar' ? 'Los cambios se guardan solos.' : step === 'diseno' ? 'Al elegir un diseño pasas a editarlo. Podrás cambiarlo sin perder nada.' : ''}</div>
+        <div style={{ flex: '1 1 200px', minWidth: 0, fontSize: 13, color: k.mut }}>{step === 'editar' ? `El tamaño y la posición valen solo para ${FORMATS[st.format].label}.` : step === 'diseno' ? 'Al elegir un diseño pasas a editarlo. Podrás cambiarlo sin perder nada.' : ''}</div>
         {BACK[step] && <FootBtn onClick={() => go(BACK[step]!.to)}>{BACK[step]!.label}</FootBtn>}
         {(step === 'editar' || step === 'descargar') && <FootBtn onClick={() => setPrevia(true)}><Eye size={16} />Vista previa</FootBtn>}
         {step === 'descargar' && <FootBtn onClick={() => exportAll(false)} disabled={!expSel.length || busy === 'export'}>Guardar en la ficha</FootBtn>}
@@ -442,7 +442,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
       {/* Lienzos fuera de pantalla para exportar a tamaño real: 540 px de ancho × pixelRatio 2 = 1080 */}
       {step === 'descargar' && (
         <div aria-hidden style={{ position: 'fixed', left: -99999, top: 0, pointerEvents: 'none' }}>
-          {expSel.map((f) => { const w = FORMATS[f].w / 2, hh = FORMATS[f].h / 2; return <div key={f} ref={(el) => { exportRefs.current[f] = el; }}><Creative template={st.template} data={data} width={w} height={hh} /></div>; })}
+          {expSel.map((f) => { const w = FORMATS[f].w / 2, hh = FORMATS[f].h / 2; return <div key={f} ref={(el) => { exportRefs.current[f] = el; }}><Creative template={st.template} data={buildCreativeData(inm, { ...st, format: f })} width={w} height={hh} /></div>; })}
         </div>
       )}
 
