@@ -17,8 +17,8 @@ import { captionFallback, type Canal, type CaptionRequest, type Tono } from "@/l
 import "@/components/estudio/estudio.css";
 
 const k = {
-  bg: "#F5F5F5", glass: "rgba(255,255,255,.94)", panel: "#FFFFFF", hover: "#F5F5F5", line: "#ECECEC", line2: "#E0E0E0",
-  fg: "#111111", mut: "#5C5C5C", prim: "#111111", primFg: "#FFFFFF", stage: "#E6E4DE", chip: "#F0F0F0", blue: "#2B4A8A", blueInk: "#2B4A8A", warn: "#7A5A10",
+  bg: "var(--background)", glass: "var(--surface)", panel: "var(--surface)", hover: "var(--surface-soft)", line: "var(--border)", line2: "var(--input)",
+  fg: "var(--foreground)", mut: "var(--text-2)", prim: "var(--accent)", primFg: "var(--accent-foreground)", stage: "var(--pdf-desk)", chip: "var(--accent-soft)", blue: "#4C8DFF", blueInk: "var(--blue)", warn: "var(--amber)",
 };
 const eur = (n: number) => n.toLocaleString('es-ES') + ' €';
 const STEPS = [['inmueble', 'Inmueble'], ['diseno', 'Diseño'], ['editar', 'Editar'], ['descargar', 'Descargar']] as const;
@@ -285,7 +285,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
                   {inm.fotos.map((p, i) => {
                     const inSlot = slots.slice(0, tpl.fotos).indexOf(i), on = inSlot === slotSel;
                     return (
-                      <button key={p.id} onClick={() => edit((s) => ({ slots: assignPhoto(s.slots, nF, slotSel, i, tpl.fotos) }))} aria-pressed={on} aria-label={`Poner ${p.nombre} como ${slotName(slotSel).toLowerCase()}`} style={{ ...btn, position: 'relative', display: 'block', aspectRatio: '4/3', borderRadius: 10, overflow: 'hidden', border: `2px solid ${on ? k.blue : 'rgba(0,0,0,.08)'}`, backgroundImage: `url("${p.url}")`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                      <button key={p.id} onClick={() => edit((s) => ({ slots: assignPhoto(s.slots, nF, slotSel, i, tpl.fotos) }))} aria-pressed={on} aria-label={`Poner ${p.nombre} como ${slotName(slotSel).toLowerCase()}`} style={{ ...btn, position: 'relative', display: 'block', aspectRatio: '4/3', borderRadius: 10, overflow: 'hidden', border: `2px solid ${on ? k.blue : k.line2}`, backgroundImage: `url("${p.url}")`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
                         <span style={{ position: 'absolute', left: 6, bottom: 6, fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 6, background: 'rgba(0,0,0,.65)', color: '#fff' }}>{p.nombre}</span>
                         {inSlot >= 0 && <span style={{ position: 'absolute', left: 6, top: 6, width: 20, height: 20, borderRadius: '50%', background: k.blue, color: '#fff', fontSize: 11, fontWeight: 700, display: 'grid', placeItems: 'center' }}>{inSlot + 1}</span>}
                       </button>

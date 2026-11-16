@@ -49,7 +49,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: #e6e4de;
+  background: var(--pdf-desk);
 }
 .estudio-canvas {
   flex: 1;
