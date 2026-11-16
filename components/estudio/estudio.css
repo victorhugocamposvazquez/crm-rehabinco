@@ -1,0 +1,8 @@
+/* Estudio de creatividades · afinidad de clic en el editor. Importar una vez (p. ej. en app/globals.css). */
+.estudio-fld:hover { outline: 1px dashed #4c8dff !important; outline-offset: 0.25em; }
+.estudio-pic:hover { outline: 2px dashed #4c8dff !important; outline-offset: -5px !important; }
+.estudio-card { transition: transform 0.18s ease; }
+.estudio-card:hover { transform: translateY(-3px); }
+.estudio-card .estudio-use { opacity: 0; transition: opacity 0.15s ease; }
+.estudio-card:hover .estudio-use, .estudio-card:focus-visible .estudio-use { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .estudio-card, .estudio-card .estudio-use { transition: none; } .estudio-card:hover { transform: none; } }

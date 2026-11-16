@@ -247,6 +247,38 @@ export interface Database {
           updated_at?: string;
         };
       };
+      creatividades: {
+        Row: {
+          id: string;
+          propiedad_id: string;
+          autor_id: string;
+          estado: Json;
+          objetivo: string;
+          plantilla: string;
+          archivos: Json;
+          texto_publicacion: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          propiedad_id: string;
+          autor_id: string;
+          estado: Json;
+          objetivo: string;
+          plantilla: string;
+          archivos?: Json;
+          texto_publicacion?: string | null;
+        };
+        Update: {
+          estado?: Json;
+          objetivo?: string;
+          plantilla?: string;
+          archivos?: Json;
+          texto_publicacion?: string | null;
+          updated_at?: string;
+        };
+      };
       propiedades: {
         Row: {
           id: string;

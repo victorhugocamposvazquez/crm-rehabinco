@@ -237,6 +237,9 @@ export default function DetallePropiedadPage() {
         actions={
           <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5">
             <Button variant="secondary" size="sm" asChild>
+              <Link href={`/estudio?inmueble=${id}`}>Estudio</Link>
+            </Button>
+            <Button variant="secondary" size="sm" asChild>
               <Link href={rutaNuevaCita({ propiedadId: id, clienteId: propiedad.ofertante_id })} className="gap-2">
                 Concertar visita
               </Link>
@@ -497,18 +500,6 @@ export default function DetallePropiedadPage() {
                 onChange={setMedia}
                 videoUrl={propiedad.video_url ?? ""}
                 tourUrl={propiedad.tour_url ?? ""}
-                ficha={{
-                  titulo: propiedad.titulo,
-                  localidad: propiedad.localidad,
-                  tipo_operacion: propiedad.tipo_operacion,
-                  precio_venta: propiedad.precio_venta,
-                  precio_alquiler: propiedad.precio_alquiler,
-                  superficie_m2: propiedad.superficie_m2,
-                  superficie_construida: propiedad.superficie_construida,
-                  habitaciones: propiedad.habitaciones,
-                  banos: propiedad.banos,
-                  referencia: propiedad.referencia,
-                }}
                 onUrlsChange={(patch) =>
                   setPropiedad((prev) =>
                     prev

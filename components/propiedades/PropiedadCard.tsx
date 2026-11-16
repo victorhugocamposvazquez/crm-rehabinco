@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog } from "@/components/ui/alert-dialog";
-import { MoreVertical, Eye, Pencil, Trash2 } from "lucide-react";
+import { MoreVertical, Eye, Pencil, Sparkles, Trash2 } from "lucide-react";
 import { BadgeCatastroExplorer } from "@/components/catastro/BadgeCatastroExplorer";
 import { esOrigenCatastroExplorer } from "@/lib/catastro/explorer";
 
@@ -70,6 +70,13 @@ export function PropiedadCard({
     e.stopPropagation();
     closeActions();
     router.push(`/propiedades/${id}`);
+  };
+
+  const handleEstudio = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closeActions();
+    router.push(`/estudio?inmueble=${id}`);
   };
 
   const handleEdit = (e: React.MouseEvent) => {
@@ -197,6 +204,14 @@ export function PropiedadCard({
                   aria-label="Ver detalle"
                 >
                   <Eye className="h-4 w-4" strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleEstudio}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-neutral-800 transition-colors hover:bg-neutral-100"
+                  aria-label="Abrir Estudio"
+                >
+                  <Sparkles className="h-4 w-4" strokeWidth={2} />
                 </button>
                 <button
                   type="button"

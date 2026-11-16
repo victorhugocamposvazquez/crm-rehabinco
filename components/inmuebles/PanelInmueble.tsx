@@ -297,6 +297,9 @@ export function PanelInmueble({
               <Link href={`/propiedades/${inmueble.id}/editar`}>Editar inmueble</Link>
             </Button>
             <Button variant="ghost" asChild>
+              <Link href={`/estudio?inmueble=${inmueble.id}`}>Estudio</Link>
+            </Button>
+            <Button variant="ghost" asChild>
               <Link href={rutaNuevaCita({ propiedadId: inmueble.id, clienteId: inmueble.ofertante_id })}>Concertar visita</Link>
             </Button>
             <Button type="button" variant="ghost" onClick={() => void compartir()}>
@@ -399,17 +402,6 @@ export function PanelInmueble({
               }}
               videoUrl={inmueble.video_url ?? ""}
               tourUrl={inmueble.tour_url ?? ""}
-              ficha={{
-                titulo: inmueble.titulo,
-                localidad: inmueble.localidad,
-                tipo_operacion: inmueble.tipo_operacion,
-                precio_venta: inmueble.precio_venta,
-                precio_alquiler: inmueble.precio_alquiler,
-                superficie_m2: inmueble.superficie_m2,
-                habitaciones: inmueble.habitaciones,
-                banos: inmueble.banos,
-                referencia: inmueble.referencia,
-              }}
               onUrlsChange={(patch) =>
                 onCambio?.({
                   video_url: patch.video_url !== undefined ? patch.video_url || null : inmueble.video_url,

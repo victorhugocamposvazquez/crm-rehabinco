@@ -169,17 +169,6 @@ export default function EditarPropiedadPage() {
                   onChange={setMedia}
                   videoUrl={values.video_url}
                   tourUrl={values.tour_url}
-                  ficha={{
-                    titulo: values.titulo,
-                    localidad: values.localidad,
-                    tipo_operacion: values.tipo_operacion,
-                    precio_venta: Number(values.precio_venta) || null,
-                    precio_alquiler: Number(values.precio_alquiler) || null,
-                    superficie_m2: Number(values.superficie_m2) || null,
-                    habitaciones: Number(values.habitaciones) || null,
-                    banos: Number(values.banos) || null,
-                    referencia,
-                  }}
                   onUrlsChange={(patch) => setValues((v) => ({ ...v, ...patch }))}
                 />
               ) : null}

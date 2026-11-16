@@ -12,6 +12,7 @@ import {
   CalendarDays,
   BarChart3,
   Scale,
+  Sparkles,
   ListTodo,
   Columns3,
   Radar,
@@ -35,6 +36,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/captacion", label: "Captación", icon: Radar },
   { href: "/catastro", label: "Catastro", icon: Search },
   { href: "/propiedades", label: "Inmuebles", icon: Building2 },
+  { href: "/estudio", label: "Estudio", icon: Sparkles },
   { href: "/web/gestionar", label: "Diseño Web", icon: Globe },
   { href: "/valoraciones", label: "Valoraciones", icon: Scale },
   { href: "/demandas", label: "Demandas", icon: Users },
@@ -51,7 +53,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
 
 export const NAV_GROUPS: { label: string; adminOnly?: boolean; hrefs: readonly string[] }[] = [
   { label: "Día a día", hrefs: ["/", "/fichaje", "/calendario", "/tareas", "/informes"] },
-  { label: "Captación", hrefs: ["/captacion", "/catastro", "/seguimiento", "/propiedades", "/web/gestionar", "/valoraciones", "/demandas", "/clientes"] },
+  { label: "Captación", hrefs: ["/captacion", "/catastro", "/seguimiento", "/propiedades", "/estudio", "/web/gestionar", "/valoraciones", "/demandas", "/clientes"] },
   { label: "Herramientas", hrefs: ["/herramientas"] },
   { label: "Equipo", adminOnly: true, hrefs: ["/equipo/jornada"] },
   { label: "Obra y facturación", adminOnly: true, hrefs: ["/presupuestos", "/facturas"] },

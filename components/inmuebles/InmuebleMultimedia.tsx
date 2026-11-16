@@ -5,12 +5,10 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { altaControl } from "@/components/ui/alta-form";
 import { InmuebleGaleria } from "@/components/inmuebles/InmuebleGaleria";
-import { CajonPublicaciones } from "@/components/inmuebles/CajonPublicaciones";
 import { CajonRetocadas } from "@/components/inmuebles/CajonRetocadas";
 import { GaleriaMediaRevision } from "@/components/inmuebles/GaleriaMediaRevision";
 import type { InmuebleMedia } from "@/lib/inmuebles/catalogo";
 import { presentacionDeUrl } from "@/lib/inmuebles/media";
-import type { FichaParaPublicacion } from "@/lib/inmuebles/publicacion-plantilla";
 import {
   aplicarRevisionMedia,
   revisionDesdeMedia,
@@ -19,7 +17,7 @@ import {
 } from "@/lib/inmuebles/revision-media";
 import { cn } from "@/lib/utils";
 
-type Pestaña = "fotos" | "planos" | "video" | "tour" | "retocadas" | "publicaciones";
+type Pestaña = "fotos" | "planos" | "video" | "tour" | "retocadas";
 
 function EmbedMedia({ url, titulo }: { url: string; titulo: string }) {
   const vista = presentacionDeUrl(url);
@@ -55,7 +53,6 @@ export function InmuebleMultimedia({
   videoUrl,
   tourUrl,
   onUrlsChange,
-  ficha,
   guardadoFotos = "manual",
 }: {
   propiedadId: string;
@@ -65,7 +62,6 @@ export function InmuebleMultimedia({
   videoUrl: string;
   tourUrl: string;
   onUrlsChange: (patch: { video_url?: string; tour_url?: string }) => void;
-  ficha?: FichaParaPublicacion;
   /** manual: arrastra, reordena y pulsa Guardar cambios. inmediato: sube al soltar (solo vídeo/archivo suelto). */
   guardadoFotos?: "manual" | "inmediato";
 }) {
@@ -108,8 +104,6 @@ export function InmuebleMultimedia({
   const planos = guardadoFotos === "manual" ? revision.plano.filas.length : media.filter((m) => m.tipo === "plano").length;
   const videos = media.filter((m) => m.tipo === "video").length;
   const retocadas = media.filter((m) => m.tipo === "retocada").length;
-  const publicaciones = media.filter((m) => m.tipo === "publicacion").length;
-
   const guardarUrl = async (campo: "video_url" | "tour_url", valor: string) => {
     setGuardando(true);
     const supabase = createClient();
@@ -165,7 +159,6 @@ export function InmuebleMultimedia({
     { id: "video", label: "Vídeo", cuenta: videos || (videoUrl ? 1 : 0) },
     { id: "tour", label: "Tour 3D", cuenta: tourUrl ? 1 : 0 },
     { id: "retocadas", label: "Retocadas", cuenta: retocadas },
-    { id: "publicaciones", label: "Redes", cuenta: publicaciones },
   ];
 
   return (
@@ -257,9 +250,6 @@ export function InmuebleMultimedia({
         <CajonRetocadas propiedadId={propiedadId} userId={userId} media={media} onChange={onChange} />
       ) : null}
 
-      {pestaña === "publicaciones" ? (
-        <CajonPublicaciones propiedadId={propiedadId} media={media} ficha={ficha} onChange={onChange} />
-      ) : null}
 
       {pestaña === "tour" ? (
         <div className="space-y-4">
