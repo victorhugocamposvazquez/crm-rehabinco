@@ -7,13 +7,12 @@
  * botones / inputs por los de `components/ui`. La lógica (estado, huecos de foto, deshacer, exportar) ya es la definitiva.
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { Check, Copy, Database, Download, Eye, EyeOff, Image as ImageIcon, Palette, Redo2, Search, Sparkles, Undo2, X } from 'lucide-react';
+import { Check, Database, Download, Eye, EyeOff, Image as ImageIcon, Palette, Redo2, Search, Undo2, X } from 'lucide-react';
 import { FIELD_LABELS, FORMATS, GOALS, READONLY_FIELDS, TEMPLATES, THEMES, TYPOS, fitBox, templatesForGoal, type FieldKey, type FormatId, type ThemeId, type TypoId } from "@/lib/estudio/config";
 import { AGENCIA, anidarEscala, anidarPos, assignPhoto, baseFields, buildCreativeData, initialCreativeState, resolveSlots, type CreativeState, type InmuebleEstudio } from "@/lib/estudio/data";
 import { Creative } from "@/components/estudio/templates";
 import { useCreative } from "@/lib/estudio/useCreative";
 import { creativeFilename, downloadBlob, exportCreativePng } from "@/lib/estudio/exportCreative";
-import { captionFallback, type Canal, type CaptionRequest, type Tono } from "@/lib/estudio/caption";
 import "@/components/estudio/estudio.css";
 
 const k = {
@@ -49,10 +48,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
   const [tab, setTab] = useState<Tab>('datos');
   const [lay, setLay] = useState<'todas' | 'collage' | 'una'>('todas');
   const [exp, setExp] = useState<Partial<Record<FormatId, boolean>>>({ post: true, story: true });
-  const [canal, setCanal] = useState<Canal>('instagram');
-  const [tono, setTono] = useState<Tono>('cercano');
-  const [caption, setCaption] = useState('');
-  const [busy, setBusy] = useState<'' | 'caption' | 'export'>('');
+  const [busy, setBusy] = useState<'' | 'export'>('');
   const exportRefs = useRef<Partial<Record<FormatId, HTMLDivElement | null>>>({});
   const lienzoRef = useRef<HTMLDivElement>(null);
   const [lienzo, setLienzo] = useState({ w: 760, h: 680 });
@@ -126,19 +122,8 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
     const o = { ...s.overrides }; delete o.badge;
     return { goal: id, overrides: o, template: own ?? (cur.only && cur.only !== id ? 'galeria' : s.template) };
   });
-  const pickInmueble = (id: string) => { if (id !== pid) { setPid(id); reset({ ...initialCreativeState, format: st.format, theme: st.theme, typo: st.typo }); setCaption(''); } go('diseno'); };
+  const pickInmueble = (id: string) => { if (id !== pid) { setPid(id); reset({ ...initialCreativeState, format: st.format, theme: st.theme, typo: st.typo }); } go('diseno'); };
 
-  const captionReq = (): CaptionRequest => ({
-    inmueble: { ref: inm.ref, titulo: data.f.titulo, direccion: inm.direccion, zona: inm.zona, barrio: inm.barrio, precio: inm.precio, m2: inm.m2, habitaciones: inm.habitaciones, banos: inm.banos, energia: inm.energia, agente: inm.agente.nombre },
-    canal, tono, objetivo: data.f.badge, visibles: tpl.uses.filter((f) => !st.hidden[f]), soloZona: st.soloZona,
-  });
-  const generateCaption = async () => {
-    setBusy('caption');
-    try {
-      const r = await fetch('/api/estudio/caption', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(captionReq()) });
-      setCaption(r.ok ? ((await r.json()) as { text: string }).text : captionFallback(captionReq()));
-    } catch { setCaption(captionFallback(captionReq())); } finally { setBusy(''); }
-  };
   const exportAll = async (download: boolean) => {
     setBusy('export');
     try {
@@ -149,7 +134,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
         files[f] = await exportCreativePng(node, f);
         if (download) downloadBlob(files[f]!, creativeFilename(inm.ref, st.template, f));
       }
-      await onSave?.({ inmuebleId: inm.id, state: st, files, caption });
+      await onSave?.({ inmuebleId: inm.id, state: st, files, caption: '' });
     } finally { setBusy(''); }
   };
 
@@ -399,8 +384,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
         <main className="estudio-scroll" style={{ padding: '32px 28px 40px' }}>
           <h1 style={{ fontSize: 26, margin: 0, fontWeight: 600, letterSpacing: '-.02em' }}>Revisa y descarga</h1>
           <p style={{ margin: '6px 0 22px', color: k.mut, fontSize: 14 }}>La misma pieza adaptada a cada formato. Marca los que quieras descargar.</p>
-          <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-            <div style={{ flex: '999 1 520px', minWidth: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(210px,1fr))', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(210px,1fr))', gap: 16, maxWidth: 1100 }}>
               {(Object.keys(FORMATS) as FormatId[]).map((f) => {
                 const [vw, vh] = fitBox(f, 190, 248), on = !!exp[f];
                 return (
@@ -414,18 +398,6 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
                   </label>
                 );
               })}
-            </div>
-            <section style={{ flex: '1 1 340px', minWidth: 0, maxWidth: 440, border: `1px solid ${k.line}`, borderRadius: 16, padding: 16, background: k.panel }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}><Sparkles size={17} /><h2 style={{ fontSize: 15, margin: 0 }}>Texto para la publicación</h2></div>
-              <p style={{ fontSize: 12.5, color: k.mut, margin: '0 0 12px', lineHeight: 1.45 }}>La IA lo escribe solo con los datos que se ven en la creatividad. Revísalo antes de publicar.</p>
-              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>{(['instagram', 'facebook', 'linkedin', 'whatsapp'] as Canal[]).map((c) => <button key={c} aria-pressed={canal === c} onClick={() => setCanal(c)} style={{ ...pill(canal === c), textTransform: 'capitalize' }}>{c === 'linkedin' ? 'LinkedIn' : c === 'whatsapp' ? 'WhatsApp' : c}</button>)}</div>
-              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 12 }}>{([['cercano', 'Cercano'], ['pro', 'Profesional'], ['lujo', 'Premium']] as [Tono, string][]).map(([t, l]) => <button key={t} aria-pressed={tono === t} onClick={() => setTono(t)} style={pill(tono === t)}>{l}</button>)}</div>
-              {caption && (<>
-                <textarea value={caption} onChange={(e) => setCaption(e.target.value)} aria-label="Texto de la publicación" rows={11} style={{ width: '100%', resize: 'vertical', border: `1px solid ${k.line2}`, borderRadius: 10, background: k.bg, color: k.fg, padding: 11, fontSize: 13, lineHeight: 1.55, outline: 0, font: 'inherit' }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 12, color: k.mut }}><span>{caption.length} caracteres</span><button onClick={() => navigator.clipboard?.writeText(caption)} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 600 }}><Copy size={15} />Copiar</button></div>
-              </>)}
-              <button onClick={generateCaption} disabled={busy === 'caption'} style={{ ...btn, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', height: 40, marginTop: 10, borderRadius: 10, background: caption ? 'transparent' : k.prim, color: caption ? k.fg : k.primFg, border: `1px solid ${k.line2}`, fontSize: 13.5, fontWeight: 600 }}><Sparkles size={16} />{busy === 'caption' ? 'Escribiendo…' : caption ? 'Volver a generar' : 'Generar texto con IA'}</button>
-            </section>
           </div>
         </main>
       )}
