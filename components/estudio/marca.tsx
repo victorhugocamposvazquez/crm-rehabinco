@@ -7,7 +7,7 @@ const LINEA = `M90.71 99.09L90.71 99.09Q89.53 99.09 88.54 98.70Q87.54 98.31 86.8
 /** Wordmark oficial: REH, la A de dos palos y BINCO, con la línea de gestión. El ancho manda: si no, el SVG se pinta a los 499 px del viewBox y se sale del cartel. */
 export function MarcaRehabinco({ color, width }: { color: string; width: string }) {
   return (
-    <svg viewBox="10 14 499.2 91.3" preserveAspectRatio="xMidYMid meet" aria-hidden style={{ width, height: "auto", display: "block", color } as CSSProperties}>
+    <svg viewBox="10 14 508 91.3" preserveAspectRatio="xMidYMid meet" aria-hidden style={{ width, height: "auto", display: "block", overflow: "visible", color } as CSSProperties}>
       <g fill="currentColor">
         <path d={REH} />
         <path d={BINCO} />
