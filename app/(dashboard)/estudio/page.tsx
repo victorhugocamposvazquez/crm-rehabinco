@@ -13,7 +13,7 @@ export default async function EstudioPage({
   const { inmuebles, agencia } = await cargarEstudio();
   const elegido = params.inmueble && inmuebles.some((item) => item.id === params.inmueble) ? params.inmueble : undefined;
   return (
-    <div className="estudio-page">
+    <div className="estudio-page dark">
       <EstudioCliente inmuebles={inmuebles} initialInmuebleId={elegido} agencia={agencia} />
     </div>
   );
