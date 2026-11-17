@@ -230,7 +230,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
   const stepVal: Record<Step, string> = { inmueble: inm.ref, diseno: `${goal.label} · ${tpl.nombre}`, editar: nHid ? `${nHid} ${nHid === 1 ? 'dato oculto' : 'datos ocultos'}` : 'Datos, fotos y estilo', descargar: `${secuencia.length} ${secuencia.length === 1 ? 'pieza' : 'piezas'}` };
   const stepHint: Record<Step, string> = { inmueble: 'Elige el inmueble', diseno: 'Objetivo y diseño', editar: 'Datos, fotos y estilo', descargar: 'Orden de la publicación' };
 
-  const pill = (on: boolean): CSSProperties => ({ ...btn, height: 34, padding: '0 12px', borderRadius: 9, border: `1px solid ${on ? k.prim : k.line2}`, background: on ? k.prim : 'transparent', color: on ? k.primFg : k.mut, fontSize: 13, fontWeight: 600 });
+  const pill = (on: boolean): CSSProperties => ({ ...btn, height: 34, padding: '0 12px', borderRadius: 9, border: `1px solid ${on ? k.fg : k.line2}`, background: on ? k.chip : 'transparent', color: on ? k.fg : k.mut, fontSize: 13, fontWeight: 600 });
   const formatPills = () => (
     <div role="radiogroup" aria-label="Formato" style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
       {(Object.keys(FORMATS) as FormatId[]).map((f) => (
@@ -243,7 +243,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
   const [mw, mh] = fitBox(st.format, 72, 60);
 
   return (
-    <div className="estudio-shell dark" style={{ background: k.bg, color: k.fg }}>
+    <div className="estudio-shell" style={{ background: k.bg, color: k.fg }}>
       {/* Pasos: cada uno enseña lo ya elegido */}
       <ol aria-label="Pasos" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexWrap: 'wrap', listStyle: 'none', margin: 0, padding: '12px 24px', borderBottom: `1px solid ${k.line}` }}>
         {STEPS.map(([id, label], i) => {
