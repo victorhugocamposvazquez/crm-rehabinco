@@ -7,6 +7,7 @@ import { usePermisos } from "@/lib/auth/permisos-context";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SettingsAdminNav } from "@/components/settings/SettingsAdminNav";
 import { IdealistaPublicacionCard } from "@/components/settings/IdealistaPublicacionCard";
+import { InstagramPublicacionCard } from "@/components/settings/InstagramPublicacionCard";
 
 export default function SettingsPublicacionPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -37,11 +38,12 @@ export default function SettingsPublicacionPage() {
       <PageHeader
         breadcrumb={[{ label: "Ajustes", href: "/settings" }, { label: "Publicación" }]}
         title="Publicación en portales"
-        description="Publicación de los inmuebles marcados en Idealista."
+        description="Idealista y la cuenta de Instagram de la agencia."
       />
       <SettingsAdminNav role={user?.role} />
       <div className="mt-6 max-w-3xl">
         <IdealistaPublicacionCard />
+        <InstagramPublicacionCard />
       </div>
     </div>
   );

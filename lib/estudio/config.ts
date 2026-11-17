@@ -50,6 +50,7 @@ export const GOALS: { id: GoalId; label: string; badge: string }[] = [
 ];
 
 export type TemplateId =
+  | 'hogar' | 'visita'
   | 'galeria' | 'bento' | 'moodboard' | 'triptico' | 'formas' | 'contactos' | 'collage'
   | 'portada' | 'bajada' | 'arco' | 'xxl' | 'plano' | 'openhouse' | 'vendido' | 'reforma';
 
@@ -67,6 +68,8 @@ export type FieldKey = 'badge' | 'titulo' | 'zona' | 'precio' | 'm2' | 'hab' | '
 const GEN: FieldKey[] = ['badge', 'titulo', 'zona', 'precio', 'm2', 'hab', 'banos', 'logo'];
 
 export const TEMPLATES: TemplateDef[] = [
+  { id: 'hogar', nombre: 'Tu nuevo hogar', fotos: 3, uses: ['titulo', 'hab', 'banos', 'precio', 'zona', 'tel', 'logo'], desc: 'Logo, tres fotos, características, precio y contacto.' },
+  { id: 'visita', nombre: 'Visita', fotos: 1, uses: ['titulo', 'cta', 'zona', 'logo'], desc: 'Una pregunta grande, la dirección y una foto.' },
   { id: 'galeria', nombre: 'Galería', fotos: 3, uses: GEN, desc: 'Una foto grande y dos de apoyo, como una doble página de revista.' },
   { id: 'bento', nombre: 'Mosaico', fotos: 4, uses: GEN, desc: 'Cuatro fotos y una tarjeta con el precio, en cuadrícula redondeada.' },
   { id: 'moodboard', nombre: 'Moodboard', fotos: 3, uses: GEN, desc: 'Fotos sueltas con cinta, nota manuscrita y sello del barrio.' },
@@ -85,7 +88,7 @@ export const TEMPLATES: TemplateDef[] = [
 ];
 
 /** Diseños que se marcan como «Recomendada» para cada objetivo (los `only` salen como «Hecha para esto»). */
-export const RECOMMENDED: Partial<Record<GoalId, TemplateId[]>> = { nuevo: ['galeria', 'portada'], exclusiva: ['arco', 'formas'], bajada: ['xxl'] };
+export const RECOMMENDED: Partial<Record<GoalId, TemplateId[]>> = { nuevo: ['hogar', 'visita', 'galeria', 'portada'], exclusiva: ['arco', 'formas'], bajada: ['xxl'] };
 
 export const FIELD_LABELS: Record<FieldKey, string> = {
   badge: 'Etiqueta', titulo: 'Título', zona: 'Ubicación', precio: 'Precio', m2: 'Superficie (m²)', hab: 'Dormitorios', banos: 'Baños',

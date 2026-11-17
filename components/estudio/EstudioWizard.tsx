@@ -7,12 +7,14 @@
  * botones / inputs por los de `components/ui`. La lógica (estado, huecos de foto, deshacer, exportar) ya es la definitiva.
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { Check, Database, Download, Eye, EyeOff, Image as ImageIcon, Palette, Redo2, Search, Undo2, X } from 'lucide-react';
+import { toast } from "sonner";
+import { Check, Database, Download, Eye, EyeOff, Image as ImageIcon, Instagram, Palette, Redo2, Search, Undo2, X } from 'lucide-react';
 import { FIELD_LABELS, FORMATS, GOALS, READONLY_FIELDS, TEMPLATES, THEMES, TYPOS, fitBox, templatesForGoal, type FieldKey, type FormatId, type ThemeId, type TypoId } from "@/lib/estudio/config";
 import { AGENCIA, anidarEscala, anidarPos, assignPhoto, baseFields, buildCreativeData, initialCreativeState, resolveSlots, type CreativeState, type InmuebleEstudio } from "@/lib/estudio/data";
 import { Creative } from "@/components/estudio/templates";
 import { useCreative } from "@/lib/estudio/useCreative";
 import { creativeFilename, downloadBlob, exportCreativePng } from "@/lib/estudio/exportCreative";
+import { textoInstagram } from "@/lib/estudio/instagram";
 import "@/components/estudio/estudio.css";
 
 const k = {
@@ -48,7 +50,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
   const [tab, setTab] = useState<Tab>('datos');
   const [lay, setLay] = useState<'todas' | 'collage' | 'una'>('todas');
   const [exp, setExp] = useState<Partial<Record<FormatId, boolean>>>({ post: true, story: true });
-  const [busy, setBusy] = useState<'' | 'export'>('');
+  const [busy, setBusy] = useState<'' | 'export' | 'instagram'>('');
   const exportRefs = useRef<Partial<Record<FormatId, HTMLDivElement | null>>>({});
   const lienzoRef = useRef<HTMLDivElement>(null);
   const [lienzo, setLienzo] = useState({ w: 760, h: 680 });
@@ -137,6 +139,31 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
       await onSave?.({ inmuebleId: inm.id, state: st, files, caption: '' });
     } finally { setBusy(''); }
   };
+  const publicarInstagram = async () => {
+    setBusy('instagram');
+    try {
+      const files: Partial<Record<FormatId, Blob>> = {};
+      for (const f of expSel) {
+        const node = exportRefs.current[f]?.firstElementChild as HTMLElement | null;
+        if (!node) continue;
+        files[f] = await exportCreativePng(node, f);
+      }
+      if (!Object.keys(files).length) { toast.error("No hay ninguna imagen para publicar."); return; }
+      const cuerpo = new FormData();
+      cuerpo.set("propiedadId", inm.id);
+      cuerpo.set("estado", JSON.stringify(st));
+      cuerpo.set("texto", textoInstagram({
+        titulo: data.f.titulo, zona: data.f.zona, precio: data.f.precio, tel: data.f.tel,
+        tituloVisible: data.sh.titulo, zonaVisible: data.sh.zona, precioVisible: data.sh.precio, telVisible: data.sh.tel,
+      }));
+      for (const [formato, blob] of Object.entries(files)) if (blob) cuerpo.set(`png_${formato}`, blob, `${formato}.png`);
+      const respuesta = await fetch("/api/estudio/instagram", { method: "POST", body: cuerpo });
+      const json = await respuesta.json().catch(() => null) as { ok?: boolean; error?: string } | null;
+      if (!respuesta.ok || !json?.ok) toast.error(json?.error || "No se ha publicado en Instagram.");
+      else toast.success("Publicado en Instagram.");
+    } catch { toast.error("No se ha publicado en Instagram."); }
+    finally { setBusy(''); }
+  };
 
   const NEXT: Record<Step, { to: Step | null; label: string }> = {
     inmueble: { to: 'diseno', label: 'Elegir diseño' }, diseno: { to: 'editar', label: `Editar «${tpl.nombre}»` }, editar: { to: 'descargar', label: 'Revisar y descargar' },
@@ -144,7 +171,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
   };
   const BACK: Partial<Record<Step, { to: Step; label: string }>> = { diseno: { to: 'inmueble', label: 'Cambiar inmueble' }, editar: { to: 'diseno', label: 'Ver todos los diseños' }, descargar: { to: 'editar', label: 'Seguir editando' } };
   const stepVal: Record<Step, string> = { inmueble: inm.ref, diseno: `${goal.label} · ${tpl.nombre}`, editar: nHid ? `${nHid} ${nHid === 1 ? 'dato oculto' : 'datos ocultos'}` : 'Datos, fotos y estilo', descargar: `${expSel.length} ${expSel.length === 1 ? 'formato' : 'formatos'}` };
-  const stepHint: Record<Step, string> = { inmueble: 'Elige el inmueble', diseno: 'Objetivo y diseño', editar: 'Datos, fotos y estilo', descargar: 'Formatos y texto' };
+  const stepHint: Record<Step, string> = { inmueble: 'Elige el inmueble', diseno: 'Objetivo y diseño', editar: 'Datos, fotos y estilo', descargar: 'Formatos' };
 
   const pill = (on: boolean): CSSProperties => ({ ...btn, height: 34, padding: '0 12px', borderRadius: 9, border: `1px solid ${on ? k.fg : k.line2}`, background: on ? k.chip : 'transparent', color: on ? k.fg : k.mut, fontSize: 13, fontWeight: 600 });
   const formatPills = () => (
@@ -228,7 +255,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(250px,1fr))', gap: 22 }}>
             {forGoal.filter((t) => lay === 'todas' || (lay === 'collage') === t.fotos > 1).map((t) => (
-              <button key={t.id} onClick={() => { edit({ template: t.id }); go('editar'); }} aria-pressed={t.id === st.template} className="estudio-card" style={{ ...btn, display: 'block', borderRadius: 16, overflow: 'hidden', background: k.panel, border: `1.5px solid ${t.id === st.template ? k.blue : k.line}` }}>
+              <button key={t.id} onClick={() => { edit((s) => ({ template: t.id, hidden: t.id === 'hogar' ? { ...s.hidden, tel: false } : s.hidden })); go('editar'); }} aria-pressed={t.id === st.template} className="estudio-card" style={{ ...btn, display: 'block', borderRadius: 16, overflow: 'hidden', background: k.panel, border: `1.5px solid ${t.id === st.template ? k.blue : k.line}` }}>
                 <span style={{ ...stage, position: 'relative', display: 'grid', placeItems: 'center', height: 300, padding: 16 }}>
                   <span style={{ display: 'block', lineHeight: 0, boxShadow: '0 14px 34px rgba(0,0,0,.4)' }}><Creative template={t.id} data={data} width={gw} height={gh} /></span>
                   {t.rank < 2 && <span style={{ position: 'absolute', left: 12, top: 12, fontSize: 11.5, fontWeight: 700, padding: '4px 10px', borderRadius: 999, background: k.blue, color: '#fff' }}>{t.rank === 0 ? 'Hecha para esto' : 'Recomendada'}</span>}
@@ -368,7 +395,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 12.5 }}><span style={{ fontWeight: 600 }}>Probar otro diseño <span style={{ fontWeight: 400, color: k.mut }}>(se conservan tus cambios)</span></span><button onClick={() => go('diseno')} style={{ ...btn, fontWeight: 600, color: k.blueInk }}>Ver galería</button></div>
               <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
                 {forGoal.map((t) => (
-                  <button key={t.id} onClick={() => { edit({ template: t.id }); setSel(''); }} aria-pressed={t.id === st.template} title={t.nombre} style={{ ...btn, flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, width: 84 }}>
+                  <button key={t.id} onClick={() => { edit((s) => ({ template: t.id, hidden: t.id === 'hogar' ? { ...s.hidden, tel: false } : s.hidden })); setSel(''); }} aria-pressed={t.id === st.template} title={t.nombre} style={{ ...btn, flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, width: 84 }}>
                     <span style={{ display: 'grid', placeItems: 'center', width: 84, height: 72, borderRadius: 9, border: `2px solid ${t.id === st.template ? k.blue : 'transparent'}`, background: k.stage, lineHeight: 0 }}><Creative template={t.id} data={data} width={mw} height={mh} /></span>
                     <span style={{ fontSize: 11, color: t.id === st.template ? k.fg : k.mut, fontWeight: t.id === st.template ? 600 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 84 }}>{t.nombre}</span>
                   </button>
@@ -407,8 +434,9 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
         <div style={{ flex: '1 1 200px', minWidth: 0, fontSize: 13, color: k.mut }}>{step === 'editar' ? `El tamaño y la posición valen solo para ${FORMATS[st.format].label}.` : step === 'diseno' ? 'Al elegir un diseño pasas a editarlo. Podrás cambiarlo sin perder nada.' : ''}</div>
         {BACK[step] && <FootBtn onClick={() => go(BACK[step]!.to)}>{BACK[step]!.label}</FootBtn>}
         {(step === 'editar' || step === 'descargar') && <FootBtn onClick={() => setPrevia(true)}><Eye size={16} />Vista previa</FootBtn>}
-        {step === 'descargar' && <FootBtn onClick={() => exportAll(false)} disabled={!expSel.length || busy === 'export'}>Guardar en la ficha</FootBtn>}
-        <FootBtn primary disabled={busy === 'export' || (step === 'descargar' && !expSel.length)} onClick={() => (NEXT[step].to ? go(NEXT[step].to!) : exportAll(true))}>{step === 'descargar' && <Download size={16} />}{NEXT[step].label}</FootBtn>
+        {step === 'descargar' && <FootBtn onClick={() => exportAll(false)} disabled={!expSel.length || busy !== ''}>Guardar en la ficha</FootBtn>}
+        {step === 'descargar' && <FootBtn onClick={publicarInstagram} disabled={!expSel.length || busy !== ''}><Instagram size={16} />{busy === 'instagram' ? 'Publicando…' : 'Publicar en Instagram'}</FootBtn>}
+        <FootBtn primary disabled={busy !== '' || (step === 'descargar' && !expSel.length)} onClick={() => (NEXT[step].to ? go(NEXT[step].to!) : exportAll(true))}>{step === 'descargar' && <Download size={16} />}{NEXT[step].label}</FootBtn>
       </div>
 
       {/* Lienzos fuera de pantalla para exportar a tamaño real: 540 px de ancho × pixelRatio 2 = 1080 */}

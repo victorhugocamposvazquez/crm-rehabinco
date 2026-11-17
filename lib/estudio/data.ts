@@ -1,4 +1,5 @@
 /** Estudio de creatividades · datos: de la ficha del inmueble + lo que el usuario cambia a lo que pinta la plantilla. */
+import { EMPRESA_DOCUMENTOS } from "@/lib/empresa-documentos";
 import { GOALS, MAX_SLOTS, THEMES, TYPOS, type FieldKey, type FormatId, type GoalId, type TemplateId, type ThemeId, type TypoId } from "./config";
 import type { CreativeData, Spec } from "@/components/estudio/templates";
 
@@ -34,7 +35,7 @@ export type InmuebleEstudio = {
 };
 
 /** Datos de agencia. La página del Estudio los rellena con la empresa de Ajustes. */
-export const AGENCIA = { telefono: "664 85 93 06", web: "rehabinco.com", cta: "¿Vendes tu casa? Te la valoramos gratis" };
+export const AGENCIA = { telefono: "664 85 93 06", email: EMPRESA_DOCUMENTOS.email, web: "rehabinco.com", cta: "¿Vendes tu casa? Te la valoramos gratis" };
 
 /** Todo lo que define una creatividad. Es lo que se guarda en `creatividades.estado` (jsonb). */
 export type CreativeState = {
@@ -126,6 +127,9 @@ export function buildCreativeData(inm: InmuebleEstudio, st: CreativeState): Crea
   const base = baseFields(inm, st);
   const f = { ...base } as CreativeData['f'];
   (Object.keys(base) as FieldKey[]).forEach((k) => { const o = st.overrides[k]; if (o != null) f[k] = o; });
+  if (st.template === "hogar" && st.overrides.titulo == null) f.titulo = "Tu nuevo hogar";
+  if (st.template === "visita" && st.overrides.titulo == null) f.titulo = "¿Quieres visitar esta vivienda?";
+  if (st.template === "visita" && st.overrides.cta == null) f.cta = "Contacta con nosotros y descubre tu próximo hogar.";
   const antes = inm.precioAnterior && inm.precioAnterior > inm.precio ? inm.precioAnterior : null;
   f.antes = antes ? eur(antes) : '';
   f.dto = antes ? '-' + Math.round((1 - inm.precio / antes) * 100) + '%' : '';
@@ -146,7 +150,7 @@ export function buildCreativeData(inm: InmuebleEstudio, st: CreativeState): Crea
   return {
     c: THEMES[st.theme], ty: TYPOS[st.typo], f, sh, specs,
     ph: order.map((p) => (p ? `url("${p.url}")` : 'none')), pf: order.map(() => 'none'), phName: order.map((p) => p?.nombre ?? ''),
-    barrio: inm.barrio, m2: inm.m2,
+    barrio: inm.barrio, m2: inm.m2, email: AGENCIA.email,
     escala: escalaDelFormato(st.escala, st.format), pos: posDelFormato(st.pos, st.format),
     bigNum: millones ? (inm.precio / 1e6).toLocaleString('es-ES', { maximumFractionDigits: 2 }) : String(Math.round(inm.precio / 1000)),
     bigUnit: millones ? 'millones de euros' : 'mil euros',

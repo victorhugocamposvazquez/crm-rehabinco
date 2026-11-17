@@ -28,7 +28,7 @@ export type CreativeData = {
   specs: Spec[];
   /** Fotos por hueco: valor CSS `url(...)`, filtro CSS de la edición con IA y nombre de la estancia. */
   ph: string[]; pf: string[]; phName: string[];
-  barrio: string; m2: number;
+  barrio: string; m2: number; email: string;
   /** Precio en grande para «Precio XXL»: «525» + «mil euros». */
   bigNum: string; bigUnit: string;
   escala: Partial<Record<FieldKey, number>>;
@@ -62,9 +62,45 @@ const WD: Record<string, string> = { lun: 'Lunes', mar: 'Martes', mié: 'Miérco
 const parseEv = (s: string) => { const parts = (s || '').trim().split(/\s+/); const dia = (s.match(/\d+/) || ['21'])[0]; const mes = (parts[parts.length - 1] || 'nov').slice(0, 3).toUpperCase(); return { dia, mes, wd: WD[(parts[0] || '').toLowerCase().slice(0, 3)] || '' }; };
 const EN_COLOR: Record<string, string> = { A: '#118C4F', B: '#4BA845', C: '#B7CF2D', D: '#E9D21B', E: '#EF9B1C', F: '#E5531E', G: '#D11E26' };
 const pieFoto = (name: string) => (/^foto\s*\d+$/i.test((name || '').trim()) ? '' : name);
+const camino = (d: string) => h('path', { d, strokeLinecap: 'round', strokeLinejoin: 'round' });
+const icono = (...nodos: ReactNode[]) => h('svg', { viewBox: '0 0 24 24', width: '1.15em', height: '1.15em', fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, 'aria-hidden': true, style: { flex: '0 0 auto', display: 'block' } }, ...nodos);
+const ICO_TEL = 'M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z';
+const ICO_PIN = 'M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z';
 type Box = [string, string, string, string, number];
 
 const R: Record<TemplateId, (x: Ctx) => ReactNode[]> = {
+  hogar: x => { const { f, c } = x;
+    const nHab = Number(f.hab) || 0, nBan = Number(f.banos) || 0;
+    const hab = `${f.hab} ${nHab === 1 ? 'habitación' : 'habitaciones'}`;
+    const ban = `${f.banos} ${nBan === 1 ? 'baño' : 'baños'}`;
+    const foto = (i: number, o?: CSSProperties) => d(Object.assign({ position: 'relative', overflow: 'hidden', minHeight: 0 }, o || {}), x.pic(i, { position: 'absolute', inset: 0 }));
+    return [d(ab({ inset: 0, display: 'flex', flexDirection: 'column', padding: x.wide ? '3.2% 4% 2.6%' : '4.4% 5% 3.4%', background: c.bg, color: c.fg, gap: x.wide ? '.4em' : '.65em' }),
+      d({ display: 'flex', justifyContent: 'center' }, x.fld('logo', {}, logo(c.fg, .95, 'center'))),
+      x.fld('titulo', { fontFamily: SERIF, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.12em', textAlign: 'center', fontSize: x.wide ? '1.05em' : x.tall ? '1.8em' : '1.5em', lineHeight: 1.05, margin: '0 3%' }, f.titulo),
+      d({ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '1.35fr 1fr', gridTemplateRows: '1fr 1fr', gap: '.28em' }, foto(0, { gridRow: '1 / 3' }), foto(1), foto(2)),
+      d({ display: 'flex', background: c.fg, color: c.bg },
+        d({ flex: '1.25 1 0', minWidth: 0, padding: '.75em .9em .85em' },
+          d({ fontSize: '.36em', letterSpacing: '.16em', fontWeight: 650, opacity: .72 }, 'CARACTERÍSTICAS'),
+          d({ fontSize: '.7em', lineHeight: 1.25, marginTop: '.28em', fontWeight: 500 }, x.fld('hab', { display: 'inline' }, hab), x.sh.hab && x.sh.banos ? ', ' : null, x.fld('banos', { display: 'inline' }, ban))),
+        d({ width: '1px', background: c.bg, opacity: .28, margin: '.65em 0' }),
+        d({ flex: '.8 1 0', minWidth: 0, padding: '.75em .9em .85em' },
+          d({ fontSize: '.36em', letterSpacing: '.16em', fontWeight: 650, opacity: .72 }, 'PRECIO'),
+          x.fld('precio', { fontSize: '1.15em', fontWeight: 650, letterSpacing: '-.03em', marginTop: '.12em', whiteSpace: 'nowrap' }, f.precio))),
+      d({ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1em', fontSize: '.44em', lineHeight: 1.3 },
+        d({ display: 'flex', flexDirection: 'column', gap: '.4em', minWidth: 0 },
+          x.fld('tel', { display: 'flex', alignItems: 'center', gap: '.45em' }, icono(camino(ICO_TEL)), f.tel),
+          d({ display: 'flex', alignItems: 'center', gap: '.45em' }, icono(camino('M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z'), h('polyline', { points: '22,6 12,13 2,6', strokeLinecap: 'round', strokeLinejoin: 'round' })), x.email)),
+        x.fld('zona', { display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', gap: '.4em', maxWidth: '54%', textAlign: 'right', textTransform: 'uppercase', letterSpacing: '.03em', fontWeight: 650 }, icono(camino(ICO_PIN), h('circle', { cx: 12, cy: 10, r: 2.6 })), f.zona)))]; },
+
+  visita: x => { const { f, c } = x;
+    return [d(ab({ inset: 0, display: 'flex', flexDirection: 'column', padding: x.wide ? '3% 4% 3%' : '4.8% 6% 4.2%', background: c.bg, color: c.fg, textAlign: 'center' }),
+      d({ display: 'flex', justifyContent: 'center' }, x.fld('logo', {}, logo(c.fg, .95, 'center'))),
+      x.fld('titulo', { fontFamily: SERIF, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.045em', fontSize: x.wide ? '1.2em' : x.tall ? '2em' : '1.68em', lineHeight: .98, marginTop: x.wide ? '.3em' : '.65em' }, f.titulo),
+      x.fld('cta', { fontFamily: SERIF, fontStyle: 'italic', fontWeight: 400, fontSize: x.wide ? '.52em' : '.7em', lineHeight: 1.35, marginTop: '.5em' }, f.cta),
+      d({ width: '2.2em', height: '.07em', background: c.fg, margin: '.65em auto .55em' }),
+      x.fld('zona', { fontSize: '.56em', fontWeight: 650 }, f.zona),
+      d({ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden', marginTop: '.75em' }, x.pic(0, { position: 'absolute', inset: 0 })))]; },
+
   galeria: x => { const { f, c } = x; const g = '.45em';
     const cell = (i: number, o?: CSSProperties) => d(Object.assign({ position: 'relative', overflow: 'hidden', minHeight: 0 }, o || {}), x.pic(i, { position: 'absolute', inset: 0 }));
     const grid = x.wide
