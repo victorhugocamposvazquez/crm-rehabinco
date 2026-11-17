@@ -23,7 +23,7 @@ const k = {
   fg: "var(--foreground)", mut: "var(--text-2)", prim: "var(--accent)", primFg: "var(--accent-foreground)", stage: "var(--pdf-desk)", chip: "var(--accent-soft)", blue: "#4C8DFF", blueInk: "var(--blue)", warn: "var(--amber)",
 };
 const eur = (n: number) => n.toLocaleString('es-ES') + ' €';
-const STEPS = [['inmueble', 'Inmueble'], ['diseno', 'Diseño'], ['editar', 'Editar'], ['descargar', 'Descargar']] as const;
+const STEPS = [['inmueble', 'Inmueble'], ['diseno', 'Diseño'], ['editar', 'Editar'], ['descargar', 'Composición']] as const;
 type Step = (typeof STEPS)[number][0];
 type Tab = 'datos' | 'fotos' | 'estilo';
 const btn: CSSProperties = { font: 'inherit', color: 'inherit', border: 0, background: 'none', cursor: 'pointer', padding: 0, textAlign: 'left' };
@@ -223,12 +223,12 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
   };
 
   const NEXT: Record<Step, { to: Step | null; label: string }> = {
-    inmueble: { to: 'diseno', label: 'Elegir diseño' }, diseno: { to: 'editar', label: `Editar «${tpl.nombre}»` }, editar: { to: 'descargar', label: 'Revisar y descargar' },
-    descargar: { to: null, label: busy === 'export' ? 'Generando…' : expSel.length ? `Descargar ${expSel.length} ${expSel.length === 1 ? 'imagen' : 'imágenes'}` : 'Elige un formato' },
+    inmueble: { to: 'diseno', label: 'Elegir diseño' }, diseno: { to: 'editar', label: `Editar «${tpl.nombre}»` }, editar: { to: 'descargar', label: 'Armar la publicación' },
+    descargar: { to: null, label: busy === 'export' ? 'Generando…' : secuencia.length ? `Descargar ${secuencia.length} ${secuencia.length === 1 ? 'pieza' : 'piezas'}` : 'Añade una pieza' },
   };
   const BACK: Partial<Record<Step, { to: Step; label: string }>> = { diseno: { to: 'inmueble', label: 'Cambiar inmueble' }, editar: { to: 'diseno', label: 'Ver todos los diseños' }, descargar: { to: 'editar', label: 'Seguir editando' } };
-  const stepVal: Record<Step, string> = { inmueble: inm.ref, diseno: `${goal.label} · ${tpl.nombre}`, editar: nHid ? `${nHid} ${nHid === 1 ? 'dato oculto' : 'datos ocultos'}` : 'Datos, fotos y estilo', descargar: `${expSel.length} ${expSel.length === 1 ? 'formato' : 'formatos'}` };
-  const stepHint: Record<Step, string> = { inmueble: 'Elige el inmueble', diseno: 'Objetivo y diseño', editar: 'Datos, fotos y estilo', descargar: 'Formatos' };
+  const stepVal: Record<Step, string> = { inmueble: inm.ref, diseno: `${goal.label} · ${tpl.nombre}`, editar: nHid ? `${nHid} ${nHid === 1 ? 'dato oculto' : 'datos ocultos'}` : 'Datos, fotos y estilo', descargar: `${secuencia.length} ${secuencia.length === 1 ? 'pieza' : 'piezas'}` };
+  const stepHint: Record<Step, string> = { inmueble: 'Elige el inmueble', diseno: 'Objetivo y diseño', editar: 'Datos, fotos y estilo', descargar: 'Orden de la publicación' };
 
   const pill = (on: boolean): CSSProperties => ({ ...btn, height: 34, padding: '0 12px', borderRadius: 9, border: `1px solid ${on ? k.fg : k.line2}`, background: on ? k.chip : 'transparent', color: on ? k.fg : k.mut, fontSize: 13, fontWeight: 600 });
   const formatPills = () => (
@@ -463,63 +463,69 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
         </div>
       )}
 
-      {/* 4 · Descargar */}
+      {/* 4 · Composición */}
       {step === 'descargar' && (
         <main className="estudio-scroll" style={{ padding: '32px 28px 40px' }}>
-          <h1 style={{ fontSize: 26, margin: 0, fontWeight: 600, letterSpacing: '-.02em' }}>Revisa y descarga</h1>
-          <p style={{ margin: '6px 0 18px', color: k.mut, fontSize: 14 }}>Monta la publicación con fotos y diseños, en el orden que quieras. Hasta {MAX_COMPOSICION} piezas, todas en el mismo formato.</p>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
-            {FORMATOS_COMPOSICION.map((f) => <button key={f} type="button" aria-pressed={formatoComp === f} onClick={() => setFormatoComp(f)} style={pill(formatoComp === f)}>{FORMATS[f].label} {FORMATS[f].ratio}</button>)}
-          </div>
-          <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8 }}>
-            {secuencia.map((pieza, i) => {
-              const [pw, ph] = fitBox(formatoComp, 148, 190);
-              const plantilla = pieza.tipo === 'foto' ? 'foto' as const : pieza.template;
-              const fotoPieza = pieza.tipo === 'foto' ? inm.fotos[pieza.foto] : null;
-              const nombre = pieza.tipo === 'diseno'
-                ? (TEMPLATES.find((t) => t.id === pieza.template)?.nombre || 'Diseño')
-                : (fotoPieza && !/^foto\s*\d+$/i.test(fotoPieza.nombre.trim()) ? fotoPieza.nombre : 'Foto');
-              return (
-                <div key={pieza.id} style={{ flex: '0 0 168px', border: `1px solid ${k.line}`, borderRadius: 14, background: k.panel, overflow: 'hidden' }}>
-                  <div style={{ ...stage, display: 'grid', placeItems: 'center', height: 210 }}><Creative template={plantilla} data={datosDePieza(inm, st, pieza, formatoComp)} width={pw} height={ph} /></div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '8px 8px 10px' }}>
-                    <span style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{i + 1}. {nombre}</span>
-                    <button type="button" aria-label="Mover atrás" disabled={i === 0} onClick={() => moverPieza(i, -1)} style={{ ...btn, width: 26, height: 26, display: 'grid', placeItems: 'center', opacity: i === 0 ? 0.3 : 1 }}><ChevronLeft size={16} /></button>
-                    <button type="button" aria-label="Mover adelante" disabled={i === secuencia.length - 1} onClick={() => moverPieza(i, 1)} style={{ ...btn, width: 26, height: 26, display: 'grid', placeItems: 'center', opacity: i === secuencia.length - 1 ? 0.3 : 1 }}><ChevronRight size={16} /></button>
-                    <button type="button" aria-label="Quitar pieza" onClick={() => setPiezas(secuencia.filter((_, j) => j !== i))} style={{ ...btn, width: 26, height: 26, display: 'grid', placeItems: 'center', color: k.mut }}><X size={15} /></button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          {!secuencia.length && <p style={{ margin: '8px 0 0', color: k.mut, fontSize: 13.5 }}>Añade fotos o diseños para armar la publicación.</p>}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
-            <FootBtn onClick={descargarComposicion} disabled={!secuencia.length || busy !== ''}>Descargar composición</FootBtn>
-            <FootBtn onClick={publicarComposicion} disabled={!secuencia.length || busy !== ''}><Instagram size={16} />{busy === 'instagram' ? 'Publicando…' : 'Publicar composición'}</FootBtn>
-          </div>
-          <div style={{ marginTop: 18 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Añadir una foto</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {inm.fotos.map((foto, i) => {
-                const generica = /^foto\s*\d+$/i.test(foto.nombre.trim());
+          <h1 style={{ fontSize: 26, margin: 0, fontWeight: 600, letterSpacing: '-.02em' }}>Arma la publicación</h1>
+          <p style={{ margin: '6px 0 22px', color: k.mut, fontSize: 14, maxWidth: 640 }}>La primera pieza es el diseño que acabas de editar. Añade fotos o diseños: cada pulsación los pone al final. Las flechas cambian el orden. Abajo descargas o publicas la secuencia.</p>
+
+          <h2 style={{ fontSize: 15, margin: '0 0 10px', fontWeight: 600 }}>1. Este es el orden · {secuencia.length} de {MAX_COMPOSICION}</h2>
+          {secuencia.length ? (
+            <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8 }}>
+              {secuencia.map((pieza, i) => {
+                const [pw, ph] = fitBox(formatoComp, 148, 190);
+                const plantilla = pieza.tipo === 'foto' ? 'foto' as const : pieza.template;
+                const fotoPieza = pieza.tipo === 'foto' ? inm.fotos[pieza.foto] : null;
+                const nombre = pieza.tipo === 'diseno'
+                  ? (TEMPLATES.find((t) => t.id === pieza.template)?.nombre || 'Diseño')
+                  : (fotoPieza && !/^foto\s*\d+$/i.test(fotoPieza.nombre.trim()) ? fotoPieza.nombre : 'Foto');
                 return (
-                <button key={foto.id} type="button" disabled={alTope} onClick={() => anadirPieza({ tipo: 'foto', foto: i })} title={generica ? `Foto ${i + 1}` : foto.nombre} style={{ ...btn, width: 72, overflow: 'hidden', opacity: alTope ? 0.4 : 1 }}>
-                  <span style={{ display: 'block', height: 54, borderRadius: 8, backgroundImage: `url("${foto.url}")`, backgroundSize: 'cover', backgroundPosition: 'center', border: `1px solid ${k.line}` }} />
-                  <span style={{ display: 'block', marginTop: 4, fontSize: 11, color: k.mut, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{generica ? i + 1 : foto.nombre}</span>
-                </button>
+                  <div key={pieza.id} style={{ flex: '0 0 168px', border: `1px solid ${k.line}`, borderRadius: 14, background: k.panel, overflow: 'hidden' }}>
+                    <div style={{ ...stage, display: 'grid', placeItems: 'center', height: 210 }}><Creative template={plantilla} data={datosDePieza(inm, st, pieza, formatoComp)} width={pw} height={ph} /></div>
+                    <div style={{ padding: '8px 8px 10px' }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{i + 1}. {nombre}</div>
+                      {pieza.id === 'actual' && <div style={{ fontSize: 11, color: k.mut, marginTop: 2 }}>El diseño que acabas de editar</div>}
+                      <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
+                        <button type="button" aria-label="Mover atrás" disabled={i === 0} onClick={() => moverPieza(i, -1)} style={{ ...btn, width: 26, height: 26, display: 'grid', placeItems: 'center', opacity: i === 0 ? 0.3 : 1 }}><ChevronLeft size={16} /></button>
+                        <button type="button" aria-label="Mover adelante" disabled={i === secuencia.length - 1} onClick={() => moverPieza(i, 1)} style={{ ...btn, width: 26, height: 26, display: 'grid', placeItems: 'center', opacity: i === secuencia.length - 1 ? 0.3 : 1 }}><ChevronRight size={16} /></button>
+                        <button type="button" aria-label="Quitar pieza" onClick={() => setPiezas(secuencia.filter((_, j) => j !== i))} style={{ ...btn, marginLeft: 'auto', width: 26, height: 26, display: 'grid', placeItems: 'center', color: k.mut }}><X size={15} /></button>
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
             </div>
+          ) : <p style={{ margin: '0 0 8px', color: k.mut, fontSize: 13.5 }}>Todavía no hay piezas. Añade una foto o un diseño.</p>}
+
+          <h2 style={{ fontSize: 15, margin: '22px 0 4px', fontWeight: 600 }}>2. Añadir al final</h2>
+          <p style={{ margin: '0 0 12px', color: k.mut, fontSize: 13.5 }}>{alTope ? `Ya hay ${MAX_COMPOSICION} piezas. Quita una para añadir otra.` : 'Pulsa una foto o un diseño. Aparece como última pieza y luego la mueves.'}</p>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Fotos del inmueble</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {inm.fotos.map((foto, i) => {
+              const generica = /^foto\s*\d+$/i.test(foto.nombre.trim());
+              return (
+                <button key={foto.id} type="button" disabled={alTope} onClick={() => anadirPieza({ tipo: 'foto', foto: i })} title={generica ? `Añadir foto ${i + 1}` : `Añadir ${foto.nombre}`} style={{ ...btn, width: 72, overflow: 'hidden', opacity: alTope ? 0.4 : 1 }}>
+                  <span style={{ display: 'block', height: 54, borderRadius: 8, backgroundImage: `url("${foto.url}")`, backgroundSize: 'cover', backgroundPosition: 'center', border: `1px solid ${k.line}` }} />
+                  <span style={{ display: 'block', marginTop: 4, fontSize: 11, color: k.mut, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{generica ? i + 1 : foto.nombre}</span>
+                </button>
+              );
+            })}
           </div>
-          <div style={{ marginTop: 16, marginBottom: 28 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Añadir un diseño</div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {forGoal.map((t) => <button key={t.id} type="button" disabled={alTope} onClick={() => anadirPieza({ tipo: 'diseno', template: t.id })} style={{ ...pill(false), opacity: alTope ? 0.4 : 1 }}>{t.nombre}</button>)}
-            </div>
+          <div style={{ fontSize: 13, fontWeight: 600, margin: '16px 0 8px' }}>Diseños</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {forGoal.map((t) => <button key={t.id} type="button" disabled={alTope} onClick={() => anadirPieza({ tipo: 'diseno', template: t.id })} style={{ ...pill(false), opacity: alTope ? 0.4 : 1 }}>{t.nombre}</button>)}
           </div>
-          <h2 style={{ fontSize: 18, margin: '0 0 6px', fontWeight: 600 }}>Un solo formato</h2>
-          <p style={{ margin: '0 0 16px', color: k.mut, fontSize: 13.5 }}>La pieza que estás editando, adaptada a cada formato.</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(210px,1fr))', gap: 16, maxWidth: 1100 }}>
+
+          <h2 style={{ fontSize: 15, margin: '26px 0 8px', fontWeight: 600 }}>3. El formato de todas las piezas</h2>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {FORMATOS_COMPOSICION.map((f) => <button key={f} type="button" aria-pressed={formatoComp === f} onClick={() => setFormatoComp(f)} style={pill(formatoComp === f)}>{FORMATS[f].label} {FORMATS[f].ratio}</button>)}
+          </div>
+          <p style={{ margin: '8px 0 0', color: k.mut, fontSize: 13.5 }}>Instagram publica el carrusel en este formato. Story y Facebook van aparte, en el bloque de abajo.</p>
+
+          <details style={{ marginTop: 28, paddingTop: 16, borderTop: `1px solid ${k.line}` }}>
+            <summary style={{ cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>Solo el diseño editado, en otros formatos</summary>
+            <p style={{ margin: '8px 0 16px', color: k.mut, fontSize: 13.5 }}>Esto no cambia la composición. Descarga o publica únicamente «{tpl.nombre}».</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(210px,1fr))', gap: 16, maxWidth: 1100 }}>
               {(Object.keys(FORMATS) as FormatId[]).map((f) => {
                 const [vw, vh] = fitBox(f, 190, 248), on = !!exp[f];
                 return (
@@ -533,18 +539,23 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
                   </label>
                 );
               })}
-          </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
+              <FootBtn onClick={() => exportAll(true)} disabled={!expSel.length || busy !== ''}>Descargar estos formatos</FootBtn>
+              <FootBtn onClick={() => exportAll(false)} disabled={!expSel.length || busy !== ''}>Guardar en la ficha</FootBtn>
+              <FootBtn onClick={publicarInstagram} disabled={!expSel.length || busy !== ''}><Instagram size={16} />Publicar estos formatos</FootBtn>
+            </div>
+          </details>
         </main>
       )}
 
       {/* Barra inferior */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '12px 28px', borderTop: `1px solid ${k.line}`, background: k.glass }}>
-        <div style={{ flex: '1 1 200px', minWidth: 0, fontSize: 13, color: k.mut }}>{step === 'editar' ? `El tamaño y la posición valen solo para ${FORMATS[st.format].label}.` : step === 'diseno' ? 'Al elegir un diseño pasas a editarlo. Podrás cambiarlo sin perder nada.' : step === 'descargar' ? 'La composición se publica con su botón. Aquí, los formatos marcados.' : ''}</div>
+        <div style={{ flex: '1 1 200px', minWidth: 0, fontSize: 13, color: k.mut }}>{step === 'editar' ? `El tamaño y la posición valen solo para ${FORMATS[st.format].label}.` : step === 'diseno' ? 'Al elegir un diseño pasas a editarlo. Podrás cambiarlo sin perder nada.' : step === 'descargar' ? `${secuencia.length} ${secuencia.length === 1 ? 'pieza' : 'piezas'} en ${FORMATS[formatoComp].label}.` : ''}</div>
         {BACK[step] && <FootBtn onClick={() => go(BACK[step]!.to)}>{BACK[step]!.label}</FootBtn>}
         {(step === 'editar' || step === 'descargar') && <FootBtn onClick={() => setPrevia(true)}><Eye size={16} />Vista previa</FootBtn>}
-        {step === 'descargar' && <FootBtn onClick={() => exportAll(false)} disabled={!expSel.length || busy !== ''}>Guardar en la ficha</FootBtn>}
-        {step === 'descargar' && <FootBtn onClick={publicarInstagram} disabled={!expSel.length || busy !== ''}><Instagram size={16} />{busy === 'instagram' ? 'Publicando…' : 'Publicar en Instagram'}</FootBtn>}
-        <FootBtn primary disabled={busy !== '' || (step === 'descargar' && !expSel.length)} onClick={() => (NEXT[step].to ? go(NEXT[step].to!) : exportAll(true))}>{step === 'descargar' && <Download size={16} />}{NEXT[step].label}</FootBtn>
+        {step === 'descargar' && <FootBtn onClick={publicarComposicion} disabled={!secuencia.length || busy !== ''}><Instagram size={16} />{busy === 'instagram' ? 'Publicando…' : 'Publicar en Instagram'}</FootBtn>}
+        <FootBtn primary disabled={busy !== '' || (step === 'descargar' && !secuencia.length)} onClick={() => (step === 'descargar' ? descargarComposicion() : NEXT[step].to ? go(NEXT[step].to!) : exportAll(true))}>{step === 'descargar' && <Download size={16} />}{NEXT[step].label}</FootBtn>
       </div>
 
       {/* Lienzos fuera de pantalla para exportar a tamaño real: 540 px de ancho × pixelRatio 2 = 1080 */}
