@@ -69,6 +69,7 @@ const ICO_PIN = 'M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z';
 type Box = [string, string, string, string, number];
 
 const R: Record<TemplateId, (x: Ctx) => ReactNode[]> = {
+  foto: x => [x.pic(0, { position: 'absolute', inset: 0 })],
   hogar: x => { const { f, c } = x;
     const nHab = Number(f.hab) || 0, nBan = Number(f.banos) || 0;
     const hab = `${f.hab} ${nHab === 1 ? 'habitación' : 'habitaciones'}`;

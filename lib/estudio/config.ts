@@ -50,7 +50,7 @@ export const GOALS: { id: GoalId; label: string; badge: string }[] = [
 ];
 
 export type TemplateId =
-  | 'hogar' | 'visita'
+  | 'foto' | 'hogar' | 'visita'
   | 'galeria' | 'bento' | 'moodboard' | 'triptico' | 'formas' | 'contactos' | 'collage'
   | 'portada' | 'bajada' | 'arco' | 'xxl' | 'plano' | 'openhouse' | 'vendido' | 'reforma';
 

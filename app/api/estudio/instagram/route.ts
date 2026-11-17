@@ -53,31 +53,44 @@ export async function POST(req: Request) {
   if (!propiedad) return NextResponse.json({ ok: false, error: "No encuentro ese inmueble." }, { status: 404 });
 
   const id = randomUUID();
-  const rutas: Partial<Record<FormatId, string>> = {};
+  const rutas: Record<string, string> = {};
   const urls: Partial<Record<FormatId, string>> = {};
+  const piezasUrl: string[] = [];
+  const subir = async (nombre: string, archivo: File) => {
+    const path = `${propiedadId}/creatividades/${id}/${nombre}.png`;
+    const { error } = await acceso.supabase.storage.from("inmuebles").upload(path, archivo, { contentType: "image/png", upsert: false });
+    if (error) return null;
+    rutas[nombre] = path;
+    return acceso.supabase.storage.from("inmuebles").getPublicUrl(path).data.publicUrl;
+  };
+  if (form.get("composicion") === "1") {
+    for (let i = 0; i < 10; i += 1) {
+      const archivo = form.get(`png_pieza_${i}`);
+      if (!(archivo instanceof File) || archivo.size === 0) break;
+      const publica = await subir(`pieza-${i}`, archivo);
+      if (!publica) return NextResponse.json({ ok: false, error: "No se ha podido preparar la imagen." }, { status: 500 });
+      piezasUrl.push(publica);
+    }
+  }
   for (const formato of ORDEN) {
     const archivo = form.get(`png_${formato}`);
     if (!(archivo instanceof File) || archivo.size === 0) continue;
-    const path = `${propiedadId}/creatividades/${id}/${formato}.png`;
-    const { error } = await acceso.supabase.storage.from("inmuebles").upload(path, archivo, { contentType: "image/png", upsert: false });
-    if (error) return NextResponse.json({ ok: false, error: "No se ha podido preparar la imagen." }, { status: 500 });
-    rutas[formato] = path;
-    urls[formato] = acceso.supabase.storage.from("inmuebles").getPublicUrl(path).data.publicUrl;
+    const publica = await subir(formato, archivo);
+    if (!publica) return NextResponse.json({ ok: false, error: "No se ha podido preparar la imagen." }, { status: 500 });
+    urls[formato] = publica;
   }
 
   const elegidos = ORDEN.filter((f) => urls[f]);
   const reparto = repartoInstagram(elegidos);
-  if (!reparto.feed.length && !reparto.historia.length) {
+  const feedUrls = piezasUrl.length ? piezasUrl : reparto.feed.map((f) => urls[f]!);
+  const historiaUrl = piezasUrl.length ? null : (reparto.historia[0] ? urls[reparto.historia[0]]! : null);
+  if (!feedUrls.length && !historiaUrl) {
     return NextResponse.json({ ok: false, error: "Elige al menos un formato." }, { status: 400 });
   }
 
   try {
     const vigente = await refrescarSiHaceFalta(cuenta);
-    await publicarEnInstagram(vigente, {
-      feed: reparto.feed.map((f) => urls[f]!),
-      historia: reparto.historia[0] ? urls[reparto.historia[0]]! : null,
-      texto,
-    });
+    await publicarEnInstagram(vigente, { feed: feedUrls, historia: historiaUrl, texto });
   } catch (error) {
     const mensaje = error instanceof Error ? error.message : "Instagram no ha publicado.";
     return NextResponse.json({ ok: false, error: mensaje }, { status: 502 });
