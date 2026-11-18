@@ -4,11 +4,12 @@ import type { FormatId } from "./config";
 export const INSTAGRAM_GRAPH = "https://graph.instagram.com/v21.0";
 
 export function repartoInstagram(formatos: FormatId[]) {
-  const orden: FormatId[] = ["post", "feed", "fb", "story"];
+  const orden: FormatId[] = ["post", "feed", "fb", "reel", "story"];
   const elegidos = orden.filter((f) => formatos.includes(f));
+  const vertical = (f: FormatId) => f === "story" || f === "reel";
   return {
-    feed: elegidos.filter((f) => f !== "story"),
-    historia: elegidos.filter((f) => f === "story"),
+    feed: elegidos.filter((f) => !vertical(f)),
+    historia: elegidos.filter(vertical),
   };
 }
 

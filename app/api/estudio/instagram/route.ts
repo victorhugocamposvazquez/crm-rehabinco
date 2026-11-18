@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
-const ORDEN: FormatId[] = ["post", "feed", "fb", "story"];
+const ORDEN: FormatId[] = ["post", "feed", "fb", "reel", "story"];
 
 export async function GET() {
   const acceso = await exigirEquipoArchivo();

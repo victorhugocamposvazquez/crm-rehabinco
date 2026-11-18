@@ -9,7 +9,7 @@ export const maxDuration = 60;
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const FORMATOS: FormatId[] = ["post", "feed", "story", "fb"];
+const FORMATOS: FormatId[] = ["post", "feed", "reel", "story", "fb"];
 
 export async function POST(req: Request) {
   const acceso = await exigirEquipoArchivo();

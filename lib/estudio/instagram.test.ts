@@ -30,6 +30,7 @@ describe("plantillas de portada y visita", () => {
 describe("reparto de instagram", () => {
   it("la story no entra en el carrusel del feed", () => {
     assert.deepEqual(repartoInstagram(["story", "post", "fb"]), { feed: ["post", "fb"], historia: ["story"] });
+    assert.deepEqual(repartoInstagram(["reel", "feed"]), { feed: ["feed"], historia: ["reel"] });
   });
 
   it("el texto solo incluye lo que se ve", () => {

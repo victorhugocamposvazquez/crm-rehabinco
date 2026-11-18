@@ -1,12 +1,15 @@
 /** Estudio de creatividades · configuración (formatos, colores, tipografías, objetivos y catálogo de diseños). */
 
-export type FormatId = 'post' | 'feed' | 'story' | 'fb';
+export type FormatId = 'post' | 'feed' | 'reel' | 'story' | 'fb';
 export const FORMATS: Record<FormatId, { label: string; ratio: string; w: number; h: number }> = {
-  post: { label: 'Post', ratio: '1:1', w: 1080, h: 1080 },
-  feed: { label: 'Feed', ratio: '4:5', w: 1080, h: 1350 },
-  story: { label: 'Story', ratio: '9:16', w: 1080, h: 1920 },
+  feed: { label: 'Post', ratio: '4:5', w: 1080, h: 1350 },
+  post: { label: 'Cuadrado', ratio: '1:1', w: 1080, h: 1080 },
+  reel: { label: 'Reel', ratio: '9:16', w: 1080, h: 1920 },
+  story: { label: 'Historia', ratio: '9:16', w: 1080, h: 1920 },
   fb: { label: 'Facebook', ratio: '1.91:1', w: 1200, h: 628 },
 };
+/** Orden en el que se ofrece el tipo al empezar. */
+export const TIPOS_PUBLICACION: FormatId[] = ['feed', 'post', 'reel', 'story', 'fb'];
 
 export type ThemeId = 'blanco' | 'piedra' | 'arena' | 'negro' | 'atlantico';
 export type Theme = { label: string; bg: string; fg: string; mut: string; acc: string; accFg: string; line: string; grid: string };

@@ -5,7 +5,7 @@
  */
 import { useMemo, useRef, useState, type CSSProperties, type DragEvent, type ReactNode } from 'react';
 import { ArrowLeft, Check, ChevronLeft, ChevronRight, Database, Download, Eye, EyeOff, Image as ImageIcon, Instagram, LayoutTemplate, Palette, Plus, Redo2, Search, Trash2, Undo2, X } from 'lucide-react';
-import { FIELD_LABELS, FORMATS, GOALS, MAX_SLIDES, READONLY_FIELDS, TEMPLATES, THEMES, TYPOS, fitBox, templatesForGoal, type FieldKey, type FormatId, type TemplateId, type ThemeId, type TypoId } from "@/lib/estudio/config";
+import { FIELD_LABELS, FORMATS, GOALS, MAX_SLIDES, READONLY_FIELDS, TEMPLATES, THEMES, TIPOS_PUBLICACION, TYPOS, fitBox, templatesForGoal, type FieldKey, type FormatId, type TemplateId, type ThemeId, type TypoId } from "@/lib/estudio/config";
 import { AGENCIA, anidarEscala, anidarPos, assignPhoto, resolveSlots, type InmuebleEstudio } from "@/lib/estudio/data";
 import { buildSlideData, defaultHidden, initialPublication, makeSlide, slideLabel, usedPhotoIndexes, type Publication } from "@/lib/estudio/publicacion";
 import { Creative } from "@/components/estudio/templates";
@@ -73,7 +73,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
   const full = n >= MAX_SLIDES;
   const goal = GOALS.find((g) => g.id === pub.goal)!;
   const fmt = FORMATS[pub.format];
-  const fmtName = pub.format === 'feed' ? 'Instagram 4:5' : pub.format === 'post' ? 'Cuadrado 1:1' : `${fmt.label} ${fmt.ratio}`;
+  const fmtName = `${fmt.label} ${fmt.ratio}`;
   const si = STEPS.findIndex((s) => s[0] === step);
 
   const showToast = (msg: string, undo?: boolean) => { clearTimeout(toastT.current); setToast({ msg, undo }); toastT.current = setTimeout(() => setToast(null), undo ? 6000 : 2400); };
@@ -170,7 +170,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
   const coverTemplates = templatesForGoal(pub.goal);
   const slideTemplates = templatesForGoal(pub.goal, { includeSlideOnly: true });
   const used = usedPhotoIndexes(pub, nF);
-  const stepVal: Record<Step, string> = { inmueble: inm.ref, diseno: `${goal.label} · ${tplName(pub.slides[0].template)}`, editar: n === 1 ? '1 imagen' : `Carrusel de ${n}`, publicar: 'Texto y salida' };
+  const stepVal: Record<Step, string> = { inmueble: inm.ref, diseno: `${fmt.label} · ${tplName(pub.slides[0].template)}`, editar: n === 1 ? '1 imagen' : `Carrusel de ${n}`, publicar: 'Texto y salida' };
   const stepHint: Record<Step, string> = { inmueble: 'Elige el inmueble', diseno: 'Qué anuncias y diseño', editar: stepVal.editar, publicar: 'Texto y salida' };
 
   const pill = (on: boolean): CSSProperties => ({ ...btn, height: 34, padding: '0 12px', borderRadius: 9, border: `1px solid ${on ? k.fg : k.line2}`, background: on ? k.chip : 'transparent', color: on ? k.fg : k.mut, fontSize: 13, fontWeight: 600 });
@@ -246,7 +246,15 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
       {/* 2 · Diseño de la imagen principal. Se empieza con UNA imagen. */}
       {step === 'diseno' && (
         <main className="estudio-scroll" style={{ padding: '28px 28px 40px' }}>
-          <h1 style={{ fontSize: 26, margin: '0 0 14px', fontWeight: 600 }}>¿Qué quieres anunciar?</h1>
+          <h1 style={{ fontSize: 26, margin: '0 0 14px', fontWeight: 600 }}>¿Qué vas a publicar?</h1>
+          <div role="radiogroup" aria-label="Tipo de publicación" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(148px,1fr))', gap: 10, marginBottom: 28 }}>
+            {TIPOS_PUBLICACION.map((f) => { const on = pub.format === f; const { w, h } = FORMATS[f]; const alto = Math.round(72 * h / w); return (
+              <button key={f} role="radio" aria-checked={on} onClick={() => P.edit({ format: f })} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14, border: `1.5px solid ${on ? k.blue : k.line2}`, background: on ? 'rgba(76,141,255,.08)' : k.panel }}>
+                <span aria-hidden style={{ width: 36, height: alto, maxHeight: 64, borderRadius: 4, border: `1.5px solid ${on ? k.blue : k.line2}`, background: k.stage, flex: '0 0 auto' }} />
+                <span style={{ minWidth: 0 }}><span style={{ display: 'block', fontSize: 15, fontWeight: 650 }}>{FORMATS[f].label}</span><span style={{ display: 'block', fontSize: 12.5, color: k.mut, marginTop: 2 }}>{FORMATS[f].ratio}</span></span>
+              </button>); })}
+          </div>
+          <h2 style={{ fontSize: 20, margin: '0 0 14px', fontWeight: 600 }}>¿Qué quieres anunciar?</h2>
           <div role="radiogroup" aria-label="Objetivo" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 28 }}>
             {GOALS.filter((g) => g.id !== 'bajada' || (inm.precioAnterior ?? 0) > inm.precio).map((g) => { const on = g.id === pub.goal; return (
               <button key={g.id} role="radio" aria-checked={on} onClick={() => pickGoal(g.id)} style={{ ...btn, height: 42, padding: '0 18px', borderRadius: 999, border: `1px solid ${on ? k.prim : k.line2}`, background: on ? k.prim : 'transparent', color: on ? k.primFg : k.fg, fontSize: 14.5, fontWeight: 600 }}>{g.label}</button>); })}
@@ -255,7 +263,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
             <div><h2 style={{ fontSize: 20, margin: 0, fontWeight: 600 }}>Elige el diseño de la imagen principal</h2><p style={{ margin: '5px 0 0', color: k.mut, fontSize: 14 }}>Empiezas con una sola imagen. Después, si quieres, le añades fotos y un cierre para convertirla en carrusel.</p></div>
             <div style={{ display: 'flex', gap: '10px 16px', flexWrap: 'wrap', alignItems: 'center' }}>
               <div role="radiogroup" aria-label="Formato" style={{ display: 'flex', gap: 4 }}>
-                {(['feed', 'post', 'story', 'fb'] as FormatId[]).map((f) => <button key={f} role="radio" aria-checked={pub.format === f} onClick={() => P.edit({ format: f })} style={pill(pub.format === f)}>{f === 'feed' ? 'Instagram' : f === 'post' ? 'Cuadrado' : FORMATS[f].label} <span style={{ opacity: .7, fontWeight: 400 }}>{FORMATS[f].ratio}</span></button>)}
+                {TIPOS_PUBLICACION.map((f) => <button key={f} role="radio" aria-checked={pub.format === f} onClick={() => P.edit({ format: f })} style={pill(pub.format === f)}>{FORMATS[f].label} <span style={{ opacity: .7, fontWeight: 400 }}>{FORMATS[f].ratio}</span></button>)}
               </div>
               <ThemeDots value={pub.theme} onPick={(t) => P.edit({ theme: t })} />
             </div>
@@ -467,7 +475,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
             <p style={{ fontSize: 12.5, color: k.mut, margin: '0 0 10px' }}>No se suma a la descarga de arriba. Si lo marcas, ves cómo queda y lo bajas aparte.</p>
             {extras.map((f) => {
               const on = !!extra[f];
-              const nombre = f === 'post' ? 'Cuadrado' : f === 'feed' ? 'Instagram' : FORMATS[f].label;
+              const nombre = FORMATS[f].label;
               return (
                 <div key={f} style={{ padding: '8px 0', borderTop: `1px solid ${k.line}` }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13.5, cursor: 'pointer' }}>
