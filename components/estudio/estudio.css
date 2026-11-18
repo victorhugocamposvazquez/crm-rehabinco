@@ -76,4 +76,5 @@
 .estudio-card:hover { transform: translateY(-3px); }
 .estudio-card .estudio-use { opacity: 0; transition: opacity 0.15s ease; }
 .estudio-card:hover .estudio-use, .estudio-card:focus-visible .estudio-use { opacity: 1; }
+.estudio-peek:hover { opacity: 0.85 !important; }
 @media (prefers-reduced-motion: reduce) { .estudio-card, .estudio-card .estudio-use { transition: none; } .estudio-card:hover { transform: none; } }

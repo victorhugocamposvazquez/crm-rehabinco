@@ -104,8 +104,8 @@ export async function POST(req: Request) {
       propiedad_id: propiedadId,
       autor_id: acceso.user.id,
       estado: estado as unknown as Json,
-      objetivo: estado.goal,
-      plantilla: estado.template,
+      objetivo: estado.goal || "nuevo",
+      plantilla: estado.template || (estado as { slides?: { template?: string }[] }).slides?.[0]?.template || "galeria",
       archivos: rutas as unknown as Json,
       texto_publicacion: texto || null,
     });

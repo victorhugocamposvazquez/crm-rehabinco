@@ -23,19 +23,21 @@ export async function POST(req: Request) {
   if (!propiedadId || !estadoRaw) {
     return NextResponse.json({ ok: false, error: "Faltan datos." }, { status: 400 });
   }
-  let estado: CreativeState;
+  let estado: CreativeState & { slides?: { template?: string }[] };
   try {
-    estado = JSON.parse(estadoRaw) as CreativeState;
+    estado = JSON.parse(estadoRaw) as CreativeState & { slides?: { template?: string }[] };
   } catch {
     return NextResponse.json({ ok: false, error: "El estado no es válido." }, { status: 400 });
   }
+  const plantilla = estado.template || estado.slides?.[0]?.template || "galeria";
+  const objetivo = estado.goal || "nuevo";
   const { data: propiedad } = await acceso.supabase.from("propiedades").select("id").eq("id", propiedadId).is("deleted_at", null).maybeSingle();
   if (!propiedad) {
     return NextResponse.json({ ok: false, error: "No encuentro ese inmueble." }, { status: 404 });
   }
 
   const id = randomUUID();
-  const archivos: Partial<Record<FormatId, string>> = {};
+  const archivos: Record<string, string> = {};
   for (const formato of FORMATOS) {
     const archivo = form.get(`png_${formato}`);
     if (!(archivo instanceof File) || archivo.size === 0) continue;
@@ -49,14 +51,27 @@ export async function POST(req: Request) {
     }
     archivos[formato] = path;
   }
+  for (let i = 0; i < 10; i += 1) {
+    const archivo = form.get(`png_pieza_${i}`);
+    if (!(archivo instanceof File) || archivo.size === 0) break;
+    const path = `${propiedadId}/creatividades/${id}/pieza-${i}.png`;
+    const { error } = await acceso.supabase.storage.from("inmuebles").upload(path, archivo, {
+      contentType: "image/png",
+      upsert: false,
+    });
+    if (error) {
+      return NextResponse.json({ ok: false, error: "No se ha podido guardar la imagen." }, { status: 500 });
+    }
+    archivos[`pieza_${i}`] = path;
+  }
 
   const { error: insertError } = await acceso.supabase.from("creatividades").insert({
     id,
     propiedad_id: propiedadId,
     autor_id: acceso.user.id,
     estado: estado as unknown as Json,
-    objetivo: estado.goal,
-    plantilla: estado.template,
+    objetivo,
+    plantilla,
     archivos: archivos as unknown as Json,
     texto_publicacion: texto || null,
   });

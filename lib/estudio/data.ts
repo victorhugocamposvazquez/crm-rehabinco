@@ -118,7 +118,7 @@ export function baseFields(inm: InmuebleEstudio, st: Pick<CreativeState, 'goal' 
     badge: goal.badge, titulo: inm.titulo, zona: st.soloZona ? inm.zona : inm.direccion, precio: eur(inm.precio),
     m2: String(inm.m2), hab: String(inm.habitaciones), banos: String(inm.banos), energia: inm.energia ?? '',
     ref: inm.ref, agente: inm.agente.nombre, tel: AGENCIA.telefono, cta: AGENCIA.cta,
-    evento: inm.visita?.evento || "Fecha por confirmar", evHora: inm.visita?.hora || "Horario por confirmar", logo: "",
+    evento: inm.visita?.evento || "Fecha por confirmar", evHora: inm.visita?.hora || "Horario por confirmar", pie: "", logo: "",
   };
 }
 

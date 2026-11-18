@@ -25,3 +25,13 @@ export function downloadBlob(blob: Blob, filename: string) {
 
 /** «RHB-2026-0014_galeria_post.png» */
 export const creativeFilename = (ref: string, template: string, format: FormatId) => `${ref}_${template}_${format}.png`;
+
+/** Todas las pantallas en orden. `nodes[i]` es la raíz de la pantalla i. */
+export async function exportSlides(nodes: HTMLElement[], format: FormatId): Promise<Blob[]> {
+  const out: Blob[] = [];
+  for (const node of nodes) out.push(await exportCreativePng(node, format));
+  return out;
+}
+
+/** «RHB-214_feed_01.png»: el número mantiene el orden del carrusel. */
+export const slideFilename = (ref: string, format: FormatId, index: number) => `${ref}_${format}_${String(index + 1).padStart(2, "0")}.png`;

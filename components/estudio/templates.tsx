@@ -69,7 +69,11 @@ const ICO_PIN = 'M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z';
 type Box = [string, string, string, string, number];
 
 const R: Record<TemplateId, (x: Ctx) => ReactNode[]> = {
-  foto: x => [x.pic(0, { position: 'absolute', inset: 0 })],
+  foto: (x) => [
+    x.pic(0, { position: 'absolute', inset: 0 }),
+    x.fld('pie', ab({ left: '5%', bottom: '5%', fontSize: '.58em', fontWeight: 600, background: 'rgba(0,0,0,.6)', color: '#fff', padding: '.5em 1em', borderRadius: '99px' }), x.f.pie),
+    x.fld('logo', ab({ right: '5%', bottom: '5.5%', textShadow: '0 1px 8px rgba(0,0,0,.65)' }), logo('#fff', .42, 'right')),
+  ],
   hogar: x => { const { f, c } = x;
     const nHab = Number(f.hab) || 0, nBan = Number(f.banos) || 0;
     const hab = `${f.hab} ${nHab === 1 ? 'habitación' : 'habitaciones'}`;
@@ -361,7 +365,21 @@ const R: Record<TemplateId, (x: Ctx) => ReactNode[]> = {
       d(ab({ left: 0, right: 0, bottom: 0, height: '22%', background: c.bg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1em', padding: '0 5.5%' }),
         d({ minWidth: 0 }, x.fld('badge', { fontSize: '.44em', color: c.mut }, f.badge), x.fld('titulo', HD(x, .95, { marginTop: '.2em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontStyle: x.ty.it }), f.titulo), x.fld('zona', { fontSize: '.52em', color: c.mut, marginTop: '.35em' }, f.zona)),
         d({ textAlign: 'right', flex: '0 0 auto' }, x.fld('precio', { fontSize: '1.45em', fontWeight: 700, letterSpacing: '-.02em', whiteSpace: 'nowrap' }, f.precio), x.fld('logo', { marginTop: '.55em', display: 'flex', justifyContent: 'flex-end' }, logo(c.fg, .34, 'right'))))
-    ]; }
+    ]; },
+
+  contacto: (x) => { const { f, c } = x; const cs = Math.round(Math.min(x.W, x.H) * (x.wide ? .3 : .34));
+    return [
+      d(ab({ inset: '3.2%', border: '1px solid ' + c.line })),
+      d(ab({ inset: '8%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', textAlign: 'center' }),
+        x.fld('logo', {}, logo(c.fg, .5, 'center')),
+        d({ display: 'flex', flexDirection: 'column', alignItems: 'center' },
+          d({ position: 'relative', width: cs + 'px', height: cs + 'px', borderRadius: '50%', overflow: 'hidden', flex: '0 0 auto' }, x.pic(0, { position: 'absolute', inset: 0 })),
+          x.fld('cta', HD(x, 1.75, { fontStyle: x.ty.it, marginTop: '.65em', maxWidth: '11em' }), f.cta),
+          d({ display: 'flex', gap: '.7em', justifyContent: 'center', flexWrap: 'wrap', fontSize: '.56em', color: c.mut, marginTop: '.9em' }, x.fld('titulo', {}, f.titulo), x.fld('zona', { fontWeight: 600, color: c.fg }, f.zona))),
+        d({},
+          x.fld('tel', { display: 'inline-block', background: c.acc, color: c.accFg, fontSize: '1.3em', fontWeight: 700, letterSpacing: '-.01em', padding: '.45em 1.2em', borderRadius: '99px', whiteSpace: 'nowrap' }, f.tel),
+          x.fld('agente', { fontSize: '.56em', color: c.mut, marginTop: '.8em' }, 'Pregunta por ' + f.agente))),
+    ]; },
 };
 
 export type CreativeProps = {

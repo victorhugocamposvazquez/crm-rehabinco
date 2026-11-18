@@ -52,7 +52,8 @@ export const GOALS: { id: GoalId; label: string; badge: string }[] = [
 export type TemplateId =
   | 'foto' | 'hogar' | 'visita'
   | 'galeria' | 'bento' | 'moodboard' | 'triptico' | 'formas' | 'contactos' | 'collage'
-  | 'portada' | 'bajada' | 'arco' | 'xxl' | 'plano' | 'openhouse' | 'vendido' | 'reforma';
+  | 'portada' | 'bajada' | 'arco' | 'xxl' | 'plano' | 'openhouse' | 'vendido' | 'reforma'
+  | 'contacto';
 
 export type TemplateDef = {
   id: TemplateId; nombre: string; desc: string;
@@ -60,11 +61,13 @@ export type TemplateDef = {
   fotos: number;
   /** Si existe, el diseño solo se ofrece para ese objetivo. */
   only?: GoalId;
+  /** Pantalla de apoyo del carrusel: no sale en la galería de la imagen principal. */
+  slideOnly?: boolean;
   /** Datos que pinta el diseño: son los que se listan en el panel «Datos». */
   uses: FieldKey[];
 };
 
-export type FieldKey = 'badge' | 'titulo' | 'zona' | 'precio' | 'm2' | 'hab' | 'banos' | 'energia' | 'evento' | 'evHora' | 'cta' | 'agente' | 'tel' | 'ref' | 'logo';
+export type FieldKey = 'badge' | 'titulo' | 'zona' | 'precio' | 'm2' | 'hab' | 'banos' | 'energia' | 'evento' | 'evHora' | 'cta' | 'agente' | 'tel' | 'ref' | 'pie' | 'logo';
 const GEN: FieldKey[] = ['badge', 'titulo', 'zona', 'precio', 'm2', 'hab', 'banos', 'logo'];
 
 export const TEMPLATES: TemplateDef[] = [
@@ -85,6 +88,8 @@ export const TEMPLATES: TemplateDef[] = [
   { id: 'openhouse', nombre: 'Puertas abiertas', fotos: 1, only: 'openhouse', uses: ['badge', 'titulo', 'zona', 'precio', 'evento', 'evHora'], desc: 'Polaroid y hoja de calendario con la fecha de la visita.' },
   { id: 'vendido', nombre: 'Vendido', fotos: 1, only: 'vendido', uses: ['badge', 'zona', 'cta', 'logo'], desc: 'Cinta cruzada sobre la foto y llamada a captar nuevos propietarios.' },
   { id: 'reforma', nombre: 'Antes y después', fotos: 1, only: 'reforma', uses: ['badge', 'titulo', 'zona', 'precio', 'logo'], desc: 'Foto partida en diagonal para enseñar una reforma.' },
+  { id: 'foto', nombre: 'Foto', fotos: 1, slideOnly: true, uses: ['pie', 'logo'], desc: 'Una foto a pantalla completa, con el logo pequeño.' },
+  { id: 'contacto', nombre: 'Contacto', fotos: 1, slideOnly: true, uses: ['cta', 'titulo', 'zona', 'tel', 'agente', 'logo'], desc: 'Cierre del carrusel con el teléfono y el agente.' },
 ];
 
 /** Diseños que se marcan como «Recomendada» para cada objetivo (los `only` salen como «Hecha para esto»). */
@@ -92,17 +97,22 @@ export const RECOMMENDED: Partial<Record<GoalId, TemplateId[]>> = { nuevo: ['hog
 
 export const FIELD_LABELS: Record<FieldKey, string> = {
   badge: 'Etiqueta', titulo: 'Título', zona: 'Ubicación', precio: 'Precio', m2: 'Superficie (m²)', hab: 'Dormitorios', banos: 'Baños',
-  energia: 'Certificado energético', evento: 'Fecha de la visita', evHora: 'Horario', cta: 'Llamada a la acción', agente: 'Agente', tel: 'Teléfono', ref: 'Referencia', logo: 'Logo Rehabinco',
+  energia: 'Certificado energético', evento: 'Fecha de la visita', evHora: 'Horario', cta: 'Llamada a la acción', agente: 'Agente', tel: 'Teléfono', ref: 'Referencia', pie: 'Nombre de la estancia', logo: 'Logo Rehabinco',
 };
+
+/** Instagram admite hasta 10 imágenes por carrusel. */
+export const MAX_SLIDES = 10;
+/** Formatos que Instagram acepta en carrusel (todas las imágenes con la misma proporción). */
+export const CAROUSEL_FORMATS: FormatId[] = ['feed', 'post'];
 /** Datos que no se editan desde el Estudio: el precio solo se cambia en la ficha. */
 export const READONLY_FIELDS: FieldKey[] = ['precio', 'logo'];
 /** Nº máximo de huecos de foto que maneja el estado. */
 export const MAX_SLOTS = 5;
 
 /** Diseños disponibles para un objetivo, ordenados: propios, recomendados, resto. */
-export function templatesForGoal(goal: GoalId): (TemplateDef & { rank: 0 | 1 | 2 })[] {
+export function templatesForGoal(goal: GoalId, opts: { includeSlideOnly?: boolean } = {}): (TemplateDef & { rank: 0 | 1 | 2 })[] {
   const rank = (t: TemplateDef): 0 | 1 | 2 => (t.only === goal ? 0 : (RECOMMENDED[goal] ?? []).includes(t.id) ? 1 : 2);
-  return TEMPLATES.filter((t) => !t.only || t.only === goal)
+  return TEMPLATES.filter((t) => (!t.only || t.only === goal) && (opts.includeSlideOnly || !t.slideOnly))
     .map((t, i) => ({ t, i, r: rank(t) }))
     .sort((a, b) => a.r - b.r || a.i - b.i)
     .map(({ t, r }) => ({ ...t, rank: r }));

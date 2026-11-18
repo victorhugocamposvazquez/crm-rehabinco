@@ -21,11 +21,12 @@ export function EstudioCliente({
     for (const [formato, blob] of Object.entries(payload.files)) {
       if (blob) cuerpo.set(`png_${formato}`, blob, `${formato}.png`);
     }
+    payload.piezas.forEach((blob, i) => cuerpo.set(`png_pieza_${i}`, blob, `pieza-${i}.png`));
     const respuesta = await fetch("/api/estudio/guardar", { method: "POST", body: cuerpo });
     const data = (await respuesta.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
     if (!respuesta.ok || !data?.ok) {
       toast.error(data?.error || "No se ha podido guardar la creatividad.");
-      return;
+      throw new Error(data?.error || "No se ha podido guardar la creatividad.");
     }
     toast.success("Creatividad guardada en el inmueble.");
   };

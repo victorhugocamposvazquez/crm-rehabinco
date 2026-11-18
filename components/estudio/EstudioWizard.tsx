@@ -1,41 +1,39 @@
 'use client';
 /**
- * Estudio de creatividades · asistente de 4 pasos (Inmueble → Diseño → Editar → Descargar).
- *
- * Referencia funcional del prototipo `Estudio.dc.html`. Los estilos van en línea con los valores exactos
- * del diseño para que sea fácil de comparar; al integrarlo, cambia `k` por los tokens del CRM y los
- * botones / inputs por los de `components/ui`. La lógica (estado, huecos de foto, deshacer, exportar) ya es la definitiva.
+ * Estudio · publicación de un inmueble: una imagen o un carrusel de pantallas.
+ * Pasos: Inmueble → Diseño → Editar → Publicar. La vista previa es un botón.
  */
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { toast } from "sonner";
-import { Check, ChevronLeft, ChevronRight, Database, Download, Eye, EyeOff, Image as ImageIcon, Instagram, Palette, Redo2, Search, Undo2, X } from 'lucide-react';
-import { FIELD_LABELS, FORMATS, GOALS, READONLY_FIELDS, TEMPLATES, THEMES, TYPOS, fitBox, templatesForGoal, type FieldKey, type FormatId, type TemplateId, type ThemeId, type TypoId } from "@/lib/estudio/config";
-import { datosDePieza, FORMATOS_COMPOSICION, MAX_COMPOSICION, type PiezaComposicion } from "@/lib/estudio/composicion";
-import { AGENCIA, anidarEscala, anidarPos, assignPhoto, baseFields, buildCreativeData, initialCreativeState, resolveSlots, type CreativeState, type InmuebleEstudio } from "@/lib/estudio/data";
+import { useMemo, useRef, useState, type CSSProperties, type DragEvent, type ReactNode } from 'react';
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Database, Download, Eye, EyeOff, Image as ImageIcon, Instagram, LayoutTemplate, Palette, Plus, Redo2, Search, Trash2, Undo2, X } from 'lucide-react';
+import { FIELD_LABELS, FORMATS, GOALS, MAX_SLIDES, READONLY_FIELDS, TEMPLATES, THEMES, TYPOS, fitBox, templatesForGoal, type FieldKey, type FormatId, type TemplateId, type ThemeId, type TypoId } from "@/lib/estudio/config";
+import { AGENCIA, anidarEscala, anidarPos, assignPhoto, resolveSlots, type InmuebleEstudio } from "@/lib/estudio/data";
+import { buildSlideData, defaultHidden, initialPublication, makeSlide, slideLabel, usedPhotoIndexes, type Publication } from "@/lib/estudio/publicacion";
 import { Creative } from "@/components/estudio/templates";
-import { useCreative } from "@/lib/estudio/useCreative";
-import { creativeFilename, downloadBlob, exportCreativePng } from "@/lib/estudio/exportCreative";
+import { usePublication } from "@/lib/estudio/usePublication";
+import { downloadBlob, exportSlides, slideFilename } from "@/lib/estudio/exportCreative";
 import { textoInstagram } from "@/lib/estudio/instagram";
 import "@/components/estudio/estudio.css";
 
 const k = {
   bg: "var(--background)", glass: "var(--surface)", panel: "var(--surface)", hover: "var(--surface-soft)", line: "var(--border)", line2: "var(--input)",
-  fg: "var(--foreground)", mut: "var(--text-2)", prim: "var(--accent)", primFg: "var(--accent-foreground)", stage: "var(--pdf-desk)", chip: "var(--accent-soft)", blue: "#4C8DFF", blueInk: "var(--blue)", warn: "var(--amber)",
+  fg: "var(--foreground)", mut: "var(--text-2)", prim: "var(--accent)", primFg: "var(--accent-foreground)", stage: "var(--pdf-desk)", chip: "var(--accent-soft)",
+  blue: "#4C8DFF", link: "var(--blue)", danger: "var(--red)", dangerBg: "var(--red-bg)", dotOff: "var(--text-3)", warn: "var(--amber)",
 };
 const eur = (n: number) => n.toLocaleString('es-ES') + ' €';
-const STEPS = [['inmueble', 'Inmueble'], ['diseno', 'Diseño'], ['editar', 'Editar'], ['descargar', 'Composición']] as const;
+const STEPS = [['inmueble', 'Inmueble'], ['diseno', 'Diseño'], ['editar', 'Editar'], ['publicar', 'Publicar']] as const;
 type Step = (typeof STEPS)[number][0];
-type Tab = 'datos' | 'fotos' | 'estilo';
+type Tab = 'diseno' | 'datos' | 'fotos' | 'estilo';
 const btn: CSSProperties = { font: 'inherit', color: 'inherit', border: 0, background: 'none', cursor: 'pointer', padding: 0, textAlign: 'left' };
-const stage: CSSProperties = { background: k.stage };
+const stage: CSSProperties = { background: k.stage, backgroundImage: 'radial-gradient(rgba(0,0,0,.06) 1px, transparent 1px)', backgroundSize: '18px 18px' };
+const tplName = (t: TemplateId) => TEMPLATES.find((x) => x.id === t)?.nombre ?? t;
+const pantallas = (n: number) => (n === 1 ? '1 pantalla' : `${n} pantallas`);
+const nombreFoto = (nombre: string, i: number) => (/^foto\s*\d+$/i.test(nombre.trim()) ? String(i + 1) : nombre);
 
-export type EstudioSavePayload = { inmuebleId: string; state: CreativeState; files: Partial<Record<FormatId, Blob>>; caption: string };
+export type EstudioSavePayload = { inmuebleId: string; state: Publication & { template: TemplateId }; files: Partial<Record<FormatId, Blob>>; piezas: Blob[]; caption: string };
 export type EstudioWizardProps = {
   inmuebles: InmuebleEstudio[];
-  /** Si se entra desde la ficha, el inmueble viene elegido y se abre en el paso 2. */
   initialInmuebleId?: string;
   agencia?: { telefono: string; web: string; cta: string };
-  /** Sube los PNG a Storage y guarda la fila en `creatividades`. */
   onSave?: (payload: EstudioSavePayload) => Promise<void> | void;
 };
 
@@ -46,228 +44,184 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
   const [pid, setPid] = useState(initialInmuebleId ?? inmuebles[0]?.id ?? '');
   const [busqueda, setBusqueda] = useState("");
   const [step, setStep] = useState<Step>(initialInmuebleId ? 'diseno' : 'inmueble');
-  const { state: st, edit, undo, redo, reset, canUndo, canRedo } = useCreative();
+  const P = usePublication();
+  const { pub } = P;
+  const [cur, setCur] = useState(0);
   const [sel, setSel] = useState('');
   const [tab, setTab] = useState<Tab>('datos');
-  const [lay, setLay] = useState<'todas' | 'collage' | 'una'>('todas');
-  const [exp, setExp] = useState<Partial<Record<FormatId, boolean>>>({ post: true, story: true });
-  type PiezaUi = PiezaComposicion & { id: string };
-  const [piezas, setPiezas] = useState<PiezaUi[] | null>(null);
-  const [formatoComp, setFormatoComp] = useState<Extract<FormatId, 'post' | 'feed'>>('feed');
-  const compRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const [busy, setBusy] = useState<'' | 'export' | 'instagram'>('');
-  const exportRefs = useRef<Partial<Record<FormatId, HTMLDivElement | null>>>({});
-  const lienzoRef = useRef<HTMLDivElement>(null);
-  const [lienzo, setLienzo] = useState({ w: 760, h: 680 });
-  const [previa, setPrevia] = useState(false);
-  const previaRef = useRef<HTMLDivElement>(null);
-  const [previaCaja, setPreviaCaja] = useState({ w: 960, h: 760 });
-
-  useEffect(() => {
-    const el = lienzoRef.current;
-    if (!el) return;
-    const medir = () => {
-      const w = Math.floor(el.clientWidth - 56);
-      const h = Math.floor(el.clientHeight - 32);
-      if (w < 120 || h < 120) return;
-      setLienzo((prev) => (prev.w === w && prev.h === h ? prev : { w, h }));
-    };
-    medir();
-    const obs = new ResizeObserver(medir);
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [step]);
-
-  useEffect(() => {
-    if (!previa) return;
-    const cerrar = (e: KeyboardEvent) => { if (e.key === 'Escape') setPrevia(false); };
-    window.addEventListener('keydown', cerrar);
-    return () => window.removeEventListener('keydown', cerrar);
-  }, [previa]);
-
-  useEffect(() => {
-    const el = previaRef.current;
-    if (!el || !previa) return;
-    const medir = () => {
-      const w = Math.floor(el.clientWidth - 32);
-      const h = Math.floor(el.clientHeight - 24);
-      if (w < 160 || h < 160) return;
-      setPreviaCaja((prev) => (prev.w === w && prev.h === h ? prev : { w, h }));
-    };
-    medir();
-    const obs = new ResizeObserver(medir);
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [previa, st.format]);
+  const [addOpen, setAddOpen] = useState<false | 'top' | 'bottom'>(false);
+  const [pvOpen, setPvOpen] = useState(false);
+  const [pv, setPv] = useState(0);
+  const [extra, setExtra] = useState<Partial<Record<FormatId, boolean>>>({});
+  const [busy, setBusy] = useState<'' | 'export' | 'publish'>('');
+  const [toast, setToast] = useState<{ msg: string; undo?: boolean } | null>(null);
+  const toastT = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const dragFrom = useRef(-1);
+  const exportRefs = useRef<Partial<Record<FormatId, (HTMLDivElement | null)[]>>>({});
 
   const inm = inmuebles.find((i) => i.id === pid);
-  const data = useMemo(() => (inm ? buildCreativeData(inm, st) : null), [inm, st]);
-  if (!inm || !data) return <p style={{ padding: 32, color: k.mut }}>No hay inmuebles con fotos para crear una creatividad.</p>;
+  const slideData = useMemo(() => (inm ? pub.slides.map((s) => buildSlideData(inm, pub, s)) : []), [inm, pub]);
+  if (!inm) return <p style={{ padding: 32, color: k.mut }}>No hay inmuebles con fotos para crear una publicación.</p>;
 
-  const tpl = TEMPLATES.find((t) => t.id === st.template)!;
-  const goal = GOALS.find((g) => g.id === st.goal)!;
-  const forGoal = templatesForGoal(st.goal);
+  const n = pub.slides.length;
+  const c = Math.min(cur, n - 1);
+  const slide = pub.slides[c];
+  const tpl = TEMPLATES.find((t) => t.id === slide.template)!;
+  const data = slideData[c];
   const nF = inm.fotos.length;
-  const slots = resolveSlots(st.slots, nF);
+  const label = (i: number) => slideLabel(inm, pub.slides[i], tplName);
+  const full = n >= MAX_SLIDES;
+  const goal = GOALS.find((g) => g.id === pub.goal)!;
+  const fmt = FORMATS[pub.format];
+  const fmtName = pub.format === 'feed' ? 'Instagram 4:5' : pub.format === 'post' ? 'Cuadrado 1:1' : `${fmt.label} ${fmt.ratio}`;
+  const si = STEPS.findIndex((s) => s[0] === step);
+
+  const showToast = (msg: string, undo?: boolean) => { clearTimeout(toastT.current); setToast({ msg, undo }); toastT.current = setTimeout(() => setToast(null), undo ? 6000 : 2400); };
+  const go = (s: Step) => { setStep(s); setSel(''); setAddOpen(false); };
+  const goTo = (i: number) => { setCur(Math.max(0, Math.min(n - 1, i))); setSel(''); setAddOpen(false); };
+  const onSelect = (key: string) => { setSel(key); setAddOpen(false); if (key) setTab(key.startsWith('foto') ? 'fotos' : 'datos'); };
+
+  // ---- pantallas ----
+  const insertAfterCurrent = (t: TemplateId, photo: number | null) => { const at = P.insertAfter(c, makeSlide(t, photo)); setCur(at); setSel(''); setAddOpen(false); };
+  const removeCurrent = () => { if (n === 1) return; const lbl = label(c), num = c + 1; P.remove(c); setCur(Math.max(0, c - 1)); setSel(''); showToast(`Pantalla ${num} eliminada (${lbl})`, true); };
+  const onDrop = (to: number) => (e: DragEvent) => { e.preventDefault(); if (dragFrom.current >= 0) { P.move(dragFrom.current, to); setCur(to); } dragFrom.current = -1; };
+
+  // ---- datos de la pantalla actual ----
+  const toggleField = (f: FieldKey) => { P.editSlide(c, (s) => ({ hidden: { ...s.hidden, [f]: !s.hidden[f] } })); if (sel === f) setSel(''); };
+  const setField = (f: FieldKey, v: string) => P.editSlide(c, (s) => ({ overrides: { ...s.overrides, [f]: v } }), `type:${f}:${slide.id}`);
+  const resetField = (f: FieldKey) => P.editSlide(c, (s) => { const o = { ...s.overrides }; delete o[f]; return { overrides: o }; });
   const selFoto = sel.startsWith('foto');
   const slotSel = selFoto ? Math.min(Number(sel.slice(4)) || 0, tpl.fotos - 1) : 0;
-  const selKey = !selFoto && sel && !st.hidden[sel as FieldKey] ? (sel as FieldKey) : null;
-  const base = baseFields(inm, st);
-  const nHid = tpl.uses.filter((f) => st.hidden[f]).length;
-  const expSel = (Object.keys(FORMATS) as FormatId[]).filter((f) => exp[f]);
-  const si = STEPS.findIndex((s) => s[0] === step);
-  const slotName = (i: number) => (i === 0 ? 'Foto principal' : `Foto ${i + 1}`);
-  const go = (s: Step) => { setStep(s); setSel(''); };
-  const onSelect = (key: string) => { setSel(key); if (key) setTab(key.startsWith('foto') ? 'fotos' : 'datos'); };
+  const selKey = !selFoto && sel && !slide.hidden[sel as FieldKey] ? (sel as FieldKey) : null;
+  const nHid = tpl.uses.filter((f) => slide.hidden[f]).length;
+  const slotName = (i: number) => (tpl.fotos === 1 ? 'Foto' : i === 0 ? 'Foto principal' : `Foto ${i + 1}`);
 
-  const toggleField = (f: FieldKey) => { edit((s) => ({ hidden: { ...s.hidden, [f]: !s.hidden[f] } })); if (sel === f) setSel(''); };
-  const setField = (f: FieldKey, v: string) => edit((s) => ({ overrides: { ...s.overrides, [f]: v } }), 'type:' + f);
-  const resetField = (f: FieldKey) => edit((s) => { const o = { ...s.overrides }; delete o[f]; return { overrides: o }; });
-  const pickGoal = (id: typeof st.goal) => edit((s) => {
+  // ---- objetivo y diseño de la imagen principal (paso 2) ----
+  const pickGoal = (id: typeof pub.goal) => P.edit((p) => {
     const own = TEMPLATES.find((t) => t.only === id)?.id;
-    const cur = TEMPLATES.find((t) => t.id === s.template)!;
-    const o = { ...s.overrides }; delete o.badge;
-    return { goal: id, overrides: o, template: own ?? (cur.only && cur.only !== id ? 'galeria' : s.template) };
+    const first = p.slides[0], stale = !!TEMPLATES.find((t) => t.id === first.template)?.only && TEMPLATES.find((t) => t.id === first.template)?.only !== id;
+    const t = own ?? (stale ? 'galeria' : first.template);
+    return { goal: id, slides: p.slides.map((s, i) => (i === 0 ? { ...s, template: t, hidden: defaultHidden(t) } : s)) };
   });
-  const pickInmueble = (id: string) => { if (id !== pid) { setPid(id); reset({ ...initialCreativeState, format: st.format, theme: st.theme, typo: st.typo }); setPiezas(null); } go('diseno'); };
+  const pickCoverTemplate = (t: TemplateId) => { P.editSlide(0, (s) => ({ template: t, hidden: s.template === t ? s.hidden : defaultHidden(t) })); setCur(0); setTab('datos'); go('editar'); };
+  const pickInmueble = (id: string) => { if (id !== pid) { setPid(id); P.reset({ ...initialPublication(pub.slides[0].template), format: pub.format, theme: pub.theme, typo: pub.typo, goal: pub.goal }); setCur(0); } go('diseno'); };
 
-  const exportAll = async (download: boolean) => {
+  const textoPieza = textoInstagram({
+    titulo: slideData[0]?.f.titulo ?? "", zona: slideData[0]?.f.zona ?? "", precio: slideData[0]?.f.precio ?? "", tel: slideData[0]?.f.tel ?? "",
+    tituloVisible: !!slideData[0]?.sh.titulo, zonaVisible: !!slideData[0]?.sh.zona, precioVisible: !!slideData[0]?.sh.precio, telVisible: !!slideData[0]?.sh.tel,
+  });
+  const formatoIg: FormatId = pub.format === 'post' || pub.format === 'feed' ? pub.format : 'feed';
+  const formatsOut = [pub.format, ...(Object.keys(extra) as FormatId[]).filter((f) => extra[f] && f !== pub.format)];
+  const mounted = Array.from(new Set<FormatId>([formatoIg, ...formatsOut]));
+  const nImages = n * formatsOut.length;
+  const nodosDe = (f: FormatId) => (exportRefs.current[f] ?? []).map((el) => el?.firstElementChild as HTMLElement).filter(Boolean);
+  const renderImages = async () => {
+    const images: Partial<Record<FormatId, Blob[]>> = {};
+    for (const f of mounted) images[f] = await exportSlides(nodosDe(f), f);
+    return images;
+  };
+  const payloadDe = (images: Partial<Record<FormatId, Blob[]>>): EstudioSavePayload => {
+    const files: Partial<Record<FormatId, Blob>> = {};
+    for (const f of formatsOut) if (images[f]?.[0]) files[f] = images[f]![0];
+    return { inmuebleId: inm.id, state: { ...pub, template: pub.slides[0].template }, files, piezas: images[formatoIg] ?? [], caption: "" };
+  };
+  const download = async () => {
     setBusy('export');
     try {
-      const files: Partial<Record<FormatId, Blob>> = {};
-      for (const f of expSel) {
-        const node = exportRefs.current[f]?.firstElementChild as HTMLElement | null;
-        if (!node) continue;
-        files[f] = await exportCreativePng(node, f);
-        if (download) downloadBlob(files[f]!, creativeFilename(inm.ref, st.template, f));
-      }
-      await onSave?.({ inmuebleId: inm.id, state: st, files, caption: '' });
-    } finally { setBusy(''); }
-  };
-  const publicarInstagram = async () => {
-    setBusy('instagram');
-    try {
-      const files: Partial<Record<FormatId, Blob>> = {};
-      for (const f of expSel) {
-        const node = exportRefs.current[f]?.firstElementChild as HTMLElement | null;
-        if (!node) continue;
-        files[f] = await exportCreativePng(node, f);
-      }
-      if (!Object.keys(files).length) { toast.error("No hay ninguna imagen para publicar."); return; }
-      const cuerpo = new FormData();
-      cuerpo.set("propiedadId", inm.id);
-      cuerpo.set("estado", JSON.stringify(st));
-      cuerpo.set("texto", textoInstagram({
-        titulo: data.f.titulo, zona: data.f.zona, precio: data.f.precio, tel: data.f.tel,
-        tituloVisible: data.sh.titulo, zonaVisible: data.sh.zona, precioVisible: data.sh.precio, telVisible: data.sh.tel,
-      }));
-      for (const [formato, blob] of Object.entries(files)) if (blob) cuerpo.set(`png_${formato}`, blob, `${formato}.png`);
-      const respuesta = await fetch("/api/estudio/instagram", { method: "POST", body: cuerpo });
-      const json = await respuesta.json().catch(() => null) as { ok?: boolean; error?: string } | null;
-      if (!respuesta.ok || !json?.ok) toast.error(json?.error || "No se ha publicado en Instagram.");
-      else toast.success("Publicado en Instagram.");
-    } catch { toast.error("No se ha publicado en Instagram."); }
+      const images = await renderImages();
+      for (const f of formatsOut) images[f]?.forEach((b, i) => downloadBlob(b, slideFilename(inm.ref, f, i)));
+    } catch { showToast('No se han podido generar las imágenes'); }
     finally { setBusy(''); }
   };
-  const secuencia: PiezaUi[] = piezas ?? [{ id: 'actual', tipo: 'diseno', template: st.template }];
-  const alTope = secuencia.length >= MAX_COMPOSICION;
-  const moverPieza = (i: number, dir: -1 | 1) => {
-    const j = i + dir;
-    if (j < 0 || j >= secuencia.length) return;
-    const next = [...secuencia];
-    const [item] = next.splice(i, 1);
-    next.splice(j, 0, item!);
-    setPiezas(next);
-  };
-  const anadirPieza = (pieza: PiezaComposicion) => {
-    if (alTope) return;
-    setPiezas([...secuencia, { ...pieza, id: crypto.randomUUID() }]);
-  };
-  const blobsComposicion = async () => {
-    const files: Blob[] = [];
-    for (let i = 0; i < secuencia.length; i += 1) {
-      const node = compRefs.current[i]?.firstElementChild as HTMLElement | null;
-      if (!node) continue;
-      files.push(await exportCreativePng(node, formatoComp));
-    }
-    return files;
-  };
-  const descargarComposicion = async () => {
+  const save = async () => {
     setBusy('export');
-    try {
-      const files = await blobsComposicion();
-      files.forEach((blob, i) => downloadBlob(blob, `${inm.ref}_composicion_${String(i + 1).padStart(2, '0')}.png`));
-    } catch { toast.error("No se ha podido generar la composición."); }
+    try { await onSave?.(payloadDe(await renderImages())); }
+    catch { /* El guardado avisa si falla. */ }
     finally { setBusy(''); }
   };
-  const publicarComposicion = async () => {
-    setBusy('instagram');
+  const publish = async () => {
+    setBusy('publish');
     try {
-      const files = await blobsComposicion();
-      if (!files.length) { toast.error("No hay ninguna pieza para publicar."); return; }
+      const images = await renderImages();
+      const files = images[formatoIg] ?? [];
+      if (!files.length) { showToast('No hay ninguna imagen para publicar'); return; }
       const cuerpo = new FormData();
       cuerpo.set("composicion", "1");
       cuerpo.set("propiedadId", inm.id);
-      cuerpo.set("estado", JSON.stringify(st));
-      cuerpo.set("texto", textoInstagram({
-        titulo: data.f.titulo, zona: data.f.zona, precio: data.f.precio, tel: data.f.tel,
-        tituloVisible: data.sh.titulo, zonaVisible: data.sh.zona, precioVisible: data.sh.precio, telVisible: data.sh.tel,
-      }));
+      cuerpo.set("estado", JSON.stringify({ ...pub, template: pub.slides[0].template }));
+      cuerpo.set("texto", textoPieza);
       files.forEach((blob, i) => cuerpo.set(`png_pieza_${i}`, blob, `pieza-${i}.png`));
       const respuesta = await fetch("/api/estudio/instagram", { method: "POST", body: cuerpo });
       const json = await respuesta.json().catch(() => null) as { ok?: boolean; error?: string } | null;
-      if (!respuesta.ok || !json?.ok) toast.error(json?.error || "No se ha publicado en Instagram.");
-      else toast.success(files.length > 1 ? "Carrusel publicado en Instagram." : "Publicado en Instagram.");
-    } catch { toast.error("No se ha publicado en Instagram."); }
+      if (!respuesta.ok || !json?.ok) showToast(json?.error || "No se ha publicado en Instagram");
+      else showToast(files.length > 1 ? `Carrusel de ${files.length} publicado en Instagram` : "Publicado en Instagram");
+    } catch { showToast("No se ha publicado en Instagram"); }
     finally { setBusy(''); }
   };
 
-  const NEXT: Record<Step, { to: Step | null; label: string }> = {
-    inmueble: { to: 'diseno', label: 'Elegir diseño' }, diseno: { to: 'editar', label: `Editar «${tpl.nombre}»` }, editar: { to: 'descargar', label: 'Armar la publicación' },
-    descargar: { to: null, label: busy === 'export' ? 'Generando…' : secuencia.length ? `Descargar ${secuencia.length} ${secuencia.length === 1 ? 'pieza' : 'piezas'}` : 'Añade una pieza' },
-  };
-  const BACK: Partial<Record<Step, { to: Step; label: string }>> = { diseno: { to: 'inmueble', label: 'Cambiar inmueble' }, editar: { to: 'diseno', label: 'Ver todos los diseños' }, descargar: { to: 'editar', label: 'Seguir editando' } };
-  const stepVal: Record<Step, string> = { inmueble: inm.ref, diseno: `${goal.label} · ${tpl.nombre}`, editar: nHid ? `${nHid} ${nHid === 1 ? 'dato oculto' : 'datos ocultos'}` : 'Datos, fotos y estilo', descargar: `${secuencia.length} ${secuencia.length === 1 ? 'pieza' : 'piezas'}` };
-  const stepHint: Record<Step, string> = { inmueble: 'Elige el inmueble', diseno: 'Objetivo y diseño', editar: 'Datos, fotos y estilo', descargar: 'Orden de la publicación' };
+  // ---- medidas ----
+  const [gw, gh] = fitBox(pub.format, 220, 268);
+  const [cw, ch] = fitBox(pub.format, 440, 420);
+  const peekW = Math.round(cw * .82), peekH = Math.round(ch * .82);
+  const [mw, mh] = fitBox(pub.format, 78, 82);
+  const [tw, th] = fitBox(pub.format, 76, 76);
+  const [aw, ah] = fitBox(pub.format, 64, 64);
+  const phoneW = 320, phoneH = Math.min(Math.round(phoneW * fmt.h / fmt.w), 520);
+  const coverTemplates = templatesForGoal(pub.goal);
+  const slideTemplates = templatesForGoal(pub.goal, { includeSlideOnly: true });
+  const used = usedPhotoIndexes(pub, nF);
+  const stepVal: Record<Step, string> = { inmueble: inm.ref, diseno: `${goal.label} · ${tplName(pub.slides[0].template)}`, editar: n === 1 ? '1 imagen' : `Carrusel de ${n}`, publicar: 'Texto y salida' };
+  const stepHint: Record<Step, string> = { inmueble: 'Elige el inmueble', diseno: 'Qué anuncias y diseño', editar: stepVal.editar, publicar: 'Texto y salida' };
 
   const pill = (on: boolean): CSSProperties => ({ ...btn, height: 34, padding: '0 12px', borderRadius: 9, border: `1px solid ${on ? k.fg : k.line2}`, background: on ? k.chip : 'transparent', color: on ? k.fg : k.mut, fontSize: 13, fontWeight: 600 });
-  const formatPills = () => (
-    <div role="radiogroup" aria-label="Formato" style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-      {(Object.keys(FORMATS) as FormatId[]).map((f) => (
-        <button key={f} role="radio" aria-checked={st.format === f} title={FORMATS[f].ratio} onClick={() => edit({ format: f })} style={pill(st.format === f)}>{FORMATS[f].label}</button>
-      ))}
+  const sideBtn = (o: CSSProperties = {}): CSSProperties => ({ ...btn, width: 86, borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '0 6px', fontSize: 12.5, fontWeight: 600, lineHeight: 1.3, textAlign: 'center', ...o });
+  const iconBtn = (o: CSSProperties = {}): CSSProperties => ({ ...btn, width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center', ...o });
+  const deleteBtn = (small = false) => n > 1 && (
+    <button onClick={removeCurrent} aria-label={`Eliminar la pantalla ${c + 1}: ${label(c)}`} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 6, height: small ? 32 : 34, padding: '0 11px 0 8px', borderRadius: 9, border: `1px solid ${k.line2}`, background: k.panel, fontSize: small ? 12.5 : 13, fontWeight: 600, color: k.danger }}><Trash2 size={15} />Eliminar pantalla {c + 1}</button>
+  );
+  const addPanel = (pos: 'top' | 'bottom') => addOpen === pos && (
+    <div role="dialog" aria-label="Añadir pantalla" style={{ position: 'absolute', zIndex: 25, width: 'calc(100% - 32px)', maxWidth: 760, padding: '14px 16px 16px', borderRadius: 16, border: `1px solid ${k.line2}`, background: k.panel, boxShadow: '0 20px 60px rgba(0,0,0,.25)', ...(pos === 'top' ? { left: '50%', transform: 'translateX(-50%)', top: 58 } : { left: 16, bottom: '100%', marginBottom: 8 }) }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}><b style={{ fontSize: 14 }}>Añadir después de la pantalla {c + 1}</b><button onClick={() => setAddOpen(false)} aria-label="Cerrar" style={iconBtn({ width: 28, height: 28, color: k.mut })}><X size={16} /></button></div>
+      <div style={{ fontSize: 12, color: k.mut, marginBottom: 6 }}>Una foto del inmueble</div>
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 6, marginBottom: 10 }}>
+        {inm.fotos.map((p, i) => (
+          <button key={p.id} onClick={() => insertAfterCurrent('foto', i)} title={nombreFoto(p.nombre, i)} style={{ ...btn, flex: '0 0 auto', width: 84 }}>
+            <span style={{ position: 'relative', display: 'block', width: 84, height: 64, borderRadius: 9, backgroundImage: `url("${p.url}")`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: used.includes(i) ? .55 : 1 }}>{used.includes(i) && <span style={{ position: 'absolute', right: 4, top: 4, fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 6, background: 'rgba(0,0,0,.7)', color: '#fff' }}>Ya está</span>}</span>
+            <span style={{ display: 'block', fontSize: 11.5, marginTop: 4, textAlign: 'center', color: k.mut }}>{nombreFoto(p.nombre, i)}</span>
+          </button>
+        ))}
+      </div>
+      <div style={{ fontSize: 12, color: k.mut, marginBottom: 6 }}>Un diseño con datos</div>
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>
+        {slideTemplates.filter((t) => t.id !== 'foto').map((t) => (
+          <button key={t.id} onClick={() => insertAfterCurrent(t.id, t.id === 'contacto' ? 0 : null)} title={t.nombre} style={{ ...btn, flex: '0 0 auto', width: 84, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            <span style={{ display: 'grid', placeItems: 'center', width: 84, height: 76, borderRadius: 9, background: k.stage, lineHeight: 0 }}><Creative template={t.id} data={buildSlideData(inm, pub, makeSlide(t.id, t.id === 'contacto' ? 0 : null))} width={aw} height={ah} /></span>
+            <span style={{ fontSize: 11.5, color: k.mut, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 84 }}>{t.nombre}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
-  const [gw, gh] = fitBox(st.format, 236, 268);
-  const [cw, ch] = fitBox(st.format, lienzo.w, lienzo.h);
-  const [mw, mh] = fitBox(st.format, 72, 60);
 
   return (
     <div className="estudio-shell" style={{ background: k.bg, color: k.fg }}>
       {/* Pasos: cada uno enseña lo ya elegido */}
       <ol aria-label="Pasos" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexWrap: 'wrap', listStyle: 'none', margin: 0, padding: '12px 24px', borderBottom: `1px solid ${k.line}` }}>
-        {STEPS.map(([id, label], i) => {
-          const cur = i === si, done = i < si;
-          return (
-            <li key={id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <button onClick={() => go(id)} aria-current={cur ? 'step' : undefined} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 9, height: 44, padding: '0 14px 0 8px', borderRadius: 999, background: cur ? k.chip : 'transparent', color: cur || done ? k.fg : k.mut }}>
-                <span style={{ width: 26, height: 26, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 12.5, fontWeight: 700, background: cur ? k.prim : done ? k.blue : 'transparent', color: cur ? k.primFg : done ? '#fff' : k.mut, border: `1px solid ${cur || done ? 'transparent' : k.line2}` }}>{done ? <Check size={15} /> : i + 1}</span>
-                <span style={{ lineHeight: 1.2 }}>
-                  <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600 }}>{label}</span>
-                  <span style={{ display: 'block', fontSize: 11.5, opacity: 0.8, color: done ? k.fg : k.mut, maxWidth: 170, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{done ? stepVal[id] : stepHint[id]}</span>
-                </span>
-              </button>
-              {i < STEPS.length - 1 && <span aria-hidden style={{ width: 22, height: 2, borderRadius: 2, background: done ? k.blue : k.line2 }} />}
-            </li>
-          );
-        })}
+        {STEPS.map(([id, lbl], i) => { const on = i === si, done = i < si; return (
+          <li key={id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button onClick={() => go(id)} aria-current={on ? 'step' : undefined} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 9, height: 44, padding: '0 14px 0 8px', borderRadius: 999, background: on ? k.chip : 'transparent', color: on || done ? k.fg : k.mut }}>
+              <span style={{ width: 26, height: 26, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 12.5, fontWeight: 700, background: on ? k.prim : done ? k.blue : 'transparent', color: on ? k.primFg : done ? '#fff' : k.mut, border: `1px solid ${on || done ? 'transparent' : k.line2}` }}>{done ? <Check size={15} /> : i + 1}</span>
+              <span style={{ lineHeight: 1.2 }}><span style={{ display: 'block', fontSize: 13.5, fontWeight: 600 }}>{lbl}</span><span style={{ display: 'block', fontSize: 11.5, opacity: .8, maxWidth: 170, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{done ? stepVal[id] : stepHint[id]}</span></span>
+            </button>
+            {i < STEPS.length - 1 && <span aria-hidden style={{ width: 22, height: 2, borderRadius: 2, background: done ? k.blue : k.line2 }} />}
+          </li>); })}
       </ol>
 
       {/* 1 · Inmueble: elegir avanza solo */}
       {step === 'inmueble' && (
         <main className="estudio-scroll" style={{ padding: '32px 28px 40px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap', marginBottom: 22 }}>
-            <div><h1 style={{ fontSize: 26, margin: 0, fontWeight: 600, letterSpacing: '-.02em' }}>¿De qué inmueble es la creatividad?</h1><p style={{ margin: '6px 0 0', color: k.mut, fontSize: 14 }}>Al elegirlo pasas al siguiente paso.</p></div>
+            <div><h1 style={{ fontSize: 26, margin: 0, fontWeight: 600 }}>¿De qué inmueble es la publicación?</h1><p style={{ margin: '6px 0 0', color: k.mut, fontSize: 14 }}>Al elegirlo pasas al siguiente paso.</p></div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, width: 320, maxWidth: '100%', height: 42, padding: '0 12px', border: `1px solid ${k.line2}`, borderRadius: 11, color: k.mut }}><Search size={16} /><input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Referencia, dirección o zona" aria-label="Buscar inmueble" style={{ border: 0, outline: 0, background: 'none', flex: 1, minWidth: 0, fontSize: 14, color: k.fg }} /></label>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(270px,1fr))', gap: 18 }}>
@@ -279,10 +233,9 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
               <button key={p.id} onClick={() => pickInmueble(p.id)} aria-pressed={p.id === pid} className="estudio-card" style={{ ...btn, display: 'block', borderRadius: 16, overflow: 'hidden', background: k.panel, border: `1.5px solid ${p.id === pid ? k.blue : k.line}` }}>
                 <span style={{ display: 'block', aspectRatio: '16/10', backgroundImage: p.fotos[0] ? `url("${p.fotos[0].url}")` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }} />
                 <span style={{ display: 'block', padding: '14px 16px 16px' }}>
-                  <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}><span style={{ fontSize: 12.5, color: k.mut }}>{p.ref}</span><span style={{ fontSize: 17, fontWeight: 700 }}>{eur(p.precio)}</span></span>
-                  <span style={{ display: 'block', fontSize: 15.5, fontWeight: 600, marginTop: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.titulo}</span>
-                  <span style={{ display: 'block', fontSize: 13, color: k.mut, marginTop: 3 }}>{p.zona} · {p.m2} m² · {p.habitaciones} hab.</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, fontSize: 13 }}><span style={{ width: 24, height: 24, borderRadius: '50%', background: p.agente.color, color: '#fff', fontSize: 10, fontWeight: 700, display: 'grid', placeItems: 'center' }}>{p.agente.iniciales}</span>{p.agente.nombre}<span style={{ marginLeft: 'auto', color: k.mut, fontSize: 12 }}>{p.fotos.length} fotos</span></span>
+                  <span style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: 12.5, color: k.mut }}>{p.ref}</span><b style={{ fontSize: 17 }}>{eur(p.precio)}</b></span>
+                  <span style={{ display: 'block', fontSize: 15.5, fontWeight: 600, marginTop: 6 }}>{p.titulo}</span>
+                  <span style={{ display: 'block', fontSize: 13, color: k.mut, marginTop: 3 }}>{p.zona} · {p.m2} m² · {p.fotos.length} fotos</span>
                 </span>
               </button>
             ))}
@@ -290,320 +243,315 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
         </main>
       )}
 
-      {/* 2 · Diseño: primero el objetivo, después la plantilla */}
+      {/* 2 · Diseño de la imagen principal. Se empieza con UNA imagen. */}
       {step === 'diseno' && (
         <main className="estudio-scroll" style={{ padding: '28px 28px 40px' }}>
-          <h1 style={{ fontSize: 26, margin: '0 0 14px', fontWeight: 600, letterSpacing: '-.02em' }}>¿Qué quieres anunciar?</h1>
-          <div role="radiogroup" aria-label="Objetivo de la creatividad" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 26 }}>
-            {GOALS.filter((g) => g.id !== 'bajada' || (inm.precioAnterior ?? 0) > inm.precio).map((g) => {
-              const on = g.id === st.goal;
-              return <button key={g.id} role="radio" aria-checked={on} onClick={() => pickGoal(g.id)} style={{ ...btn, height: 42, padding: '0 18px', borderRadius: 999, border: `1px solid ${on ? k.prim : k.line2}`, background: on ? k.prim : 'transparent', color: on ? k.primFg : k.fg, fontSize: 14.5, fontWeight: 600 }}>{g.label}</button>;
-            })}
+          <h1 style={{ fontSize: 26, margin: '0 0 14px', fontWeight: 600 }}>¿Qué quieres anunciar?</h1>
+          <div role="radiogroup" aria-label="Objetivo" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 28 }}>
+            {GOALS.filter((g) => g.id !== 'bajada' || (inm.precioAnterior ?? 0) > inm.precio).map((g) => { const on = g.id === pub.goal; return (
+              <button key={g.id} role="radio" aria-checked={on} onClick={() => pickGoal(g.id)} style={{ ...btn, height: 42, padding: '0 18px', borderRadius: 999, border: `1px solid ${on ? k.prim : k.line2}`, background: on ? k.prim : 'transparent', color: on ? k.primFg : k.fg, fontSize: 14.5, fontWeight: 600 }}>{g.label}</button>); })}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px 24px', flexWrap: 'wrap', marginBottom: 18, paddingTop: 20, borderTop: `1px solid ${k.line}` }}>
-            <div><h2 style={{ fontSize: 18, margin: 0, fontWeight: 600 }}>Elige un diseño</h2><p style={{ margin: '4px 0 0', color: k.mut, fontSize: 13.5 }}>Con las fotos y los datos de «{inm.titulo}». Todo se puede cambiar después.</p></div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px 18px', flexWrap: 'wrap' }}>
-              <div role="radiogroup" aria-label="Tipo de diseño" style={{ display: 'flex', gap: 4 }}>
-                {([['todas', 'Todos'], ['collage', 'Collage'], ['una', 'Una foto']] as const).map(([id, l]) => <button key={id} role="radio" aria-checked={lay === id} onClick={() => setLay(id)} style={pill(lay === id)}>{l}</button>)}
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '14px 24px', flexWrap: 'wrap', marginBottom: 18, paddingTop: 22, borderTop: `1px solid ${k.line}` }}>
+            <div><h2 style={{ fontSize: 20, margin: 0, fontWeight: 600 }}>Elige el diseño de la imagen principal</h2><p style={{ margin: '5px 0 0', color: k.mut, fontSize: 14 }}>Empiezas con una sola imagen. Después, si quieres, le añades fotos y un cierre para convertirla en carrusel.</p></div>
+            <div style={{ display: 'flex', gap: '10px 16px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div role="radiogroup" aria-label="Formato" style={{ display: 'flex', gap: 4 }}>
+                {(['feed', 'post', 'story', 'fb'] as FormatId[]).map((f) => <button key={f} role="radio" aria-checked={pub.format === f} onClick={() => P.edit({ format: f })} style={pill(pub.format === f)}>{f === 'feed' ? 'Instagram' : f === 'post' ? 'Cuadrado' : FORMATS[f].label} <span style={{ opacity: .7, fontWeight: 400 }}>{FORMATS[f].ratio}</span></button>)}
               </div>
-              {formatPills()}
-              <ThemeDots value={st.theme} onPick={(t) => edit({ theme: t })} />
+              <ThemeDots value={pub.theme} onPick={(t) => P.edit({ theme: t })} />
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(250px,1fr))', gap: 22 }}>
-            {forGoal.filter((t) => lay === 'todas' || (lay === 'collage') === t.fotos > 1).map((t) => (
-              <button key={t.id} onClick={() => { edit((s) => ({ template: t.id, hidden: t.id === 'hogar' ? { ...s.hidden, tel: false } : s.hidden })); go('editar'); }} aria-pressed={t.id === st.template} className="estudio-card" style={{ ...btn, display: 'block', borderRadius: 16, overflow: 'hidden', background: k.panel, border: `1.5px solid ${t.id === st.template ? k.blue : k.line}` }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 20 }}>
+            {coverTemplates.map((t) => { const on = pub.slides[0].template === t.id; return (
+              <button key={t.id} onClick={() => pickCoverTemplate(t.id)} aria-pressed={on} className="estudio-card" style={{ ...btn, display: 'block', borderRadius: 16, overflow: 'hidden', background: k.panel, border: `1.5px solid ${on ? k.blue : k.line}` }}>
                 <span style={{ ...stage, position: 'relative', display: 'grid', placeItems: 'center', height: 300, padding: 16 }}>
-                  <span style={{ display: 'block', lineHeight: 0, boxShadow: '0 14px 34px rgba(0,0,0,.4)' }}><Creative template={t.id} data={data} width={gw} height={gh} /></span>
+                  <span style={{ display: 'block', lineHeight: 0, boxShadow: '0 14px 34px rgba(0,0,0,.3)' }}><Creative template={t.id} data={buildSlideData(inm, pub, { ...pub.slides[0], template: t.id, hidden: on ? pub.slides[0].hidden : defaultHidden(t.id) })} width={gw} height={gh} /></span>
                   {t.rank < 2 && <span style={{ position: 'absolute', left: 12, top: 12, fontSize: 11.5, fontWeight: 700, padding: '4px 10px', borderRadius: 999, background: k.blue, color: '#fff' }}>{t.rank === 0 ? 'Hecha para esto' : 'Recomendada'}</span>}
-                  <span className="estudio-use" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '26px 14px 14px', background: 'linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.82))', display: 'flex', justifyContent: 'center' }}><span style={{ height: 36, padding: '0 16px', borderRadius: 10, background: '#fff', color: '#0A0A0A', fontSize: 13.5, fontWeight: 600, display: 'flex', alignItems: 'center' }}>Usar este diseño</span></span>
                 </span>
-                <span style={{ display: 'block', padding: '13px 15px 15px' }}>
-                  <span style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><span style={{ fontSize: 15, fontWeight: 600 }}>{t.nombre}</span><span style={{ fontSize: 12, color: k.mut, whiteSpace: 'nowrap' }}>{t.fotos === 1 ? '1 foto' : `${t.fotos} fotos`}</span></span>
-                  <span style={{ display: 'block', fontSize: 12.5, color: k.mut, marginTop: 4, lineHeight: 1.4 }}>{t.desc}</span>
-                  {t.fotos > nF && <span style={{ display: 'block', fontSize: 12, color: k.warn, marginTop: 6, lineHeight: 1.4 }}>Usa {t.fotos} fotos y este inmueble tiene {nF}: se repetirá alguna.</span>}
-                </span>
-              </button>
-            ))}
+                <span style={{ display: 'block', padding: '12px 15px 14px' }}><span style={{ display: 'flex', justifyContent: 'space-between' }}><b style={{ fontSize: 15 }}>{t.nombre}</b><span style={{ fontSize: 12, color: k.mut }}>{t.fotos === 1 ? '1 foto' : `${t.fotos} fotos`}</span></span><span style={{ display: 'block', fontSize: 12.5, color: k.mut, marginTop: 4 }}>{t.desc}</span></span>
+              </button>); })}
           </div>
         </main>
       )}
 
       {/* 3 · Editar */}
       {step === 'editar' && (
-        <div className="estudio-edit">
-          <div className="estudio-side" style={{ borderRight: `1px solid ${k.line}` }}>
-            <div role="tablist" aria-label="Panel de edición" style={{ display: 'flex', gap: 2, padding: '8px 16px 0', borderBottom: `1px solid ${k.line}` }}>
-              {([['datos', 'Datos', Database], ['fotos', 'Fotos', ImageIcon], ['estilo', 'Estilo', Palette]] as const).map(([id, l, Icon]) => (
-                <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 7, height: 42, padding: '0 12px', fontSize: 13.5, fontWeight: 600, color: tab === id ? k.fg : k.mut, borderBottom: `2px solid ${tab === id ? k.fg : 'transparent'}`, marginBottom: -1 }}><Icon size={15} />{l}</button>
+        <div className="estudio-edit" style={{ flexWrap: 'wrap' }}>
+          {/* Panel izquierdo: la pantalla actual */}
+          <aside style={{ flex: '1 1 340px', maxWidth: 340, minHeight: 0, borderRight: `1px solid ${k.line}`, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '14px 16px 0' }}><div style={{ fontSize: 12, color: k.mut }}>Estás editando</div><div style={{ fontSize: 16, fontWeight: 600 }}>Pantalla {c + 1}: {label(c)}</div></div>
+            <div role="tablist" style={{ display: 'flex', gap: 2, padding: '8px 12px 0', borderBottom: `1px solid ${k.line}` }}>
+              {([['diseno', 'Diseño', LayoutTemplate], ['datos', 'Datos', Database], ['fotos', 'Fotos', ImageIcon], ['estilo', 'Estilo', Palette]] as const).map(([id, l, Icon]) => (
+                <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 6, height: 42, padding: '0 10px', fontSize: 13.5, fontWeight: 600, color: tab === id ? k.fg : k.mut, borderBottom: `2px solid ${tab === id ? k.fg : 'transparent'}`, marginBottom: -1 }}><Icon size={15} />{l}</button>
               ))}
             </div>
-            <div className="estudio-side-body">
+            <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 20px' }}>
+              {tab === 'diseno' && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 10 }}>
+                  {slideTemplates.map((t) => { const on = slide.template === t.id; return (
+                    <button key={t.id} onClick={() => P.setTemplate(c, t.id)} aria-pressed={on} title={t.nombre} style={{ ...btn, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+                      <span style={{ display: 'grid', placeItems: 'center', width: '100%', height: 88, borderRadius: 9, border: `2px solid ${on ? k.blue : 'transparent'}`, background: k.stage, lineHeight: 0 }}><Creative template={t.id} data={buildSlideData(inm, pub, { ...slide, template: t.id })} width={tw} height={th} /></span>
+                      <span style={{ fontSize: 11.5, color: on ? k.fg : k.mut, fontWeight: on ? 600 : 400 }}>{t.nombre}</span>
+                    </button>); })}
+                </div>
+              )}
               {tab === 'datos' && (<>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 10, minHeight: 28 }}>
-                  <span style={{ fontSize: 12.5, color: k.mut }}>Datos de la ficha {inm.ref}</span>
-                  {nHid > 0 && <button onClick={() => edit({ hidden: {} })} style={{ ...btn, fontSize: 12.5, fontWeight: 600, color: k.blueInk }}>Mostrar {nHid === 1 ? 'el dato oculto' : `los ${nHid} ocultos`}</button>}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                  {tpl.uses.map((f) => {
-                    const hidden = !!st.hidden[f], on = sel === f, edited = st.overrides[f] != null;
-                    return (
-                      <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px 6px 6px', borderRadius: 10, border: `1px solid ${on ? k.blue : k.line}`, background: on ? 'rgba(76,141,255,.08)' : 'transparent' }}>
-                        <button onClick={() => toggleField(f)} aria-pressed={hidden} aria-label={`${hidden ? 'Mostrar' : 'Ocultar'} ${FIELD_LABELS[f].toLowerCase()}`} style={{ ...btn, width: 30, height: 30, borderRadius: 8, display: 'grid', placeItems: 'center', color: hidden ? k.mut : k.fg }}>{hidden ? <EyeOff size={15} /> : <Eye size={15} />}</button>
-                        <button onClick={() => setSel(hidden ? '' : f)} style={{ ...btn, flex: 1, minWidth: 0, opacity: hidden ? 0.45 : 1 }}>
-                          <span style={{ display: 'block', fontSize: 11.5, color: k.mut }}>{FIELD_LABELS[f]}</span>
-                          <span style={{ display: 'block', fontSize: 13.5, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textDecoration: hidden ? 'line-through' : 'none' }}>{f === 'logo' ? 'Automático, claro u oscuro' : data.f[f]}</span>
-                        </button>
-                        {edited && <span style={{ fontSize: 10.5, fontWeight: 600, padding: '2px 7px', borderRadius: 999, background: 'rgba(245,196,81,.15)', color: k.warn }}>Editado</span>}
-                      </div>
-                    );
-                  })}
-                </div>
-                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '11px 12px', border: `1px solid ${k.line2}`, borderRadius: 12, marginTop: 12, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={st.soloZona} onChange={() => edit((s) => ({ soloZona: !s.soloZona }))} style={{ margin: '2px 0 0', width: 16, height: 16, accentColor: k.blue }} />
-                  <span style={{ fontSize: 12.5, lineHeight: 1.4 }}><span style={{ display: 'block', fontWeight: 600 }}>Mostrar solo la zona</span><span style={{ color: k.mut }}>«{inm.zona}» en vez de «{inm.direccion}».</span></span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, fontSize: 12.5 }}><span style={{ color: k.mut }}>Datos de la ficha {inm.ref}</span>{nHid > 0 && <button onClick={() => P.editSlide(c, { hidden: {} })} style={{ ...btn, fontWeight: 600, color: k.link }}>Mostrar {nHid === 1 ? 'el dato oculto' : `los ${nHid} ocultos`}</button>}</div>
+                {tpl.uses.map((f) => { const hidden = !!slide.hidden[f], on = sel === f; return (
+                  <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px 6px 6px', marginBottom: 5, borderRadius: 10, border: `1px solid ${on ? k.blue : k.line}`, background: on ? 'rgba(76,141,255,.08)' : 'transparent' }}>
+                    <button onClick={() => toggleField(f)} aria-pressed={hidden} aria-label={`${hidden ? 'Mostrar' : 'Ocultar'} ${FIELD_LABELS[f].toLowerCase()}`} style={iconBtn({ width: 30, height: 30, color: hidden ? k.mut : k.fg })}>{hidden ? <EyeOff size={15} /> : <Eye size={15} />}</button>
+                    <button onClick={() => setSel(hidden ? '' : f)} style={{ ...btn, flex: 1, minWidth: 0, opacity: hidden ? .45 : 1 }}><span style={{ display: 'block', fontSize: 11.5, color: k.mut }}>{FIELD_LABELS[f]}</span><span style={{ display: 'block', fontSize: 13.5, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textDecoration: hidden ? 'line-through' : 'none' }}>{f === 'logo' ? 'Automático, claro u oscuro' : data.f[f]}</span></button>
+                    {slide.overrides[f] != null && <span style={{ fontSize: 10.5, fontWeight: 600, padding: '2px 7px', borderRadius: 999, background: 'rgba(224,168,46,.18)', color: k.warn }}>Editado</span>}
+                  </div>); })}
+                <label style={{ display: 'flex', gap: 10, padding: '11px 12px', border: `1px solid ${k.line2}`, borderRadius: 12, marginTop: 12, fontSize: 12.5 }}>
+                  <input type="checkbox" checked={pub.soloZona} onChange={() => P.edit((p) => ({ soloZona: !p.soloZona }))} style={{ accentColor: k.blue }} />
+                  <span><b style={{ display: 'block' }}>Mostrar solo la zona en toda la publicación</b><span style={{ color: k.mut }}>«{inm.zona}» en vez de «{inm.direccion}».</span></span>
                 </label>
               </>)}
-
               {tab === 'fotos' && (<>
-                <div style={{ fontSize: 12.5, color: k.mut, marginBottom: 8 }}>{tpl.fotos === 1 ? 'Este diseño usa una foto.' : `Este diseño usa ${tpl.fotos} fotos. Elige el hueco:`}</div>
-                <div role="radiogroup" aria-label="Hueco de foto" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-                  {Array.from({ length: tpl.fotos }, (_, i) => (
-                    <button key={i} role="radio" aria-checked={i === slotSel} onClick={() => onSelect('foto' + i)} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 8, padding: '4px 12px 4px 4px', borderRadius: 10, border: `1.5px solid ${i === slotSel ? k.blue : k.line2}`, background: i === slotSel ? 'rgba(76,141,255,.08)' : 'transparent', fontSize: 12.5, fontWeight: 600 }}>
-                      <span style={{ width: 44, height: 34, borderRadius: 6, backgroundImage: data.ph[i], backgroundSize: 'cover', backgroundPosition: 'center' }} />{slotName(i)}
-                    </button>
-                  ))}
-                </div>
+                {tpl.fotos > 1 && (<div role="radiogroup" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>{Array.from({ length: tpl.fotos }, (_, i) => <button key={i} role="radio" aria-checked={i === slotSel} onClick={() => onSelect('foto' + i)} style={pill(i === slotSel)}>{slotName(i)}</button>)}</div>)}
                 <div style={{ fontSize: 12.5, color: k.mut, marginBottom: 8 }}>¿Qué foto va en «{slotName(slotSel)}»?</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 10 }}>
-                  {inm.fotos.map((p, i) => {
-                    const inSlot = slots.slice(0, tpl.fotos).indexOf(i), on = inSlot === slotSel;
-                    return (
-                      <button key={p.id} onClick={() => edit((s) => ({ slots: assignPhoto(s.slots, nF, slotSel, i, tpl.fotos) }))} aria-pressed={on} aria-label={`Poner ${p.nombre} como ${slotName(slotSel).toLowerCase()}`} style={{ ...btn, position: 'relative', display: 'block', aspectRatio: '4/3', borderRadius: 10, overflow: 'hidden', border: `2px solid ${on ? k.blue : k.line2}`, backgroundImage: `url("${p.url}")`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-                        <span style={{ position: 'absolute', left: 6, bottom: 6, fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 6, background: 'rgba(0,0,0,.65)', color: '#fff' }}>{p.nombre}</span>
-                        {inSlot >= 0 && <span style={{ position: 'absolute', left: 6, top: 6, width: 20, height: 20, borderRadius: '50%', background: k.blue, color: '#fff', fontSize: 11, fontWeight: 700, display: 'grid', placeItems: 'center' }}>{inSlot + 1}</span>}
-                      </button>
-                    );
-                  })}
+                  {inm.fotos.map((p, i) => { const inSlot = resolveSlots(slide.slots, nF).slice(0, tpl.fotos).indexOf(i), on = inSlot === slotSel; return (
+                    <button key={p.id} onClick={() => P.editSlide(c, (s) => ({ slots: assignPhoto(s.slots, nF, slotSel, i, tpl.fotos) }))} aria-pressed={on} aria-label={`Poner ${nombreFoto(p.nombre, i)} en esta pantalla`} style={{ ...btn, position: 'relative', aspectRatio: '4/3', borderRadius: 10, border: `2px solid ${on ? k.blue : 'transparent'}`, backgroundImage: `url("${p.url}")`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                      <span style={{ position: 'absolute', left: 6, bottom: 6, fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 6, background: 'rgba(0,0,0,.65)', color: '#fff' }}>{nombreFoto(p.nombre, i)}</span>
+                    </button>); })}
                 </div>
               </>)}
-
               {tab === 'estilo' && (<>
-                <h2 style={{ fontSize: 13, margin: '0 0 8px', fontWeight: 600 }}>Color</h2>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8, marginBottom: 20 }}>
-                  {(Object.keys(THEMES) as ThemeId[]).map((t) => (
-                    <button key={t} onClick={() => edit({ theme: t })} aria-pressed={st.theme === t} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 9, padding: 8, borderRadius: 11, border: `1.5px solid ${st.theme === t ? k.blue : k.line2}`, fontSize: 13, fontWeight: 600 }}>
-                      <span aria-hidden style={{ display: 'flex', width: 36, height: 28, borderRadius: 7, overflow: 'hidden', border: `1px solid ${k.line2}` }}><span style={{ flex: 1, background: THEMES[t].bg }} /><span style={{ width: 12, background: THEMES[t].acc }} /></span>{THEMES[t].label}
-                    </button>
-                  ))}
-                </div>
-                <h2 style={{ fontSize: 13, margin: '0 0 8px', fontWeight: 600 }}>Tipografía de los titulares</h2>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {(Object.keys(TYPOS) as TypoId[]).map((t) => (
-                    <button key={t} onClick={() => edit({ typo: t })} aria-pressed={st.typo === t} style={{ ...btn, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 12px', borderRadius: 11, border: `1.5px solid ${st.typo === t ? k.blue : k.line2}` }}>
-                      <span style={{ fontFamily: TYPOS[t].ff, fontWeight: TYPOS[t].fw, fontSize: 22, textTransform: TYPOS[t].tt, letterSpacing: TYPOS[t].ls }}>Ático con vistas</span><span style={{ fontSize: 12, color: k.mut }}>{TYPOS[t].label}</span>
-                    </button>
-                  ))}
-                </div>
+                <p style={{ fontSize: 12.5, color: k.mut, marginTop: 0 }}>Color y tipografía son iguales en todas las pantallas.</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8, marginBottom: 20 }}>{(Object.keys(THEMES) as ThemeId[]).map((t) => <button key={t} onClick={() => P.edit({ theme: t })} aria-pressed={pub.theme === t} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 9, padding: 8, borderRadius: 11, border: `1.5px solid ${pub.theme === t ? k.blue : k.line2}`, fontSize: 13, fontWeight: 600 }}><span style={{ width: 36, height: 28, borderRadius: 7, background: `linear-gradient(90deg, ${THEMES[t].bg} 66%, ${THEMES[t].acc} 66%)`, border: `1px solid ${k.line2}` }} />{THEMES[t].label}</button>)}</div>
+                {(Object.keys(TYPOS) as TypoId[]).map((t) => <button key={t} onClick={() => P.edit({ typo: t })} aria-pressed={pub.typo === t} style={{ ...btn, display: 'flex', justifyContent: 'space-between', width: '100%', marginBottom: 8, padding: '11px 12px', borderRadius: 11, border: `1.5px solid ${pub.typo === t ? k.blue : k.line2}` }}><span style={{ fontFamily: TYPOS[t].ff, fontWeight: TYPOS[t].fw, fontSize: 22, textTransform: TYPOS[t].tt }}>Ático con vistas</span><span style={{ fontSize: 12, color: k.mut }}>{TYPOS[t].label}</span></button>)}
               </>)}
             </div>
-          </div>
+          </aside>
 
-          <div className="estudio-stage">
+          {/* Centro: la pantalla, con sus vecinas, añadir y eliminar a mano */}
+          <section style={{ ...stage, position: 'relative', flex: '999 1 480px', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+            {addPanel('top')}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', padding: '10px 16px 0' }}>
-              {formatPills()}
-              <div style={{ display: 'flex', gap: 2 }}>
-                <button aria-label="Deshacer" title="Deshacer" onClick={undo} disabled={!canUndo} style={{ ...btn, width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center', opacity: canUndo ? 1 : 0.3 }}><Undo2 size={17} /></button>
-                <button aria-label="Rehacer" title="Rehacer" onClick={redo} disabled={!canRedo} style={{ ...btn, width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center', opacity: canRedo ? 1 : 0.3 }}><Redo2 size={17} /></button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button onClick={() => goTo(c - 1)} disabled={c === 0} aria-label="Pantalla anterior" style={iconBtn({ border: `1px solid ${k.line2}`, background: k.panel, opacity: c === 0 ? .35 : 1 })}><ChevronLeft size={17} /></button>
+                <span style={{ fontSize: 13.5, fontWeight: 600, minWidth: 118, textAlign: 'center' }}>Pantalla {c + 1} de {n}</span>
+                <button onClick={() => goTo(c + 1)} disabled={c === n - 1} aria-label="Pantalla siguiente" style={iconBtn({ border: `1px solid ${k.line2}`, background: k.panel, opacity: c === n - 1 ? .35 : 1 })}><ChevronRight size={17} /></button>
+                <button onClick={() => setAddOpen(addOpen === 'top' ? false : 'top')} disabled={full} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 12px 0 9px', marginLeft: 6, borderRadius: 9, background: k.prim, color: k.primFg, fontSize: 13, fontWeight: 600, opacity: full ? .4 : 1 }}><Plus size={16} />{full ? 'Máximo 10' : 'Añadir pantalla'}</button>
+                {deleteBtn()}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 12.5, color: k.mut }}>{fmtName}</span>
+                <button aria-label="Deshacer" onClick={P.undo} disabled={!P.canUndo} style={iconBtn({ opacity: P.canUndo ? 1 : .3 })}><Undo2 size={17} /></button>
+                <button aria-label="Rehacer" onClick={P.redo} disabled={!P.canRedo} style={iconBtn({ opacity: P.canRedo ? 1 : .3 })}><Redo2 size={17} /></button>
               </div>
             </div>
 
-            {/* Barra de edición pegada a la pieza */}
+            {/* Barra de edición: campo del texto seleccionado */}
             <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 16px 0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%', maxWidth: 760, minHeight: 48, padding: '6px 8px 6px 14px', borderRadius: 13, border: `1px solid ${selKey || selFoto ? k.blue : k.line}`, background: k.panel, boxShadow: '0 1px 2px rgba(0,0,0,.04)' }}>
-                {!selKey && !selFoto && <span style={{ fontSize: 13, color: k.mut }}>Haz clic en un texto para cambiarlo, moverlo o ajustar el tamaño. En una foto, para cambiarla.</span>}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%', maxWidth: 860, minHeight: 48, padding: '6px 8px 6px 14px', borderRadius: 13, border: `1px solid ${selKey || selFoto ? k.blue : k.line2}`, background: k.panel }}>
+                {!selKey && !selFoto && <span style={{ fontSize: 13, color: k.mut }}>Haz clic en un texto o en una foto de la pantalla para cambiarlos.</span>}
                 {selKey && (<>
-                  <label htmlFor="estudio-sel" style={{ fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap', color: k.blueInk }}>{FIELD_LABELS[selKey]}</label>
-                  {READONLY_FIELDS.includes(selKey)
-                    ? <span style={{ flex: '1 1 140px', minWidth: 0, fontSize: 13, color: k.mut }}>{selKey === 'precio' ? `${base.precio} (se cambia en la ficha)` : 'Automático, claro u oscuro'}</span>
-                    : <input id="estudio-sel" value={data.f[selKey]} onChange={(e) => setField(selKey, e.target.value)} style={{ flex: '1 1 140px', minWidth: 60, height: 34, padding: '0 10px', border: `1px solid ${k.line2}`, borderRadius: 8, background: k.bg, color: k.fg, fontSize: 14, outline: 0 }} />}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 220px', minWidth: 180, fontSize: 12, color: k.mut }}>
-                    <span style={{ whiteSpace: 'nowrap' }}>Tamaño</span>
-                    <input aria-label={`Tamaño de ${FIELD_LABELS[selKey].toLowerCase()} en ${FORMATS[st.format].label}`} type="range" min={75} max={170} step={1} value={Math.round((anidarEscala(st.escala)[st.format]?.[selKey] ?? 1) * 100)} onChange={(e) => edit((s) => { const escala = anidarEscala(s.escala); return { escala: { ...escala, [s.format]: { ...escala[s.format], [selKey]: Number(e.target.value) / 100 } } }; }, 'size:' + st.format + ':' + selKey)} style={{ flex: 1, minWidth: 120, accentColor: k.blue }} />
-                    <span style={{ width: 36, color: k.fg, fontWeight: 600 }}>{Math.round((anidarEscala(st.escala)[st.format]?.[selKey] ?? 1) * 100)}%</span>
+                  <label htmlFor="estudio-sel" style={{ fontSize: 12.5, fontWeight: 600, color: k.link, whiteSpace: 'nowrap' }}>{FIELD_LABELS[selKey]}</label>
+                  {READONLY_FIELDS.includes(selKey) ? <span style={{ flex: 1, fontSize: 13, color: k.mut }}>{selKey === 'precio' ? `${data.f.precio} (se cambia en la ficha)` : 'Automático'}</span>
+                    : <input id="estudio-sel" value={data.f[selKey]} onChange={(e) => setField(selKey, e.target.value)} style={{ flex: 1, minWidth: 60, height: 34, padding: '0 10px', border: `1px solid ${k.line2}`, borderRadius: 8, background: k.bg, color: k.fg, fontSize: 14, outline: 0 }} />}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 180px', minWidth: 160, fontSize: 12, color: k.mut }}>
+                    <span>Tamaño</span>
+                    <input aria-label={`Tamaño de ${FIELD_LABELS[selKey].toLowerCase()} en ${FORMATS[pub.format].label}`} type="range" min={75} max={170} step={1} value={Math.round((anidarEscala(pub.escala)[pub.format]?.[selKey] ?? 1) * 100)} onChange={(e) => P.edit((pubNow) => { const escala = anidarEscala(pubNow.escala); return { escala: { ...escala, [pubNow.format]: { ...escala[pubNow.format], [selKey]: Number(e.target.value) / 100 } } }; }, 'size:' + pub.format + ':' + selKey)} style={{ flex: 1, minWidth: 80, accentColor: k.blue }} />
+                    <span style={{ width: 36, color: k.fg, fontWeight: 600 }}>{Math.round((anidarEscala(pub.escala)[pub.format]?.[selKey] ?? 1) * 100)}%</span>
                   </div>
-                  {st.overrides[selKey] != null && <button onClick={() => resetField(selKey)} title="Volver al dato de la ficha" style={{ ...btn, height: 34, padding: '0 10px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, color: k.mut }}>Restaurar</button>}
-                  {((anidarEscala(st.escala)[st.format]?.[selKey] ?? 1) !== 1 || anidarPos(st.pos)[st.format]?.[selKey]) && <button onClick={() => edit((s) => { const escala = anidarEscala(s.escala); const pos = anidarPos(s.pos); const e = { ...escala[s.format] }; const p = { ...pos[s.format] }; delete e[selKey]; delete p[selKey]; return { escala: { ...escala, [s.format]: e }, pos: { ...pos, [s.format]: p } }; })} title={`Volver al tamaño y al sitio de ${FORMATS[st.format].label}`} style={{ ...btn, height: 34, padding: '0 10px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, color: k.mut }}>Auto</button>}
+                  {slide.overrides[selKey] != null && <button onClick={() => resetField(selKey)} style={{ ...btn, fontSize: 12.5, fontWeight: 600, color: k.mut, padding: '0 8px' }}>Restaurar</button>}
+                  {((anidarEscala(pub.escala)[pub.format]?.[selKey] ?? 1) !== 1 || anidarPos(pub.pos)[pub.format]?.[selKey]) && <button onClick={() => P.edit((pubNow) => { const escala = anidarEscala(pubNow.escala); const pos = anidarPos(pubNow.pos); const e = { ...escala[pubNow.format] }; const p = { ...pos[pubNow.format] }; delete e[selKey]; delete p[selKey]; return { escala: { ...escala, [pubNow.format]: e }, pos: { ...pos, [pubNow.format]: p } }; })} style={{ ...btn, fontSize: 12.5, fontWeight: 600, color: k.mut, padding: '0 8px' }}>Auto</button>}
                   <button onClick={() => toggleField(selKey)} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 10px', borderRadius: 8, border: `1px solid ${k.line2}`, fontSize: 12.5, fontWeight: 600 }}><EyeOff size={15} />Ocultar</button>
                 </>)}
-                {selFoto && (<><span style={{ fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap', color: k.blueInk }}>{slotName(slotSel)}</span><span style={{ flex: 1, fontSize: 13, color: k.mut }}>Elige la foto para este hueco en el panel de la izquierda.</span></>)}
-                {(selKey || selFoto) && <button onClick={() => setSel('')} aria-label="Quitar selección" style={{ ...btn, width: 30, height: 34, display: 'grid', placeItems: 'center', color: k.mut }}><X size={16} /></button>}
+                {selFoto && <><b style={{ fontSize: 12.5, color: k.link }}>{slotName(slotSel)}</b><span style={{ flex: 1, fontSize: 13, color: k.mut }}>Elige la foto en el panel de la izquierda.</span></>}
+                {(selKey || selFoto) && <button onClick={() => setSel('')} aria-label="Quitar selección" style={iconBtn({ width: 30, color: k.mut })}><X size={16} /></button>}
               </div>
             </div>
 
-            <div ref={lienzoRef} className="estudio-canvas">
-              <div role="img" aria-label="Creatividad en edición" style={{ lineHeight: 0, boxShadow: '0 18px 50px rgba(20,16,12,.16)' }}>
-                <Creative template={st.template} data={data} width={cw} height={ch} editable selected={sel} onSelect={onSelect} onMove={(key, p) => edit((s) => { const pos = anidarPos(s.pos); return { pos: { ...pos, [s.format]: { ...pos[s.format], [key]: p } } }; }, 'move:' + st.format + ':' + key)} />
+            <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'auto', padding: '16px 16px 10px' }}>
+              <div style={{ margin: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  {/* Pantalla anterior asomando */}
+                  {c > 0 ? (
+                    <button onClick={() => goTo(c - 1)} aria-label={`Ir a la pantalla ${c}: ${label(c - 1)}`} className="estudio-peek" style={{ ...btn, position: 'relative', width: 86, height: peekH, overflow: 'hidden', borderRadius: 8, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', opacity: .5 }}>
+                      <span style={{ lineHeight: 0, pointerEvents: 'none' }}><Creative template={pub.slides[c - 1].template} data={slideData[c - 1]} width={peekW} height={peekH} /></span>
+                      <NumBadge n={c} style={{ left: 6, top: 6 }} />
+                    </button>
+                  ) : <span aria-hidden style={{ width: 86 }} />}
+                  <div role="img" aria-label={`Pantalla ${c + 1} de ${n} en edición`} style={{ lineHeight: 0, boxShadow: `0 24px 60px rgba(0,0,0,.35), 0 0 0 1px ${k.line}` }}>
+                    <Creative template={slide.template} data={data} width={cw} height={ch} editable selected={sel} onSelect={onSelect} onMove={(key, p) => P.edit((pubNow) => { const pos = anidarPos(pubNow.pos); return { pos: { ...pos, [pubNow.format]: { ...pos[pubNow.format], [key]: p } } }; }, 'move:' + pub.format + ':' + key)} />
+                  </div>
+                  {/* Columna derecha: siguiente pantalla o «Añadir después», y debajo «Eliminar pantalla N» apuntando a la actual */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: 86, height: ch }}>
+                    {c < n - 1 ? (
+                      <button onClick={() => goTo(c + 1)} aria-label={`Ir a la pantalla ${c + 2}: ${label(c + 1)}`} className="estudio-peek" style={{ ...btn, position: 'relative', flex: 1, minHeight: 0, width: 86, overflow: 'hidden', borderRadius: 8, display: 'flex', alignItems: 'center', opacity: .5 }}>
+                        <span style={{ lineHeight: 0, pointerEvents: 'none' }}><Creative template={pub.slides[c + 1].template} data={slideData[c + 1]} width={peekW} height={peekH} /></span>
+                        <NumBadge n={c + 2} style={{ right: 6, top: 6 }} />
+                      </button>
+                    ) : !full && (
+                      <button onClick={() => setAddOpen(addOpen === 'top' ? false : 'top')} aria-label={`Añadir una pantalla después de la ${c + 1}`} style={sideBtn({ flex: 1, minHeight: 0, border: `1.5px dashed ${addOpen === 'top' ? k.blue : k.line2}`, background: k.glass })}>
+                        <span style={{ width: 32, height: 32, borderRadius: '50%', background: k.prim, color: k.primFg, display: 'grid', placeItems: 'center' }}><Plus size={17} /></span>Añadir<br />después
+                      </button>
+                    )}
+                    {n > 1 && (
+                      <button onClick={removeCurrent} aria-label={`Eliminar la pantalla ${c + 1}: ${label(c)}`} style={sideBtn({ position: 'relative', flex: '0 0 auto', height: Math.min(160, Math.max(118, Math.round(ch * .36))), border: `1.5px solid ${k.danger}`, background: k.dangerBg, color: k.danger })}>
+                        {/* Pico hacia la pantalla que se borra */}
+                        <span aria-hidden style={{ position: 'absolute', left: -7, top: '50%', width: 12, height: 12, marginTop: -6, transform: 'rotate(45deg)', background: k.dangerBg, borderLeft: `1.5px solid ${k.danger}`, borderBottom: `1.5px solid ${k.danger}` }} />
+                        <span style={{ display: 'flex', gap: 4 }}><ArrowLeft size={15} /><Trash2 size={15} /></span>
+                        <span>Eliminar<br />pantalla {c + 1}</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {/* Puntos para ver cuántas pantallas hay y saltar entre ellas */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div role="tablist" aria-label="Pantallas de la publicación" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {pub.slides.map((s, i) => <button key={s.id} role="tab" aria-selected={i === c} aria-label={`Pantalla ${i + 1}: ${label(i)}`} onClick={() => goTo(i)} style={{ ...btn, width: i === c ? 28 : 16, height: 22, display: 'grid', placeItems: 'center' }}><span style={{ width: i === c ? 22 : 8, height: 8, borderRadius: 999, background: i === c ? k.blue : k.dotOff, transition: 'width .15s' }} /></button>)}
+                  </div>
+                  <b style={{ fontSize: 13 }}>{n === 1 ? '1 pantalla' : `${c + 1} de ${n}`}</b>
+                  {n > 1 && <span aria-hidden style={{ width: 1, height: 18, background: k.line2 }} />}
+                  {deleteBtn(true)}
+                </div>
               </div>
             </div>
 
-            {/* Tira para probar otro diseño sin perder los cambios */}
-            <div style={{ borderTop: `1px solid ${k.line}`, background: k.panel, padding: '10px 16px 12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 12.5 }}><span style={{ fontWeight: 600 }}>Probar otro diseño <span style={{ fontWeight: 400, color: k.mut }}>(se conservan tus cambios)</span></span><button onClick={() => go('diseno')} style={{ ...btn, fontWeight: 600, color: k.blueInk }}>Ver galería</button></div>
-              <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
-                {forGoal.map((t) => (
-                  <button key={t.id} onClick={() => { edit((s) => ({ template: t.id, hidden: t.id === 'hogar' ? { ...s.hidden, tel: false } : s.hidden })); setSel(''); }} aria-pressed={t.id === st.template} title={t.nombre} style={{ ...btn, flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, width: 84 }}>
-                    <span style={{ display: 'grid', placeItems: 'center', width: 84, height: 72, borderRadius: 9, border: `2px solid ${t.id === st.template ? k.blue : 'transparent'}`, background: k.stage, lineHeight: 0 }}><Creative template={t.id} data={data} width={mw} height={mh} /></span>
-                    <span style={{ fontSize: 11, color: t.id === st.template ? k.fg : k.mut, fontWeight: t.id === st.template ? 600 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 84 }}>{t.nombre}</span>
+            {/* Estructura + tira de pantallas */}
+            <div style={{ position: 'relative', borderTop: `1px solid ${k.line}`, background: k.bg, padding: '10px 16px 12px' }}>
+              {addPanel('bottom')}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px 22px', flexWrap: 'wrap', padding: '4px 0 12px', marginBottom: 10, borderBottom: `1px solid ${k.line}`, fontSize: 13 }}>
+                <b style={{ fontSize: 13.5 }}>Tu publicación</b>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 11px', borderRadius: 9, background: k.chip, fontWeight: 600 }}><Check size={15} />Portada</span>
+                  <span style={{ color: k.mut }}>+</span>
+                  <span style={{ display: 'flex', alignItems: 'center', height: 34, borderRadius: 9, border: `1px solid ${k.line2}` }}>
+                    <button onClick={P.removePhoto} disabled={!P.photoCount} aria-label="Quitar una foto" style={iconBtn({ opacity: P.photoCount ? 1 : .35 })}>−</button>
+                    <span aria-live="polite" style={{ minWidth: 74, textAlign: 'center', fontWeight: 600 }}>{P.photoCount === 0 ? 'Sin fotos' : P.photoCount === 1 ? '1 foto' : `${P.photoCount} fotos`}</span>
+                    <button onClick={() => P.addPhoto(nF)} disabled={full} aria-label="Añadir una foto" style={iconBtn({ opacity: full ? .35 : 1 })}>+</button>
+                  </span>
+                  <span style={{ color: k.mut }}>+</span>
+                  <button role="switch" aria-checked={P.hasClosing} onClick={P.toggleClosing} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 8, height: 34, padding: '0 11px 0 8px', borderRadius: 9, border: `1px solid ${P.hasClosing ? k.fg : k.line2}`, background: P.hasClosing ? k.chip : 'transparent', fontWeight: 600 }}>
+                    <span aria-hidden style={{ position: 'relative', width: 30, height: 18, borderRadius: 999, background: P.hasClosing ? k.blue : k.line2 }}><span style={{ position: 'absolute', top: 2, left: P.hasClosing ? 14 : 2, width: 14, height: 14, borderRadius: '50%', background: '#fff', transition: 'left .15s' }} /></span>{P.hasClosing ? 'Con cierre' : 'Sin cierre'}
+                  </button>
+                </span>
+                <span style={{ color: k.mut, fontSize: 12.5 }}>{n === 1 ? 'Ahora es una sola imagen. Súmale fotos para hacer un carrusel.' : `Carrusel de ${n} imágenes.`}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, fontSize: 12.5 }}>
+                <span style={{ color: k.mut }}>{n === 1 ? 'Pulsa la imagen para editarla.' : 'Pulsa una imagen para editarla. Arrastra para cambiar el orden.'}</span>
+                <span style={{ display: 'flex', gap: 4 }}>
+                  <button onClick={() => { P.move(c, c - 1); setCur(c - 1); }} disabled={c === 0} style={{ ...pill(false), height: 30, opacity: c === 0 ? .35 : 1 }}>← Mover</button>
+                  <button onClick={() => { P.move(c, c + 1); setCur(c + 1); }} disabled={c === n - 1} style={{ ...pill(false), height: 30, opacity: c === n - 1 ? .35 : 1 }}>Mover →</button>
+                  <button onClick={() => insertAfterCurrent(slide.template, resolveSlots(slide.slots, nF)[0])} disabled={full} style={{ ...pill(false), height: 30 }}>Duplicar</button>
+                  {n > 1 && <button onClick={removeCurrent} style={{ ...pill(false), height: 30, color: k.danger }}>Eliminar pantalla {c + 1}</button>}
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: 10, overflowX: 'auto', padding: 2 }}>
+                {pub.slides.map((s, i) => (
+                  <button key={s.id} onClick={() => goTo(i)} aria-pressed={i === c} draggable onDragStart={() => { dragFrom.current = i; }} onDragOver={(e) => e.preventDefault()} onDrop={onDrop(i)} title={label(i)} style={{ ...btn, flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, width: 92, cursor: 'grab' }}>
+                    <span style={{ position: 'relative', display: 'grid', placeItems: 'center', width: 92, height: 96, borderRadius: 10, border: `2px solid ${i === c ? k.blue : 'transparent'}`, background: k.stage }}>
+                      <span style={{ lineHeight: 0, pointerEvents: 'none' }}><Creative template={s.template} data={slideData[i]} width={mw} height={mh} /></span>
+                      <NumBadge n={i + 1} on={i === c} style={{ left: -6, top: -6 }} />
+                    </span>
+                    <span style={{ fontSize: 11, color: i === c ? k.fg : k.mut, fontWeight: i === c ? 600 : 400 }}>{label(i)}</span>
                   </button>
                 ))}
+                {!full && <button onClick={() => setAddOpen(addOpen === 'bottom' ? false : 'bottom')} style={{ ...btn, flex: '0 0 auto', width: 92, height: 96, borderRadius: 10, border: `1.5px dashed ${addOpen === 'bottom' ? k.blue : k.line2}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}><Plus size={17} />Añadir pantalla</button>}
               </div>
             </div>
-          </div>
+          </section>
         </div>
       )}
 
-      {/* 4 · Composición */}
-      {step === 'descargar' && (
-        <main className="estudio-scroll" style={{ padding: '32px 28px 40px' }}>
-          <h1 style={{ fontSize: 26, margin: 0, fontWeight: 600, letterSpacing: '-.02em' }}>Arma la publicación</h1>
-          <p style={{ margin: '6px 0 22px', color: k.mut, fontSize: 14, maxWidth: 640 }}>La primera pieza es el diseño que acabas de editar. Añade fotos o diseños: cada pulsación los pone al final. Las flechas cambian el orden. Abajo descargas o publicas la secuencia.</p>
-
-          <h2 style={{ fontSize: 15, margin: '0 0 10px', fontWeight: 600 }}>1. Este es el orden · {secuencia.length} de {MAX_COMPOSICION}</h2>
-          {secuencia.length ? (
-            <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8 }}>
-              {secuencia.map((pieza, i) => {
-                const [pw, ph] = fitBox(formatoComp, 148, 190);
-                const plantilla = pieza.tipo === 'foto' ? 'foto' as const : pieza.template;
-                const fotoPieza = pieza.tipo === 'foto' ? inm.fotos[pieza.foto] : null;
-                const nombre = pieza.tipo === 'diseno'
-                  ? (TEMPLATES.find((t) => t.id === pieza.template)?.nombre || 'Diseño')
-                  : (fotoPieza && !/^foto\s*\d+$/i.test(fotoPieza.nombre.trim()) ? fotoPieza.nombre : 'Foto');
-                return (
-                  <div key={pieza.id} style={{ flex: '0 0 168px', border: `1px solid ${k.line}`, borderRadius: 14, background: k.panel, overflow: 'hidden' }}>
-                    <div style={{ ...stage, display: 'grid', placeItems: 'center', height: 210 }}><Creative template={plantilla} data={datosDePieza(inm, st, pieza, formatoComp)} width={pw} height={ph} /></div>
-                    <div style={{ padding: '8px 8px 10px' }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{i + 1}. {nombre}</div>
-                      {pieza.id === 'actual' && <div style={{ fontSize: 11, color: k.mut, marginTop: 2 }}>El diseño que acabas de editar</div>}
-                      <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
-                        <button type="button" aria-label="Mover atrás" disabled={i === 0} onClick={() => moverPieza(i, -1)} style={{ ...btn, width: 26, height: 26, display: 'grid', placeItems: 'center', opacity: i === 0 ? 0.3 : 1 }}><ChevronLeft size={16} /></button>
-                        <button type="button" aria-label="Mover adelante" disabled={i === secuencia.length - 1} onClick={() => moverPieza(i, 1)} style={{ ...btn, width: 26, height: 26, display: 'grid', placeItems: 'center', opacity: i === secuencia.length - 1 ? 0.3 : 1 }}><ChevronRight size={16} /></button>
-                        <button type="button" aria-label="Quitar pieza" onClick={() => setPiezas(secuencia.filter((_, j) => j !== i))} style={{ ...btn, marginLeft: 'auto', width: 26, height: 26, display: 'grid', placeItems: 'center', color: k.mut }}><X size={15} /></button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : <p style={{ margin: '0 0 8px', color: k.mut, fontSize: 13.5 }}>Todavía no hay piezas. Añade una foto o un diseño.</p>}
-
-          <h2 style={{ fontSize: 15, margin: '22px 0 4px', fontWeight: 600 }}>2. Añadir al final</h2>
-          <p style={{ margin: '0 0 12px', color: k.mut, fontSize: 13.5 }}>{alTope ? `Ya hay ${MAX_COMPOSICION} piezas. Quita una para añadir otra.` : 'Pulsa una foto o un diseño. Aparece como última pieza y luego la mueves.'}</p>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Fotos del inmueble</div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {inm.fotos.map((foto, i) => {
-              const generica = /^foto\s*\d+$/i.test(foto.nombre.trim());
-              return (
-                <button key={foto.id} type="button" disabled={alTope} onClick={() => anadirPieza({ tipo: 'foto', foto: i })} title={generica ? `Añadir foto ${i + 1}` : `Añadir ${foto.nombre}`} style={{ ...btn, width: 72, overflow: 'hidden', opacity: alTope ? 0.4 : 1 }}>
-                  <span style={{ display: 'block', height: 54, borderRadius: 8, backgroundImage: `url("${foto.url}")`, backgroundSize: 'cover', backgroundPosition: 'center', border: `1px solid ${k.line}` }} />
-                  <span style={{ display: 'block', marginTop: 4, fontSize: 11, color: k.mut, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{generica ? i + 1 : foto.nombre}</span>
-                </button>
-              );
-            })}
-          </div>
-          <div style={{ fontSize: 13, fontWeight: 600, margin: '16px 0 8px' }}>Diseños</div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {forGoal.map((t) => <button key={t.id} type="button" disabled={alTope} onClick={() => anadirPieza({ tipo: 'diseno', template: t.id })} style={{ ...pill(false), opacity: alTope ? 0.4 : 1 }}>{t.nombre}</button>)}
-          </div>
-
-          <h2 style={{ fontSize: 15, margin: '26px 0 8px', fontWeight: 600 }}>3. El formato de todas las piezas</h2>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {FORMATOS_COMPOSICION.map((f) => <button key={f} type="button" aria-pressed={formatoComp === f} onClick={() => setFormatoComp(f)} style={pill(formatoComp === f)}>{FORMATS[f].label} {FORMATS[f].ratio}</button>)}
-          </div>
-          <p style={{ margin: '8px 0 0', color: k.mut, fontSize: 13.5 }}>Instagram publica el carrusel en este formato. Story y Facebook van aparte, en el bloque de abajo.</p>
-
-          <details style={{ marginTop: 28, paddingTop: 16, borderTop: `1px solid ${k.line}` }}>
-            <summary style={{ cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>Solo el diseño editado, en otros formatos</summary>
-            <p style={{ margin: '8px 0 16px', color: k.mut, fontSize: 13.5 }}>Esto no cambia la composición. Descarga o publica únicamente «{tpl.nombre}».</p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(210px,1fr))', gap: 16, maxWidth: 1100 }}>
-              {(Object.keys(FORMATS) as FormatId[]).map((f) => {
-                const [vw, vh] = fitBox(f, 190, 248), on = !!exp[f];
-                return (
-                  <label key={f} style={{ display: 'block', borderRadius: 16, overflow: 'hidden', background: k.panel, border: `1.5px solid ${on ? k.blue : k.line}`, cursor: 'pointer' }}>
-                    <span style={{ ...stage, display: 'grid', placeItems: 'center', height: 280, padding: 16 }}><span style={{ display: 'block', lineHeight: 0, boxShadow: '0 14px 34px rgba(0,0,0,.4)' }}><Creative template={st.template} data={buildCreativeData(inm, { ...st, format: f })} width={vw} height={vh} /></span></span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px' }}>
-                      <input type="checkbox" checked={on} onChange={() => setExp((e) => ({ ...e, [f]: !e[f] }))} style={{ width: 17, height: 17, margin: 0, accentColor: k.blue }} />
-                      <span style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>{FORMATS[f].label} <span style={{ fontWeight: 400, color: k.mut }}>{FORMATS[f].ratio}</span></span>
-                      <span style={{ fontSize: 12, color: k.mut }}>{FORMATS[f].w}×{FORMATS[f].h}</span>
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
-              <FootBtn onClick={() => exportAll(true)} disabled={!expSel.length || busy !== ''}>Descargar estos formatos</FootBtn>
-              <FootBtn onClick={() => exportAll(false)} disabled={!expSel.length || busy !== ''}>Guardar en la ficha</FootBtn>
-              <FootBtn onClick={publicarInstagram} disabled={!expSel.length || busy !== ''}><Instagram size={16} />Publicar estos formatos</FootBtn>
-            </div>
-          </details>
+      {/* 4 · Publicar o descargar */}
+      {step === 'publicar' && (
+        <main className="estudio-scroll" style={{ padding: '28px 28px 40px', maxWidth: 680 }}>
+          <h1 style={{ fontSize: 26, margin: 0, fontWeight: 600 }}>Publicar o descargar</h1>
+          <p style={{ margin: '6px 0 22px', color: k.mut, fontSize: 14 }}>{n === 1 ? `Una imagen en ${fmtName}.` : `Un carrusel de ${n} imágenes en ${fmtName}.`} Puedes publicarlo o descargarlo.</p>
+          <section style={{ border: `1px solid ${k.line}`, borderRadius: 16, padding: 16, background: k.panel, marginBottom: 14 }}>
+            <h2 style={{ fontSize: 15, margin: '0 0 6px' }}>{n === 1 ? 'Una imagen' : `Carrusel de ${n} imágenes`}</h2>
+            <p style={{ margin: 0, color: k.mut, fontSize: 13.5, lineHeight: 1.45 }}>Instagram recibe estas pantallas en {FORMATS[formatoIg].label} {FORMATS[formatoIg].ratio}. El texto del post sale de lo que se ve en la portada.</p>
+          </section>
+          <section style={{ border: `1px solid ${k.line}`, borderRadius: 16, padding: 16 }}>
+            <h2 style={{ fontSize: 15, margin: '0 0 4px' }}>Descargar también para</h2>
+            <p style={{ fontSize: 12.5, color: k.mut, margin: '0 0 8px' }}>Las mismas pantallas adaptadas a otro formato.</p>
+            {(['story', 'fb', 'post', 'feed'] as FormatId[]).filter((f) => f !== pub.format).slice(0, 3).map((f) => (
+              <label key={f} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 2px', fontSize: 13.5 }}><input type="checkbox" checked={!!extra[f]} onChange={() => setExtra((e) => ({ ...e, [f]: !e[f] }))} style={{ accentColor: k.blue }} /><span style={{ flex: 1 }}>{f === 'post' ? 'Cuadrado' : f === 'feed' ? 'Instagram' : FORMATS[f].label} <span style={{ color: k.mut }}>{FORMATS[f].ratio}</span></span><span style={{ fontSize: 12, color: k.mut }}>{FORMATS[f].w}×{FORMATS[f].h}</span></label>
+            ))}
+          </section>
         </main>
       )}
 
-      {/* Barra inferior */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '12px 28px', borderTop: `1px solid ${k.line}`, background: k.glass }}>
-        <div style={{ flex: '1 1 200px', minWidth: 0, fontSize: 13, color: k.mut }}>{step === 'editar' ? `El tamaño y la posición valen solo para ${FORMATS[st.format].label}.` : step === 'diseno' ? 'Al elegir un diseño pasas a editarlo. Podrás cambiarlo sin perder nada.' : step === 'descargar' ? `${secuencia.length} ${secuencia.length === 1 ? 'pieza' : 'piezas'} en ${FORMATS[formatoComp].label}.` : ''}</div>
-        {BACK[step] && <FootBtn onClick={() => go(BACK[step]!.to)}>{BACK[step]!.label}</FootBtn>}
-        {(step === 'editar' || step === 'descargar') && <FootBtn onClick={() => setPrevia(true)}><Eye size={16} />Vista previa</FootBtn>}
-        {step === 'descargar' && <FootBtn onClick={publicarComposicion} disabled={!secuencia.length || busy !== ''}><Instagram size={16} />{busy === 'instagram' ? 'Publicando…' : 'Publicar en Instagram'}</FootBtn>}
-        <FootBtn primary disabled={busy !== '' || (step === 'descargar' && !secuencia.length)} onClick={() => (step === 'descargar' ? descargarComposicion() : NEXT[step].to ? go(NEXT[step].to!) : exportAll(true))}>{step === 'descargar' && <Download size={16} />}{NEXT[step].label}</FootBtn>
-      </div>
-
-      {/* Lienzos fuera de pantalla para exportar a tamaño real: 540 px de ancho × pixelRatio 2 = 1080 */}
-      {step === 'descargar' && (
-        <div aria-hidden style={{ position: 'fixed', left: -99999, top: 0, pointerEvents: 'none' }}>
-          {expSel.map((f) => { const w = FORMATS[f].w / 2, hh = FORMATS[f].h / 2; return <div key={f} ref={(el) => { exportRefs.current[f] = el; }}><Creative template={st.template} data={buildCreativeData(inm, { ...st, format: f })} width={w} height={hh} /></div>; })}
-          {secuencia.map((pieza, i) => {
-            const w = FORMATS[formatoComp].w / 2, hh = FORMATS[formatoComp].h / 2;
-            const plantilla: TemplateId = pieza.tipo === 'foto' ? 'foto' : pieza.template;
-            return <div key={pieza.id} ref={(el) => { compRefs.current[i] = el; }}><Creative template={plantilla} data={datosDePieza(inm, st, pieza, formatoComp)} width={w} height={hh} /></div>;
-          })}
+      {/* Barra inferior: «Vista previa» siempre a mano; el botón de la derecha avanza */}
+      {step !== 'inmueble' && (
+        <div style={{ position: 'sticky', bottom: 0, zIndex: 30, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '12px 28px', borderTop: `1px solid ${k.line}`, background: k.glass, backdropFilter: 'blur(12px)' }}>
+          <div style={{ flex: '1 1 200px', fontSize: 13, color: k.mut }}>{step === 'diseno' ? 'Al elegir un diseño pasas a editarlo.' : step === 'editar' ? (n === 1 ? 'Una imagen. Los cambios se guardan solos.' : `Carrusel de ${n}: estás en la ${c + 1}. Los cambios se guardan solos.`) : `${pantallas(n)} en ${fmtName}.`}</div>
+          {step === 'diseno' && <FootBtn onClick={() => go('inmueble')}>Cambiar inmueble</FootBtn>}
+          {step === 'editar' && <FootBtn onClick={() => go('diseno')}>Ver todos los diseños</FootBtn>}
+          {step === 'publicar' && <FootBtn onClick={() => go('editar')}>Seguir editando</FootBtn>}
+          {(step === 'editar' || step === 'publicar') && <FootBtn onClick={() => { setPv(step === 'editar' ? c : 0); setPvOpen(true); }}><Eye size={16} />Vista previa</FootBtn>}
+          {step === 'diseno' && <FootBtn primary onClick={() => go('editar')}>Editar «{tplName(pub.slides[0].template)}»</FootBtn>}
+          {step === 'editar' && <FootBtn primary onClick={() => go('publicar')}>Publicar o descargar</FootBtn>}
+          {step === 'publicar' && <>
+            <FootBtn onClick={save} disabled={!!busy}>Guardar en la ficha</FootBtn>
+            <FootBtn onClick={download} disabled={!!busy}><Download size={16} />{busy === 'export' ? 'Generando…' : `Descargar ${nImages === 1 ? '1 imagen' : `${nImages} imágenes`}`}</FootBtn>
+            <FootBtn primary onClick={publish} disabled={!!busy}><Instagram size={16} />{busy === 'publish' ? 'Publicando…' : 'Publicar en Instagram'}</FootBtn>
+          </>}
         </div>
       )}
 
-      {previa && (() => {
-        const [pw, ph] = fitBox(st.format, previaCaja.w, previaCaja.h);
-        const fmt = FORMATS[st.format];
-        return (
-          <div role="dialog" aria-modal="true" aria-label="Vista previa de la creatividad" onClick={() => setPrevia(false)} style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(0,0,0,.78)', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 20px', color: '#fff' }} onClick={(e) => e.stopPropagation()}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 15, fontWeight: 650 }}>{tpl.nombre}</div>
-                <div style={{ fontSize: 12.5, opacity: 0.75, marginTop: 2 }}>{fmt.label} · {fmt.w}×{fmt.h}</div>
+      {/* Vista previa en un móvil, deslizable como en Instagram */}
+      {pvOpen && (
+        <div role="dialog" aria-modal="true" aria-label="Vista previa" style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,.6)' }} onClick={() => setPvOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#fff', fontWeight: 600 }}>{n === 1 ? 'Así se verá publicada' : `Así se verá el carrusel de ${n}`}<button onClick={() => setPvOpen(false)} style={{ ...btn, display: 'flex', gap: 6, alignItems: 'center', height: 34, padding: '0 12px', borderRadius: 9, background: 'rgba(255,255,255,.14)', color: '#fff', fontSize: 13 }}><X size={15} />Cerrar</button></div>
+            <div style={{ width: phoneW, borderRadius: 34, background: k.panel, padding: '14px 0 16px', boxShadow: '0 30px 70px rgba(0,0,0,.25)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '0 14px 10px', fontSize: 13 }}><span style={{ width: 30, height: 30, borderRadius: '50%', background: '#0A0A0A', color: '#fff', fontSize: 7, display: 'grid', placeItems: 'center' }}>RHB</span><b>rehabinco</b><span style={{ color: k.mut }}>{inm.barrio}</span></div>
+              <div style={{ position: 'relative', lineHeight: 0 }}>
+                <Creative template={pub.slides[pv].template} data={slideData[pv]} width={phoneW} height={phoneH} />
+                {n > 1 && <>
+                  <span style={{ position: 'absolute', right: 10, top: 10, fontSize: 11.5, fontWeight: 600, lineHeight: 1, padding: '5px 9px', borderRadius: 999, background: 'rgba(0,0,0,.6)', color: '#fff' }}>{pv + 1}/{n}</span>
+                  {pv > 0 && <button onClick={() => setPv(pv - 1)} aria-label="Anterior" style={iconBtn({ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', borderRadius: '50%', background: 'rgba(255,255,255,.92)', color: '#0A0A0A', width: 30, height: 30 })}><ChevronLeft size={16} /></button>}
+                  {pv < n - 1 && <button onClick={() => setPv(pv + 1)} aria-label="Siguiente" style={iconBtn({ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', borderRadius: '50%', background: 'rgba(255,255,255,.92)', color: '#0A0A0A', width: 30, height: 30 })}><ChevronRight size={16} /></button>}
+                </>}
               </div>
-              <button type="button" aria-label="Cerrar vista previa" onClick={() => setPrevia(false)} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 8, height: 38, padding: '0 14px', borderRadius: 10, color: '#fff', border: '1px solid rgba(255,255,255,.28)', background: 'rgba(255,255,255,.08)', fontSize: 13.5, fontWeight: 600 }}><X size={16} />Cerrar</button>
-            </div>
-            <div ref={previaRef} style={{ flex: 1, minHeight: 0, display: 'grid', placeItems: 'center', padding: '0 16px 20px' }}>
-              <div onClick={(e) => e.stopPropagation()} style={{ boxShadow: '0 24px 70px rgba(0,0,0,.45)', lineHeight: 0 }}>
-                <Creative template={st.template} data={data} width={pw} height={ph} />
-              </div>
+              {n > 1 && <div style={{ display: 'flex', justifyContent: 'center', gap: 5, padding: '10px 0 2px' }}>{pub.slides.map((s, i) => <button key={s.id} onClick={() => setPv(i)} aria-label={`Ver pantalla ${i + 1}`} style={{ ...btn, width: i === pv ? 16 : 6, height: 6, borderRadius: 999, background: i === pv ? k.blue : k.line2 }} />)}</div>}
+              <div style={{ padding: '8px 14px 0', fontSize: 12.5, lineHeight: 1.45, maxHeight: 74, overflow: 'hidden' }}><b>rehabinco</b> <span style={{ color: k.fg, whiteSpace: 'pre-line' }}>{textoPieza || 'El texto sale de lo que se ve en la portada.'}</span></div>
             </div>
           </div>
-        );
-      })()}
+        </div>
+      )}
+
+      {toast && (
+        <div role="status" style={{ position: 'fixed', left: '50%', bottom: 90, transform: 'translateX(-50%)', zIndex: 70, display: 'flex', alignItems: 'center', gap: 9, padding: '11px 16px', borderRadius: 12, background: k.prim, color: k.primFg, fontSize: 13, fontWeight: 600 }}>
+          <Check size={16} />{toast.msg}
+          {toast.undo && <button onClick={() => { P.undo(); setToast(null); }} style={{ ...btn, marginLeft: 6, height: 28, padding: '0 10px', borderRadius: 7, border: '1px solid currentColor', fontSize: 12.5, fontWeight: 700 }}>Deshacer</button>}
+        </div>
+      )}
+
+      {/* Lienzos fuera de pantalla para exportar a tamaño real (ancho/2 × pixelRatio 2) */}
+      {step === 'publicar' && (
+        <div aria-hidden style={{ position: 'fixed', left: -99999, top: 0, pointerEvents: 'none' }}>
+          {mounted.map((f) => pub.slides.map((pantalla, i) => (
+            <div key={f + pantalla.id} ref={(el) => { (exportRefs.current[f] ??= [])[i] = el; }}>
+              <Creative template={pantalla.template} data={buildSlideData(inm, { ...pub, format: f }, pantalla)} width={FORMATS[f].w / 2} height={FORMATS[f].h / 2} />
+            </div>
+          )))}
+        </div>
+      )}
     </div>
   );
 }
 
+function NumBadge({ n, on, style }: { n: number; on?: boolean; style: CSSProperties }) {
+  return <span style={{ position: 'absolute', width: 22, height: 22, borderRadius: '50%', background: on ? k.blue : k.panel, color: on ? '#fff' : k.fg, border: `1px solid ${k.line2}`, fontSize: 11.5, fontWeight: 700, lineHeight: 1, display: 'grid', placeItems: 'center', ...style }}>{n}</span>;
+}
+
 function FootBtn({ children, onClick, primary, disabled }: { children: ReactNode; onClick: () => void; primary?: boolean; disabled?: boolean }) {
-  return <button onClick={onClick} disabled={disabled} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 8, height: 42, padding: '0 18px', borderRadius: 11, fontSize: 14, fontWeight: 600, opacity: disabled ? 0.5 : 1, background: primary ? k.prim : 'transparent', color: primary ? k.primFg : k.fg, border: `1px solid ${primary ? k.prim : k.line2}` }}>{children}</button>;
+  return <button onClick={onClick} disabled={disabled} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 8, height: 42, padding: '0 18px', borderRadius: 11, fontSize: 14, fontWeight: 600, opacity: disabled ? .5 : 1, background: primary ? k.prim : k.panel, color: primary ? k.primFg : k.fg, border: `1px solid ${primary ? k.prim : k.line2}` }}>{children}</button>;
 }
 
 function ThemeDots({ value, onPick }: { value: ThemeId; onPick: (t: ThemeId) => void }) {
   return (
-    <div role="radiogroup" aria-label="Color de las plantillas" style={{ display: 'flex', gap: 5 }}>
+    <div role="radiogroup" aria-label="Color" style={{ display: 'flex', gap: 5 }}>
       {(Object.keys(THEMES) as ThemeId[]).map((t) => (
         <button key={t} role="radio" aria-checked={value === t} aria-label={`Color ${THEMES[t].label}`} title={THEMES[t].label} onClick={() => onPick(t)} style={{ ...btn, width: 32, height: 32, borderRadius: '50%', border: `2px solid ${value === t ? k.blue : 'transparent'}`, display: 'grid', placeItems: 'center' }}>
-          <span aria-hidden style={{ width: 22, height: 22, borderRadius: '50%', background: THEMES[t].bg, border: `1px solid ${k.line2}`, display: 'grid', placeItems: 'center' }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: THEMES[t].acc }} /></span>
+          <span style={{ width: 22, height: 22, borderRadius: '50%', background: THEMES[t].bg, border: `1px solid ${k.line2}`, display: 'grid', placeItems: 'center' }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: THEMES[t].acc }} /></span>
         </button>
       ))}
     </div>
