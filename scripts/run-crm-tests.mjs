@@ -32,6 +32,7 @@ const patterns = [
   "lib/support/**/*.test.ts",
   "lib/ui/**/*.test.ts",
   "lib/time/**/*.test.ts",
+  "lib/facturas/**/*.test.ts",
   "scripts/stamp-sw-build.test.mjs",
 ];
 

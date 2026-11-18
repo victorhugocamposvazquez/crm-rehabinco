@@ -33,6 +33,7 @@ import { ChevronLeft, Plus, Trash2, UserPlus } from "lucide-react";
 import { ClienteQuickSheet } from "@/components/clientes/ClienteQuickSheet";
 import { parseDecimalMientrasEscribe } from "@/lib/decimales-input";
 import { Selector } from "@/components/ui/selector";
+import { clienteDeFactura, conClienteFicha, type ClienteOpcion } from "@/lib/facturas/cliente-opcion";
 
 /** Borradores de texto para no perder "10." al convertir a número en cada tecla */
 type LineaConBorrador = FacturaLinea & { _precioDraft?: string; _cantDraft?: string };
@@ -58,8 +59,10 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
   const [step, setStep] = useState(1);
   const [data, setData] = useState<Partial<WizardData>>({});
   const [estadoInicial, setEstadoInicial] = useState<EstadoFactura>("emitida");
-  const [clientes, setClientes] = useState<Array<{ id: string; nombre: string }>>([]);
+  const [clientes, setClientes] = useState<ClienteOpcion[]>([]);
+  const [clienteFicha, setClienteFicha] = useState<ClienteOpcion | null>(null);
   const [loading, setLoading] = useState(!!facturaId || !!facturaOriginalId);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [numero, setNumero] = useState("");
   const numeroEditadoManual = useRef(false);
   const [creating, setCreating] = useState(false);
@@ -129,13 +132,18 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
     setRectificativaError(null);
     const supabase = createClient();
     Promise.all([
-      supabase.from("facturas").select("id, numero, estado, concepto, fecha_emision, fecha_vencimiento, irpf_porcentaje, porcentaje_descuento, cliente_id, tipo_factura").eq("id", facturaOriginalId).single(),
+      supabase.from("facturas").select("id, numero, estado, concepto, fecha_emision, fecha_vencimiento, irpf_porcentaje, porcentaje_descuento, cliente_id, tipo_factura, clientes(id, nombre)").eq("id", facturaOriginalId).single(),
       supabase.from("factura_lineas").select("descripcion, cantidad, precio_unitario, iva_porcentaje").eq("factura_id", facturaOriginalId).order("orden"),
     ]).then(([fRes, lRes]) => {
-      const factura = fRes.data as { numero: string; estado: string; concepto: string | null; fecha_emision: string | null; fecha_vencimiento: string | null; irpf_porcentaje: number | null; porcentaje_descuento: number | null; cliente_id: string | null; tipo_factura?: string } | null;
+      const factura = fRes.data as { numero: string; estado: string; concepto: string | null; fecha_emision: string | null; fecha_vencimiento: string | null; irpf_porcentaje: number | null; porcentaje_descuento: number | null; cliente_id: string | null; tipo_factura?: string; clientes?: unknown } | null;
       const lineasData = (lRes.data ?? []) as Array<{ descripcion: string; cantidad: number; precio_unitario: number; iva_porcentaje: number | null }>;
-      if (!factura) {
-        setRectificativaError("Factura original no encontrada");
+      if (fRes.error || !factura) {
+        setRectificativaError(fRes.error?.message ?? "Factura original no encontrada");
+        setLoading(false);
+        return;
+      }
+      if (lRes.error) {
+        setRectificativaError(lRes.error.message);
         setLoading(false);
         return;
       }
@@ -158,6 +166,7 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
         return;
       }
       setFacturaOriginalNumero(factura.numero);
+      setClienteFicha(clienteDeFactura(factura.clientes, factura.cliente_id));
       const step1Values = {
         clienteId: factura.cliente_id ?? "",
         concepto: factura.concepto ?? "",
@@ -198,17 +207,24 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
     if (!facturaId) return;
     const supabase = createClient();
     Promise.all([
-      supabase.from("facturas").select("id, numero, estado, concepto, fecha_emision, fecha_vencimiento, irpf_porcentaje, porcentaje_descuento, cliente_id").eq("id", facturaId).single(),
+      supabase.from("facturas").select("id, numero, estado, concepto, fecha_emision, fecha_vencimiento, irpf_porcentaje, porcentaje_descuento, cliente_id, clientes(id, nombre)").eq("id", facturaId).single(),
       supabase.from("factura_lineas").select("descripcion, cantidad, precio_unitario, iva_porcentaje").eq("factura_id", facturaId).order("orden"),
     ]).then(([fRes, lRes]) => {
-      const factura = fRes.data as { numero: string; estado: string; concepto: string | null; fecha_emision: string | null; fecha_vencimiento: string | null; irpf_porcentaje: number | null; porcentaje_descuento: number | null; cliente_id: string | null } | null;
+      const factura = fRes.data as { numero: string; estado: string; concepto: string | null; fecha_emision: string | null; fecha_vencimiento: string | null; irpf_porcentaje: number | null; porcentaje_descuento: number | null; cliente_id: string | null; clientes?: unknown } | null;
       const lineasData = (lRes.data ?? []) as Array<{ descripcion: string; cantidad: number; precio_unitario: number; iva_porcentaje: number | null }>;
-      if (!factura) {
+      if (fRes.error || !factura) {
+        setLoadError(fRes.error?.message ?? "No se ha encontrado la factura");
+        setLoading(false);
+        return;
+      }
+      if (lRes.error) {
+        setLoadError(lRes.error.message);
         setLoading(false);
         return;
       }
       setNumero(factura.numero);
       numeroEditadoManual.current = true;
+      setClienteFicha(clienteDeFactura(factura.clientes, factura.cliente_id));
       const step1Values = {
         clienteId: factura.cliente_id ?? "",
         concepto: factura.concepto ?? "",
@@ -315,8 +331,11 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
   );
   const irpfImporte = subtotal * (irpfPorcentaje / 100);
   const total = subtotal + ivaTotal - descuentoImporte - irpfImporte;
+  const clientesOpciones = conClienteFicha(clientes, clienteFicha);
+  const clienteIdForm = formStep1.watch("clienteId") ?? "";
+  const conceptoForm = formStep1.watch("concepto") ?? "";
   const clienteNombre =
-    clientes.find((c) => c.id === data.clienteId)?.nombre ?? "—";
+    clientesOpciones.find((c) => c.id === data.clienteId)?.nombre ?? "—";
 
   const handleBack = () => {
     const nextStep = Math.max(1, step - 1);
@@ -361,7 +380,9 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
       return;
     }
 
-    const clienteId = data.clienteId || null;
+    const paso1 = formStep1.getValues();
+    const clienteId = paso1.clienteId || data.clienteId || null;
+    const conceptoGuardado = paso1.concepto || data.concepto || null;
     const lineasNetas = commitLineasDrafts((data.lineas ?? lineas) as LineaConBorrador[]);
     const lineasToSave = lineasNetas.map((l, orden) => ({
       descripcion: l.descripcion,
@@ -378,7 +399,7 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
           numero: numeroFinal,
           cliente_id: clienteId,
           estado: estadoInicial,
-          concepto: data.concepto || null,
+          concepto: conceptoGuardado,
           fecha_emision: data.fechaEmision || null,
           fecha_vencimiento: data.fechaVencimiento || null,
           irpf_porcentaje: irpfPorcentaje,
@@ -420,7 +441,7 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
       cliente_id: clienteId,
       numero: numeroFinal,
       estado: estadoInicial,
-      concepto: data.concepto || null,
+      concepto: conceptoGuardado,
       fecha_emision: data.fechaEmision || null,
       fecha_vencimiento: data.fechaVencimiento || null,
       irpf_porcentaje: irpfPorcentaje,
@@ -461,6 +482,17 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
     return (
       <div className="flex min-h-[40vh] items-center justify-center" aria-busy="true" aria-live="polite">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-foreground" role="status" aria-label="Cargando" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50/50 p-6">
+        <p className="font-medium text-red-800">{loadError}</p>
+        <Button asChild variant="secondary" className="mt-4">
+          <Link href={facturaId ? `/facturas/${facturaId}` : "/facturas"}>Volver</Link>
+        </Button>
       </div>
     );
   }
@@ -566,11 +598,13 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
                       "flex h-11 w-full rounded-lg border border-border bg-[var(--surface)] px-4 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       esRectificativa && "cursor-not-allowed bg-neutral-50"
                     )}
-                    {...formStep1.register("clienteId")}
+                    name="clienteId"
+                    value={clienteIdForm}
+                    onChange={(e) => formStep1.setValue("clienteId", e.target.value, { shouldValidate: true, shouldDirty: true })}
                     disabled={esRectificativa}
                   >
                     <option value="">Selecciona un cliente</option>
-                    {clientes.map((c) => (
+                    {clientesOpciones.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.nombre}
                       </option>
@@ -617,7 +651,9 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
                   <Label>Concepto</Label>
                   <Input
                     placeholder="Ej. Gestión alquiler"
-                    {...formStep1.register("concepto")}
+                    name="concepto"
+                    value={conceptoForm}
+                    onChange={(e) => formStep1.setValue("concepto", e.target.value, { shouldDirty: true })}
                   />
                 </div>
                 <div className="grid min-w-0 grid-cols-2 gap-4">
