@@ -25,6 +25,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const wizard = isWizardRoute(pathname);
   const fichaje = pathname === "/fichaje" || (pathname?.startsWith("/fichaje/") ?? false);
+  const estudio = pathname === "/estudio" || (pathname?.startsWith("/estudio/") ?? false);
   const chromeMinimal = wizard || fichaje;
   const herramientas = esRutaHerramientas(pathname ?? "");
   const { user } = useAuth();
@@ -94,7 +95,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <FiltroComercialProvider>
       <FichaPeekProvider>
       <MenuPerfilProvider>
-      <div className="flex min-h-dvh bg-[var(--background)]">
+      <div className={cn("flex min-h-dvh bg-[var(--background)]", estudio && "h-dvh overflow-hidden")}>
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-foreground focus:px-4 focus:py-2 focus:text-background focus:outline-none focus:ring-2 focus:ring-ring"
@@ -102,16 +103,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           Saltar al contenido
         </a>
         {!chromeMinimal && <Sidebar badges={badges} />}
-        <div className="flex min-w-0 flex-1 flex-col">
-          {!fichaje && <AppTopBar />}
+        <div className={cn("flex min-w-0 flex-1 flex-col", estudio && "min-h-0")}>
+          {!fichaje && !estudio && <AppTopBar />}
           <main
             id="main-content"
             className={cn(
               "mx-auto w-full flex-1",
-              fichaje
-                ? "max-w-none p-0"
+              fichaje || estudio
+                ? "flex min-h-0 max-w-none flex-col overflow-hidden p-0"
                 : "max-w-[1600px] px-3.5 pt-5 min-[820px]:px-6 min-[820px]:pt-6",
-              fichaje
+              fichaje || estudio
                 ? undefined
                 : wizard
                   ? "pb-4 md:pb-10"

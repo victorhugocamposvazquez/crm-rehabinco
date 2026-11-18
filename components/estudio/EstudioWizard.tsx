@@ -275,16 +275,17 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
 
       {/* 3 · Editar */}
       {step === 'editar' && (
-        <div className="estudio-edit" style={{ flexWrap: 'wrap' }}>
+        <div className="estudio-edit">
           {/* Panel izquierdo: la pantalla actual */}
-          <aside style={{ flex: '1 1 340px', maxWidth: 340, minHeight: 0, borderRight: `1px solid ${k.line}`, display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '14px 16px 0' }}><div style={{ fontSize: 12, color: k.mut }}>Estás editando</div><div style={{ fontSize: 16, fontWeight: 600 }}>Pantalla {c + 1}: {label(c)}</div></div>
+          <aside className="estudio-side">
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '14px 16px 0' }}><span style={{ fontSize: 13, fontWeight: 650 }}>Estudio</span><span style={{ fontSize: 12, color: k.mut }}>Estás editando</span></div>
+            <div style={{ padding: '2px 16px 0', fontSize: 16, fontWeight: 600 }}>Pantalla {c + 1}: {label(c)}</div>
             <div role="tablist" style={{ display: 'flex', gap: 2, padding: '8px 12px 0', borderBottom: `1px solid ${k.line}` }}>
               {([['diseno', 'Diseño', LayoutTemplate], ['datos', 'Datos', Database], ['fotos', 'Fotos', ImageIcon], ['estilo', 'Estilo', Palette]] as const).map(([id, l, Icon]) => (
                 <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 6, height: 42, padding: '0 10px', fontSize: 13.5, fontWeight: 600, color: tab === id ? k.fg : k.mut, borderBottom: `2px solid ${tab === id ? k.fg : 'transparent'}`, marginBottom: -1 }}><Icon size={15} />{l}</button>
               ))}
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 20px' }}>
+            <div className="estudio-side-body">
               {tab === 'diseno' && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 10 }}>
                   {slideTemplates.map((t) => { const on = slide.template === t.id; return (
@@ -326,9 +327,9 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
           </aside>
 
           {/* Centro: la pantalla, con sus vecinas, añadir y eliminar a mano */}
-          <section style={{ ...stage, position: 'relative', flex: '999 1 480px', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+          <section className="estudio-stage" style={{ ...stage, position: 'relative' }}>
             {addPanel('top')}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', padding: '10px 16px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexShrink: 0, flexWrap: 'wrap', padding: '10px 16px 0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <button onClick={() => goTo(c - 1)} disabled={c === 0} aria-label="Pantalla anterior" style={iconBtn({ border: `1px solid ${k.line2}`, background: k.panel, opacity: c === 0 ? .35 : 1 })}><ChevronLeft size={17} /></button>
                 <span style={{ fontSize: 13.5, fontWeight: 600, minWidth: 118, textAlign: 'center' }}>Pantalla {c + 1} de {n}</span>
@@ -344,7 +345,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
             </div>
 
             {/* Barra de edición: campo del texto seleccionado */}
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 16px 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', flexShrink: 0, padding: '10px 16px 0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%', maxWidth: 860, minHeight: 48, padding: '6px 8px 6px 14px', borderRadius: 13, border: `1px solid ${selKey || selFoto ? k.blue : k.line2}`, background: k.panel }}>
                 {!selKey && !selFoto && <span style={{ fontSize: 13, color: k.mut }}>Haz clic en un texto o en una foto de la pantalla para cambiarlos.</span>}
                 {selKey && (<>
@@ -365,8 +366,8 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
               </div>
             </div>
 
-            <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'auto', padding: '16px 16px 10px' }}>
-              <div style={{ margin: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+            <div className="estudio-canvas">
+              <div style={{ width: 'fit-content', marginInline: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   {/* Pantalla anterior asomando */}
                   {c > 0 ? (
@@ -413,7 +414,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
             </div>
 
             {/* Estructura + tira de pantallas */}
-            <div style={{ position: 'relative', borderTop: `1px solid ${k.line}`, background: k.bg, padding: '10px 16px 12px' }}>
+            <div className="estudio-tira" style={{ position: 'relative', borderTop: `1px solid ${k.line}`, background: k.bg, padding: '10px 16px 12px' }}>
               {addPanel('bottom')}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px 22px', flexWrap: 'wrap', padding: '4px 0 12px', marginBottom: 10, borderBottom: `1px solid ${k.line}`, fontSize: 13 }}>
                 <b style={{ fontSize: 13.5 }}>Tu publicación</b>
