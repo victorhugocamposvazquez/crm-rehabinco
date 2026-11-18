@@ -163,7 +163,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
   const [gw, gh] = fitBox(pub.format, 220, 268);
   const [cw, ch] = fitBox(pub.format, 440, 420);
   const peekW = Math.round(cw * .82), peekH = Math.round(ch * .82);
-  const [mw, mh] = fitBox(pub.format, 78, 82);
+  const [mw, mh] = fitBox(pub.format, 36, 44);
   const [tw, th] = fitBox(pub.format, 76, 76);
   const [aw, ah] = fitBox(pub.format, 64, 64);
   const phoneW = 320, phoneH = Math.min(Math.round(phoneW * fmt.h / fmt.w), 520);
@@ -180,7 +180,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
     <button onClick={removeCurrent} aria-label={`Eliminar la pantalla ${c + 1}: ${label(c)}`} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 6, height: small ? 32 : 34, padding: '0 11px 0 8px', borderRadius: 9, border: `1px solid ${k.line2}`, background: k.panel, fontSize: small ? 12.5 : 13, fontWeight: 600, color: k.danger }}><Trash2 size={15} />Eliminar pantalla {c + 1}</button>
   );
   const addPanel = (pos: 'top' | 'bottom') => addOpen === pos && (
-    <div role="dialog" aria-label="Añadir pantalla" style={{ position: 'absolute', zIndex: 25, width: 'calc(100% - 32px)', maxWidth: 760, padding: '14px 16px 16px', borderRadius: 16, border: `1px solid ${k.line2}`, background: k.panel, boxShadow: '0 20px 60px rgba(0,0,0,.25)', ...(pos === 'top' ? { left: '50%', transform: 'translateX(-50%)', top: 58 } : { left: 16, bottom: '100%', marginBottom: 8 }) }}>
+    <div role="dialog" aria-label="Añadir pantalla" style={{ position: 'absolute', zIndex: 40, width: 'min(760px, calc(100% - 24px))', padding: '14px 16px 16px', borderRadius: 16, border: `1px solid ${k.line2}`, background: k.panel, boxShadow: '0 20px 60px rgba(0,0,0,.28)', ...(pos === 'top' ? { left: '50%', transform: 'translateX(-50%)', top: 58 } : { left: 12, bottom: 'calc(100% + 8px)' }) }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}><b style={{ fontSize: 14 }}>Añadir después de la pantalla {c + 1}</b><button onClick={() => setAddOpen(false)} aria-label="Cerrar" style={iconBtn({ width: 28, height: 28, color: k.mut })}><X size={16} /></button></div>
       <div style={{ fontSize: 12, color: k.mut, marginBottom: 6 }}>Una foto del inmueble</div>
       <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 6, marginBottom: 10 }}>
@@ -413,46 +413,31 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
               </div>
             </div>
 
-            {/* Estructura + tira de pantallas */}
-            <div className="estudio-tira" style={{ position: 'relative', borderTop: `1px solid ${k.line}`, background: k.bg, padding: '10px 16px 12px' }}>
+            {/* Una sola barra: miniaturas de la publicación y el alta, sin la tira grande */}
+            <div className="estudio-tira" style={{ borderTop: `1px solid ${k.line}`, background: k.bg, padding: '8px 12px' }}>
               {addPanel('bottom')}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px 22px', flexWrap: 'wrap', padding: '4px 0 12px', marginBottom: 10, borderBottom: `1px solid ${k.line}`, fontSize: 13 }}>
-                <b style={{ fontSize: 13.5 }}>Tu publicación</b>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 11px', borderRadius: 9, background: k.chip, fontWeight: 600 }}><Check size={15} />Portada</span>
-                  <span style={{ color: k.mut }}>+</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 52 }}>
+                <b style={{ flex: '0 0 auto', fontSize: 13.5 }}>Tu publicación</b>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 auto', minWidth: 0, overflowX: 'auto', padding: '4px 2px' }}>
+                  {pub.slides.map((s, i) => (
+                    <button key={s.id} onClick={() => goTo(i)} aria-pressed={i === c} aria-label={`Pantalla ${i + 1}: ${label(i)}`} draggable onDragStart={() => { dragFrom.current = i; }} onDragOver={(e) => e.preventDefault()} onDrop={onDrop(i)} title={`${label(i)}. Arrastra para cambiar el orden.`} style={{ ...btn, flex: '0 0 auto', position: 'relative', width: mw + 8, height: mh + 8, borderRadius: 8, border: `2px solid ${i === c ? k.blue : 'transparent'}`, background: k.stage, display: 'grid', placeItems: 'center', cursor: 'grab', lineHeight: 0 }}>
+                      <span style={{ pointerEvents: 'none' }}><Creative template={s.template} data={slideData[i]} width={mw} height={mh} /></span>
+                      <span style={{ position: 'absolute', left: -4, top: -4, width: 16, height: 16, borderRadius: '50%', background: i === c ? k.blue : k.panel, color: i === c ? '#fff' : k.fg, border: `1px solid ${k.line2}`, fontSize: 10, fontWeight: 700, display: 'grid', placeItems: 'center', lineHeight: 1 }}>{i + 1}</span>
+                    </button>
+                  ))}
+                </div>
+                {!full && <button onClick={() => setAddOpen(addOpen === 'bottom' ? false : 'bottom')} aria-expanded={addOpen === 'bottom'} style={{ ...btn, flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 12px', borderRadius: 9, border: `1.5px dashed ${addOpen === 'bottom' ? k.blue : k.line2}`, fontSize: 13, fontWeight: 600 }}><Plus size={16} />Añadir</button>}
+                <span style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 11px', borderRadius: 9, background: k.chip, fontWeight: 600, fontSize: 13 }}><Check size={15} />Portada</span>
                   <span style={{ display: 'flex', alignItems: 'center', height: 34, borderRadius: 9, border: `1px solid ${k.line2}` }}>
                     <button onClick={P.removePhoto} disabled={!P.photoCount} aria-label="Quitar una foto" style={iconBtn({ opacity: P.photoCount ? 1 : .35 })}>−</button>
-                    <span aria-live="polite" style={{ minWidth: 74, textAlign: 'center', fontWeight: 600 }}>{P.photoCount === 0 ? 'Sin fotos' : P.photoCount === 1 ? '1 foto' : `${P.photoCount} fotos`}</span>
+                    <span aria-live="polite" style={{ minWidth: 64, textAlign: 'center', fontWeight: 600, fontSize: 13 }}>{P.photoCount === 0 ? 'Sin fotos' : P.photoCount === 1 ? '1 foto' : `${P.photoCount} fotos`}</span>
                     <button onClick={() => P.addPhoto(nF)} disabled={full} aria-label="Añadir una foto" style={iconBtn({ opacity: full ? .35 : 1 })}>+</button>
                   </span>
-                  <span style={{ color: k.mut }}>+</span>
-                  <button role="switch" aria-checked={P.hasClosing} onClick={P.toggleClosing} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 8, height: 34, padding: '0 11px 0 8px', borderRadius: 9, border: `1px solid ${P.hasClosing ? k.fg : k.line2}`, background: P.hasClosing ? k.chip : 'transparent', fontWeight: 600 }}>
+                  <button role="switch" aria-checked={P.hasClosing} onClick={P.toggleClosing} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 8, height: 34, padding: '0 11px 0 8px', borderRadius: 9, border: `1px solid ${P.hasClosing ? k.fg : k.line2}`, background: P.hasClosing ? k.chip : 'transparent', fontWeight: 600, fontSize: 13 }}>
                     <span aria-hidden style={{ position: 'relative', width: 30, height: 18, borderRadius: 999, background: P.hasClosing ? k.blue : k.line2 }}><span style={{ position: 'absolute', top: 2, left: P.hasClosing ? 14 : 2, width: 14, height: 14, borderRadius: '50%', background: '#fff', transition: 'left .15s' }} /></span>{P.hasClosing ? 'Con cierre' : 'Sin cierre'}
                   </button>
                 </span>
-                <span style={{ color: k.mut, fontSize: 12.5 }}>{n === 1 ? 'Ahora es una sola imagen. Súmale fotos para hacer un carrusel.' : `Carrusel de ${n} imágenes.`}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, fontSize: 12.5 }}>
-                <span style={{ color: k.mut }}>{n === 1 ? 'Pulsa la imagen para editarla.' : 'Pulsa una imagen para editarla. Arrastra para cambiar el orden.'}</span>
-                <span style={{ display: 'flex', gap: 4 }}>
-                  <button onClick={() => { P.move(c, c - 1); setCur(c - 1); }} disabled={c === 0} style={{ ...pill(false), height: 30, opacity: c === 0 ? .35 : 1 }}>← Mover</button>
-                  <button onClick={() => { P.move(c, c + 1); setCur(c + 1); }} disabled={c === n - 1} style={{ ...pill(false), height: 30, opacity: c === n - 1 ? .35 : 1 }}>Mover →</button>
-                  <button onClick={() => insertAfterCurrent(slide.template, resolveSlots(slide.slots, nF)[0])} disabled={full} style={{ ...pill(false), height: 30 }}>Duplicar</button>
-                  {n > 1 && <button onClick={removeCurrent} style={{ ...pill(false), height: 30, color: k.danger }}>Eliminar pantalla {c + 1}</button>}
-                </span>
-              </div>
-              <div style={{ display: 'flex', gap: 10, overflowX: 'auto', padding: 2 }}>
-                {pub.slides.map((s, i) => (
-                  <button key={s.id} onClick={() => goTo(i)} aria-pressed={i === c} draggable onDragStart={() => { dragFrom.current = i; }} onDragOver={(e) => e.preventDefault()} onDrop={onDrop(i)} title={label(i)} style={{ ...btn, flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, width: 92, cursor: 'grab' }}>
-                    <span style={{ position: 'relative', display: 'grid', placeItems: 'center', width: 92, height: 96, borderRadius: 10, border: `2px solid ${i === c ? k.blue : 'transparent'}`, background: k.stage }}>
-                      <span style={{ lineHeight: 0, pointerEvents: 'none' }}><Creative template={s.template} data={slideData[i]} width={mw} height={mh} /></span>
-                      <NumBadge n={i + 1} on={i === c} style={{ left: -6, top: -6 }} />
-                    </span>
-                    <span style={{ fontSize: 11, color: i === c ? k.fg : k.mut, fontWeight: i === c ? 600 : 400 }}>{label(i)}</span>
-                  </button>
-                ))}
-                {!full && <button onClick={() => setAddOpen(addOpen === 'bottom' ? false : 'bottom')} style={{ ...btn, flex: '0 0 auto', width: 92, height: 96, borderRadius: 10, border: `1.5px dashed ${addOpen === 'bottom' ? k.blue : k.line2}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}><Plus size={17} />Añadir pantalla</button>}
               </div>
             </div>
           </section>

@@ -64,10 +64,10 @@
   padding: 16px 28px 20px;
 }
 .estudio-tira {
+  position: relative;
+  z-index: 6;
   flex: 0 0 auto;
-  min-height: 0;
-  max-height: 46%;
-  overflow: auto;
+  overflow: visible;
 }
 @media (max-width: 819px) {
   .estudio-edit { flex-direction: column; }
