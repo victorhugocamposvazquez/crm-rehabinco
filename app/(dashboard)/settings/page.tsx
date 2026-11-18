@@ -354,6 +354,11 @@ export default function SettingsPage() {
                       Solo crea presupuestos. El emisor queda fijado en Garal.
                     </p>
                   )}
+                  {newUserRole === "marketing" && (
+                    <p className="text-xs text-neutral-500">
+                      Prepara los diseños del Estudio y pide revisión. La dirección recibe el aviso.
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2 sm:col-span-2 lg:col-span-4">
                   {createUserError && <p className="text-sm text-red-600">{createUserError}</p>}

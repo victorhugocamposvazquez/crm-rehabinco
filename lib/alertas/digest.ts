@@ -16,6 +16,7 @@ const URL_CANAL: Record<CanalAviso, string> = {
   partes: "/partes-visita",
   encargos: "/catastro/encargos",
   soporte: "/soporte",
+  estudio: "/estudio/revisiones",
 };
 
 const TITULO_CANAL: Record<CanalAviso, (n: number) => string> = {
@@ -28,6 +29,7 @@ const TITULO_CANAL: Record<CanalAviso, (n: number) => string> = {
   partes: (n) => (n === 1 ? "Parte sin firmar" : `${n} partes sin firmar`),
   encargos: (n) => (n === 1 ? "Nuevo encargo" : `${n} encargos nuevos`),
   soporte: (n) => (n === 1 ? "Actualización de soporte" : `${n} avisos de soporte`),
+  estudio: (n) => (n === 1 ? "Revisión del Estudio" : `${n} revisiones del Estudio`),
 };
 
 export function claveDigest(userId: string, dia: string, canal?: CanalAviso): string {
@@ -46,6 +48,7 @@ export function agruparPorCanal(items: ItemAviso[]): Record<CanalAviso, ItemAvis
     partes: [],
     encargos: [],
     soporte: [],
+    estudio: [],
   };
   for (const item of items) grupos[canalDeTipo(item.tipo)].push(item);
   return grupos;

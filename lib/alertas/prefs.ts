@@ -44,6 +44,11 @@ export const CANALES_AVISO = [
     label: "Soporte técnico",
     hint: "Respuestas y soluciones sobre tus consultas o incidencias.",
   },
+  {
+    id: "estudio",
+    label: "Estudio",
+    hint: "Cuando el editor de marketing pide revisión de un diseño.",
+  },
 ] as const;
 
 export type CanalAviso = (typeof CANALES_AVISO)[number]["id"];
@@ -60,13 +65,14 @@ export const PREFS_AVISO_DEFAULT: PrefsAviso = {
   partes: true,
   encargos: true,
   soporte: true,
+  estudio: true,
 };
 
 /** Hora de España del recordatorio diario si la persona no elige otra. */
 export const HORA_DIARIA_DEFECTO = 10;
 
 export const SELECT_PREFS_AVISO =
-  "visitas, recordatorios, agenda, tareas_hoy, tareas_vencidas, menciones, partes, encargos, soporte, hora_diaria";
+  "visitas, recordatorios, agenda, tareas_hoy, tareas_vencidas, menciones, partes, encargos, soporte, estudio, hora_diaria";
 
 export function horaDiariaDe(row: { hora_diaria?: number | null } | null | undefined): number {
   const hora = row?.hora_diaria;
@@ -85,6 +91,7 @@ export function prefsCompletas(row: Partial<PrefsAviso> | null | undefined): Pre
     partes: row?.partes ?? PREFS_AVISO_DEFAULT.partes,
     encargos: row?.encargos ?? PREFS_AVISO_DEFAULT.encargos,
     soporte: row?.soporte ?? PREFS_AVISO_DEFAULT.soporte,
+    estudio: row?.estudio ?? PREFS_AVISO_DEFAULT.estudio,
   };
 }
 
@@ -96,6 +103,7 @@ export function canalDeTipo(tipo: string): CanalAviso {
   if (tipo === "mencion") return "menciones";
   if (tipo === "parte") return "partes";
   if (tipo === "soporte") return "soporte";
+  if (tipo === "estudio") return "estudio";
   return "agenda";
 }
 

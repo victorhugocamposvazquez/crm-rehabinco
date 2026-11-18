@@ -30,21 +30,26 @@ const pantallas = (n: number) => (n === 1 ? '1 pantalla' : `${n} pantallas`);
 const nombreFoto = (nombre: string, i: number) => (/^foto\s*\d+$/i.test(nombre.trim()) ? String(i + 1) : nombre);
 
 export type EstudioSavePayload = { inmuebleId: string; state: Publication & { template: TemplateId }; files: Partial<Record<FormatId, Blob>>; piezas: Blob[]; caption: string };
+export type EstudioReviewPayload = { inmuebleId: string; state: Publication & { template: TemplateId }; nota: string };
 export type EstudioWizardProps = {
   inmuebles: InmuebleEstudio[];
   initialInmuebleId?: string;
   agencia?: { telefono: string; web: string; cta: string };
+  puedeRevisar?: boolean;
+  veRevisiones?: boolean;
+  inicial?: Publication;
   onSave?: (payload: EstudioSavePayload) => Promise<void> | void;
+  onReview?: (payload: EstudioReviewPayload) => Promise<void> | void;
 };
 
-export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }: EstudioWizardProps) {
+export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, agencia, puedeRevisar, veRevisiones, inicial }: EstudioWizardProps) {
   if (agencia?.telefono) AGENCIA.telefono = agencia.telefono;
   if (agencia?.web) AGENCIA.web = agencia.web;
   if (agencia?.cta) AGENCIA.cta = agencia.cta;
   const [pid, setPid] = useState(initialInmuebleId ?? inmuebles[0]?.id ?? '');
   const [busqueda, setBusqueda] = useState("");
-  const [step, setStep] = useState<Step>(initialInmuebleId ? 'diseno' : 'inmueble');
-  const P = usePublication();
+  const [step, setStep] = useState<Step>(inicial ? 'editar' : initialInmuebleId ? 'diseno' : 'inmueble');
+  const P = usePublication(inicial);
   const { pub } = P;
   const [cur, setCur] = useState(0);
   const [sel, setSel] = useState('');
@@ -53,7 +58,8 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
   const [pvOpen, setPvOpen] = useState(false);
   const [pv, setPv] = useState(0);
   const [extra, setExtra] = useState<Partial<Record<FormatId, boolean>>>({});
-  const [busy, setBusy] = useState<'' | 'export' | 'publish'>('');
+  const [busy, setBusy] = useState<'' | 'export' | 'publish' | 'review'>('');
+  const [notaRevision, setNotaRevision] = useState('');
   const [toast, setToast] = useState<{ msg: string; undo?: boolean } | null>(null);
   const toastT = useRef<ReturnType<typeof setTimeout>>(undefined);
   const dragFrom = useRef(-1);
@@ -137,6 +143,13 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
     setBusy('export');
     try { await onSave?.(payloadDe(await renderImages())); }
     catch { /* El guardado avisa si falla. */ }
+    finally { setBusy(''); }
+  };
+  const pedir = async () => {
+    setBusy('review');
+    try {
+      await onReview?.({ inmuebleId: inm.id, state: { ...pub, template: pub.slides[0].template }, nota: notaRevision.trim() });
+    } catch { /* La petición avisa si falla. */ }
     finally { setBusy(''); }
   };
   const publish = async () => {
@@ -470,6 +483,12 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
               );
             })}
           </div>
+          {puedeRevisar && (
+            <label style={{ display: 'block', marginTop: 22, maxWidth: 520 }}>
+              <span style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 600 }}>Nota para dirección</span>
+              <textarea value={notaRevision} maxLength={500} rows={3} placeholder="Qué hay que mirar de este diseño" onChange={(e) => setNotaRevision(e.target.value)} style={{ width: '100%', resize: 'vertical', borderRadius: 12, border: `1px solid ${k.line2}`, background: k.panel, color: k.fg, padding: '10px 12px', fontSize: 14 }} />
+            </label>
+          )}
           <section style={{ marginTop: 28, maxWidth: 720 }}>
             <h2 style={{ fontSize: 15, margin: '0 0 4px' }}>Ver en otro formato</h2>
             <p style={{ fontSize: 12.5, color: k.mut, margin: '0 0 10px' }}>No se suma a la descarga de arriba. Si lo marcas, ves cómo queda y lo bajas aparte.</p>
@@ -522,9 +541,14 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
           {step === 'diseno' && <FootBtn primary onClick={() => go('editar')}>Editar «{tplName(pub.slides[0].template)}»</FootBtn>}
           {step === 'editar' && <FootBtn primary onClick={() => go('publicar')}>Publicar o descargar</FootBtn>}
           {step === 'publicar' && <>
-            <FootBtn onClick={save} disabled={!!busy}>Guardar en la ficha</FootBtn>
+            {veRevisiones && <a href="/estudio/revisiones" style={{ ...btn, display: 'inline-flex', alignItems: 'center', height: 40, padding: '0 12px', borderRadius: 10, border: `1px solid ${k.line2}`, fontSize: 13, fontWeight: 600, color: k.fg, textDecoration: 'none' }}>Revisiones</a>}
             <FootBtn onClick={download} disabled={!!busy}><Download size={16} />{busy === 'export' ? 'Generando…' : `Descargar ${n === 1 ? '1 imagen' : `${n} imágenes`}`}</FootBtn>
-            <FootBtn primary onClick={publish} disabled={!!busy}><Instagram size={16} />{busy === 'publish' ? 'Publicando…' : 'Publicar en Instagram'}</FootBtn>
+            {puedeRevisar
+              ? <FootBtn primary onClick={pedir} disabled={!!busy}>{busy === 'review' ? 'Enviando…' : 'Pedir revisión'}</FootBtn>
+              : <>
+                <FootBtn onClick={save} disabled={!!busy}>Guardar en la ficha</FootBtn>
+                <FootBtn primary onClick={publish} disabled={!!busy}><Instagram size={16} />{busy === 'publish' ? 'Publicando…' : 'Publicar en Instagram'}</FootBtn>
+              </>}
           </>}
         </div>
       )}

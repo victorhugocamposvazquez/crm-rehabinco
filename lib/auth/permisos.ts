@@ -57,7 +57,7 @@ export const PERMISOS: readonly PermisoDef[] = [
   { id: "portales", grupo: "Permisos", label: "Claves de captación", hint: "Zonas y gasto de los portales." },
 ];
 
-export const ROLES_CONFIGURABLES = ["admin", "comercial", "editor", "catastro_user"] as const satisfies readonly Role[];
+export const ROLES_CONFIGURABLES = ["admin", "comercial", "editor", "catastro_user", "marketing"] as const satisfies readonly Role[];
 
 const HREF_PERMISO: Record<string, PermisoId> = {
   "/": "hoy",
@@ -122,6 +122,7 @@ const RUTAS = (
 
 export function permisoPorDefecto(role: Role | null | undefined, id: PermisoId): boolean {
   if (role === "superadmin") return true;
+  if (role === "marketing") return id === "inmuebles";
   if (id === "tareas_equipo") return role === "admin" || role === "comercial";
   if (id === "catastro_equipo") return role === "admin" || role === "catastro_user";
   if (id === "empresa" || id === "usuarios") return role === "admin";
@@ -151,6 +152,7 @@ export function hrefsConPermisos(
     .map(([href]) => href);
   const permitidos = new Set(desktop);
   permitidos.add("/settings");
+  if (role === "marketing") permitidos.delete("/propiedades");
   if (variant === "desktop") {
     return [...permitidos];
   }
@@ -173,6 +175,15 @@ export function rutaPermitida(pathname: string, role: Role | null | undefined, f
     return false;
   }
   if (pathname === "/soporte" || pathname.startsWith("/soporte/")) return true;
+  if (
+    role === "marketing" &&
+    (pathname === "/propiedades" ||
+      pathname.startsWith("/propiedades/") ||
+      pathname === "/inmuebles" ||
+      pathname.startsWith("/inmuebles/"))
+  ) {
+    return false;
+  }
   const regla = RUTAS.find((item) => (item.exacto ? pathname === item.prefijo : pathname === item.prefijo || pathname.startsWith(`${item.prefijo}/`)));
   if (!regla) return true;
   if (regla.prefijo === "/settings") return true;
@@ -182,7 +193,7 @@ export function rutaPermitida(pathname: string, role: Role | null | undefined, f
 
 export function inicioPermitido(role: Role | null | undefined, filas: readonly FilaPermiso[] | null): string {
   const hrefs = hrefsConPermisos(role, "desktop", filas);
-  const preferido = role === "editor" ? "/presupuestos" : role === "catastro_user" ? "/catastro" : "/";
+  const preferido = role === "editor" ? "/presupuestos" : role === "catastro_user" ? "/catastro" : role === "marketing" ? "/estudio" : "/";
   if (hrefs.includes(preferido)) return preferido;
   return hrefs.find((href) => href !== "/settings") ?? "/settings";
 }

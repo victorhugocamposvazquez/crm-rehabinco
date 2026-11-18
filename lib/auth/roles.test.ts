@@ -25,6 +25,7 @@ describe("roles", () => {
     assert.equal(parseRole("admin"), "admin");
     assert.equal(parseRole("editor"), "editor");
     assert.equal(parseRole("catastro_user"), "catastro_user");
+    assert.equal(parseRole("marketing"), "marketing");
     assert.equal(parseRole("comercial"), "comercial");
     assert.equal(parseRole("agente"), "comercial");
     assert.equal(parseRole("otro"), "comercial");

@@ -1,4 +1,4 @@
-export type Role = "superadmin" | "admin" | "comercial" | "editor" | "catastro_user";
+export type Role = "superadmin" | "admin" | "comercial" | "editor" | "catastro_user" | "marketing";
 
 export const ROLE_LABELS: Record<Role, string> = {
   superadmin: "Superadministrador",
@@ -6,14 +6,15 @@ export const ROLE_LABELS: Record<Role, string> = {
   comercial: "Comercial",
   editor: "Editor Garal",
   catastro_user: "CatastroUser",
+  marketing: "Editor de marketing",
 };
 
-export const ROLES_CREABLES: readonly Role[] = ["comercial", "editor", "admin", "catastro_user"];
+export const ROLES_CREABLES: readonly Role[] = ["comercial", "editor", "marketing", "admin", "catastro_user"];
 
 export const ROLES_EQUIPO = ["superadmin", "admin", "comercial", "agente"] as const;
 
 export function parseRole(value: unknown): Role {
-  if (value === "superadmin" || value === "admin" || value === "editor" || value === "catastro_user") return value;
+  if (value === "superadmin" || value === "admin" || value === "editor" || value === "catastro_user" || value === "marketing") return value;
   if (value === "comercial" || value === "agente") return "comercial";
   return "comercial";
 }
@@ -42,6 +43,10 @@ export function isComercial(role: Role | null | undefined): boolean {
 
 export function isCatastroUser(role: Role | null | undefined): boolean {
   return role === "catastro_user";
+}
+
+export function isMarketing(role: Role | null | undefined): boolean {
+  return role === "marketing";
 }
 
 export function puedeCrearPropiedad(role: Role | null | undefined): boolean {
@@ -204,6 +209,7 @@ export const NAV_DESKTOP_BY_ROLE: Record<Role, readonly string[]> = {
   ],
   editor: ["/presupuestos", "/settings"],
   catastro_user: ["/catastro", "/clientes", "/tareas", "/calendario", "/settings"],
+  marketing: ["/estudio", "/settings"],
 };
 
 /** Atajos de la barra: lo del día a día. El resto vive en el menú lateral. */
@@ -215,6 +221,7 @@ export const NAV_TOP_BY_ROLE: Record<Role, readonly string[]> = {
   comercial: ["/", "/fichaje", "/tareas", "/calendario", "/captacion"],
   editor: ["/presupuestos"],
   catastro_user: ["/catastro", "/clientes", "/tareas", "/calendario"],
+  marketing: ["/estudio"],
 };
 
 export const NAV_MOBILE_BY_ROLE: Record<Role, readonly string[]> = {
@@ -223,6 +230,7 @@ export const NAV_MOBILE_BY_ROLE: Record<Role, readonly string[]> = {
   comercial: ["/", "/fichaje", "/propiedades", "/calendario", "/settings"],
   editor: ["/presupuestos", "/settings"],
   catastro_user: ["/catastro", "/clientes", "/calendario", "/tareas", "/settings"],
+  marketing: ["/estudio", "/settings"],
 };
 
 export function navHrefsForRole(

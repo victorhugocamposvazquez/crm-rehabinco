@@ -1727,6 +1727,7 @@ export interface Database {
           menciones: boolean;
           partes: boolean;
           encargos: boolean;
+          estudio: boolean;
           hora_diaria: number;
           updated_at: string;
         };
@@ -1740,6 +1741,7 @@ export interface Database {
           menciones?: boolean;
           partes?: boolean;
           encargos?: boolean;
+          estudio?: boolean;
           hora_diaria?: number;
           updated_at?: string;
         };
@@ -1752,8 +1754,37 @@ export interface Database {
           menciones?: boolean;
           partes?: boolean;
           encargos?: boolean;
+          estudio?: boolean;
           hora_diaria?: number;
           updated_at?: string;
+        };
+      };
+      estudio_revisiones: {
+        Row: {
+          id: string;
+          propiedad_id: string;
+          autor_id: string;
+          nota: string;
+          formato: string;
+          publicacion: Json;
+          estado: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          propiedad_id: string;
+          autor_id: string;
+          nota?: string;
+          formato: string;
+          publicacion: Json;
+          estado?: string;
+          created_at?: string;
+        };
+        Update: {
+          nota?: string;
+          formato?: string;
+          publicacion?: Json;
+          estado?: string;
         };
       };
       crm_aviso_seguir: {

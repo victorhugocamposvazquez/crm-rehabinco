@@ -25,7 +25,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const wizard = isWizardRoute(pathname);
   const fichaje = pathname === "/fichaje" || (pathname?.startsWith("/fichaje/") ?? false);
-  const estudio = pathname === "/estudio" || (pathname?.startsWith("/estudio/") ?? false);
+  const estudio = pathname === "/estudio";
   const chromeMinimal = wizard || fichaje;
   const herramientas = esRutaHerramientas(pathname ?? "");
   const { user } = useAuth();
