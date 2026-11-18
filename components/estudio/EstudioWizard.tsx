@@ -111,9 +111,9 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
     tituloVisible: !!slideData[0]?.sh.titulo, zonaVisible: !!slideData[0]?.sh.zona, precioVisible: !!slideData[0]?.sh.precio, telVisible: !!slideData[0]?.sh.tel,
   });
   const formatoIg: FormatId = pub.format === 'post' || pub.format === 'feed' ? pub.format : 'feed';
-  const formatsOut = [pub.format, ...(Object.keys(extra) as FormatId[]).filter((f) => extra[f] && f !== pub.format)];
+  const extras = (['story', 'fb', 'post', 'feed'] as FormatId[]).filter((f) => f !== pub.format).slice(0, 3);
+  const formatsOut = [pub.format, ...extras.filter((f) => extra[f])];
   const mounted = Array.from(new Set<FormatId>([formatoIg, ...formatsOut]));
-  const nImages = n * formatsOut.length;
   const nodosDe = (f: FormatId) => (exportRefs.current[f] ?? []).map((el) => el?.firstElementChild as HTMLElement).filter(Boolean);
   const renderImages = async () => {
     const images: Partial<Record<FormatId, Blob[]>> = {};
@@ -129,7 +129,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
     setBusy('export');
     try {
       const images = await renderImages();
-      for (const f of formatsOut) images[f]?.forEach((b, i) => downloadBlob(b, slideFilename(inm.ref, f, i)));
+      (images[pub.format] ?? []).forEach((b, i) => downloadBlob(b, slideFilename(inm.ref, pub.format, i)));
     } catch { showToast('No se han podido generar las imágenes'); }
     finally { setBusy(''); }
   };
@@ -446,19 +446,59 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
 
       {/* 4 · Publicar o descargar */}
       {step === 'publicar' && (
-        <main className="estudio-scroll" style={{ padding: '28px 28px 40px', maxWidth: 680 }}>
+        <main className="estudio-scroll" style={{ padding: '28px 28px 40px' }}>
           <h1 style={{ fontSize: 26, margin: 0, fontWeight: 600 }}>Publicar o descargar</h1>
-          <p style={{ margin: '6px 0 22px', color: k.mut, fontSize: 14 }}>{n === 1 ? `Una imagen en ${fmtName}.` : `Un carrusel de ${n} imágenes en ${fmtName}.`} Puedes publicarlo o descargarlo.</p>
-          <section style={{ border: `1px solid ${k.line}`, borderRadius: 16, padding: 16, background: k.panel, marginBottom: 14 }}>
-            <h2 style={{ fontSize: 15, margin: '0 0 6px' }}>{n === 1 ? 'Una imagen' : `Carrusel de ${n} imágenes`}</h2>
-            <p style={{ margin: 0, color: k.mut, fontSize: 13.5, lineHeight: 1.45 }}>Instagram recibe estas pantallas en {FORMATS[formatoIg].label} {FORMATS[formatoIg].ratio}. El texto del post sale de lo que se ve en la portada.</p>
-          </section>
-          <section style={{ border: `1px solid ${k.line}`, borderRadius: 16, padding: 16 }}>
-            <h2 style={{ fontSize: 15, margin: '0 0 4px' }}>Descargar también para</h2>
-            <p style={{ fontSize: 12.5, color: k.mut, margin: '0 0 8px' }}>Las mismas pantallas adaptadas a otro formato.</p>
-            {(['story', 'fb', 'post', 'feed'] as FormatId[]).filter((f) => f !== pub.format).slice(0, 3).map((f) => (
-              <label key={f} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 2px', fontSize: 13.5 }}><input type="checkbox" checked={!!extra[f]} onChange={() => setExtra((e) => ({ ...e, [f]: !e[f] }))} style={{ accentColor: k.blue }} /><span style={{ flex: 1 }}>{f === 'post' ? 'Cuadrado' : f === 'feed' ? 'Instagram' : FORMATS[f].label} <span style={{ color: k.mut }}>{FORMATS[f].ratio}</span></span><span style={{ fontSize: 12, color: k.mut }}>{FORMATS[f].w}×{FORMATS[f].h}</span></label>
-            ))}
+          <p style={{ margin: '6px 0 18px', color: k.mut, fontSize: 14 }}>{n === 1 ? `Esta es la imagen que se descarga, en ${fmtName}.` : `Estas ${n} pantallas son las que se descargan, en ${fmtName}.`}</p>
+          <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 8 }}>
+            {pub.slides.map((s, i) => {
+              const [vw, vh] = fitBox(pub.format, 220, 280);
+              return (
+                <div key={s.id} style={{ flex: '0 0 auto', width: vw + 28 }}>
+                  <div style={{ ...stage, display: 'grid', placeItems: 'center', borderRadius: 16, padding: 14, border: `1px solid ${k.line}` }}>
+                    <span style={{ display: 'block', lineHeight: 0, boxShadow: '0 14px 34px rgba(0,0,0,.35)' }}><Creative template={s.template} data={slideData[i]} width={vw} height={vh} /></span>
+                  </div>
+                  <div style={{ marginTop: 8, fontSize: 13, fontWeight: 600 }}>{i + 1}. {label(i)}</div>
+                </div>
+              );
+            })}
+          </div>
+          <section style={{ marginTop: 28, maxWidth: 720 }}>
+            <h2 style={{ fontSize: 15, margin: '0 0 4px' }}>Ver en otro formato</h2>
+            <p style={{ fontSize: 12.5, color: k.mut, margin: '0 0 10px' }}>No se suma a la descarga de arriba. Si lo marcas, ves cómo queda y lo bajas aparte.</p>
+            {extras.map((f) => {
+              const on = !!extra[f];
+              const nombre = f === 'post' ? 'Cuadrado' : f === 'feed' ? 'Instagram' : FORMATS[f].label;
+              return (
+                <div key={f} style={{ padding: '8px 0', borderTop: `1px solid ${k.line}` }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13.5, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={on} onChange={() => setExtra((e) => ({ ...e, [f]: !e[f] }))} style={{ accentColor: k.blue }} />
+                    <span style={{ flex: 1 }}>{nombre} <span style={{ color: k.mut }}>{FORMATS[f].ratio}</span></span>
+                    <span style={{ fontSize: 12, color: k.mut }}>{FORMATS[f].w}×{FORMATS[f].h}</span>
+                  </label>
+                  {on && (
+                    <div style={{ display: 'flex', gap: 10, overflowX: 'auto', padding: '12px 0 4px' }}>
+                      {pub.slides.map((s, i) => {
+                        const [vw, vh] = fitBox(f, 120, 180);
+                        return (
+                          <div key={s.id} style={{ flex: '0 0 auto', textAlign: 'center' }}>
+                            <div style={{ ...stage, display: 'grid', placeItems: 'center', borderRadius: 10, padding: 8 }}><Creative template={s.template} data={buildSlideData(inm, { ...pub, format: f }, s)} width={vw} height={vh} /></div>
+                            <div style={{ marginTop: 4, fontSize: 11, color: k.mut }}>{i + 1}</div>
+                          </div>
+                        );
+                      })}
+                      <button onClick={async () => {
+                        setBusy('export');
+                        try {
+                          const images = await renderImages();
+                          (images[f] ?? []).forEach((b, i) => downloadBlob(b, slideFilename(inm.ref, f, i)));
+                        } catch { showToast('No se han podido generar las imágenes'); }
+                        finally { setBusy(''); }
+                      }} disabled={!!busy} style={{ ...btn, alignSelf: 'center', height: 36, padding: '0 12px', borderRadius: 9, border: `1px solid ${k.line2}`, fontSize: 13, fontWeight: 600, opacity: busy ? .5 : 1 }}>Descargar {n === 1 ? 'esta' : `estas ${n}`}</button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </section>
         </main>
       )}
@@ -475,7 +515,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, agencia }:
           {step === 'editar' && <FootBtn primary onClick={() => go('publicar')}>Publicar o descargar</FootBtn>}
           {step === 'publicar' && <>
             <FootBtn onClick={save} disabled={!!busy}>Guardar en la ficha</FootBtn>
-            <FootBtn onClick={download} disabled={!!busy}><Download size={16} />{busy === 'export' ? 'Generando…' : `Descargar ${nImages === 1 ? '1 imagen' : `${nImages} imágenes`}`}</FootBtn>
+            <FootBtn onClick={download} disabled={!!busy}><Download size={16} />{busy === 'export' ? 'Generando…' : `Descargar ${n === 1 ? '1 imagen' : `${n} imágenes`}`}</FootBtn>
             <FootBtn primary onClick={publish} disabled={!!busy}><Instagram size={16} />{busy === 'publish' ? 'Publicando…' : 'Publicar en Instagram'}</FootBtn>
           </>}
         </div>
