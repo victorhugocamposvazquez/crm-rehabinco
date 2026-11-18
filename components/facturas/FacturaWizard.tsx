@@ -61,6 +61,7 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
   const [estadoInicial, setEstadoInicial] = useState<EstadoFactura>("emitida");
   const [clientes, setClientes] = useState<ClienteOpcion[]>([]);
   const [clienteFicha, setClienteFicha] = useState<ClienteOpcion | null>(null);
+  const [clienteId, setClienteId] = useState(initialClienteId ?? "");
   const [loading, setLoading] = useState(!!facturaId || !!facturaOriginalId);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [numero, setNumero] = useState("");
@@ -122,6 +123,7 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
 
   useEffect(() => {
     if (!initialClienteId || facturaId) return;
+    setClienteId(initialClienteId);
     formStep1.setValue("clienteId", initialClienteId);
     setData((p) => ({ ...p, clienteId: initialClienteId }));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only run when initialClienteId or clientes change
@@ -166,6 +168,7 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
         return;
       }
       setFacturaOriginalNumero(factura.numero);
+      setClienteId(factura.cliente_id ?? "");
       setClienteFicha(clienteDeFactura(factura.clientes, factura.cliente_id));
       const step1Values = {
         clienteId: factura.cliente_id ?? "",
@@ -224,6 +227,7 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
       }
       setNumero(factura.numero);
       numeroEditadoManual.current = true;
+      setClienteId(factura.cliente_id ?? "");
       setClienteFicha(clienteDeFactura(factura.clientes, factura.cliente_id));
       const step1Values = {
         clienteId: factura.cliente_id ?? "",
@@ -264,13 +268,14 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
       formStep1.setError("causaRectificacion", { message: "La causa de rectificación es obligatoria (RD 1619/2012)" });
       return;
     }
-    setData((p) => ({ ...p, ...values }));
+    setData((p) => ({ ...p, ...values, clienteId }));
     if (esRectificativa) setCausaRectificacion(values.causaRectificacion ?? "");
     setStep(2);
   });
 
   const handleQuickClientSuccess = (cliente: { id: string; nombre: string }) => {
     setClientes((prev) => [...prev, cliente].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+    setClienteId(cliente.id);
     formStep1.setValue("clienteId", cliente.id, { shouldValidate: true });
     setData((p) => ({ ...p, clienteId: cliente.id }));
   };
@@ -332,10 +337,9 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
   const irpfImporte = subtotal * (irpfPorcentaje / 100);
   const total = subtotal + ivaTotal - descuentoImporte - irpfImporte;
   const clientesOpciones = conClienteFicha(clientes, clienteFicha);
-  const clienteIdForm = formStep1.watch("clienteId") ?? "";
   const conceptoForm = formStep1.watch("concepto") ?? "";
   const clienteNombre =
-    clientesOpciones.find((c) => c.id === data.clienteId)?.nombre ?? "—";
+    clientesOpciones.find((c) => c.id === clienteId)?.nombre ?? "—";
 
   const handleBack = () => {
     const nextStep = Math.max(1, step - 1);
@@ -381,7 +385,7 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
     }
 
     const paso1 = formStep1.getValues();
-    const clienteId = paso1.clienteId || data.clienteId || null;
+    const clienteGuardado = clienteId || data.clienteId || null;
     const conceptoGuardado = paso1.concepto || data.concepto || null;
     const lineasNetas = commitLineasDrafts((data.lineas ?? lineas) as LineaConBorrador[]);
     const lineasToSave = lineasNetas.map((l, orden) => ({
@@ -397,7 +401,7 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
         .from("facturas")
         .update({
           numero: numeroFinal,
-          cliente_id: clienteId,
+          cliente_id: clienteGuardado,
           estado: estadoInicial,
           concepto: conceptoGuardado,
           fecha_emision: data.fechaEmision || null,
@@ -438,7 +442,7 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
 
     const insertPayload: Record<string, unknown> = {
       user_id: user.id,
-      cliente_id: clienteId,
+      cliente_id: clienteGuardado,
       numero: numeroFinal,
       estado: estadoInicial,
       concepto: conceptoGuardado,
@@ -599,8 +603,11 @@ export function FacturaWizard({ facturaId, initialClienteId, facturaOriginalId }
                       esRectificativa && "cursor-not-allowed bg-neutral-50"
                     )}
                     name="clienteId"
-                    value={clienteIdForm}
-                    onChange={(e) => formStep1.setValue("clienteId", e.target.value, { shouldValidate: true, shouldDirty: true })}
+                    value={clienteId}
+                    onChange={(e) => {
+                      setClienteId(e.target.value);
+                      formStep1.setValue("clienteId", e.target.value, { shouldValidate: true, shouldDirty: true });
+                    }}
                     disabled={esRectificativa}
                   >
                     <option value="">Selecciona un cliente</option>

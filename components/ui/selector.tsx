@@ -78,7 +78,7 @@ export function Selector({
   }, [value]);
   const valor = value !== undefined ? texto : interno;
   const actual = opciones.find((opcion) => opcion.value === valor);
-  const etiqueta = actual?.label || opciones[0]?.label || "Elegir";
+  const etiqueta = actual?.label || (valor ? valor : opciones[0]?.label || "Elegir");
   const [abierto, setAbierto] = useState(false);
   const [marco, setMarco] = useState<{ top: number; left: number; width: number; arriba: boolean } | null>(null);
   const botonRef = useRef<HTMLButtonElement>(null);
@@ -156,7 +156,7 @@ export function Selector({
             className="caja-flotante max-h-64 overflow-y-auto rounded-[12px] p-1"
           >
             {opciones.map((opcion, indice) => {
-              const activa = opcion.value === (value ?? "");
+              const activa = opcion.value === valor;
               return (
                 <button
                   key={`${indice}-${opcion.value}`}
@@ -192,7 +192,10 @@ export function Selector({
         tabIndex={-1}
         aria-hidden
         className="sr-only"
-        onChange={(evento) => onChange?.(evento)}
+        onChange={() => {
+          /* La elección la hace el botón. Este select solo refleja el valor:
+             al montar, el navegador dispara change con la primera opción y vaciaba el cliente. */
+        }}
       >
         {children}
       </select>
