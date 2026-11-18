@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { MarcarRevisionVista } from "@/components/estudio/RevisionesEstudio";
-import { isAdmin, parseRole } from "@/lib/auth/roles";
+import { isSuperAdmin, parseRole } from "@/lib/auth/roles";
 import { FORMATS, type FormatId } from "@/lib/estudio/config";
 import { createClient } from "@/lib/supabase/server";
 
@@ -37,7 +37,7 @@ export default async function RevisionesEstudioPage() {
       .order("created_at", { ascending: false })
       .limit(50),
   ]);
-  const direccion = isAdmin(parseRole(perfil?.role));
+  const direccion = isSuperAdmin(parseRole(perfil?.role));
   const filas = data ?? [];
 
   return (
@@ -47,7 +47,7 @@ export default async function RevisionesEstudioPage() {
         title="Revisiones de diseño"
         description={
           direccion
-            ? "El editor de marketing pide aquí la revisión. El aviso también llega por push."
+            ? "El editor de marketing pide aquí la revisión. El aviso llega al superadministrador."
             : "Lo que has enviado a dirección."
         }
       />

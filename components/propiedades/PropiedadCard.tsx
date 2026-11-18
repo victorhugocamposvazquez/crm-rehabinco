@@ -11,6 +11,7 @@ import { AlertDialog } from "@/components/ui/alert-dialog";
 import { MoreVertical, Eye, Pencil, Sparkles, Trash2 } from "lucide-react";
 import { BadgeCatastroExplorer } from "@/components/catastro/BadgeCatastroExplorer";
 import { esOrigenCatastroExplorer } from "@/lib/catastro/explorer";
+import { useAuth } from "@/lib/auth/auth-context";
 
 interface PropiedadCardProps {
   id: string;
@@ -44,6 +45,7 @@ export function PropiedadCard({
   origen,
 }: PropiedadCardProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const cardRef = useRef<HTMLDivElement>(null);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -205,14 +207,16 @@ export function PropiedadCard({
                 >
                   <Eye className="h-4 w-4" strokeWidth={2} />
                 </button>
-                <button
-                  type="button"
-                  onClick={handleEstudio}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-neutral-800 transition-colors hover:bg-neutral-100"
-                  aria-label="Abrir Estudio"
-                >
-                  <Sparkles className="h-4 w-4" strokeWidth={2} />
-                </button>
+                {user?.role !== "admin" ? (
+                  <button
+                    type="button"
+                    onClick={handleEstudio}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-neutral-800 transition-colors hover:bg-neutral-100"
+                    aria-label="Abrir Estudio"
+                  >
+                    <Sparkles className="h-4 w-4" strokeWidth={2} />
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   onClick={handleEdit}

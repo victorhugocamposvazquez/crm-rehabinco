@@ -1,4 +1,4 @@
-import { isAdmin, parseRole } from "@/lib/auth/roles";
+import { isSuperAdmin, parseRole } from "@/lib/auth/roles";
 import { publicarAviso } from "@/lib/alertas/publicar";
 import { FORMATS, type FormatId } from "@/lib/estudio/config";
 import { nombreCorto, textoRevision } from "@/lib/estudio/revision";
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
     const { data: direccion } = await admin
       .from("profiles")
       .select("id")
-      .in("role", ["admin", "superadmin"])
+      .in("role", ["superadmin"])
       .eq("activo", true);
     for (const persona of direccion ?? []) {
       await publicarAviso({
@@ -102,7 +102,7 @@ export async function PATCH(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ ok: false, error: "No autorizado." }, { status: 401 });
   const { data: perfil } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  if (!isAdmin(parseRole(perfil?.role))) {
+  if (!isSuperAdmin(parseRole(perfil?.role))) {
     return NextResponse.json({ ok: false, error: "No autorizado." }, { status: 403 });
   }
   const body = (await request.json().catch(() => null)) as { id?: unknown } | null;

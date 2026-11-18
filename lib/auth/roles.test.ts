@@ -97,7 +97,12 @@ describe("roles", () => {
     ]);
     assert.equal(navHrefsForRole("admin", "top").includes("/clientes"), false);
     assert.equal(navHrefsForRole("admin", "desktop").includes("/clientes"), true);
-    assert.deepEqual([...navHrefsForRole("superadmin", "desktop")], [...navHrefsForRole("admin", "desktop")]);
+    assert.equal(navHrefsForRole("superadmin", "desktop").includes("/estudio"), true);
+    assert.equal(navHrefsForRole("admin", "desktop").includes("/estudio"), false);
+    assert.deepEqual(
+      [...navHrefsForRole("superadmin", "desktop")].filter((href) => href !== "/estudio"),
+      [...navHrefsForRole("admin", "desktop")]
+    );
     assert.deepEqual([...navHrefsForRole("comercial", "mobile")], [
       "/",
       "/propiedades",

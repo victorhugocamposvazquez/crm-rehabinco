@@ -3,7 +3,7 @@
 import { toast } from "sonner";
 import { EstudioWizard, type EstudioReviewPayload, type EstudioSavePayload } from "@/components/estudio/EstudioWizard";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isAdmin, isMarketing } from "@/lib/auth/roles";
+import { isMarketing, isSuperAdmin } from "@/lib/auth/roles";
 import type { InmuebleEstudio } from "@/lib/estudio/data";
 import type { Publication } from "@/lib/estudio/publicacion";
 
@@ -49,7 +49,7 @@ export function EstudioCliente({
       toast.error(data?.error || "No se ha podido enviar la revisión.");
       throw new Error(data?.error || "No se ha podido enviar la revisión.");
     }
-    toast.success("Revisión enviada. Dirección recibe el aviso.");
+    toast.success("Revisión enviada. El superadministrador recibe el aviso.");
   };
 
   return (
@@ -58,7 +58,7 @@ export function EstudioCliente({
       initialInmuebleId={initialInmuebleId}
       agencia={agencia}
       puedeRevisar={puedeRevisar}
-      veRevisiones={puedeRevisar || isAdmin(user?.role)}
+      veRevisiones={puedeRevisar || isSuperAdmin(user?.role)}
       onSave={guardar}
       onReview={revisar}
       inicial={inicial}

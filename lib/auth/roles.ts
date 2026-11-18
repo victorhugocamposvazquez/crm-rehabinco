@@ -189,7 +189,7 @@ const NAV_DIRECCION = [
 
 export const NAV_DESKTOP_BY_ROLE: Record<Role, readonly string[]> = {
   superadmin: NAV_DIRECCION,
-  admin: NAV_DIRECCION,
+  admin: NAV_DIRECCION.filter((href) => href !== "/estudio"),
   comercial: [
     "/",
     "/fichaje",

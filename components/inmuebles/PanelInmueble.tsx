@@ -296,9 +296,11 @@ export function PanelInmueble({
             <Button asChild>
               <Link href={`/propiedades/${inmueble.id}/editar`}>Editar inmueble</Link>
             </Button>
-            <Button variant="ghost" asChild>
-              <Link href={`/estudio?inmueble=${inmueble.id}`}>Estudio</Link>
-            </Button>
+            {user?.role !== "admin" ? (
+              <Button variant="ghost" asChild>
+                <Link href={`/estudio?inmueble=${inmueble.id}`}>Estudio</Link>
+              </Button>
+            ) : null}
             <Button variant="ghost" asChild>
               <Link href={rutaNuevaCita({ propiedadId: inmueble.id, clienteId: inmueble.ofertante_id })}>Concertar visita</Link>
             </Button>

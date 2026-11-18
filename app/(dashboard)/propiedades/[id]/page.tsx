@@ -236,9 +236,11 @@ export default function DetallePropiedadPage() {
         description={propiedad.referencia ? `Ref. ${propiedad.referencia}` : undefined}
         actions={
           <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5">
-            <Button variant="secondary" size="sm" asChild>
-              <Link href={`/estudio?inmueble=${id}`}>Estudio</Link>
-            </Button>
+            {user?.role !== "admin" ? (
+              <Button variant="secondary" size="sm" asChild>
+                <Link href={`/estudio?inmueble=${id}`}>Estudio</Link>
+              </Button>
+            ) : null}
             <Button variant="secondary" size="sm" asChild>
               <Link href={rutaNuevaCita({ propiedadId: id, clienteId: propiedad.ofertante_id })} className="gap-2">
                 Concertar visita
