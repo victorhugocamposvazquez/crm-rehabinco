@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Creative } from "@/components/estudio/templates";
 import { fitBox, FORMATS, TEMPLATES, type TemplateId } from "@/lib/estudio/config";
 import type { InmuebleEstudio } from "@/lib/estudio/data";
@@ -14,7 +15,7 @@ export function VistaRevision({ inm, pub }: { inm: InmuebleEstudio; pub: Publica
   const [indice, setIndice] = useState(0);
   const [tam, setTam] = useState<[number, number]>([280, 350]);
   const total = pub.slides.length;
-  const actual = Math.min(indice, total - 1);
+  const actual = Math.min(indice, Math.max(0, total - 1));
   const slide = pub.slides[actual];
   const formato = FORMATS[pub.format];
   const ir = (siguiente: number) => setIndice(Math.max(0, Math.min(total - 1, siguiente)));
@@ -38,8 +39,9 @@ export function VistaRevision({ inm, pub }: { inm: InmuebleEstudio; pub: Publica
     <div className="flex min-h-0 flex-1 flex-col">
       <div
         ref={marco}
-        className="flex min-h-0 flex-1 items-center justify-center"
+        className="relative min-h-0 flex-1 overflow-hidden touch-pan-y"
         onPointerDown={(evento) => {
+          if (total < 2) return;
           origen.current = { x: evento.clientX, y: evento.clientY };
           evento.currentTarget.setPointerCapture(evento.pointerId);
         }}
@@ -55,31 +57,69 @@ export function VistaRevision({ inm, pub }: { inm: InmuebleEstudio; pub: Publica
           origen.current = null;
         }}
       >
-        <div className="overflow-hidden rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,.12)]">
-          <Creative template={slide.template} data={buildSlideData(inm, pub, slide)} width={tam[0]} height={tam[1]} />
+        <div
+          className="flex h-full transition-transform duration-300 ease-out will-change-transform"
+          style={{ transform: `translate3d(-${actual * 100}%, 0, 0)` }}
+        >
+          {pub.slides.map((item) => (
+            <div
+              key={item.id}
+              className="flex h-full w-full shrink-0 basis-full items-center justify-center"
+              aria-hidden={item.id !== slide.id}
+            >
+              <div className="overflow-hidden rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,.12)]">
+                <Creative
+                  template={item.template}
+                  data={buildSlideData(inm, pub, item)}
+                  width={tam[0]}
+                  height={tam[1]}
+                />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
       {total > 1 ? (
-        <div className="flex shrink-0 items-center justify-center" role="tablist" aria-label="Pantallas">
-          {pub.slides.map((item, i) => (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              aria-selected={i === actual}
-              aria-label={`Pantalla ${i + 1}`}
-              onClick={() => ir(i)}
-              className="grid h-11 w-8 place-items-center"
-            >
-              <span
-                className={
-                  i === actual
-                    ? "h-2 w-5 rounded-full bg-[var(--foreground)]"
-                    : "h-2 w-2 rounded-full bg-[var(--text-3)]"
-                }
-              />
-            </button>
-          ))}
+        <div className="flex shrink-0 items-center justify-center gap-1">
+          <button
+            type="button"
+            aria-label="Pantalla anterior"
+            disabled={actual === 0}
+            onClick={() => ir(actual - 1)}
+            className="grid h-11 w-11 place-items-center rounded-full text-[var(--foreground)] disabled:opacity-25"
+          >
+            <ChevronLeft className="h-5 w-5" strokeWidth={1.75} />
+          </button>
+          <div className="flex items-center" role="tablist" aria-label="Pantallas">
+            {pub.slides.map((item, i) => (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                aria-selected={i === actual}
+                aria-label={`Pantalla ${i + 1}`}
+                onClick={() => ir(i)}
+                className="grid h-11 w-8 place-items-center"
+              >
+                <span
+                  className={
+                    i === actual
+                      ? "h-2 w-5 rounded-full bg-[var(--foreground)] transition-[width] duration-200"
+                      : "h-2 w-2 rounded-full bg-[var(--text-3)] transition-[width] duration-200"
+                  }
+                />
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            aria-label="Pantalla siguiente"
+            disabled={actual >= total - 1}
+            onClick={() => ir(actual + 1)}
+            className="grid h-11 w-11 place-items-center rounded-full text-[var(--foreground)] disabled:opacity-25"
+          >
+            <ChevronRight className="h-5 w-5" strokeWidth={1.75} />
+          </button>
         </div>
       ) : (
         <div className="h-2 shrink-0" />
