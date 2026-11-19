@@ -1,7 +1,7 @@
-import { isAdmin, parseRole } from "@/lib/auth/roles";
+import { isSuperAdmin, parseRole } from "@/lib/auth/roles";
 import { publicarAviso } from "@/lib/alertas/publicar";
 import { FORMATS, type FormatId } from "@/lib/estudio/config";
-import { nombreCorto, textoRevision } from "@/lib/estudio/revision";
+import { nombreCorto, textoDecision, textoRevision } from "@/lib/estudio/revision";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/types";
@@ -104,20 +104,49 @@ export async function PATCH(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ ok: false, error: "No autorizado." }, { status: 401 });
   const { data: perfil } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  if (!isAdmin(parseRole(perfil?.role))) {
+  if (!isSuperAdmin(parseRole(perfil?.role))) {
     return NextResponse.json({ ok: false, error: "No autorizado." }, { status: 403 });
   }
-  const body = (await request.json().catch(() => null)) as { id?: unknown } | null;
+  const body = (await request.json().catch(() => null)) as { id?: unknown; decision?: unknown; motivo?: unknown } | null;
   const id = typeof body?.id === "string" ? body.id : "";
-  if (!id) return NextResponse.json({ ok: false, error: "Falta la revisión." }, { status: 400 });
-  const { data, error } = await supabase
+  const decision = body?.decision === "aprobada" || body?.decision === "rectificar" ? body.decision : "";
+  const motivo = typeof body?.motivo === "string" ? body.motivo.trim().slice(0, 500) : "";
+  if (!id || !decision) return NextResponse.json({ ok: false, error: "Falta la decisión." }, { status: 400 });
+  if (decision === "rectificar" && !motivo) {
+    return NextResponse.json({ ok: false, error: "Escribe el motivo de la rectificación." }, { status: 400 });
+  }
+
+  const { data: fila } = await supabase
     .from("estudio_revisiones")
-    .update({ estado: "vista" })
+    .select("id, autor_id, propiedad_id, propiedades(referencia)")
     .eq("id", id)
-    .select("id")
     .maybeSingle();
-  if (error || !data) {
-    return NextResponse.json({ ok: false, error: error?.message || "No se ha podido marcar." }, { status: 500 });
+  if (!fila) return NextResponse.json({ ok: false, error: "No encuentro esa revisión." }, { status: 404 });
+
+  const { error } = await supabase.from("estudio_revisiones").update({ estado: decision, motivo }).eq("id", id);
+  if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+
+  const piso = Array.isArray(fila.propiedades) ? fila.propiedades[0] : fila.propiedades;
+  const aviso = textoDecision({
+    decision,
+    referencia: piso?.referencia?.trim() || "un inmueble",
+    motivo,
+    id: fila.id,
+    propiedadId: fila.propiedad_id,
+  });
+  if (fila.autor_id !== user.id) {
+    try {
+      await publicarAviso({
+        userId: fila.autor_id,
+        clave: `estudio-decision:${fila.id}:${decision}:${motivo}`,
+        titulo: aviso.titulo,
+        cuerpo: aviso.cuerpo,
+        url: aviso.url,
+        canal: "estudio",
+      });
+    } catch (err) {
+      console.error("aviso decision estudio:", err instanceof Error ? err.message : err);
+    }
   }
   return NextResponse.json({ ok: true });
 }

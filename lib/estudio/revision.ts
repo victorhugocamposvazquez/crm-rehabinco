@@ -28,6 +28,36 @@ export function publicacionGuardada(value: unknown): Publication | null {
   return slidesOk ? pub : null;
 }
 
+export function etiquetaEstado(estado: string): string {
+  if (estado === "aprobada") return "Aprobada";
+  if (estado === "rectificar") return "A rectificar";
+  if (estado === "vista") return "Vista";
+  return "Pendiente";
+}
+
+export function textoDecision(input: {
+  decision: "aprobada" | "rectificar";
+  referencia: string;
+  motivo: string;
+  id: string;
+  propiedadId: string;
+}): { titulo: string; cuerpo: string; url: string } {
+  const ref = input.referencia.trim() || "un inmueble";
+  const motivo = input.motivo.trim();
+  if (input.decision === "aprobada") {
+    return {
+      titulo: "Diseño aprobado",
+      cuerpo: motivo ? `Hugo ha aprobado el diseño de ${ref}. ${motivo}` : `Hugo ha aprobado el diseño de ${ref}.`,
+      url: `/estudio/revisiones/${input.id}`,
+    };
+  }
+  return {
+    titulo: "Hay que rectificar el diseño",
+    cuerpo: `Hugo pide cambios en ${ref}. ${motivo}`,
+    url: `/estudio?inmueble=${input.propiedadId}&revision=${input.id}`,
+  };
+}
+
 export function nombreCorto(nombre: string | null | undefined, email: string | null | undefined): string {
   const limpio = nombre?.trim();
   if (limpio) return limpio.split(/\s+/)[0] ?? limpio;

@@ -1768,6 +1768,7 @@ export interface Database {
           formato: string;
           publicacion: Json;
           estado: string;
+          motivo: string;
           created_at: string;
         };
         Insert: {
@@ -1778,6 +1779,7 @@ export interface Database {
           formato: string;
           publicacion: Json;
           estado?: string;
+          motivo?: string;
           created_at?: string;
         };
         Update: {
@@ -1785,6 +1787,7 @@ export interface Database {
           formato?: string;
           publicacion?: Json;
           estado?: string;
+          motivo?: string;
         };
       };
       crm_aviso_seguir: {

@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { MarcarRevisionVista } from "@/components/estudio/RevisionesEstudio";
 import { isAdmin, parseRole } from "@/lib/auth/roles";
 import { FORMATS, type FormatId } from "@/lib/estudio/config";
+import { etiquetaEstado } from "@/lib/estudio/revision";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +33,7 @@ export default async function RevisionesEstudioPage() {
       : Promise.resolve({ data: null }),
     supabase
       .from("estudio_revisiones")
-      .select("id, nota, formato, estado, created_at, propiedad_id, profiles(nombre_completo), propiedades(referencia, localidad)")
+      .select("id, nota, motivo, formato, estado, created_at, propiedad_id, profiles(nombre_completo), propiedades(referencia, localidad)")
       .order("created_at", { ascending: false })
       .limit(50),
   ]);
@@ -69,9 +69,11 @@ export default async function RevisionesEstudioPage() {
                   </p>
                   <p className="mt-1 text-[13px] text-[var(--text-2)]">
                     {autor?.nombre_completo?.trim() || "Marketing"} · {tipo} · {cuando(fila.created_at)}
-                    {fila.estado === "vista" ? " · Vista" : " · Pendiente"}
+                    {" · "}
+                    {etiquetaEstado(fila.estado)}
                   </p>
                   {fila.nota ? <p className="mt-2 text-[14px]">{fila.nota}</p> : null}
+                  {fila.motivo?.trim() ? <p className="mt-1 text-[14px] text-[var(--text-2)]">{fila.motivo.trim()}</p> : null}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <Link
@@ -80,7 +82,6 @@ export default async function RevisionesEstudioPage() {
                   >
                     Ver diseño
                   </Link>
-                  {direccion && fila.estado === "pendiente" ? <MarcarRevisionVista id={fila.id} /> : null}
                 </div>
               </li>
             );
