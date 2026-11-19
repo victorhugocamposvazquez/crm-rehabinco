@@ -47,8 +47,8 @@ export default async function RevisionesEstudioPage() {
         title="Revisiones de diseño"
         description={
           direccion
-            ? "El editor de marketing pide aquí la revisión. El aviso llega a los administradores."
-            : "Lo que has enviado a los administradores."
+            ? "El editor de marketing pide aquí la revisión. De momento el aviso llega solo a Hugo."
+            : "Lo que has enviado a Hugo."
         }
       />
       {filas.length === 0 ? (

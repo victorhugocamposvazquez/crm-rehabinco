@@ -74,10 +74,11 @@ export async function POST(request: Request) {
 
   try {
     const admin = createAdminClient();
+    // De momento solo el superadministrador (Hugo). Para avisar también a los admin, volver a ["admin", "superadmin"].
     const { data: direccion } = await admin
       .from("profiles")
       .select("id")
-      .in("role", ["admin", "superadmin"])
+      .eq("role", "superadmin")
       .eq("activo", true);
     for (const persona of direccion ?? []) {
       await publicarAviso({
