@@ -357,6 +357,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
                 <button onClick={() => goTo(c + 1)} disabled={c === n - 1} aria-label="Pantalla siguiente" style={iconBtn({ border: `1px solid ${k.line2}`, background: k.panel, opacity: c === n - 1 ? .35 : 1 })}><ChevronRight size={17} /></button>
                 <button onClick={() => setAddOpen(addOpen === 'top' ? false : 'top')} disabled={full} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 12px 0 9px', marginLeft: 6, borderRadius: 9, background: k.prim, color: k.primFg, fontSize: 13, fontWeight: 600, opacity: full ? .4 : 1 }}><Plus size={16} />{full ? 'Máximo 10' : 'Añadir pantalla'}</button>
                 {deleteBtn()}
+                {!selKey && !selFoto && <span style={{ marginLeft: 6, fontSize: 12.5, color: k.mut, whiteSpace: 'nowrap' }}>Haz clic en un texto o en una foto para cambiarlos.</span>}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 12.5, color: k.mut }}>{fmtName}</span>
@@ -365,10 +366,9 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
               </div>
             </div>
 
-            {/* Barra de edición: campo del texto seleccionado */}
-            <div style={{ display: 'flex', justifyContent: 'center', flexShrink: 0, padding: '10px 16px 0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%', maxWidth: 860, minHeight: 48, padding: '6px 8px 6px 14px', borderRadius: 13, border: `1px solid ${selKey || selFoto ? k.blue : k.line2}`, background: k.panel }}>
-                {!selKey && !selFoto && <span style={{ fontSize: 13, color: k.mut }}>Haz clic en un texto o en una foto de la pantalla para cambiarlos.</span>}
+            {/* Barra de edición: solo cuando hay un texto o una foto elegidos */}
+            {(selKey || selFoto) && <div style={{ display: 'flex', justifyContent: 'center', flexShrink: 0, padding: '8px 16px 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%', maxWidth: 860, padding: '4px 8px 4px 12px', borderRadius: 10, border: `1px solid ${k.blue}`, background: k.panel }}>
                 {selKey && (<>
                   <label htmlFor="estudio-sel" style={{ fontSize: 12.5, fontWeight: 600, color: k.link, whiteSpace: 'nowrap' }}>{FIELD_LABELS[selKey]}</label>
                   {READONLY_FIELDS.includes(selKey) ? <span style={{ flex: 1, fontSize: 13, color: k.mut }}>{selKey === 'precio' ? `${data.f.precio} (se cambia en la ficha)` : 'Automático'}</span>
@@ -383,9 +383,9 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
                   <button onClick={() => toggleField(selKey)} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 10px', borderRadius: 8, border: `1px solid ${k.line2}`, fontSize: 12.5, fontWeight: 600 }}><EyeOff size={15} />Ocultar</button>
                 </>)}
                 {selFoto && <><b style={{ fontSize: 12.5, color: k.link }}>{slotName(slotSel)}</b><span style={{ flex: 1, fontSize: 13, color: k.mut }}>Elige la foto en el panel de la izquierda.</span></>}
-                {(selKey || selFoto) && <button onClick={() => setSel('')} aria-label="Quitar selección" style={iconBtn({ width: 30, color: k.mut })}><X size={16} /></button>}
+                <button onClick={() => setSel('')} aria-label="Quitar selección" style={iconBtn({ width: 30, color: k.mut })}><X size={16} /></button>
               </div>
-            </div>
+            </div>}
 
             <div className="estudio-canvas">
               <div style={{ width: 'fit-content', marginInline: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
