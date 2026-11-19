@@ -356,7 +356,7 @@ export default function SettingsPage() {
                   )}
                   {newUserRole === "marketing" && (
                     <p className="text-xs text-neutral-500">
-                      Solo ve el Estudio y pide revisión. El aviso llega al superadministrador.
+                      Solo ve el Estudio y pide revisión. Los administradores reciben el aviso.
                     </p>
                   )}
                 </div>

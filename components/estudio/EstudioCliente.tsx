@@ -49,7 +49,7 @@ export function EstudioCliente({
       toast.error(data?.error || "No se ha podido enviar la revisión.");
       throw new Error(data?.error || "No se ha podido enviar la revisión.");
     }
-    toast.success("Revisión enviada. El superadministrador recibe el aviso.");
+    toast.success("Revisión enviada. Los administradores reciben el aviso.");
   };
 
   return (

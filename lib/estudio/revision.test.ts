@@ -4,10 +4,10 @@ import { nombreCorto, publicacionGuardada, textoRevision } from "./revision";
 
 describe("revisión del Estudio", () => {
   it("avisa a dirección con el inmueble y el tipo", () => {
-    const aviso = textoRevision({ autor: "Lucía", referencia: "RB-120", formato: "reel" });
-    assert.equal(aviso.titulo, "Nueva publicación del Estudio");
+    const aviso = textoRevision({ autor: "Lucía", referencia: "RB-120", formato: "reel", id: "abc" });
+    assert.equal(aviso.titulo, "Solicitud de revisión de diseño");
     assert.equal(aviso.cuerpo, "Lucía pide revisión del diseño de RB-120 (Reel).");
-    assert.equal(aviso.url, "/estudio/revisiones");
+    assert.equal(aviso.url, "/estudio/revisiones/abc");
   });
 
   it("recupera un diseño guardado y descarta uno roto", () => {

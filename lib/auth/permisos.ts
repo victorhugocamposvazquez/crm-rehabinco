@@ -176,6 +176,7 @@ export function rutaPermitida(pathname: string, role: Role | null | undefined, f
     return false;
   }
   if (pathname === "/soporte" || pathname.startsWith("/soporte/")) return true;
+  if (role === "admin" && (pathname === "/estudio/revisiones" || pathname.startsWith("/estudio/revisiones/"))) return true;
   if (role === "admin" && (pathname === "/estudio" || pathname.startsWith("/estudio/"))) return false;
   if (
     role === "marketing" &&

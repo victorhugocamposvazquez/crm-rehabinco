@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { MarcarRevisionVista } from "@/components/estudio/RevisionesEstudio";
-import { isSuperAdmin, parseRole } from "@/lib/auth/roles";
+import { isAdmin, parseRole } from "@/lib/auth/roles";
 import { FORMATS, type FormatId } from "@/lib/estudio/config";
 import { createClient } from "@/lib/supabase/server";
 
@@ -37,18 +37,18 @@ export default async function RevisionesEstudioPage() {
       .order("created_at", { ascending: false })
       .limit(50),
   ]);
-  const direccion = isSuperAdmin(parseRole(perfil?.role));
+  const direccion = isAdmin(parseRole(perfil?.role));
   const filas = data ?? [];
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-6 min-[820px]:px-8">
       <PageHeader
-        breadcrumb={[{ label: "Estudio", href: "/estudio" }, { label: "Revisiones" }]}
+        breadcrumb={[{ label: "Revisiones" }]}
         title="Revisiones de diseño"
         description={
           direccion
-            ? "El editor de marketing pide aquí la revisión. El aviso llega al superadministrador."
-            : "Lo que has enviado a dirección."
+            ? "El editor de marketing pide aquí la revisión. El aviso llega a los administradores."
+            : "Lo que has enviado a los administradores."
         }
       />
       {filas.length === 0 ? (
@@ -75,10 +75,10 @@ export default async function RevisionesEstudioPage() {
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <Link
-                    href={`/estudio?inmueble=${fila.propiedad_id}&revision=${fila.id}`}
+                    href={`/estudio/revisiones/${fila.id}`}
                     className="inline-flex h-9 items-center rounded-lg bg-[var(--accent)] px-3 text-[13px] font-semibold text-[var(--accent-foreground)]"
                   >
-                    Abrir diseño
+                    Ver diseño
                   </Link>
                   {direccion && fila.estado === "pendiente" ? <MarcarRevisionVista id={fila.id} /> : null}
                 </div>

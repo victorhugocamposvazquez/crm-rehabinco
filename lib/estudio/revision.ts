@@ -5,14 +5,15 @@ export function textoRevision(input: {
   autor: string;
   referencia: string;
   formato: string;
+  id?: string;
 }): { titulo: string; cuerpo: string; url: string } {
   const etiqueta = input.formato in FORMATS ? FORMATS[input.formato as FormatId].label : "Diseño";
   const autor = input.autor.trim() || "Marketing";
   const ref = input.referencia.trim() || "un inmueble";
   return {
-    titulo: "Nueva publicación del Estudio",
+    titulo: "Solicitud de revisión de diseño",
     cuerpo: `${autor} pide revisión del diseño de ${ref} (${etiqueta}).`,
-    url: "/estudio/revisiones",
+    url: input.id ? `/estudio/revisiones/${input.id}` : "/estudio/revisiones",
   };
 }
 
