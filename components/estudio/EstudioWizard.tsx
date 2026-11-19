@@ -3,6 +3,7 @@
  * Estudio · publicación de un inmueble: una imagen o un carrusel de pantallas.
  * Pasos: Inmueble → Diseño → Editar → Publicar. La vista previa es un botón.
  */
+import Link from "next/link";
 import { useMemo, useRef, useState, type CSSProperties, type DragEvent, type ReactNode } from 'react';
 import { ArrowLeft, Check, ChevronLeft, ChevronRight, Database, Download, Eye, EyeOff, Image as ImageIcon, Instagram, LayoutTemplate, Palette, Plus, Redo2, Search, Trash2, Undo2, X } from 'lucide-react';
 import { FIELD_LABELS, FORMATS, GOALS, MAX_SLIDES, READONLY_FIELDS, TEMPLATES, THEMES, TIPOS_PUBLICACION, TYPOS, fitBox, templatesForGoal, type FieldKey, type FormatId, type TemplateId, type ThemeId, type TypoId } from "@/lib/estudio/config";
@@ -541,7 +542,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
           {step === 'diseno' && <FootBtn primary onClick={() => go('editar')}>Editar «{tplName(pub.slides[0].template)}»</FootBtn>}
           {step === 'editar' && <FootBtn primary onClick={() => go('publicar')}>Publicar o descargar</FootBtn>}
           {step === 'publicar' && <>
-            {veRevisiones && <a href="/estudio/revisiones" style={{ ...btn, display: 'inline-flex', alignItems: 'center', height: 40, padding: '0 12px', borderRadius: 10, border: `1px solid ${k.line2}`, fontSize: 13, fontWeight: 600, color: k.fg, textDecoration: 'none' }}>Revisiones</a>}
+            {veRevisiones && <Link href="/estudio/revisiones" style={{ ...btn, display: 'inline-flex', alignItems: 'center', height: 40, padding: '0 12px', borderRadius: 10, border: `1px solid ${k.line2}`, fontSize: 13, fontWeight: 600, color: k.fg, textDecoration: 'none' }}>Revisiones</Link>}
             <FootBtn onClick={download} disabled={!!busy}><Download size={16} />{busy === 'export' ? 'Generando…' : `Descargar ${n === 1 ? '1 imagen' : `${n} imágenes`}`}</FootBtn>
             {puedeRevisar
               ? <FootBtn primary onClick={pedir} disabled={!!busy}>{busy === 'review' ? 'Enviando…' : 'Pedir revisión'}</FootBtn>
