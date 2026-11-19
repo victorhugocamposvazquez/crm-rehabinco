@@ -66,6 +66,8 @@ export type TemplateDef = {
   only?: GoalId;
   /** Pantalla de apoyo del carrusel: no sale en la galería de la imagen principal. */
   slideOnly?: boolean;
+  /** Fuera del catálogo. Si una publicación antigua la usa, sigue pudiendo abrirse. */
+  oculta?: boolean;
   /** Datos que pinta el diseño: son los que se listan en el panel «Datos». */
   uses: FieldKey[];
 };
@@ -78,15 +80,15 @@ export const TEMPLATES: TemplateDef[] = [
   { id: 'visita', nombre: 'Visita', fotos: 1, uses: ['titulo', 'cta', 'zona', 'logo'], desc: 'Una pregunta grande, la dirección y una foto.' },
   { id: 'galeria', nombre: 'Galería', fotos: 3, uses: GEN, desc: 'Una foto grande y dos de apoyo, como una doble página de revista.' },
   { id: 'bento', nombre: 'Mosaico', fotos: 4, uses: GEN, desc: 'Cuatro fotos y una tarjeta con el precio, en cuadrícula redondeada.' },
-  { id: 'moodboard', nombre: 'Moodboard', fotos: 3, uses: GEN, desc: 'Fotos sueltas con cinta, nota manuscrita y sello del barrio.' },
-  { id: 'triptico', nombre: 'Tríptico', fotos: 3, uses: GEN, desc: 'Tres fotos verticales en arco, escalonadas, con el precio en el centro.' },
-  { id: 'formas', nombre: 'Formas', fotos: 3, uses: GEN, desc: 'Arco, círculo y rectángulo: tres fotos con geometría.' },
-  { id: 'contactos', nombre: 'Tira de película', fotos: 4, uses: GEN, desc: 'Las fotos como una tira de negativos, con las superficies en grande.' },
-  { id: 'collage', nombre: 'Polaroids', fotos: 3, uses: GEN, desc: 'Tres fotos tipo polaroid. Ideal para carrusel.' },
+  { id: 'moodboard', nombre: 'Moodboard', fotos: 3, oculta: true, uses: GEN, desc: 'Fotos sueltas con cinta, nota manuscrita y sello del barrio.' },
+  { id: 'triptico', nombre: 'Tríptico', fotos: 3, oculta: true, uses: GEN, desc: 'Tres fotos verticales en arco, escalonadas, con el precio en el centro.' },
+  { id: 'formas', nombre: 'Formas', fotos: 3, oculta: true, uses: GEN, desc: 'Arco, círculo y rectángulo: tres fotos con geometría.' },
+  { id: 'contactos', nombre: 'Tira de película', fotos: 4, oculta: true, uses: GEN, desc: 'Las fotos como una tira de negativos, con las superficies en grande.' },
+  { id: 'collage', nombre: 'Polaroids', fotos: 3, oculta: true, uses: GEN, desc: 'Tres fotos tipo polaroid. Ideal para carrusel.' },
   { id: 'portada', nombre: 'Portada', fotos: 1, uses: [...GEN, 'agente', 'tel', 'ref'], desc: 'Como una portada de revista, con sello. Para anunciar entradas nuevas.' },
-  { id: 'arco', nombre: 'Exclusiva', fotos: 1, uses: GEN, desc: 'Ventana en arco y composición centrada. Para viviendas especiales.' },
-  { id: 'xxl', nombre: 'Precio XXL', fotos: 1, uses: GEN, desc: 'El precio enorme con la foto dentro de las cifras.' },
-  { id: 'plano', nombre: 'Ficha técnica', fotos: 1, uses: [...GEN, 'energia', 'ref'], desc: 'Estilo plano de arquitecto, con superficies y certificado energético.' },
+  { id: 'arco', nombre: 'Exclusiva', fotos: 1, oculta: true, uses: GEN, desc: 'Ventana en arco y composición centrada. Para viviendas especiales.' },
+  { id: 'xxl', nombre: 'Precio XXL', fotos: 1, oculta: true, uses: GEN, desc: 'El precio enorme con la foto dentro de las cifras.' },
+  { id: 'plano', nombre: 'Ficha técnica', fotos: 1, oculta: true, uses: [...GEN, 'energia', 'ref'], desc: 'Estilo plano de arquitecto, con superficies y certificado energético.' },
   { id: 'bajada', nombre: 'Bajada de precio', fotos: 1, only: 'bajada', uses: GEN, desc: 'La rebaja en grande y el precio anterior tachado.' },
   { id: 'openhouse', nombre: 'Puertas abiertas', fotos: 1, only: 'openhouse', uses: ['badge', 'titulo', 'zona', 'precio', 'evento', 'evHora'], desc: 'Polaroid y hoja de calendario con la fecha de la visita.' },
   { id: 'vendido', nombre: 'Vendido', fotos: 1, only: 'vendido', uses: ['badge', 'zona', 'cta', 'logo'], desc: 'Cinta cruzada sobre la foto y llamada a captar nuevos propietarios.' },
@@ -96,7 +98,7 @@ export const TEMPLATES: TemplateDef[] = [
 ];
 
 /** Diseños que se marcan como «Recomendada» para cada objetivo (los `only` salen como «Hecha para esto»). */
-export const RECOMMENDED: Partial<Record<GoalId, TemplateId[]>> = { nuevo: ['hogar', 'visita', 'galeria', 'portada'], exclusiva: ['arco', 'formas'], bajada: ['xxl'] };
+export const RECOMMENDED: Partial<Record<GoalId, TemplateId[]>> = { nuevo: ['hogar', 'visita', 'galeria', 'portada'] };
 
 export const FIELD_LABELS: Record<FieldKey, string> = {
   badge: 'Etiqueta', titulo: 'Título', zona: 'Ubicación', precio: 'Precio', m2: 'Superficie (m²)', hab: 'Dormitorios', banos: 'Baños',
@@ -115,7 +117,7 @@ export const MAX_SLOTS = 5;
 /** Diseños disponibles para un objetivo, ordenados: propios, recomendados, resto. */
 export function templatesForGoal(goal: GoalId, opts: { includeSlideOnly?: boolean } = {}): (TemplateDef & { rank: 0 | 1 | 2 })[] {
   const rank = (t: TemplateDef): 0 | 1 | 2 => (t.only === goal ? 0 : (RECOMMENDED[goal] ?? []).includes(t.id) ? 1 : 2);
-  return TEMPLATES.filter((t) => (!t.only || t.only === goal) && (opts.includeSlideOnly || !t.slideOnly))
+  return TEMPLATES.filter((t) => !t.oculta && (!t.only || t.only === goal) && (opts.includeSlideOnly || !t.slideOnly))
     .map((t, i) => ({ t, i, r: rank(t) }))
     .sort((a, b) => a.r - b.r || a.i - b.i)
     .map(({ t, r }) => ({ ...t, rank: r }));

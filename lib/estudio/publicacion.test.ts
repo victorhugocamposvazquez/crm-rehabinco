@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { templatesForGoal } from "./config";
 import { buildSlideData, initialPublication, makeSlide, nextUnusedPhoto } from "./publicacion";
 import type { InmuebleEstudio } from "./data";
 
@@ -57,5 +58,14 @@ describe("publicación de pantallas", () => {
     const post = buildSlideData(inm, { ...pub, format: "post" }, pub.slides[0]);
     assert.equal(feed.escala.titulo, 1.4);
     assert.equal(post.escala.titulo, undefined);
+  });
+
+  it("la galería no ofrece las plantillas retiradas", () => {
+    const ids = templatesForGoal("nuevo", { includeSlideOnly: true }).map((t) => t.id);
+    for (const id of ["plano", "contactos", "collage", "arco", "xxl", "moodboard", "triptico", "formas"]) {
+      assert.equal(ids.includes(id), false);
+    }
+    assert.equal(ids.includes("galeria"), true);
+    assert.equal(ids.includes("portada"), true);
   });
 });
