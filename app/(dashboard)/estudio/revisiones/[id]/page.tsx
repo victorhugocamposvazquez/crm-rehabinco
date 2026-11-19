@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { DecisionRevision } from "@/components/estudio/RevisionesEstudio";
 import { VistaRevision } from "@/components/estudio/VistaRevision";
 import { isMarketing, isSuperAdmin, parseRole } from "@/lib/auth/roles";
@@ -53,25 +52,25 @@ export default async function RevisionEstudioPage({ params }: { params: Promise<
   const tipo = fila.formato in FORMATS ? FORMATS[fila.formato as FormatId].label : fila.formato;
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-6 min-[820px]:px-8">
-      <PageHeader
-        breadcrumb={[{ label: "Revisiones", href: "/estudio/revisiones" }, { label: inm.ref }]}
-        title={inm.titulo}
-        description={`${autor?.nombre_completo?.trim() || "Marketing"} pide revisión · ${tipo}${fila.nota ? ` · ${fila.nota}` : ""}`}
-        actions={
-          isMarketing(role) ? (
-            <Link
-              href={`/estudio?inmueble=${inm.id}&revision=${fila.id}`}
-              className="inline-flex h-9 items-center rounded-lg border border-[var(--border)] px-3 text-[13px] font-semibold"
-            >
-              Seguir en el Estudio
-            </Link>
-          ) : null
-        }
-      />
-      <div className="mt-6">
-        <VistaRevision inm={inm} pub={pub} />
+    <div className="mx-auto flex w-full max-w-3xl flex-col max-[819px]:h-[calc(100dvh-4rem-1.25rem-var(--mobile-content-pb))] min-[820px]:h-[calc(100dvh-3.5rem-1.5rem-2.5rem)] min-[820px]:px-8">
+      <div className="flex shrink-0 items-end justify-between gap-3 pb-2">
+        <div className="min-w-0">
+          <p className="text-[13px] text-[var(--text-2)]">
+            {autor?.nombre_completo?.trim() || "Marketing"} · {tipo}
+            {fila.nota ? ` · ${fila.nota}` : ""}
+          </p>
+          <h1 className="truncate text-[18px] font-semibold tracking-tight min-[820px]:text-[22px]">{inm.titulo}</h1>
+        </div>
+        {isMarketing(role) ? (
+          <Link
+            href={`/estudio?inmueble=${inm.id}&revision=${fila.id}`}
+            className="inline-flex h-11 shrink-0 items-center rounded-xl border border-[var(--border)] px-3 text-[14px] font-semibold"
+          >
+            Seguir en el Estudio
+          </Link>
+        ) : null}
       </div>
+      <VistaRevision inm={inm} pub={pub} />
       <DecisionRevision id={fila.id} estado={fila.estado} motivo={fila.motivo ?? ""} puedeDecidir={isSuperAdmin(role)} />
     </div>
   );
