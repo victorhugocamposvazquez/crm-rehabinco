@@ -220,4 +220,44 @@ describe("informe PDF de Juan Flórez 30", () => {
     }
     expect(AVISO_LEGAL_PDF).toContain("Orden ECO/805/2003");
   }, 20000);
+
+  it("añade la referencia oficial sin cambiar el número de páginas", async () => {
+    const conReferencia: ValuationResult = {
+      ...result,
+      officialReference: {
+        tasado: { level: "municipality", zoneKey: "15030", label: "Coruña (A)", period: "2026-04-01", ppm2: 2774.8, tasaciones: 583, yoyPct: 11 },
+        transacciones: { ultimos12m: 3000, previos12m: 2800, variacionPct: 7.1, hasta: "2026-04-01", municipio: "Coruña (A)" },
+        ipv: { ambito: "Galicia", period: "2025-10-01", anualPct: 14.1, segundaManoAnualPct: 14.4 },
+        subjectPpm2: 4229.94,
+        desviacionPct: 52.4,
+        lectura: "por_encima",
+        puntos: [
+          { indicator: "tasado_desviacion", sense: "info", text: "El €/m² estimado está un 52,4 % por encima del valor tasado medio de Coruña (A) (2775 €/m², 2T 2026)." },
+          { indicator: "compraventas", sense: "positive", text: "3000 compraventas de vivienda en Coruña (A) en el último año (+7,1 % frente al anterior)." },
+          { indicator: "ipv", sense: "positive", text: "Precio de compraventa en Galicia: +14,1 % interanual (IPV del INE, 4T 2025)." },
+        ],
+        fuentes: ["Ministerio de Vivienda y Agenda Urbana, Boletín estadístico (valor tasado y transacciones)", "INE, Índice de Precios de Vivienda (tabla 25171)"],
+      },
+    };
+    for (const caso of casos) {
+      const { buffer } = await renderInformePdf({
+        variant: caso.variant,
+        theme: caso.theme,
+        marca,
+        valuationId: ID,
+        createdAt: CREADA,
+        result: conReferencia,
+        twin,
+        fieldSources: {},
+        layers: [],
+        channel: "crm",
+      });
+      const hojas = await paginas(buffer);
+      expect(hojas).toHaveLength(caso.pages);
+      const todo = hojas.join("\n");
+      expect(todo).toContain("Referencia oficial");
+      expect(todo).toContain("Valor tasado oficial");
+      expect(todo).toContain("IPV del INE");
+    }
+  }, 20000);
 });

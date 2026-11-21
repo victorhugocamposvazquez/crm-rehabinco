@@ -224,6 +224,21 @@ function Anillos({ model, t }: { model: InformePdfModel; t: Tokens }) {
   );
 }
 
+function marcaDeTono(item: FilaEntornoPdf): string {
+  return item.tone === "good" ? "+" : item.tone === "bad" ? "−" : "i";
+}
+
+function ReferenciaOficialPdf({ model, t }: { model: InformePdfModel; t: Tokens }) {
+  if (!model.oficial) return null;
+  return (
+    <View style={{ marginTop: 8 }}>
+      <Text style={base.h2}>Referencia oficial</Text>
+      <ListaEntorno items={model.oficial.puntos} t={t} marca="auto" />
+      <Text style={{ color: t.dim, fontSize: 6.5, marginTop: 1 }}>Fuentes: {model.oficial.fuentes}. Informativo: no cambia el precio.</Text>
+    </View>
+  );
+}
+
 function ListaEntorno({ items, t, marca }: { items: FilaEntornoPdf[]; t: Tokens; marca: string }) {
   return (
     <View>
@@ -232,7 +247,7 @@ function ListaEntorno({ items, t, marca }: { items: FilaEntornoPdf[]; t: Tokens;
         return (
           <View key={`${item.title}-${i}`} style={{ ...base.row, gap: 6, marginBottom: 4 }}>
             <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: c.bg, alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ color: c.fg, fontSize: 7, fontWeight: 700 }}>{marca === "info" ? "i" : marca}</Text>
+              <Text style={{ color: c.fg, fontSize: 7, fontWeight: 700 }}>{marca === "auto" ? marcaDeTono(item) : marca === "info" ? "i" : marca}</Text>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 8.5, color: t.ink }}>{item.title}</Text>
@@ -367,6 +382,7 @@ function Propietario({ model, t }: { model: InformePdfModel; t: Tokens }) {
             <ListaEntorno items={model.avisos} t={t} marca="i" />
           </View>
         </View>
+        <ReferenciaOficialPdf model={model} t={t} />
         <View style={{ marginTop: 8, backgroundColor: t.contactBg, borderRadius: 6, padding: 8, ...base.row, justifyContent: "space-between", gap: 8 }}>
           <View style={{ flex: 1 }}>
             <Text style={{ fontWeight: 600, fontSize: 9, color: t.contactFg }}>¿Quieres saber cuánto podrías obtener de verdad?</Text>
@@ -518,6 +534,7 @@ function Interno({ model, t }: { model: InformePdfModel; t: Tokens }) {
             <ListaEntorno items={model.avisos} t={t} marca="i" />
           </View>
         </View>
+        <ReferenciaOficialPdf model={model} t={t} />
         <Text style={{ ...base.h2, marginTop: 8 }}>Capas consultadas</Text>
         {model.layers.length ? (
           model.layers.map((capa) => (

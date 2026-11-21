@@ -16,6 +16,8 @@ import {
 import { parseIpv, type SerieIne } from '../ine-ipv';
 import { ambitoDeNombre, CatalogoMunicipios, claveNombre, codigoProvincia } from '../territorio';
 import { filasIpv, filasTasadoMunicipios, filasTasadoTerritorio, filasTransacciones } from '../filas';
+import { valuate } from '../../valuate';
+import { emptyTwin, type Twin } from '../../types';
 import { buildOfficialReference, explicacionOficial, zoneStatsDesdeReferencia, type FilaCierre } from '../referencia';
 
 const hoja = (h: { nombre: string; filas: unknown[][] }) => h as HojaXls;
@@ -257,5 +259,51 @@ describe('referencia oficial', () => {
   it('da un mercado de respaldo con el tasado', () => {
     const z = zoneStatsDesdeReferencia(buildOfficialReference(SERIES_CORUNA, { municipalityCode: '15030', subjectPpm2: null }));
     expect(z).toMatchObject({ zoneLevel: 'municipality', zoneKey: '15030', medianPpm2: 2774.8, n: 583, trend12mPct: 11, source: 'official_series' });
+  });
+});
+
+describe('valuate con referencia oficial', () => {
+  const twin = (): Twin => ({
+    ...emptyTwin(),
+    address: { ...emptyTwin().address, locality: 'A Coruña', lat: 43.3654, lng: -8.4087, postcode: '15004', municipalityCode: '15030' },
+    mainType: 'apartment', propertyType: 'apartment', builtSurface: 95, constructionYear: 1975, numberOfBedrooms: 3,
+  });
+  const deps = (extra: object = {}) => ({
+    zoneStats: async () => null,
+    comparables: async () => [],
+    officialReference: async (_t: unknown, ppm2: number | null) => buildOfficialReference(SERIES_CORUNA, { municipalityCode: '15030', subjectPpm2: ppm2 }),
+    ...extra,
+  });
+
+  it('sin anuncios usa el tasado como mercado de respaldo y no se compara consigo mismo', async () => {
+    const r = await valuate(twin(), deps({
+      zoneStatsFallback: async () => zoneStatsDesdeReferencia(buildOfficialReference(SERIES_CORUNA, { municipalityCode: '15030', subjectPpm2: null })),
+    }), { channel: 'crm', propertySource: 'catastro_sede', geocodingSource: 'catastro' });
+    expect(r.zoneStats?.source).toBe('official_series');
+    expect(r.sourcesUsed.find((s) => s.layer === 'market')).toMatchObject({ source: 'official_series', status: 'degraded' });
+    expect(r.zoneStats?.medianPpm2).toBe(2774.8);
+    expect(r.officialReference?.desviacionPct).toBeNull();
+    expect(r.methodVersion).toBe('comparables-1.2');
+  });
+
+  it('resta confianza si se aleja más de un 50 % del tasado del municipio', async () => {
+    const lejos = await valuate(twin(), deps({
+      zoneStats: async () => ({ zoneLevel: 'postcode', zoneKey: '15004', label: 'A Coruña · CP 15004', month: '2026-10-01', n: 40, medianPpm2: 4500, p25Ppm2: null, p75Ppm2: null, trend12mPct: 5, source: 'market_listings' }),
+    }), { channel: 'crm', propertySource: 'catastro_sede', geocodingSource: 'catastro' });
+    const sinRef = await valuate(twin(), deps({
+      zoneStats: async () => ({ zoneLevel: 'postcode', zoneKey: '15004', label: 'A Coruña · CP 15004', month: '2026-10-01', n: 40, medianPpm2: 4500, p25Ppm2: null, p75Ppm2: null, trend12mPct: 5, source: 'market_listings' }),
+      officialReference: undefined,
+    }), { channel: 'crm', propertySource: 'catastro_sede', geocodingSource: 'catastro' });
+    expect(lejos.officialReference?.lectura).toBe('por_encima');
+    expect(lejos.valueMid).toBe(sinRef.valueMid);
+    expect(lejos.confidence).toBe(sinRef.confidence - 5);
+    expect(lejos.explanation.some((l) => l.startsWith('Referencia oficial:'))).toBe(true);
+  });
+
+  it('si la referencia falla, la valoración sigue', async () => {
+    const r = await valuate(twin(), deps({ officialReference: async () => { throw new Error('sin red'); } }),
+      { channel: 'crm', propertySource: 'catastro_sede', geocodingSource: 'catastro' });
+    expect(r.valueMid).toBeGreaterThan(0);
+    expect(r.officialReference).toBeNull();
   });
 });
