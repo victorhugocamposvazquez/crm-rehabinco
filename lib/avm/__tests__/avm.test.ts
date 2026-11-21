@@ -136,7 +136,7 @@ describe('valuate', () => {
     const caducada = await valuate(juanFlorez(), base, { channel: 'crm', propertySource: 'catastro_sede', propertyStale: true, geocodingSource: 'catastro' });
     expect(fresco.sourcesUsed.find((s) => s.layer === 'property')).toMatchObject({ source: 'catastro_sede', status: 'primary' });
     expect(caducada.sourcesUsed.find((s) => s.layer === 'property')?.status).toBe('fallback');
-    expect(fresco.methodVersion).toBe('comparables-1.1');
+    expect(fresco.methodVersion).toBe('comparables-1.2');
   });
 
   it('el alquiler sale de sus comparables y la rentabilidad es derivada', async () => {

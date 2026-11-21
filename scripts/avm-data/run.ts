@@ -3,6 +3,7 @@
  *
  * npx tsx scripts/avm-data/run.ts --layer crime --scope all
  * npx tsx scripts/avm-data/run.ts --layer osm --scope spain/galicia
+ * npx tsx scripts/avm-data/run.ts --layer oficial   (valor tasado, compraventas, IPV)
  */
 import { execSync } from "node:child_process";
 import path from "node:path";
@@ -27,7 +28,7 @@ async function main(): Promise<void> {
   const scope = resolveGeofabrikScope(arg("--scope") || process.env.AVM_DATA_SCOPE || "spain");
 
   if (!layer) {
-    console.error("Pasa --layer: osm|gtfs|crime|vulnerability|snczi|noise|ine_sections|inspire");
+    console.error("Pasa --layer: osm|gtfs|crime|vulnerability|snczi|noise|ine_sections|inspire|oficial");
     process.exit(1);
   }
 
@@ -59,6 +60,10 @@ async function main(): Promise<void> {
       case "ine_sections":
         sh("npx tsx scripts/avm-data/load-ine-sections.ts");
         return { rows: Number(process.env.AVM_LAST_ROWS ?? 0) };
+      case "oficial": {
+        const { cargarSeriesOficiales } = await import("./load-oficial");
+        return cargarSeriesOficiales();
+      }
       case "inspire":
         sh(`npx tsx scripts/avm-data/load-inspire.ts --scope ${scope}`);
         return { rows: Number(process.env.AVM_LAST_ROWS ?? 0) };
