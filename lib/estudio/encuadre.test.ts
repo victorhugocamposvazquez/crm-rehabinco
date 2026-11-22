@@ -11,9 +11,11 @@ describe("encuadre de foto", () => {
 
   it("girar 90° agranda lo justo para no dejar huecos y un cuarto de vuelta vuelve al sitio", () => {
     const giro = encuadreDe({ zoom: 1, x: 0, y: 0, rot: 90 });
-    assert.ok(Math.abs(escalaEncuadre(giro) - 2.05) < 1e-9);
+    assert.ok(Math.abs(escalaEncuadre(giro) - 1) < 1e-9);
+    assert.ok(Math.abs(escalaEncuadre(giro, 4 / 5) - 1.25) < 1e-9);
+    assert.ok(escalaEncuadre(encuadreDe({ rot: 8 })) < 1.2);
     assert.equal(encuadreDe({ rot: -90 }).rot, 270);
-    assert.equal(escalaEncuadre(encuadreDe({ zoom: 2, rot: 180 })), 2);
+    assert.ok(Math.abs(escalaEncuadre(encuadreDe({ zoom: 2, rot: 180 })) - 2) < 1e-9);
   });
 
   it("recorta un zoom o un desplazamiento imposibles", () => {

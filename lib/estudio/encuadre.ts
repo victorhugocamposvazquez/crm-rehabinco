@@ -13,14 +13,18 @@ export function encuadreDe(raw: unknown): EncuadreFoto {
   return { zoom, x, y, rot };
 }
 
-/** Al girar, la foto tiene que seguir tapando el hueco. En 0° el zoom del usuario manda solo. */
-export function escalaEncuadre(enc: EncuadreFoto): number {
-  const a = ((enc.rot % 180) * Math.PI) / 180;
-  const cubre = Math.abs(Math.cos(a)) + 2.05 * Math.abs(Math.sin(a));
-  return cubre * enc.zoom;
+/**
+ * Al girar, la foto tiene que seguir tapando el hueco.
+ * `proporcion` es ancho/alto del hueco. En un cuadrado, 90° no amplía; unos pocos grados casi tampoco.
+ */
+export function escalaEncuadre(enc: EncuadreFoto, proporcion = 1): number {
+  const rad = (enc.rot * Math.PI) / 180;
+  const lado = Math.max(proporcion, 1 / Math.max(proporcion, 1e-3));
+  return (Math.abs(Math.cos(rad)) + lado * Math.abs(Math.sin(rad))) * enc.zoom;
 }
 
-export function transformEncuadre(raw: unknown): string {
+export function transformEncuadre(raw: unknown, proporcion = 1): string {
   const enc = encuadreDe(raw);
-  return `translate(${enc.x}%, ${enc.y}%) rotate(${enc.rot}deg) scale(${escalaEncuadre(enc)})`;
+  const escala = Math.round(escalaEncuadre(enc, proporcion) * 1000) / 1000;
+  return `translate(${enc.x}%, ${enc.y}%) rotate(${enc.rot}deg) scale(${escala})`;
 }

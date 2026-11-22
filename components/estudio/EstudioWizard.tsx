@@ -31,6 +31,55 @@ const tplName = (t: TemplateId) => TEMPLATES.find((x) => x.id === t)?.nombre ?? 
 const pantallas = (n: number) => (n === 1 ? '1 pantalla' : `${n} pantallas`);
 const nombreFoto = (nombre: string, i: number) => (/^foto\s*\d+$/i.test(nombre.trim()) ? String(i + 1) : nombre);
 
+function anguloRueda(el: HTMLElement, x: number, y: number) {
+  const r = el.getBoundingClientRect();
+  return (Math.atan2(x - (r.left + r.width / 2), -(y - (r.top + r.height / 2))) * 180) / Math.PI;
+}
+
+/** Rueda continua: cada movimiento suma el giro del dedo, sin salto al cruzar 180°. */
+function RuedaGiro({ grados, etiqueta, onGiro }: { grados: number; etiqueta: string; onGiro: (grados: number) => void }) {
+  const ref = useRef<HTMLButtonElement>(null);
+  const drag = useRef<{ ang: number; rot: number } | null>(null);
+  const visible = grados > 180 ? grados - 360 : grados;
+  return (
+    <button
+      ref={ref}
+      type="button"
+      role="slider"
+      aria-label={etiqueta}
+      aria-valuemin={-180}
+      aria-valuemax={180}
+      aria-valuenow={visible}
+      aria-valuetext={`${visible} grados`}
+      onPointerDown={(e) => {
+        if (e.button !== 0) return;
+        e.currentTarget.setPointerCapture(e.pointerId);
+        drag.current = { ang: anguloRueda(e.currentTarget, e.clientX, e.clientY), rot: grados };
+      }}
+      onPointerMove={(e) => {
+        const d = drag.current;
+        if (!d || !e.currentTarget.hasPointerCapture(e.pointerId)) return;
+        const ahora = anguloRueda(e.currentTarget, e.clientX, e.clientY);
+        let delta = ahora - d.ang;
+        if (delta > 180) delta -= 360;
+        if (delta < -180) delta += 360;
+        d.ang = ahora;
+        d.rot += delta;
+        onGiro(Math.round(d.rot));
+      }}
+      onPointerUp={() => { drag.current = null; }}
+      onKeyDown={(e) => {
+        const paso = e.shiftKey ? 15 : 1;
+        if (e.key === "ArrowRight" || e.key === "ArrowUp") { e.preventDefault(); onGiro(grados + paso); }
+        if (e.key === "ArrowLeft" || e.key === "ArrowDown") { e.preventDefault(); onGiro(grados - paso); }
+      }}
+      style={{ position: "relative", width: 34, height: 34, flex: "0 0 auto", borderRadius: "50%", border: `1.5px solid ${k.line2}`, background: k.bg, cursor: "grab", touchAction: "none", padding: 0 }}
+    >
+      <span aria-hidden style={{ position: "absolute", left: "50%", top: 4, width: 2, height: 10, marginLeft: -1, borderRadius: 1, background: k.blue, transformOrigin: "50% 13px", transform: `rotate(${grados}deg)` }} />
+    </button>
+  );
+}
+
 export type EstudioSavePayload = { inmuebleId: string; state: Publication & { template: TemplateId }; files: Partial<Record<FormatId, Blob>>; piezas: Blob[]; caption: string };
 export type EstudioReviewPayload = { inmuebleId: string; state: Publication & { template: TemplateId }; nota: string };
 export type EstudioWizardProps = {
@@ -407,10 +456,10 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
                 </>)}
                 {selFoto && <>
                   <b style={{ fontSize: 12.5, color: k.link, whiteSpace: 'nowrap' }}>{slotName(slotSel)}</b>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 180px', minWidth: 150, fontSize: 12, color: k.mut }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '0 0 auto', fontSize: 12, color: k.mut }}>
                     <span>Giro</span>
-                    <input aria-label={`Giro de ${slotName(slotSel).toLowerCase()} en grados`} type="range" min={-180} max={180} step={1} value={encFoto.rot > 180 ? encFoto.rot - 360 : encFoto.rot} onChange={(e) => ponerEncuadre({ ...encFoto, rot: Number(e.target.value) }, "giro:" + slide.id + ":" + slotSel)} style={{ flex: 1, minWidth: 72, accentColor: k.blue }} />
-                    <span style={{ width: 36, color: k.fg, fontWeight: 600 }}>{encFoto.rot > 180 ? encFoto.rot - 360 : encFoto.rot}°</span>
+                    <RuedaGiro grados={encFoto.rot} etiqueta={`Giro de ${slotName(slotSel).toLowerCase()} en grados`} onGiro={(rot) => ponerEncuadre({ ...encFoto, rot }, "giro:" + slide.id + ":" + slotSel)} />
+                    <span style={{ width: 36, color: k.fg, fontWeight: 600 }}>{(encFoto.rot > 180 ? encFoto.rot - 360 : encFoto.rot)}°</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 180px', minWidth: 150, fontSize: 12, color: k.mut }}>
                     <span>Zoom</span>

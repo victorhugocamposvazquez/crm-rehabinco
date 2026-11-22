@@ -11,7 +11,7 @@
  *  - Toda foto va con `x.pic(hueco, estilo)`: así se puede elegir qué foto ocupa cada hueco.
  *  - Nada de px fijos salvo los calculados a partir de x.W / x.H; usa %, em y x.tall / x.wide para adaptar el formato.
  */
-import { createElement as h, type CSSProperties, type ReactElement, type ReactNode } from 'react';
+import { createElement as h, useLayoutEffect, useRef, useState, type CSSProperties, type ReactElement, type ReactNode } from 'react';
 import { MarcaRehabinco } from "@/components/estudio/marca";
 import { FONT, FUENTES, TYPOS, type EstiloTexto, type TemplateId, type Theme, type Typo, type FieldKey } from "@/lib/estudio/config";
 import { encuadreDe, transformEncuadre, type EncuadreFoto } from "@/lib/estudio/encuadre";
@@ -392,6 +392,33 @@ const R: Record<TemplateId, (x: Ctx) => ReactNode[]> = {
     ]; },
 };
 
+function FotoEncuadre({ enc, src, filter }: { enc: EncuadreFoto; src: string; filter?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [proporcion, setProporcion] = useState(1);
+  useLayoutEffect(() => {
+    const marco = ref.current?.parentElement;
+    if (!marco) return;
+    const medir = () => {
+      const r = marco.getBoundingClientRect();
+      if (r.height < 1) return;
+      const siguiente = r.width / r.height;
+      setProporcion((actual) => (Math.abs(actual - siguiente) < 0.01 ? actual : siguiente));
+    };
+    medir();
+    const obs = new ResizeObserver(medir);
+    obs.observe(marco);
+    return () => obs.disconnect();
+  }, []);
+  return h("div", {
+    ref,
+    "aria-hidden": true,
+    style: {
+      position: "absolute", inset: 0, backgroundImage: src || "none", backgroundSize: "cover", backgroundPosition: "center",
+      filter, transformOrigin: "center center", transform: transformEncuadre(enc, proporcion), pointerEvents: "none",
+    },
+  });
+}
+
 export type CreativeProps = {
   template: TemplateId; data: CreativeData;
   /** Tamaño en pantalla en px. Para exportar, renderiza a 540 de ancho y usa pixelRatio 2 (ver exportCreative.ts). */
@@ -441,14 +468,7 @@ export function Creative({ template, data, width: W, height: H, editable = false
   x.pic = (i, style) => {
     const enc = encuadreDe(x.encuadre?.[i]);
     const marco: CSSProperties = { ...style, overflow: 'hidden', position: style.position ?? 'relative' };
-    const imagen = h('div', {
-      'aria-hidden': true,
-      style: {
-        position: 'absolute', inset: 0, backgroundImage: x.ph[i] || 'none', backgroundSize: 'cover', backgroundPosition: 'center',
-        filter: x.pf[i] && x.pf[i] !== 'none' ? x.pf[i] : undefined,
-        transformOrigin: 'center center', transform: transformEncuadre(enc), pointerEvents: 'none',
-      },
-    });
+    const imagen = h(FotoEncuadre, { enc, src: x.ph[i] || "", filter: x.pf[i] && x.pf[i] !== "none" ? x.pf[i] : undefined });
     if (!edit) return h('div', { style: marco }, imagen);
     const on = x.sel === 'foto' + i;
     return h('div', {
