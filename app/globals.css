@@ -678,3 +678,98 @@ input.alta-contacto::-webkit-contacts-auto-fill-button {
     grid-template-columns: 1fr 1fr 1fr;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Diseño "Aire" (opt-in desde el menú de perfil, data-diseno="aire").
+ * Fondo gris muy claro, texto pizarra, Inter, radios de 8 px y sombras
+ * suaves. Mismas variables que el diseño clásico, así cada pantalla migra sola.
+ * ------------------------------------------------------------------------- */
+html[data-diseno="aire"] {
+  --font-geist-sans: var(--font-inter);
+  --radius: 8px;
+  --sombra-aire: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --sombra-aire-hover: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+html[data-diseno="aire"]:not(.dark) {
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --surface-soft: #f8fafc;
+  --foreground: #334155;
+  --titulo: #1e293b;
+  --text-2: #64748b;
+  --label: #64748b;
+  --text-3: #94a3b8;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --border-soft: #f1f5f9;
+  --border-row: #f1f5f9;
+  --input: #e2e8f0;
+  --accent: #0f172a;
+  --accent-dark: #020617;
+  --accent-soft: #f1f5f9;
+  --row-active: #f1f5f9;
+  --muted: #64748b;
+  --ring: #0f172a;
+}
+
+html[data-diseno="aire"].dark {
+  --titulo: #f4f4f4;
+}
+
+html[data-diseno="aire"] body {
+  letter-spacing: 0;
+}
+
+/* Radios: el clásico usa 9–16 px; Aire los unifica en 6 (controles) y 8 (tarjetas). */
+html[data-diseno="aire"] .rounded-\[7px\],
+html[data-diseno="aire"] .rounded-\[8px\],
+html[data-diseno="aire"] .rounded-\[9px\],
+html[data-diseno="aire"] .rounded-\[10px\] {
+  border-radius: 6px;
+}
+html[data-diseno="aire"] .rounded-\[11px\],
+html[data-diseno="aire"] .rounded-\[12px\],
+html[data-diseno="aire"] .rounded-\[13px\],
+html[data-diseno="aire"] .rounded-\[14px\],
+html[data-diseno="aire"] .rounded-\[16px\] {
+  border-radius: 8px;
+}
+
+/* Tarjeta y panel del diseño Aire (también usables en el clásico). */
+.aire-panel {
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--sombra-aire, 0 1px 2px rgb(0 0 0 / 0.06));
+}
+.aire-panel-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  padding: 1rem 1.5rem;
+  font-size: 18px;
+  line-height: 28px;
+}
+.aire-tarjeta {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  transition: box-shadow 0.15s ease;
+}
+.aire-tarjeta:hover {
+  box-shadow: var(--sombra-aire-hover, 0 4px 10px rgb(0 0 0 / 0.08));
+}
+
+/* Piezas que solo existen en un diseño. El envoltorio no crea caja (display: contents). */
+.solo-clasico { display: contents; }
+.solo-aire { display: none; }
+html[data-diseno="aire"] .solo-clasico { display: none; }
+html[data-diseno="aire"] .solo-aire { display: contents; }
+
+/* En Aire la barra de página va pegada bajo la barra superior, a todo el ancho. */
+html[data-diseno="aire"] .barra-pagina {
+  position: sticky;
+  top: 3.5rem;
+  z-index: 30;
+}
