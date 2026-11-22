@@ -1,6 +1,6 @@
 /** Estudio de creatividades · datos: de la ficha del inmueble + lo que el usuario cambia a lo que pinta la plantilla. */
 import { EMPRESA_DOCUMENTOS } from "@/lib/empresa-documentos";
-import { GOALS, MAX_SLOTS, THEMES, TYPOS, type FieldKey, type FormatId, type GoalId, type TemplateId, type ThemeId, type TypoId } from "./config";
+import { estilosDeCampo, GOALS, MAX_SLOTS, THEMES, TYPOS, type EstiloTexto, type FieldKey, type FormatId, type GoalId, type TemplateId, type ThemeId, type TypoId } from "./config";
 import type { CreativeData, Spec } from "@/components/estudio/templates";
 
 export type FotoInmueble = {
@@ -56,8 +56,8 @@ export type CreativeState = {
   escala: Partial<Record<FormatId, Partial<Record<FieldKey, number>>>>;
   /** Desplazamiento en % del cartel, por formato y dato. */
   pos: Partial<Record<FormatId, Partial<Record<FieldKey, { x: number; y: number }>>>>;
-  /** Tipografía elegida para un texto, por formato. Si falta, manda la de la publicación. */
-  tipografia: Partial<Record<FormatId, Partial<Record<FieldKey, TypoId>>>>;
+  /** Fuente, negrita y cursiva de un texto, por formato. Si falta, manda la plantilla. */
+  tipografia: Partial<Record<FormatId, Partial<Record<FieldKey, EstiloTexto>>>>;
 };
 
 export const initialCreativeState: CreativeState = {
@@ -154,7 +154,7 @@ export function buildCreativeData(inm: InmuebleEstudio, st: CreativeState): Crea
     ph: order.map((p) => (p ? `url("${p.url}")` : 'none')), pf: order.map(() => 'none'), phName: order.map((p) => p?.nombre ?? ''),
     barrio: inm.barrio, m2: inm.m2, email: AGENCIA.email,
     escala: escalaDelFormato(st.escala, st.format), pos: posDelFormato(st.pos, st.format),
-    fuentes: st.tipografia?.[st.format] ?? {},
+    fuentes: estilosDeCampo(st.tipografia?.[st.format]),
     bigNum: millones ? (inm.precio / 1e6).toLocaleString('es-ES', { maximumFractionDigits: 2 }) : String(Math.round(inm.precio / 1000)),
     bigUnit: millones ? 'millones de euros' : 'mil euros',
   };

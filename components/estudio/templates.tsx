@@ -13,7 +13,7 @@
  */
 import { createElement as h, type CSSProperties, type ReactElement, type ReactNode } from 'react';
 import { MarcaRehabinco } from "@/components/estudio/marca";
-import { FONT, TYPOS, type TemplateId, type Theme, type Typo, type TypoId, type FieldKey } from "@/lib/estudio/config";
+import { FONT, FUENTES, TYPOS, type EstiloTexto, type TemplateId, type Theme, type Typo, type FieldKey } from "@/lib/estudio/config";
 import { encuadreDe, transformEncuadre, type EncuadreFoto } from "@/lib/estudio/encuadre";
 
 export type Spec = { k: 'm2' | 'hab' | 'banos'; v: string; u: string; l: string };
@@ -34,8 +34,8 @@ export type CreativeData = {
   bigNum: string; bigUnit: string;
   escala: Partial<Record<FieldKey, number>>;
   pos: Partial<Record<FieldKey, { x: number; y: number }>>;
-  /** Tipografía pedida para ese texto. Si falta, se queda la de la plantilla. */
-  fuentes: Partial<Record<FieldKey, TypoId>>;
+  /** Fuente, negrita y cursiva pedidas para ese texto. Si falta, se queda la plantilla. */
+  fuentes: Partial<Record<FieldKey, EstiloTexto>>;
   /** Zoom, movimiento y giro por hueco de foto. */
   encuadre?: Partial<Record<number, EncuadreFoto>>;
 };
@@ -504,16 +504,13 @@ function ajustar(x: Ctx, key: FieldKey, style: CSSProperties): CSSProperties {
   const scale = x.escala?.[key] ?? 1;
   const p = x.pos?.[key];
   const next: CSSProperties = { ...style };
-  const fuente = x.fuentes?.[key];
-  if (fuente && fuente in TYPOS) {
-    const ty = TYPOS[fuente];
-    next.fontFamily = ty.ff;
-    next.fontWeight = ty.fw;
-    next.fontStyle = ty.it;
-    next.textTransform = ty.tt;
-    next.letterSpacing = ty.ls;
-    next.lineHeight = ty.lh;
-  }
+  const estilo = x.fuentes?.[key];
+  const familia = FUENTES.find((f) => f.id === estilo?.fuente);
+  if (familia) next.fontFamily = familia.ff;
+  if (estilo?.negrita === true) next.fontWeight = 700;
+  if (estilo?.negrita === false) next.fontWeight = 400;
+  if (estilo?.cursiva === true) next.fontStyle = "italic";
+  if (estilo?.cursiva === false) next.fontStyle = "normal";
   if (scale !== 1) {
     if (typeof next.fontSize === 'string') {
       const n = parseFloat(next.fontSize);

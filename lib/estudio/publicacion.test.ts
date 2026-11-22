@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { templatesForGoal } from "./config";
+import type { EstiloTexto } from "./config";
 import { buildSlideData, initialPublication, makeSlide, nextUnusedPhoto } from "./publicacion";
 import type { InmuebleEstudio } from "./data";
 
@@ -62,11 +63,14 @@ describe("publicación de pantallas", () => {
 
   it("la tipografía de un texto en Feed no cambia la de Post", () => {
     const pub = initialPublication("hogar");
-    pub.tipografia = { feed: { titulo: "impacto" } };
+    pub.tipografia = { feed: { titulo: { fuente: "playfair", negrita: true } } };
     const feed = buildSlideData(inm, pub, pub.slides[0]);
     const post = buildSlideData(inm, { ...pub, format: "post" }, pub.slides[0]);
-    assert.equal(feed.fuentes.titulo, "impacto");
+    assert.equal(feed.fuentes.titulo?.fuente, "playfair");
+    assert.equal(feed.fuentes.titulo?.negrita, true);
     assert.equal(post.fuentes.titulo, undefined);
+    const viejo = { ...pub, tipografia: { feed: { titulo: "impacto" as unknown as EstiloTexto } } };
+    assert.equal(buildSlideData(inm, viejo, pub.slides[0]).fuentes.titulo?.fuente, "bebas");
   });
 
   it("el tamaño de Feed no cambia el de Post", () => {

@@ -5,8 +5,8 @@
  */
 import Link from "next/link";
 import { useMemo, useRef, useState, type CSSProperties, type DragEvent, type ReactNode } from 'react';
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, Database, Download, Eye, EyeOff, Image as ImageIcon, Instagram, LayoutTemplate, Palette, Plus, Redo2, RotateCcw, RotateCw, Search, Trash2, Undo2, X } from 'lucide-react';
-import { FIELD_LABELS, FORMATS, GOALS, MAX_SLIDES, READONLY_FIELDS, TEMPLATES, THEMES, TIPOS_PUBLICACION, TYPOS, fitBox, templatesForGoal, type FieldKey, type FormatId, type TemplateId, type ThemeId, type TypoId } from "@/lib/estudio/config";
+import { ArrowLeft, Bold, Check, ChevronLeft, ChevronRight, Database, Download, Eye, EyeOff, Image as ImageIcon, Instagram, Italic, LayoutTemplate, Palette, Plus, Redo2, RotateCcw, RotateCw, Search, Trash2, Undo2, X } from 'lucide-react';
+import { estiloTextoDe, FIELD_LABELS, FORMATS, FUENTES, GOALS, MAX_SLIDES, READONLY_FIELDS, TEMPLATES, THEMES, TIPOS_PUBLICACION, TYPOS, fitBox, templatesForGoal, type EstiloTexto, type FieldKey, type FormatId, type FuenteId, type TemplateId, type ThemeId, type TypoId } from "@/lib/estudio/config";
 import { AGENCIA, anidarEscala, anidarPos, assignPhoto, resolveSlots, type InmuebleEstudio } from "@/lib/estudio/data";
 import { encuadreDe, type EncuadreFoto } from "@/lib/estudio/encuadre";
 import { buildSlideData, defaultHidden, initialPublication, makeSlide, slideLabel, usedPhotoIndexes, type Publication } from "@/lib/estudio/publicacion";
@@ -98,10 +98,10 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
   const toggleField = (f: FieldKey) => { P.editSlide(c, (s) => ({ hidden: { ...s.hidden, [f]: !s.hidden[f] } })); if (sel === f) setSel(''); };
   const setField = (f: FieldKey, v: string) => P.editSlide(c, (s) => ({ overrides: { ...s.overrides, [f]: v } }), `type:${f}:${slide.id}`);
   const resetField = (f: FieldKey) => P.editSlide(c, (s) => { const o = { ...s.overrides }; delete o[f]; return { overrides: o }; });
-  const setTipografia = (f: FieldKey, t: TypoId) => P.edit((pubNow) => {
+  const setEstilo = (f: FieldKey, est: EstiloTexto) => P.edit((pubNow) => {
     const mapa = pubNow.tipografia ?? {};
-    return { tipografia: { ...mapa, [pubNow.format]: { ...mapa[pubNow.format], [f]: t } } };
-  }, "typo:" + pub.format + ":" + f);
+    return { tipografia: { ...mapa, [pubNow.format]: { ...mapa[pubNow.format], [f]: est } } };
+  }, "fuente:" + pub.format + ":" + f);
   const selFoto = sel.startsWith('foto');
   const slotSel = selFoto ? Math.min(Number(sel.slice(4)) || 0, tpl.fotos - 1) : 0;
   const selKey = !selFoto && sel && !slide.hidden[sel as FieldKey] ? (sel as FieldKey) : null;
@@ -377,24 +377,27 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
 
             {/* Barra de edición: solo cuando hay un texto o una foto elegidos */}
             {(selKey || selFoto) && <div style={{ display: 'flex', justifyContent: 'center', flexShrink: 0, padding: '8px 16px 0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%', maxWidth: 860, padding: '4px 8px 4px 12px', borderRadius: 10, border: `1px solid ${k.blue}`, background: k.panel }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%', padding: '4px 8px 4px 12px', borderRadius: 10, border: `1px solid ${k.blue}`, background: k.panel }}>
                 {selKey && (<>
                   <label htmlFor="estudio-sel" style={{ fontSize: 12.5, fontWeight: 600, color: k.link, whiteSpace: 'nowrap' }}>{FIELD_LABELS[selKey]}</label>
-                  {READONLY_FIELDS.includes(selKey) ? <span style={{ flex: 1, fontSize: 13, color: k.mut }}>{selKey === 'precio' ? `${data.f.precio} (se cambia en la ficha)` : 'Automático'}</span>
-                    : <input id="estudio-sel" value={data.f[selKey]} onChange={(e) => setField(selKey, e.target.value)} style={{ flex: 1, minWidth: 60, height: 34, padding: '0 10px', border: `1px solid ${k.line2}`, borderRadius: 8, background: k.bg, color: k.fg, fontSize: 14, outline: 0 }} />}
-                  {selKey !== 'logo' && (
-                    <div role="radiogroup" aria-label={`Tipografía de ${FIELD_LABELS[selKey].toLowerCase()}`} style={{ display: 'flex', gap: 4 }}>
-                      {(Object.keys(TYPOS) as TypoId[]).map((t) => {
-                        const on = pub.tipografia?.[pub.format]?.[selKey] === t;
-                        return (
-                          <button key={t} role="radio" aria-checked={on} onClick={() => setTipografia(selKey, t)} style={{ ...btn, height: 34, padding: '0 10px', borderRadius: 8, border: `1px solid ${on ? k.blue : k.line2}`, background: on ? 'rgba(76,141,255,.12)' : k.bg, fontFamily: TYPOS[t].ff, fontWeight: TYPOS[t].fw, fontSize: 14, textTransform: TYPOS[t].tt }}>
-                            {TYPOS[t].label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 180px', minWidth: 160, fontSize: 12, color: k.mut }}>
+                  {READONLY_FIELDS.includes(selKey) ? <span style={{ flex: '1 1 220px', minWidth: 160, fontSize: 13, color: k.mut }}>{selKey === 'precio' ? `${data.f.precio} (se cambia en la ficha)` : 'Automático'}</span>
+                    : <input id="estudio-sel" value={data.f[selKey]} onChange={(e) => setField(selKey, e.target.value)} style={{ flex: '1 1 220px', minWidth: 160, height: 34, padding: '0 10px', border: `1px solid ${k.line2}`, borderRadius: 8, background: k.bg, color: k.fg, fontSize: 14, outline: 0 }} />}
+                  {selKey !== 'logo' && (() => {
+                    const estilo = estiloTextoDe(pub.tipografia?.[pub.format]?.[selKey]);
+                    const familia = FUENTES.find((f) => f.id === estilo.fuente);
+                    const marcar = (on: boolean) => ({ ...btn, width: 34, height: 34, borderRadius: 8, border: `1px solid ${on ? k.blue : k.line2}`, background: on ? 'rgba(76,141,255,.12)' : k.bg, display: 'grid', placeItems: 'center' as const });
+                    return (
+                      <>
+                        <select aria-label={`Fuente de ${FIELD_LABELS[selKey].toLowerCase()}`} value={estilo.fuente ?? ""} onChange={(e) => setEstilo(selKey, { ...estilo, fuente: (e.target.value || undefined) as FuenteId | undefined })} style={{ height: 34, width: 148, flex: '0 0 auto', padding: '0 8px', border: `1px solid ${k.line2}`, borderRadius: 8, background: k.bg, color: k.fg, fontSize: 14, fontFamily: familia?.ff, outline: 0 }}>
+                          <option value="">Plantilla</option>
+                          {FUENTES.map((f) => <option key={f.id} value={f.id} style={{ fontFamily: f.ff }}>{f.label}</option>)}
+                        </select>
+                        <button type="button" aria-label="Negrita" aria-pressed={estilo.negrita === true} onClick={() => setEstilo(selKey, { ...estilo, negrita: !estilo.negrita })} style={marcar(estilo.negrita === true)}><Bold size={16} /></button>
+                        <button type="button" aria-label="Cursiva" aria-pressed={estilo.cursiva === true} onClick={() => setEstilo(selKey, { ...estilo, cursiva: !estilo.cursiva })} style={marcar(estilo.cursiva === true)}><Italic size={16} /></button>
+                      </>
+                    );
+                  })()}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '0 1 168px', minWidth: 120, fontSize: 12, color: k.mut }}>
                     <span>Tamaño</span>
                     <input aria-label={`Tamaño de ${FIELD_LABELS[selKey].toLowerCase()} en ${FORMATS[pub.format].label}`} type="range" min={75} max={170} step={1} value={Math.round((anidarEscala(pub.escala)[pub.format]?.[selKey] ?? 1) * 100)} onChange={(e) => P.edit((pubNow) => { const escala = anidarEscala(pubNow.escala); return { escala: { ...escala, [pubNow.format]: { ...escala[pubNow.format], [selKey]: Number(e.target.value) / 100 } } }; }, 'size:' + pub.format + ':' + selKey)} style={{ flex: 1, minWidth: 80, accentColor: k.blue }} />
                     <span style={{ width: 36, color: k.fg, fontWeight: 600 }}>{Math.round((anidarEscala(pub.escala)[pub.format]?.[selKey] ?? 1) * 100)}%</span>

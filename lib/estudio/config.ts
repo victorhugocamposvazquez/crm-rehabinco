@@ -33,6 +33,53 @@ export const FONT = {
   mono: "var(--font-jetbrains, 'JetBrains Mono'), monospace",
 } as const;
 
+/** Fuentes de Google que se pueden elegir en un texto. La plantilla manda si no hay elección. */
+export const FUENTES = [
+  { id: "inter", label: "Inter", ff: FONT.sans },
+  { id: "manrope", label: "Manrope", ff: "var(--font-manrope, 'Manrope'), sans-serif" },
+  { id: "montserrat", label: "Montserrat", ff: "var(--font-montserrat, 'Montserrat'), sans-serif" },
+  { id: "poppins", label: "Poppins", ff: "var(--font-poppins, 'Poppins'), sans-serif" },
+  { id: "oswald", label: "Oswald", ff: "var(--font-oswald, 'Oswald'), sans-serif" },
+  { id: "bebas", label: "Bebas Neue", ff: FONT.bebas },
+  { id: "fraunces", label: "Fraunces", ff: FONT.serif },
+  { id: "playfair", label: "Playfair Display", ff: "var(--font-playfair, 'Playfair Display'), serif" },
+  { id: "cormorant", label: "Cormorant", ff: "var(--font-cormorant, 'Cormorant Garamond'), serif" },
+  { id: "libre", label: "Libre Baskerville", ff: "var(--font-libre, 'Libre Baskerville'), serif" },
+  { id: "lora", label: "Lora", ff: "var(--font-lora, 'Lora'), serif" },
+  { id: "jetbrains", label: "JetBrains Mono", ff: FONT.mono },
+] as const;
+export type FuenteId = (typeof FUENTES)[number]["id"];
+export type EstiloTexto = { fuente?: FuenteId; negrita?: boolean; cursiva?: boolean };
+
+const FUENTE_IDS = new Set<string>(FUENTES.map((f) => f.id));
+const ESTILO_VIEJO: Record<string, FuenteId> = { editorial: "fraunces", moderna: "inter", impacto: "bebas" };
+
+/** Acepta la fuente nueva o el estilo antiguo (Editorial, Moderna, Impacto) y se queda solo con la familia. */
+export function estiloTextoDe(raw: unknown): EstiloTexto {
+  if (typeof raw === "string") {
+    const fuente = ESTILO_VIEJO[raw];
+    return fuente ? { fuente } : {};
+  }
+  if (!raw || typeof raw !== "object") return {};
+  const o = raw as EstiloTexto;
+  const fuente = typeof o.fuente === "string" && FUENTE_IDS.has(o.fuente) ? (o.fuente as FuenteId) : undefined;
+  return {
+    fuente,
+    negrita: o.negrita === true ? true : o.negrita === false ? false : undefined,
+    cursiva: o.cursiva === true ? true : o.cursiva === false ? false : undefined,
+  };
+}
+
+export function estilosDeCampo(raw: unknown): Partial<Record<FieldKey, EstiloTexto>> {
+  if (!raw || typeof raw !== "object") return {};
+  const out: Partial<Record<FieldKey, EstiloTexto>> = {};
+  for (const [clave, valor] of Object.entries(raw)) {
+    const estilo = estiloTextoDe(valor);
+    if (estilo.fuente || estilo.negrita !== undefined || estilo.cursiva !== undefined) out[clave as FieldKey] = estilo;
+  }
+  return out;
+}
+
 export type TypoId = 'editorial' | 'moderna' | 'impacto';
 export type Typo = { label: string; ff: string; fw: number; tt: 'none' | 'uppercase'; ls: string; it: 'italic' | 'normal'; k: number; lh: number };
 export const TYPOS: Record<TypoId, Typo> = {
