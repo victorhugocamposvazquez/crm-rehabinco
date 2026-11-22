@@ -488,7 +488,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
                     </button>
                   ) : <span aria-hidden style={{ width: 86 }} />}
                   <div role="img" aria-label={`Pantalla ${c + 1} de ${n} en edición`} style={{ lineHeight: 0, boxShadow: `0 24px 60px rgba(0,0,0,.35), 0 0 0 1px ${k.line}` }}>
-                    <Creative template={slide.template} data={data} width={cw} height={ch} editable selected={sel} onSelect={onSelect} onMove={(key, p) => P.edit((pubNow) => { const pos = anidarPos(pubNow.pos); return { pos: { ...pos, [pubNow.format]: { ...pos[pubNow.format], [key]: p } } }; }, 'move:' + pub.format + ':' + key)} onEncuadre={(slot, enc) => P.editSlide(c, (s) => ({ encuadre: { ...(s.encuadre ?? {}), [slot]: enc } }), "mover-foto:" + slide.id + ":" + slot)} />
+                    <Creative template={slide.template} data={data} width={cw} height={ch} editable selected={sel} onSelect={onSelect} onText={setField} onMove={(key, p) => P.edit((pubNow) => { const pos = anidarPos(pubNow.pos); return { pos: { ...pos, [pubNow.format]: { ...pos[pubNow.format], [key]: p } } }; }, 'move:' + pub.format + ':' + key)} onEncuadre={(slot, enc) => P.editSlide(c, (s) => ({ encuadre: { ...(s.encuadre ?? {}), [slot]: enc } }), "mover-foto:" + slide.id + ":" + slot)} />
                   </div>
                   {/* Columna derecha: siguiente pantalla o «Añadir después», y debajo «Eliminar pantalla N» apuntando a la actual */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: 86, height: ch }}>

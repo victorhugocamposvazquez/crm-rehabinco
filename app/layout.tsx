@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Bebas_Neue, Cormorant_Garamond, Fraunces, Inter, JetBrains_Mono, Libre_Baskerville, Lora, Manrope, Montserrat, Oswald, Playfair_Display, Poppins } from "next/font/google";
+import { Abril_Fatface, Anton, Archivo, Bebas_Neue, Caveat, Cinzel, Cormorant_Garamond, DM_Sans, EB_Garamond, Figtree, Fraunces, Inter, JetBrains_Mono, Libre_Baskerville, Lora, Manrope, Merriweather, Montserrat, Newsreader, Nunito, Oswald, Outfit, Playfair_Display, Poppins, Raleway } from "next/font/google";
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 import "./globals.css";
@@ -20,6 +20,19 @@ const playfair = Playfair_Display({ subsets: ["latin"], style: ["normal", "itali
 const cormorant = Cormorant_Garamond({ subsets: ["latin"], weight: ["500", "700"], style: ["normal", "italic"], variable: "--font-cormorant" });
 const libre = Libre_Baskerville({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], variable: "--font-libre" });
 const lora = Lora({ subsets: ["latin"], style: ["normal", "italic"], variable: "--font-lora" });
+const dmSans = DM_Sans({ subsets: ["latin"], style: ["normal", "italic"], variable: "--font-dm-sans" });
+const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
+const figtree = Figtree({ subsets: ["latin"], style: ["normal", "italic"], variable: "--font-figtree" });
+const raleway = Raleway({ subsets: ["latin"], style: ["normal", "italic"], variable: "--font-raleway" });
+const nunito = Nunito({ subsets: ["latin"], style: ["normal", "italic"], variable: "--font-nunito" });
+const archivo = Archivo({ subsets: ["latin"], style: ["normal", "italic"], variable: "--font-archivo" });
+const anton = Anton({ subsets: ["latin"], weight: "400", variable: "--font-anton" });
+const cinzel = Cinzel({ subsets: ["latin"], variable: "--font-cinzel" });
+const merriweather = Merriweather({ subsets: ["latin"], weight: ["400", "700"], style: ["normal", "italic"], variable: "--font-merriweather" });
+const garamond = EB_Garamond({ subsets: ["latin"], style: ["normal", "italic"], variable: "--font-garamond" });
+const newsreader = Newsreader({ subsets: ["latin"], style: ["normal", "italic"], variable: "--font-newsreader" });
+const abril = Abril_Fatface({ subsets: ["latin"], weight: "400", variable: "--font-abril" });
+const caveat = Caveat({ subsets: ["latin"], variable: "--font-caveat" });
 
 const scriptTema = `(function(){try{if(localStorage.getItem("crm-tema")==="dark")document.documentElement.classList.add("dark")}catch(e){}})();`;
 
@@ -45,7 +58,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className={`${GeistSans.variable} ${GeistMono.variable} ${inter.variable} ${fraunces.variable} ${bebas.variable} ${jetbrains.variable} ${manrope.variable} ${montserrat.variable} ${poppins.variable} ${oswald.variable} ${playfair.variable} ${cormorant.variable} ${libre.variable} ${lora.variable}`} suppressHydrationWarning>
+    <html lang="es" className={`${GeistSans.variable} ${GeistMono.variable} ${inter.variable} ${fraunces.variable} ${bebas.variable} ${jetbrains.variable} ${manrope.variable} ${montserrat.variable} ${poppins.variable} ${oswald.variable} ${playfair.variable} ${cormorant.variable} ${libre.variable} ${lora.variable} ${dmSans.variable} ${outfit.variable} ${figtree.variable} ${raleway.variable} ${nunito.variable} ${archivo.variable} ${anton.variable} ${cinzel.variable} ${merriweather.variable} ${garamond.variable} ${newsreader.variable} ${abril.variable} ${caveat.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: scriptTema }} />
       </head>

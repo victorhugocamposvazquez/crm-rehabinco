@@ -82,7 +82,8 @@
 
 /* Estudio de creatividades · afinidad de clic en el editor. */
 .estudio-fld:hover { outline: 1px dashed #4c8dff !important; outline-offset: 0.25em; }
-.estudio-pic:hover { outline: 2px dashed #4c8dff !important; outline-offset: -5px !important; }
+.estudio-pic:hover,
+.estudio-pic[data-elegida="1"] { box-shadow: inset 0 0 0 4px #4c8dff !important; }
 .estudio-card { transition: transform 0.18s ease; }
 .estudio-card:hover { transform: translateY(-3px); }
 .estudio-card .estudio-use { opacity: 0; transition: opacity 0.15s ease; }

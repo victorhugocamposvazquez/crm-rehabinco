@@ -11,7 +11,7 @@
  *  - Toda foto va con `x.pic(hueco, estilo)`: así se puede elegir qué foto ocupa cada hueco.
  *  - Nada de px fijos salvo los calculados a partir de x.W / x.H; usa %, em y x.tall / x.wide para adaptar el formato.
  */
-import { createElement as h, useLayoutEffect, useRef, useState, type CSSProperties, type ReactElement, type ReactNode } from 'react';
+import { createElement as h, useLayoutEffect, useRef, useState, type CSSProperties, type FocusEvent, type FormEvent, type HTMLAttributes, type KeyboardEvent, type ReactElement, type ReactNode } from 'react';
 import { MarcaRehabinco } from "@/components/estudio/marca";
 import { FONT, FUENTES, TYPOS, type EstiloTexto, type TemplateId, type Theme, type Typo, type FieldKey } from "@/lib/estudio/config";
 import { encuadreDe, transformEncuadre, type EncuadreFoto } from "@/lib/estudio/encuadre";
@@ -44,8 +44,39 @@ type Sel = {
   sel?: string;
   onSel?: (key: string) => void;
   onMove?: (key: FieldKey, pos: { x: number; y: number }) => void;
+  onText?: (key: FieldKey, value: string) => void;
   onEncuadre?: (slot: number, enc: EncuadreFoto) => void;
 };
+
+/** Texto de la plantilla que se puede reescribir al seleccionarlo, sin perder el cursor. */
+function CampoTexto({ value, onChange, onFocus, onBlur, onKeyDown, ...rest }: { value: string; onChange: (value: string) => void } & Omit<HTMLAttributes<HTMLDivElement>, "onChange">) {
+  const ref = useRef<HTMLDivElement>(null);
+  const escribiendo = useRef(false);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || escribiendo.current) return;
+    if ((el.textContent ?? "") !== value) el.textContent = value;
+  }, [value]);
+  return h("div", {
+    ...rest,
+    ref,
+    contentEditable: true,
+    suppressContentEditableWarning: true,
+    spellCheck: false,
+    onFocus: (e: FocusEvent<HTMLDivElement>) => { escribiendo.current = true; onFocus?.(e); },
+    onBlur: (e: FocusEvent<HTMLDivElement>) => {
+      escribiendo.current = false;
+      const texto = (e.currentTarget.textContent ?? "").replace(/\s+/g, " ").trim();
+      if (texto !== value) onChange(texto);
+      onBlur?.(e);
+    },
+    onInput: (e: FormEvent<HTMLDivElement>) => onChange((e.currentTarget.textContent ?? "").replace(/\n/g, "")),
+    onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
+      onKeyDown?.(e);
+    },
+  });
+}
 type StatsOpts = { size?: number; center?: boolean; short?: boolean; line?: string; mut?: string };
 type Ctx = CreativeData & Sel & {
   W: number; H: number; fs: number; tall: boolean; wide: boolean; edit: boolean;
@@ -430,25 +461,24 @@ export type CreativeProps = {
   /** Recibe la clave pulsada; cadena vacía al pulsar en el fondo. */
   onSelect?: (key: string) => void;
   onMove?: (key: FieldKey, pos: { x: number; y: number }) => void;
+  onText?: (key: FieldKey, value: string) => void;
   onEncuadre?: (slot: number, enc: EncuadreFoto) => void;
 };
 
 /** Pinta una creatividad. Componente puro: no lee estado global ni hace peticiones. */
-export function Creative({ template, data, width: W, height: H, editable = false, selected = '', onSelect, onMove, onEncuadre }: CreativeProps) {
+export function Creative({ template, data, width: W, height: H, editable = false, selected = '', onSelect, onMove, onText, onEncuadre }: CreativeProps) {
   const edit = editable;
-  const x = { ...data, escala: data.escala ?? {}, pos: data.pos ?? {}, fuentes: data.fuentes ?? {}, encuadre: data.encuadre ?? {}, sel: selected, onSel: onSelect, onMove, onEncuadre, W, H, edit, tall: H > W * 1.1, wide: W > H * 1.3, fs: +(Math.min(W, H * .8) / 22).toFixed(3) } as Ctx;
+  const x = { ...data, escala: data.escala ?? {}, pos: data.pos ?? {}, fuentes: data.fuentes ?? {}, encuadre: data.encuadre ?? {}, sel: selected, onSel: onSelect, onMove, onText, onEncuadre, W, H, edit, tall: H > W * 1.1, wide: W > H * 1.3, fs: +(Math.min(W, H * .8) / 22).toFixed(3) } as Ctx;
   x.fld = (key, style, ...kids) => {
     if (!x.sh[key]) return null;
     const stl = ajustar(x, key, style);
     if (!edit) return h('div', { style: stl }, ...kids);
     const on = x.sel === key;
-    return h('div', {
-      className: 'estudio-fld',
-      title: on ? 'Arrastra para moverlo' : undefined,
-      style: { ...stl, cursor: on ? 'grab' : 'pointer', outline: on ? '2px solid #4C8DFF' : 'none', outlineOffset: '.25em', touchAction: 'none' },
-      onClick: (e: React.MouseEvent) => { e.stopPropagation(); onSelect?.(key); },
-      onPointerDown: (e: React.PointerEvent) => {
+    const soloTexto = kids.length === 1 && typeof kids[0] === "string";
+    const puedeEscribir = on && soloTexto && key !== "logo" && key !== "precio" && !!x.onText;
+    const alPulsar = (e: React.PointerEvent) => {
         if (e.button !== 0 || !x.onMove) return;
+        if (puedeEscribir && document.activeElement === e.currentTarget) return;
         const orig = x.pos?.[key] ?? { x: 0, y: 0 };
         const sx = e.clientX, sy = e.clientY;
         let moved = false;
@@ -462,7 +492,24 @@ export function Creative({ template, data, width: W, height: H, editable = false
         const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
         window.addEventListener('pointermove', move);
         window.addEventListener('pointerup', up);
-      },
+    };
+    if (puedeEscribir) {
+      return h(CampoTexto, {
+        value: String(kids[0]),
+        onChange: (v) => x.onText?.(key, v),
+        className: "estudio-fld",
+        title: "Escribe aquí. Arrastra para moverlo.",
+        style: { ...stl, cursor: "text", outline: "2px solid #4C8DFF", outlineOffset: ".25em", touchAction: "none" },
+        onClick: (e: React.MouseEvent) => { e.stopPropagation(); onSelect?.(key); },
+        onPointerDown: alPulsar,
+      });
+    }
+    return h('div', {
+      className: 'estudio-fld',
+      title: on ? 'Arrastra para moverlo' : undefined,
+      style: { ...stl, cursor: on ? 'grab' : 'pointer', outline: on ? '2px solid #4C8DFF' : 'none', outlineOffset: '.25em', touchAction: 'none' },
+      onClick: (e: React.MouseEvent) => { e.stopPropagation(); onSelect?.(key); },
+      onPointerDown: alPulsar,
     }, ...kids);
   };
   x.pic = (i, style) => {
@@ -473,8 +520,9 @@ export function Creative({ template, data, width: W, height: H, editable = false
     const on = x.sel === 'foto' + i;
     return h('div', {
       className: 'estudio-pic',
+      'data-elegida': on ? '1' : undefined,
       title: on ? 'Arrastra para mover la foto' : 'Elegir esta foto',
-      style: { ...marco, cursor: on ? 'grab' : 'pointer', outline: on ? '3px solid #4C8DFF' : 'none', outlineOffset: '-3px', touchAction: on ? 'none' : undefined },
+      style: { ...marco, cursor: on ? 'grab' : 'pointer', boxShadow: on ? 'inset 0 0 0 4px #4C8DFF' : undefined, touchAction: on ? 'none' : undefined },
       onClick: (e: React.MouseEvent) => {
         e.stopPropagation();
         if ((e.currentTarget as HTMLElement).dataset.moved === '1') return;
