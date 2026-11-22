@@ -406,7 +406,11 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
           </aside>
 
           {/* Centro: la pantalla, con sus vecinas, añadir y eliminar a mano */}
-          <section className="estudio-stage" style={{ ...stage, position: 'relative' }}>
+          <section className="estudio-stage" style={{ ...stage, position: 'relative' }} onPointerDown={(e) => {
+            const nodo = e.target as HTMLElement;
+            if (nodo.closest("[data-estudio-creative], .estudio-editbar, button, input, select, textarea, a")) return;
+            if (sel) setSel("");
+          }}>
             {addPanel('top')}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexShrink: 0, flexWrap: 'wrap', padding: '10px 16px 0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -425,7 +429,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
             </div>
 
             {/* Barra de edición: solo cuando hay un texto o una foto elegidos */}
-            {(selKey || selFoto) && <div style={{ display: 'flex', justifyContent: 'center', flexShrink: 0, padding: '8px 16px 0' }}>
+            {(selKey || selFoto) && <div className="estudio-editbar" style={{ display: 'flex', justifyContent: 'center', flexShrink: 0, padding: '8px 16px 0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', width: '100%', padding: '4px 8px', borderRadius: 10, border: `1px solid ${k.blue}`, background: k.panel }}>
                 {selKey && (<>
                   {READONLY_FIELDS.includes(selKey) ? <span style={{ flex: '1 1 auto', minWidth: 0, fontSize: 13, color: k.mut, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selKey === 'precio' ? `${data.f.precio} (se cambia en la ficha)` : 'Automático'}</span>
