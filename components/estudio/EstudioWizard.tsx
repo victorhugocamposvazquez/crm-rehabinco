@@ -5,9 +5,10 @@
  */
 import Link from "next/link";
 import { useMemo, useRef, useState, type CSSProperties, type DragEvent, type ReactNode } from 'react';
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, Database, Download, Eye, EyeOff, Image as ImageIcon, Instagram, LayoutTemplate, Palette, Plus, Redo2, Search, Trash2, Undo2, X } from 'lucide-react';
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Database, Download, Eye, EyeOff, Image as ImageIcon, Instagram, LayoutTemplate, Palette, Plus, Redo2, RotateCcw, RotateCw, Search, Trash2, Undo2, X } from 'lucide-react';
 import { FIELD_LABELS, FORMATS, GOALS, MAX_SLIDES, READONLY_FIELDS, TEMPLATES, THEMES, TIPOS_PUBLICACION, TYPOS, fitBox, templatesForGoal, type FieldKey, type FormatId, type TemplateId, type ThemeId, type TypoId } from "@/lib/estudio/config";
 import { AGENCIA, anidarEscala, anidarPos, assignPhoto, resolveSlots, type InmuebleEstudio } from "@/lib/estudio/data";
+import { encuadreDe, type EncuadreFoto } from "@/lib/estudio/encuadre";
 import { buildSlideData, defaultHidden, initialPublication, makeSlide, slideLabel, usedPhotoIndexes, type Publication } from "@/lib/estudio/publicacion";
 import { Creative } from "@/components/estudio/templates";
 import { usePublication } from "@/lib/estudio/usePublication";
@@ -106,6 +107,9 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
   const selKey = !selFoto && sel && !slide.hidden[sel as FieldKey] ? (sel as FieldKey) : null;
   const nHid = tpl.uses.filter((f) => slide.hidden[f]).length;
   const slotName = (i: number) => (tpl.fotos === 1 ? 'Foto' : i === 0 ? 'Foto principal' : `Foto ${i + 1}`);
+  const encFoto = encuadreDe(slide.encuadre?.[slotSel]);
+  const ponerEncuadre = (next: EncuadreFoto, tag?: string) => P.editSlide(c, (s) => ({ encuadre: { ...(s.encuadre ?? {}), [slotSel]: next } }), tag);
+  const fotoMovida = encFoto.zoom !== 1 || encFoto.x !== 0 || encFoto.y !== 0 || encFoto.rot !== 0;
 
   // ---- objetivo y diseño de la imagen principal (paso 2) ----
   const pickGoal = (id: typeof pub.goal) => P.edit((p) => {
@@ -399,7 +403,18 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
                   {((anidarEscala(pub.escala)[pub.format]?.[selKey] ?? 1) !== 1 || anidarPos(pub.pos)[pub.format]?.[selKey] || pub.tipografia?.[pub.format]?.[selKey]) && <button onClick={() => P.edit((pubNow) => { const escala = anidarEscala(pubNow.escala); const pos = anidarPos(pubNow.pos); const e = { ...escala[pubNow.format] }; const p = { ...pos[pubNow.format] }; const fuentes = { ...(pubNow.tipografia ?? {}) }; const f = { ...fuentes[pubNow.format] }; delete e[selKey]; delete p[selKey]; delete f[selKey]; return { escala: { ...escala, [pubNow.format]: e }, pos: { ...pos, [pubNow.format]: p }, tipografia: { ...fuentes, [pubNow.format]: f } }; })} style={{ ...btn, fontSize: 12.5, fontWeight: 600, color: k.mut, padding: '0 8px' }}>Auto</button>}
                   <button onClick={() => toggleField(selKey)} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 10px', borderRadius: 8, border: `1px solid ${k.line2}`, fontSize: 12.5, fontWeight: 600 }}><EyeOff size={15} />Ocultar</button>
                 </>)}
-                {selFoto && <><b style={{ fontSize: 12.5, color: k.link }}>{slotName(slotSel)}</b><span style={{ flex: 1, fontSize: 13, color: k.mut }}>Elige la foto en el panel de la izquierda.</span></>}
+                {selFoto && <>
+                  <b style={{ fontSize: 12.5, color: k.link, whiteSpace: 'nowrap' }}>{slotName(slotSel)}</b>
+                  <button type="button" aria-label="Girar a la izquierda" onClick={() => ponerEncuadre({ ...encFoto, rot: (encFoto.rot + 270) % 360 })} style={iconBtn({ border: `1px solid ${k.line2}`, background: k.bg })}><RotateCcw size={16} /></button>
+                  <button type="button" aria-label="Girar a la derecha" onClick={() => ponerEncuadre({ ...encFoto, rot: (encFoto.rot + 90) % 360 })} style={iconBtn({ border: `1px solid ${k.line2}`, background: k.bg })}><RotateCw size={16} /></button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 180px', minWidth: 160, fontSize: 12, color: k.mut }}>
+                    <span>Zoom</span>
+                    <input aria-label={`Zoom de ${slotName(slotSel).toLowerCase()}`} type="range" min={100} max={300} step={1} value={Math.round(encFoto.zoom * 100)} onChange={(e) => ponerEncuadre({ ...encFoto, zoom: Number(e.target.value) / 100 }, "zoom:" + slide.id + ":" + slotSel)} style={{ flex: 1, minWidth: 80, accentColor: k.blue }} />
+                    <span style={{ width: 40, color: k.fg, fontWeight: 600 }}>{Math.round(encFoto.zoom * 100)}%</span>
+                  </div>
+                  <span style={{ fontSize: 12.5, color: k.mut }}>Arrastra para moverla</span>
+                  {fotoMovida && <button type="button" onClick={() => P.editSlide(c, (s) => { const encuadre = { ...(s.encuadre ?? {}) }; delete encuadre[slotSel]; return { encuadre }; })} style={{ ...btn, fontSize: 12.5, fontWeight: 600, color: k.mut, padding: '0 8px' }}>Auto</button>}
+                </>}
                 <button onClick={() => setSel('')} aria-label="Quitar selección" style={iconBtn({ width: 30, color: k.mut })}><X size={16} /></button>
               </div>
             </div>}
@@ -415,7 +430,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
                     </button>
                   ) : <span aria-hidden style={{ width: 86 }} />}
                   <div role="img" aria-label={`Pantalla ${c + 1} de ${n} en edición`} style={{ lineHeight: 0, boxShadow: `0 24px 60px rgba(0,0,0,.35), 0 0 0 1px ${k.line}` }}>
-                    <Creative template={slide.template} data={data} width={cw} height={ch} editable selected={sel} onSelect={onSelect} onMove={(key, p) => P.edit((pubNow) => { const pos = anidarPos(pubNow.pos); return { pos: { ...pos, [pubNow.format]: { ...pos[pubNow.format], [key]: p } } }; }, 'move:' + pub.format + ':' + key)} />
+                    <Creative template={slide.template} data={data} width={cw} height={ch} editable selected={sel} onSelect={onSelect} onMove={(key, p) => P.edit((pubNow) => { const pos = anidarPos(pubNow.pos); return { pos: { ...pos, [pubNow.format]: { ...pos[pubNow.format], [key]: p } } }; }, 'move:' + pub.format + ':' + key)} onEncuadre={(slot, enc) => P.editSlide(c, (s) => ({ encuadre: { ...(s.encuadre ?? {}), [slot]: enc } }), "mover-foto:" + slide.id + ":" + slot)} />
                   </div>
                   {/* Columna derecha: siguiente pantalla o «Añadir después», y debajo «Eliminar pantalla N» apuntando a la actual */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: 86, height: ch }}>

@@ -51,6 +51,15 @@ describe("publicación de pantallas", () => {
     assert.equal(data.sh.pie, false);
   });
 
+  it("el encuadre de una foto se queda en su pantalla", () => {
+    const pub = initialPublication("visita");
+    pub.slides[0].encuadre = { 0: { zoom: 1.4, x: 8, y: -3, rot: 90 } };
+    const data = buildSlideData(inm, pub, pub.slides[0]);
+    assert.equal(data.encuadre?.[0]?.zoom, 1.4);
+    assert.equal(data.encuadre?.[0]?.rot, 90);
+    assert.equal(buildSlideData(inm, pub, makeSlide("visita")).encuadre?.[0], undefined);
+  });
+
   it("la tipografía de un texto en Feed no cambia la de Post", () => {
     const pub = initialPublication("hogar");
     pub.tipografia = { feed: { titulo: "impacto" } };

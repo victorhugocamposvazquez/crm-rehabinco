@@ -6,6 +6,7 @@
  */
 import type { CreativeData } from "@/components/estudio/templates";
 import { MAX_SLIDES, type FieldKey, type FormatId, type GoalId, type TemplateId, type ThemeId, type TypoId } from "./config";
+import type { EncuadreFoto } from "./encuadre";
 import { buildCreativeData, resolveSlots, type CreativeState, type InmuebleEstudio } from "./data";
 
 export type Slide = {
@@ -15,6 +16,8 @@ export type Slide = {
   overrides: Partial<Record<FieldKey, string>>;
   /** Índice de foto por hueco. null = orden de la ficha. */
   slots: number[] | null;
+  /** Zoom, desplazamiento y giro de cada hueco de esta pantalla. */
+  encuadre?: Partial<Record<number, EncuadreFoto>>;
 };
 
 export type Publication = {
@@ -83,6 +86,7 @@ export function slideToState(pub: Publication, slide: Slide): CreativeState {
 /** Une ficha + publicación + pantalla. Pasa por `buildCreativeData` para no perder hogar, visita ni el ajuste por formato. */
 export function buildSlideData(inm: InmuebleEstudio, pub: Publication, slide: Slide): CreativeData {
   const data = buildCreativeData(inm, slideToState(pub, slide));
+  data.encuadre = slide.encuadre ?? {};
   if (slide.overrides.pie == null) {
     const nombre = data.phName[0]?.trim() ?? "";
     data.f.pie = generica(nombre) ? "" : nombre;

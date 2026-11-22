@@ -14,6 +14,7 @@
 import { createElement as h, type CSSProperties, type ReactElement, type ReactNode } from 'react';
 import { MarcaRehabinco } from "@/components/estudio/marca";
 import { FONT, TYPOS, type TemplateId, type Theme, type Typo, type TypoId, type FieldKey } from "@/lib/estudio/config";
+import { encuadreDe, transformEncuadre, type EncuadreFoto } from "@/lib/estudio/encuadre";
 
 export type Spec = { k: 'm2' | 'hab' | 'banos'; v: string; u: string; l: string };
 
@@ -35,9 +36,16 @@ export type CreativeData = {
   pos: Partial<Record<FieldKey, { x: number; y: number }>>;
   /** Tipografía pedida para ese texto. Si falta, se queda la de la plantilla. */
   fuentes: Partial<Record<FieldKey, TypoId>>;
+  /** Zoom, movimiento y giro por hueco de foto. */
+  encuadre?: Partial<Record<number, EncuadreFoto>>;
 };
 
-type Sel = { sel?: string; onSel?: (key: string) => void; onMove?: (key: FieldKey, pos: { x: number; y: number }) => void };
+type Sel = {
+  sel?: string;
+  onSel?: (key: string) => void;
+  onMove?: (key: FieldKey, pos: { x: number; y: number }) => void;
+  onEncuadre?: (slot: number, enc: EncuadreFoto) => void;
+};
 type StatsOpts = { size?: number; center?: boolean; short?: boolean; line?: string; mut?: string };
 type Ctx = CreativeData & Sel & {
   W: number; H: number; fs: number; tall: boolean; wide: boolean; edit: boolean;
@@ -395,12 +403,13 @@ export type CreativeProps = {
   /** Recibe la clave pulsada; cadena vacía al pulsar en el fondo. */
   onSelect?: (key: string) => void;
   onMove?: (key: FieldKey, pos: { x: number; y: number }) => void;
+  onEncuadre?: (slot: number, enc: EncuadreFoto) => void;
 };
 
 /** Pinta una creatividad. Componente puro: no lee estado global ni hace peticiones. */
-export function Creative({ template, data, width: W, height: H, editable = false, selected = '', onSelect, onMove }: CreativeProps) {
+export function Creative({ template, data, width: W, height: H, editable = false, selected = '', onSelect, onMove, onEncuadre }: CreativeProps) {
   const edit = editable;
-  const x = { ...data, escala: data.escala ?? {}, pos: data.pos ?? {}, fuentes: data.fuentes ?? {}, sel: selected, onSel: onSelect, onMove, W, H, edit, tall: H > W * 1.1, wide: W > H * 1.3, fs: +(Math.min(W, H * .8) / 22).toFixed(3) } as Ctx;
+  const x = { ...data, escala: data.escala ?? {}, pos: data.pos ?? {}, fuentes: data.fuentes ?? {}, encuadre: data.encuadre ?? {}, sel: selected, onSel: onSelect, onMove, onEncuadre, W, H, edit, tall: H > W * 1.1, wide: W > H * 1.3, fs: +(Math.min(W, H * .8) / 22).toFixed(3) } as Ctx;
   x.fld = (key, style, ...kids) => {
     if (!x.sh[key]) return null;
     const stl = ajustar(x, key, style);
@@ -430,10 +439,56 @@ export function Creative({ template, data, width: W, height: H, editable = false
     }, ...kids);
   };
   x.pic = (i, style) => {
-    const s2 = bg(x.ph[i], x.pf[i], style);
-    if (!edit) return h('div', { style: s2 });
+    const enc = encuadreDe(x.encuadre?.[i]);
+    const marco: CSSProperties = { ...style, overflow: 'hidden', position: style.position ?? 'relative' };
+    const imagen = h('div', {
+      'aria-hidden': true,
+      style: {
+        position: 'absolute', inset: 0, backgroundImage: x.ph[i] || 'none', backgroundSize: 'cover', backgroundPosition: 'center',
+        filter: x.pf[i] && x.pf[i] !== 'none' ? x.pf[i] : undefined,
+        transformOrigin: 'center center', transform: transformEncuadre(enc), pointerEvents: 'none',
+      },
+    });
+    if (!edit) return h('div', { style: marco }, imagen);
     const on = x.sel === 'foto' + i;
-    return h('div', { className: 'estudio-pic', title: 'Cambiar esta foto', style: { ...s2, cursor: 'pointer', outline: on ? '3px solid #4C8DFF' : 'none', outlineOffset: '-3px' }, onClick: (e: React.MouseEvent) => { e.stopPropagation(); onSelect?.('foto' + i); } });
+    return h('div', {
+      className: 'estudio-pic',
+      title: on ? 'Arrastra para mover la foto' : 'Elegir esta foto',
+      style: { ...marco, cursor: on ? 'grab' : 'pointer', outline: on ? '3px solid #4C8DFF' : 'none', outlineOffset: '-3px', touchAction: on ? 'none' : undefined },
+      onClick: (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if ((e.currentTarget as HTMLElement).dataset.moved === '1') return;
+        onSelect?.('foto' + i);
+      },
+      onPointerDown: (e: React.PointerEvent) => {
+        if (e.button !== 0) return;
+        e.stopPropagation();
+        const frame = e.currentTarget as HTMLElement;
+        const rect = frame.getBoundingClientRect();
+        const sx = e.clientX;
+        const sy = e.clientY;
+        const orig = enc;
+        let moved = false;
+        frame.setPointerCapture(e.pointerId);
+        const move = (ev: PointerEvent) => {
+          if (rect.width < 1 || rect.height < 1) return;
+          const dx = ((ev.clientX - sx) / rect.width) * 100;
+          const dy = ((ev.clientY - sy) / rect.height) * 100;
+          if (!moved && Math.hypot(dx, dy) < 1.2) return;
+          moved = true;
+          frame.dataset.moved = '1';
+          onSelect?.('foto' + i);
+          x.onEncuadre?.(i, encuadreDe({ ...orig, x: orig.x + dx, y: orig.y + dy }));
+        };
+        const up = () => {
+          window.removeEventListener('pointermove', move);
+          window.removeEventListener('pointerup', up);
+          if (moved) setTimeout(() => { delete frame.dataset.moved; }, 0);
+        };
+        window.addEventListener('pointermove', move);
+        window.addEventListener('pointerup', up);
+      },
+    }, imagen);
   };
   x.stats = (o) => d({ display: 'flex', alignItems: 'baseline', flexWrap: 'nowrap', justifyContent: o.center ? 'center' : 'flex-start' }, ...x.specs.map((sx, i) => x.fld(sx.k, { whiteSpace: 'nowrap', display: 'flex', alignItems: 'baseline', gap: '.25em', paddingLeft: i ? (o.short ? '.55em' : '.8em') : '0', marginLeft: i ? (o.short ? '.55em' : '.8em') : '0', borderLeft: i ? '1px solid ' + (o.line || x.c.line) : '0' },
     sp({ fontSize: (o.size || 1.1) + 'em', fontWeight: 600, letterSpacing: '-.02em' }, sx.v), sp({ fontSize: o.short ? '.52em' : '.6em', color: o.mut || x.c.mut }, o.short && sx.k === 'hab' ? 'dorm.' : sx.u))));
