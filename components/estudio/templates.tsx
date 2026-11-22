@@ -522,7 +522,7 @@ export function Creative({ template, data, width: W, height: H, editable = false
       className: 'estudio-pic',
       'data-elegida': on ? '1' : undefined,
       title: on ? 'Arrastra para mover la foto' : 'Elegir esta foto',
-      style: { ...marco, cursor: on ? 'grab' : 'pointer', boxShadow: on ? 'inset 0 0 0 4px #4C8DFF' : undefined, touchAction: on ? 'none' : undefined },
+      style: { ...marco, cursor: on ? 'grab' : 'pointer', touchAction: on ? 'none' : undefined },
       onClick: (e: React.MouseEvent) => {
         e.stopPropagation();
         if ((e.currentTarget as HTMLElement).dataset.moved === '1') return;
@@ -556,7 +556,7 @@ export function Creative({ template, data, width: W, height: H, editable = false
         window.addEventListener('pointermove', move);
         window.addEventListener('pointerup', up);
       },
-    }, imagen);
+    }, imagen, h('span', { 'aria-hidden': true, style: { position: 'absolute', inset: 0, zIndex: 6, pointerEvents: 'none', boxShadow: on ? 'inset 0 0 0 4px #4C8DFF' : 'none' } }));
   };
   x.stats = (o) => d({ display: 'flex', alignItems: 'baseline', flexWrap: 'nowrap', justifyContent: o.center ? 'center' : 'flex-start' }, ...x.specs.map((sx, i) => x.fld(sx.k, { whiteSpace: 'nowrap', display: 'flex', alignItems: 'baseline', gap: '.25em', paddingLeft: i ? (o.short ? '.55em' : '.8em') : '0', marginLeft: i ? (o.short ? '.55em' : '.8em') : '0', borderLeft: i ? '1px solid ' + (o.line || x.c.line) : '0' },
     sp({ fontSize: (o.size || 1.1) + 'em', fontWeight: 600, letterSpacing: '-.02em' }, sx.v), sp({ fontSize: o.short ? '.52em' : '.6em', color: o.mut || x.c.mut }, o.short && sx.k === 'hab' ? 'dorm.' : sx.u))));

@@ -82,8 +82,18 @@
 
 /* Estudio de creatividades · afinidad de clic en el editor. */
 .estudio-fld:hover { outline: 1px dashed #4c8dff !important; outline-offset: 0.25em; }
-.estudio-pic:hover,
-.estudio-pic[data-elegida="1"] { box-shadow: inset 0 0 0 4px #4c8dff !important; }
+/* El marco va en una capa encima de la foto: el inset del propio hueco queda tapado por la imagen. */
+.estudio-pic::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+.estudio-pic:hover::after,
+.estudio-pic[data-elegida="1"]::after {
+  box-shadow: inset 0 0 0 4px #4c8dff;
+}
 .estudio-card { transition: transform 0.18s ease; }
 .estudio-card:hover { transform: translateY(-3px); }
 .estudio-card .estudio-use { opacity: 0; transition: opacity 0.15s ease; }
