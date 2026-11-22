@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowLeft, Check, ExternalLink, Home, Loader2, MapPin } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, Check, ExternalLink, FileSearch, Home, Loader2, MapPin } from "lucide-react";
 import {
   direccionPrincipal,
   etiquetaInmueble,
@@ -112,6 +113,12 @@ export function FichaEdificio({
               >
                 Sede del Catastro <ExternalLink className="h-3.5 w-3.5" aria-hidden />
               </a>
+              <Link
+                href={`/notas-simples/nueva?ref=${e.ref}&direccion=${encodeURIComponent(direccionPrincipal(e))}`}
+                className="inline-flex h-9 items-center gap-1.5 rounded-[6px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm hover:bg-[var(--accent-soft)]"
+              >
+                <FileSearch className="h-3.5 w-3.5" aria-hidden /> Pedir nota simple
+              </Link>
             </div>
           </div>
         </section>
@@ -158,7 +165,15 @@ export function FichaEdificio({
               <div className="grid gap-2 p-4 sm:grid-cols-2">
                 {mostrados.map((i) => (
                   <div key={i.ref} className="aire-tarjeta px-3 py-2.5">
-                    <div className="text-[14px] font-medium">{etiquetaInmueble(i)}</div>
+                    <div className="flex items-start gap-2">
+                      <div className="min-w-0 flex-1 text-[14px] font-medium">{etiquetaInmueble(i)}</div>
+                      <Link
+                        href={`/notas-simples/nueva?ref=${i.ref}&direccion=${encodeURIComponent(`${direccionPrincipal(e)}, ${etiquetaInmueble(i)}`)}`}
+                        className="shrink-0 text-[12px] text-[var(--text-2)] underline-offset-2 hover:text-foreground hover:underline"
+                      >
+                        Nota simple
+                      </Link>
+                    </div>
                     <div className="text-[12px] text-[var(--text-2)]">
                       {[i.uso, i.superficie ? `${i.superficie.toLocaleString("es-ES")} m²` : null].filter(Boolean).join(" · ") || i.ref}
                     </div>

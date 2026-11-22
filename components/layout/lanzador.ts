@@ -11,6 +11,7 @@ export const DESCRIPCION_MODULO: Record<string, string> = {
   "/estudio": "Fotos y textos con IA.",
   "/web/gestionar": "La web de la agencia.",
   "/valoraciones": "Valora con datos oficiales.",
+  "/notas-simples": "Titulares y cargas del Registro.",
   "/demandas": "Lo que buscan tus clientes.",
   "/clientes": "Propietarios y compradores.",
   "/herramientas": "Partes, arras y encargos.",
