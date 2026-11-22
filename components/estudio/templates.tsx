@@ -426,9 +426,10 @@ const R: Record<TemplateId, (x: Ctx) => ReactNode[]> = {
     ]; },
 };
 
-function FotoEncuadre({ enc, src, filter }: { enc: EncuadreFoto; src: string; filter?: string }) {
+function FotoEncuadre({ enc, src, filter, vineta }: { enc: EncuadreFoto; src: string; filter?: string; vineta?: string | null }) {
   const ref = useRef<HTMLDivElement>(null);
   const [proporcion, setProporcion] = useState(1);
+  const [alto, setAlto] = useState(0);
   useLayoutEffect(() => {
     const marco = ref.current?.parentElement;
     if (!marco) return;
@@ -437,6 +438,7 @@ function FotoEncuadre({ enc, src, filter }: { enc: EncuadreFoto; src: string; fi
       if (r.height < 1) return;
       const siguiente = r.width / r.height;
       setProporcion((actual) => (Math.abs(actual - siguiente) < 0.01 ? actual : siguiente));
+      setAlto((actual) => (Math.abs(actual - r.height) < 0.5 ? actual : r.height));
     };
     medir();
     const obs = new ResizeObserver(medir);
@@ -447,10 +449,14 @@ function FotoEncuadre({ enc, src, filter }: { enc: EncuadreFoto; src: string; fi
     ref,
     "aria-hidden": true,
     style: {
-      position: "absolute", inset: 0, backgroundImage: src || "none", backgroundSize: "cover", backgroundPosition: "center",
-      filter, transformOrigin: "center center", transform: transformEncuadre(enc, proporcion), pointerEvents: "none",
+      position: "absolute", inset: 0, pointerEvents: "none", transformOrigin: "center center",
+      transform: transformEncuadre(enc, proporcion, alto),
     },
-  });
+  }, h("div", {
+    style: {
+      position: "absolute", inset: 0, backgroundImage: src || "none", backgroundSize: "cover", backgroundPosition: "center", filter,
+    },
+  }), vineta ? h("div", { style: { position: "absolute", inset: 0, background: vineta } }) : null);
 }
 
 export type CreativeProps = {
@@ -523,9 +529,8 @@ export function Creative({ template, data, width: W, height: H, editable = false
     const filter = [filtroPlantilla, filtroColor !== "none" ? filtroColor : ""].filter(Boolean).join(" ") || undefined;
     const vineta = fondoVineta(ajuste);
     const marco: CSSProperties = { ...style, overflow: 'hidden', position: style.position ?? 'relative' };
-    const imagen = h(FotoEncuadre, { enc, src: x.ph[i] || "", filter });
-    const capa = vineta ? h("span", { "aria-hidden": true, style: { position: "absolute", inset: 0, zIndex: 4, pointerEvents: "none", background: vineta } }) : null;
-    if (!edit) return h('div', { style: marco }, imagen, capa);
+    const imagen = h(FotoEncuadre, { enc, src: x.ph[i] || "", filter, vineta });
+    if (!edit) return h('div', { style: marco }, imagen);
     const on = x.sel === 'foto' + i;
     return h('div', {
       className: 'estudio-pic',
@@ -565,7 +570,7 @@ export function Creative({ template, data, width: W, height: H, editable = false
         window.addEventListener('pointermove', move);
         window.addEventListener('pointerup', up);
       },
-    }, imagen, capa, h('span', { 'aria-hidden': true, style: { position: 'absolute', inset: 0, zIndex: 6, pointerEvents: 'none', boxShadow: on ? 'inset 0 0 0 4px #4C8DFF' : 'none' } }));
+    }, imagen, h('span', { 'aria-hidden': true, style: { position: 'absolute', inset: 0, zIndex: 6, pointerEvents: 'none', boxShadow: on ? 'inset 0 0 0 4px #4C8DFF' : 'none' } }));
   };
   x.stats = (o) => d({ display: 'flex', alignItems: 'baseline', flexWrap: 'nowrap', justifyContent: o.center ? 'center' : 'flex-start' }, ...x.specs.map((sx, i) => x.fld(sx.k, { whiteSpace: 'nowrap', display: 'flex', alignItems: 'baseline', gap: '.25em', paddingLeft: i ? (o.short ? '.55em' : '.8em') : '0', marginLeft: i ? (o.short ? '.55em' : '.8em') : '0', borderLeft: i ? '1px solid ' + (o.line || x.c.line) : '0' },
     sp({ fontSize: (o.size || 1.1) + 'em', fontWeight: 600, letterSpacing: '-.02em' }, sx.v), sp({ fontSize: o.short ? '.52em' : '.6em', color: o.mut || x.c.mut }, o.short && sx.k === 'hab' ? 'dorm.' : sx.u))));

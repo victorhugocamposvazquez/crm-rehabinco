@@ -21,6 +21,7 @@ export type AjusteFoto = Record<ClaveAjuste, number>;
 
 export const HERRAMIENTAS_FOTO = [
   { id: "recortar", label: "Recortar" },
+  { id: "perspectiva", label: "Perspectiva" },
   { id: "exposicion", label: "Exposición" },
   { id: "brillo", label: "Brillo" },
   { id: "contraste", label: "Contraste" },

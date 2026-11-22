@@ -8,8 +8,8 @@ import { useMemo, useRef, useState, type CSSProperties, type DragEvent, type Rea
 import { ArrowLeft, Bold, Check, ChevronLeft, ChevronRight, Database, Download, Eye, EyeOff, FlipHorizontal, Image as ImageIcon, Instagram, Italic, LayoutTemplate, Palette, Plus, Redo2, RotateCw, Search, Trash2, Undo2, X } from 'lucide-react';
 import { estiloTextoDe, FIELD_LABELS, FORMATS, FUENTES, GOALS, MAX_SLIDES, READONLY_FIELDS, TEMPLATES, THEMES, TIPOS_PUBLICACION, TYPOS, fitBox, templatesForGoal, type EstiloTexto, type FieldKey, type FormatId, type FuenteId, type TemplateId, type ThemeId, type TypoId } from "@/lib/estudio/config";
 import { AGENCIA, anidarEscala, anidarPos, assignPhoto, resolveSlots, type InmuebleEstudio } from "@/lib/estudio/data";
-import { ajusteActivo, ajusteDe, HERRAMIENTAS_FOTO, type AjusteFoto, type ClaveAjuste, type HerramientaFoto } from "@/lib/estudio/ajuste-foto";
-import { conEnderezar, encuadreDe, enderezarDe, type EncuadreFoto } from "@/lib/estudio/encuadre";
+import { ajusteActivo, ajusteDe, HERRAMIENTAS_FOTO, type AjusteFoto, type HerramientaFoto } from "@/lib/estudio/ajuste-foto";
+import { conEnderezar, encuadreDe, encuadreTocado, enderezarDe, type EncuadreFoto } from "@/lib/estudio/encuadre";
 import { buildSlideData, defaultHidden, initialPublication, makeSlide, slideLabel, usedPhotoIndexes, type Publication } from "@/lib/estudio/publicacion";
 import { Creative } from "@/components/estudio/templates";
 import { usePublication } from "@/lib/estudio/usePublication";
@@ -118,7 +118,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
     else delete ajuste[slotSel];
     return { ajuste };
   }, "ajuste:" + slide.id + ":" + slotSel);
-  const fotoMovida = encFoto.zoom !== 1 || encFoto.x !== 0 || encFoto.y !== 0 || encFoto.rot !== 0 || encFoto.voltear === true || ajusteActivo(ajusteFoto);
+  const fotoMovida = encuadreTocado(encFoto) || ajusteActivo(ajusteFoto);
 
   // ---- objetivo y diseño de la imagen principal (paso 2) ----
   const pickGoal = (id: typeof pub.goal) => P.edit((p) => {
@@ -420,9 +420,13 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
                 </>)}
                 {selFoto && <>
                   <b style={{ fontSize: 12.5, color: k.link, whiteSpace: 'nowrap', flex: '0 0 auto' }}>{slotName(slotSel)}</b>
-                  <select aria-label="Herramienta de la foto" value={herramientaFoto} onChange={(e) => setHerramientaFoto(e.target.value as HerramientaFoto)} style={{ height: 34, width: 132, flex: '0 0 auto', padding: '0 8px', border: `1px solid ${k.line2}`, borderRadius: 8, background: k.bg, color: k.fg, fontSize: 14, outline: 0 }}>
+                  <select aria-label="Herramienta de la foto" value={herramientaFoto} onChange={(e) => setHerramientaFoto(e.target.value as HerramientaFoto)} style={{ height: 34, width: 148, flex: '0 0 auto', padding: '0 8px', border: `1px solid ${k.line2}`, borderRadius: 8, background: k.bg, color: k.fg, fontSize: 14, outline: 0 }}>
                     {HERRAMIENTAS_FOTO.map((h) => {
-                      const tocada = h.id === "recortar" ? encFoto.zoom !== 1 || encFoto.x !== 0 || encFoto.y !== 0 || encFoto.rot !== 0 || encFoto.voltear === true : ajusteFoto[h.id as ClaveAjuste] !== 0;
+                      const tocada = h.id === "recortar"
+                        ? encFoto.zoom !== 1 || encFoto.x !== 0 || encFoto.y !== 0 || encFoto.rot !== 0 || encFoto.voltear === true
+                        : h.id === "perspectiva"
+                          ? encFoto.vertical != null || encFoto.horizontal != null
+                          : ajusteFoto[h.id] !== 0;
                       return <option key={h.id} value={h.id}>{tocada ? `${h.label} ·` : h.label}</option>;
                     })}
                   </select>
@@ -438,11 +442,20 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
                     <span style={{ width: 40, flex: '0 0 auto', color: k.fg, fontWeight: 600, fontSize: 12 }}>{Math.round(encFoto.zoom * 100)}%</span>
                     {encFoto.zoom !== 1 && <button type="button" aria-label="Revertir el zoom" onClick={() => ponerEncuadre({ ...encFoto, zoom: 1 })} style={{ ...btn, flex: '0 0 auto', fontSize: 12.5, fontWeight: 600, color: k.mut, padding: '0 8px' }}>Cero</button>}
                     {(encFoto.x !== 0 || encFoto.y !== 0) && <button type="button" aria-label="Revertir la posición" onClick={() => ponerEncuadre({ ...encFoto, x: 0, y: 0 })} style={{ ...btn, flex: '0 0 auto', fontSize: 12.5, fontWeight: 600, color: k.mut, padding: '0 8px' }}>Posición</button>}
+                  </> : herramientaFoto === "perspectiva" ? <>
+                    <span style={{ fontSize: 12, color: k.mut, flex: '0 0 auto' }}>Vertical</span>
+                    <input aria-label={`Perspectiva vertical de ${slotName(slotSel).toLowerCase()}`} type="range" min={-100} max={100} step={1} value={encFoto.vertical ?? 0} onChange={(e) => ponerEncuadre({ ...encFoto, vertical: Number(e.target.value) }, "perspectiva-v:" + slide.id + ":" + slotSel)} style={{ flex: '1 1 80px', minWidth: 64, accentColor: k.blue }} />
+                    <span style={{ width: 36, flex: '0 0 auto', color: k.fg, fontWeight: 600, fontSize: 12 }}>{encFoto.vertical ?? 0}</span>
+                    {encFoto.vertical != null && <button type="button" aria-label="Revertir la perspectiva vertical" onClick={() => ponerEncuadre({ ...encFoto, vertical: 0 })} style={{ ...btn, flex: '0 0 auto', fontSize: 12.5, fontWeight: 600, color: k.mut, padding: '0 8px' }}>Cero</button>}
+                    <span style={{ fontSize: 12, color: k.mut, flex: '0 0 auto' }}>Horizontal</span>
+                    <input aria-label={`Perspectiva horizontal de ${slotName(slotSel).toLowerCase()}`} type="range" min={-100} max={100} step={1} value={encFoto.horizontal ?? 0} onChange={(e) => ponerEncuadre({ ...encFoto, horizontal: Number(e.target.value) }, "perspectiva-h:" + slide.id + ":" + slotSel)} style={{ flex: '1 1 80px', minWidth: 64, accentColor: k.blue }} />
+                    <span style={{ width: 36, flex: '0 0 auto', color: k.fg, fontWeight: 600, fontSize: 12 }}>{encFoto.horizontal ?? 0}</span>
+                    {encFoto.horizontal != null && <button type="button" aria-label="Revertir la perspectiva horizontal" onClick={() => ponerEncuadre({ ...encFoto, horizontal: 0 })} style={{ ...btn, flex: '0 0 auto', fontSize: 12.5, fontWeight: 600, color: k.mut, padding: '0 8px' }}>Cero</button>}
                   </> : <>
-                    <input aria-label={HERRAMIENTAS_FOTO.find((h) => h.id === herramientaFoto)?.label} type="range" min={-100} max={100} step={1} value={ajusteFoto[herramientaFoto as ClaveAjuste]} onChange={(e) => ponerAjuste({ ...ajusteFoto, [herramientaFoto]: Number(e.target.value) })} style={{ flex: '1 1 120px', minWidth: 80, accentColor: k.blue }} />
-                    <span style={{ width: 36, flex: '0 0 auto', color: k.fg, fontWeight: 600, fontSize: 12 }}>{ajusteFoto[herramientaFoto as ClaveAjuste]}</span>
+                    <input aria-label={HERRAMIENTAS_FOTO.find((h) => h.id === herramientaFoto)?.label} type="range" min={-100} max={100} step={1} value={ajusteFoto[herramientaFoto]} onChange={(e) => ponerAjuste({ ...ajusteFoto, [herramientaFoto]: Number(e.target.value) })} style={{ flex: '1 1 120px', minWidth: 80, accentColor: k.blue }} />
+                    <span style={{ width: 36, flex: '0 0 auto', color: k.fg, fontWeight: 600, fontSize: 12 }}>{ajusteFoto[herramientaFoto]}</span>
+                    {ajusteFoto[herramientaFoto] !== 0 && <button type="button" aria-label={`Revertir ${HERRAMIENTAS_FOTO.find((h) => h.id === herramientaFoto)?.label.toLowerCase()}`} onClick={() => ponerAjuste({ ...ajusteFoto, [herramientaFoto]: 0 })} style={{ ...btn, flex: '0 0 auto', fontSize: 12.5, fontWeight: 600, color: k.mut, padding: '0 8px' }}>Cero</button>}
                   </>}
-                  {herramientaFoto !== "recortar" && ajusteFoto[herramientaFoto as ClaveAjuste] !== 0 && <button type="button" aria-label={`Revertir ${HERRAMIENTAS_FOTO.find((h) => h.id === herramientaFoto)?.label.toLowerCase()}`} onClick={() => ponerAjuste({ ...ajusteFoto, [herramientaFoto]: 0 })} style={{ ...btn, flex: '0 0 auto', fontSize: 12.5, fontWeight: 600, color: k.mut, padding: '0 8px' }}>Cero</button>}
                   {fotoMovida && <button type="button" onClick={() => P.editSlide(c, (s) => { const encuadre = { ...(s.encuadre ?? {}) }; const ajuste = { ...(s.ajuste ?? {}) }; delete encuadre[slotSel]; delete ajuste[slotSel]; return { encuadre, ajuste }; })} style={{ ...btn, flex: '0 0 auto', fontSize: 12.5, fontWeight: 600, color: k.mut, padding: '0 8px' }}>Auto</button>}
                 </>}
                 <button onClick={() => setSel('')} aria-label="Quitar selección" style={iconBtn({ width: 30, flex: '0 0 auto', color: k.mut })}><X size={16} /></button>
