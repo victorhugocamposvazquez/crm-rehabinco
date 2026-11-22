@@ -5,10 +5,11 @@
  */
 import Link from "next/link";
 import { useMemo, useRef, useState, type CSSProperties, type DragEvent, type ReactNode } from 'react';
-import { ArrowLeft, Bold, Check, ChevronLeft, ChevronRight, Database, Download, Eye, EyeOff, Image as ImageIcon, Instagram, Italic, LayoutTemplate, Palette, Plus, Redo2, Search, Trash2, Undo2, X } from 'lucide-react';
+import { ArrowLeft, Bold, Check, ChevronLeft, ChevronRight, Database, Download, Eye, EyeOff, FlipHorizontal, Image as ImageIcon, Instagram, Italic, LayoutTemplate, Palette, Plus, Redo2, RotateCw, Search, Trash2, Undo2, X } from 'lucide-react';
 import { estiloTextoDe, FIELD_LABELS, FORMATS, FUENTES, GOALS, MAX_SLIDES, READONLY_FIELDS, TEMPLATES, THEMES, TIPOS_PUBLICACION, TYPOS, fitBox, templatesForGoal, type EstiloTexto, type FieldKey, type FormatId, type FuenteId, type TemplateId, type ThemeId, type TypoId } from "@/lib/estudio/config";
 import { AGENCIA, anidarEscala, anidarPos, assignPhoto, resolveSlots, type InmuebleEstudio } from "@/lib/estudio/data";
-import { encuadreDe, type EncuadreFoto } from "@/lib/estudio/encuadre";
+import { ajusteActivo, ajusteDe, HERRAMIENTAS_FOTO, type AjusteFoto, type ClaveAjuste, type HerramientaFoto } from "@/lib/estudio/ajuste-foto";
+import { conEnderezar, encuadreDe, enderezarDe, type EncuadreFoto } from "@/lib/estudio/encuadre";
 import { buildSlideData, defaultHidden, initialPublication, makeSlide, slideLabel, usedPhotoIndexes, type Publication } from "@/lib/estudio/publicacion";
 import { Creative } from "@/components/estudio/templates";
 import { usePublication } from "@/lib/estudio/usePublication";
@@ -30,55 +31,6 @@ const stage: CSSProperties = { background: k.stage, backgroundImage: 'radial-gra
 const tplName = (t: TemplateId) => TEMPLATES.find((x) => x.id === t)?.nombre ?? t;
 const pantallas = (n: number) => (n === 1 ? '1 pantalla' : `${n} pantallas`);
 const nombreFoto = (nombre: string, i: number) => (/^foto\s*\d+$/i.test(nombre.trim()) ? String(i + 1) : nombre);
-
-function anguloRueda(el: HTMLElement, x: number, y: number) {
-  const r = el.getBoundingClientRect();
-  return (Math.atan2(x - (r.left + r.width / 2), -(y - (r.top + r.height / 2))) * 180) / Math.PI;
-}
-
-/** Rueda continua: cada movimiento suma el giro del dedo, sin salto al cruzar 180°. */
-function RuedaGiro({ grados, etiqueta, onGiro }: { grados: number; etiqueta: string; onGiro: (grados: number) => void }) {
-  const ref = useRef<HTMLButtonElement>(null);
-  const drag = useRef<{ ang: number; rot: number } | null>(null);
-  const visible = grados > 180 ? grados - 360 : grados;
-  return (
-    <button
-      ref={ref}
-      type="button"
-      role="slider"
-      aria-label={etiqueta}
-      aria-valuemin={-180}
-      aria-valuemax={180}
-      aria-valuenow={visible}
-      aria-valuetext={`${visible} grados`}
-      onPointerDown={(e) => {
-        if (e.button !== 0) return;
-        e.currentTarget.setPointerCapture(e.pointerId);
-        drag.current = { ang: anguloRueda(e.currentTarget, e.clientX, e.clientY), rot: grados };
-      }}
-      onPointerMove={(e) => {
-        const d = drag.current;
-        if (!d || !e.currentTarget.hasPointerCapture(e.pointerId)) return;
-        const ahora = anguloRueda(e.currentTarget, e.clientX, e.clientY);
-        let delta = ahora - d.ang;
-        if (delta > 180) delta -= 360;
-        if (delta < -180) delta += 360;
-        d.ang = ahora;
-        d.rot += delta;
-        onGiro(Math.round(d.rot));
-      }}
-      onPointerUp={() => { drag.current = null; }}
-      onKeyDown={(e) => {
-        const paso = e.shiftKey ? 15 : 1;
-        if (e.key === "ArrowRight" || e.key === "ArrowUp") { e.preventDefault(); onGiro(grados + paso); }
-        if (e.key === "ArrowLeft" || e.key === "ArrowDown") { e.preventDefault(); onGiro(grados - paso); }
-      }}
-      style={{ position: "relative", width: 34, height: 34, flex: "0 0 auto", borderRadius: "50%", border: `1.5px solid ${k.line2}`, background: k.bg, cursor: "grab", touchAction: "none", padding: 0 }}
-    >
-      <span aria-hidden style={{ position: "absolute", left: "50%", top: 4, width: 2, height: 10, marginLeft: -1, borderRadius: 1, background: k.blue, transformOrigin: "50% 13px", transform: `rotate(${grados}deg)` }} />
-    </button>
-  );
-}
 
 export type EstudioSavePayload = { inmuebleId: string; state: Publication & { template: TemplateId }; files: Partial<Record<FormatId, Blob>>; piezas: Blob[]; caption: string };
 export type EstudioReviewPayload = { inmuebleId: string; state: Publication & { template: TemplateId }; nota: string };
@@ -104,6 +56,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
   const { pub } = P;
   const [cur, setCur] = useState(0);
   const [sel, setSel] = useState('');
+  const [herramientaFoto, setHerramientaFoto] = useState<HerramientaFoto>("recortar");
   const [tab, setTab] = useState<Tab>('datos');
   const [addOpen, setAddOpen] = useState<false | 'top' | 'bottom'>(false);
   const [pvOpen, setPvOpen] = useState(false);
@@ -157,8 +110,15 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
   const nHid = tpl.uses.filter((f) => slide.hidden[f]).length;
   const slotName = (i: number) => (tpl.fotos === 1 ? 'Foto' : i === 0 ? 'Foto principal' : `Foto ${i + 1}`);
   const encFoto = encuadreDe(slide.encuadre?.[slotSel]);
+  const ajusteFoto = ajusteDe(slide.ajuste?.[slotSel]);
   const ponerEncuadre = (next: EncuadreFoto, tag?: string) => P.editSlide(c, (s) => ({ encuadre: { ...(s.encuadre ?? {}), [slotSel]: next } }), tag);
-  const fotoMovida = encFoto.zoom !== 1 || encFoto.x !== 0 || encFoto.y !== 0 || encFoto.rot !== 0;
+  const ponerAjuste = (next: AjusteFoto) => P.editSlide(c, (s) => {
+    const ajuste = { ...(s.ajuste ?? {}) };
+    if (ajusteActivo(next)) ajuste[slotSel] = next;
+    else delete ajuste[slotSel];
+    return { ajuste };
+  }, "ajuste:" + slide.id + ":" + slotSel);
+  const fotoMovida = encFoto.zoom !== 1 || encFoto.x !== 0 || encFoto.y !== 0 || encFoto.rot !== 0 || encFoto.voltear === true || ajusteActivo(ajusteFoto);
 
   // ---- objetivo y diseño de la imagen principal (paso 2) ----
   const pickGoal = (id: typeof pub.goal) => P.edit((p) => {
@@ -430,7 +390,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
 
             {/* Barra de edición: solo cuando hay un texto o una foto elegidos */}
             {(selKey || selFoto) && <div className="estudio-editbar" style={{ display: 'flex', justifyContent: 'center', flexShrink: 0, padding: '8px 16px 0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', width: '100%', padding: '4px 8px', borderRadius: 10, border: `1px solid ${k.blue}`, background: k.panel }}>
+              <div style={{ display: 'flex', flexDirection: selFoto ? 'column' : 'row', alignItems: selFoto ? 'stretch' : 'center', gap: 8, flexWrap: 'nowrap', width: '100%', padding: '4px 8px', borderRadius: 10, border: `1px solid ${k.blue}`, background: k.panel }}>
                 {selKey && (<>
                   {READONLY_FIELDS.includes(selKey) ? <span style={{ flex: '1 1 auto', minWidth: 0, fontSize: 13, color: k.mut, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selKey === 'precio' ? `${data.f.precio} (se cambia en la ficha)` : 'Automático'}</span>
                     : <input id="estudio-sel" aria-label={FIELD_LABELS[selKey]} value={data.f[selKey]} onChange={(e) => setField(selKey, e.target.value)} style={{ flex: '1 1 auto', minWidth: 0, height: 34, padding: '0 10px', border: `1px solid ${k.line2}`, borderRadius: 8, background: k.bg, color: k.fg, fontSize: 14, outline: 0 }} />}
@@ -459,21 +419,41 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
                   <button type="button" aria-label="Ocultar" onClick={() => toggleField(selKey)} style={{ ...btn, width: 34, height: 34, flex: '0 0 auto', display: 'grid', placeItems: 'center', borderRadius: 8, border: `1px solid ${k.line2}` }}><EyeOff size={16} /></button>
                 </>)}
                 {selFoto && <>
-                  <b style={{ fontSize: 12.5, color: k.link, whiteSpace: 'nowrap' }}>{slotName(slotSel)}</b>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '0 0 auto', fontSize: 12, color: k.mut }}>
-                    <span>Giro</span>
-                    <RuedaGiro grados={encFoto.rot} etiqueta={`Giro de ${slotName(slotSel).toLowerCase()} en grados`} onGiro={(rot) => ponerEncuadre({ ...encFoto, rot }, "giro:" + slide.id + ":" + slotSel)} />
-                    <span style={{ width: 36, color: k.fg, fontWeight: 600 }}>{(encFoto.rot > 180 ? encFoto.rot - 360 : encFoto.rot)}°</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                    <b style={{ fontSize: 12.5, color: k.link, whiteSpace: 'nowrap' }}>{slotName(slotSel)}</b>
+                    <div role="tablist" aria-label="Herramientas de la foto" style={{ display: 'flex', gap: 6, overflowX: 'auto', flex: '1 1 auto', minWidth: 0 }}>
+                      {HERRAMIENTAS_FOTO.map((h) => {
+                        const on = herramientaFoto === h.id;
+                        const tocada = h.id === "recortar" ? encFoto.zoom !== 1 || encFoto.x !== 0 || encFoto.y !== 0 || encFoto.rot !== 0 || encFoto.voltear === true : ajusteFoto[h.id as ClaveAjuste] !== 0;
+                        return (
+                          <button key={h.id} type="button" role="tab" aria-selected={on} onClick={() => setHerramientaFoto(h.id)} style={{ ...btn, flex: '0 0 auto', height: 30, padding: '0 10px', borderRadius: 8, border: `1px solid ${on ? k.blue : k.line2}`, background: on ? 'rgba(76,141,255,.12)' : k.bg, fontSize: 12.5, fontWeight: tocada ? 700 : 500, whiteSpace: 'nowrap' }}>{h.label}</button>
+                        );
+                      })}
+                    </div>
+                    <button onClick={() => setSel('')} aria-label="Quitar selección" style={iconBtn({ width: 30, flex: '0 0 auto', color: k.mut })}><X size={16} /></button>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 180px', minWidth: 150, fontSize: 12, color: k.mut }}>
-                    <span>Zoom</span>
-                    <input aria-label={`Zoom de ${slotName(slotSel).toLowerCase()}`} type="range" min={100} max={300} step={1} value={Math.round(encFoto.zoom * 100)} onChange={(e) => ponerEncuadre({ ...encFoto, zoom: Number(e.target.value) / 100 }, "zoom:" + slide.id + ":" + slotSel)} style={{ flex: 1, minWidth: 80, accentColor: k.blue }} />
-                    <span style={{ width: 40, color: k.fg, fontWeight: 600 }}>{Math.round(encFoto.zoom * 100)}%</span>
-                  </div>
-                  <span style={{ fontSize: 12.5, color: k.mut }}>Arrastra para moverla</span>
-                  {fotoMovida && <button type="button" onClick={() => P.editSlide(c, (s) => { const encuadre = { ...(s.encuadre ?? {}) }; delete encuadre[slotSel]; return { encuadre }; })} style={{ ...btn, fontSize: 12.5, fontWeight: 600, color: k.mut, padding: '0 8px' }}>Auto</button>}
+                  {herramientaFoto === "recortar" ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, fontSize: 12, color: k.mut }}>
+                      <span>Giro</span>
+                      <input aria-label={`Enderezar ${slotName(slotSel).toLowerCase()}`} type="range" min={-45} max={45} step={1} value={enderezarDe(encFoto.rot)} onChange={(e) => ponerEncuadre({ ...encFoto, rot: conEnderezar(encFoto.rot, Number(e.target.value)) }, "giro:" + slide.id + ":" + slotSel)} style={{ flex: 1, minWidth: 72, accentColor: k.blue }} />
+                      <span style={{ width: 36, color: k.fg, fontWeight: 600 }}>{enderezarDe(encFoto.rot)}°</span>
+                      <button type="button" aria-label="Girar 90 grados" onClick={() => ponerEncuadre({ ...encFoto, rot: encFoto.rot + 90 })} style={iconBtn({ border: `1px solid ${k.line2}`, background: k.bg })}><RotateCw size={16} /></button>
+                      <button type="button" aria-label="Voltear en horizontal" aria-pressed={encFoto.voltear === true} onClick={() => ponerEncuadre({ ...encFoto, voltear: !encFoto.voltear })} style={iconBtn({ border: `1px solid ${encFoto.voltear ? k.blue : k.line2}`, background: encFoto.voltear ? 'rgba(76,141,255,.12)' : k.bg })}><FlipHorizontal size={16} /></button>
+                      <span>Zoom</span>
+                      <input aria-label={`Zoom de ${slotName(slotSel).toLowerCase()}`} type="range" min={100} max={300} step={1} value={Math.round(encFoto.zoom * 100)} onChange={(e) => ponerEncuadre({ ...encFoto, zoom: Number(e.target.value) / 100 }, "zoom:" + slide.id + ":" + slotSel)} style={{ flex: 1, minWidth: 72, accentColor: k.blue }} />
+                      <span style={{ width: 40, color: k.fg, fontWeight: 600 }}>{Math.round(encFoto.zoom * 100)}%</span>
+                      <span style={{ whiteSpace: 'nowrap' }}>Arrastra para moverla</span>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: k.mut }}>
+                      <span style={{ width: 92 }}>{HERRAMIENTAS_FOTO.find((h) => h.id === herramientaFoto)?.label}</span>
+                      <input aria-label={HERRAMIENTAS_FOTO.find((h) => h.id === herramientaFoto)?.label} type="range" min={-100} max={100} step={1} value={ajusteFoto[herramientaFoto as ClaveAjuste]} onChange={(e) => ponerAjuste({ ...ajusteFoto, [herramientaFoto]: Number(e.target.value) })} style={{ flex: 1, minWidth: 80, accentColor: k.blue }} />
+                      <span style={{ width: 36, color: k.fg, fontWeight: 600 }}>{ajusteFoto[herramientaFoto as ClaveAjuste]}</span>
+                    </div>
+                  )}
+                  {fotoMovida && <button type="button" onClick={() => P.editSlide(c, (s) => { const encuadre = { ...(s.encuadre ?? {}) }; const ajuste = { ...(s.ajuste ?? {}) }; delete encuadre[slotSel]; delete ajuste[slotSel]; return { encuadre, ajuste }; })} style={{ ...btn, alignSelf: 'flex-start', fontSize: 12.5, fontWeight: 600, color: k.mut, padding: '0 8px' }}>Auto</button>}
                 </>}
-                <button onClick={() => setSel('')} aria-label="Quitar selección" style={iconBtn({ width: 30, flex: '0 0 auto', color: k.mut })}><X size={16} /></button>
+                {!selFoto && <button onClick={() => setSel('')} aria-label="Quitar selección" style={iconBtn({ width: 30, flex: '0 0 auto', color: k.mut })}><X size={16} /></button>}
               </div>
             </div>}
 

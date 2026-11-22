@@ -14,6 +14,7 @@
 import { createElement as h, useLayoutEffect, useRef, useState, type CSSProperties, type FocusEvent, type FormEvent, type HTMLAttributes, type KeyboardEvent, type ReactElement, type ReactNode } from 'react';
 import { MarcaRehabinco } from "@/components/estudio/marca";
 import { FONT, FUENTES, TYPOS, type EstiloTexto, type TemplateId, type Theme, type Typo, type FieldKey } from "@/lib/estudio/config";
+import { filtroAjuste, fondoVineta, ajusteDe, type AjusteFoto } from "@/lib/estudio/ajuste-foto";
 import { encuadreDe, transformEncuadre, type EncuadreFoto } from "@/lib/estudio/encuadre";
 
 export type Spec = { k: 'm2' | 'hab' | 'banos'; v: string; u: string; l: string };
@@ -36,8 +37,10 @@ export type CreativeData = {
   pos: Partial<Record<FieldKey, { x: number; y: number }>>;
   /** Fuente, negrita y cursiva pedidas para ese texto. Si falta, se queda la plantilla. */
   fuentes: Partial<Record<FieldKey, EstiloTexto>>;
-  /** Zoom, movimiento y giro por hueco de foto. */
+  /** Zoom, movimiento, giro y volteo por hueco de foto. */
   encuadre?: Partial<Record<number, EncuadreFoto>>;
+  /** Luz y color por hueco de foto. */
+  ajuste?: Partial<Record<number, Partial<AjusteFoto>>>;
 };
 
 type Sel = {
@@ -468,7 +471,7 @@ export type CreativeProps = {
 /** Pinta una creatividad. Componente puro: no lee estado global ni hace peticiones. */
 export function Creative({ template, data, width: W, height: H, editable = false, selected = '', onSelect, onMove, onText, onEncuadre }: CreativeProps) {
   const edit = editable;
-  const x = { ...data, escala: data.escala ?? {}, pos: data.pos ?? {}, fuentes: data.fuentes ?? {}, encuadre: data.encuadre ?? {}, sel: selected, onSel: onSelect, onMove, onText, onEncuadre, W, H, edit, tall: H > W * 1.1, wide: W > H * 1.3, fs: +(Math.min(W, H * .8) / 22).toFixed(3) } as Ctx;
+  const x = { ...data, escala: data.escala ?? {}, pos: data.pos ?? {}, fuentes: data.fuentes ?? {}, encuadre: data.encuadre ?? {}, ajuste: data.ajuste ?? {}, sel: selected, onSel: onSelect, onMove, onText, onEncuadre, W, H, edit, tall: H > W * 1.1, wide: W > H * 1.3, fs: +(Math.min(W, H * .8) / 22).toFixed(3) } as Ctx;
   x.fld = (key, style, ...kids) => {
     if (!x.sh[key]) return null;
     const stl = ajustar(x, key, style);
@@ -514,9 +517,15 @@ export function Creative({ template, data, width: W, height: H, editable = false
   };
   x.pic = (i, style) => {
     const enc = encuadreDe(x.encuadre?.[i]);
+    const ajuste = ajusteDe(x.ajuste?.[i]);
+    const filtroColor = filtroAjuste(ajuste);
+    const filtroPlantilla = x.pf[i] && x.pf[i] !== "none" ? x.pf[i] : "";
+    const filter = [filtroPlantilla, filtroColor !== "none" ? filtroColor : ""].filter(Boolean).join(" ") || undefined;
+    const vineta = fondoVineta(ajuste);
     const marco: CSSProperties = { ...style, overflow: 'hidden', position: style.position ?? 'relative' };
-    const imagen = h(FotoEncuadre, { enc, src: x.ph[i] || "", filter: x.pf[i] && x.pf[i] !== "none" ? x.pf[i] : undefined });
-    if (!edit) return h('div', { style: marco }, imagen);
+    const imagen = h(FotoEncuadre, { enc, src: x.ph[i] || "", filter });
+    const capa = vineta ? h("span", { "aria-hidden": true, style: { position: "absolute", inset: 0, zIndex: 4, pointerEvents: "none", background: vineta } }) : null;
+    if (!edit) return h('div', { style: marco }, imagen, capa);
     const on = x.sel === 'foto' + i;
     return h('div', {
       className: 'estudio-pic',
@@ -556,7 +565,7 @@ export function Creative({ template, data, width: W, height: H, editable = false
         window.addEventListener('pointermove', move);
         window.addEventListener('pointerup', up);
       },
-    }, imagen, h('span', { 'aria-hidden': true, style: { position: 'absolute', inset: 0, zIndex: 6, pointerEvents: 'none', boxShadow: on ? 'inset 0 0 0 4px #4C8DFF' : 'none' } }));
+    }, imagen, capa, h('span', { 'aria-hidden': true, style: { position: 'absolute', inset: 0, zIndex: 6, pointerEvents: 'none', boxShadow: on ? 'inset 0 0 0 4px #4C8DFF' : 'none' } }));
   };
   x.stats = (o) => d({ display: 'flex', alignItems: 'baseline', flexWrap: 'nowrap', justifyContent: o.center ? 'center' : 'flex-start' }, ...x.specs.map((sx, i) => x.fld(sx.k, { whiteSpace: 'nowrap', display: 'flex', alignItems: 'baseline', gap: '.25em', paddingLeft: i ? (o.short ? '.55em' : '.8em') : '0', marginLeft: i ? (o.short ? '.55em' : '.8em') : '0', borderLeft: i ? '1px solid ' + (o.line || x.c.line) : '0' },
     sp({ fontSize: (o.size || 1.1) + 'em', fontWeight: 600, letterSpacing: '-.02em' }, sx.v), sp({ fontSize: o.short ? '.52em' : '.6em', color: o.mut || x.c.mut }, o.short && sx.k === 'hab' ? 'dorm.' : sx.u))));

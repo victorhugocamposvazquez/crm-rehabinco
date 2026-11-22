@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { ajusteDe } from "./ajuste-foto";
 import { templatesForGoal } from "./config";
 import type { EstiloTexto } from "./config";
 import { buildSlideData, initialPublication, makeSlide, nextUnusedPhoto } from "./publicacion";
@@ -59,6 +60,19 @@ describe("publicación de pantallas", () => {
     assert.equal(data.encuadre?.[0]?.zoom, 1.4);
     assert.equal(data.encuadre?.[0]?.rot, 90);
     assert.equal(buildSlideData(inm, pub, makeSlide("visita")).encuadre?.[0], undefined);
+  });
+
+  it("el ajuste y el volteo de una foto se quedan en su pantalla", () => {
+    const pub = initialPublication("visita");
+    pub.slides[0].encuadre = { 0: { zoom: 1, x: 0, y: 0, rot: 0, voltear: true } };
+    pub.slides[0].ajuste = { 0: { vineta: 40, brillo: 250 } };
+    const data = buildSlideData(inm, pub, pub.slides[0]);
+    assert.equal(data.encuadre?.[0]?.voltear, true);
+    assert.equal(data.ajuste?.[0]?.vineta, 40);
+    assert.equal(ajusteDe(data.ajuste?.[0]).brillo, 100);
+    const otra = buildSlideData(inm, pub, makeSlide("visita"));
+    assert.equal(otra.ajuste?.[0], undefined);
+    assert.equal(otra.encuadre?.[0]?.voltear, undefined);
   });
 
   it("la tipografía de un texto en Feed no cambia la de Post", () => {
