@@ -56,12 +56,14 @@ export type CreativeState = {
   escala: Partial<Record<FormatId, Partial<Record<FieldKey, number>>>>;
   /** Desplazamiento en % del cartel, por formato y dato. */
   pos: Partial<Record<FormatId, Partial<Record<FieldKey, { x: number; y: number }>>>>;
+  /** Tipografía elegida para un texto, por formato. Si falta, manda la de la publicación. */
+  tipografia: Partial<Record<FormatId, Partial<Record<FieldKey, TypoId>>>>;
 };
 
 export const initialCreativeState: CreativeState = {
   goal: 'nuevo', template: 'galeria', format: 'post', theme: 'blanco', typo: 'editorial',
   hidden: { ref: true, tel: true, agente: true }, overrides: {}, slots: null, soloZona: true,
-  escala: {}, pos: {},
+  escala: {}, pos: {}, tipografia: {},
 };
 
 const eur = (n: number) => n.toLocaleString('es-ES') + ' €';
@@ -152,6 +154,7 @@ export function buildCreativeData(inm: InmuebleEstudio, st: CreativeState): Crea
     ph: order.map((p) => (p ? `url("${p.url}")` : 'none')), pf: order.map(() => 'none'), phName: order.map((p) => p?.nombre ?? ''),
     barrio: inm.barrio, m2: inm.m2, email: AGENCIA.email,
     escala: escalaDelFormato(st.escala, st.format), pos: posDelFormato(st.pos, st.format),
+    fuentes: st.tipografia?.[st.format] ?? {},
     bigNum: millones ? (inm.precio / 1e6).toLocaleString('es-ES', { maximumFractionDigits: 2 }) : String(Math.round(inm.precio / 1000)),
     bigUnit: millones ? 'millones de euros' : 'mil euros',
   };

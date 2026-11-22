@@ -1,7 +1,8 @@
 /**
  * Una publicación es una lista ordenada de pantallas (1 = imagen suelta, 2-10 = carrusel).
  * Cada pantalla tiene su diseño, sus datos ocultos, sus textos y sus fotos.
- * Formato, color, tipografía, objetivo, zona, tamaño y posición son de la publicación.
+ * Formato, color, tipografía de base, objetivo y zona son de la publicación.
+ * El tamaño, la posición y la tipografía de cada texto van aparte, por formato.
  */
 import type { CreativeData } from "@/components/estudio/templates";
 import { MAX_SLIDES, type FieldKey, type FormatId, type GoalId, type TemplateId, type ThemeId, type TypoId } from "./config";
@@ -27,6 +28,8 @@ export type Publication = {
   escala: CreativeState["escala"];
   /** Desplazamiento por formato. */
   pos: CreativeState["pos"];
+  /** Tipografía de cada texto, por formato. */
+  tipografia: CreativeState["tipografia"];
 };
 
 let seq = 0;
@@ -56,7 +59,7 @@ export function makeSlide(template: TemplateId, photo: number | null = null): Sl
 export function initialPublication(template: TemplateId = "galeria"): Publication {
   return {
     goal: "nuevo", format: "feed", theme: "blanco", typo: "editorial", soloZona: true,
-    slides: [makeSlide(template)], escala: {}, pos: {},
+    slides: [makeSlide(template)], escala: {}, pos: {}, tipografia: {},
   };
 }
 
@@ -73,6 +76,7 @@ export function slideToState(pub: Publication, slide: Slide): CreativeState {
     soloZona: pub.soloZona,
     escala: pub.escala,
     pos: pub.pos,
+    tipografia: pub.tipografia ?? {},
   };
 }
 

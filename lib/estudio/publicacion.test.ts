@@ -51,6 +51,15 @@ describe("publicación de pantallas", () => {
     assert.equal(data.sh.pie, false);
   });
 
+  it("la tipografía de un texto en Feed no cambia la de Post", () => {
+    const pub = initialPublication("hogar");
+    pub.tipografia = { feed: { titulo: "impacto" } };
+    const feed = buildSlideData(inm, pub, pub.slides[0]);
+    const post = buildSlideData(inm, { ...pub, format: "post" }, pub.slides[0]);
+    assert.equal(feed.fuentes.titulo, "impacto");
+    assert.equal(post.fuentes.titulo, undefined);
+  });
+
   it("el tamaño de Feed no cambia el de Post", () => {
     const pub = initialPublication("hogar");
     pub.escala = { feed: { titulo: 1.4 } };
