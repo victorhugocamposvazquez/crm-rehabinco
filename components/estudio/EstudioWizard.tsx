@@ -5,7 +5,7 @@
  */
 import Link from "next/link";
 import { useMemo, useRef, useState, type CSSProperties, type DragEvent, type ReactNode } from 'react';
-import { ArrowLeft, Bold, Check, ChevronLeft, ChevronRight, Database, Download, Eye, EyeOff, Image as ImageIcon, Instagram, Italic, LayoutTemplate, Palette, Plus, Redo2, RotateCcw, RotateCw, Search, Trash2, Undo2, X } from 'lucide-react';
+import { ArrowLeft, Bold, Check, ChevronLeft, ChevronRight, Database, Download, Eye, EyeOff, Image as ImageIcon, Instagram, Italic, LayoutTemplate, Palette, Plus, Redo2, Search, Trash2, Undo2, X } from 'lucide-react';
 import { estiloTextoDe, FIELD_LABELS, FORMATS, FUENTES, GOALS, MAX_SLIDES, READONLY_FIELDS, TEMPLATES, THEMES, TIPOS_PUBLICACION, TYPOS, fitBox, templatesForGoal, type EstiloTexto, type FieldKey, type FormatId, type FuenteId, type TemplateId, type ThemeId, type TypoId } from "@/lib/estudio/config";
 import { AGENCIA, anidarEscala, anidarPos, assignPhoto, resolveSlots, type InmuebleEstudio } from "@/lib/estudio/data";
 import { encuadreDe, type EncuadreFoto } from "@/lib/estudio/encuadre";
@@ -408,9 +408,12 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
                 </>)}
                 {selFoto && <>
                   <b style={{ fontSize: 12.5, color: k.link, whiteSpace: 'nowrap' }}>{slotName(slotSel)}</b>
-                  <button type="button" aria-label="Girar a la izquierda" onClick={() => ponerEncuadre({ ...encFoto, rot: (encFoto.rot + 270) % 360 })} style={iconBtn({ border: `1px solid ${k.line2}`, background: k.bg })}><RotateCcw size={16} /></button>
-                  <button type="button" aria-label="Girar a la derecha" onClick={() => ponerEncuadre({ ...encFoto, rot: (encFoto.rot + 90) % 360 })} style={iconBtn({ border: `1px solid ${k.line2}`, background: k.bg })}><RotateCw size={16} /></button>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 180px', minWidth: 160, fontSize: 12, color: k.mut }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 180px', minWidth: 150, fontSize: 12, color: k.mut }}>
+                    <span>Giro</span>
+                    <input aria-label={`Giro de ${slotName(slotSel).toLowerCase()} en grados`} type="range" min={-180} max={180} step={1} value={encFoto.rot > 180 ? encFoto.rot - 360 : encFoto.rot} onChange={(e) => ponerEncuadre({ ...encFoto, rot: Number(e.target.value) }, "giro:" + slide.id + ":" + slotSel)} style={{ flex: 1, minWidth: 72, accentColor: k.blue }} />
+                    <span style={{ width: 36, color: k.fg, fontWeight: 600 }}>{encFoto.rot > 180 ? encFoto.rot - 360 : encFoto.rot}°</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 180px', minWidth: 150, fontSize: 12, color: k.mut }}>
                     <span>Zoom</span>
                     <input aria-label={`Zoom de ${slotName(slotSel).toLowerCase()}`} type="range" min={100} max={300} step={1} value={Math.round(encFoto.zoom * 100)} onChange={(e) => ponerEncuadre({ ...encFoto, zoom: Number(e.target.value) / 100 }, "zoom:" + slide.id + ":" + slotSel)} style={{ flex: 1, minWidth: 80, accentColor: k.blue }} />
                     <span style={{ width: 40, color: k.fg, fontWeight: 600 }}>{Math.round(encFoto.zoom * 100)}%</span>
