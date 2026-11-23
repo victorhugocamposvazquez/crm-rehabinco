@@ -31,8 +31,7 @@ async function ejecutar(request: Request): Promise<Response> {
   const { data: profiles } = await admin
     .from("profiles")
     .select("id, nombre_completo, activo, role")
-    .eq("activo", true)
-    .in("role", ["superadmin", "admin", "comercial", "agente"]);
+    .eq("activo", true);
 
   const { data: festivosRows } = await admin.from("fichaje_festivos").select("fecha");
   const festivos = new Set((festivosRows ?? []).map((f) => String(f.fecha)));

@@ -122,6 +122,7 @@ const RUTAS = (
 
 export function permisoPorDefecto(role: Role | null | undefined, id: PermisoId): boolean {
   if (role === "superadmin") return true;
+  if (id === "fichaje") return true;
   if (role === "marketing") return id === "inmuebles";
   if (id === "tareas_equipo") return role === "admin" || role === "comercial";
   if (id === "catastro_equipo") return role === "admin" || role === "catastro_user";

@@ -207,9 +207,9 @@ export const NAV_DESKTOP_BY_ROLE: Record<Role, readonly string[]> = {
     "/clientes",
     "/settings",
   ],
-  editor: ["/presupuestos", "/settings"],
-  catastro_user: ["/catastro", "/clientes", "/tareas", "/calendario", "/settings"],
-  marketing: ["/estudio", "/settings"],
+  editor: ["/fichaje", "/presupuestos", "/settings"],
+  catastro_user: ["/fichaje", "/catastro", "/clientes", "/tareas", "/calendario", "/settings"],
+  marketing: ["/estudio", "/fichaje", "/settings"],
 };
 
 /** Atajos de la barra: lo del día a día. El resto vive en el menú lateral. */
@@ -219,18 +219,18 @@ export const NAV_TOP_BY_ROLE: Record<Role, readonly string[]> = {
   superadmin: NAV_TOP_DIRECCION,
   admin: NAV_TOP_DIRECCION,
   comercial: ["/", "/fichaje", "/tareas", "/calendario", "/captacion"],
-  editor: ["/presupuestos"],
-  catastro_user: ["/catastro", "/clientes", "/tareas", "/calendario"],
-  marketing: ["/estudio"],
+  editor: ["/fichaje", "/presupuestos"],
+  catastro_user: ["/fichaje", "/catastro", "/clientes", "/tareas", "/calendario"],
+  marketing: ["/estudio", "/fichaje"],
 };
 
 export const NAV_MOBILE_BY_ROLE: Record<Role, readonly string[]> = {
   superadmin: ["/", "/fichaje", "/propiedades", "/calendario", "/settings"],
   admin: ["/", "/fichaje", "/propiedades", "/calendario", "/settings"],
   comercial: ["/", "/fichaje", "/propiedades", "/calendario", "/settings"],
-  editor: ["/presupuestos", "/settings"],
-  catastro_user: ["/catastro", "/clientes", "/calendario", "/tareas", "/settings"],
-  marketing: ["/estudio", "/settings"],
+  editor: ["/fichaje", "/presupuestos", "/settings"],
+  catastro_user: ["/fichaje", "/catastro", "/clientes", "/calendario", "/tareas", "/settings"],
+  marketing: ["/estudio", "/fichaje", "/settings"],
 };
 
 export function navHrefsForRole(

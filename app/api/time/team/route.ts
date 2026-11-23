@@ -17,7 +17,6 @@ export async function GET(request: Request) {
     .from("profiles")
     .select("id, nombre_completo, color, role, activo")
     .eq("activo", true)
-    .in("role", ["superadmin", "admin", "comercial", "agente"])
     .order("nombre_completo");
 
   const startHoy = `${hoy}T00:00:00+02:00`;

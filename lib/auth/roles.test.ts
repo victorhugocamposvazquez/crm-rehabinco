@@ -89,6 +89,7 @@ describe("roles", () => {
     assert.equal(admin.includes("/facturas"), true);
     assert.deepEqual([...navHrefsForRole("admin", "top")], [
       "/",
+      "/fichaje",
       "/captacion",
       "/catastro",
       "/propiedades",
@@ -105,15 +106,15 @@ describe("roles", () => {
     );
     assert.deepEqual([...navHrefsForRole("comercial", "mobile")], [
       "/",
+      "/fichaje",
       "/propiedades",
       "/calendario",
-      "/tareas",
       "/settings",
     ]);
     assert.deepEqual([...navHrefsForRole("admin", "mobile")], [
       "/",
+      "/fichaje",
       "/propiedades",
-      "/catastro",
       "/calendario",
       "/settings",
     ]);

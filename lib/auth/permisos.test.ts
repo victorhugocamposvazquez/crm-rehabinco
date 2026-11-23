@@ -41,5 +41,14 @@ describe("permisos por defecto", () => {
     assert.equal(hrefsConPermisos("marketing", "desktop", null).includes("/propiedades"), false);
     assert.equal(hrefsConPermisos("editor", "desktop", null).includes("/presupuestos"), true);
     assert.equal(hrefsConPermisos("editor", "desktop", null).includes("/tareas"), false);
+    assert.equal(permisoPorDefecto("editor", "fichaje"), true);
+    assert.equal(permisoPorDefecto("catastro_user", "fichaje"), true);
+    assert.equal(permisoPorDefecto("marketing", "fichaje"), true);
+    assert.equal(rutaPermitida("/fichaje", "editor", null), true);
+    assert.equal(rutaPermitida("/fichaje", "catastro_user", null), true);
+    assert.equal(rutaPermitida("/fichaje", "marketing", null), true);
+    assert.equal(hrefsConPermisos("editor", "mobile", null).includes("/fichaje"), true);
+    assert.equal(hrefsConPermisos("marketing", "mobile", null).includes("/fichaje"), true);
+    assert.equal(hrefsConPermisos("catastro_user", "top", null).includes("/fichaje"), true);
   });
 });

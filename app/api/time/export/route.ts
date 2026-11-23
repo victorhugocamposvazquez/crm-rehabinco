@@ -22,8 +22,7 @@ export async function GET(request: Request) {
   const { data: profiles } = await sesion.supabase
     .from("profiles")
     .select("id, nombre_completo, activo, role")
-    .eq("activo", true)
-    .in("role", ["superadmin", "admin", "comercial", "agente"]);
+    .eq("activo", true);
 
   const { data: punchesRaw } = await sesion.supabase
     .from("fichaje_punches")
