@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   }
   const { data: perfil } = await acceso.supabase.from("profiles").select("role").eq("id", acceso.user.id).maybeSingle();
   if (estudioEnPrueba(perfil?.role)) {
-    return NextResponse.json({ ok: false, error: "En modo prueba no se guarda el diseño." }, { status: 403 });
+    return NextResponse.json({ ok: false, error: "Demo only. No se guarda el diseño." }, { status: 403 });
   }
   const form = await req.formData();
   const propiedadId = String(form.get("propiedadId") || "");

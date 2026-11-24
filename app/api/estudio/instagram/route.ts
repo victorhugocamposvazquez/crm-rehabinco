@@ -38,7 +38,7 @@ export async function POST(req: Request) {
   if (acceso.error || !acceso.user) return NextResponse.json({ ok: false, error: "No autorizado." }, { status: 401 });
   const { data: perfil } = await acceso.supabase.from("profiles").select("role").eq("id", acceso.user.id).maybeSingle();
   if (estudioEnPrueba(perfil?.role)) {
-    return NextResponse.json({ ok: false, error: "En modo prueba no se publica." }, { status: 403 });
+    return NextResponse.json({ ok: false, error: "Demo only. No se publica." }, { status: 403 });
   }
   if (!instagramConfigurado()) {
     return NextResponse.json({ ok: false, error: "Falta la app de Instagram en el servidor." }, { status: 400 });
