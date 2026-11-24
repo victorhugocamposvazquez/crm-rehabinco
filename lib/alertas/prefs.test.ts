@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { canalDeTipo, itemPermitido, prefsCompletas, PREFS_AVISO_DEFAULT } from "./prefs";
+import { canalDeTipo, canalesVisibles, itemPermitido, prefsCompletas, CANALES_AVISO, PREFS_AVISO_DEFAULT } from "./prefs";
 
 describe("prefs de avisos", () => {
   it("sin fila guarda todo activo", () => {
@@ -25,6 +25,13 @@ describe("prefs de avisos", () => {
     assert.equal(canalDeTipo("mencion"), "menciones");
     assert.equal(canalDeTipo("parte"), "partes");
     assert.equal(canalDeTipo("soporte"), "soporte");
+  });
+
+  it("marketing solo elige el aviso de sus diseños", () => {
+    const canales = canalesVisibles("marketing");
+    assert.deepEqual(canales.map((canal) => canal.id), ["estudio"]);
+    assert.match(canales[0]!.hint, /aprueba/);
+    assert.equal(canalesVisibles("comercial").length, CANALES_AVISO.length);
   });
 
   it("respeta el interruptor del canal", () => {

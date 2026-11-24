@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isSuperAdmin } from "@/lib/auth/roles";
+import { isMarketing, isSuperAdmin } from "@/lib/auth/roles";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SettingsAdminNav } from "@/components/settings/SettingsAdminNav";
 import { AvisosPwaCard } from "@/components/pwa/AvisosPwa";
@@ -40,7 +40,7 @@ export default function SettingsAvisosPage() {
       <PageHeader
         breadcrumb={[{ label: "Ajustes", href: "/settings" }, { label: "Avisos" }]}
         title="Avisos"
-        description="Este dispositivo, la hora del recordatorio, de quién quieres avisos y qué tipos."
+        description={isMarketing(user?.role) ? "Este dispositivo y el aviso cuando se aprueba un diseño o hay que rectificarlo." : "Este dispositivo, la hora del recordatorio, de quién quieres avisos y qué tipos."}
       />
       <SettingsAdminNav role={user?.role} />
       <div className="mt-6 space-y-4 min-[820px]:overflow-hidden">

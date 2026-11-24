@@ -12,6 +12,7 @@ import { ajusteActivo, ajusteDe, HERRAMIENTAS_FOTO, type AjusteFoto, type Herram
 import { conEnderezar, encuadreDe, encuadreTocado, enderezarDe, type EncuadreFoto } from "@/lib/estudio/encuadre";
 import { buildSlideData, defaultHidden, initialPublication, makeSlide, slideLabel, usedPhotoIndexes, type Publication } from "@/lib/estudio/publicacion";
 import { Creative } from "@/components/estudio/templates";
+import { AvisosBarra } from "@/components/layout/AvisosBarra";
 import { usePublication } from "@/lib/estudio/usePublication";
 import { downloadBlob, exportSlides, slideFilename } from "@/lib/estudio/exportCreative";
 import { textoInstagram } from "@/lib/estudio/instagram";
@@ -237,7 +238,8 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
   return (
     <div className="estudio-shell" style={{ background: k.bg, color: k.fg }}>
       {/* Pasos: cada uno enseña lo ya elegido */}
-      <ol aria-label="Pasos" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexWrap: 'wrap', listStyle: 'none', margin: 0, padding: '12px 24px', borderBottom: `1px solid ${k.line}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px 8px 16px', borderBottom: `1px solid ${k.line}` }}>
+      <ol aria-label="Pasos" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flex: '1 1 auto', flexWrap: 'wrap', listStyle: 'none', margin: 0, padding: '4px 0' }}>
         {STEPS.map(([id, lbl], i) => { const on = i === si, done = i < si; return (
           <li key={id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <button onClick={() => go(id)} aria-current={on ? 'step' : undefined} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 9, height: 44, padding: '0 14px 0 8px', borderRadius: 999, background: on ? k.chip : 'transparent', color: on || done ? k.fg : k.mut }}>
@@ -247,6 +249,8 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
             {i < STEPS.length - 1 && <span aria-hidden style={{ width: 22, height: 2, borderRadius: 2, background: done ? k.blue : k.line2 }} />}
           </li>); })}
       </ol>
+      <AvisosBarra />
+      </div>
 
       {/* 1 · Inmueble: elegir avanza solo */}
       {step === 'inmueble' && (

@@ -1,3 +1,5 @@
+import type { Role } from "@/lib/auth/roles";
+
 export const CANALES_AVISO = [
   {
     id: "visitas",
@@ -52,6 +54,18 @@ export const CANALES_AVISO = [
 ] as const;
 
 export type CanalAviso = (typeof CANALES_AVISO)[number]["id"];
+
+const CANAL_ESTUDIO_MARKETING = {
+  id: "estudio",
+  label: "Diseños",
+  hint: "Cuando se aprueba un diseño o hay que rectificarlo.",
+} as const;
+
+/** Marketing solo recibe la decisión de sus diseños. El resto del equipo ve todos los canales. */
+export function canalesVisibles(role: Role | null | undefined) {
+  if (role === "marketing") return [CANAL_ESTUDIO_MARKETING];
+  return CANALES_AVISO;
+}
 
 export type PrefsAviso = Record<CanalAviso, boolean>;
 

@@ -6,12 +6,12 @@ import { Check } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
-import { parseRole, roleLabel } from "@/lib/auth/roles";
+import { isMarketing, parseRole, roleLabel } from "@/lib/auth/roles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   canalDeTipo,
-  CANALES_AVISO,
+  canalesVisibles,
   horaDiariaDe,
   HORA_DIARIA_DEFECTO,
   itemPermitido,
@@ -137,6 +137,8 @@ function Switch({
 
 export function AvisosPwaCard() {
   const { user } = useAuth();
+  const marketing = isMarketing(user?.role);
+  const canales = canalesVisibles(user?.role);
   const [estado, setEstado] = useState<"off" | "on">("off");
   const [busy, setBusy] = useState(false);
   const [prefs, setPrefs] = useState<PrefsAviso>(prefsCompletas(null));
@@ -221,7 +223,8 @@ export function AvisosPwaCard() {
       toast.error("No se ha podido guardar esa preferencia.");
       return;
     }
-    toast.success(next[canal] ? `${CANALES_AVISO.find((c) => c.id === canal)?.label ?? "Aviso"} activado.` : `${CANALES_AVISO.find((c) => c.id === canal)?.label ?? "Aviso"} desactivado.`);
+    const etiqueta = canales.find((c) => c.id === canal)?.label ?? "Aviso";
+    toast.success(next[canal] ? `${etiqueta} activado.` : `${etiqueta} desactivado.`);
   };
 
   const guardarHora = async (hora: number) => {
@@ -345,7 +348,7 @@ export function AvisosPwaCard() {
         </CardContent>
       </Card>
 
-      <Card>
+      {marketing ? null : <Card>
         <CardHeader>
           <CardTitle>Tu recordatorio diario</CardTitle>
         </CardHeader>
@@ -369,9 +372,9 @@ export function AvisosPwaCard() {
             </select>
           </label>
         </CardContent>
-      </Card>
+      </Card>}
 
-      <Card ref={listaRef} className="scroll-mt-24">
+      {marketing ? null : <Card ref={listaRef} className="scroll-mt-24">
         <CardHeader>
           <CardTitle>De quién quieres avisos</CardTitle>
         </CardHeader>
@@ -415,22 +418,24 @@ export function AvisosPwaCard() {
             </div>
           )}
         </CardContent>
-      </Card>
+      </Card>}
 
-      <Card>
+      <Card ref={marketing ? listaRef : undefined} className={marketing ? "scroll-mt-24" : undefined}>
         <CardHeader>
-          <CardTitle>Qué tipos quieres recibir</CardTitle>
+          <CardTitle>{marketing ? "Diseños" : "Qué tipos quieres recibir"}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="mb-3 text-[13px] text-[var(--text-2)]">
-            Vale para los tuyos y para las personas que tengas activadas. Los de portales se configuran en{" "}
+            {marketing
+              ? "Llega a la campana del Estudio y, si activas este dispositivo, también con la aplicación cerrada."
+              : <>Vale para los tuyos y para las personas que tengas activadas. Los de portales se configuran en{" "}
             <Link href="/captacion" className="font-medium text-accent hover:underline">
               Captación → Notificaciones
             </Link>
-            .
+            .</>}
           </p>
           <div className="divide-y divide-[var(--border-row)] rounded-[10px] border border-border">
-            {CANALES_AVISO.map((canal) => (
+            {canales.map((canal) => (
               <div key={canal.id} className="flex items-center justify-between gap-3 px-3.5 py-2.5">
                 <div className="min-w-0">
                   <p className="text-[13.5px] font-medium">{canal.label}</p>

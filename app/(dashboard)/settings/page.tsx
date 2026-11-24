@@ -14,6 +14,7 @@ import { solicitarCrearUsuario } from "@/lib/actions/papelera";
 import {
   ROLE_LABELS,
   ROLES_CREABLES,
+  isMarketing,
   isSuperAdmin,
   puedeVerPapelera,
   roleLabel,
@@ -105,7 +106,9 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-sm text-neutral-500">
-                Este dispositivo, la hora del recordatorio, de quién quieres avisos y qué tipos.
+                {isMarketing(user.role)
+                  ? "Activa este dispositivo para enterarte cuando se aprueba un diseño o hay que rectificarlo."
+                  : "Este dispositivo, la hora del recordatorio, de quién quieres avisos y qué tipos."}
               </p>
               <Button asChild>
                 <Link href="/settings/avisos">Abrir avisos</Link>
