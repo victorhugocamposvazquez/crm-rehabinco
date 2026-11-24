@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
+import { estudioEnPrueba } from "@/lib/auth/roles";
 import { exigirEquipoArchivo } from "@/lib/inmuebles/archivo-servidor";
 import type { FormatId } from "@/lib/estudio/config";
 import { instagramConfigurado, repartoInstagram } from "@/lib/estudio/instagram";
@@ -35,6 +36,10 @@ export async function DELETE() {
 export async function POST(req: Request) {
   const acceso = await exigirEquipoArchivo();
   if (acceso.error || !acceso.user) return NextResponse.json({ ok: false, error: "No autorizado." }, { status: 401 });
+  const { data: perfil } = await acceso.supabase.from("profiles").select("role").eq("id", acceso.user.id).maybeSingle();
+  if (estudioEnPrueba(perfil?.role)) {
+    return NextResponse.json({ ok: false, error: "En modo prueba no se publica." }, { status: 403 });
+  }
   if (!instagramConfigurado()) {
     return NextResponse.json({ ok: false, error: "Falta la app de Instagram en el servidor." }, { status: 400 });
   }

@@ -3,7 +3,7 @@
 import { toast } from "sonner";
 import { EstudioWizard, type EstudioReviewPayload, type EstudioSavePayload } from "@/components/estudio/EstudioWizard";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isMarketing, isSuperAdmin } from "@/lib/auth/roles";
+import { estudioEnPrueba, isMarketing, isSuperAdmin } from "@/lib/auth/roles";
 import type { InmuebleEstudio } from "@/lib/estudio/data";
 import type { Publication } from "@/lib/estudio/publicacion";
 
@@ -20,6 +20,7 @@ export function EstudioCliente({
 }) {
   const { user } = useAuth();
   const puedeRevisar = isMarketing(user?.role);
+  const modoPrueba = estudioEnPrueba(user?.role);
   const guardar = async (payload: EstudioSavePayload) => {
     const cuerpo = new FormData();
     cuerpo.set("propiedadId", payload.inmuebleId);
@@ -58,8 +59,9 @@ export function EstudioCliente({
       initialInmuebleId={initialInmuebleId}
       agencia={agencia}
       puedeRevisar={puedeRevisar}
-      veRevisiones={puedeRevisar || isSuperAdmin(user?.role)}
-      onSave={guardar}
+      veRevisiones={puedeRevisar || isSuperAdmin(user?.role) || modoPrueba}
+      modoPrueba={modoPrueba}
+      onSave={modoPrueba ? undefined : guardar}
       onReview={revisar}
       inicial={inicial}
     />

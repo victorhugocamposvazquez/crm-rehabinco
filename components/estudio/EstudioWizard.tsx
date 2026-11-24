@@ -41,12 +41,14 @@ export type EstudioWizardProps = {
   agencia?: { telefono: string; web: string; cta: string };
   puedeRevisar?: boolean;
   veRevisiones?: boolean;
+  /** Edita el diseño en esta pantalla. No descarga, no guarda y no publica. */
+  modoPrueba?: boolean;
   inicial?: Publication;
   onSave?: (payload: EstudioSavePayload) => Promise<void> | void;
   onReview?: (payload: EstudioReviewPayload) => Promise<void> | void;
 };
 
-export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, agencia, puedeRevisar, veRevisiones, inicial }: EstudioWizardProps) {
+export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, agencia, puedeRevisar, veRevisiones, modoPrueba, inicial }: EstudioWizardProps) {
   if (agencia?.telefono) AGENCIA.telefono = agencia.telefono;
   if (agencia?.web) AGENCIA.web = agencia.web;
   if (agencia?.cta) AGENCIA.cta = agencia.cta;
@@ -202,8 +204,8 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
   const coverTemplates = templatesForGoal(pub.goal);
   const slideTemplates = templatesForGoal(pub.goal, { includeSlideOnly: true });
   const used = usedPhotoIndexes(pub, nF);
-  const stepVal: Record<Step, string> = { inmueble: inm.ref, diseno: `${fmt.label} · ${tplName(pub.slides[0].template)}`, editar: n === 1 ? '1 imagen' : `Carrusel de ${n}`, publicar: 'Texto y salida' };
-  const stepHint: Record<Step, string> = { inmueble: 'Elige el inmueble', diseno: 'Qué anuncias y diseño', editar: stepVal.editar, publicar: 'Texto y salida' };
+  const stepVal: Record<Step, string> = { inmueble: inm.ref, diseno: `${fmt.label} · ${tplName(pub.slides[0].template)}`, editar: n === 1 ? '1 imagen' : `Carrusel de ${n}`, publicar: modoPrueba ? 'Solo en esta prueba' : 'Texto y salida' };
+  const stepHint: Record<Step, string> = { inmueble: 'Elige el inmueble', diseno: 'Qué anuncias y diseño', editar: stepVal.editar, publicar: modoPrueba ? 'Así queda, sin salir' : 'Texto y salida' };
 
   const pill = (on: boolean): CSSProperties => ({ ...btn, height: 34, padding: '0 12px', borderRadius: 9, border: `1px solid ${on ? k.fg : k.line2}`, background: on ? k.chip : 'transparent', color: on ? k.fg : k.mut, fontSize: 13, fontWeight: 600 });
   const sideBtn = (o: CSSProperties = {}): CSSProperties => ({ ...btn, width: 86, borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '0 6px', fontSize: 12.5, fontWeight: 600, lineHeight: 1.3, textAlign: 'center', ...o });
@@ -244,7 +246,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
           <li key={id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <button onClick={() => go(id)} aria-current={on ? 'step' : undefined} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 9, height: 44, padding: '0 14px 0 8px', borderRadius: 999, background: on ? k.chip : 'transparent', color: on || done ? k.fg : k.mut }}>
               <span style={{ width: 26, height: 26, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 12.5, fontWeight: 700, background: on ? k.prim : done ? k.blue : 'transparent', color: on ? k.primFg : done ? '#fff' : k.mut, border: `1px solid ${on || done ? 'transparent' : k.line2}` }}>{done ? <Check size={15} /> : i + 1}</span>
-              <span style={{ lineHeight: 1.2 }}><span style={{ display: 'block', fontSize: 13.5, fontWeight: 600 }}>{lbl}</span><span style={{ display: 'block', fontSize: 11.5, opacity: .8, maxWidth: 170, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{done ? stepVal[id] : stepHint[id]}</span></span>
+              <span style={{ lineHeight: 1.2 }}><span style={{ display: 'block', fontSize: 13.5, fontWeight: 600 }}>{modoPrueba && id === 'publicar' ? 'Resultado' : lbl}</span><span style={{ display: 'block', fontSize: 11.5, opacity: .8, maxWidth: 170, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{done ? stepVal[id] : stepHint[id]}</span></span>
             </button>
             {i < STEPS.length - 1 && <span aria-hidden style={{ width: 22, height: 2, borderRadius: 2, background: done ? k.blue : k.line2 }} />}
           </li>); })}
@@ -547,8 +549,8 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
       {/* 4 · Publicar o descargar */}
       {step === 'publicar' && (
         <main className="estudio-scroll" style={{ padding: '28px 28px 40px' }}>
-          <h1 style={{ fontSize: 26, margin: 0, fontWeight: 600 }}>Publicar o descargar</h1>
-          <p style={{ margin: '6px 0 18px', color: k.mut, fontSize: 14 }}>{n === 1 ? `Esta es la imagen que se descarga, en ${fmtName}.` : `Estas ${n} pantallas son las que se descargan, en ${fmtName}.`}</p>
+          <h1 style={{ fontSize: 26, margin: 0, fontWeight: 600 }}>{modoPrueba ? 'Resultado de la prueba' : 'Publicar o descargar'}</h1>
+          <p style={{ margin: '6px 0 18px', color: k.mut, fontSize: 14 }}>{modoPrueba ? 'Así queda el diseño. No se descarga, no se guarda en la ficha y no se publica.' : n === 1 ? `Esta es la imagen que se descarga, en ${fmtName}.` : `Estas ${n} pantallas son las que se descargan, en ${fmtName}.`}</p>
           <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 8 }}>
             {pub.slides.map((s, i) => {
               const [vw, vh] = fitBox(pub.format, 220, 280);
@@ -570,7 +572,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
           )}
           <section style={{ marginTop: 28, maxWidth: 720 }}>
             <h2 style={{ fontSize: 15, margin: '0 0 4px' }}>Ver en otro formato</h2>
-            <p style={{ fontSize: 12.5, color: k.mut, margin: '0 0 10px' }}>No se suma a la descarga de arriba. Si lo marcas, ves cómo queda y lo bajas aparte.</p>
+            <p style={{ fontSize: 12.5, color: k.mut, margin: '0 0 10px' }}>{modoPrueba ? 'Si lo marcas, ves cómo queda en ese formato.' : 'No se suma a la descarga de arriba. Si lo marcas, ves cómo queda y lo bajas aparte.'}</p>
             {extras.map((f) => {
               const on = !!extra[f];
               const nombre = FORMATS[f].label;
@@ -592,14 +594,14 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
                           </div>
                         );
                       })}
-                      <button onClick={async () => {
+                      {!modoPrueba && <button onClick={async () => {
                         setBusy('export');
                         try {
                           const images = await renderImages();
                           (images[f] ?? []).forEach((b, i) => downloadBlob(b, slideFilename(inm.ref, f, i)));
                         } catch { showToast('No se han podido generar las imágenes'); }
                         finally { setBusy(''); }
-                      }} disabled={!!busy} style={{ ...btn, alignSelf: 'center', height: 36, padding: '0 12px', borderRadius: 9, border: `1px solid ${k.line2}`, fontSize: 13, fontWeight: 600, opacity: busy ? .5 : 1 }}>Descargar {n === 1 ? 'esta' : `estas ${n}`}</button>
+                      }} disabled={!!busy} style={{ ...btn, alignSelf: 'center', height: 36, padding: '0 12px', borderRadius: 9, border: `1px solid ${k.line2}`, fontSize: 13, fontWeight: 600, opacity: busy ? .5 : 1 }}>Descargar {n === 1 ? 'esta' : `estas ${n}`}</button>}
                     </div>
                   )}
                 </div>
@@ -612,22 +614,22 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
       {/* Barra inferior: «Vista previa» siempre a mano; el botón de la derecha avanza */}
       {step !== 'inmueble' && (
         <div style={{ position: 'sticky', bottom: 0, zIndex: 30, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '12px 28px', borderTop: `1px solid ${k.line}`, background: k.glass, backdropFilter: 'blur(12px)' }}>
-          <div style={{ flex: '1 1 200px', fontSize: 13, color: k.mut }}>{step === 'diseno' ? 'Al elegir un diseño pasas a editarlo.' : step === 'editar' ? (n === 1 ? 'Una imagen. Los cambios se guardan solos.' : `Carrusel de ${n}: estás en la ${c + 1}. Los cambios se guardan solos.`) : `${pantallas(n)} en ${fmtName}.`}</div>
+          <div style={{ flex: '1 1 200px', fontSize: 13, color: k.mut }}>{step === 'diseno' ? 'Al elegir un diseño pasas a editarlo.' : step === 'editar' ? (modoPrueba ? 'Los cambios se quedan en esta prueba.' : n === 1 ? 'Una imagen. Los cambios se guardan solos.' : `Carrusel de ${n}: estás en la ${c + 1}. Los cambios se guardan solos.`) : modoPrueba ? 'Modo prueba. No sale del Estudio.' : `${pantallas(n)} en ${fmtName}.`}</div>
           {step === 'diseno' && <FootBtn onClick={() => go('inmueble')}>Cambiar inmueble</FootBtn>}
           {step === 'editar' && <FootBtn onClick={() => go('diseno')}>Ver todos los diseños</FootBtn>}
           {step === 'publicar' && <FootBtn onClick={() => go('editar')}>Seguir editando</FootBtn>}
           {(step === 'editar' || step === 'publicar') && <FootBtn onClick={() => { setPv(step === 'editar' ? c : 0); setPvOpen(true); }}><Eye size={16} />Vista previa</FootBtn>}
           {step === 'diseno' && <FootBtn primary onClick={() => go('editar')}>Editar «{tplName(pub.slides[0].template)}»</FootBtn>}
-          {step === 'editar' && <FootBtn primary onClick={() => go('publicar')}>Publicar o descargar</FootBtn>}
+          {step === 'editar' && <FootBtn primary onClick={() => go('publicar')}>{modoPrueba ? 'Ver el resultado' : 'Publicar o descargar'}</FootBtn>}
           {step === 'publicar' && <>
             {veRevisiones && <Link href="/estudio/revisiones" style={{ ...btn, display: 'inline-flex', alignItems: 'center', height: 40, padding: '0 12px', borderRadius: 10, border: `1px solid ${k.line2}`, fontSize: 13, fontWeight: 600, color: k.fg, textDecoration: 'none' }}>Revisiones</Link>}
-            <FootBtn onClick={download} disabled={!!busy}><Download size={16} />{busy === 'export' ? 'Generando…' : `Descargar ${n === 1 ? '1 imagen' : `${n} imágenes`}`}</FootBtn>
-            {puedeRevisar
+            {!modoPrueba && <FootBtn onClick={download} disabled={!!busy}><Download size={16} />{busy === 'export' ? 'Generando…' : `Descargar ${n === 1 ? '1 imagen' : `${n} imágenes`}`}</FootBtn>}
+            {!modoPrueba && (puedeRevisar
               ? <FootBtn primary onClick={pedir} disabled={!!busy}>{busy === 'review' ? 'Enviando…' : 'Pedir revisión'}</FootBtn>
               : <>
                 <FootBtn onClick={save} disabled={!!busy}>Guardar en la ficha</FootBtn>
                 <FootBtn primary onClick={publish} disabled={!!busy}><Instagram size={16} />{busy === 'publish' ? 'Publicando…' : 'Publicar en Instagram'}</FootBtn>
-              </>}
+              </>)}
           </>}
         </div>
       )}
@@ -636,7 +638,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
       {pvOpen && (
         <div role="dialog" aria-modal="true" aria-label="Vista previa" style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,.6)' }} onClick={() => setPvOpen(false)}>
           <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#fff', fontWeight: 600 }}>{n === 1 ? 'Así se verá publicada' : `Así se verá el carrusel de ${n}`}<button onClick={() => setPvOpen(false)} style={{ ...btn, display: 'flex', gap: 6, alignItems: 'center', height: 34, padding: '0 12px', borderRadius: 9, background: 'rgba(255,255,255,.14)', color: '#fff', fontSize: 13 }}><X size={15} />Cerrar</button></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#fff', fontWeight: 600 }}>{modoPrueba ? 'Así queda en la prueba' : n === 1 ? 'Así se verá publicada' : `Así se verá el carrusel de ${n}`}<button onClick={() => setPvOpen(false)} style={{ ...btn, display: 'flex', gap: 6, alignItems: 'center', height: 34, padding: '0 12px', borderRadius: 9, background: 'rgba(255,255,255,.14)', color: '#fff', fontSize: 13 }}><X size={15} />Cerrar</button></div>
             <div style={{ width: phoneW, borderRadius: 34, background: k.panel, padding: '14px 0 16px', boxShadow: '0 30px 70px rgba(0,0,0,.25)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '0 14px 10px', fontSize: 13 }}><span style={{ width: 30, height: 30, borderRadius: '50%', background: '#0A0A0A', color: '#fff', fontSize: 7, display: 'grid', placeItems: 'center' }}>RHB</span><b>rehabinco</b><span style={{ color: k.mut }}>{inm.barrio}</span></div>
               <div style={{ position: 'relative', lineHeight: 0 }}>

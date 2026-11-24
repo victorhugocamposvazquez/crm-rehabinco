@@ -29,6 +29,11 @@ export function isAdmin(role: Role | null | undefined): boolean {
   return role === "admin" || role === "superadmin";
 }
 
+/** El administrador prueba diseños. No los descarga, no los guarda y no los publica. */
+export function estudioEnPrueba(role: Role | string | null | undefined): boolean {
+  return role === "admin";
+}
+
 export function isSuperAdmin(role: Role | null | undefined): boolean {
   return role === "superadmin";
 }
@@ -189,7 +194,7 @@ const NAV_DIRECCION = [
 
 export const NAV_DESKTOP_BY_ROLE: Record<Role, readonly string[]> = {
   superadmin: NAV_DIRECCION,
-  admin: NAV_DIRECCION.filter((href) => href !== "/estudio"),
+  admin: NAV_DIRECCION,
   comercial: [
     "/",
     "/fichaje",

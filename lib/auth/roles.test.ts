@@ -5,6 +5,7 @@ import {
   isAdmin,
   isAdminBlockedPath,
   isCatastroUserBlockedPath,
+  estudioEnPrueba,
   isComercial,
   isComercialBlockedPath,
   isEditorBlockedPath,
@@ -41,6 +42,9 @@ describe("roles", () => {
     assert.equal(puedeVerApisPortales("admin"), false);
     assert.equal(puedeGestionarUsuarios("superadmin"), true);
     assert.equal(puedeGestionarUsuarios("admin"), false);
+    assert.equal(estudioEnPrueba("admin"), true);
+    assert.equal(estudioEnPrueba("superadmin"), false);
+    assert.equal(estudioEnPrueba("marketing"), false);
     assert.equal(isAdminBlockedPath("/settings/portales"), true);
     assert.equal(isAdminBlockedPath("/settings"), false);
   });
@@ -99,9 +103,9 @@ describe("roles", () => {
     assert.equal(navHrefsForRole("admin", "top").includes("/clientes"), false);
     assert.equal(navHrefsForRole("admin", "desktop").includes("/clientes"), true);
     assert.equal(navHrefsForRole("superadmin", "desktop").includes("/estudio"), true);
-    assert.equal(navHrefsForRole("admin", "desktop").includes("/estudio"), false);
+    assert.equal(navHrefsForRole("admin", "desktop").includes("/estudio"), true);
     assert.deepEqual(
-      [...navHrefsForRole("superadmin", "desktop")].filter((href) => href !== "/estudio"),
+      [...navHrefsForRole("superadmin", "desktop")],
       [...navHrefsForRole("admin", "desktop")]
     );
     assert.deepEqual([...navHrefsForRole("comercial", "mobile")], [
