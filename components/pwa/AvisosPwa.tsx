@@ -20,6 +20,7 @@ import {
   type CanalAviso,
   type PrefsAviso,
 } from "@/lib/alertas/prefs";
+import { soporteAvisos, type SoporteAvisos } from "@/lib/alertas/pwa-soporte";
 
 function urlBase64ToUint8Array(base64: string): BufferSource {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -48,9 +49,30 @@ export async function estadoAvisosDispositivo(): Promise<"off" | "on"> {
   }
 }
 
+function appInstalada(): boolean {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.matchMedia("(display-mode: fullscreen)").matches ||
+    navigator.standalone === true
+  );
+}
+
 export async function activarAvisosPwa(): Promise<string> {
+  const soporte = soporteAvisos({
+    ua: navigator.userAgent,
+    notification: "Notification" in window,
+    serviceWorker: "serviceWorker" in navigator,
+    pushManager: "PushManager" in window,
+    instalada: appInstalada(),
+  });
+  if (!soporte.ok && soporte.motivo === "ios-pestana") {
+    throw new Error("En el iPhone, abre el CRM desde el icono de la pantalla de inicio y activa los avisos ahí.");
+  }
+  if (!soporte.ok && soporte.motivo === "ios-antiguo") {
+    throw new Error("Este iPhone necesita iOS 16.4 o posterior para los avisos.");
+  }
   if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
-    throw new Error("Este navegador no admite avisos de la PWA.");
+    throw new Error("Este navegador no admite avisos con el CRM cerrado.");
   }
   const permiso = await Notification.requestPermission();
   if (permiso !== "granted") throw new Error("Hay que permitir notificaciones en el navegador.");
@@ -140,6 +162,7 @@ export function AvisosPwaCard() {
   const marketing = isMarketing(user?.role);
   const canales = canalesVisibles(user?.role);
   const [estado, setEstado] = useState<"off" | "on">("off");
+  const [soporte, setSoporte] = useState<SoporteAvisos | null>(null);
   const [busy, setBusy] = useState(false);
   const [prefs, setPrefs] = useState<PrefsAviso>(prefsCompletas(null));
   const [horaDiaria, setHoraDiaria] = useState(HORA_DIARIA_DEFECTO);
@@ -155,6 +178,15 @@ export function AvisosPwaCard() {
   }, []);
 
   useEffect(() => {
+    setSoporte(
+      soporteAvisos({
+        ua: navigator.userAgent,
+        notification: "Notification" in window,
+        serviceWorker: "serviceWorker" in navigator,
+        pushManager: "PushManager" in window,
+        instalada: appInstalada(),
+      })
+    );
     refrescarEstado();
     if (!user?.id) return;
     const supabase = createClient();
@@ -300,8 +332,22 @@ export function AvisosPwaCard() {
           <p className="mt-1 text-[12px] text-[var(--text-2)]">
             {estado === "on"
               ? "Apágalo aquí si este móvil o navegador no debe recibir nada. Las personas de abajo se quedan como las dejaste."
-              : "Enciéndelo para recibir avisos aunque el CRM esté cerrado."}
+              : soporte && !soporte.ok
+                ? soporte.motivo === "ios-pestana"
+                  ? "Safari no envía avisos desde esta pestaña. Añade el CRM a la pantalla de inicio y ábrelo desde el icono."
+                  : soporte.motivo === "ios-antiguo"
+                    ? "Este iPhone necesita iOS 16.4 o posterior para recibir avisos."
+                    : "Este navegador no admite avisos con el CRM cerrado."
+                : "Enciéndelo para recibir avisos aunque el CRM esté cerrado."}
           </p>
+          {estado === "off" && soporte?.ok === false && soporte.motivo === "ios-pestana" ? (
+            <ol className="mt-3 list-decimal space-y-1 pl-4 text-[13px] text-foreground">
+              <li>Pulsa Compartir, el cuadrado con la flecha de abajo.</li>
+              <li>Elige «Añadir a pantalla de inicio».</li>
+              <li>Abre CRM REHABINCO desde ese icono.</li>
+              <li>Entra en Ajustes → Avisos y pulsa Activar avisos.</li>
+            </ol>
+          ) : null}
           <div className="mt-3 flex flex-wrap gap-2">
             {estado === "on" ? (
               <Button
@@ -321,7 +367,7 @@ export function AvisosPwaCard() {
               >
                 {busy ? "Desactivando…" : "Desactivar avisos"}
               </Button>
-            ) : (
+            ) : soporte?.ok === false ? null : (
               <Button
                 type="button"
                 disabled={busy}
