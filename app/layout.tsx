@@ -7,6 +7,7 @@ import { AuthProvider } from "@/lib/auth/auth-context";
 import { PermisosProvider } from "@/lib/auth/permisos-context";
 import { AvisoNuevaVersion } from "@/components/pwa/AvisoNuevaVersion";
 import { ToasterConTema } from "@/components/ui/InterruptorTema";
+import { SCRIPT_DISENO } from "@/lib/ui/diseno-config";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const fraunces = Fraunces({ subsets: ["latin"], style: ["normal", "italic"], variable: "--font-fraunces" });
@@ -61,6 +62,7 @@ export default function RootLayout({
     <html lang="es" className={`${GeistSans.variable} ${GeistMono.variable} ${inter.variable} ${fraunces.variable} ${bebas.variable} ${jetbrains.variable} ${manrope.variable} ${montserrat.variable} ${poppins.variable} ${oswald.variable} ${playfair.variable} ${cormorant.variable} ${libre.variable} ${lora.variable} ${dmSans.variable} ${outfit.variable} ${figtree.variable} ${raleway.variable} ${nunito.variable} ${archivo.variable} ${anton.variable} ${cinzel.variable} ${merriweather.variable} ${garamond.variable} ${newsreader.variable} ${abril.variable} ${caveat.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: scriptTema }} />
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_DISENO }} />
       </head>
       <body className="min-h-screen bg-background font-sans antialiased">
         <AuthProvider>

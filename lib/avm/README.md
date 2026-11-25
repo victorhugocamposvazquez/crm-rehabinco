@@ -99,3 +99,30 @@ Con el 15004 anterior al clúster: 13,71 × 12 / 4.125 = 3,99 %.
   regresión sobre `market_listings` y guardarlos en una tabla `avm_adjustments` por zona/tipo.
 - `market_discount` se recalcula con las ventas cerradas del CRM frente al último precio de oferta.
 - Las penalizaciones de `confidence.ts` se recalibran para que la confianza prediga el error real (MAPE).
+
+## Referencia oficial (comparables-1.2)
+
+Series públicas para toda España en `market_close_series`, cargadas cada mes por
+`scripts/avm-data/load-oficial.ts` (capa `oficial` del workflow *AVM · cargas de datos*):
+
+| source | Qué es | Ámbito |
+|---|---|---|
+| `mivau_tasado` | Valor tasado medio de vivienda libre, €/m² (Ministerio de Vivienda) | España, provincias y municipios > 25.000 hab. |
+| `mivau_transacciones` | Compraventas de vivienda por trimestre (Ministerio, datos notariales) | Todos los municipios |
+| `ine_ipv` | Índice de Precios de Vivienda (INE, tabla 25171) | España y comunidades (repetido por provincia) |
+
+El Ministerio solo publica `.xls` (BIFF8): `lib/avm/oficial/xls.ts` es un lector mínimo sin
+dependencias. Los municipios se casan por nombre con `catastro_municipios`
+(`CatalogoMunicipios`); los que no casan se listan en el log de la carga.
+
+En la valoración (`lib/avm/oficial/referencia.ts`):
+
+- **Respaldo de mercado**: si el municipio no tiene anuncios, el tasado oficial
+  (municipio → provincia → España) sustituye a la base nacional fija (estado `degraded`).
+- **Desviación**: €/m² estimado frente al tasado. ±20 % = en línea. Más de ±50 % frente
+  al tasado *municipal* resta 5 puntos de confianza. Nunca cambia el precio.
+- **Pros y contras de mercado**: tendencia del tasado, compraventas del último año e IPV,
+  en el bloque "Referencia oficial" del informe y del PDF. Se guarda en
+  `avm_valuations.official_reference`.
+
+Pendiente: valores de referencia del Catastro y licencia del Notariado (precio de cierre por zona).

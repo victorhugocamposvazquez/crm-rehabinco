@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Clock3, ClipboardList, List, Map, Search, Users } from "lucide-react";
+import { Building2, Clock3, ClipboardList, List, Map, Search, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CarrilHorizontal } from "@/components/ui/carril-horizontal";
 import { isAdmin, isCatastroUser, isComercial } from "@/lib/auth/roles";
@@ -19,6 +19,7 @@ import {
 
 export const RUTA_EQUIPO_CATASTRO = "/catastro/equipo";
 export const RUTA_COBERTURA_CATASTRO = "/catastro/cobertura";
+export const RUTA_MAPA_EDIFICIOS = "/catastro/mapa";
 
 export function CatastroSubnav() {
   const pathname = usePathname();
@@ -60,6 +61,12 @@ export function CatastroSubnav() {
           activa: pathname === RUTA_EXPLORER || pathname.startsWith(`${RUTA_EXPLORER}/finca/`),
         },
         {
+          href: RUTA_MAPA_EDIFICIOS,
+          label: "Mapa",
+          icon: Building2,
+          activa: pathname.startsWith(RUTA_MAPA_EDIFICIOS),
+        },
+        {
           href: "/catastro/encargos",
           label: "Encargos",
           icon: ClipboardList,
@@ -72,6 +79,12 @@ export function CatastroSubnav() {
           label: "Buscar",
           icon: Search,
           activa: pathname === RUTA_EXPLORER || pathname.startsWith(`${RUTA_EXPLORER}/finca/`),
+        },
+        {
+          href: RUTA_MAPA_EDIFICIOS,
+          label: "Mapa de edificios",
+          icon: Building2,
+          activa: pathname.startsWith(RUTA_MAPA_EDIFICIOS),
         },
         {
           href: "/catastro/encargos",

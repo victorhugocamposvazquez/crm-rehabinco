@@ -95,6 +95,8 @@ export type InformePdfModel = {
   positivos: FilaEntornoPdf[];
   negativos: FilaEntornoPdf[];
   avisos: FilaEntornoPdf[];
+  /** Referencia oficial (valor tasado MIVAU, compraventas, IPV INE); null en valoraciones antiguas. */
+  oficial: { puntos: FilaEntornoPdf[]; fuentes: string } | null;
   envScore: number | null;
   envWord: string | null;
   layers: { name: string; date: string }[];
@@ -366,6 +368,12 @@ export function modeloInformePdf(input: {
       ]
     : [{ label: "Zona", value: "sin dato de mercado" }];
 
+  const refOficial = result.officialReference ?? null;
+  const tasado = refOficial?.tasado ?? null;
+  const filaTasado: FilaFicha | null = tasado
+    ? { label: "Valor tasado oficial", value: `${fmtNumero(Math.round(tasado.ppm2))} €/m² · ${tasado.label}` }
+    : null;
+  if (filaTasado) mercadoBase.push(filaTasado);
   const cierre = result.sourcesUsed.find((s) => s.layer === "close_series");
   const mercadoInterno: FilaFicha[] = zona
     ? [
@@ -380,6 +388,7 @@ export function modeloInformePdf(input: {
               : "sin dato",
         },
         { label: "Cierre", value: cierre?.source === "default_8pct" ? "pendiente de cierres propios" : etiquetaMotorFuente(cierre?.source ?? "missing") },
+        ...(filaTasado ? [filaTasado] : []),
         {
           label: "Tendencia 12 meses",
           value: zona.trend12mPct == null ? "sin histórico" : fmtPorcentaje(zona.trend12mPct),
@@ -458,6 +467,16 @@ export function modeloInformePdf(input: {
     positivos,
     negativos,
     avisos,
+    oficial: refOficial && refOficial.puntos.length
+      ? {
+          puntos: refOficial.puntos.map((p) => ({
+            title: p.text,
+            sub: "",
+            tone: p.sense === "positive" ? ("good" as const) : p.sense === "negative" ? ("bad" as const) : ("info" as const),
+          })),
+          fuentes: refOficial.fuentes.join(" · "),
+        }
+      : null,
     envScore: env?.score ?? null,
     envWord: env?.score != null ? palabraEntorno(env.score) : null,
     layers: (input.layers ?? []).map((capa) => ({

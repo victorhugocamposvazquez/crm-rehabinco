@@ -32,7 +32,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const { data, error } = await supabase
     .from("avm_valuations")
     .select(
-      "created_at, deleted_at, channel, method_version, operation, value_mid, value_low, value_high, price_per_m2, rent_monthly, gross_yield, confidence, precision_score, sources_used, comparables, zone_stats, environment, explanation, inputs, range_method, rent_source, created_by",
+      "created_at, deleted_at, channel, method_version, operation, value_mid, value_low, value_high, price_per_m2, rent_monthly, gross_yield, confidence, precision_score, sources_used, comparables, zone_stats, environment, official_reference, explanation, inputs, range_method, rent_source, created_by",
     )
     .eq("id", id)
     .maybeSingle();
@@ -142,6 +142,7 @@ function filaAResultado(
     sources_used: ValuationResult["sourcesUsed"] | null;
     comparables: ValuationResult["comparables"] | null;
     zone_stats: ValuationResult["zoneStats"];
+    official_reference?: ValuationResult["officialReference"];
     explanation: string[] | null;
   },
   environment: Environment | null,
@@ -171,6 +172,7 @@ function filaAResultado(
     })),
     zoneStats: data.zone_stats,
     environment,
+    officialReference: data.official_reference ?? null,
     explanation: data.explanation ?? [],
   };
 }

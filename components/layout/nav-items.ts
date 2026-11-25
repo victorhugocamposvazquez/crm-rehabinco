@@ -4,6 +4,7 @@ import {
   Users,
   FileText,
   ClipboardList,
+  FileSearch,
   ClipboardPenLine,
   Building2,
   Globe,
@@ -39,6 +40,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/estudio", label: "Estudio", icon: Sparkles },
   { href: "/web/gestionar", label: "Diseño Web", icon: Globe },
   { href: "/valoraciones", label: "Valoraciones", icon: Scale },
+  { href: "/notas-simples", label: "Notas simples", icon: FileSearch },
   { href: "/demandas", label: "Demandas", icon: Users },
   { href: "/clientes", label: "Contactos", icon: Users },
   { href: "/herramientas", label: "Herramientas", icon: Wrench },
@@ -53,7 +55,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
 
 export const NAV_GROUPS: { label: string; adminOnly?: boolean; hrefs: readonly string[] }[] = [
   { label: "Día a día", hrefs: ["/", "/fichaje", "/calendario", "/tareas", "/informes"] },
-  { label: "Captación", hrefs: ["/captacion", "/catastro", "/seguimiento", "/propiedades", "/estudio", "/web/gestionar", "/valoraciones", "/demandas", "/clientes"] },
+  { label: "Captación", hrefs: ["/captacion", "/catastro", "/seguimiento", "/propiedades", "/estudio", "/web/gestionar", "/valoraciones", "/notas-simples", "/demandas", "/clientes"] },
   { label: "Herramientas", hrefs: ["/herramientas"] },
   { label: "Equipo", adminOnly: true, hrefs: ["/equipo/jornada"] },
   { label: "Obra y facturación", adminOnly: true, hrefs: ["/presupuestos", "/facturas"] },

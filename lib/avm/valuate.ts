@@ -9,8 +9,9 @@
 import { computeLiveEstimate, computePrecision } from './estimate';
 import { computeConfidence } from './confidence';
 import { medianaAjustadaPpm2, rentFromYield, valueFromComparables } from './comparables';
+import { explicacionOficial } from './oficial/referencia';
 import type {
-  Channel, Comparable, Environment, Operation, SourceUsed, Twin, ValuationResult, ZoneStats,
+  Channel, Comparable, Environment, OfficialReference, Operation, SourceUsed, Twin, ValuationResult, ZoneStats,
 } from './types';
 
 export interface ValuateDeps {
@@ -28,6 +29,11 @@ export interface ValuateDeps {
   grossYieldPct?: (twin: Twin) => Promise<number | null>;
   /** avm_environment() + reglas; null si la capa no está cargada. */
   environment?: (twin: Twin) => Promise<Environment | null>;
+  /**
+   * Valor tasado (MIVAU), compraventas e IPV (INE) frente al €/m² estimado.
+   * Informativa: no cambia el precio; si falla, la valoración sigue sin ella.
+   */
+  officialReference?: (twin: Twin, subjectPpm2: number | null) => Promise<OfficialReference | null>;
 }
 
 export interface ValuateOptions {
@@ -43,7 +49,7 @@ export interface ValuateOptions {
   marketLoadingMessage?: string | null;
 }
 
-export const METHOD_VERSION = 'comparables-1.1';
+export const METHOD_VERSION = 'comparables-1.2';
 
 export async function valuate(twin: Twin, deps: ValuateDeps, opts: ValuateOptions): Promise<ValuationResult> {
   const op = opts.operation ?? 'sale';
@@ -146,6 +152,17 @@ export async function valuate(twin: Twin, deps: ValuateDeps, opts: ValuateOption
   const environment = (await deps.environment?.(twin)) ?? null;
   sources.push({ layer: 'environment', source: environment ? 'environment_layers' : 'none', status: environment ? 'primary' : 'missing' });
 
+  // Referencia oficial (informativa en fase 1; no toca el precio)
+  let officialReference: OfficialReference | null = null;
+  try {
+    // Si el mercado de respaldo ya es el tasado, compararse con él sería circular.
+    const sujeto = zone?.source === 'official_series' ? null : pricePerM2;
+    officialReference = (await deps.officialReference?.(twin, sujeto)) ?? null;
+  } catch {
+    officialReference = null;
+  }
+  explanation.push(...explicacionOficial(officialReference));
+
   if (opts.marketLoadingMessage) {
     explanation.unshift(opts.marketLoadingMessage);
   }
@@ -156,6 +173,7 @@ export async function valuate(twin: Twin, deps: ValuateDeps, opts: ValuateOption
     precisionScore,
     trend12mPct: zone?.trend12mPct ?? null,
     marketLoading: opts.marketLoading,
+    officialDeviationPct: officialReference?.tasado?.level === 'municipality' ? officialReference.desviacionPct : null,
   });
   if (penalties.length) explanation.push(`Confianza ${confidence} %: ` + penalties.map((p) => `${p.reason} (−${p.points})`).join('; ') + '.');
 
@@ -173,6 +191,7 @@ export async function valuate(twin: Twin, deps: ValuateDeps, opts: ValuateOption
     comparables: byComps?.used ?? [],
     zoneStats: zone,
     environment,
+    officialReference,
     explanation,
   };
 }
@@ -192,5 +211,14 @@ export function publicView(r: ValuationResult) {
       ? { positives: r.environment.positives, negatives: r.environment.negatives, flags: r.environment.flags }
       : null,
     comparablesCount: r.comparables.length, // sin la lista
+    official: r.officialReference
+      ? {
+          tasado: r.officialReference.tasado
+            ? { label: r.officialReference.tasado.label, ppm2: r.officialReference.tasado.ppm2, period: r.officialReference.tasado.period }
+            : null,
+          puntos: r.officialReference.puntos,
+          fuentes: r.officialReference.fuentes,
+        }
+      : null,
   };
 }

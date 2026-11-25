@@ -4,6 +4,7 @@ import { buildTwin, type PropertySource, type TwinBuild, type TwinUnit } from ".
 import type { Channel, Comparable, Operation, Twin, ZoneLevel, ZoneStats } from "./types";
 import { environmentFromAvmRpc } from "./environment-from-rpc";
 import { publicView, valuate, type ValuateDeps, type ValuateOptions } from "./valuate";
+import { buildOfficialReference, zoneStatsDesdeReferencia, type FilaCierre } from "./oficial/referencia";
 
 const TENANT = "00000000-0000-4000-8000-000000000001";
 
@@ -63,7 +64,39 @@ function etiqueta(locality: string | null, level: string, key: string): string {
   return `${lugar} · municipio ${key}`;
 }
 
+/**
+ * Series oficiales que tocan al inmueble: municipio, su provincia y España.
+ * Una sola consulta por valoración (se memoriza por municipio).
+ */
+export function lectorSeriesOficiales(db: SupabaseClient) {
+  const cache = new Map<string, Promise<FilaCierre[]>>();
+  return (municipalityCode: string | null | undefined): Promise<FilaCierre[]> => {
+    const muni = municipalityCode?.replace(/\D/g, "") ?? "";
+    if (muni.length !== 5) return Promise.resolve([]);
+    if (!cache.has(muni)) {
+      const desde = `${new Date().getFullYear() - 3}-01-01`;
+      cache.set(
+        muni,
+        (async () => {
+          const { data, error } = await db
+            .from("market_close_series")
+            .select("source, zone_level, zone_key, period, ppm2, index_value, transactions, raw")
+            .in("source", ["mivau_tasado", "mivau_transacciones", "ine_ipv"])
+            .gte("period", desde)
+            .or(`and(zone_level.eq.municipality,zone_key.eq.${muni}),and(zone_level.eq.province,zone_key.eq.${muni.slice(0, 2)}),and(zone_level.eq.country,zone_key.eq.ES)`)
+            .order("period", { ascending: false })
+            .limit(400);
+          if (error) return [];
+          return (data ?? []) as FilaCierre[];
+        })(),
+      );
+    }
+    return cache.get(muni)!;
+  };
+}
+
 export function depsMercado(db: SupabaseClient): ValuateDeps {
+  const seriesOficiales = lectorSeriesOficiales(db);
   async function comparablesDe(twin: Twin, op: Operation): Promise<Comparable[]> {
     const lat = twin.address.lat;
     const lng = twin.address.lng;
@@ -125,7 +158,15 @@ export function depsMercado(db: SupabaseClient): ValuateDeps {
         source: "market_listings",
       } satisfies ZoneStats;
     },
-    zoneStatsFallback: async () => null,
+    async zoneStatsFallback(twin, op) {
+      if (op !== "sale") return null;
+      const filas = await seriesOficiales(twin.address.municipalityCode);
+      return zoneStatsDesdeReferencia(buildOfficialReference(filas, { municipalityCode: twin.address.municipalityCode, subjectPpm2: null, municipio: twin.address.locality }));
+    },
+    async officialReference(twin, subjectPpm2) {
+      const filas = await seriesOficiales(twin.address.municipalityCode);
+      return buildOfficialReference(filas, { municipalityCode: twin.address.municipalityCode, subjectPpm2, municipio: twin.address.locality });
+    },
     comparables: comparablesDe,
     rentComparables: (twin) => comparablesDe(twin, "rent"),
     async discountPct(twin) {
@@ -296,6 +337,7 @@ async function guardar(
       comparables: result.comparables,
       zone_stats: result.zoneStats,
       environment: result.environment,
+      official_reference: result.officialReference ?? null,
       explanation: result.explanation,
       created_by: userId,
     })

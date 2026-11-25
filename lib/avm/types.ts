@@ -178,6 +178,45 @@ export interface Environment {
   flags: EnvironmentItem[];  // riesgos y avisos de conocimiento local
 }
 
+/** Punto a favor / en contra de la referencia oficial. */
+export interface OfficialPoint {
+  indicator: 'tasado_desviacion' | 'tasado_tendencia' | 'compraventas' | 'ipv';
+  sense: 'positive' | 'negative' | 'info';
+  text: string;
+}
+
+/** Valor tasado (MIVAU), compraventas del municipio e IPV (INE) frente a la estimación. */
+export interface OfficialReference {
+  tasado: {
+    level: 'municipality' | 'province' | 'country';
+    zoneKey: string;
+    label: string;
+    period: string;          // 'YYYY-MM-01'
+    ppm2: number;
+    tasaciones: number | null;
+    yoyPct: number | null;
+  } | null;
+  transacciones: {
+    ultimos12m: number;
+    previos12m: number | null;
+    variacionPct: number | null;
+    hasta: string;           // último trimestre, 'YYYY-MM-01'
+    municipio: string | null;
+  } | null;
+  ipv: {
+    ambito: string;
+    period: string;
+    anualPct: number;
+    segundaManoAnualPct: number | null;
+  } | null;
+  subjectPpm2: number | null;
+  /** (€/m² estimado − tasado) / tasado, en %. */
+  desviacionPct: number | null;
+  lectura: 'en_linea' | 'por_encima' | 'por_debajo' | null;
+  puntos: OfficialPoint[];
+  fuentes: string[];
+}
+
 export interface ValuationResult {
   methodVersion: string;
   operation: Operation;
@@ -195,5 +234,7 @@ export interface ValuationResult {
   comparables: AdjustedComparable[];
   zoneStats: ZoneStats | null;
   environment: Environment | null;
+  /** Ausente en valoraciones anteriores a comparables-1.2. */
+  officialReference?: OfficialReference | null;
   explanation: string[];
 }

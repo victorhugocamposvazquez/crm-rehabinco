@@ -70,7 +70,8 @@ export function etiquetaMetodoAlquiler(
   methodVersion: string | null | undefined,
   rentSource: ValuationResult["rentSource"],
 ): string {
-  if (!methodVersion?.includes("1.1")) return "rentabilidad bruta de la zona (método 1.0)";
+  const menor = Number(/comparables-1\.(\d+)/.exec(methodVersion ?? "")?.[1] ?? 0);
+  if (menor < 1) return "rentabilidad bruta de la zona (método 1.0)";
   if (rentSource) return ETIQUETA_RENT_SOURCE[rentSource];
   return "—";
 }
@@ -95,11 +96,13 @@ export const ETIQUETA_PROPERTY_SOURCE: Record<PropertyMotorSource, string> = {
   manual: "formulario manual",
 };
 
-type MarketMotorSource = "country_base" | "market_listings";
+type MarketMotorSource = "country_base" | "market_listings" | "official_series" | "portal_report";
 
 export const ETIQUETA_MARKET_SOURCE: Record<MarketMotorSource, string> = {
   country_base: "referencia nacional",
   market_listings: "anuncios",
+  official_series: "valor tasado oficial (Ministerio de Vivienda)",
+  portal_report: "informe público de portales",
 };
 
 type CloseMotorSource = "market_discount" | "default_8pct";

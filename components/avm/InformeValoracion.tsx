@@ -26,6 +26,7 @@ import type { EntornoCoverage } from "../../lib/avm/entorno-coverage";
 import { MapaValoracion } from "./MapaValoracion";
 import { EntornoInforme, FlagsEntorno } from "./EntornoInforme";
 import { InformeAcciones } from "./InformeAcciones";
+import { ReferenciaOficial } from "./ReferenciaOficial";
 
 export type InformeProps = {
   creada: string;
@@ -69,6 +70,8 @@ export function InformeValoracion({
     comparables: result.comparables,
     precisionScore: result.precisionScore,
     trend12mPct: result.zoneStats?.trend12mPct ?? null,
+    officialDeviationPct:
+      result.officialReference?.tasado?.level === "municipality" ? result.officialReference.desviacionPct : null,
   });
   const filas = filasFicha(twin, fieldSources);
   const zona = result.zoneStats;
@@ -173,10 +176,12 @@ export function InformeValoracion({
           <div>
             <div className="mb-3 grid gap-2 sm:grid-cols-2">
               <MiniTile
-                label="Oferta · mediana"
+                label={zona?.source === "official_series" ? "Valor tasado · respaldo" : "Oferta · mediana"}
                 value={zona ? fmtEurosPorM2(zona.medianPpm2) : "—"}
                 foot={
-                  zona
+                  zona?.source === "official_series"
+                    ? `${fmtNumero(zona.n)} tasaciones · sin anuncios aún en la zona`
+                    : zona
                     ? `${fmtNumero(zona.n)} anuncios${
                         zona.p25Ppm2 != null && zona.p75Ppm2 != null
                           ? ` · P25–P75 ${fmtRangoNumeros(zona.p25Ppm2, zona.p75Ppm2)}`
@@ -185,7 +190,15 @@ export function InformeValoracion({
                     : "sin datos de zona"
                 }
               />
-              <MiniTile label="Cierre" value="pendiente" foot="se activa con los primeros cierres propios" />
+              {result.officialReference?.tasado ? (
+                <MiniTile
+                  label="Cierre · valor tasado oficial"
+                  value={fmtEurosPorM2(result.officialReference.tasado.ppm2)}
+                  foot={`${result.officialReference.tasado.label} · Ministerio de Vivienda`}
+                />
+              ) : (
+                <MiniTile label="Cierre" value="pendiente" foot="se activa con los primeros cierres propios" />
+              )}
             </div>
             {mesesHistoricoZona >= 6 ? (
               <div className="h-40 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)]" data-testid="grafico-cierre" />
@@ -264,6 +277,8 @@ export function InformeValoracion({
           </div>
         </div>
       </section>
+
+      <ReferenciaOficial referencia={result.officialReference} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <EntornoInforme

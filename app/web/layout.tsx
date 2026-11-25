@@ -6,7 +6,6 @@ import "./corporativa.css";
 
 const inter = Inter({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
   display: "swap",
   variable: "--font-web-corp",
 });

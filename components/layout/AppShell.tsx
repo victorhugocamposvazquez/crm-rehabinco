@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { MobileNav } from "./MobileNav";
 import { AppTopBar } from "./AppTopBar";
+import { BarraAire } from "./BarraAire";
 import { Sidebar } from "./Sidebar";
 import { isWizardRoute } from "./wizard-chrome";
 import { HerramientasFooter } from "@/components/herramientas/HerramientasFooter";
@@ -102,9 +103,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         >
           Saltar al contenido
         </a>
-        {!chromeMinimal && <Sidebar badges={badges} />}
+        {!chromeMinimal && (
+          <div className="solo-clasico">
+            <Sidebar badges={badges} />
+          </div>
+        )}
         <div className={cn("flex min-w-0 flex-1 flex-col", estudio && "min-h-0")}>
-          {!fichaje && !estudio && <AppTopBar />}
+          {!fichaje && !estudio && (
+            <>
+              <div className="solo-clasico">
+                <AppTopBar />
+              </div>
+              <div className="solo-aire">
+                <BarraAire />
+              </div>
+            </>
+          )}
           <main
             id="main-content"
             className={cn(

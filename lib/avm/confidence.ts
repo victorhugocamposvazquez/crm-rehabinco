@@ -7,6 +7,7 @@
  * "Ninguna fuente es obligatoria" del doc de diseño; se recalibran con el
  * error medido contra ventas cerradas.
  */
+import { UMBRAL_PENALIZA_PCT } from './oficial/referencia';
 import type { AdjustedComparable, SourceUsed } from './types';
 
 export interface ConfidenceInput {
@@ -18,6 +19,8 @@ export interface ConfidenceInput {
   trend12mPct?: number | null;
   /** Municipio recién dado de alta sin anuncios aún. */
   marketLoading?: boolean;
+  /** Desviación del €/m² estimado frente al valor tasado oficial del municipio, en %. */
+  officialDeviationPct?: number | null;
 }
 
 export interface ConfidenceResult {
@@ -81,6 +84,13 @@ export function computeConfidence(input: ConfidenceInput): ConfidenceResult {
   if (input.marketLoading) {
     penalties.push({ reason: 'mercado de la zona en primera carga', points: 12 });
     score -= 12;
+  }
+
+  // Muy lejos del valor tasado oficial del municipio: algo no cuadra (comparables, superficie…)
+  if (input.officialDeviationPct != null && Math.abs(input.officialDeviationPct) > UMBRAL_PENALIZA_PCT) {
+    const d = Math.round(Math.abs(input.officialDeviationPct));
+    penalties.push({ reason: `${d} % ${input.officialDeviationPct > 0 ? 'por encima' : 'por debajo'} del valor tasado oficial del municipio`, points: 5 });
+    score -= 5;
   }
 
   // 4. Radio de búsqueda amplio

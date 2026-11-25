@@ -17,6 +17,7 @@ on:
           - noise
           - ine_sections
           - inspire
+          - oficial
       scope:
         description: Alcance (spain, spain/galicia, código provincia 15, municipio 15030, all)
         required: true
@@ -35,6 +36,8 @@ on:
     - cron: "0 5 20 1 *"
     # Día 5 · cada 3 meses · INSPIRE (market_crawl_targets)
     - cron: "0 5 5 1,4,7,10 *"
+    # Día 10 de cada mes · series oficiales (valor tasado MIVAU, compraventas, IPV INE)
+    - cron: "0 6 10 * *"
 
 concurrency:
   group: avm-data-${{ github.ref }}
@@ -89,6 +92,7 @@ jobs:
               "0 5 1 2 *") layers="snczi noise vulnerability" ;;
               "0 5 20 1 *") layers="ine_sections" ;;
               "0 5 5 1,4,7,10 *") layers="inspire" ;;
+              "0 6 10 * *") layers="oficial" ;;
               *) echo "Cron no reconocido: $CRON"; exit 1 ;;
             esac
           fi

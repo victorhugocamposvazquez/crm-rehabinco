@@ -16,6 +16,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { roleLabel } from "@/lib/auth/roles";
 import { usePermisos } from "@/lib/auth/permisos-context";
 import { AvatarComercial } from "@/components/ui/avatar-comercial";
+import { SelectorDiseno } from "./SelectorDiseno";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -164,6 +165,8 @@ function MenuPerfilModal({ abierto, onCerrar }: { abierto: boolean; onCerrar: ()
               </Button>
             </div>
           </div>
+
+          <SelectorDiseno onCambio={onCerrar} />
 
           <div className="mt-3 space-y-0.5">
             <Link

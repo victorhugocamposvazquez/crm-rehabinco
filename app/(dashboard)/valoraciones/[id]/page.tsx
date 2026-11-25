@@ -37,7 +37,7 @@ export default function InformePage() {
     const supabase = createClient();
     void supabase
       .from("avm_valuations")
-      .select("created_at, deleted_at, channel, method_version, operation, value_mid, value_low, value_high, price_per_m2, rent_monthly, gross_yield, confidence, precision_score, sources_used, comparables, zone_stats, environment, explanation, inputs, range_method, rent_source, created_by")
+      .select("created_at, deleted_at, channel, method_version, operation, value_mid, value_low, value_high, price_per_m2, rent_monthly, gross_yield, confidence, precision_score, sources_used, comparables, zone_stats, environment, official_reference, explanation, inputs, range_method, rent_source, created_by")
       .eq("id", id)
       .single()
       .then(async ({ data, error: err }) => {
@@ -89,6 +89,7 @@ export default function InformePage() {
           comparables: data.comparables ?? [],
           zoneStats: zone,
           environment,
+          officialReference: (data.official_reference ?? null) as ValuationResult["officialReference"],
           explanation: data.explanation ?? [],
         };
         setDato({
