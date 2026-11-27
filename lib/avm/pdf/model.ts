@@ -1,4 +1,5 @@
 import type { CapaCargada } from "../entorno-coverage";
+import { visibleAlCliente } from "./testigos-cliente";
 import { fmtCapaEntorno } from "../entorno-coverage";
 import type { EnvironmentItem, Twin, ValuationResult } from "../types";
 import { fmtEuros, fmtFechaCorta, fmtFechaLarga, fmtNumero, fmtPorcentaje } from "../ui/format";
@@ -306,6 +307,8 @@ export function modeloInformePdf(input: {
   fieldSources?: Record<string, string>;
   layers?: CapaCargada[];
   channel?: string;
+  /** El informe del propietario no lista Idealista ni Fotocasa salvo que se pida. */
+  incluirPortales?: boolean;
 }): InformePdfModel {
   const { result, twin } = input;
   const sources = input.fieldSources ?? {};
@@ -395,7 +398,11 @@ export function modeloInformePdf(input: {
     filaEntorno(item, false),
   );
 
-  const comparables: ComparablePdf[] = result.comparables.map((c) => ({
+  const paraElCliente = input.variant === "propietario";
+  const fuente = paraElCliente
+    ? result.comparables.filter((c) => visibleAlCliente(c, input.incluirPortales === true))
+    : result.comparables;
+  const comparables: ComparablePdf[] = fuente.map((c) => ({
     zone: c.title?.trim() || "Vivienda cercana",
     portal: portalDe(c.portal),
     price: c.price,
@@ -435,7 +442,7 @@ export function modeloInformePdf(input: {
     rentMonthly: result.rentMonthly,
     rentMethod: etiquetaMetodoAlquiler(result.methodVersion, result.rentSource),
     grossYield: result.grossYield,
-    comparablesCount: result.comparables.length,
+    comparablesCount: fuente.length,
     confidenceLabel: etiquetaConfianzaCorta(result.confidence).toLowerCase(),
     confidence: result.confidence,
     precision: result.precisionScore,
@@ -454,7 +461,7 @@ export function modeloInformePdf(input: {
       tone: tonoFuente(s.status),
     })),
     penalties: penalizaciones(result),
-    comparables: input.variant === "interno" ? [...comparables].sort((a, b) => b.weight - a.weight) : comparables,
+    comparables: paraElCliente ? comparables : [...comparables].sort((a, b) => b.weight - a.weight),
     positivos,
     negativos,
     avisos,

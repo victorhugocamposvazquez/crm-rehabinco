@@ -8,6 +8,7 @@ type Variant = "propietario" | "interno";
 
 export function InformePdfMenu({ valuationId }: { valuationId: string }) {
   const [abierto, setAbierto] = useState(false);
+  const [incluirPortales, setIncluirPortales] = useState(false);
   const [generando, setGenerando] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -28,7 +29,11 @@ export function InformePdfMenu({ valuationId }: { valuationId: string }) {
       const res = await fetch(`/api/avm/valuations/${valuationId}/pdf`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(theme ? { variant, theme } : { variant }),
+        body: JSON.stringify({
+          variant,
+          ...(theme ? { theme } : {}),
+          ...(variant === "propietario" && incluirPortales ? { incluirPortales: true } : {}),
+        }),
       });
       const tipo = res.headers.get("content-type") ?? "";
       if (!res.ok || !tipo.includes("application/pdf")) {
@@ -61,7 +66,16 @@ export function InformePdfMenu({ valuationId }: { valuationId: string }) {
         {etiqueta}
       </Button>
       {abierto ? (
-        <div className="absolute right-0 z-20 mt-1 w-64 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] p-1 shadow-lg">
+        <div className="absolute right-0 z-20 mt-1 w-72 rounded-[10px] border border-[var(--border)] bg-[var(--surface)] p-1 shadow-lg">
+          <label className="flex cursor-pointer items-start gap-2 rounded-[8px] px-3 py-2 text-left text-[13px] leading-snug hover:bg-[var(--surface-soft)]">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--foreground)]"
+              checked={incluirPortales}
+              onChange={(event) => setIncluirPortales(event.target.checked)}
+            />
+            <span>Incluir testigos de Idealista y Fotocasa en el informe del propietario</span>
+          </label>
           <Opcion onClick={() => void generar("propietario")}>Para el propietario</Opcion>
           <Opcion onClick={() => void generar("interno")}>Interno</Opcion>
           <Opcion onClick={() => void generar("propietario", "light")}>Versión clara para imprimir</Opcion>

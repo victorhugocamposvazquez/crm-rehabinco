@@ -213,6 +213,11 @@ describe("informe PDF de Juan Flórez 30", () => {
       if (caso.variant === "propietario") {
         expect(todo.toLowerCase()).not.toMatch(/confianza|peso|ajuste/);
         expect(todo).not.toContain("Obras de peatonalización");
+        expect(todo).not.toContain("Ensanche");
+        expect(todo).toContain("Sinfónica");
+      } else {
+        expect(todo).toContain("Ensanche");
+        expect(todo).toContain("Fotocasa");
       }
       const nombre = `${caso.variant}-${caso.theme}.pdf`;
       writeFileSync(path.join(dir, nombre), buffer);

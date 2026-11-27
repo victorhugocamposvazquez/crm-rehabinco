@@ -12,6 +12,7 @@ export const maxDuration = 60;
 const cuerpo = z.object({
   variant: z.enum(["propietario", "interno"]),
   theme: z.enum(["light", "dark"]).optional(),
+  incluirPortales: z.boolean().optional(),
 });
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
@@ -70,7 +71,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     console.error("pdf marca", err instanceof Error ? err.message : err);
   }
   const theme: PdfThemeName = parsed.data.theme ?? marca.pdfTheme;
-  const ruta = rutaPdfGuardado(tenantId, id, variant, theme);
+  const incluirPortales = variant === "propietario" && parsed.data.incluirPortales === true;
+  const ruta = rutaPdfGuardado(tenantId, id, variant, theme).replace(/\.pdf$/, incluirPortales ? "-portales.pdf" : ".pdf");
   const twin = ((data.inputs as { twin?: Twin } | null)?.twin ?? {
     address: { formattedAddress: null, route: null, streetNumber: null, countryCode: "es" },
   }) as Twin;
@@ -95,6 +97,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       fieldSources: (data.inputs as { fieldSources?: Record<string, string> } | null)?.fieldSources ?? {},
       layers: hydrated.coverage?.layers_loaded,
       channel: data.channel,
+      incluirPortales,
     }));
   } catch (err) {
     const message = err instanceof Error ? err.message : "No se ha podido generar el PDF";
