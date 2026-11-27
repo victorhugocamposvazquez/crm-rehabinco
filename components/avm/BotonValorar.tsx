@@ -18,6 +18,7 @@ type Props = {
 export function BotonValorar({ crmPropertyId, listingId, catastralRef, address, className }: Props) {
   const router = useRouter();
   const [ocupado, setOcupado] = useState(false);
+  const [incluirPortales, setIncluirPortales] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [units, setUnits] = useState<TwinUnit[] | null>(null);
 
@@ -32,6 +33,7 @@ export function BotonValorar({ crmPropertyId, listingId, catastralRef, address, 
         ...(ref ? { catastralRef: ref } : address ? { address } : {}),
       },
       channel: "crm" as const,
+      incluirPortales,
     };
     const res = await valorarInmueble(body);
     setOcupado(false);
@@ -49,7 +51,17 @@ export function BotonValorar({ crmPropertyId, listingId, catastralRef, address, 
   const grupos = units ? unidadesAgrupadas(units) : null;
 
   return (
-    <>
+    <div className="flex flex-wrap items-center gap-2">
+      <label className="inline-flex cursor-pointer items-center gap-2 text-[13px] font-semibold leading-tight">
+        <input
+          type="checkbox"
+          className="h-4 w-4 shrink-0 accent-[var(--foreground)]"
+          checked={incluirPortales}
+          disabled={ocupado}
+          onChange={(event) => setIncluirPortales(event.target.checked)}
+        />
+        Testigos de Idealista y Fotocasa
+      </label>
       <Button type="button" variant="secondary" size="sm" className={className} disabled={ocupado} onClick={() => void pedir()}>
         {ocupado ? "Valorando…" : "Valorar"}
       </Button>
@@ -64,7 +76,7 @@ export function BotonValorar({ crmPropertyId, listingId, catastralRef, address, 
           </div>
         </div>
       ) : null}
-    </>
+    </div>
   );
 }
 

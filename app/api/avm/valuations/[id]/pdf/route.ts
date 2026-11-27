@@ -71,7 +71,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     console.error("pdf marca", err instanceof Error ? err.message : err);
   }
   const theme: PdfThemeName = parsed.data.theme ?? marca.pdfTheme;
-  const incluirPortales = variant === "propietario" && parsed.data.incluirPortales === true;
+  const pedido = (data.inputs as { incluirPortales?: boolean } | null)?.incluirPortales === true;
+  const incluirPortales = variant === "propietario" && (parsed.data.incluirPortales ?? pedido);
   const ruta = rutaPdfGuardado(tenantId, id, variant, theme).replace(/\.pdf$/, incluirPortales ? "-portales.pdf" : ".pdf");
   const twin = ((data.inputs as { twin?: Twin } | null)?.twin ?? {
     address: { formattedAddress: null, route: null, streetNumber: null, countryCode: "es" },

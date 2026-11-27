@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { portalOpcional, visibleAlCliente } from "../testigos-cliente";
+import { portalOpcional, visibleAlCliente, comparablesParaCalculo } from "../testigos-cliente";
 
 describe("testigos que ve el propietario", () => {
   it("Idealista y Fotocasa quedan fuera si no se piden", () => {
@@ -18,5 +18,12 @@ describe("testigos que ve el propietario", () => {
   it("con la opción marcada salen también Idealista y Fotocasa", () => {
     expect(visibleAlCliente({ portal: "idealista" }, true)).toBe(true);
     expect(visibleAlCliente({ portal: "fotocasa" }, true)).toBe(true);
+  });
+
+  it("el cálculo deja fuera Idealista y Fotocasa si no se piden", () => {
+    const lista = [{ portal: "idealista" }, { portal: "fotocasa" }, { portal: "habitaclia" }];
+    expect(comparablesParaCalculo(lista, false)).toEqual([{ portal: "habitaclia" }]);
+    expect(comparablesParaCalculo(lista, true)).toEqual(lista);
+    expect(portalOpcional("pisos")).toBe(false);
   });
 });

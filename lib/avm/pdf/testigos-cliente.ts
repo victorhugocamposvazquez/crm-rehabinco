@@ -13,3 +13,11 @@ export function visibleAlCliente<T extends { portal: string | null | undefined }
   if (incluirPortales) return true;
   return !portalOpcional(comparable.portal);
 }
+
+/** Los que entran en el cálculo. Sin la opción, Idealista y Fotocasa se quedan fuera. */
+export function comparablesParaCalculo<T extends { portal: string | null | undefined }>(
+  lista: T[],
+  incluirPortales: boolean,
+): T[] {
+  return incluirPortales ? lista : lista.filter((c) => visibleAlCliente(c, false));
+}

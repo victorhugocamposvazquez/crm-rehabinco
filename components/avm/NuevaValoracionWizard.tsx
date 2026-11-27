@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { MapaAvm } from "@/components/avm/MapaAvm";
 import { PanelLateralValoracion } from "@/components/avm/nueva/PanelLateralValoracion";
+import { TestigosPortales } from "@/components/avm/TestigosPortales";
 import { PantallaGrupo } from "@/components/avm/nueva/PantallaGrupo";
 import {
   buscarEnCrm,
@@ -90,6 +91,7 @@ export function NuevaValoracionWizard({
   const [borradorBanner, setBorradorBanner] = useState<{ etiqueta: string } | null>(null);
   const [email, setEmail] = useState("");
   const [consent, setConsent] = useState(false);
+  const [incluirPortales, setIncluirPortales] = useState(false);
 
   const twin = built?.twin ?? null;
   const screens = useMemo(() => wizardScreens(channel, needsUnit), [channel, needsUnit]);
@@ -275,6 +277,7 @@ export function NuevaValoracionWizard({
         warnings: built.warnings,
       },
       channel,
+      incluirPortales,
       ...(channel === "landing" ? { landingSlug } : {}),
     };
     const res =
@@ -482,6 +485,7 @@ export function NuevaValoracionWizard({
                 <p className="text-[14px] text-[var(--text-3)]">
                   {twin.address.formattedAddress ?? "Inmueble listo"} · {confirmados} datos en el resumen
                 </p>
+                <TestigosPortales checked={incluirPortales} onChange={setIncluirPortales} disabled={ocupado} />
                 <Button type="button" className="lg:hidden" disabled={ocupado} onClick={() => void terminar()}>
                   Valorar
                 </Button>
@@ -508,6 +512,8 @@ export function NuevaValoracionWizard({
           listoValorar={listoValorar}
           ocupado={ocupado}
           onValorar={() => void terminar()}
+          incluirPortales={incluirPortales}
+          onIncluirPortales={setIncluirPortales}
         />
       </div>
 
@@ -523,6 +529,8 @@ export function NuevaValoracionWizard({
         listoValorar={listoValorar}
         ocupado={ocupado}
         onValorar={() => void terminar()}
+        incluirPortales={incluirPortales}
+        onIncluirPortales={setIncluirPortales}
       />
     </div>
   );

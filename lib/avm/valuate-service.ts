@@ -5,6 +5,7 @@ import type { Channel, Comparable, Operation, Twin, ZoneLevel, ZoneStats } from 
 import { environmentFromAvmRpc } from "./environment-from-rpc";
 import { publicView, valuate, type ValuateDeps, type ValuateOptions } from "./valuate";
 import { elegirDescuento } from "./notariado";
+import { comparablesParaCalculo } from "./pdf/testigos-cliente";
 
 const TENANT = "00000000-0000-4000-8000-000000000001";
 
@@ -26,6 +27,7 @@ export const solicitudValoracion = z.object({
   channel: z.enum(["crm", "landing"]),
   operation: z.enum(["sale", "rent"]).optional(),
   landingSlug: z.string().optional(),
+  incluirPortales: z.boolean().optional(),
 });
 
 export type SolicitudValoracion = z.infer<typeof solicitudValoracion>;
@@ -221,7 +223,8 @@ async function guardar(
   operation: Operation,
   userId: string | null,
   listingId: string | undefined,
-  crmPropertyId: string | undefined
+  crmPropertyId: string | undefined,
+  incluirPortales: boolean
 ): Promise<string> {
   const twin = built.twin;
   const ref = refUnidad(twin.address.catastralRef);
@@ -286,6 +289,7 @@ async function guardar(
         twin,
         fieldSources: built.fieldSources,
         prefilledFields: [...built.prefilledFields],
+        incluirPortales,
       },
       operation,
       value_mid: result.valueMid,
@@ -360,7 +364,15 @@ export async function valorar(solicitud: SolicitudValoracion, ctx: Ctx): Promise
     return { status: 409, body: { units: built.units } };
   }
 
-  const deps = depsMercado(ctx.admin);
+  const depsBase = depsMercado(ctx.admin);
+  const incluirPortales = solicitud.incluirPortales === true;
+  const deps: ValuateDeps = incluirPortales
+    ? depsBase
+    : {
+        ...depsBase,
+        comparables: async (twin, op) => comparablesParaCalculo(await depsBase.comparables(twin, op), false),
+        rentComparables: async (twin) => comparablesParaCalculo((await depsBase.rentComparables?.(twin)) ?? [], false),
+      };
   const { avisoMunicipioSinRastreo, estadoMercadoMunicipio, mensajeMercadoEnCarga } = await import("./market-loading");
   const { asegurarMercadoMunicipio } = await import("./market-espana");
   const codigoMercado = built.twin.address.municipalityCode ?? built.zone.municipalityCode;
@@ -396,7 +408,8 @@ export async function valorar(solicitud: SolicitudValoracion, ctx: Ctx): Promise
     op,
     solicitud.channel === "crm" ? ctx.userId ?? null : null,
     solicitud.input.listingId,
-    solicitud.input.crmPropertyId
+    solicitud.input.crmPropertyId,
+    incluirPortales
   );
 
   return {

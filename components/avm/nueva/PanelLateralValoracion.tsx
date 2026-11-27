@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { TagAvm } from "@/components/avm/nueva/wizard-ui";
+import { TestigosPortales } from "@/components/avm/TestigosPortales";
 import { fmtEurosPorM2, fmtNumero } from "@/lib/avm/ui/format";
 import type { FilaConocido } from "@/lib/avm/wizard-known";
 import type { Twin } from "@/lib/avm/types";
@@ -18,6 +19,8 @@ type Props = {
   listoValorar: boolean;
   ocupado: boolean;
   onValorar: () => void;
+  incluirPortales?: boolean;
+  onIncluirPortales?: (valor: boolean) => void;
   compacto?: boolean;
 };
 
@@ -32,6 +35,8 @@ export function PanelLateralValoracion({
   listoValorar,
   ocupado,
   onValorar,
+  incluirPortales = false,
+  onIncluirPortales,
   compacto,
 }: Props) {
   const [resumenAbierto, setResumenAbierto] = useState(false);
@@ -122,9 +127,12 @@ export function PanelLateralValoracion({
       ) : null}
 
       {listoValorar ? (
-        <Button type="button" className="w-full" disabled={ocupado} onClick={onValorar}>
-          {ocupado ? "Valorando…" : "Valorar"}
-        </Button>
+        <div className="flex flex-col gap-2.5">
+          <TestigosPortales checked={incluirPortales} onChange={(valor) => onIncluirPortales?.(valor)} disabled={ocupado} />
+          <Button type="button" className="w-full" disabled={ocupado} onClick={onValorar}>
+            {ocupado ? "Valorando…" : "Valorar"}
+          </Button>
+        </div>
       ) : null}
     </>
   );
@@ -155,7 +163,11 @@ export function PanelLateralValoracion({
             ))}
           </div>
         ) : null}
-        <div className="flex items-center justify-between gap-3 border-t border-[var(--border)] px-4 py-3">
+        <div className="flex flex-col gap-2 border-t border-[var(--border)] px-4 py-3">
+          {listoValorar ? (
+            <TestigosPortales checked={incluirPortales} onChange={(valor) => onIncluirPortales?.(valor)} disabled={ocupado} />
+          ) : null}
+          <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[11px] text-[var(--text-3)]">Precisión {precision} %</p>
             <p className={`truncate text-[15px] font-semibold tabular-nums ${desenfocado ? "blur-sm" : ""}`}>
