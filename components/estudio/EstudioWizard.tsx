@@ -32,6 +32,43 @@ const stage: CSSProperties = { background: k.stage, backgroundImage: 'radial-gra
 const tplName = (t: TemplateId) => TEMPLATES.find((x) => x.id === t)?.nombre ?? t;
 const pantallas = (n: number) => (n === 1 ? '1 pantalla' : `${n} pantallas`);
 const nombreFoto = (nombre: string, i: number) => (/^foto\s*\d+$/i.test(nombre.trim()) ? String(i + 1) : nombre);
+const TAMANO_MIN = 75;
+const TAMANO_MAX = 170;
+
+function TamanoFuente({ valor, onChange, etiqueta }: { valor: number; onChange: (n: number) => void; etiqueta: string }) {
+  const [texto, setTexto] = useState(String(valor));
+  const [ultimo, setUltimo] = useState(valor);
+  if (valor !== ultimo) {
+    setUltimo(valor);
+    setTexto(String(valor));
+  }
+  const aplicar = (n: number) => onChange(Math.min(TAMANO_MAX, Math.max(TAMANO_MIN, Math.round(n))));
+  const paso = (delta: number) => aplicar(valor + delta);
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto', height: 34, border: '1px solid var(--input)', borderRadius: 8, background: 'var(--background)' }}>
+      <button type="button" aria-label="Reducir el tamaño de la fuente" disabled={valor <= TAMANO_MIN} onClick={() => paso(-1)} style={{ ...btn, width: 28, height: 32, display: 'grid', placeItems: 'center', fontSize: 18, lineHeight: 1, opacity: valor <= TAMANO_MIN ? .35 : 1 }}>−</button>
+      <input
+        aria-label={etiqueta}
+        inputMode="numeric"
+        value={texto}
+        onChange={(e) => {
+          const raw = e.target.value.replace(/[^\d]/g, '').slice(0, 3);
+          setTexto(raw);
+          const n = Number(raw);
+          if (raw && n >= TAMANO_MIN && n <= TAMANO_MAX) onChange(n);
+        }}
+        onBlur={() => {
+          const n = Math.min(TAMANO_MAX, Math.max(TAMANO_MIN, Number(texto) || valor));
+          onChange(n);
+          setTexto(String(n));
+          setUltimo(n);
+        }}
+        style={{ width: 36, height: 32, border: 0, padding: 0, background: 'none', color: 'var(--foreground)', fontSize: 14, fontWeight: 600, textAlign: 'center', outline: 0 }}
+      />
+      <button type="button" aria-label="Aumentar el tamaño de la fuente" disabled={valor >= TAMANO_MAX} onClick={() => paso(1)} style={{ ...btn, width: 28, height: 32, display: 'grid', placeItems: 'center', fontSize: 18, lineHeight: 1, opacity: valor >= TAMANO_MAX ? .35 : 1 }}>+</button>
+    </div>
+  );
+}
 
 export type EstudioSavePayload = { inmuebleId: string; state: Publication & { template: TemplateId }; files: Partial<Record<FormatId, Blob>>; piezas: Blob[]; caption: string };
 export type EstudioReviewPayload = { inmuebleId: string; state: Publication & { template: TemplateId }; nota: string };
@@ -416,11 +453,11 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
                       </>
                     );
                   })()}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '0 0 168px', fontSize: 12, color: k.mut }}>
-                    <span>Tamaño</span>
-                    <input aria-label={`Tamaño de ${FIELD_LABELS[selKey].toLowerCase()} en ${FORMATS[pub.format].label}`} type="range" min={75} max={170} step={1} value={Math.round((anidarEscala(pub.escala)[pub.format]?.[selKey] ?? 1) * 100)} onChange={(e) => P.edit((pubNow) => { const escala = anidarEscala(pubNow.escala); return { escala: { ...escala, [pubNow.format]: { ...escala[pubNow.format], [selKey]: Number(e.target.value) / 100 } } }; }, 'size:' + pub.format + ':' + selKey)} style={{ flex: 1, minWidth: 48, accentColor: k.blue }} />
-                    <span style={{ width: 36, color: k.fg, fontWeight: 600 }}>{Math.round((anidarEscala(pub.escala)[pub.format]?.[selKey] ?? 1) * 100)}%</span>
-                  </div>
+                  <TamanoFuente
+                    valor={Math.round((anidarEscala(pub.escala)[pub.format]?.[selKey] ?? 1) * 100)}
+                    etiqueta={`Tamaño de ${FIELD_LABELS[selKey].toLowerCase()} en ${FORMATS[pub.format].label}`}
+                    onChange={(valor) => P.edit((pubNow) => { const escala = anidarEscala(pubNow.escala); return { escala: { ...escala, [pubNow.format]: { ...escala[pubNow.format], [selKey]: valor / 100 } } }; }, 'size:' + pub.format + ':' + selKey)}
+                  />
                   {slide.overrides[selKey] != null && <button onClick={() => resetField(selKey)} style={{ ...btn, flex: '0 0 auto', fontSize: 12.5, fontWeight: 600, color: k.mut, padding: '0 8px' }}>Restaurar</button>}
                   {((anidarEscala(pub.escala)[pub.format]?.[selKey] ?? 1) !== 1 || anidarPos(pub.pos)[pub.format]?.[selKey] || pub.tipografia?.[pub.format]?.[selKey]) && <button onClick={() => P.edit((pubNow) => { const escala = anidarEscala(pubNow.escala); const pos = anidarPos(pubNow.pos); const e = { ...escala[pubNow.format] }; const p = { ...pos[pubNow.format] }; const fuentes = { ...(pubNow.tipografia ?? {}) }; const f = { ...fuentes[pubNow.format] }; delete e[selKey]; delete p[selKey]; delete f[selKey]; return { escala: { ...escala, [pubNow.format]: e }, pos: { ...pos, [pubNow.format]: p }, tipografia: { ...fuentes, [pubNow.format]: f } }; })} style={{ ...btn, flex: '0 0 auto', fontSize: 12.5, fontWeight: 600, color: k.mut, padding: '0 8px' }}>Auto</button>}
                   <button type="button" aria-label="Ocultar" onClick={() => toggleField(selKey)} style={{ ...btn, width: 34, height: 34, flex: '0 0 auto', display: 'grid', placeItems: 'center', borderRadius: 8, border: `1px solid ${k.line2}` }}><EyeOff size={16} /></button>
