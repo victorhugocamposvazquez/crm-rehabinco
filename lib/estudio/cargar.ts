@@ -10,6 +10,7 @@ export async function cargarEstudio() {
     .select(
       "id, referencia, titulo, direccion, localidad, tipo_operacion, precio_venta, precio_alquiler, superficie_m2, superficie_construida, habitaciones, banos, certificado_energetico, comercial_id, user_id"
     )
+    .eq("publicar_redes", true)
     .is("deleted_at", null)
     .order("updated_at", { ascending: false })
     .limit(300);

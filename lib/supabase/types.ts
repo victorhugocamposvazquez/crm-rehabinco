@@ -319,6 +319,7 @@ export interface Database {
           publicado: boolean;
           publicar_web: boolean;
           publicar_idealista: boolean;
+          publicar_redes: boolean;
           certificado_energetico: string | null;
           idealista_tipo: string | null;
           idealista_visibilidad_direccion: string;
@@ -371,6 +372,7 @@ export interface Database {
           publicado?: boolean;
           publicar_web?: boolean;
           publicar_idealista?: boolean;
+          publicar_redes?: boolean;
           certificado_energetico?: string | null;
           idealista_tipo?: string | null;
           idealista_visibilidad_direccion?: string;
@@ -420,6 +422,7 @@ export interface Database {
           publicado?: boolean;
           publicar_web?: boolean;
           publicar_idealista?: boolean;
+          publicar_redes?: boolean;
           certificado_energetico?: string | null;
           idealista_tipo?: string | null;
           idealista_visibilidad_direccion?: string;

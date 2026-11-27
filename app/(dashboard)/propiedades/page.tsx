@@ -53,6 +53,8 @@ import { AvisoContinuarBorrador } from "@/components/ui/aviso-borrador";
 import { useHayAltaBorrador } from "@/lib/ui/use-alta-borrador";
 import { Sheet } from "@/components/ui/sheet";
 import { Selector } from "@/components/ui/selector";
+import { PublicableRedes } from "@/components/inmuebles/PublicableRedes";
+import { guardarPublicableRedes } from "@/lib/inmuebles/publicar-redes";
 
 type PropiedadLista = InmueblePanel;
 
@@ -155,6 +157,19 @@ export default function PropiedadesPage() {
   const [borrarId, setBorrarId] = useState<string | null>(null);
   const [borrando, setBorrando] = useState(false);
   const hayBorrador = useHayAltaBorrador("inmueble");
+
+  const marcarRedes = (id: string, valor: boolean) => {
+    const previa = propsRef.current.find((p) => p.id === id)?.publicarRedes ?? false;
+    setPropiedades((prev) => prev.map((p) => (p.id === id ? { ...p, publicarRedes: valor } : p)));
+    void guardarPublicableRedes(id, valor).then((error) => {
+      if (!error) {
+        toast.success(valor ? "Saldrá en el Estudio." : "Ya no sale en el Estudio.");
+        return;
+      }
+      setPropiedades((prev) => prev.map((p) => (p.id === id ? { ...p, publicarRedes: previa } : p)));
+      toast.error("No se ha podido guardar.");
+    });
+  };
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 819px)");
@@ -470,12 +485,13 @@ export default function PropiedadesPage() {
               <p className="px-4 py-9 text-center text-[13.5px] text-[var(--text-2)]">Ningún inmueble con ese filtro.</p>
             ) : modo === "lista" ? (
               <>
-                <div className="grid grid-cols-[minmax(0,1fr)_70px_110px_120px_130px_40px] gap-3 border-b border-[var(--border-soft)] bg-[var(--surface-soft)] px-3.5 py-2 text-[12px] text-[var(--text-3)]">
+                <div className="grid grid-cols-[minmax(0,1fr)_70px_110px_120px_130px_190px_40px] gap-3 border-b border-[var(--border-soft)] bg-[var(--surface-soft)] px-3.5 py-2 text-[12px] text-[var(--text-3)]">
                   <div>Inmueble</div>
                   <div className="text-right">m²</div>
                   <div className="text-right">Precio</div>
                   <div>Estado</div>
                   <div>Captado</div>
+                  <div>Redes</div>
                   <div />
                 </div>
                 {filteredPropiedades.map((p) => {
@@ -484,7 +500,7 @@ export default function PropiedadesPage() {
                     <div
                       key={p.id}
                       className={cn(
-                        "grid w-full grid-cols-[minmax(0,1fr)_70px_110px_120px_130px_40px] items-center gap-3 border-b border-[var(--border-row)] px-3.5 py-2.5 hover:bg-[var(--surface-soft)]",
+                        "grid w-full grid-cols-[minmax(0,1fr)_70px_110px_120px_130px_190px_40px] items-center gap-3 border-b border-[var(--border-row)] px-3.5 py-2.5 hover:bg-[var(--surface-soft)]",
                         active && "bg-[var(--row-active)] shadow-[inset_3px_0_0_var(--accent)]"
                       )}
                     >
@@ -514,6 +530,7 @@ export default function PropiedadesPage() {
                       <button type="button" onClick={() => setSelectedId(p.id)} className="min-w-0 text-left">
                         <EquipoInmueble inmueble={p} perfiles={perfiles} />
                       </button>
+                      <PublicableRedes checked={p.publicarRedes} onChange={(valor) => marcarRedes(p.id, valor)} />
                       <button
                         type="button"
                         title="Enviar a la papelera"
@@ -539,7 +556,7 @@ export default function PropiedadesPage() {
                       key={p.id}
                       className={cn(
                         "relative overflow-hidden rounded-xl border bg-white text-left",
-                        active ? "border-accent" : "border-border hover:border-accent"
+                        active ? "border-accent" : p.publicarRedes ? "border-[var(--green)]" : "border-border hover:border-accent"
                       )}
                     >
                       <button type="button" onClick={() => setSelectedId(p.id)} className="block w-full text-left">
@@ -566,6 +583,9 @@ export default function PropiedadesPage() {
                           </span>
                         </span>
                       </button>
+                      <div className="px-3 pb-3">
+                        <PublicableRedes checked={p.publicarRedes} onChange={(valor) => marcarRedes(p.id, valor)} />
+                      </div>
                       <button
                         type="button"
                         title="Enviar a la papelera"

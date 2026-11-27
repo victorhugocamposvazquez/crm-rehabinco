@@ -10,6 +10,7 @@ import { ClienteQuickSheet } from "@/components/clientes/ClienteQuickSheet";
 import { BuscadorLocalidad } from "@/components/geo/BuscadorLocalidad";
 import { Selector } from "@/components/ui/selector";
 import { PublicacionInmueble } from "@/components/inmuebles/PublicacionInmueble";
+import { PublicableRedes } from "@/components/inmuebles/PublicableRedes";
 import {
   ESTADOS_INMUEBLE,
   ESTADO_INMUEBLE_LABEL,
@@ -56,6 +57,7 @@ export function InmuebleForm({
       }}
       className="space-y-8"
     >
+      <PublicableRedes checked={values.publicar_redes} onChange={(valor) => set({ publicar_redes: valor })} />
       <section className="space-y-4">
         <h2 className="text-[12px] font-medium text-[var(--text-3)]">Captación</h2>
         <div className="space-y-2">

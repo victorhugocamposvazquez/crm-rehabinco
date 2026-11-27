@@ -3,11 +3,11 @@ import { relacionUno } from "@/lib/citas/citas";
 import { urlPortadaDeMedia } from "@/lib/inmuebles/portada";
 
 export const SELECT_INMUEBLE_PANEL =
-  "id, user_id, titulo, direccion, localidad, codigo_postal, tipo_operacion, precio_venta, precio_alquiler, estado, referencia, tipo_inmueble, origen, superficie_m2, superficie_util, ascensor, anio_construccion, referencia_catastral, descripcion, notas, publicado, ofertante_id, comercial_id, captado_por, captado_conjunto, habitaciones, banos, planta, video_url, tour_url, clientes:ofertante_id(nombre, telefono), profiles:comercial_id(nombre_completo, color), captador:captado_por(nombre_completo), inmueble_media(url, portada, tipo, orden), catastro_property_links(finca_reference)";
+  "id, user_id, titulo, direccion, localidad, codigo_postal, tipo_operacion, precio_venta, precio_alquiler, estado, referencia, tipo_inmueble, origen, superficie_m2, superficie_util, ascensor, anio_construccion, referencia_catastral, descripcion, notas, publicado, publicar_redes, ofertante_id, comercial_id, captado_por, captado_conjunto, habitaciones, banos, planta, video_url, tour_url, clientes:ofertante_id(nombre, telefono), profiles:comercial_id(nombre_completo, color), captador:captado_por(nombre_completo), inmueble_media(url, portada, tipo, orden), catastro_property_links(finca_reference)";
 
 /** Listado: sin descripción, notas ni todas las fotos. La ficha completa se pide al abrir. */
 export const SELECT_INMUEBLE_LISTA =
-  "id, user_id, titulo, direccion, localidad, codigo_postal, tipo_operacion, precio_venta, precio_alquiler, estado, referencia, tipo_inmueble, origen, superficie_m2, superficie_util, ascensor, anio_construccion, referencia_catastral, publicado, ofertante_id, comercial_id, captado_por, captado_conjunto, habitaciones, banos, planta, video_url, tour_url, clientes:ofertante_id(nombre, telefono), profiles:comercial_id(nombre_completo, color), captador:captado_por(nombre_completo), catastro_property_links(finca_reference)";
+  "id, user_id, titulo, direccion, localidad, codigo_postal, tipo_operacion, precio_venta, precio_alquiler, estado, referencia, tipo_inmueble, origen, superficie_m2, superficie_util, ascensor, anio_construccion, referencia_catastral, publicado, publicar_redes, ofertante_id, comercial_id, captado_por, captado_conjunto, habitaciones, banos, planta, video_url, tour_url, clientes:ofertante_id(nombre, telefono), profiles:comercial_id(nombre_completo, color), captador:captado_por(nombre_completo), catastro_property_links(finca_reference)";
 
 export type InmueblePanel = {
   id: string;
@@ -41,6 +41,7 @@ export type InmueblePanel = {
   descripcion: string | null;
   notas: string | null;
   publicado: boolean;
+  publicarRedes: boolean;
   ofertante_id: string | null;
   comercialId: string | null;
   comercialNombre: string | null;
@@ -79,6 +80,7 @@ export type InmueblePanelRow = {
   descripcion?: string | null;
   notas?: string | null;
   publicado: boolean;
+  publicar_redes?: boolean | null;
   ofertante_id: string | null;
   captado_por?: string | null;
   captado_conjunto?: boolean | null;
@@ -138,6 +140,7 @@ export function mapInmueblePanel(r: InmueblePanelRow, dhPorFinca?: Map<string, s
     descripcion: r.descripcion ?? null,
     notas: r.notas ?? null,
     publicado: r.publicado,
+    publicarRedes: r.publicar_redes === true,
     ofertante_id: r.ofertante_id,
     comercialId: r.comercial_id ?? null,
     comercialNombre: com?.nombre_completo ?? null,

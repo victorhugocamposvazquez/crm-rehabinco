@@ -120,6 +120,7 @@ export type Inmueble = {
   publicado: boolean;
   publicar_web?: boolean;
   publicar_idealista?: boolean;
+  publicar_redes?: boolean;
   certificado_energetico?: string | null;
   idealista_tipo?: string | null;
   idealista_visibilidad_direccion?: string | null;
@@ -173,6 +174,7 @@ export type InmuebleFormValues = {
   publicado: boolean;
   publicar_web: boolean;
   publicar_idealista: boolean;
+  publicar_redes: boolean;
   certificado_energetico: string;
   idealista_tipo: string;
   idealista_visibilidad_direccion: string;
@@ -211,6 +213,7 @@ export const INMUEBLE_FORM_VACIO: InmuebleFormValues = {
   publicado: false,
   publicar_web: false,
   publicar_idealista: false,
+  publicar_redes: false,
   certificado_energetico: "",
   idealista_tipo: "piso",
   idealista_visibilidad_direccion: "exacta",
@@ -271,6 +274,7 @@ export function inmuebleDesdeForm(values: InmuebleFormValues) {
     tour_url: values.tour_url.trim() || null,
     publicar_web: values.publicar_web,
     publicar_idealista: values.publicar_idealista,
+    publicar_redes: values.publicar_redes,
     certificado_energetico: values.certificado_energetico.trim() || null,
     idealista_tipo: values.idealista_tipo.trim() || null,
     idealista_visibilidad_direccion: values.idealista_visibilidad_direccion.trim() || "exacta",
@@ -313,6 +317,7 @@ export function formDesdeInmueble(p: Partial<Inmueble>, fallbackOfertante = ""):
     publicado: Boolean(p.publicado),
     publicar_web: Boolean(p.publicar_web),
     publicar_idealista: Boolean(p.publicar_idealista),
+    publicar_redes: Boolean(p.publicar_redes),
     certificado_energetico: p.certificado_energetico ?? "",
     idealista_tipo: p.idealista_tipo ?? idealistaTipoDesdeTipoInmueble(p.tipo_inmueble) ?? "piso",
     idealista_visibilidad_direccion: parseIdealistaVisibilidad(p.idealista_visibilidad_direccion),

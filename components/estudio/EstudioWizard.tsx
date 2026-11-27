@@ -111,7 +111,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
 
   const inm = inmuebles.find((i) => i.id === pid);
   const slideData = useMemo(() => (inm ? pub.slides.map((s) => buildSlideData(inm, pub, s)) : []), [inm, pub]);
-  if (!inm) return <p style={{ padding: 32, color: k.mut }}>No hay inmuebles con fotos para crear una publicación.</p>;
+  if (!inm) return <p style={{ padding: 32, color: k.mut }}>{inmuebles.length === 0 ? "Ningún inmueble está marcado como publicable en redes. Márcalo en Inmuebles." : "No hay inmuebles con fotos para crear una publicación."}</p>;
 
   const n = pub.slides.length;
   const c = Math.min(cur, n - 1);
@@ -243,6 +243,8 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
   const used = usedPhotoIndexes(pub, nF);
   const stepVal: Record<Step, string> = { inmueble: inm.ref, diseno: `${fmt.label} · ${tplName(pub.slides[0].template)}`, editar: n === 1 ? '1 imagen' : `Carrusel de ${n}`, publicar: modoPrueba ? 'Demo only' : 'Texto y salida' };
   const stepHint: Record<Step, string> = { inmueble: 'Elige el inmueble', diseno: 'Qué anuncias y diseño', editar: stepVal.editar, publicar: modoPrueba ? 'Demo only' : 'Texto y salida' };
+  const qInmueble = busqueda.trim().toLowerCase();
+  const inmueblesVisibles = inmuebles.filter((p) => !qInmueble || [p.ref, p.titulo, p.direccion, p.zona, p.barrio].join(" ").toLowerCase().includes(qInmueble));
 
   const pill = (on: boolean): CSSProperties => ({ ...btn, height: 34, padding: '0 12px', borderRadius: 9, border: `1px solid ${on ? k.fg : k.line2}`, background: on ? k.chip : 'transparent', color: on ? k.fg : k.mut, fontSize: 13, fontWeight: 600 });
   const sideBtn = (o: CSSProperties = {}): CSSProperties => ({ ...btn, width: 86, borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '0 6px', fontSize: 12.5, fontWeight: 600, lineHeight: 1.3, textAlign: 'center', ...o });
@@ -296,15 +298,12 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
       {step === 'inmueble' && (
         <main className="estudio-scroll" style={{ padding: '32px 28px 40px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap', marginBottom: 22 }}>
-            <div><h1 style={{ fontSize: 26, margin: 0, fontWeight: 600 }}>¿De qué inmueble es la publicación?</h1><p style={{ margin: '6px 0 0', color: k.mut, fontSize: 14 }}>Al elegirlo pasas al siguiente paso.</p></div>
+            <div><h1 style={{ fontSize: 26, margin: 0, fontWeight: 600 }}>¿De qué inmueble es la publicación?</h1><p style={{ margin: '6px 0 0', color: k.mut, fontSize: 14 }}>Solo salen los marcados como publicable en redes. Al elegirlo pasas al siguiente paso.</p></div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, width: 320, maxWidth: '100%', height: 42, padding: '0 12px', border: `1px solid ${k.line2}`, borderRadius: 11, color: k.mut }}><Search size={16} /><input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Referencia, dirección o zona" aria-label="Buscar inmueble" style={{ border: 0, outline: 0, background: 'none', flex: 1, minWidth: 0, fontSize: 14, color: k.fg }} /></label>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(270px,1fr))', gap: 18 }}>
-            {inmuebles.filter((p) => {
-              const q = busqueda.trim().toLowerCase();
-              if (!q) return true;
-              return [p.ref, p.titulo, p.direccion, p.zona, p.barrio].join(" ").toLowerCase().includes(q);
-            }).map((p) => (
+            {inmueblesVisibles.length === 0 ? <p style={{ gridColumn: '1 / -1', margin: 0, color: k.mut, fontSize: 14 }}>{inmuebles.length === 0 ? 'Ningún inmueble está marcado como publicable en redes. Márcalo en Inmuebles.' : 'Ningún inmueble con esa búsqueda.'}</p> : null}
+            {inmueblesVisibles.map((p) => (
               <button key={p.id} onClick={() => pickInmueble(p.id)} aria-pressed={p.id === pid} className="estudio-card" style={{ ...btn, display: 'block', borderRadius: 16, overflow: 'hidden', background: k.panel, border: `1.5px solid ${p.id === pid ? k.blue : k.line}` }}>
                 <span style={{ display: 'block', aspectRatio: '16/10', backgroundImage: p.fotos[0] ? `url("${p.fotos[0].url}")` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }} />
                 <span style={{ display: 'block', padding: '14px 16px 16px' }}>

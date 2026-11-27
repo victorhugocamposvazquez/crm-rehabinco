@@ -20,6 +20,8 @@ import { InmuebleMultimedia } from "@/components/inmuebles/InmuebleMultimedia";
 import { useAuth } from "@/lib/auth/auth-context";
 import type { InmuebleMedia } from "@/lib/inmuebles/catalogo";
 import { urlPortadaDeMedia } from "@/lib/inmuebles/portada";
+import { guardarPublicableRedes } from "@/lib/inmuebles/publicar-redes";
+import { PublicableRedes } from "@/components/inmuebles/PublicableRedes";
 import { cn } from "@/lib/utils";
 
 type MatchVista = {
@@ -286,6 +288,22 @@ export function PanelInmueble({
             </div>
           </div>
           <p className="mt-2 text-[13.5px] text-[var(--text-2)]">{[inmueble.direccion, inmueble.localidad].filter(Boolean).join(", ")}</p>
+          <div className="mt-4">
+            <PublicableRedes
+              checked={inmueble.publicarRedes}
+              onChange={(valor) => {
+                onCambio?.({ publicarRedes: valor });
+                void guardarPublicableRedes(inmueble.id, valor).then((error) => {
+                  if (!error) {
+                    toast.success(valor ? "Saldrá en el Estudio." : "Ya no sale en el Estudio.");
+                    return;
+                  }
+                  onCambio?.({ publicarRedes: !valor });
+                  toast.error("No se ha podido guardar.");
+                });
+              }}
+            />
+          </div>
           <div className="mt-5 flex items-center gap-3">
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--input)]">
               <div className="h-full rounded-full bg-[var(--green)]" style={{ width: `${completar.porcentaje}%` }} />
@@ -296,7 +314,7 @@ export function PanelInmueble({
             <Button asChild>
               <Link href={`/propiedades/${inmueble.id}/editar`}>Editar inmueble</Link>
             </Button>
-            {user?.role !== "admin" ? (
+            {inmueble.publicarRedes ? (
               <Button variant="ghost" asChild>
                 <Link href={`/estudio?inmueble=${inmueble.id}`}>Estudio</Link>
               </Button>
