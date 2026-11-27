@@ -181,6 +181,7 @@ export function PanelLateralValoracion({
               Valorar
             </Button>
           ) : null}
+          </div>
         </div>
       </div>
     );
