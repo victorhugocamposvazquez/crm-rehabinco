@@ -3,6 +3,7 @@
  *
  * npx tsx scripts/avm-data/run.ts --layer crime --scope all
  * npx tsx scripts/avm-data/run.ts --layer osm --scope spain/galicia
+ * npx tsx scripts/avm-data/run.ts --layer notariado
  */
 import { execSync } from "node:child_process";
 import path from "node:path";
@@ -27,7 +28,7 @@ async function main(): Promise<void> {
   const scope = resolveGeofabrikScope(arg("--scope") || process.env.AVM_DATA_SCOPE || "spain");
 
   if (!layer) {
-    console.error("Pasa --layer: osm|gtfs|crime|vulnerability|snczi|noise|ine_sections|inspire");
+    console.error("Pasa --layer: osm|gtfs|crime|vulnerability|snczi|noise|ine_sections|inspire|notariado");
     process.exit(1);
   }
 
@@ -61,6 +62,9 @@ async function main(): Promise<void> {
         return { rows: Number(process.env.AVM_LAST_ROWS ?? 0) };
       case "inspire":
         sh(`npx tsx scripts/avm-data/load-inspire.ts --scope ${scope}`);
+        return { rows: Number(process.env.AVM_LAST_ROWS ?? 0) };
+      case "notariado":
+        sh("npx tsx scripts/avm-data/load-notariado.ts --fetch");
         return { rows: Number(process.env.AVM_LAST_ROWS ?? 0) };
       default:
         throw new Error(`Capa desconocida: ${layer}`);

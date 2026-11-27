@@ -4,6 +4,7 @@ import { buildTwin, type PropertySource, type TwinBuild, type TwinUnit } from ".
 import type { Channel, Comparable, Operation, Twin, ZoneLevel, ZoneStats } from "./types";
 import { environmentFromAvmRpc } from "./environment-from-rpc";
 import { publicView, valuate, type ValuateDeps, type ValuateOptions } from "./valuate";
+import { elegirDescuento } from "./notariado";
 
 const TENANT = "00000000-0000-4000-8000-000000000001";
 
@@ -129,15 +130,20 @@ export function depsMercado(db: SupabaseClient): ValuateDeps {
     comparables: comparablesDe,
     rentComparables: (twin) => comparablesDe(twin, "rent"),
     async discountPct(twin) {
-      if (!twin.address.municipalityCode || !twin.mainType) return null;
-      const { data } = await db
-        .from("market_discount")
-        .select("discount_pct")
-        .eq("zone_level", "municipality")
-        .eq("zone_key", twin.address.municipalityCode)
-        .eq("main_type", twin.mainType)
-        .maybeSingle();
-      return data?.discount_pct == null ? null : Number(data.discount_pct);
+      if (!twin.mainType) return null;
+      const leer = async (nivel: "postcode" | "municipality", clave: string): Promise<number | null> => {
+        const { data } = await db
+          .from("market_discount")
+          .select("discount_pct")
+          .eq("zone_level", nivel)
+          .eq("zone_key", clave)
+          .eq("main_type", twin.mainType)
+          .maybeSingle();
+        return data?.discount_pct == null ? null : Number(data.discount_pct);
+      };
+      const postcode = twin.address.postcode ? await leer("postcode", twin.address.postcode) : null;
+      const municipality = twin.address.municipalityCode ? await leer("municipality", twin.address.municipalityCode) : null;
+      return elegirDescuento({ postcode, municipality });
     },
     async grossYieldPct(twin) {
       if (twin.address.lat == null || twin.address.lng == null || !twin.mainType) return null;

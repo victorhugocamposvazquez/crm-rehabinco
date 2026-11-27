@@ -1,5 +1,6 @@
 import type { CapaCargada } from "../entorno-coverage";
 import { visibleAlCliente } from "./testigos-cliente";
+import { textoCierre } from "../notariado";
 import { fmtCapaEntorno } from "../entorno-coverage";
 import type { EnvironmentItem, Twin, ValuationResult } from "../types";
 import { fmtEuros, fmtFechaCorta, fmtFechaLarga, fmtNumero, fmtPorcentaje } from "../ui/format";
@@ -369,7 +370,8 @@ export function modeloInformePdf(input: {
       ]
     : [{ label: "Zona", value: "sin dato de mercado" }];
 
-  const cierre = result.sourcesUsed.find((s) => s.layer === "close_series");
+  const cierreTxt = textoCierre(result.sourcesUsed, result.explanation);
+  const cierreNotarial = result.sourcesUsed.some((s) => s.layer === "close_series" && s.source === "market_discount");
   const mercadoInterno: FilaFicha[] = zona
     ? [
         { label: "Nivel", value: zona.label },
@@ -382,7 +384,7 @@ export function modeloInformePdf(input: {
               ? `${fmtNumero(Math.round(zona.p25Ppm2))} – ${fmtNumero(Math.round(zona.p75Ppm2))} €/m²`
               : "sin dato",
         },
-        { label: "Cierre", value: cierre?.source === "default_8pct" ? "pendiente de cierres propios" : etiquetaMotorFuente(cierre?.source ?? "missing") },
+        { label: "Cierre", value: cierreNotarial ? `${cierreTxt.valor} · ${cierreTxt.pie}` : cierreTxt.pie },
         {
           label: "Tendencia 12 meses",
           value: zona.trend12mPct == null ? "sin histórico" : fmtPorcentaje(zona.trend12mPct),

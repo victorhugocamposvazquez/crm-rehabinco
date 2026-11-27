@@ -26,6 +26,7 @@ import type { EntornoCoverage } from "../../lib/avm/entorno-coverage";
 import { MapaValoracion } from "./MapaValoracion";
 import { EntornoInforme, FlagsEntorno } from "./EntornoInforme";
 import { InformeAcciones } from "./InformeAcciones";
+import { textoCierre } from "../../lib/avm/notariado";
 
 export type InformeProps = {
   creada: string;
@@ -72,6 +73,7 @@ export function InformeValoracion({
   });
   const filas = filasFicha(twin, fieldSources);
   const zona = result.zoneStats;
+  const cierre = textoCierre(result.sourcesUsed, result.explanation);
   const compsOrden = [...result.comparables].sort((a, b) => b.weight - a.weight);
   const penalizacionesVisibles = penalties.filter((p) => p.points > 0);
   const rangoPie =
@@ -185,7 +187,7 @@ export function InformeValoracion({
                     : "sin datos de zona"
                 }
               />
-              <MiniTile label="Cierre" value="pendiente" foot="se activa con los primeros cierres propios" />
+              <MiniTile label="Cierre" value={cierre.valor} foot={cierre.pie} />
             </div>
             {mesesHistoricoZona >= 6 ? (
               <div className="h-40 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)]" data-testid="grafico-cierre" />

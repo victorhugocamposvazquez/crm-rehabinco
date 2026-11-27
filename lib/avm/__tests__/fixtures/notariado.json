@@ -1,0 +1,44 @@
+{
+  "period": "2026-10-15",
+  "rows": [
+    {
+      "nivel": "municipio",
+      "codigo": "15030",
+      "tipo": "piso",
+      "eur_m2": 2450,
+      "compraventas": 80,
+      "superficie_media": 86,
+      "estimado": false
+    },
+    {
+      "nivel": "cp",
+      "codigo": "15004",
+      "tipo": "piso",
+      "eur_m2": 2600,
+      "compraventas": 22,
+      "superficie_media": 84
+    },
+    {
+      "nivel": "municipio",
+      "codigo": "15030",
+      "tipo": "casa",
+      "eur_m2": 1800,
+      "compraventas": 12,
+      "estimado": false
+    },
+    {
+      "nivel": "municipio",
+      "codigo": "15901",
+      "tipo": "piso",
+      "eur_m2": 900,
+      "compraventas": 40,
+      "es_estimado": 1
+    },
+    {
+      "nivel": "municipio",
+      "codigo": "15031",
+      "tipo": "piso",
+      "compraventas": 50
+    }
+  ]
+}

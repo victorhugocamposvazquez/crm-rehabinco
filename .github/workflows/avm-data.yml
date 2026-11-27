@@ -17,6 +17,7 @@ on:
           - noise
           - ine_sections
           - inspire
+          - notariado
       scope:
         description: Alcance (spain, spain/galicia, código provincia 15, municipio 15030, all)
         required: true
@@ -35,6 +36,8 @@ on:
     - cron: "0 5 20 1 *"
     # Día 5 · cada 3 meses · INSPIRE (market_crawl_targets)
     - cron: "0 5 5 1,4,7,10 *"
+    # Día 2 · cada mes · cierre notarial
+    - cron: "0 6 2 * *"
 
 concurrency:
   group: avm-data-${{ github.ref }}
@@ -89,6 +92,7 @@ jobs:
               "0 5 1 2 *") layers="snczi noise vulnerability" ;;
               "0 5 20 1 *") layers="ine_sections" ;;
               "0 5 5 1,4,7,10 *") layers="inspire" ;;
+              "0 6 2 * *") layers="notariado" ;;
               *) echo "Cron no reconocido: $CRON"; exit 1 ;;
             esac
           fi
@@ -115,6 +119,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           GTFS_STOPS_DIR: data/env/gtfs/tranvias-coruna
+          PENOTARIADO_TOKEN: ${{ secrets.PENOTARIADO_TOKEN }}
         run: |
           set -euo pipefail
           if [ -z "${NEXT_PUBLIC_SUPABASE_URL}" ] || [ -z "${SUPABASE_SERVICE_ROLE_KEY}" ]; then
@@ -126,6 +131,10 @@ jobs:
             echo "========== $layer ($scope) =========="
             if [ "$layer" = "gtfs" ] && [ ! -f data/env/gtfs/tranvias-coruna/stops.txt ]; then
               echo "Omitiendo GTFS (sin stops.txt)."
+              continue
+            fi
+            if [ "$layer" = "notariado" ] && [ -z "${PENOTARIADO_TOKEN}" ]; then
+              echo "Sin PENOTARIADO_TOKEN: el portal exige autorización. Carga el fichero mensual con --file."
               continue
             fi
             npx tsx scripts/avm-data/run.ts --layer "$layer" --scope "$scope"

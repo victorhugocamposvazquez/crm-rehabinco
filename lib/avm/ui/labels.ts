@@ -105,8 +105,8 @@ export const ETIQUETA_MARKET_SOURCE: Record<MarketMotorSource, string> = {
 type CloseMotorSource = "market_discount" | "default_8pct";
 
 export const ETIQUETA_CLOSE_SOURCE: Record<CloseMotorSource, string> = {
-  market_discount: "serie de cierre de la zona",
-  default_8pct: "8 % por defecto, sin cierres propios",
+  market_discount: "cierre notarial de la zona",
+  default_8pct: "8 % de respaldo, sin cierre notarial",
 };
 
 type RentMotorSource = "avm_comparables/rent" | "gross_yield" | "none";
@@ -204,7 +204,7 @@ export function etiquetaPenalizacion(reason: string, ctx: FuenteEtiquetaContext 
     const [, layer, status, source] = capaFuente;
     const capa = ETIQUETA_CAPA[layer as SourceUsed["layer"]] ?? layer;
     if (layer === "close_series" && status === "degraded" && source === "default_8pct") {
-      return "Descuento oferta → cierre por defecto, sin cierres propios";
+      return "Descuento oferta → cierre al 8 % de respaldo, sin cierre notarial";
     }
     if (layer === "property" && source === "catastro_local") {
       return "Catastro servido desde caché";
