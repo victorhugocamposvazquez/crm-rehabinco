@@ -84,7 +84,7 @@ type StatsOpts = { size?: number; center?: boolean; short?: boolean; line?: stri
 type Ctx = CreativeData & Sel & {
   W: number; H: number; fs: number; tall: boolean; wide: boolean; edit: boolean;
   fld: (key: FieldKey, style: CSSProperties, ...kids: ReactNode[]) => ReactElement | null;
-  pic: (i: number, style: CSSProperties) => ReactElement;
+  pic: (i: number, style: CSSProperties, filtroBase?: string) => ReactElement;
   stats: (o: StatsOpts) => ReactElement;
   foot: (color: string) => ReactElement;
 };
@@ -93,7 +93,6 @@ const SERIF = FONT.serif, BEBAS = FONT.bebas, MONO = FONT.mono;
 const d = (s: CSSProperties, ...k: ReactNode[]) => h('div', { style: s }, ...k);
 const sp = (s: CSSProperties, ...k: ReactNode[]) => h('span', { style: s }, ...k);
 const ab = (...o: CSSProperties[]): CSSProperties => Object.assign({ position: 'absolute' } as CSSProperties, ...o);
-const bg = (u: string, f?: string, o?: CSSProperties): CSSProperties => Object.assign({ backgroundImage: u, backgroundSize: 'cover', backgroundPosition: 'center', filter: f || 'none' }, o || {});
 const HD = (x: Ctx, size: number, o?: CSSProperties): CSSProperties => Object.assign({ fontFamily: x.ty.ff, fontWeight: x.ty.fw, textTransform: x.ty.tt, letterSpacing: x.ty.ls, fontSize: (size * x.ty.k).toFixed(3) + 'em', lineHeight: x.ty.lh } as CSSProperties, o || {});
 /** Ancho en em, nunca en porcentaje: si no, el SVG vuelve a sus 499 px y se corta. */
 const logo = (color: string, size: number, align?: 'left' | 'right' | 'center') => {
@@ -256,7 +255,7 @@ const R: Record<TemplateId, (x: Ctx) => ReactNode[]> = {
 
   portada: x => { const { f, c } = x; return [
     x.pic(0, { position: 'absolute', inset: 0 }),
-    d(ab({ inset: 0, background: 'linear-gradient(180deg,rgba(0,0,0,.62) 0%,rgba(0,0,0,0) 30%,rgba(0,0,0,0) 46%,rgba(0,0,0,.9) 100%)' })),
+    d(ab({ inset: 0, pointerEvents: 'none', background: 'linear-gradient(180deg,rgba(0,0,0,.62) 0%,rgba(0,0,0,0) 30%,rgba(0,0,0,0) 46%,rgba(0,0,0,.9) 100%)' })),
     x.fld('logo', ab({ left: '10%', right: '10%', top: '4.8%', display: 'flex', justifyContent: 'center' }), logo('#fff', 1.05, 'center')),
     x.fld('badge', ab({ right: '6%', top: x.tall ? '19%' : '25%', width: '4.9em', height: '4.9em', borderRadius: '50%', background: c.acc, color: c.accFg, transform: 'rotate(-12deg)', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', boxShadow: '0 .5em 1.4em rgba(0,0,0,.35)' }),
       d(ab({ inset: '.32em', borderRadius: '50%', border: '1px dashed currentColor', opacity: .55 })),
@@ -387,25 +386,25 @@ const R: Record<TemplateId, (x: Ctx) => ReactNode[]> = {
 
   vendido: x => { const { f, c } = x; const rep = (t: string, n: number) => Array(n).fill(t).join('   ✦   ');
     return [
-      d(bg(x.ph[0], (x.pf[0] === 'none' ? '' : x.pf[0] + ' ') + 'grayscale(.45)', { position: 'absolute', inset: 0 })),
-      d(ab({ inset: 0, background: 'linear-gradient(180deg,rgba(0,0,0,.4),rgba(0,0,0,.22) 42%,rgba(0,0,0,.85))' })),
-      d(ab({ left: '-25%', width: '150%', top: x.tall ? '40%' : '49%', transform: 'rotate(6deg)', background: c.bg, color: c.fg, fontSize: '.6em', letterSpacing: '.36em', padding: '.75em 0', whiteSpace: 'nowrap', overflow: 'hidden', textAlign: 'center' }), rep('REHABINCO', 10)),
+      x.pic(0, { position: 'absolute', inset: 0 }, 'grayscale(.45)'),
+      d(ab({ inset: 0, pointerEvents: 'none', background: 'linear-gradient(180deg,rgba(0,0,0,.4),rgba(0,0,0,.22) 42%,rgba(0,0,0,.85))' })),
+      d(ab({ left: '-25%', width: '150%', top: x.tall ? '40%' : '49%', transform: 'rotate(6deg)', pointerEvents: 'none', background: c.bg, color: c.fg, fontSize: '.6em', letterSpacing: '.36em', padding: '.75em 0', whiteSpace: 'nowrap', overflow: 'hidden', textAlign: 'center' }), rep('REHABINCO', 10)),
       x.fld('badge', ab({ left: '-25%', width: '150%', top: x.tall ? '32%' : '35%', transform: 'rotate(-8deg)', background: c.acc, color: c.accFg, fontFamily: BEBAS, fontSize: '2.7em', letterSpacing: '.05em', lineHeight: 1, padding: '.18em 0 .08em', whiteSpace: 'nowrap', overflow: 'hidden', textAlign: 'center', boxShadow: '0 .25em .8em rgba(0,0,0,.4)' }), rep(f.badge.toUpperCase(), 6)),
       x.fld('logo', ab({ left: '5.5%', top: '5.5%' }), logo('#fff', .5)),
       d(ab({ left: '5.5%', right: '5.5%', bottom: '5.5%', color: '#fff' }),
-        d({ fontSize: '.5em', opacity: .8 }, 'Otra llave entregada en'),
+        d({ fontSize: '.5em', opacity: .8, pointerEvents: 'none' }, 'Otra llave entregada en'),
         x.fld('zona', HD(x, 1.55, { marginTop: '.2em', fontStyle: x.ty.it }), x.barrio),
         x.fld('cta', { display: 'inline-block', marginTop: '.9em', fontSize: '.46em', fontWeight: 600, background: '#fff', color: '#141414', padding: '.8em 1.35em', borderRadius: '99px' }, f.cta))
     ]; },
 
   reforma: x => { const { f, c } = x; const ang = Math.atan2(.16 * x.W, .78 * x.H) * 180 / Math.PI; const len = Math.hypot(.16 * x.W, .78 * x.H);
     return [
-      d(bg(x.ph[0], 'grayscale(1) contrast(.9) brightness(.75) sepia(.2)', { position: 'absolute', left: 0, top: 0, width: '100%', height: '78%' })),
-      x.pic(0, { position: 'absolute', left: 0, top: 0, width: '100%', height: '78%', clipPath: 'polygon(58% 0,100% 0,100% 100%,42% 100%)' }),
-      d(ab({ left: (x.W * .5 - 1.5) + 'px', top: (x.H * .39 - len / 2) + 'px', width: '3px', height: len + 'px', background: '#fff', transform: `rotate(${ang}deg)` })),
-      d(ab({ left: '50%', top: '39%', width: '2.3em', height: '2.3em', transform: 'translate(-50%,-50%)', borderRadius: '50%', background: '#fff', color: '#141414', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 .2em .8em rgba(0,0,0,.35)' }), sp({ fontSize: '.9em', fontWeight: 700 }, '⇆')),
-      d(ab({ left: '5%', top: '5%', fontSize: '.44em', fontWeight: 600, background: 'rgba(0,0,0,.6)', color: '#fff', padding: '.55em 1em', borderRadius: '99px' }), 'Antes'),
-      d(ab({ right: '5%', top: '5%', fontSize: '.44em', fontWeight: 600, background: '#fff', color: '#141414', padding: '.55em 1em', borderRadius: '99px' }), 'Después'),
+      x.pic(0, { position: 'absolute', left: 0, top: 0, width: '100%', height: '78%' }),
+      x.pic(0, { position: 'absolute', left: 0, top: 0, width: '100%', height: '78%', pointerEvents: 'none', clipPath: 'polygon(0 0,58% 0,42% 100%,0 100%)' }, 'grayscale(1) contrast(.9) brightness(.75) sepia(.2)'),
+      d(ab({ left: (x.W * .5 - 1.5) + 'px', top: (x.H * .39 - len / 2) + 'px', width: '3px', height: len + 'px', pointerEvents: 'none', background: '#fff', transform: `rotate(${ang}deg)` })),
+      d(ab({ left: '50%', top: '39%', width: '2.3em', height: '2.3em', transform: 'translate(-50%,-50%)', pointerEvents: 'none', borderRadius: '50%', background: '#fff', color: '#141414', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 .2em .8em rgba(0,0,0,.35)' }), sp({ fontSize: '.9em', fontWeight: 700 }, '⇆')),
+      d(ab({ left: '5%', top: '5%', pointerEvents: 'none', fontSize: '.44em', fontWeight: 600, background: 'rgba(0,0,0,.6)', color: '#fff', padding: '.55em 1em', borderRadius: '99px' }), 'Antes'),
+      d(ab({ right: '5%', top: '5%', pointerEvents: 'none', fontSize: '.44em', fontWeight: 600, background: '#fff', color: '#141414', padding: '.55em 1em', borderRadius: '99px' }), 'Después'),
       d(ab({ left: 0, right: 0, bottom: 0, height: '22%', background: c.bg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1em', padding: '0 5.5%' }),
         d({ minWidth: 0 }, x.fld('badge', { fontSize: '.44em', color: c.mut }, f.badge), x.fld('titulo', HD(x, .95, { marginTop: '.2em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontStyle: x.ty.it }), f.titulo), x.fld('zona', { fontSize: '.52em', color: c.mut, marginTop: '.35em' }, f.zona)),
         d({ textAlign: 'right', flex: '0 0 auto' }, x.fld('precio', { fontSize: '1.45em', fontWeight: 700, letterSpacing: '-.02em', whiteSpace: 'nowrap' }, f.precio), x.fld('logo', { marginTop: '.55em', display: 'flex', justifyContent: 'flex-end' }, logo(c.fg, .34, 'right'))))
@@ -521,16 +520,16 @@ export function Creative({ template, data, width: W, height: H, editable = false
       onPointerDown: alPulsar,
     }, ...kids);
   };
-  x.pic = (i, style) => {
+  x.pic = (i, style, filtroBase) => {
     const enc = encuadreDe(x.encuadre?.[i]);
     const ajuste = ajusteDe(x.ajuste?.[i]);
     const filtroColor = filtroAjuste(ajuste);
     const filtroPlantilla = x.pf[i] && x.pf[i] !== "none" ? x.pf[i] : "";
-    const filter = [filtroPlantilla, filtroColor !== "none" ? filtroColor : ""].filter(Boolean).join(" ") || undefined;
+    const filter = [filtroBase, filtroPlantilla, filtroColor !== "none" ? filtroColor : ""].filter(Boolean).join(" ") || undefined;
     const vineta = fondoVineta(ajuste);
     const marco: CSSProperties = { ...style, overflow: 'hidden', position: style.position ?? 'relative' };
     const imagen = h(FotoEncuadre, { enc, src: x.ph[i] || "", filter, vineta });
-    if (!edit) return h('div', { style: marco }, imagen);
+    if (!edit || style.pointerEvents === "none") return h('div', { style: marco }, imagen);
     const on = x.sel === 'foto' + i;
     return h('div', {
       className: 'estudio-pic',
