@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { formDesdeInmueble, inmuebleDesdeForm } from "./catalogo";
 
 describe("no publicable", () => {
-  it("sale en el Estudio salvo que se marque como no publicable", () => {
+  it("sale en el Estudio salvo que se marque como no publicable en redes", () => {
     assert.equal(formDesdeInmueble({}).publicar_redes, true);
     assert.equal(inmuebleDesdeForm(formDesdeInmueble({})).publicar_redes, true);
     const excluido = formDesdeInmueble({ publicar_redes: false });

@@ -14,7 +14,7 @@ export function PublicableRedes({
   return (
     <label
       className={cn(
-        "flex min-h-11 cursor-pointer items-center gap-2.5 rounded-[10px] border px-3 text-[13.5px] font-semibold",
+        "flex min-h-11 cursor-pointer items-center gap-2.5 rounded-[10px] border px-3 text-[13.5px] font-semibold leading-tight",
         checked
           ? "border-foreground bg-[var(--surface-soft)] text-foreground"
           : "border-border bg-[var(--surface)] text-foreground",
@@ -29,7 +29,7 @@ export function PublicableRedes({
         disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
       />
-      No publicable
+      <span className="min-w-0">No publicable en redes</span>
     </label>
   );
 }

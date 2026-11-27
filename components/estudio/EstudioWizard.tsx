@@ -111,7 +111,7 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
 
   const inm = inmuebles.find((i) => i.id === pid);
   const slideData = useMemo(() => (inm ? pub.slides.map((s) => buildSlideData(inm, pub, s)) : []), [inm, pub]);
-  if (!inm) return <p style={{ padding: 32, color: k.mut }}>{inmuebles.length === 0 ? "No hay inmuebles en el Estudio. Los marcados como no publicables no salen." : "No hay inmuebles con fotos para crear una publicación."}</p>;
+  if (!inm) return <p style={{ padding: 32, color: k.mut }}>{inmuebles.length === 0 ? "No hay inmuebles en el Estudio. Los marcados como no publicables en redes no salen." : "No hay inmuebles con fotos para crear una publicación."}</p>;
 
   const n = pub.slides.length;
   const c = Math.min(cur, n - 1);
@@ -298,11 +298,11 @@ export function EstudioWizard({ inmuebles, initialInmuebleId, onSave, onReview, 
       {step === 'inmueble' && (
         <main className="estudio-scroll" style={{ padding: '32px 28px 40px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap', marginBottom: 22 }}>
-            <div><h1 style={{ fontSize: 26, margin: 0, fontWeight: 600 }}>¿De qué inmueble es la publicación?</h1><p style={{ margin: '6px 0 0', color: k.mut, fontSize: 14 }}>Al elegirlo pasas al siguiente paso. Los marcados como no publicables no salen.</p></div>
+            <div><h1 style={{ fontSize: 26, margin: 0, fontWeight: 600 }}>¿De qué inmueble es la publicación?</h1><p style={{ margin: '6px 0 0', color: k.mut, fontSize: 14 }}>Al elegirlo pasas al siguiente paso. Los marcados como no publicables en redes no salen.</p></div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, width: 320, maxWidth: '100%', height: 42, padding: '0 12px', border: `1px solid ${k.line2}`, borderRadius: 11, color: k.mut }}><Search size={16} /><input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Referencia, dirección o zona" aria-label="Buscar inmueble" style={{ border: 0, outline: 0, background: 'none', flex: 1, minWidth: 0, fontSize: 14, color: k.fg }} /></label>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(270px,1fr))', gap: 18 }}>
-            {inmueblesVisibles.length === 0 ? <p style={{ gridColumn: '1 / -1', margin: 0, color: k.mut, fontSize: 14 }}>{inmuebles.length === 0 ? 'No hay inmuebles en el Estudio. Los marcados como no publicables no salen.' : 'Ningún inmueble con esa búsqueda.'}</p> : null}
+            {inmueblesVisibles.length === 0 ? <p style={{ gridColumn: '1 / -1', margin: 0, color: k.mut, fontSize: 14 }}>{inmuebles.length === 0 ? 'No hay inmuebles en el Estudio. Los marcados como no publicables en redes no salen.' : 'Ningún inmueble con esa búsqueda.'}</p> : null}
             {inmueblesVisibles.map((p) => (
               <button key={p.id} onClick={() => pickInmueble(p.id)} aria-pressed={p.id === pid} className="estudio-card" style={{ ...btn, display: 'block', borderRadius: 16, overflow: 'hidden', background: k.panel, border: `1.5px solid ${p.id === pid ? k.blue : k.line}` }}>
                 <span style={{ display: 'block', aspectRatio: '16/10', backgroundImage: p.fotos[0] ? `url("${p.fotos[0].url}")` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }} />

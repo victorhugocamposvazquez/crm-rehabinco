@@ -485,7 +485,7 @@ export default function PropiedadesPage() {
               <p className="px-4 py-9 text-center text-[13.5px] text-[var(--text-2)]">Ningún inmueble con ese filtro.</p>
             ) : modo === "lista" ? (
               <>
-                <div className="grid grid-cols-[minmax(0,1fr)_70px_110px_120px_130px_190px_40px] gap-3 border-b border-[var(--border-soft)] bg-[var(--surface-soft)] px-3.5 py-2 text-[12px] text-[var(--text-3)]">
+                <div className="grid grid-cols-[minmax(0,1fr)_70px_110px_120px_130px_220px_40px] gap-3 border-b border-[var(--border-soft)] bg-[var(--surface-soft)] px-3.5 py-2 text-[12px] text-[var(--text-3)]">
                   <div>Inmueble</div>
                   <div className="text-right">m²</div>
                   <div className="text-right">Precio</div>
@@ -500,7 +500,7 @@ export default function PropiedadesPage() {
                     <div
                       key={p.id}
                       className={cn(
-                        "grid w-full grid-cols-[minmax(0,1fr)_70px_110px_120px_130px_190px_40px] items-center gap-3 border-b border-[var(--border-row)] px-3.5 py-2.5 hover:bg-[var(--surface-soft)]",
+                        "grid w-full grid-cols-[minmax(0,1fr)_70px_110px_120px_130px_220px_40px] items-center gap-3 border-b border-[var(--border-row)] px-3.5 py-2.5 hover:bg-[var(--surface-soft)]",
                         active && "bg-[var(--row-active)] shadow-[inset_3px_0_0_var(--accent)]"
                       )}
                     >
