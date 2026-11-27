@@ -16,7 +16,7 @@ export function PublicableRedes({
       className={cn(
         "flex min-h-11 cursor-pointer items-center gap-2.5 rounded-[10px] border px-3 text-[13.5px] font-semibold",
         checked
-          ? "border-[var(--green)] bg-[var(--green-bg)] text-foreground"
+          ? "border-foreground bg-[var(--surface-soft)] text-foreground"
           : "border-border bg-[var(--surface)] text-foreground",
         disabled && "cursor-wait opacity-60"
       )}
@@ -24,12 +24,12 @@ export function PublicableRedes({
     >
       <input
         type="checkbox"
-        className="h-5 w-5 shrink-0 accent-[var(--green)]"
+        className="h-5 w-5 shrink-0 accent-[var(--foreground)]"
         checked={checked}
         disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
       />
-      Publicable en redes
+      No publicable
     </label>
   );
 }

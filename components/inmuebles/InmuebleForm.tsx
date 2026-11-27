@@ -57,7 +57,7 @@ export function InmuebleForm({
       }}
       className="space-y-8"
     >
-      <PublicableRedes checked={values.publicar_redes} onChange={(valor) => set({ publicar_redes: valor })} />
+      <PublicableRedes checked={!values.publicar_redes} onChange={(noPublicable) => set({ publicar_redes: !noPublicable })} />
       <section className="space-y-4">
         <h2 className="text-[12px] font-medium text-[var(--text-3)]">Captación</h2>
         <div className="space-y-2">

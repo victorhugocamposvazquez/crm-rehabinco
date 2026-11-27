@@ -140,7 +140,7 @@ export function mapInmueblePanel(r: InmueblePanelRow, dhPorFinca?: Map<string, s
     descripcion: r.descripcion ?? null,
     notas: r.notas ?? null,
     publicado: r.publicado,
-    publicarRedes: r.publicar_redes === true,
+    publicarRedes: r.publicar_redes !== false,
     ofertante_id: r.ofertante_id,
     comercialId: r.comercial_id ?? null,
     comercialNombre: com?.nombre_completo ?? null,

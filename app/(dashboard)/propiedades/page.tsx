@@ -159,11 +159,11 @@ export default function PropiedadesPage() {
   const hayBorrador = useHayAltaBorrador("inmueble");
 
   const marcarRedes = (id: string, valor: boolean) => {
-    const previa = propsRef.current.find((p) => p.id === id)?.publicarRedes ?? false;
+    const previa = propsRef.current.find((p) => p.id === id)?.publicarRedes ?? true;
     setPropiedades((prev) => prev.map((p) => (p.id === id ? { ...p, publicarRedes: valor } : p)));
     void guardarPublicableRedes(id, valor).then((error) => {
       if (!error) {
-        toast.success(valor ? "Saldrá en el Estudio." : "Ya no sale en el Estudio.");
+        toast.success(valor ? "Sale en el Estudio." : "Ya no sale en el Estudio.");
         return;
       }
       setPropiedades((prev) => prev.map((p) => (p.id === id ? { ...p, publicarRedes: previa } : p)));
@@ -491,7 +491,7 @@ export default function PropiedadesPage() {
                   <div className="text-right">Precio</div>
                   <div>Estado</div>
                   <div>Captado</div>
-                  <div>Redes</div>
+                  <div>Estudio</div>
                   <div />
                 </div>
                 {filteredPropiedades.map((p) => {
@@ -530,7 +530,7 @@ export default function PropiedadesPage() {
                       <button type="button" onClick={() => setSelectedId(p.id)} className="min-w-0 text-left">
                         <EquipoInmueble inmueble={p} perfiles={perfiles} />
                       </button>
-                      <PublicableRedes checked={p.publicarRedes} onChange={(valor) => marcarRedes(p.id, valor)} />
+                      <PublicableRedes checked={!p.publicarRedes} onChange={(noPublicable) => marcarRedes(p.id, !noPublicable)} />
                       <button
                         type="button"
                         title="Enviar a la papelera"
@@ -556,7 +556,7 @@ export default function PropiedadesPage() {
                       key={p.id}
                       className={cn(
                         "relative overflow-hidden rounded-xl border bg-white text-left",
-                        active ? "border-accent" : p.publicarRedes ? "border-[var(--green)]" : "border-border hover:border-accent"
+                        active ? "border-accent" : !p.publicarRedes ? "border-foreground" : "border-border hover:border-accent"
                       )}
                     >
                       <button type="button" onClick={() => setSelectedId(p.id)} className="block w-full text-left">
@@ -584,7 +584,7 @@ export default function PropiedadesPage() {
                         </span>
                       </button>
                       <div className="px-3 pb-3">
-                        <PublicableRedes checked={p.publicarRedes} onChange={(valor) => marcarRedes(p.id, valor)} />
+                        <PublicableRedes checked={!p.publicarRedes} onChange={(noPublicable) => marcarRedes(p.id, !noPublicable)} />
                       </div>
                       <button
                         type="button"

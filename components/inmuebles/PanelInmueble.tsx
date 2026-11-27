@@ -290,12 +290,13 @@ export function PanelInmueble({
           <p className="mt-2 text-[13.5px] text-[var(--text-2)]">{[inmueble.direccion, inmueble.localidad].filter(Boolean).join(", ")}</p>
           <div className="mt-4">
             <PublicableRedes
-              checked={inmueble.publicarRedes}
-              onChange={(valor) => {
+              checked={!inmueble.publicarRedes}
+              onChange={(noPublicable) => {
+                const valor = !noPublicable;
                 onCambio?.({ publicarRedes: valor });
                 void guardarPublicableRedes(inmueble.id, valor).then((error) => {
                   if (!error) {
-                    toast.success(valor ? "Saldrá en el Estudio." : "Ya no sale en el Estudio.");
+                    toast.success(valor ? "Sale en el Estudio." : "Ya no sale en el Estudio.");
                     return;
                   }
                   onCambio?.({ publicarRedes: !valor });
